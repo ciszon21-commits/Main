@@ -4,6 +4,15 @@ from typing import (
 )
 from django.contrib.auth.models import User
 
+from StudioBase.constants import (
+    SINGLE_DOMAIN,
+    SINGLE_TOKEN,
+)
+
+
+# TODO 參考用，之後刪除
+
+
 class UserJson(TypedDict):
     emp_no: 'str'
     emp_no_4: 'str'
@@ -18,10 +27,9 @@ class UserJson(TypedDict):
 def get_user_json(username:'str') -> 'UserJson|None':
     import requests
     url='https://single.sinotech.com.tw/ai/get_info/'
-    token='29ce0049c3c5df877d9206e8e39592fc24cedbcc'
 
     headers = {
-        "Authorization": f"Token {token}",  # 或者 "Token" 或者其他根據你的 API 文檔
+        "Authorization": f"Token {SINGLE_TOKEN}",  # 或者 "Token" 或者其他根據你的 API 文檔
         "Content-Type": "application/x-www-form-urlencoded"  # 根據需要設置 Content-Type
     }
 
@@ -36,10 +44,9 @@ def get_user_json(username:'str') -> 'UserJson|None':
 def get_user_projects(username:'str') -> 'UserJson|None':
     import requests
     url='https://single.sinotech.com.tw/ai/get_user_projects/'
-    token='29ce0049c3c5df877d9206e8e39592fc24cedbcc'
 
     headers = {
-        "Authorization": f"Token {token}",  # 或者 "Token" 或者其他根據你的 API 文檔
+        "Authorization": f"Token {SINGLE_TOKEN}",  # 或者 "Token" 或者其他根據你的 API 文檔
         "Content-Type": "application/x-www-form-urlencoded"  # 根據需要設置 Content-Type
     }
 
@@ -54,10 +61,9 @@ def get_user_projects(username:'str') -> 'UserJson|None':
 def get_proj_info(proj_no:'str') -> 'UserJson|None':
     import requests
     url='https://single.sinotech.com.tw/ai/get_project_name/'
-    token='29ce0049c3c5df877d9206e8e39592fc24cedbcc'
 
     headers = {
-        "Authorization": f"Token {token}",  # 或者 "Token" 或者其他根據你的 API 文檔
+        "Authorization": f"Token {SINGLE_TOKEN}",  # 或者 "Token" 或者其他根據你的 API 文檔
         "Content-Type": "application/x-www-form-urlencoded"  # 根據需要設置 Content-Type
     }
 
@@ -73,11 +79,10 @@ def get_proj_info(proj_no:'str') -> 'UserJson|None':
 def get_proj_members(proj_no:'str'):
     import requests
     url='https://single.sinotech.com.tw/ai/get_project_members/'
-    token='29ce0049c3c5df877d9206e8e39592fc24cedbcc'
 
     headers = {
-        "Authorization": f"Token {token}", 
-        "Content-Type": "application/x-www-form-urlencoded" 
+        "Authorization": f"Token {SINGLE_TOKEN}",
+        "Content-Type": "application/x-www-form-urlencoded"
     }
 
     data = {
@@ -91,10 +96,9 @@ def get_proj_members(proj_no:'str'):
 def get_empno(email:'str'):
     import requests
     url='https://single.sinotech.com.tw/ai/get_empno/'
-    token='29ce0049c3c5df877d9206e8e39592fc24cedbcc'
 
     headers = {
-        "Authorization": f"Token {token}",  # 或者 "Token" 或者其他根據你的 API 文檔
+        "Authorization": f"Token {SINGLE_TOKEN}",  # 或者 "Token" 或者其他根據你的 API 文檔
         "Content-Type": "application/x-www-form-urlencoded"  # 根據需要設置 Content-Type
     }
 
@@ -126,10 +130,9 @@ def create_user_by_email(email:'str'):
 def get_rd():
     import requests
     url='https://single.sinotech.com.tw/ai/get_rd/'
-    token='29ce0049c3c5df877d9206e8e39592fc24cedbcc'
 
     headers = {
-        "Authorization": f"Token {token}",  # 或者 "Token" 或者其他根據你的 API 文檔
+        "Authorization": f"Token {SINGLE_TOKEN}",  # 或者 "Token" 或者其他根據你的 API 文檔
         "Content-Type": "application/x-www-form-urlencoded"  # 根據需要設置 Content-Type
     }
 

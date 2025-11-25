@@ -27,7 +27,7 @@ SECRET_KEY = getattr(local, "SECRET_KEY", 'django-insecure--%dbcahm$h45=qeyio&^8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG =  getattr(local, 'DEBUG', True)
 
-ALLOWED_HOSTS = getattr(local, 'ALLOWED_HOSTS', 
+ALLOWED_HOSTS = getattr(local, 'ALLOWED_HOSTS',
     ['localhost', '127.0.0.1']
 )
 
@@ -201,6 +201,9 @@ SYSTEM_EMAIL = getattr(local, "SYSTEM_EMAIL", "測試郵件")
 NOTIFY_EMAIL_NAME = getattr(local, "NOTIFY_EMAIL_NAME", "測試開發者")
 NOTIFY_EMAIL = getattr(local, "NOTIFY_EMAIL", "通知郵件")
 
-AUTHENTICATION_BACKENDS = getattr(local, "AUTHENTICATION_BACKENDS", ['CoDevStudio.settings.SinoRemoteUserBackend.SinoRemoteUserBackend'])
+AUTHENTICATION_BACKENDS = getattr(local, "AUTHENTICATION_BACKENDS", ['CoDevStudio.sino_remote_user_backend.SinoRemoteUserBackend'])
 
 EMAIL_BACKEND = getattr(local, 'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+
+SINGLE_TOKEN = getattr(local, 'SINGLE_TOKEN', None)
+

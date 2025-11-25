@@ -7,12 +7,12 @@ from django.db.models import Q
 from django.http import HttpRequest
 from django.utils.deprecation import MiddlewareMixin
 
-from Extension.SinoUser import get_user_json
+from StudioBase.services.sino_user import get_user_json
 from BimAuth.models import BIMToken
 
 
 
-DATABASES = settings.DATABASES
+DATABASES:'dict[str,dict]' = getattr(settings, 'DATABASES', {})
 
 FROM_SAFE_APP = [
     'Single_Redirect',
