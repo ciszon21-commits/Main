@@ -11,22 +11,25 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from . import _local_settings as local
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+PROJECT_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure--%dbcahm$h45=qeyio&^8$*iz1!-tnby))#oeowkq0@90c#k!('
+SECRET_KEY = getattr(local, "SECRET_KEY", 'django-insecure--%dbcahm$h45=qeyio&^8$*iz1!-tnby))#oeowkq0@90c#k!(')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG =  getattr(local, 'DEBUG', True)
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = getattr(local, 'ALLOWED_HOSTS', 
+    ['localhost', '127.0.0.1']
+)
 
 # Application definition
 
@@ -37,16 +40,36 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    "django.contrib.humanize",
+
+    # DRF套件
+    "rest_framework",
+    "rest_framework.authtoken",
+    "rest_framework_simplejwt.token_blacklist",
+
+    # 中興擴充套件
+    "Extension",
+    "BimAuth",
+    "UserProfile",
 ]
 
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+}
+
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "CoDevStudio.middleware.user_auth.UserAuthMiddleware",  # django auth 之後
+    "django.contrib.auth.middleware.RemoteUserMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.security.SecurityMiddleware",
 ]
 
 ROOT_URLCONF = 'CoDevStudio.urls'
@@ -54,10 +77,13 @@ ROOT_URLCONF = 'CoDevStudio.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            BASE_DIR / "templates"
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                "django.template.context_processors.debug",
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -72,13 +98,43 @@ WSGI_APPLICATION = 'CoDevStudio.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
+DATABASES = getattr(local, "DATABASES", {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
-}
+})
 
+DATABASE_ROUTERS = [
+    "CoDevStudio.routers.DataBaseRouter",
+]
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": False,
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": getattr(local, "SECRET_KEY", 'django-insecure--%dbcahm$h45=qeyio&^8$*iz1!-tnby))#oeowkq0@90c#k!('),
+    "VERIFYING_KEY": None,
+    "AUDIENCE": None,
+    "ISSUER": None,
+    "JWK_URL": None,
+    "LEEWAY": 0,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+    "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "TOKEN_TYPE_CLAIM": "token_type",
+    "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
+    "JTI_CLAIM": "jti",
+    "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
+    "SLIDING_TOKEN_LIFETIME": timedelta(days=1),
+    "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -102,9 +158,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+TIME_ZONE = "Asia/Taipei"
 
-TIME_ZONE = 'UTC'
+LANGUAGE_CODE = 'zh-hant'
 
 USE_I18N = True
 
@@ -114,9 +170,37 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+
+STATIC_ROOT = PROJECT_DIR / "static_root"
+STATIC_URL = "static/"
+
+MEDIA_ROOT = PROJECT_DIR / "media"
+MEDIA_URL = "media/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+LTD_EMPNO_FIELDS = [
+    "EmpNo",
+    "EmpNo5",
+]
+
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_HOST = getattr(local, "EMAIL_HOST", None)
+EMAIL_HOST_USER = getattr(local, "EMAIL_HOST_USER", None)
+EMAIL_HOST_PASSWORD = getattr(local, "EMAIL_HOST_PASSWORD", None)
+
+
+SYSTEM_EMAIL = getattr(local, "SYSTEM_EMAIL", "測試郵件")
+NOTIFY_EMAIL_NAME = getattr(local, "NOTIFY_EMAIL_NAME", "測試開發者")
+NOTIFY_EMAIL = getattr(local, "NOTIFY_EMAIL", "通知郵件")
+
+AUTHENTICATION_BACKENDS = getattr(local, "AUTHENTICATION_BACKENDS", ['CoDevStudio.settings.SinoRemoteUserBackend.SinoRemoteUserBackend'])
+
+EMAIL_BACKEND = getattr(local, 'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
