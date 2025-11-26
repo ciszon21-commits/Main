@@ -1,0 +1,25 @@
+
+<script type="text/javascript">
+  function archiveFolderCheck($this){
+    if ($this.hasClass('loading')) return;
+    let $aFolder = $this.closest('.archive_folder_tr');
+    let aFolId = $aFolder.attr('tag');
+    $this.addClass('loading');
+    $.ajax({
+      type: 'get',
+      url: '/archive/model/function/',
+      data: {
+        model: 'ArchiveFolder',
+        id: aFolId,
+        function: 'check_this',
+      }, success: function(a){
+        $this.removeClass('loading');
+        reloadArchiveFolderTr($this);
+        console.log(a)
+      }, error: function(a){
+        $this.removeClass('loading');
+        console.log(a)
+      }
+    });
+  }
+</script>

@@ -5,6 +5,7 @@ from django.conf import settings
 class DataBaseRouter:
     _read_db_labels = [
         'BimAuth',
+        'PMIS',
     ]
     _write_db_labels = [
         'BimAuth',
