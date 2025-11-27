@@ -1,0 +1,186 @@
+{% extends 'gallery/base.html' %}
+
+{% block title %}{{ image.title }} - 圖片分享平台{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="detail-container">
+        <!-- 圖片顯示區 -->
+        <div class="detail-image-section">
+            <img src="{{ image.image.url }}" alt="{{ image.title }}" class="detail-image">
+        </div>
+
+        <!-- 圖片資訊區 -->
+        <div class="detail-info-section">
+            <h1 class="detail-title">{{ image.title }}</h1>
+
+            <div class="detail-meta">
+                <span class="category-badge">{{ image.category.name }}</span>
+                <span class="upload-date">📅 {{ image.uploaded_at|date:"Y-m-d H:i" }}</span>
+            </div>
+
+            {% if image.description %}
+            <div class="detail-description">
+                <h3>圖片描述</h3>
+                <p>{{ image.description|linebreaks }}</p>
+            </div>
+            {% endif %}
+
+            <div class="detail-stats">
+                <div class="stat-item">
+                    <span class="stat-label">上傳者</span>
+                    <span class="stat-value">👤 {{ image.uploaded_by.username }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">瀏覽次數</span>
+                    <span class="stat-value">👁️ {{ image.view_count }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">平均評分</span>
+                    <span class="stat-value">⭐ {{ image.average_rating|floatformat:2 }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">評分人數</span>
+                    <span class="stat-value">{{ image.total_ratings }} 人</span>
+                </div>
+            </div>
+
+            <!-- 評分區 -->
+            <div class="rating-section">
+                <h3>為這張圖片評分</h3>
+                {% if user.is_authenticated %}
+                <div class="star-rating" data-image-id="{{ image.pk }}">
+                    {% for i in "12345" %}
+                    <span class="star {% if user_rating and user_rating.rating >= forloop.counter %}active{% endif %}"
+                        data-rating="{{ forloop.counter }}">★</span>
+                    {% endfor %}
+                </div>
+                <p class="rating-message">
+                    {% if user_rating %}
+                    您的評分：{{ user_rating.rating }} 星
+                    {% else %}
+                    點擊星星進行評分
+                    {% endif %}
+                </p>
+                {% else %}
+                <p class="login-prompt">請先<a href="{% url 'admin:login' %}?next={{ request.path }}">登入</a>後評分</p>
+                {% endif %}
+            </div>
+
+            <!-- 評分分布 -->
+            <div class="rating-distribution">
+                <h3>評分分布</h3>
+                <div class="distribution-bars">
+                    {% for rating, data in rating_distribution.items reversed %}
+                    <div class="distribution-row">
+                        <span class="rating-label">{{ rating }} 星</span>
+                        <div class="bar-container">
+                            <div class="bar" style="width: {{ data.percentage }}%"></div>
+                        </div>
+                        <span class="rating-count">{{ data.count }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="detail-actions">
+                <a href="{% url 'gallery:list' %}" class="btn btn-secondary">← 返回列表</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const stars = document.querySelectorAll('.star-rating .star');
+        const imageId = document.querySelector('.star-rating').dataset.imageId;
+
+        stars.forEach(star => {
+            star.addEventListener('click', function () {
+                const rating = this.dataset.rating;
+                submitRating(imageId, rating);
+            });
+
+            star.addEventListener('mouseenter', function () {
+                const rating = this.dataset.rating;
+                highlightStars(rating);
+            });
+        });
+
+        document.querySelector('.star-rating').addEventListener('mouseleave', function () {
+            const currentRating = document.querySelectorAll('.star.active').length;
+            highlightStars(currentRating);
+        });
+    });
+
+    function highlightStars(rating) {
+        const stars = document.querySelectorAll('.star-rating .star');
+        stars.forEach((star, index) => {
+            if (index < rating) {
+                star.classList.add('hover');
+            } else {
+                star.classList.remove('hover');
+            }
+        });
+    }
+
+    function submitRating(imageId, rating) {
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
+
+        fetch(`/gallery/${imageId}/rate/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrftoken
+            },
+            body: `rating=${rating}`
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 更新星星顯示
+                    const stars = document.querySelectorAll('.star-rating .star');
+                    stars.forEach((star, index) => {
+                        if (index < rating) {
+                            star.classList.add('active');
+                        } else {
+                            star.classList.remove('active');
+                        }
+                    });
+
+                    // 更新訊息
+                    document.querySelector('.rating-message').textContent = `您的評分：${rating} 星`;
+
+                    // 顯示成功訊息
+                    alert(data.message);
+
+                    // 重新載入頁面以更新統計資訊
+                    location.reload();
+                } else {
+                    alert('評分失敗：' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('評分時發生錯誤');
+            });
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends 'gallery/base.html' %}
+
+{% block title %}{{ title }} - 圖片分享平台{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="leaderboard-container">
+        <h1>🏆 {{ title }}</h1>
+
+        <div class="period-tabs">
+            <a href="{% url 'gallery:leaderboard' 'week' %}?sort={{ sort_by }}"
+                class="tab {% if period == 'week' %}active{% endif %}">本周排行</a>
+            <a href="{% url 'gallery:leaderboard' 'month' %}?sort={{ sort_by }}"
+                class="tab {% if period == 'month' %}active{% endif %}">本月排行</a>
+            <a href="{% url 'gallery:leaderboard_all' %}?sort={{ sort_by }}" class="tab {% if period == 'all' %}active{% endif %}">總排行</a>
+        </div>
+
+        <div class="sort-tabs">
+            <a href="?sort=rating" class="sort-tab {% if sort_by == 'rating' %}active{% endif %}">⭐ 依評分</a>
+            <a href="?sort=views" class="sort-tab {% if sort_by == 'views' %}active{% endif %}">👁️ 依瀏覽次數</a>
+        </div>
+
+        {% if images %}
+        <div class="leaderboard-list">
+            {% for image in images %}
+            <div class="leaderboard-item rank-{{ forloop.counter }}">
+                <div class="rank-badge">
+                    {% if forloop.counter == 1 %}
+                    🥇
+                    {% elif forloop.counter == 2 %}
+                    🥈
+                    {% elif forloop.counter == 3 %}
+                    🥉
+                    {% else %}
+                    {{ forloop.counter }}
+                    {% endif %}
+                </div>
+
+                <div class="item-image">
+                    <a href="{% url 'gallery:detail' image.pk %}">
+                        <img src="{{ image.image.url }}" alt="{{ image.title }}">
+                    </a>
+                </div>
+
+                <div class="item-info">
+                    <h3><a href="{% url 'gallery:detail' image.pk %}">{{ image.title }}</a></h3>
+                    <div class="item-meta">
+                        <span class="category-badge">{{ image.category.name }}</span>
+                        <span class="uploader">👤 {{ image.uploaded_by.username }}</span>
+                    </div>
+                </div>
+
+                <div class="item-stats">
+                    <div class="stat">
+                        <span class="stat-label">平均評分</span>
+                        <span class="stat-value rating-value">⭐ {{ image.avg_rating|default:"0"|floatformat:2 }}</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">評分人數</span>
+                        <span class="stat-value">{{ image.rating_count }} 人</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">瀏覽次數</span>
+                        <span class="stat-value">👁️ {{ image.view_count }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>目前沒有符合條件的圖片</p>
+            {% if sort_by == 'views' %}
+            <small>排行榜顯示至少有 1 次瀏覽的圖片</small>
+            {% else %}
+            <small>排行榜顯示至少有 1 個評分的圖片</small>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
