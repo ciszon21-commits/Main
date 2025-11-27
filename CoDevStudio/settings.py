@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "SinoArchive",
     "SinoExtension",
     "PMIS",
+    "ImageGallery",
 ]
 
 
@@ -197,9 +198,10 @@ SYSTEM_EMAIL = getattr(local, "SYSTEM_EMAIL", "測試郵件")
 NOTIFY_EMAIL_NAME = getattr(local, "NOTIFY_EMAIL_NAME", "測試開發者")
 NOTIFY_EMAIL = getattr(local, "NOTIFY_EMAIL", "通知郵件")
 
-AUTHENTICATION_BACKENDS = getattr(local, "AUTHENTICATION_BACKENDS", ['CoDevStudio.sino_remote_user_backend.SinoRemoteUserBackend'])
+AUTHENTICATION_BACKENDS = getattr(local, "AUTHENTICATION_BACKENDS", ['CoDevStudio.backends.sino_remote_user_backend.SinoRemoteUserBackend'])
 
 EMAIL_BACKEND = getattr(local, 'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 
 SINGLE_TOKEN = getattr(local, 'SINGLE_TOKEN', None)
 
+DATA_UPLOAD_MAX_NUMBER_FILES = getattr(local, 'DATA_UPLOAD_MAX_NUMBER_FILES', 2000)

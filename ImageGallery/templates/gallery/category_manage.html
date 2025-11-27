@@ -1,0 +1,53 @@
+{% extends 'gallery/base.html' %}
+
+{% block title %}分類管理 - 圖片分享平台{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="category-container">
+        <h1>分類管理</h1>
+
+        <div class="category-form-section">
+            <h2>新增自訂分類</h2>
+            <form method="post" class="category-form">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="{{ form.name.id_for_label }}">分類名稱</label>
+                    <div class="input-group">
+                        {{ form.name }}
+                        <button type="submit" class="btn btn-primary">➕ 新增</button>
+                    </div>
+                    {% if form.name.errors %}
+                    <div class="error-message">{{ form.name.errors }}</div>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+
+        <div class="category-list-section">
+            <h2>所有分類</h2>
+            <div class="category-grid">
+                {% for category in categories %}
+                <div class="category-card {% if category.is_default %}default-category{% endif %}">
+                    <div class="category-header">
+                        <h3>{{ category.name }}</h3>
+                        {% if category.is_default %}
+                        <span class="badge badge-default">預設</span>
+                        {% else %}
+                        <span class="badge badge-custom">自訂</span>
+                        {% endif %}
+                    </div>
+                    <div class="category-info">
+                        {% if category.created_by %}
+                        <p class="creator">建立者：{{ category.created_by.username }}</p>
+                        {% endif %}
+                        <p class="date">建立時間：{{ category.created_at|date:"Y-m-d" }}</p>
+                        <p class="count">圖片數量：{{ category.images.count }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

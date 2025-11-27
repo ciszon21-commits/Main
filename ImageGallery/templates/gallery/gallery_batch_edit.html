@@ -1,0 +1,132 @@
+{% extends 'gallery/base.html' %}
+
+{% block title %}批量編輯 - 圖片分享平台{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>批量編輯圖片</h1>
+        <p class="subtitle">請確認並編輯剛上傳的圖片資訊</p>
+    </div>
+
+    <form method="post" class="batch-edit-form">
+        {% csrf_token %}
+        {{ formset.management_form }}
+
+        <div class="batch-edit-grid">
+            {% for form in formset %}
+            <div class="edit-card">
+                {{ form.id }}
+                <div class="edit-preview">
+                    <img src="{{ form.instance.image.url }}" alt="{{ form.instance.title }}">
+                </div>
+                <div class="edit-fields">
+                    <div class="form-group">
+                        <label>標題</label>
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                        <div class="error-message">{{ form.title.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label>分類</label>
+                        {{ form.category }}
+                        {% if form.category.errors %}
+                        <div class="error-message">{{ form.category.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label>描述</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <div class="error-message">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-check">
+                        {{ form.DELETE }}
+                        <label for="{{ form.DELETE.id_for_label }}">刪除此圖片</label>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="form-actions sticky-bottom">
+            <button type="submit" class="btn btn-primary btn-lg">💾 全部儲存</button>
+            <a href="{% url 'gallery:list' %}" class="btn btn-secondary">稍後再編輯</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .batch-edit-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-bottom: 4rem;
+    }
+
+    .edit-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s;
+    }
+
+    .edit-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .edit-preview {
+        width: 100%;
+        height: 200px;
+        margin-bottom: 1.5rem;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #f8f9fa;
+    }
+
+    .edit-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .edit-fields .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .edit-fields label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #4a5568;
+    }
+
+    .sticky-bottom {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        padding: 1.5rem;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        z-index: 100;
+    }
+
+    /* 調整底部間距以免被固定按鈕遮擋 */
+    body {
+        padding-bottom: 80px;
+    }
+</style>
+{% endblock %}

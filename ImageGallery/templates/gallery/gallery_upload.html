@@ -1,0 +1,322 @@
+{% extends 'gallery/base.html' %}
+
+{% block title %}批量上傳 - 圖片分享平台{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="upload-container">
+        <h1>批量上傳圖片</h1>
+        <p class="subtitle">拖拉多張圖片至此，一次完成上傳</p>
+
+        <div class="upload-area" id="dropZone">
+            <div class="upload-content">
+                <div class="upload-icon">☁️</div>
+                <h3>拖放圖片至此處</h3>
+                <p>或點擊選擇檔案</p>
+                <small>支援 JPG, PNG, GIF, WEBP (單檔最大 10MB)</small>
+            </div>
+            <input type="file" id="fileInput" name="images" multiple accept="image/jpeg,image/png,image/gif,image/webp"
+                style="display: none;">
+        </div>
+
+        <div id="fileList" class="file-list">
+            <!-- 預覽圖片將顯示於此 -->
+        </div>
+
+        <div class="upload-actions" style="display: none;">
+            <div class="progress-container" style="display: none;">
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                <span id="progressText">0%</span>
+            </div>
+            <button id="uploadBtn" class="btn btn-primary btn-lg">開始上傳</button>
+            <button id="clearBtn" class="btn btn-secondary">清除所有</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const uploadActions = document.querySelector('.upload-actions');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const progressContainer = document.querySelector('.progress-container');
+
+        let selectedFiles = [];
+
+        // 點擊上傳區域
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        // 檔案選擇
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        // 拖放事件
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            dropZone.classList.add('highlight');
+        }
+
+        function unhighlight(e) {
+            dropZone.classList.remove('highlight');
+        }
+
+        dropZone.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
+
+        function handleFiles(files) {
+            const newFiles = Array.from(files).filter(file => {
+                if (!file.type.match('image.*')) {
+                    alert(`檔案 ${file.name} 不是圖片`);
+                    return false;
+                }
+                if (file.size > 10 * 1024 * 1024) {
+                    alert(`圖片 ${file.name} 超過 10MB`);
+                    return false;
+                }
+                return true;
+            });
+
+            selectedFiles = [...selectedFiles, ...newFiles];
+            updateFileList();
+        }
+
+        function updateFileList() {
+            fileList.innerHTML = '';
+            if (selectedFiles.length > 0) {
+                uploadActions.style.display = 'block';
+
+                selectedFiles.forEach((file, index) => {
+                    const reader = new FileReader();
+                    const div = document.createElement('div');
+                    div.className = 'file-item';
+
+                    reader.onload = (e) => {
+                        div.innerHTML = `
+                        <img src="${e.target.result}" alt="${file.name}">
+                        <div class="file-info">
+                            <span class="file-name">${file.name}</span>
+                            <span class="file-size">${formatSize(file.size)}</span>
+                        </div>
+                        <button class="remove-btn" onclick="removeFile(${index})">✕</button>
+                    `;
+                    };
+                    reader.readAsDataURL(file);
+                    fileList.appendChild(div);
+                });
+            } else {
+                uploadActions.style.display = 'none';
+            }
+        }
+
+        window.removeFile = function (index) {
+            selectedFiles.splice(index, 1);
+            updateFileList();
+        };
+
+        clearBtn.addEventListener('click', () => {
+            selectedFiles = [];
+            updateFileList();
+            fileInput.value = '';
+        });
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 上傳處理
+        uploadBtn.addEventListener('click', async () => {
+            if (selectedFiles.length === 0) return;
+
+            const formData = new FormData();
+            selectedFiles.forEach(file => {
+                formData.append('images', file);
+            });
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            uploadBtn.disabled = true;
+            clearBtn.disabled = true;
+            progressContainer.style.display = 'block';
+
+            try {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '{% url "gallery:upload_bulk" %}', true);
+
+                xhr.upload.onprogress = function (e) {
+                    if (e.lengthComputable) {
+                        const percentComplete = (e.loaded / e.total) * 100;
+                        progressBar.style.width = percentComplete + '%';
+                        progressText.textContent = Math.round(percentComplete) + '%';
+                    }
+                };
+
+                xhr.onload = function () {
+                    if (xhr.status === 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.success) {
+                            window.location.href = response.redirect_url;
+                        } else {
+                            alert('上傳失敗: ' + (response.error || '未知錯誤'));
+                            resetUpload();
+                        }
+                    } else {
+                        alert('上傳發生錯誤');
+                        resetUpload();
+                    }
+                };
+
+                xhr.onerror = function () {
+                    alert('網絡錯誤');
+                    resetUpload();
+                };
+
+                xhr.send(formData);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('上傳發生錯誤');
+                resetUpload();
+            }
+        });
+
+        function resetUpload() {
+            uploadBtn.disabled = false;
+            clearBtn.disabled = false;
+            progressContainer.style.display = 'none';
+            progressBar.style.width = '0%';
+            progressText.textContent = '0%';
+        }
+    });
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .upload-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        text-align: center;
+    }
+
+    .upload-area {
+        border: 3px dashed #ccc;
+        border-radius: 20px;
+        padding: 3rem;
+        margin: 2rem 0;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: #f8f9fa;
+    }
+
+    .upload-area:hover,
+    .upload-area.highlight {
+        border-color: var(--primary-color);
+        background: rgba(var(--primary-rgb), 0.05);
+    }
+
+    .upload-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+
+    .file-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+        margin: 2rem 0;
+    }
+
+    .file-item {
+        background: white;
+        border-radius: 10px;
+        padding: 0.5rem;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        position: relative;
+    }
+
+    .file-item img {
+        width: 100%;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 5px;
+    }
+
+    .file-info {
+        margin-top: 0.5rem;
+        font-size: 0.8rem;
+        text-align: left;
+    }
+
+    .file-name {
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-weight: bold;
+    }
+
+    .remove-btn {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #ff4444;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        line-height: 18px;
+        cursor: pointer;
+        font-size: 12px;
+    }
+
+    .progress-container {
+        width: 100%;
+        height: 20px;
+        background: #eee;
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 1rem 0;
+        position: relative;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background: var(--primary-color);
+        transition: width 0.3s ease;
+    }
+
+    #progressText {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 12px;
+        color: #333;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
