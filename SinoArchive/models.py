@@ -7,7 +7,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from Extension import File
+from StudioBase.utils import File
 from . import model_managers as managers
 from . import model_methods as methods
 

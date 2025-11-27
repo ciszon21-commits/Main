@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import RemoteUserBackend
-from Extension.SinoUser import get_user_json
+
+from StudioBase.services import get_user_json
 
 
 class SinoRemoteUserBackend(RemoteUserBackend):
@@ -15,7 +16,7 @@ class SinoRemoteUserBackend(RemoteUserBackend):
             return
         user_model = get_user_model()
         username = self.clean_username(remote_user).upper()
-        
+
         try:
             user = user_model.objects.get(username=username)
         except user_model.DoesNotExist:
@@ -29,3 +30,4 @@ class SinoRemoteUserBackend(RemoteUserBackend):
             user.save()
             user = self.configure_user(request, user)
         return user
+

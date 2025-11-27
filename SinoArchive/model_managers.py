@@ -2,7 +2,7 @@ from django.conf import settings
 from django.db import models as DjModels
 from django.db.models import Q
 
-from Extension import File
+from StudioBase.utils import File
 from PMIS import models as PmisModels
 from . import models
 
