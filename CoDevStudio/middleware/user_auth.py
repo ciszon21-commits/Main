@@ -30,8 +30,6 @@ class UserAuthMiddleware(MiddlewareMixin):
         if not user: return
         self._login_user(request, user, token)
 
-
-
     def _need_bim_auth_login(self, request:'HttpRequest') -> 'bool':
         if request.user.is_authenticated:  # 使用者已經登入了
             return False
@@ -98,8 +96,8 @@ class UserAuthMiddleware(MiddlewareMixin):
         user.username = username
         user.email = user_dict['emp_email']
         if sino_name:
-            user.first_name = sino_name[:1]
-            user.last_name = sino_name[1:]
+            user.first_name = sino_name[1:]
+            user.last_name = sino_name[:1]
         user.set_unusable_password()
         user.save()
         return user
