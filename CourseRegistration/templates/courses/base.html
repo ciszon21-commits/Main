@@ -1,0 +1,88 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}課程報名系統{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'courses/css/course.css' %}">
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <i class="fas fa-graduation-cap"></i>
+                <span>課程報名系統</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="{% url 'courses:course_list' %}"
+                        class="{% if request.resolver_match.url_name == 'course_list' %}active{% endif %}">
+                        <i class="fas fa-list"></i> 課程列表
+                    </a></li>
+                <li><a href="{% url 'courses:course_create' %}"
+                        class="{% if request.resolver_match.url_name == 'course_create' %}active{% endif %}">
+                        <i class="fas fa-plus-circle"></i> 建立課程
+                    </a></li>
+                <li><a href="{% url 'home' %}">
+                        <i class="fas fa-home"></i> 回首頁
+                    </a></li>
+                {% if user.is_authenticated %}
+                <li class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span>{{ user.get_full_name }}</span>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="messages-container">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            <i
+                class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+            {{ message }}
+            <button class="close-btn" onclick="this.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 課程報名系統. All rights reserved.</p>
+            <p>Powered by 研資部 & CoDevStudio</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="{% static 'courses/js/course.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

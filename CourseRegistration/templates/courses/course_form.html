@@ -1,0 +1,121 @@
+{% extends 'courses/base.html' %}
+{% load static %}
+
+{% block title %}{{ form_title }} - 課程報名系統{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="form-container">
+        <div class="form-header">
+            <h1><i class="fas fa-{% if form.instance.pk %}edit{% else %}plus-circle{% endif %}"></i> {{ form_title }}
+            </h1>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="course-form">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-error">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <div class="form-grid">
+                <!-- Title -->
+                <div class="form-group full-width">
+                    <label for="{{ form.title.id_for_label }}">
+                        <i class="fas fa-heading"></i> 課程標題 <span class="required">*</span>
+                    </label>
+                    {{ form.title }}
+                    {% if form.title.errors %}
+                    <span class="error-message">{{ form.title.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <!-- Description -->
+                <div class="form-group full-width">
+                    <label for="{{ form.description.id_for_label }}">
+                        <i class="fas fa-align-left"></i> 課程說明 <span class="required">*</span>
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                    <span class="error-message">{{ form.description.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <!-- Course DateTime -->
+                <div class="form-group">
+                    <label for="{{ form.course_datetime.id_for_label }}">
+                        <i class="fas fa-calendar-alt"></i> 上課時間 <span class="required">*</span>
+                    </label>
+                    {{ form.course_datetime }}
+                    {% if form.course_datetime.errors %}
+                    <span class="error-message">{{ form.course_datetime.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <!-- Registration Start -->
+                <div class="form-group">
+                    <label for="{{ form.registration_start.id_for_label }}">
+                        <i class="fas fa-play-circle"></i> 報名開始時間 <span class="required">*</span>
+                    </label>
+                    {{ form.registration_start }}
+                    {% if form.registration_start.errors %}
+                    <span class="error-message">{{ form.registration_start.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <!-- Registration End -->
+                <div class="form-group">
+                    <label for="{{ form.registration_end.id_for_label }}">
+                        <i class="fas fa-stop-circle"></i> 報名截止時間 <span class="required">*</span>
+                    </label>
+                    {{ form.registration_end }}
+                    {% if form.registration_end.errors %}
+                    <span class="error-message">{{ form.registration_end.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <!-- Max Participants -->
+                <div class="form-group">
+                    <label for="{{ form.max_participants.id_for_label }}">
+                        <i class="fas fa-users"></i> 報名人數上限
+                    </label>
+                    {{ form.max_participants }}
+                    <small class="help-text">留空表示不限制人數</small>
+                    {% if form.max_participants.errors %}
+                    <span class="error-message">{{ form.max_participants.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <!-- PDF File -->
+                <div class="form-group full-width">
+                    <label for="{{ form.pdf_file.id_for_label }}">
+                        <i class="fas fa-file-pdf"></i> PDF 附件
+                    </label>
+                    {{ form.pdf_file }}
+                    {% if form.instance.pdf_file %}
+                    <div class="current-file">
+                        <i class="fas fa-check-circle"></i> 目前檔案: {{ form.instance.pdf_file.name }}
+                    </div>
+                    {% endif %}
+                    {% if form.pdf_file.errors %}
+                    <span class="error-message">{{ form.pdf_file.errors.0 }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> {% if form.instance.pk %}更新課程{% else %}建立課程{% endif %}
+                </button>
+                <a href="{% if form.instance.pk %}{% url 'courses:course_detail' form.instance.pk %}{% else %}{% url 'courses:course_list' %}{% endif %}"
+                    class="btn btn-outline">
+                    <i class="fas fa-times"></i> 取消
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

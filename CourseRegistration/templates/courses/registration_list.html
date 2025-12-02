@@ -1,0 +1,112 @@
+{% extends 'courses/base.html' %}
+{% load static %}
+
+{% block title %}報名名單 - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <div>
+            <h1><i class="fas fa-users"></i> 報名名單</h1>
+            <p class="subtitle">{{ course.title }}</p>
+        </div>
+        <a href="{% url 'courses:course_detail' course.pk %}" class="btn btn-outline">
+            <i class="fas fa-arrow-left"></i> 返回課程
+        </a>
+    </div>
+
+    <!-- Statistics -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <i class="fas fa-users"></i>
+            <div>
+                <h3>{{ registrations|length }}</h3>
+                <p>總報名人數</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-calendar-check"></i>
+            <div>
+                <h3>{{ course.course_datetime|date:"m/d" }}</h3>
+                <p>上課日期</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-{% if course.max_participants %}check-circle{% else %}infinity{% endif %}"></i>
+            <div>
+                <h3>{% if course.max_participants %}{{ course.max_participants }}{% else %}無限制{% endif %}</h3>
+                <p>人數上限</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Registration List -->
+    {% if registrations %}
+    <div class="registration-table-container">
+        <table class="registration-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th><i class="fas fa-user"></i> 使用者名稱</th>
+                    <th><i class="fas fa-clock"></i> 報名時間</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for registration in registrations %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        <div class="user-cell">
+                            <i class="fas fa-user-circle"></i>
+                            <span>{{ registration.user.get_full_name }}</span>
+                            {% if registration.user.first_name or registration.user.last_name %}
+                            <small>({{ registration.user.get_full_name }})</small>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>{{ registration.registered_at|date:"Y/m/d H:i:s" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page=1" class="page-link">
+            <i class="fas fa-angle-double-left"></i>
+        </a>
+        <a href="?page={{ page_obj.previous_page_number }}" class="page-link">
+            <i class="fas fa-angle-left"></i>
+        </a>
+        {% endif %}
+
+        <span class="page-info">
+            第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 頁
+        </span>
+
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="page-link">
+            <i class="fas fa-angle-right"></i>
+        </a>
+        <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">
+            <i class="fas fa-angle-double-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-user-slash"></i>
+        <h2>目前尚無人報名</h2>
+        <p>成為第一個報名此課程的人吧！</p>
+        <a href="{% url 'courses:course_detail' course.pk %}" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i> 返回課程
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
