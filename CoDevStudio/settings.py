@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "PMIS",
     "ImageGallery",
     "SingleAuth",
+    "SinoAuth",
 ]
 
 
