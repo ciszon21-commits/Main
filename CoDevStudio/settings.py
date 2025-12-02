@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "SinoExtension",
     "PMIS",
     "ImageGallery",
+    "SingleAuth",
 ]
 
 
