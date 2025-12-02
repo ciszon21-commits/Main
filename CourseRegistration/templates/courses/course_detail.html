@@ -1,0 +1,256 @@
+{% extends 'courses/base.html' %}
+{% load static %}
+
+{% block title %}{{ course.title }} - 課程詳情{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="course-detail">
+        <!-- Header -->
+        <div class="detail-header">
+            <div>
+                <h1>{{ course.title }}</h1>
+                <div class="meta-info">
+                    <span><i class="fas fa-user"></i> {{ course.created_by.get_full_name }}</span>
+                    <span><i class="fas fa-clock"></i> {{ course.created_at|date:"Y/m/d H:i" }}</span>
+                </div>
+            </div>
+            <span class="status-badge status-{{ course.registration_status }} large">
+                {% if course.registration_status == 'open' %}
+                <i class="fas fa-check-circle"></i> 報名中
+                {% elif course.registration_status == 'upcoming' %}
+                <i class="fas fa-clock"></i> 即將開始
+                {% elif course.registration_status == 'full' %}
+                <i class="fas fa-users"></i> 已額滿
+                {% else %}
+                <i class="fas fa-lock"></i> 已結束
+                {% endif %}
+            </span>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="detail-grid">
+            <!-- Left Column -->
+            <div class="detail-main">
+                <!-- Description -->
+                <div class="detail-section">
+                    <h2><i class="fas fa-info-circle"></i> 課程說明</h2>
+                    <div class="description-content">
+                        {{ course.description|linebreaks }}
+                    </div>
+                </div>
+
+                <!-- Timeline -->
+                <div class="detail-section">
+                    <h2><i class="fas fa-calendar-check"></i> 重要時間</h2>
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-icon">
+                                <i class="fas fa-play-circle"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h4>報名開始</h4>
+                                <p>{{ course.registration_start|date:"Y年m月d日 H:i" }}</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-icon">
+                                <i class="fas fa-stop-circle"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h4>報名截止</h4>
+                                <p>{{ course.registration_end|date:"Y年m月d日 H:i" }}</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-icon">
+                                <i class="fas fa-graduation-cap"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h4>上課時間</h4>
+                                <p>{{ course.course_datetime|date:"Y年m月d日 H:i" }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PDF Download -->
+                {% if course.pdf_file %}
+                <div class="detail-section">
+                    <h2><i class="fas fa-file-pdf"></i> 課程附件</h2>
+                    <div class="pdf-download">
+                        <div class="pdf-info">
+                            <i class="fas fa-file-pdf pdf-icon"></i>
+                            <div>
+                                <h4>課程參考資料</h4>
+                                <p>已下載 {{ course.pdf_download_count }} 次</p>
+                            </div>
+                        </div>
+                        <a href="{% url 'courses:download_pdf' course.pk %}" class="btn btn-primary">
+                            <i class="fas fa-download"></i> 下載 PDF
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Registration List Preview -->
+                <div class="detail-section">
+                    <h2>
+                        <i class="fas fa-users"></i> 報名名單
+                        <span class="count-badge">{{ course.current_participants_count }}
+                            {% if course.max_participants %} / {{ course.max_participants }}{% endif %}</span>
+                    </h2>
+
+                    {% if course.current_participants_count > 0 %}
+                    <div class="registration-preview">
+                        {% for registration in recent_registrations %}
+                        <div class="registration-item">
+                            <i class="fas fa-user-circle"></i>
+                            <span>{{ registration.user.get_full_name }}</span>
+                            <span class="registration-time">{{ registration.registered_at|date:"m/d H:i" }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% if course.current_participants_count > 5 %}
+                    <a href="{% url 'courses:registration_list' course.pk %}" class="btn btn-outline btn-block">
+                        <i class="fas fa-list"></i> 查看完整名單 ({{ course.current_participants_count }} 人)
+                    </a>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-muted">目前尚無人報名</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Right Sidebar -->
+            <div class="detail-sidebar">
+                <!-- Registration Action -->
+                <div class="action-card">
+                    <h3>報名資訊</h3>
+
+                    <div class="stat-item">
+                        <span>報名人數</span>
+                        <strong id="participants-count">{{ course.current_participants_count }}
+                            {% if course.max_participants %} / {{ course.max_participants }}{% endif %}</strong>
+                    </div>
+
+                    {% if course.max_participants %}
+                    <div class="progress-bar">
+                        <div class="progress-fill"
+                            style="width: {% widthratio course.current_participants_count course.max_participants 100 %}%">
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="action-buttons">
+                        {% if is_registered %}
+                        <button class="btn btn-danger btn-block" onclick="cancelRegistration({{ course.pk }})">
+                            <i class="fas fa-times-circle"></i> 取消報名
+                        </button>
+                        <p class="text-success"><i class="fas fa-check"></i> 您已報名此課程</p>
+                        {% elif course.can_register %}
+                        <button class="btn btn-primary btn-block" onclick="registerCourse({{ course.pk }})">
+                            <i class="fas fa-check-circle"></i> 立即報名
+                        </button>
+                        {% elif course.registration_status == 'full' %}
+                        <button class="btn btn-secondary btn-block" disabled>
+                            <i class="fas fa-users"></i> 報名已額滿
+                        </button>
+                        {% elif course.registration_status == 'upcoming' %}
+                        <button class="btn btn-secondary btn-block" disabled>
+                            <i class="fas fa-clock"></i> 報名尚未開始
+                        </button>
+                        {% else %}
+                        <button class="btn btn-secondary btn-block" disabled>
+                            <i class="fas fa-lock"></i> 報名已結束
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Creator Actions -->
+                {% if is_creator %}
+                <div class="action-card">
+                    <h3>課程管理</h3>
+                    <a href="{% url 'courses:course_update' course.pk %}" class="btn btn-outline btn-block">
+                        <i class="fas fa-edit"></i> 編輯課程
+                    </a>
+                    <a href="{% url 'courses:course_delete' course.pk %}" class="btn btn-danger btn-block">
+                        <i class="fas fa-trash"></i> 刪除課程
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // CSRF Token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    const csrftoken = getCookie('csrftoken');
+
+    // Register Course
+    function registerCourse(courseId) {
+        fetch(`/courses/${courseId}/register/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+            },
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('發生錯誤，請稍後再試');
+            });
+    }
+
+    // Cancel Registration
+    function cancelRegistration(courseId) {
+        if (!confirm('確定要取消報名嗎？')) return;
+
+        fetch(`/courses/${courseId}/cancel/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+            },
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('發生錯誤，請稍後再試');
+            });
+    }
+</script>
+{% endblock %}

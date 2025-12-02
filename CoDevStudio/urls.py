@@ -12,6 +12,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('gallery/', include('ImageGallery.urls')),
     path('single_auth/', include('SingleAuth.urls')),
+    path('courses/', include('CourseRegistration.urls')),
 ]
 
 # 開發環境下提供 media 檔案服務

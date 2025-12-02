@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     # 中興擴充套件
     "StudioBase",
     "BimAuth",
+
     "UserProfile",
     "SinoArchive",
     "SinoExtension",
@@ -57,6 +58,7 @@ INSTALLED_APPS = [
     "ImageGallery",
     "SingleAuth",
     "SinoAuth",
+    "CourseRegistration",
 ]
 
 
