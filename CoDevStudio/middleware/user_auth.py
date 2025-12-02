@@ -96,8 +96,8 @@ class UserAuthMiddleware(MiddlewareMixin):
         user.username = username
         user.email = user_dict['emp_email']
         if sino_name:
-            user.first_name = sino_name[1:]
-            user.last_name = sino_name[:1]
+            user.first_name = sino_name[:1]
+            user.last_name = sino_name[1:]
         user.set_unusable_password()
         user.save()
         return user
