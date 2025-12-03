@@ -2,16 +2,19 @@ from django.conf import settings
 from django.db import models as DjModels
 from django.db.models import Q
 
-from StudioBase.utils import File
+from SinoExtension.tools import set_file_local_path
 # from PMIS import models as PmisModels
 from . import models
 
 import re, os, platform
 
 
+
+# TODO 可以改成 archive file processor 的 classmethod
+
 class ArchiveFile(DjModels.Manager):
     def get_archive_path(self, path):
-        path = File.setFileLocalPath(path)
+        path = set_file_local_path(path)
         norm_path = os.path.normpath(path)  # 統一格式
         sPath = norm_path.replace('\\', '/')
         bPath = norm_path.replace('/', '\\')
@@ -20,7 +23,7 @@ class ArchiveFile(DjModels.Manager):
         if not aFile: return ''
         aFolder = aFile.folder
         if not aFolder: return ''
-        archive = aFolder.folderName
+        archive = aFolder.folder_name
         asp = PmisModels.DocCollab_ArchiveStorePath.objects.filter(ArchiveID=archive).first()
         if not asp: return ''
         base_path = re.sub(r'\s', '', asp.Path)
@@ -30,7 +33,7 @@ class ArchiveFile(DjModels.Manager):
 
     def get_temp_path(self, path):
         ARCHIVE_DIR = settings.ARCHIVE_DIR
-        path = File.setFileLocalPath(path)
+        path = set_file_local_path(path)
         norm_path = os.path.normpath(path)
         sPath = norm_path.replace('\\', '/')
         bPath = norm_path.replace('/', '\\')
@@ -39,7 +42,7 @@ class ArchiveFile(DjModels.Manager):
         if not aFile: return ''
         aFolder = aFile.folder
         if not aFolder: return ''
-        archive = aFolder.folderName
+        archive = aFolder.folder_name
         asp = PmisModels.DocCollab_ArchiveStorePath.objects.filter(ArchiveID=archive).first()
         if not asp: return ''
         full_path = os.path.join(ARCHIVE_DIR, archive, f"{aFile.UUID}{aFile.ext}")
