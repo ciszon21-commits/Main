@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 class SinoRemoteUserBackend(RemoteUserBackend):
     _username:'str' = None
     def clean_username(self, username):
-        return re.sub('[\\\\/:\*\?"<>\|]', '_', username)
+        return re.sub(r'[\\\\/:\*\?"<>\|]', '_', username)
 
 
     def authenticate(self, request, remote_user):
@@ -31,7 +31,7 @@ class SinoRemoteUserBackend(RemoteUserBackend):
             return
         UserModel = get_user_model()
         self._username = self.clean_username(remote_user).upper()
-        user = UserModel.objects.filter(username=self._username).first()
+        user = self.catch_user()
         if user:
             self.configure_user(request, user)
             return user
@@ -89,7 +89,11 @@ class SinoRemoteUserBackend(RemoteUserBackend):
     def parsed_un(self) -> 'tuple[str,str]':
         if not self._username:
             return ('', '')
-        return self.parse_username(self._username)
+        domain, emp_no = self.parse_username(self._username)
+        return (
+            domain,
+            emp_no.rjust(5, '0'),
+        )
 
 
     def parse_username(self, username:'str') -> 'tuple[str,str]':
@@ -104,6 +108,13 @@ class SinoRemoteUserBackend(RemoteUserBackend):
             return match.groups()
         # 其他情況 -> (domain, '')
         return (username, '')
+
+    def catch_user(self):
+        UserModel = get_user_model()
+        domain, emp_no = self.parsed_un
+        if emp_no:
+            return UserModel.objects.filter(username__endswith=emp_no).first()
+        return UserModel.objects.filter(username=domain).first()
 
 
 
