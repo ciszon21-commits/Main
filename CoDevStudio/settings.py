@@ -48,16 +48,16 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
 
     # 中興擴充套件
-    "StudioBase",
+    "SinoExtension",
     "BimAuth",
+    "SinoAuth",
+    "SingleAuth",
+    "ImageGallery",
 
+    # CoDevStudio
+    "StudioBase",
     "UserProfile",
     "SinoArchive",
-    "SinoExtension",
-    "PMIS",
-    "ImageGallery",
-    "SingleAuth",
-    "SinoAuth",
     "CourseRegistration",
 ]
 
@@ -209,3 +209,11 @@ EMAIL_BACKEND = getattr(local, 'EMAIL_BACKEND', 'django.core.mail.backends.conso
 SINGLE_TOKEN = getattr(local, 'SINGLE_TOKEN', None)
 
 DATA_UPLOAD_MAX_NUMBER_FILES = getattr(local, 'DATA_UPLOAD_MAX_NUMBER_FILES', 2000)
+
+
+
+SINO_AUTH_SERVICE_TOKEN = getattr(local, 'SINO_AUTH_SERVICE_TOKEN', None)
+SINO_AUTH_SERVICE_DOMAIN = getattr(local, 'SINO_AUTH_SERVICE_DOMAIN', None)
+SINO_AUTH_SERVICE_APP_PATH = getattr(local, 'SINO_AUTH_SERVICE_APP_PATH', None)
+
+
