@@ -5,6 +5,7 @@
 
 ### 開發環境需要
 [-] a. 需要支援 public service
+[O] a.1 get_user_json
 [ ] b. 透過 single auth 註冊過後，也要可以新增 UserProfile
 
 ### 正式環境需要
