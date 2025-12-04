@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.http import HttpRequest
 from django.utils.deprecation import MiddlewareMixin
 
-from StudioBase.services.sino_user import get_user_json
+from StudioBase.services import get_user_json
 from BimAuth.models import BIMToken
 
 
@@ -87,13 +87,12 @@ class UserAuthMiddleware(MiddlewareMixin):
     def _create_safe_app_token_user(self, token:'BIMToken') -> 'User|None':
         if token.created_app not in FROM_SAFE_APP:
             return None
-        username = SINO_USERNAME_STR %(str(token.emp_no_5))
-        user_dict = get_user_json(username)
+        user_dict = get_user_json(emp_no=token.emp_no_5)
         if not user_dict:
             return None
         sino_name = user_dict['emp_name']
         user = User()
-        user.username = username
+        user.username = SINO_USERNAME_STR %(str(token.emp_no_5))
         user.email = user_dict['emp_email']
         if sino_name:
             user.first_name = sino_name[:1]

@@ -1,6 +1,6 @@
 from django.conf import settings
 
-from PMIS import models as PmisModels
+# from PMIS import models as PmisModels
 
 import os
 
