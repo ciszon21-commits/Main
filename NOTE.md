@@ -12,13 +12,9 @@
 ### 正式環境需要
 - [ ] A. 本專案藥可以兼容 SinoBimAuth
 - [ ] A.1. SinoBimAuth 要可以避免在測試環境下讀取 (阻擋到登入)
-- [ ] B. 把 SinoArchive 改寫成 PMISReader 的方式
-- [ ] C. StudioBase 提供 public service 的方法
+- [O] B. 把 SinoArchive 改寫成 PMISReader 的方式
+- [O] C. StudioBase 提供 public service 的方法
 
 
-
-### A.
-
-#### Sol 1.
 
 
