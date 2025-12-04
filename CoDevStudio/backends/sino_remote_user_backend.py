@@ -51,7 +51,7 @@ class SinoRemoteUserBackend(RemoteUserBackend):
         user.set_unusable_password()
         user.save()
         self.configure_user(request, user)
-        return user
+        return super().authenticate(request, remote_user)
 
     def configure_user(self, request, user):
         """ 設定使用者資料
@@ -69,6 +69,7 @@ class SinoRemoteUserBackend(RemoteUserBackend):
         profile.emp_dept = self.user_detail['emp_dept']
         profile.emp_company = self.user_detail['emp_company']
         profile.save()
+        return super().configure_user(request, user)
 
 
 
