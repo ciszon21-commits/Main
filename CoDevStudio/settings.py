@@ -210,7 +210,6 @@ NOTIFY_EMAIL = getattr(local, "NOTIFY_EMAIL", "通知郵件")
 
 AUTHENTICATION_BACKENDS = getattr(local, "AUTHENTICATION_BACKENDS", [
     'CoDevStudio.backends.sino_remote_user_backend.SinoRemoteUserBackend',
-    'django.contrib.auth.backends.ModelBackend',
 ])
 
 EMAIL_BACKEND = getattr(local, 'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
