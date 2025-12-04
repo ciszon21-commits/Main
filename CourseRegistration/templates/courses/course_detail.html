@@ -121,6 +121,97 @@
                     <p class="text-muted">目前尚無人報名</p>
                     {% endif %}
                 </div>
+                <!-- Comments Section -->
+                <div class="detail-section comments-section">
+                    <!-- Section Header -->
+                    <div class="comments-header">
+                        <div class="comments-title-wrapper">
+                            <h2>
+                                <i class="fas fa-comments"></i>
+                                <span>留言討論</span>
+                            </h2>
+                            <p class="comments-subtitle">歡迎提出問題或分享想法</p>
+                        </div>
+                        <div class="comments-count">
+                            <span class="count-number">{{ comments.count }}</span>
+                            <span class="count-label">則留言</span>
+                        </div>
+                    </div>
+                    <!-- Divider -->
+                    <div class="section-divider"></div>
+                    <!-- Comment Form -->
+                    <div class="comment-form-wrapper">
+                        <div class="form-header">
+                            <i class="fas fa-edit"></i>
+                            <h3>發表留言</h3>
+                        </div>
+                        <form id="commentForm" class="comment-form">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label for="{{ comment_form.content.id_for_label }}">
+                                    <i class="fas fa-comment-dots"></i> 您的留言
+                                </label>
+                                {{ comment_form.content }}
+                                <small class="form-hint">分享您的想法、提出問題或給予建議</small>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary btn-submit">
+                                    <i class="fas fa-paper-plane"></i>
+                                    <span>發布留言</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <!-- Divider -->
+                    <div class="section-divider"></div>
+                    <!-- Comments List Header -->
+                    <div class="comments-list-header">
+                        <h3>
+                            <i class="fas fa-list-ul"></i>
+                            所有留言
+                        </h3>
+                        {% if comments %}
+                        <span class="sort-info">
+                            <i class="fas fa-sort-amount-down"></i> 最新優先
+                        </span>
+                        {% endif %}
+                    </div>
+                    <!-- Comments List -->
+                    <div id="commentsList" class="comments-list">
+                        {% if comments %}
+                        {% for comment in comments %}
+                        <div class="comment-item">
+                            <div class="comment-avatar">
+                                <i class="fas fa-user-circle"></i>
+                            </div>
+                            <div class="comment-body">
+                                <div class="comment-header">
+                                    <div class="comment-meta">
+                                        <strong class="comment-author">{{ comment.user.username }}</strong>
+                                        <span class="comment-badge">留言者</span>
+                                    </div>
+                                    <span class="comment-time">
+                                        <i class="far fa-clock"></i>
+                                        {{ comment.created_at|date:"Y/m/d H:i" }}
+                                    </span>
+                                </div>
+                                <div class="comment-content">
+                                    {{ comment.content|linebreaks }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="empty-comments">
+                            <div class="empty-icon">
+                                <i class="fas fa-comment-slash"></i>
+                            </div>
+                            <h4>還沒有留言</h4>
+                            <p>成為第一個留言的人，分享您的想法吧！</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
 
             <!-- Right Sidebar -->
@@ -252,5 +343,35 @@
                 alert('發生錯誤，請稍後再試');
             });
     }
+    // Submit Comment
+    document.getElementById('commentForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        fetch(`/courses/{{ course.pk }}/comment/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+            },
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 清空表單
+                    document.querySelector('#commentForm textarea').value = '';
+
+                    // 重新載入頁面以顯示新留言
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('發生錯誤，請稍後再試');
+            });
+    });
 </script>
 {% endblock %}

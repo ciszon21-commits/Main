@@ -7,8 +7,10 @@ from django.urls import reverse_lazy
 from django.http import JsonResponse, FileResponse, Http404
 from django.utils import timezone
 from django.db.models import Q
-from .models import Course, Registration, PDFDownloadLog
-from .forms import CourseForm
+from django.core.mail import send_mail
+from django.conf import settings
+from .models import Course, Registration, PDFDownloadLog, CourseComment
+from .forms import CourseForm, CommentForm
 
 
 class CourseListView(LoginRequiredMixin, ListView):
@@ -68,6 +70,12 @@ class CourseDetailView(LoginRequiredMixin, DetailView):
         
         # 取得報名名單（前5名）
         context['recent_registrations'] = course.registrations.select_related('user')[:5]
+        
+        # 取得留言列表（按時間倒序）
+        context['comments'] = course.comments.select_related('user').all()
+        
+        # 留言表單
+        context['comment_form'] = CommentForm()
         
         return context
 
@@ -222,3 +230,66 @@ class RegistrationListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context['course'] = self.course
         return context
+
+
+@login_required
+def add_comment(request, pk):
+    """新增留言"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': '無效的請求方法'}, status=400)
+    
+    course = get_object_or_404(Course, pk=pk)
+    user = request.user
+    
+    form = CommentForm(request.POST)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.course = course
+        comment.user = user
+        comment.save()
+        
+        # 發送郵件通知給課程建立者
+        try:
+            if course.created_by.email:
+                subject = f'[課程通知] 您的課程「{course.title}」有新留言'
+                message = f'''您好，
+
+您建立的課程「{course.title}」有新的留言：
+
+留言者：{user.username}
+留言時間：{comment.created_at.strftime("%Y-%m-%d %H:%M")}
+留言內容：
+{comment.content}
+
+請點擊以下連結查看詳情：
+{request.build_absolute_uri(course.get_absolute_url())}
+
+---
+此為系統自動通知郵件，請勿回覆。
+'''
+                send_mail(
+                    subject,
+                    message,
+                    settings.EMAIL_HOST_USER,
+                    [course.created_by.email],
+                    fail_silently=True,  # 郵件發送失敗不影響留言功能
+                )
+        except Exception as e:
+            # 記錄錯誤但不影響留言功能
+            print(f'郵件發送失敗: {e}')
+        
+        return JsonResponse({
+            'success': True,
+            'message': '留言發布成功！',
+            'comment': {
+                'id': comment.id,
+                'user': comment.user.username,
+                'content': comment.content,
+                'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M')
+            }
+        })
+    else:
+        return JsonResponse({
+            'success': False,
+            'message': '留言內容不能為空'
+        })
