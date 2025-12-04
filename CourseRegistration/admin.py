@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Course, Registration, PDFDownloadLog
+from .models import Course, Registration, PDFDownloadLog, CourseComment
 
 
 @admin.register(Course)
@@ -7,6 +7,8 @@ class CourseAdmin(admin.ModelAdmin):
     """課程管理介面"""
     list_display = [
         'title',
+        'instructor_name',
+        'location',
         'created_by',
         'course_datetime',
         'registration_start',
@@ -21,7 +23,7 @@ class CourseAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('基本資訊', {
-            'fields': ('title', 'description', 'created_by')
+            'fields': ('title', 'description', 'instructor_name', 'location', 'created_by')
         }),
         ('時間設定', {
             'fields': ('course_datetime', 'registration_start', 'registration_end')
@@ -52,3 +54,17 @@ class PDFDownloadLogAdmin(admin.ModelAdmin):
     list_filter = ['downloaded_at', 'course']
     search_fields = ['course__title', 'user__username']
     readonly_fields = ['downloaded_at']
+
+
+@admin.register(CourseComment)
+class CourseCommentAdmin(admin.ModelAdmin):
+    """課程留言管理介面"""
+    list_display = ['course', 'user', 'content_preview', 'created_at']
+    list_filter = ['created_at', 'course']
+    search_fields = ['course__title', 'user__username', 'content']
+    readonly_fields = ['created_at']
+    
+    def content_preview(self, obj):
+        """留言內容預覽（截斷50字）"""
+        return obj.content[:50] + '...' if len(obj.content) > 50 else obj.content
+    content_preview.short_description = '留言內容'

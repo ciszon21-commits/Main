@@ -4,10 +4,12 @@ from django.conf import settings
 
 PMIS_DOMAIN = 'https://engex1.sinotech.com.tw'
 
-
-
 SINGLE_DOMAIN = 'https://single.sinotech.com.tw'
 SINGLE_TOKEN = getattr(settings, 'SINGLE_TOKEN', None)
+
+SINO_AUTH_SERVICE_TOKEN = getattr(settings, 'SINO_AUTH_SERVICE_TOKEN', None)
+SINO_AUTH_SERVICE_DOMAIN = getattr(settings, 'SINO_AUTH_SERVICE_DOMAIN', None)
+SINO_AUTH_SERVICE_APP_PATH = getattr(settings, 'SINO_AUTH_SERVICE_APP_PATH', None)
 
 
 
