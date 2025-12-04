@@ -6,8 +6,6 @@ from django.db.models import Manager
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from . import model_managers as managers
-
 from SinoArchive.constants import (
     MEDIA_DIR,
     AUTO_ARCHIVE,
@@ -47,13 +45,11 @@ class ArchiveFile(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
     process_at = models.DateTimeField(null=True, blank=True)
 
-    objects = managers.ArchiveFile()
-
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         if AUTO_ARCHIVE:
-            # TODO 想一下，這個要怎麼改
-            self.archive_this()
+            from SinoArchive.services import ArchiveFileProcessor  # 也許可以換個寫法？
+            ArchiveFileProcessor(self).archive_this()
 
     def __str__(self):
         return self.file

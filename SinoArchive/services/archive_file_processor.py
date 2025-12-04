@@ -1,16 +1,29 @@
 from datetime import datetime
 import os
+import re
 import shutil
+from typing import TYPE_CHECKING
+from uuid import UUID
 
 from django.utils import timezone
+from django.db.models import Q
 
-from SinoExtension.tools import size_format
+from SinoExtension.tools import (
+    size_format,
+    set_file_local_path,
+)
 
+if TYPE_CHECKING:
+    from CommonUse.models import ArchiveStorePath
+
+from StudioBase.services.mixins import CommonUseCatcherMixin
 from SinoArchive.types import ArchiveFileDetail
 from SinoArchive.constants import (
-    MEDIA_DIR,
+    ARCHIVE_DIR,
     BACKUP_DIR,
+    MEDIA_DIR,
 )
+from SinoArchive.utils import normalize_cross_platform_path
 from SinoArchive.models import (
     ArchiveFolder,
     ArchiveFile,
@@ -20,13 +33,21 @@ from .archive_folder_processor import ArchiveFolderProcessor
 
 
 
-class ArchiveFileProcessor:
+
+
+class ArchiveFileProcessor(
+        CommonUseCatcherMixin,
+    ):
     def __init__(self, file:'ArchiveFile'):
         self.a_file = file
 
 
-
-
+    @property
+    def uuid(self) -> 'UUID':
+        return self.a_file.uuid
+    @property
+    def pk(self) -> 'UUID':
+        return self.a_file.pk
     @property
     def file(self) -> 'str':
         return self.a_file.file
@@ -48,6 +69,19 @@ class ArchiveFileProcessor:
     @property
     def process_at(self) -> 'datetime':
         return self.a_file.process_at
+
+
+
+    def get_archive_store_paths(self):
+        if not self.archive_sp_manager:
+            return []
+        return self.archive_sp_manager.filter(ArchiveID=self.folder.folder_name)
+
+    @property
+    def archive_store_path(self) -> 'ArchiveStorePath|None':
+        if not self.archive_sp_list:
+            return None
+        return self.archive_sp_list[0]
 
 
 
@@ -103,5 +137,57 @@ class ArchiveFileProcessor:
             with open(archiveLog, 'a+', encoding='utf-8') as f:
                 f.write(self.get_archive_name()+"\t"+self.uploaded_at.strftime("%Y/%m/%d %H:%M:%S")+"\t"+size_str+"\t"+str(self.a_file.file)+"\n")
         self.a_file.save()
+
+
+
+
+
+
+    @classmethod
+    def get_archive_path(cls, path:'str') -> 'str':
+        af_pro = cls.catch_archive_file_processor(path)
+        if (
+            not af_pro
+            or not af_pro.archive_store_path
+        ):
+            return ''
+        full_path = os.path.join(
+            re.sub(r'\s+', '', af_pro.archive_store_path.Path),
+            af_pro.folder.folder_name,
+            f"{af_pro.a_file.pk}{af_pro.ext}"
+        )
+        return normalize_cross_platform_path(full_path)
+    @classmethod
+    def get_temp_path(cls, path:'str') -> 'str':
+        af_pro = cls.catch_archive_file_processor(path)
+        if (
+            not af_pro
+            or not af_pro.archive_store_path
+        ):
+            return ''
+        full_path = os.path.join(
+            ARCHIVE_DIR,
+            af_pro.folder.folder_name,
+            f"{af_pro.a_file.pk}{af_pro.ext}"
+        )
+        return normalize_cross_platform_path(full_path)
+        # return os.path.normpath(full_path)
+
+
+    @classmethod
+    def catch_archive_file(cls, path:'str') -> 'ArchiveFile|None':
+        path = set_file_local_path(path)
+        norm_path = os.path.normpath(path)  # 統一格式
+        s_path = norm_path.replace('\\', '/')
+        b_path = norm_path.replace('/', '\\')
+        aQ = Q(file=s_path) | Q(file=b_path)
+        return ArchiveFile.objects.filter(aQ).first()
+    @classmethod
+    def catch_archive_file_processor(cls, path:'str') -> 'ArchiveFileProcessor|None':
+        a_file = cls.catch_archive_file(path)
+        if not a_file: return None
+        return ArchiveFileProcessor(a_file)
+
+
 
 
