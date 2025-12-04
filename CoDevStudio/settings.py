@@ -9,10 +9,12 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
-from pathlib import Path
-from . import _local_settings as local
 from datetime import timedelta
+import os
+from pathlib import Path
+
+from . import _local_settings as local
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -49,6 +51,8 @@ INSTALLED_APPS = [
 
     # 中興擴充套件
     "SinoExtension",
+    "SinoTemplate",
+    "SinoErrorPage",
     "BimAuth",
     "SinoAuth",
     "SingleAuth",
@@ -56,6 +60,7 @@ INSTALLED_APPS = [
 
     # CoDevStudio
     "StudioBase",
+    "Home",
     "UserProfile",
     "SinoArchive",
     "CourseRegistration",
@@ -102,7 +107,7 @@ WSGI_APPLICATION = 'CoDevStudio.wsgi.application'
 DATABASES = getattr(local, "DATABASES", {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 })
 
