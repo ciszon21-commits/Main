@@ -1,13 +1,12 @@
 import re
 
 from django.conf import settings
-from django.contrib.auth import login
+from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.http import HttpRequest
 from django.utils.deprecation import MiddlewareMixin
 
-from StudioBase.services import get_user_json
 from BimAuth.models import BIMToken
 
 
@@ -49,10 +48,12 @@ class UserAuthMiddleware(MiddlewareMixin):
         if user_srt: return user_srt
         return None
     def _login_user(self, request:'HttpRequest', user:'User', token:'BIMToken'):
-        login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-        token.use(
-            used_app = '%s.%s' %('KMW', self.__class__.__name__),
+        auth_user = (
+            authenticate(request, remote_user=user.username)
+            or user
         )
+        login(request, auth_user, backend='CoDevStudio.backends.sino_remote_user_backend.SinoRemoteUserBackend')
+        token.use(used_app='%s.%s' %('KMW', self.__class__.__name__))
 
 
     def _get_token_str(self, request:'HttpRequest') -> 'str|None':
@@ -87,19 +88,11 @@ class UserAuthMiddleware(MiddlewareMixin):
     def _create_safe_app_token_user(self, token:'BIMToken') -> 'User|None':
         if token.created_app not in FROM_SAFE_APP:
             return None
-        user_dict = get_user_json(emp_no=token.emp_no_5)
-        if not user_dict:
-            return None
-        sino_name = user_dict['emp_name']
+        username = SINO_USERNAME_STR %(str(token.emp_no_5))
         user = User()
-        user.username = SINO_USERNAME_STR %(str(token.emp_no_5))
-        user.email = user_dict['emp_email']
-        if sino_name:
-            user.first_name = sino_name[:1]
-            user.last_name = sino_name[1:]
+        user.username = username
         user.set_unusable_password()
         user.save()
         return user
-
 
 

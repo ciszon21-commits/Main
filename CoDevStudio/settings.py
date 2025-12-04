@@ -9,10 +9,12 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
-from pathlib import Path
-from . import _local_settings as local
 from datetime import timedelta
+import os
+from pathlib import Path
+
+from . import _local_settings as local
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -49,6 +51,8 @@ INSTALLED_APPS = [
 
     # 中興擴充套件
     "SinoExtension",
+    "SinoTemplate",
+    "SinoErrorPage",
     "BimAuth",
     "SinoAuth",
     "SingleAuth",
@@ -56,6 +60,7 @@ INSTALLED_APPS = [
 
     # CoDevStudio
     "StudioBase",
+    "Home",
     "UserProfile",
     "SinoArchive",
     "CourseRegistration",
@@ -67,10 +72,11 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "CoDevStudio.middleware.user_auth.UserAuthMiddleware",  # django auth 之後
     "django.contrib.auth.middleware.RemoteUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.security.SecurityMiddleware",
+
+    "CoDevStudio.middleware.user_auth.UserAuthMiddleware",  # django auth 之後
 ]
 
 ROOT_URLCONF = 'CoDevStudio.urls'
@@ -102,7 +108,7 @@ WSGI_APPLICATION = 'CoDevStudio.wsgi.application'
 DATABASES = getattr(local, "DATABASES", {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 })
 
@@ -202,7 +208,9 @@ SYSTEM_EMAIL = getattr(local, "SYSTEM_EMAIL", "測試郵件")
 NOTIFY_EMAIL_NAME = getattr(local, "NOTIFY_EMAIL_NAME", "測試開發者")
 NOTIFY_EMAIL = getattr(local, "NOTIFY_EMAIL", "通知郵件")
 
-AUTHENTICATION_BACKENDS = getattr(local, "AUTHENTICATION_BACKENDS", ['CoDevStudio.backends.sino_remote_user_backend.SinoRemoteUserBackend'])
+AUTHENTICATION_BACKENDS = getattr(local, "AUTHENTICATION_BACKENDS", [
+    'CoDevStudio.backends.sino_remote_user_backend.SinoRemoteUserBackend',
+])
 
 EMAIL_BACKEND = getattr(local, 'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 
