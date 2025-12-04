@@ -85,7 +85,8 @@ class SinoRemoteUserBackend(RemoteUserBackend):
     def user_detail(self):
         if not self._username:
             return None
-        return get_user_json(self._username)
+        _, emp_no = self.parsed_un
+        return get_user_json(emp_no=emp_no)
     @cached_property
     def parsed_un(self) -> 'tuple[str,str]':
         if not self._username:
