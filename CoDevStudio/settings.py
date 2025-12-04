@@ -72,10 +72,11 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "CoDevStudio.middleware.user_auth.UserAuthMiddleware",  # django auth 之後
     "django.contrib.auth.middleware.RemoteUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.security.SecurityMiddleware",
+
+    "CoDevStudio.middleware.user_auth.UserAuthMiddleware",  # django auth 之後
 ]
 
 ROOT_URLCONF = 'CoDevStudio.urls'
@@ -207,7 +208,10 @@ SYSTEM_EMAIL = getattr(local, "SYSTEM_EMAIL", "測試郵件")
 NOTIFY_EMAIL_NAME = getattr(local, "NOTIFY_EMAIL_NAME", "測試開發者")
 NOTIFY_EMAIL = getattr(local, "NOTIFY_EMAIL", "通知郵件")
 
-AUTHENTICATION_BACKENDS = getattr(local, "AUTHENTICATION_BACKENDS", ['CoDevStudio.backends.sino_remote_user_backend.SinoRemoteUserBackend'])
+AUTHENTICATION_BACKENDS = getattr(local, "AUTHENTICATION_BACKENDS", [
+    'CoDevStudio.backends.sino_remote_user_backend.SinoRemoteUserBackend',
+    'django.contrib.auth.backends.ModelBackend',
+])
 
 EMAIL_BACKEND = getattr(local, 'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 
