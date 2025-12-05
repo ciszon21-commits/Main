@@ -16,21 +16,22 @@
                 <input type="text" name="search" placeholder="搜尋圖片..." value="{{ search_query }}" class="search-input">
                 <button type="submit" class="btn btn-primary">🔍 搜尋</button>
             </div>
-            
+
             <div class="filter-controls">
                 <select name="category" class="filter-select" onchange="this.form.submit()">
                     <option value="">所有分類</option>
                     {% for category in categories %}
-                        <option value="{{ category.id }}" {% if current_category == category.id|stringformat:"s" %}selected{% endif %}>
-                            {{ category.name }}
-                        </option>
+                    <option value="{{ category.id }}" {% if current_category==category.id|stringformat:"s" %}selected{%
+                        endif %}>
+                        {{ category.name }}
+                    </option>
                     {% endfor %}
                 </select>
 
                 <select name="sort" class="filter-select" onchange="this.form.submit()">
-                    <option value="-uploaded_at" {% if current_sort == '-uploaded_at' %}selected{% endif %}>最新上傳</option>
-                    <option value="rating" {% if current_sort == 'rating' %}selected{% endif %}>評分最高</option>
-                    <option value="popular" {% if current_sort == 'popular' %}selected{% endif %}>最多瀏覽</option>
+                    <option value="-uploaded_at" {% if current_sort=='-uploaded_at' %}selected{% endif %}>最新上傳</option>
+                    <option value="rating" {% if current_sort=='rating' %}selected{% endif %}>評分最高</option>
+                    <option value="popular" {% if current_sort=='popular' %}selected{% endif %}>最多瀏覽</option>
                 </select>
             </div>
         </form>
@@ -39,52 +40,56 @@
     <!-- 圖片網格 -->
     <div class="image-grid">
         {% for image in page_obj %}
-            <div class="image-card">
-                <a href="{% url 'gallery:detail' image.pk %}" class="image-link">
-                    <div class="image-wrapper">
-                        <img src="{{ image.image.url }}" alt="{{ image.title }}" loading="lazy">
+        <div class="image-card">
+            <a href="{% url 'gallery:detail' image.pk %}" class="image-link">
+                <div class="image-wrapper">
+                    <img src="{{ image.image.url }}" alt="{{ image.title }}" loading="lazy">
+                </div>
+                <div class="image-info">
+                    <h3 class="image-title">{{ image.title }}</h3>
+                    <div class="image-meta">
+                        <span class="category-badge">{{ image.category.name }}</span>
+                        <span class="rating">
+                            ⭐ {{ image.average_rating|floatformat:1 }}
+                            <small>({{ image.total_ratings }})</small>
+                        </span>
                     </div>
-                    <div class="image-info">
-                        <h3 class="image-title">{{ image.title }}</h3>
-                        <div class="image-meta">
-                            <span class="category-badge">{{ image.category.name }}</span>
-                            <span class="rating">
-                                ⭐ {{ image.average_rating|floatformat:1 }}
-                                <small>({{ image.total_ratings }})</small>
-                            </span>
-                        </div>
-                        <div class="image-footer">
-                            <span class="uploader">👤 {{ image.uploaded_by.username }}</span>
-                            <span class="views">👁️ {{ image.view_count }}</span>
-                        </div>
+                    <div class="image-footer">
+                        <span class="uploader">👤 {{ image.uploaded_by.get_full_name }}</span>
+                        <span class="views">👁️ {{ image.view_count }}</span>
                     </div>
-                </a>
-            </div>
+                </div>
+            </a>
+        </div>
         {% empty %}
-            <div class="empty-state">
-                <p>目前沒有圖片</p>
-                {% if user.is_authenticated %}
-                    <a href="{% url 'gallery:upload' %}" class="btn btn-primary">上傳第一張圖片</a>
-                {% endif %}
-            </div>
+        <div class="empty-state">
+            <p>目前沒有圖片</p>
+            {% if user.is_authenticated %}
+            <a href="{% url 'gallery:upload' %}" class="btn btn-primary">上傳第一張圖片</a>
+            {% endif %}
+        </div>
         {% endfor %}
     </div>
 
     <!-- 分頁 -->
     {% if page_obj.has_other_pages %}
-        <div class="pagination">
-            {% if page_obj.has_previous %}
-                <a href="?page=1{% if current_category %}&category={{ current_category }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="page-link">« 第一頁</a>
-                <a href="?page={{ page_obj.previous_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="page-link">‹ 上一頁</a>
-            {% endif %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page=1{% if current_category %}&category={{ current_category }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+            class="page-link">« 第一頁</a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+            class="page-link">‹ 上一頁</a>
+        {% endif %}
 
-            <span class="page-current">第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 頁</span>
+        <span class="page-current">第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 頁</span>
 
-            {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="page-link">下一頁 ›</a>
-                <a href="?page={{ page_obj.paginator.num_pages }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="page-link">最後頁 »</a>
-            {% endif %}
-        </div>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+            class="page-link">下一頁 ›</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+            class="page-link">最後頁 »</a>
+        {% endif %}
+    </div>
     {% endif %}
 </div>
 {% endblock %}

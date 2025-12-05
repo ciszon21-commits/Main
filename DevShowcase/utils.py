@@ -20,7 +20,7 @@ def send_comment_notification(achievement, comment):
 
 您參與開發的成果「{achievement.name}」有新的留言：
 
-留言者：{comment.user.get_full_name() or comment.user.username}
+留言者：{comment.user.get_full_name() or comment.user.get_username()}
 留言時間：{comment.created_at.strftime('%Y-%m-%d %H:%M')}
 留言內容：
 {comment.content}

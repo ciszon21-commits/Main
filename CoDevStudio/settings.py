@@ -49,9 +49,8 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "rest_framework_simplejwt.token_blacklist",
 
-    # CKEditor
-    "ckeditor",
-    "ckeditor_uploader",
+    # CKEditor 5
+    "django_ckeditor_5",
 
     # 中興擴充套件
     "SinoExtension",
@@ -230,20 +229,33 @@ SINO_AUTH_SERVICE_DOMAIN = getattr(local, 'SINO_AUTH_SERVICE_DOMAIN', None)
 SINO_AUTH_SERVICE_APP_PATH = getattr(local, 'SINO_AUTH_SERVICE_APP_PATH', None)
 
 
-# CKEditor Configuration
-CKEDITOR_UPLOAD_PATH = "uploads/"
-CKEDITOR_IMAGE_BACKEND = "pillow"
-CKEDITOR_CONFIGS = {
+# CKEditor 5 Configuration
+CKEDITOR_5_CONFIGS = {
     'default': {
-        'toolbar': 'full',
-        'height': 400,
-        'width': '100%',
-        'extraPlugins': ','.join([
-            'uploadimage',
-            'image2',
-        ]),
+        'toolbar': {
+            'items': ['heading', '|', 'bold', 'italic', 'link',
+                      'bulletedList', 'numberedList', 'blockQuote', 'imageUpload'],
+        }
     },
+    'extends': {
+        'toolbar': {
+            'items': ['heading', '|', 'bold', 'italic', 'link', 'underline',
+                      'strikethrough', 'code', 'subscript', 'superscript', '|',
+                      'bulletedList', 'numberedList', 'todoList', '|',
+                      'outdent', 'indent', '|', 'blockQuote', 'insertImage',
+                      'mediaEmbed', 'insertTable', 'codeBlock', 'sourceEditing'],
+            'shouldNotGroupWhenFull': True
+        },
+        'image': {
+            'toolbar': ['imageTextAlternative', 'imageStyle:alignLeft',
+                        'imageStyle:alignCenter', 'imageStyle:alignRight']
+        },
+        'table': {
+            'contentToolbar': ['tableColumn', 'tableRow', 'mergeTableCells']
+        }
+    }
 }
+CKEDITOR_5_FILE_UPLOAD_PERMISSION = "authenticated"
 
 # File Upload Limits
 FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB

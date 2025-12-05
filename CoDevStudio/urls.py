@@ -13,7 +13,7 @@ urlpatterns = [
     path("profile/", include("UserProfile.urls")),
     path("archive/", include("SinoArchive.urls")),
     path("showcase/", include("DevShowcase.urls")),
-    path("ckeditor/", include("ckeditor_uploader.urls")),
+    path("ckeditor5/", include("django_ckeditor_5.urls")),
     path('gallery/', include('ImageGallery.urls')),
     path('single_auth/', include('SingleAuth.urls')),
     path('courses/', include('CourseRegistration.urls')),

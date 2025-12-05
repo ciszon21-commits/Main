@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import FileExtensionValidator
-from ckeditor_uploader.fields import RichTextUploadingField
+from django_ckeditor_5.fields import CKEditor5Field
 
 
 class Category(models.Model):
@@ -38,7 +38,7 @@ class Achievement(models.Model):
         help_text="請上傳10分鐘以下的影片"
     )
     url = models.URLField(verbose_name="相關網址", blank=True)
-    documentation = RichTextUploadingField(verbose_name="說明文件", blank=True)
+    documentation = CKEditor5Field(verbose_name="說明文件", blank=True, config_name='extends')
     
     created_by = models.ForeignKey(
         User,
@@ -95,7 +95,7 @@ class ViewLog(models.Model):
         ordering = ['-viewed_at']
 
     def __str__(self):
-        return f"{self.user.username} - {self.achievement.name}"
+        return f"{self.user.get_full_name} - {self.achievement.name}"
 
 
 class Comment(models.Model):
@@ -121,4 +121,4 @@ class Comment(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.user.username} - {self.achievement.name} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+        return f"{self.user.get_full_name} - {self.achievement.name} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"

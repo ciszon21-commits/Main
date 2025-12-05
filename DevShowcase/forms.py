@@ -1,6 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from .models import Achievement, Comment
+from .models import Achievement, Comment, Category
 
 
 class AchievementForm(forms.ModelForm):
@@ -74,3 +74,32 @@ class CommentForm(forms.ModelForm):
         if not content or len(content.strip()) < 5:
             raise ValidationError('留言內容至少需要5個字')
         return content
+
+
+class CategoryForm(forms.ModelForm):
+    """分類表單"""
+    class Meta:
+        model = Category
+        fields = ['name', 'description', 'order']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '請輸入分類名稱'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': '請輸入分類說明（選填）'
+            }),
+            'order': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '排序數字（數字越小越靠前）'
+            }),
+        }
+
+    def clean_name(self):
+        name = self.cleaned_data.get('name')
+        if len(name.strip()) < 2:
+            raise ValidationError('分類名稱至少需要2個字')
+        return name
+
