@@ -93,6 +93,17 @@ MIGRATE_DB_LABELS = [
 ]
 
 
+AUTH_SAFE_APPS = [
+    'Single_Redirect',
+]
+
+
+SINO_AUTH_SERVICE_TOKEN = getattr(local, 'SINO_AUTH_SERVICE_TOKEN', None)
+SINO_AUTH_SERVICE_DOMAIN = getattr(local, 'SINO_AUTH_SERVICE_DOMAIN', None)
+SINO_AUTH_SERVICE_APP_PATH = getattr(local, 'SINO_AUTH_SERVICE_APP_PATH', None)
+
+
+
 
 
 
@@ -228,12 +239,6 @@ AUTHENTICATION_BACKENDS = getattr(local, "AUTHENTICATION_BACKENDS", [
 
 EMAIL_BACKEND = getattr(local, 'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 
-
-
-
-SINO_AUTH_SERVICE_TOKEN = getattr(local, 'SINO_AUTH_SERVICE_TOKEN', None)
-SINO_AUTH_SERVICE_DOMAIN = getattr(local, 'SINO_AUTH_SERVICE_DOMAIN', None)
-SINO_AUTH_SERVICE_APP_PATH = getattr(local, 'SINO_AUTH_SERVICE_APP_PATH', None)
 
 
 # CKEditor 5 Configuration

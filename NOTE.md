@@ -43,7 +43,8 @@ SINO_AUTH_SERVICE_APP_PATH = 'sas'
 
 
 STAGE_MIDDLEWARES = [
-    "CoDevStudio.middleware.user_auth.UserAuthMiddleware",  # django auth 之後
+    "SinoAuth.middlewares.BIMTokenAuthMiddleware",
+    "SinoAuth.middlewares.StripTokenMiddleware",  # 選擇使用，可以隱藏網址的 token
 ]
 
 
