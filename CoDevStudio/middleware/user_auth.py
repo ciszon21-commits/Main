@@ -1,4 +1,5 @@
 import re
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.contrib.auth import authenticate, login
@@ -7,7 +8,10 @@ from django.db.models import Q
 from django.http import HttpRequest
 from django.utils.deprecation import MiddlewareMixin
 
-from BimAuth.models import BIMToken
+from SinoExtension.tools import is_app_ready
+
+if TYPE_CHECKING:
+    from BimAuth.models import BIMToken
 
 
 
@@ -36,8 +40,10 @@ class UserAuthMiddleware(MiddlewareMixin):
             return False
         return True
     def _catch_bim_token(self, request:'HttpRequest') -> 'BIMToken|None':
+        if not is_app_ready('BimAuth'): return None
         token_str = self._get_token_str(request)
         if not token_str: return None
+        from BimAuth.models import BIMToken
         return BIMToken.objects.filter(token=token_str).first()
     def _catch_token_user(self, request, token:'BIMToken') -> 'User|None':
         user_s = self._catch_token_user_strong(token)
@@ -52,7 +58,7 @@ class UserAuthMiddleware(MiddlewareMixin):
             authenticate(request, remote_user=user.username)
             or user
         )
-        login(request, auth_user, backend='CoDevStudio.backends.sino_remote_user_backend.SinoRemoteUserBackend')
+        login(request, auth_user, backend='django.contrib.auth.backends.ModelBackend')
         token.use(used_app='%s.%s' %('KMW', self.__class__.__name__))
 
 

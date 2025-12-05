@@ -12,6 +12,7 @@ from SinoExtension.tools import is_app_ready
 from StudioBase.services import get_user_json
 
 if TYPE_CHECKING:
+    from django.contrib.auth.models import User
     from UserProfile.models import UserProfile
 
 
@@ -48,12 +49,13 @@ class SinoRemoteUserBackend(RemoteUserBackend):
             first_name=self.user_detail['emp_name'][:1],
             last_name=self.user_detail['emp_name'][1:],
         )
-        user.set_unusable_password()
+        if not user.is_superuser:
+            user.set_unusable_password()
         user.save()
         self.configure_user(request, user)
         return super().authenticate(request, remote_user)
 
-    def configure_user(self, request, user):
+    def configure_user(self, request, user:'User'):
         """ 設定使用者資料
         """
         UserProfile = self.user_profile_cls
@@ -63,6 +65,10 @@ class SinoRemoteUserBackend(RemoteUserBackend):
         if not self.user_detail:
             # 沒有找到這個 中興人員 相關的資料
             return
+        user.email = self.user_detail['emp_email']
+        user.last_name = self.user_detail['emp_name'][:1]
+        user.first_name = self.user_detail['emp_name'][1:]
+        user.save()
         profile, _ = UserProfile.objects.get_or_create(user=user)
         profile.emp_name = self.user_detail['emp_name']
         profile.emp_email = self.user_detail['emp_email']
