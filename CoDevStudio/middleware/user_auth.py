@@ -58,7 +58,7 @@ class UserAuthMiddleware(MiddlewareMixin):
             authenticate(request, remote_user=user.username)
             or user
         )
-        login(request, auth_user, backend='CoDevStudio.backends.sino_remote_user_backend.SinoRemoteUserBackend')
+        login(request, auth_user, backend='django.contrib.auth.backends.ModelBackend')
         token.use(used_app='%s.%s' %('KMW', self.__class__.__name__))
 
 
