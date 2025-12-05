@@ -256,7 +256,7 @@ def add_comment(request, pk):
 
 您建立的課程「{course.title}」有新的留言：
 
-留言者：{user.username}
+留言者：{user.get_full_name}
 留言時間：{comment.created_at.strftime("%Y-%m-%d %H:%M")}
 留言內容：
 {comment.content}
@@ -283,7 +283,7 @@ def add_comment(request, pk):
             'message': '留言發布成功！',
             'comment': {
                 'id': comment.id,
-                'user': comment.user.username,
+                'user': comment.user.get_full_name,
                 'content': comment.content,
                 'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M')
             }

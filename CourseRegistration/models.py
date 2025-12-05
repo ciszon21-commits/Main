@@ -142,7 +142,7 @@ class Registration(models.Model):
         ordering = ['registered_at']
     
     def __str__(self):
-        return f'{self.user.username} - {self.course.title}'
+        return f'{self.user.get_full_name} - {self.course.title}'
 
 
 class PDFDownloadLog(models.Model):
@@ -167,7 +167,7 @@ class PDFDownloadLog(models.Model):
         ordering = ['-downloaded_at']
     
     def __str__(self):
-        return f'{self.user.username} - {self.course.title} - {self.downloaded_at.strftime("%Y-%m-%d %H:%M")}'
+        return f'{self.user.get_full_name} - {self.course.title} - {self.downloaded_at.strftime("%Y-%m-%d %H:%M")}'
 
 
 class CourseComment(models.Model):
@@ -193,4 +193,4 @@ class CourseComment(models.Model):
         ordering = ['-created_at']  # 新到舊排序
     
     def __str__(self):
-        return f'{self.user.username} - {self.course.title} - {self.created_at.strftime("%Y-%m-%d %H:%M")}'
+        return f'{self.user.get_full_name} - {self.course.title} - {self.created_at.strftime("%Y-%m-%d %H:%M")}'

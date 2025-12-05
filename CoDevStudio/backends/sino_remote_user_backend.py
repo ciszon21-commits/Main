@@ -66,8 +66,8 @@ class SinoRemoteUserBackend(RemoteUserBackend):
             # 沒有找到這個 中興人員 相關的資料
             return
         user.email = self.user_detail['emp_email']
-        user.last_name = self.user_detail['emp_name'][:1]
-        user.first_name = self.user_detail['emp_name'][1:]
+        user.last_name = self.user_detail['emp_name'][1:]
+        user.first_name = self.user_detail['emp_name'][:1]
         user.save()
         profile, _ = UserProfile.objects.get_or_create(user=user)
         profile.emp_name = self.user_detail['emp_name']
