@@ -21,17 +21,17 @@
                 <select name="category" class="filter-select" onchange="this.form.submit()">
                     <option value="">所有分類</option>
                     {% for category in categories %}
-                    <option value="{{ category.id }}" {% if current_category==category.id|stringformat:"s" %}selected{%
-                        endif %}>
+                    <option value="{{ category.id }}" 
+                    {% if current_category == category.id|stringformat:"s" %}selected{% endif %}>
                         {{ category.name }}
                     </option>
                     {% endfor %}
                 </select>
 
                 <select name="sort" class="filter-select" onchange="this.form.submit()">
-                    <option value="-uploaded_at" {% if current_sort=='-uploaded_at' %}selected{% endif %}>最新上傳</option>
-                    <option value="rating" {% if current_sort=='rating' %}selected{% endif %}>評分最高</option>
-                    <option value="popular" {% if current_sort=='popular' %}selected{% endif %}>最多瀏覽</option>
+                    <option value="-uploaded_at" {% if current_sort == '-uploaded_at' %}selected{% endif %}>最新上傳</option>
+                    <option value="rating" {% if current_sort == 'rating' %}selected{% endif %}>評分最高</option>
+                    <option value="popular" {% if current_sort == 'popular' %}selected{% endif %}>最多瀏覽</option>
                 </select>
             </div>
         </form>
@@ -43,7 +43,8 @@
         <div class="image-card">
             <a href="{% url 'gallery:detail' image.pk %}" class="image-link">
                 <div class="image-wrapper">
-                    <img src="{{ image.image.url }}" alt="{{ image.title }}" loading="lazy">
+                    <a href="{{ image.image.url }}" target="_blank"><img src="{{ image.image.url }}"
+                            alt="{{ image.title }}" loading="lazy"></a>
                 </div>
                 <div class="image-info">
                     <h3 class="image-title">{{ image.title }}</h3>

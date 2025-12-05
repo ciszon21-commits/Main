@@ -12,18 +12,17 @@ from .utils import send_comment_notification
 
 
 class AchievementListView(ListView):
-    """成果列表頁面 - 按分類顯示前10個熱門成果"""
+    """成果列表頁面 - 按分類顯示所有成果"""
     model = Category
     template_name = 'DevShowcase/achievement_list.html'
     context_object_name = 'categories'
 
     def get_queryset(self):
-        # 取得所有分類，並預載入前10個熱門成果
+        # 取得所有分類，並預載入所有成果（前端負責顯示控制）
         return Category.objects.prefetch_related(
             Prefetch(
                 'achievements',
-                queryset=Achievement.objects.order_by('-view_count', '-created_at')[:10],
-                to_attr='top_achievements'
+                queryset=Achievement.objects.order_by('-view_count', '-created_at')
             )
         ).all()
 
