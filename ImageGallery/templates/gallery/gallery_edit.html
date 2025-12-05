@@ -1,0 +1,165 @@
+{% extends 'gallery/base.html' %}
+
+{% block title %}編輯圖片 - 圖片分享平台{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="edit-container">
+        <div class="page-header">
+            <h1>編輯圖片資訊</h1>
+            <p class="subtitle">修改圖片的標題、描述、分類、地點和拍攝時間</p>
+        </div>
+
+        <div class="edit-layout">
+            <!-- 圖片預覽 -->
+            <div class="image-preview">
+                <img src="{{ image.image.url }}" alt="{{ image.title }}" class="preview-img">
+            </div>
+
+            <!-- 編輯表單 -->
+            <div class="edit-form-section">
+                <form method="post" class="edit-form">
+                    {% csrf_token %}
+
+                    <div class="form-group">
+                        <label for="{{ form.title.id_for_label }}">圖片標題 <span class="required">*</span></label>
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                        <div class="error-message">{{ form.title.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.category.id_for_label }}">分類</label>
+                        {{ form.category }}
+                        {% if form.category.errors %}
+                        <div class="error-message">{{ form.category.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.location.id_for_label }}">地點</label>
+                        {{ form.location }}
+                        {% if form.location.errors %}
+                        <div class="error-message">{{ form.location.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.taken_at.id_for_label }}">拍攝時間</label>
+                        {{ form.taken_at }}
+                        {% if form.taken_at.errors %}
+                        <div class="error-message">{{ form.taken_at.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.description.id_for_label }}">圖片描述</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <div class="error-message">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">💾 儲存變更</button>
+                        <a href="{% url 'gallery:detail' image.pk %}" class="btn btn-secondary">取消</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .edit-container {
+        max-width: 1000px;
+        margin: 2rem auto;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .page-header h1 {
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+        color: #718096;
+        font-size: 1rem;
+    }
+
+    .edit-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        align-items: start;
+    }
+
+    .image-preview {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1.5rem;
+        position: sticky;
+        top: 2rem;
+    }
+
+    .preview-img {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .edit-form-section {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #4a5568;
+    }
+
+    .required {
+        color: #e53e3e;
+    }
+
+    .error-message {
+        color: #e53e3e;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    @media (max-width: 768px) {
+        .edit-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .image-preview {
+            position: static;
+        }
+    }
+</style>
+{% endblock %}

@@ -32,14 +32,16 @@ class Image(models.Model):
     description = models.TextField(blank=True, verbose_name='圖片描述')
     image = models.ImageField(upload_to='gallery/%Y/%m/', verbose_name='圖片檔案')
     category = models.ForeignKey(
-        ImageCategory, 
-        on_delete=models.SET_NULL, 
+        ImageCategory,
+        on_delete=models.SET_NULL,
         null=True,
         related_name='images',
         verbose_name='分類'
     )
+    location = models.CharField(max_length=200, blank=True, verbose_name='地點')
+    taken_at = models.DateTimeField(null=True, blank=True, verbose_name='拍攝時間')
     uploaded_by = models.ForeignKey(
-        User, 
+        User,
         on_delete=models.CASCADE,
         related_name='uploaded_images',
         verbose_name='上傳者'

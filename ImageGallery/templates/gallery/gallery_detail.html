@@ -7,7 +7,9 @@
     <div class="detail-container">
         <!-- 圖片顯示區 -->
         <div class="detail-image-section">
-            <img src="{{ image.image.url }}" alt="{{ image.title }}" class="detail-image">
+            <a href="{{ image.image.url }}" target="_blank">
+                <img src="{{ image.image.url }}" alt="{{ image.title }}" class="detail-image">
+            </a>
         </div>
 
         <!-- 圖片資訊區 -->
@@ -16,8 +18,19 @@
 
             <div class="detail-meta">
                 <span class="category-badge">{{ image.category.name }}</span>
-                <span class="upload-date">📅 {{ image.uploaded_at|date:"Y-m-d H:i" }}</span>
+                <span class="upload-date">📅 上傳：{{ image.uploaded_at|date:"Y-m-d H:i" }}</span>
             </div>
+
+            {% if image.location or image.taken_at %}
+            <div class="detail-meta">
+                {% if image.location %}
+                <span class="location">📍 地點：{{ image.location }}</span>
+                {% endif %}
+                {% if image.taken_at %}
+                <span class="taken-date">📷 拍攝：{{ image.taken_at|date:"Y-m-d H:i" }}</span>
+                {% endif %}
+            </div>
+            {% endif %}
 
             {% if image.description %}
             <div class="detail-description">
@@ -85,6 +98,9 @@
 
             <div class="detail-actions">
                 <a href="{% url 'gallery:list' %}" class="btn btn-secondary">← 返回列表</a>
+                {% if user.is_authenticated and user == image.uploaded_by %}
+                <a href="{% url 'gallery:edit' image.pk %}" class="btn btn-primary">✏️ 編輯圖片</a>
+                {% endif %}
             </div>
         </div>
     </div>

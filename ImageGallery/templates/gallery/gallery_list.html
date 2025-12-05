@@ -43,8 +43,7 @@
         <div class="image-card">
             <a href="{% url 'gallery:detail' image.pk %}" class="image-link">
                 <div class="image-wrapper">
-                    <a href="{{ image.image.url }}" target="_blank"><img src="{{ image.image.url }}"
-                            alt="{{ image.title }}" loading="lazy"></a>
+                    <img src="{{ image.image.url }}" alt="{{ image.title }}" loading="lazy">
                 </div>
                 <div class="image-info">
                     <h3 class="image-title">{{ image.title }}</h3>
@@ -55,6 +54,11 @@
                             <small>({{ image.total_ratings }})</small>
                         </span>
                     </div>
+                    {% if image.location %}
+                    <div class="image-location">
+                        <span>📍 {{ image.location }}</span>
+                    </div>
+                    {% endif %}
                     <div class="image-footer">
                         <span class="uploader">👤 {{ image.uploaded_by.get_full_name }}</span>
                         <span class="views">👁️ {{ image.view_count }}</span>
