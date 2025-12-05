@@ -30,7 +30,7 @@ SECRET_KEY = getattr(local, "SECRET_KEY", 'django-insecure--%dbcahm$h45=qeyio&^8
 DEBUG =  getattr(local, 'DEBUG', True)
 
 ALLOWED_HOSTS = getattr(local, 'ALLOWED_HOSTS',
-    ['localhost', '127.0.0.1']
+    ['localhost', '127.0.0.1', '0.0.0.0']
 )
 
 # Application definition
@@ -49,6 +49,10 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "rest_framework_simplejwt.token_blacklist",
 
+    # CKEditor
+    "ckeditor",
+    "ckeditor_uploader",
+
     # 中興擴充套件
     "SinoExtension",
     "SinoTemplate",
@@ -64,6 +68,7 @@ INSTALLED_APPS = [
     "UserProfile",
     "SinoArchive",
     "CourseRegistration",
+    "DevShowcase",
 ]
 
 
@@ -224,4 +229,23 @@ SINO_AUTH_SERVICE_TOKEN = getattr(local, 'SINO_AUTH_SERVICE_TOKEN', None)
 SINO_AUTH_SERVICE_DOMAIN = getattr(local, 'SINO_AUTH_SERVICE_DOMAIN', None)
 SINO_AUTH_SERVICE_APP_PATH = getattr(local, 'SINO_AUTH_SERVICE_APP_PATH', None)
 
+
+# CKEditor Configuration
+CKEDITOR_UPLOAD_PATH = "uploads/"
+CKEDITOR_IMAGE_BACKEND = "pillow"
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'full',
+        'height': 400,
+        'width': '100%',
+        'extraPlugins': ','.join([
+            'uploadimage',
+            'image2',
+        ]),
+    },
+}
+
+# File Upload Limits
+FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
 
