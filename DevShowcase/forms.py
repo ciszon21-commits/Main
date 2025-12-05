@@ -1,5 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from django.contrib.auth.models import User
 from .models import Achievement, Comment, Category
 
 
@@ -34,6 +35,12 @@ class AchievementForm(forms.ModelForm):
                 'size': 8
             }),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 自訂協同開發者的顯示名稱為 get_full_name
+        self.fields['developers'].queryset = User.objects.all().order_by('first_name', 'last_name', 'username')
+        self.fields['developers'].label_from_instance = lambda obj: obj.get_full_name() or obj.username
 
     def clean_video(self):
         video = self.cleaned_data.get('video')
