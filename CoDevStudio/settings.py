@@ -68,7 +68,7 @@ INSTALLED_APPS = [
     "CourseRegistration",
     "ImageGallery",
     "DevShowcase",
-]
+] + getattr(local, 'STAGE_INSTALLED_APPS', [])
 
 
 MIDDLEWARE = [
@@ -79,9 +79,22 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.RemoteUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.security.SecurityMiddleware",
+] + getattr(local, 'STAGE_MIDDLEWARES', [])
 
-    "CoDevStudio.middleware.user_auth.UserAuthMiddleware",  # django auth 之後
+
+READ_DB_LABELS = [
+    *getattr(local, 'STAGE_READ_DB_LABELS', [])
 ]
+WRITE_DB_LABELS = [
+    *getattr(local, 'STAGE_WRITE_DB_LABELS', [])
+]
+MIGRATE_DB_LABELS = [
+    *getattr(local, 'STAGE_MIGRATE_DB_LABELS', [])
+]
+
+
+
+
 
 ROOT_URLCONF = 'CoDevStudio.urls'
 
@@ -210,6 +223,7 @@ NOTIFY_EMAIL = getattr(local, "NOTIFY_EMAIL", "通知郵件")
 
 AUTHENTICATION_BACKENDS = getattr(local, "AUTHENTICATION_BACKENDS", [
     'CoDevStudio.backends.sino_remote_user_backend.SinoRemoteUserBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ])
 
 EMAIL_BACKEND = getattr(local, 'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
