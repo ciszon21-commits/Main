@@ -59,7 +59,6 @@ INSTALLED_APPS = [
     "BimAuth",
     "SinoAuth",
     "SingleAuth",
-    "ImageGallery",
     "SinoArchive",
 
     # CoDevStudio
@@ -67,6 +66,7 @@ INSTALLED_APPS = [
     "Home",
     "UserProfile",
     "CourseRegistration",
+    "ImageGallery",
     "DevShowcase",
 ]
 
@@ -196,10 +196,6 @@ MEDIA_URL = "media/"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-LTD_EMPNO_FIELDS = [
-    "EmpNo",
-    "EmpNo5",
-]
 
 EMAIL_PORT = 465
 EMAIL_USE_SSL = True
@@ -218,9 +214,6 @@ AUTHENTICATION_BACKENDS = getattr(local, "AUTHENTICATION_BACKENDS", [
 
 EMAIL_BACKEND = getattr(local, 'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 
-SINGLE_TOKEN = getattr(local, 'SINGLE_TOKEN', None)
-
-DATA_UPLOAD_MAX_NUMBER_FILES = getattr(local, 'DATA_UPLOAD_MAX_NUMBER_FILES', 2000)
 
 
 
@@ -258,6 +251,7 @@ CKEDITOR_5_CONFIGS = {
 CKEDITOR_5_FILE_UPLOAD_PERMISSION = "authenticated"
 
 # File Upload Limits
-FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
+DATA_UPLOAD_MAX_NUMBER_FILES = getattr(local, 'DATA_UPLOAD_MAX_NUMBER_FILES', 2000)
 
