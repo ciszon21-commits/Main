@@ -30,7 +30,7 @@ SECRET_KEY = getattr(local, "SECRET_KEY", 'django-insecure--%dbcahm$h45=qeyio&^8
 DEBUG =  getattr(local, 'DEBUG', True)
 
 ALLOWED_HOSTS = getattr(local, 'ALLOWED_HOSTS',
-    ['localhost', '127.0.0.1']
+    ['localhost', '127.0.0.1', '0.0.0.0']
 )
 
 # Application definition
@@ -49,6 +49,9 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "rest_framework_simplejwt.token_blacklist",
 
+    # CKEditor 5
+    "django_ckeditor_5",
+
     # 中興擴充套件
     "SinoExtension",
     "SinoTemplate",
@@ -64,6 +67,7 @@ INSTALLED_APPS = [
     "UserProfile",
     "SinoArchive",
     "CourseRegistration",
+    "DevShowcase",
 ]
 
 
@@ -224,4 +228,36 @@ SINO_AUTH_SERVICE_TOKEN = getattr(local, 'SINO_AUTH_SERVICE_TOKEN', None)
 SINO_AUTH_SERVICE_DOMAIN = getattr(local, 'SINO_AUTH_SERVICE_DOMAIN', None)
 SINO_AUTH_SERVICE_APP_PATH = getattr(local, 'SINO_AUTH_SERVICE_APP_PATH', None)
 
+
+# CKEditor 5 Configuration
+CKEDITOR_5_CONFIGS = {
+    'default': {
+        'toolbar': {
+            'items': ['heading', '|', 'bold', 'italic', 'link',
+                      'bulletedList', 'numberedList', 'blockQuote', 'imageUpload'],
+        }
+    },
+    'extends': {
+        'toolbar': {
+            'items': ['heading', '|', 'bold', 'italic', 'link', 'underline',
+                      'strikethrough', 'code', 'subscript', 'superscript', '|',
+                      'bulletedList', 'numberedList', 'todoList', '|',
+                      'outdent', 'indent', '|', 'blockQuote', 'insertImage',
+                      'mediaEmbed', 'insertTable', 'codeBlock', 'sourceEditing'],
+            'shouldNotGroupWhenFull': True
+        },
+        'image': {
+            'toolbar': ['imageTextAlternative', 'imageStyle:alignLeft',
+                        'imageStyle:alignCenter', 'imageStyle:alignRight']
+        },
+        'table': {
+            'contentToolbar': ['tableColumn', 'tableRow', 'mergeTableCells']
+        }
+    }
+}
+CKEDITOR_5_FILE_UPLOAD_PERMISSION = "authenticated"
+
+# File Upload Limits
+FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
 
