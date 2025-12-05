@@ -120,4 +120,4 @@ class ImageRating(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f'{self.user.username} - {self.image.title} - {self.rating}星'
+        return f'{self.user.get_full_name} - {self.image.title} - {self.rating}星'
