@@ -5,10 +5,10 @@ from .models import Image, ImageCategory
 
 class ImageUploadForm(forms.ModelForm):
     """圖片上傳表單"""
-    
+
     class Meta:
         model = Image
-        fields = ['title', 'description', 'image', 'category']
+        fields = ['title', 'description', 'image', 'category', 'location', 'taken_at']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -25,6 +25,15 @@ class ImageUploadForm(forms.ModelForm):
             }),
             'category': forms.Select(attrs={
                 'class': 'form-control'
+            }),
+            'location': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '請輸入拍攝地點（可選）'
+            }),
+            'taken_at': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local',
+                'placeholder': '請選擇拍攝時間（可選）'
             })
         }
 
@@ -95,11 +104,47 @@ class ImageBatchEditForm(forms.ModelForm):
     """批量編輯表單"""
     class Meta:
         model = Image
-        fields = ['title', 'category', 'description']
+        fields = ['title', 'category', 'description', 'location', 'taken_at']
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'category': forms.Select(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '地點'}),
+            'taken_at': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['category'].queryset = ImageCategory.objects.all()
+
+
+class ImageEditForm(forms.ModelForm):
+    """單張圖片編輯表單"""
+    class Meta:
+        model = Image
+        fields = ['title', 'description', 'category', 'location', 'taken_at']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '請輸入圖片標題'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': '請輸入圖片描述（可選）',
+                'rows': 4
+            }),
+            'category': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'location': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '請輸入拍攝地點（可選）'
+            }),
+            'taken_at': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local',
+                'placeholder': '請選擇拍攝時間（可選）'
+            })
         }
 
     def __init__(self, *args, **kwargs):
