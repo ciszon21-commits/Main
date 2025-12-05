@@ -11,15 +11,17 @@
 </head>
 
 <body>
-    <!-- Hero Section -->
-    <div class="hero">
-        <div class="hero-content">
-            <h1 class="hero-title">開發成果展示</h1>
-            <p class="hero-subtitle">探索我們的創新成果與技術突破</p>
-            <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+    <!-- Banner Section -->
+    <div class="banner">
+        <div class="banner-content">
+            <div class="banner-info">
+                <h1 class="banner-title">開發成果展示</h1>
+                <p class="banner-subtitle">透過短影片快速探索同仁的創新成果與技術突破</p>
+            </div>
+            <div class="banner-actions">
                 {% if user.is_authenticated %}
                 <a href="{% url 'devshowcase:achievement_create' %}" class="btn btn-primary">
-                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                         <path
                             d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
                     </svg>
@@ -28,7 +30,7 @@
                 {% endif %}
                 {% if user.is_staff %}
                 <a href="{% url 'devshowcase:category_list' %}" class="btn btn-secondary">
-                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                         <path
                             d="M9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L9.5 0zm0 1v3.5A1.5 1.5 0 0 0 11 6h3v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z" />
                     </svg>
@@ -89,7 +91,10 @@
                 {% for achievement in category.achievements.all %}
                 <div class="achievement-card" data-name="{{ achievement.name }}"
                     data-summary="{{ achievement.summary }}" data-category="{{ category.id }}">
-                    <div class="card-video">
+                    <div class="card-video video-clickable"
+                         data-video-url="{{ achievement.video.url }}"
+                         data-achievement-title="{{ achievement.name }}"
+                         data-achievement-url="{% url 'devshowcase:achievement_detail' achievement.pk %}">
                         <video class="video-thumbnail" preload="metadata">
                             <source src="{{ achievement.video.url }}#t=0.5" type="video/mp4">
                         </video>
@@ -106,33 +111,35 @@
                         <h3 class="card-title">{{ achievement.name }}</h3>
                         <p class="card-summary">{{ achievement.summary }}</p>
 
-                        <div class="card-meta">
-                            <div class="meta-item">
-                                <svg fill="currentColor" viewBox="0 0 16 16">
-                                    <path
-                                        d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z" />
-                                    <path
-                                        d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z" />
-                                </svg>
-                                <span>{{ achievement.view_count }}</span>
+                        <div class="card-footer">
+                            <div class="card-meta">
+                                <div class="meta-item">
+                                    <svg fill="currentColor" viewBox="0 0 16 16">
+                                        <path
+                                            d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z" />
+                                        <path
+                                            d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z" />
+                                    </svg>
+                                    <span>{{ achievement.view_count }}</span>
+                                </div>
+
+                                <div class="meta-item">
+                                    <svg fill="currentColor" viewBox="0 0 16 16">
+                                        <path
+                                            d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                                    </svg>
+                                    <span>{{ achievement.get_all_developers|length }}</span>
+                                </div>
                             </div>
 
-                            <div class="meta-item">
+                            <a href="{% url 'devshowcase:achievement_detail' achievement.pk %}" class="card-link">
+                                詳情
                                 <svg fill="currentColor" viewBox="0 0 16 16">
-                                    <path
-                                        d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                                    <path fill-rule="evenodd"
+                                        d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z" />
                                 </svg>
-                                <span>{{ achievement.get_all_developers|length }}</span>
-                            </div>
+                            </a>
                         </div>
-
-                        <a href="{% url 'devshowcase:achievement_detail' achievement.pk %}" class="card-link">
-                            查看詳情
-                            <svg fill="currentColor" viewBox="0 0 16 16">
-                                <path fill-rule="evenodd"
-                                    d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z" />
-                            </svg>
-                        </a>
                     </div>
                 </div>
                 {% endfor %}
@@ -163,6 +170,35 @@
             <p>目前還沒有任何成果展示</p>
         </div>
         {% endfor %}
+    </div>
+
+    <!-- Video Modal -->
+    <div id="videoModal" class="video-modal">
+        <div class="video-modal-overlay"></div>
+        <div class="video-modal-content">
+            <button class="video-modal-close" aria-label="關閉">
+                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
+                </svg>
+            </button>
+            <div class="video-modal-header">
+                <h2 id="modalTitle"></h2>
+            </div>
+            <div class="video-modal-body">
+                <video id="modalVideo" controls autoplay>
+                    <source src="" type="video/mp4">
+                    您的瀏覽器不支援影片播放。
+                </video>
+            </div>
+            <div class="video-modal-footer">
+                <a id="modalDetailLink" class="modal-detail-btn" href="#">
+                    查看完整資訊
+                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
     </div>
 
     <script src="{% static 'DevShowcase/js/showcase.js' %}"></script>

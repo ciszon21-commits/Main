@@ -60,12 +60,12 @@ INSTALLED_APPS = [
     "SinoAuth",
     "SingleAuth",
     "ImageGallery",
+    "SinoArchive",
 
     # CoDevStudio
     "StudioBase",
     "Home",
     "UserProfile",
-    "SinoArchive",
     "CourseRegistration",
     "DevShowcase",
 ]

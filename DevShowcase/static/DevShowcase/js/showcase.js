@@ -323,3 +323,75 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         }
     });
 });
+
+// ========== Video Modal Functionality ==========
+
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('videoModal');
+    const modalVideo = document.getElementById('modalVideo');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalDetailLink = document.getElementById('modalDetailLink');
+    const closeBtn = document.querySelector('.video-modal-close');
+    const overlay = document.querySelector('.video-modal-overlay');
+    const videoClickables = document.querySelectorAll('.video-clickable');
+
+    // Open modal when clicking on video
+    videoClickables.forEach(videoElement => {
+        videoElement.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation(); // Prevent card click
+
+            const videoUrl = this.dataset.videoUrl;
+            const achievementTitle = this.dataset.achievementTitle;
+            const achievementUrl = this.dataset.achievementUrl;
+
+            // Set modal content
+            modalVideo.src = videoUrl;
+            modalTitle.textContent = achievementTitle;
+            modalDetailLink.href = achievementUrl;
+
+            // Show modal
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden'; // Prevent background scroll
+
+            // Play video
+            modalVideo.play();
+        });
+    });
+
+    // Close modal function
+    function closeModal() {
+        modal.classList.remove('active');
+        document.body.style.overflow = ''; // Restore scroll
+
+        // Pause and reset video
+        modalVideo.pause();
+        modalVideo.currentTime = 0;
+        modalVideo.src = '';
+    }
+
+    // Close when clicking close button
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeModal);
+    }
+
+    // Close when clicking overlay
+    if (overlay) {
+        overlay.addEventListener('click', closeModal);
+    }
+
+    // Close when pressing Escape key
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    // Prevent modal content click from closing
+    const modalContent = document.querySelector('.video-modal-content');
+    if (modalContent) {
+        modalContent.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+    }
+});
