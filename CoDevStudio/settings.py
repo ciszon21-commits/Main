@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     "CourseRegistration",
     "ImageGallery",
     "DevShowcase",
+    "RndRequest",
 ] + getattr(local, 'STAGE_INSTALLED_APPS', [])
 
 
@@ -238,7 +239,12 @@ AUTHENTICATION_BACKENDS = getattr(local, "AUTHENTICATION_BACKENDS", [
 ])
 
 EMAIL_BACKEND = getattr(local, 'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
-
+EMAIL_HOST = getattr(local, 'EMAIL_HOST', '')
+EMAIL_PORT = getattr(local, 'EMAIL_PORT', 587)
+EMAIL_HOST_USER = getattr(local, 'EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = getattr(local, 'EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = getattr(local, 'EMAIL_USE_TLS', True)
+DEFAULT_FROM_EMAIL = getattr(local, 'DEFAULT_FROM_EMAIL', 'noreply@example.com')
 
 
 # CKEditor 5 Configuration
