@@ -1,16 +1,16 @@
 from django.db import models
 from django.conf import settings
-# from PMIS import models as PmisModels
+
+
+READ_DB_LABELS = getattr(settings, 'READ_DB_LABELS', [])
+WRITE_DB_LABELS = getattr(settings, 'WRITE_DB_LABELS', [])
+MIGRATE_DB_LABELS = getattr(settings, 'MIGRATE_DB_LABELS', [])
+
 
 class DataBaseRouter:
-    _read_db_labels = [
-        'BimAuth',
-        'PMIS',
-    ]
-    _write_db_labels = [
-        'BimAuth',
-    ]
-    _migrate_db_labels = []
+    _read_db_labels = READ_DB_LABELS
+    _write_db_labels = WRITE_DB_LABELS
+    _migrate_db_labels = MIGRATE_DB_LABELS
     def db_for_read(self, model:'models.Model', **hints) -> 'str':
         app_label = model._meta.app_label
         if app_label in self._read_db_labels:

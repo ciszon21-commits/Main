@@ -31,3 +31,31 @@
 
 
 
+
+## 正式環境設置
+```python
+# local_settings.py
+
+
+SINO_AUTH_SERVICE_TOKEN = '{PUBLIC_SAS_TOKEN}'
+SINO_AUTH_SERVICE_DOMAIN = 'https://50-129.sinotech.com.tw:1127'
+SINO_AUTH_SERVICE_APP_PATH = 'sas'
+
+
+STAGE_MIDDLEWARES = [
+    "SinoAuth.middlewares.BIMTokenAuthMiddleware",
+    "SinoAuth.middlewares.StripTokenMiddleware",  # 選擇使用，可以隱藏網址的 token
+]
+
+
+STAGE_READ_DB_LABELS = [
+    'BimAuth',
+    'CommonUse',
+]
+STAGE_WRITE_DB_LABELS = [
+    'BimAuth',
+]
+STAGE_MIGRATE_DB_LABELS = []
+
+```
+

@@ -59,7 +59,6 @@ INSTALLED_APPS = [
     "BimAuth",
     "SinoAuth",
     "SingleAuth",
-    "ImageGallery",
     "SinoArchive",
 
     # CoDevStudio
@@ -67,8 +66,9 @@ INSTALLED_APPS = [
     "Home",
     "UserProfile",
     "CourseRegistration",
+    "ImageGallery",
     "DevShowcase",
-]
+] + getattr(local, 'STAGE_INSTALLED_APPS', [])
 
 
 MIDDLEWARE = [
@@ -79,9 +79,33 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.RemoteUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.security.SecurityMiddleware",
+] + getattr(local, 'STAGE_MIDDLEWARES', [])
 
-    "CoDevStudio.middleware.user_auth.UserAuthMiddleware",  # django auth 之後
+
+READ_DB_LABELS = [
+    *getattr(local, 'STAGE_READ_DB_LABELS', [])
 ]
+WRITE_DB_LABELS = [
+    *getattr(local, 'STAGE_WRITE_DB_LABELS', [])
+]
+MIGRATE_DB_LABELS = [
+    *getattr(local, 'STAGE_MIGRATE_DB_LABELS', [])
+]
+
+
+AUTH_SAFE_APPS = [
+    'Single_Redirect',
+]
+
+
+SINO_AUTH_SERVICE_TOKEN = getattr(local, 'SINO_AUTH_SERVICE_TOKEN', None)
+SINO_AUTH_SERVICE_DOMAIN = getattr(local, 'SINO_AUTH_SERVICE_DOMAIN', None)
+SINO_AUTH_SERVICE_APP_PATH = getattr(local, 'SINO_AUTH_SERVICE_APP_PATH', None)
+
+
+
+
+
 
 ROOT_URLCONF = 'CoDevStudio.urls'
 
@@ -196,10 +220,6 @@ MEDIA_URL = "media/"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-LTD_EMPNO_FIELDS = [
-    "EmpNo",
-    "EmpNo5",
-]
 
 EMAIL_PORT = 465
 EMAIL_USE_SSL = True
@@ -214,19 +234,11 @@ NOTIFY_EMAIL = getattr(local, "NOTIFY_EMAIL", "通知郵件")
 
 AUTHENTICATION_BACKENDS = getattr(local, "AUTHENTICATION_BACKENDS", [
     'CoDevStudio.backends.sino_remote_user_backend.SinoRemoteUserBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ])
 
 EMAIL_BACKEND = getattr(local, 'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 
-SINGLE_TOKEN = getattr(local, 'SINGLE_TOKEN', None)
-
-DATA_UPLOAD_MAX_NUMBER_FILES = getattr(local, 'DATA_UPLOAD_MAX_NUMBER_FILES', 2000)
-
-
-
-SINO_AUTH_SERVICE_TOKEN = getattr(local, 'SINO_AUTH_SERVICE_TOKEN', None)
-SINO_AUTH_SERVICE_DOMAIN = getattr(local, 'SINO_AUTH_SERVICE_DOMAIN', None)
-SINO_AUTH_SERVICE_APP_PATH = getattr(local, 'SINO_AUTH_SERVICE_APP_PATH', None)
 
 
 # CKEditor 5 Configuration
@@ -258,6 +270,7 @@ CKEDITOR_5_CONFIGS = {
 CKEDITOR_5_FILE_UPLOAD_PERMISSION = "authenticated"
 
 # File Upload Limits
-FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
+DATA_UPLOAD_MAX_NUMBER_FILES = getattr(local, 'DATA_UPLOAD_MAX_NUMBER_FILES', 2000)
 
