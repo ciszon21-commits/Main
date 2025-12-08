@@ -1,0 +1,46 @@
+{% extends 'NewsSubscriber/base.html' %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>{{ topic.name }}</h1>
+        <a href="{% url 'news_subscriber:keyword_add' topic.id %}" class="btn">新增關鍵字</a>
+    </div>
+    <div>
+        <strong>關鍵字：</strong>
+        {% for keyword in topic.keywords.all %}
+        <span style="background: #eee; padding: 4px 8px; border-radius: 4px; margin-right: 5px;">
+            {{ keyword.word }}</span>
+        {% empty %}
+        <span>尚無關鍵字</span>
+        {% endfor %}
+    </div>
+</div>
+
+{% if summaries %}
+<div class="card">
+    <h2>每日摘要</h2>
+    {% for summary in summaries %}
+    <div class="summary-box">
+        <h3>{{ summary.date }}</h3>
+        <div style="white-space: pre-line;">{{ summary.summary|safe }}</div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="card">
+    <h2>最新新聞 (前 50 筆)</h2>
+    {% for news in news_items %}
+    <div class="news-item">
+        <h3><a href="{{ news.url }}" target="_blank" style="text-decoration: none; color: #2980b9;">{{ news.title }}</a>
+        </h3>
+        <div class="news-meta">
+            <span>{{ news.source }}</span> | <span>{{ news.date|date:"Y-m-d H:i" }}</span>
+        </div>
+    </div>
+    {% empty %}
+    <p>尚無新聞資料。請確認是否已執行抓取指令。</p>
+    {% endfor %}
+</div>
+{% endblock %}

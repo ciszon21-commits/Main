@@ -18,6 +18,7 @@ urlpatterns = [
     path('single_auth/', include('SingleAuth.urls')),
     path('courses/', include('CourseRegistration.urls')),
     path('rnd-request/', include('RndRequest.urls')),
+    path('news/', include('NewsSubscriber.urls')),
 ]
 
 # 開發環境下提供 media 檔案服務
