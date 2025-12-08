@@ -435,11 +435,9 @@ class Command(BaseCommand):
     def _improve_rss_summary(self, title, rss_summary):
         """使用AI改寫RSS摘要，使其更簡潔清晰"""
         try:
-            prompt = f"""請將以下Google News的RSS摘要改寫成更簡潔、易讀的新聞摘要。
+            prompt = f"""請將以下Google News的標題改寫成更簡潔、易讀的今日重點摘要。
 
 【重要指示】
-- 只能根據提供的RSS摘要改寫
-- 摘要長度：2-3句話，約60-100字
 - 使用繁體中文
 - 保留核心資訊，去除冗餘內容
 - 不要添加任何額外資訊或評論
@@ -448,9 +446,6 @@ class Command(BaseCommand):
 
 ===== 新聞標題 =====
 {title}
-
-===== RSS摘要 =====
-{rss_summary[:500]}
 
 ===== 請輸出改寫後的摘要 =====
 """
@@ -521,7 +516,7 @@ class Command(BaseCommand):
             prompt = f"""你是一位專業的新聞分析師。請根據以下「{topic.name}」主題的新聞標題，生成一份今日新聞整合報告。
 
 【嚴格限制 - 必須遵守】
-1. 只能使用下方提供的{len(news_list)}則新聞標題
+1. 只能使用下方提供的新聞標題
 2. 絕對不可以添加、編造或引用任何未提供的新聞
 3. 所有新聞連結必須完全使用下方提供的URL，不可修改
 4. 不可以生成任何額外的新聞項目
@@ -539,7 +534,7 @@ class Command(BaseCommand):
 
 第二部分 - 重要新聞：
 - 用 <h2> 標題「重要新聞」
-- 依序列出下方提供的所有{len(news_list)}則新聞
+- 依序列出下方提供的所有新聞標題
 - 每則新聞使用以下HTML結構：
   <div style="margin-bottom: 20px; padding: 15px; border-left: 3px solid #3498db; background-color: #f8f9fa;">
     <h3 style="margin: 0 0 10px 0;">
