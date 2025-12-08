@@ -77,13 +77,13 @@ class Command(BaseCommand):
 
             # 儲存新聞並抓取內容和摘要
             self.stdout.write(f"\n【步驟 3】儲存新聞並抓取內容摘要...")
-            news_with_summaries = self._save_and_fetch_content(unique_news, topic, model)
+            news_with_summaries = self._save_and_fetch_content(unique_news, topic)
             self.stdout.write(f"  成功處理 {len(news_with_summaries)} 則新聞")
 
             # 生成每日整合摘要
             if news_with_summaries:
                 self.stdout.write(f"\n【步驟 4】生成每日整合摘要...")
-                daily_summary_html = self._generate_daily_summary(news_with_summaries, topic, model)
+                daily_summary_html = self._generate_daily_summary(news_with_summaries, topic)
 
                 if daily_summary_html:
                     # 儲存摘要
@@ -266,7 +266,7 @@ class Command(BaseCommand):
         except Exception as e:
             return f"摘要生成失敗: {str(e)[:50]}"
 
-    def _save_and_fetch_content(self, news_list, topic, model):
+    def _save_and_fetch_content(self, news_list, topic):
         """儲存新聞並抓取內容和生成摘要"""
         news_with_summaries = []
 
@@ -325,7 +325,7 @@ class Command(BaseCommand):
 
         return news_with_summaries
 
-    def _generate_daily_summary(self, news_list, topic, model):
+    def _generate_daily_summary(self, news_list, topic):
         """生成每日整合摘要"""
         try:
             # 準備新聞摘要資料
