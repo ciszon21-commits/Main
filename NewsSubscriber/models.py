@@ -75,3 +75,16 @@ class Subscription(models.Model):
         verbose_name_plural = "訂閱"
         unique_together = ['user', 'topic']
         ordering = ['-created_at']
+
+class OpenAIResponse(models.Model):
+    request_id = models.CharField(max_length=100)
+    model = models.CharField(max_length=100)
+    content = models.TextField()
+    created = models.DateTimeField()
+    prompt_tokens = models.IntegerField()
+    completion_tokens = models.IntegerField()
+    total_tokens = models.IntegerField()
+    tag = models.CharField(default='NA',max_length=100)
+    
+    def __str__(self):
+        return f"{self.model} @ {self.created}"
