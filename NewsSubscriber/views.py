@@ -43,6 +43,34 @@ class TopicCreateView(CreateView):
     template_name = 'NewsSubscriber/topic_form.html'
     success_url = reverse_lazy('news_subscriber:topic_list')
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+
+        # 如果使用者已登入，自動訂閱該主題
+        if self.request.user.is_authenticated:
+            email = self.request.user.email
+            if email:
+                # 建立訂閱
+                Subscription.objects.create(
+                    user=self.request.user,
+                    topic=self.object,
+                    email=email,
+                    is_active=True
+                )
+                messages.success(
+                    self.request,
+                    f'成功建立主題「{self.object.name}」並自動訂閱！每日新聞摘要將發送至 {email}'
+                )
+            else:
+                messages.warning(
+                    self.request,
+                    f'成功建立主題「{self.object.name}」，但您的帳號尚未設定email，無法自動訂閱。請先在個人設定中設定email後再手動訂閱。'
+                )
+        else:
+            messages.success(self.request, f'成功建立主題「{self.object.name}」！')
+
+        return response
+
 class KeywordCreateView(CreateView):
     model = Keyword
     fields = ['word']
