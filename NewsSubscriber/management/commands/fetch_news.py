@@ -1,5 +1,4 @@
 import feedparser
-import google.generativeai as genai
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from django.utils import timezone
@@ -14,6 +13,7 @@ import re
 from difflib import SequenceMatcher
 import requests
 from bs4 import BeautifulSoup
+from NewsSubscriber.oss import ask_oss
 
 class Command(BaseCommand):
     help = 'Fetch news from Google News RSS and generate summaries using Gemini'
@@ -32,9 +32,6 @@ class Command(BaseCommand):
         if not settings.GEMINI_API_KEY:
             self.stderr.write("Error: GEMINI_API_KEY is not set in settings.")
             return
-
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        model = genai.GenerativeModel(settings.GEMINI_MODEL)
 
         topics = Topic.objects.all()
         if not topics.exists():
@@ -262,8 +259,8 @@ class Command(BaseCommand):
 
 請直接輸出摘要，不要其他說明：
 """
-            response = model.generate_content(prompt)
-            summary = response.text.strip()
+            response = ask_oss(prompt,tag='新聞摘要')
+            summary = response.content.strip()
             return summary if summary else "摘要生成失敗"
 
         except Exception as e:
@@ -367,8 +364,8 @@ class Command(BaseCommand):
 請生成 HTML 格式的整合摘要（不需要完整的 HTML 文檔結構，只需要內容部分）：
 """
 
-            response = model.generate_content(prompt)
-            summary = response.text.strip()
+            response = ask_oss(prompt,tag='每日摘要')
+            summary = response.content.strip()
 
             # 移除可能的markdown代碼塊標記
             summary = re.sub(r'^```html\n', '', summary)
