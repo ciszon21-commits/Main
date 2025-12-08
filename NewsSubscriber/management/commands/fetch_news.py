@@ -14,6 +14,22 @@ from difflib import SequenceMatcher
 import requests
 from bs4 import BeautifulSoup
 from NewsSubscriber.oss import ask_oss
+import urllib3
+import ssl
+import os
+
+# 禁用SSL警告（企業環境中使用自簽證書）
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# 全局禁用SSL驗證（適用於feedparser等套件）
+# 注意：這會影響整個Python進程，僅用於企業內網環境
+if hasattr(ssl, '_create_unverified_context'):
+    ssl._create_default_https_context = ssl._create_unverified_context
+
+# 設置環境變數以禁用SSL驗證
+os.environ['PYTHONHTTPSVERIFY'] = '0'
+os.environ['CURL_CA_BUNDLE'] = ''
+os.environ['REQUESTS_CA_BUNDLE'] = ''
 
 class Command(BaseCommand):
     help = 'Fetch news from Google News RSS and generate summaries using Gemini'
@@ -75,15 +91,15 @@ class Command(BaseCommand):
                 self.stdout.write(f"  沒有收集到新聞，跳過此主題")
                 continue
 
-            # 儲存新聞並抓取內容和摘要
-            self.stdout.write(f"\n【步驟 3】儲存新聞並抓取內容摘要...")
-            news_with_summaries = self._save_and_fetch_content(unique_news, topic)
-            self.stdout.write(f"  成功處理 {len(news_with_summaries)} 則新聞")
+            # 儲存新聞（只保存標題）
+            self.stdout.write(f"\n【步驟 3】儲存新聞...")
+            saved_news = self._save_and_fetch_content(unique_news, topic)
+            self.stdout.write(f"  成功儲存 {len(saved_news)} 則新聞")
 
-            # 生成每日整合摘要
-            if news_with_summaries:
-                self.stdout.write(f"\n【步驟 4】生成每日整合摘要...")
-                daily_summary_html = self._generate_daily_summary(news_with_summaries, topic)
+            # 基於新聞標題生成每日整合摘要
+            if saved_news:
+                self.stdout.write(f"\n【步驟 4】生成每日整合摘要（基於新聞標題）...")
+                daily_summary_html = self._generate_daily_summary(saved_news, topic)
 
                 if daily_summary_html:
                     # 儲存摘要
@@ -92,13 +108,13 @@ class Command(BaseCommand):
                             topic=topic,
                             summary=daily_summary_html,
                             date=today,
-                            news_count=len(news_with_summaries)
+                            news_count=len(saved_news)
                         )
                         self.stdout.write(f"  ✅ 每日摘要已生成並儲存")
 
                         # 發送郵件給訂閱者
                         self.stdout.write(f"\n【步驟 5】發送郵件給訂閱者...")
-                        self._send_emails(topic, daily_summary_html, news_with_summaries)
+                        self._send_emails(topic, daily_summary_html, saved_news)
                     except IntegrityError:
                         self.stdout.write(f"  ⚠ 今天已有摘要（併發寫入），跳過")
                 else:
@@ -120,6 +136,12 @@ class Command(BaseCommand):
             news_items = []
             for entry in feed.entries:
                 try:
+                    title = entry.title.strip()
+
+                    # 過濾掉MSN的新聞
+                    if 'MSN' in title:
+                        continue
+
                     # 解析日期
                     published_date = self._parse_date(entry)
                     if not published_date:
@@ -129,7 +151,7 @@ class Command(BaseCommand):
                     source = self._extract_source(entry)
 
                     news_items.append({
-                        'title': entry.title.strip(),
+                        'title': title,
                         'url': entry.link.strip(),
                         'date': published_date,
                         'source': source,
@@ -139,7 +161,7 @@ class Command(BaseCommand):
                     self.stderr.write(f"    解析項目時錯誤: {e}")
                     continue
 
-            self.stdout.write(f"  收集到 {len(news_items)} 則新聞")
+            self.stdout.write(f"  收集到 {len(news_items)} 則新聞（已過濾MSN）")
             return news_items
 
         except Exception as e:
@@ -210,165 +232,336 @@ class Command(BaseCommand):
         """計算兩個字串的相似度"""
         return SequenceMatcher(None, str1, str2).ratio()
 
+    def _resolve_google_news_url(self, url):
+        """解析Google News重定向URL，獲取實際新聞網址"""
+        try:
+            # 如果不是Google News的URL，直接返回
+            if 'news.google.com' not in url:
+                return url
+
+            self.stdout.write(f"      [調試] 解析Google News URL...")
+
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
+                'Accept-Encoding': 'gzip, deflate',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1'
+            }
+
+            session = requests.Session()
+            session.verify = False
+
+            # Google News的article頁面需要特殊處理
+            # 我們需要訪問並解析HTML來找到真實的新聞源連結
+            response = session.get(
+                url,
+                headers=headers,
+                allow_redirects=True,
+                timeout=20
+            )
+
+            # 解析HTML內容
+            content = response.text
+            soup = BeautifulSoup(content, 'html.parser')
+
+            # 方法1: 尋找c-wiz標籤中的data-n-au屬性（Google News特定結構）
+            # 這個屬性通常包含實際新聞源的URL
+            c_wiz = soup.find('c-wiz')
+            if c_wiz and c_wiz.get('data-n-au'):
+                source_url = c_wiz['data-n-au']
+                if source_url and not source_url.startswith('http'):
+                    source_url = 'https://' + source_url
+                if source_url and 'news.google.com' not in source_url:
+                    self.stdout.write(f"      [調試] ✓ 從data-n-au找到: {source_url[:50]}...")
+                    session.close()
+                    return source_url
+
+            # 方法2: 尋找包含實際URL的<a>標籤
+            # Google News頁面會有一個指向原始文章的連結
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                # 跳過Google內部連結
+                if href.startswith('http') and 'google.com' not in href:
+                    self.stdout.write(f"      [調試] ✓ 從<a>標籤找到: {href[:50]}...")
+                    session.close()
+                    return href
+                # 處理相對URL形式: ./articles/...實際URL
+                if href.startswith('./articles/'):
+                    # 這種格式後面可能帶有實際URL
+                    parts = href.split('?')
+                    if len(parts) > 1:
+                        for param in parts[1].split('&'):
+                            if '=' in param:
+                                key, value = param.split('=', 1)
+                                if key in ['url', 'link'] and value.startswith('http'):
+                                    from urllib.parse import unquote
+                                    decoded_url = unquote(value)
+                                    self.stdout.write(f"      [調試] ✓ 從URL參數找到: {decoded_url[:50]}...")
+                                    session.close()
+                                    return decoded_url
+
+            # 方法3: 檢查meta refresh
+            meta_refresh = soup.find('meta', attrs={'http-equiv': 'refresh'})
+            if meta_refresh and meta_refresh.get('content'):
+                content_attr = meta_refresh['content']
+                if 'url=' in content_attr.lower():
+                    redirect_url = content_attr.split('url=', 1)[1].strip()
+                    if redirect_url and 'news.google.com' not in redirect_url:
+                        self.stdout.write(f"      [調試] ✓ 從meta refresh找到: {redirect_url[:50]}...")
+                        session.close()
+                        return redirect_url
+
+            # 方法4: 檢查所有script標籤中的URL模式
+            import re
+            scripts = soup.find_all('script')
+            for script in scripts:
+                if script.string:
+                    # 尋找看起來像新聞網站的URL
+                    url_patterns = re.findall(r'https?://(?!news\.google\.com)[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,}[^\s"\'<>]*', script.string)
+                    for found_url in url_patterns:
+                        # 過濾掉常見的非新聞URL
+                        if not any(skip in found_url for skip in ['googleapis.com', 'gstatic.com', 'schema.org']):
+                            self.stdout.write(f"      [調試] ✓ 從JavaScript找到: {found_url[:50]}...")
+                            session.close()
+                            return found_url
+
+            self.stdout.write(f"      [調試] ✗ 無法解析，Google News可能改變了頁面結構")
+            session.close()
+            return url
+
+        except requests.exceptions.Timeout:
+            self.stdout.write(f"      [調試] ✗ 請求超時")
+            return url
+        except requests.exceptions.ConnectionError as e:
+            self.stdout.write(f"      [調試] ✗ 連接錯誤: {str(e)[:50]}")
+            return url
+        except Exception as e:
+            self.stdout.write(f"      [調試] ✗ 異常: {type(e).__name__}: {str(e)[:50]}")
+            import traceback
+            self.stdout.write(f"      [調試] 詳細錯誤: {traceback.format_exc()[:200]}")
+            return url
+
     def _fetch_article_content(self, url):
         """抓取新聞內容"""
         try:
+            # 先解析Google News重定向
+            actual_url = self._resolve_google_news_url(url)
+
+            # 如果重定向失敗，嘗試直接使用原始URL
+            if actual_url == url and 'news.google.com' in url:
+                # Google News URL無法直接抓取內容
+                return "無法解析Google News重定向"
+
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Accept-Encoding': 'gzip, deflate',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Referer': 'https://news.google.com/'
             }
-            response = requests.get(url, headers=headers, timeout=10)
+
+            # 禁用SSL驗證以避免證書問題（企業環境）
+            response = requests.get(actual_url, headers=headers, timeout=15, verify=False, allow_redirects=True)
             response.raise_for_status()
+
+            # 設置正確的編碼
+            if response.encoding == 'ISO-8859-1':
+                response.encoding = response.apparent_encoding
 
             soup = BeautifulSoup(response.content, 'html.parser')
 
             # 移除不需要的元素
-            for tag in soup(['script', 'style', 'nav', 'header', 'footer', 'aside', 'iframe']):
+            for tag in soup(['script', 'style', 'nav', 'header', 'footer', 'aside', 'iframe', 'form', 'button']):
                 tag.decompose()
 
-            # 嘗試找到文章主要內容
-            article = soup.find('article') or soup.find('div', class_=re.compile('article|content|post'))
+            # 嘗試多種方式找到文章主要內容
+            article = None
 
+            # 方法1: 尋找article標籤
+            article = soup.find('article')
+
+            # 方法2: 尋找常見的內容class
+            if not article:
+                article = soup.find('div', class_=re.compile('article|content|post|entry|story', re.I))
+
+            # 方法3: 尋找main標籤
+            if not article:
+                article = soup.find('main')
+
+            # 方法4: 尋找id包含content的div
+            if not article:
+                article = soup.find('div', id=re.compile('content|article|post', re.I))
+
+            # 提取段落
             if article:
-                paragraphs = article.find_all(['p', 'h1', 'h2', 'h3'])
+                paragraphs = article.find_all(['p', 'h2', 'h3'])
             else:
+                # 如果都找不到，直接取所有段落
                 paragraphs = soup.find_all('p')
 
-            # 提取文字
-            content = '\n'.join([p.get_text().strip() for p in paragraphs if p.get_text().strip()])
+            # 提取文字並過濾
+            content_parts = []
+            for p in paragraphs:
+                text = p.get_text().strip()
+                # 過濾太短的段落（可能是廣告或導航）
+                if text and len(text) > 20:
+                    content_parts.append(text)
+
+            content = '\n'.join(content_parts)
 
             # 限制長度
             if len(content) > 3000:
                 content = content[:3000] + "..."
 
-            return content if content else "無法抓取內容"
+            # 檢查是否有實際內容
+            if len(content) < 100:
+                return "無法抓取有效內容"
 
+            return content
+
+        except requests.exceptions.Timeout:
+            return f"抓取超時: {url[:50]}"
+        except requests.exceptions.TooManyRedirects:
+            return f"重定向過多: {url[:50]}"
+        except requests.exceptions.RequestException as e:
+            return f"網路錯誤: {str(e)[:80]}"
         except Exception as e:
             return f"抓取失敗: {str(e)[:100]}"
 
-    def _generate_news_summary(self, title, content, model):
-        """使用Gemini為單則新聞生成摘要"""
+    def _improve_rss_summary(self, title, rss_summary):
+        """使用AI改寫RSS摘要，使其更簡潔清晰"""
         try:
-            prompt = f"""
-請為以下新聞生成一個簡短的摘要（2-3句話，約80-120字）。
-使用繁體中文，重點說明新聞的核心內容和重要性。
+            prompt = f"""請將以下Google News的RSS摘要改寫成更簡潔、易讀的新聞摘要。
 
-新聞標題：{title}
+【重要指示】
+- 只能根據提供的RSS摘要改寫
+- 摘要長度：2-3句話，約60-100字
+- 使用繁體中文
+- 保留核心資訊，去除冗餘內容
+- 不要添加任何額外資訊或評論
+- 不要提及「根據」、「摘要」等說明文字
+- 直接輸出改寫後的內容
 
-新聞內容：
-{content[:1500]}
+===== 新聞標題 =====
+{title}
 
-請直接輸出摘要，不要其他說明：
+===== RSS摘要 =====
+{rss_summary[:500]}
+
+===== 請輸出改寫後的摘要 =====
 """
-            response = ask_oss(prompt,tag='新聞摘要')
+            response = ask_oss(prompt, tag='RSS摘要改寫')
             summary = response.content.strip()
-            return summary if summary else "摘要生成失敗"
+
+            # 移除可能的說明文字
+            summary = re.sub(r'^(摘要：|摘要:|Summary:|改寫：)\s*', '', summary)
+            summary = re.sub(r'^根據.*?[，,]\s*', '', summary)
+
+            return summary if summary else rss_summary[:200]
 
         except Exception as e:
-            return f"摘要生成失敗: {str(e)[:50]}"
+            # 如果AI處理失敗，直接返回原RSS摘要的前200字
+            return rss_summary[:200] if rss_summary else f"處理失敗: {str(e)[:50]}"
 
     def _save_and_fetch_content(self, news_list, topic):
-        """儲存新聞並抓取內容和生成摘要"""
-        news_with_summaries = []
+        """儲存新聞（只保存標題，不生成個別摘要）"""
+        saved_news = []
 
         for i, news in enumerate(news_list, 1):
             try:
                 # 檢查是否已存在
                 if NewsItem.objects.filter(url=news['url']).exists():
-                    self.stdout.write(f"    [{i}/{len(news_list)}] 已存在，跳過: {news['title'][:40]}")
-                    # 從資料庫讀取
                     news_item = NewsItem.objects.get(url=news['url'])
-                    if news_item.summary:
-                        news_with_summaries.append({
-                            'title': news_item.title,
-                            'url': news_item.url,
-                            'source': news_item.source,
-                            'date': news_item.date,
-                            'summary': news_item.summary
-                        })
-                    continue
-
-                self.stdout.write(f"    [{i}/{len(news_list)}] 處理: {news['title'][:40]}")
-
-                # 抓取內容
-                content = self._fetch_article_content(news['url'])
-                time.sleep(1)  # 避免請求過快
-
-                # 生成摘要
-                if content and not content.startswith("抓取失敗") and not content.startswith("無法抓取"):
-                    summary = self._generate_news_summary(news['title'], content, model)
-                    time.sleep(1)  # API限流
+                    self.stdout.write(f"    [{i}/{len(news_list)}] 已存在: {news['title'][:50]}")
                 else:
-                    summary = "無法生成摘要"
+                    # 建立新新聞記錄（只保存標題和基本資訊）
+                    news_item = NewsItem.objects.create(
+                        topic=topic,
+                        title=news['title'],
+                        date=news['date'],
+                        url=news['url'],
+                        source=news['source'],
+                        content="",  # 不保存內容
+                        summary=""   # 不生成個別摘要
+                    )
+                    self.stdout.write(f"    [{i}/{len(news_list)}] 新增: {news['title'][:50]}")
 
-                # 儲存到資料庫
-                news_item = NewsItem.objects.create(
-                    topic=topic,
-                    title=news['title'],
-                    date=news['date'],
-                    url=news['url'],
-                    source=news['source'],
-                    content=content[:5000] if content else "",  # 限制儲存長度
-                    summary=summary
-                )
-
-                news_with_summaries.append({
+                # 加入列表供每日摘要使用
+                saved_news.append({
                     'title': news['title'],
                     'url': news['url'],
                     'source': news['source'],
-                    'date': news['date'],
-                    'summary': summary
+                    'date': news['date']
                 })
 
             except Exception as e:
                 self.stderr.write(f"    處理新聞時發生錯誤: {e}")
                 continue
 
-        return news_with_summaries
+        return saved_news
 
     def _generate_daily_summary(self, news_list, topic):
-        """生成每日整合摘要"""
+        """基於新聞標題生成每日整合摘要"""
         try:
-            # 準備新聞摘要資料
-            news_summaries = []
+            # 準備新聞標題資料
+            news_titles = []
             for i, news in enumerate(news_list, 1):
-                news_summaries.append(f"{i}. 【{news['source']}】{news['title']}")
-                news_summaries.append(f"   時間: {news['date'].strftime('%Y-%m-%d %H:%M')}")
-                news_summaries.append(f"   連結: {news['url']}")
-                news_summaries.append(f"   摘要: {news['summary']}")
-                news_summaries.append("")
+                news_titles.append(f"{i}. 【{news['source']}】{news['title']}")
+                news_titles.append(f"   時間: {news['date'].strftime('%Y-%m-%d %H:%M')}")
+                news_titles.append(f"   連結: {news['url']}")
+                news_titles.append("")
 
-            summaries_text = "\n".join(news_summaries)
+            titles_text = "\n".join(news_titles)
 
             # 建立提示詞
-            prompt = f"""
-你是一位專業的新聞分析師。請根據以下「{topic.name}」主題的新聞及其摘要，生成一份專業的今日新聞整合報告。
+            prompt = f"""你是一位專業的新聞分析師。請根據以下「{topic.name}」主題的新聞標題，生成一份今日新聞整合報告。
 
-要求：
+【嚴格限制 - 必須遵守】
+1. 只能使用下方提供的{len(news_list)}則新聞標題
+2. 絕對不可以添加、編造或引用任何未提供的新聞
+3. 所有新聞連結必須完全使用下方提供的URL，不可修改
+4. 不可以生成任何額外的新聞項目
+5. 每則新聞只有標題，請根據標題內容提供簡短說明（1-2句話）
+
+【輸出格式要求】
 1. 使用繁體中文
-2. 使用 HTML 格式，適合電子郵件發送
-3. HTML 格式要求：
-   - 使用適當的 HTML 標籤（h2, h3, p, ul, li, a 等）
-   - 包含基本的內聯 CSS 樣式
-   - 新聞連結使用 <a> 標籤，target="_blank"
-4. 結構要求：
-   - 第一部分：「今日重點」- 條列3-5個最重要的新聞趨勢或發展（使用 <ul><li> 格式）
-   - 第二部分：「重要新聞」- 列出所有新聞，每則包含：
-     * 新聞標題（含連結）
-     * 來源和時間
-     * 摘要說明
-5. 風格：專業、簡潔、易讀
+2. 使用 HTML 格式（不需要<!DOCTYPE>、<html>、<body>等標籤）
+3. 包含兩個部分：
 
-今日新聞資料（共{len(news_list)}則）：
-{summaries_text}
+第一部分 - 今日重點：
+- 用 <h2> 標題「今日重點」
+- 根據新聞標題，用 <ul><li> 格式條列3-5個重要趨勢或發展
+- 這部分不包含連結，只是重點摘述
 
-請生成 HTML 格式的整合摘要（不需要完整的 HTML 文檔結構，只需要內容部分）：
+第二部分 - 重要新聞：
+- 用 <h2> 標題「重要新聞」
+- 依序列出下方提供的所有{len(news_list)}則新聞
+- 每則新聞使用以下HTML結構：
+  <div style="margin-bottom: 20px; padding: 15px; border-left: 3px solid #3498db; background-color: #f8f9fa;">
+    <h3 style="margin: 0 0 10px 0;">
+      <a href="[使用下方提供的完整URL]" target="_blank" style="color: #2980b9; text-decoration: none;">[新聞標題]</a>
+    </h3>
+    <p style="margin: 5px 0; color: #7f8c8d; font-size: 0.9em;">來源：[來源] | 時間：[時間]</p>
+    <p style="margin: 10px 0 0 0;">[根據標題內容提供1-2句話的簡短說明]</p>
+  </div>
+
+【今日新聞資料 - 共{len(news_list)}則】
+{titles_text}
+
+請嚴格按照上述要求生成HTML內容：
 """
 
-            response = ask_oss(prompt,tag='每日摘要')
+            response = ask_oss(prompt, tag='每日摘要')
             summary = response.content.strip()
 
             # 移除可能的markdown代碼塊標記
             summary = re.sub(r'^```html\n', '', summary)
+            summary = re.sub(r'\n```$', '', summary)
+            summary = re.sub(r'^```\n', '', summary)
             summary = re.sub(r'\n```$', '', summary)
 
             return summary
@@ -425,7 +618,7 @@ class Command(BaseCommand):
                 send_mail(
                     subject=subject,
                     message=f"【{topic.name}】今日新聞摘要\n\n收集到 {len(news_list)} 則新聞。\n\n請使用支援HTML的郵件客戶端查看完整內容。",
-                    from_email=settings.EMAIL_HOST_USER,
+                    from_email=settings.NOTIFY_EMAIL,
                     recipient_list=[subscription.email],
                     html_message=html_message,
                     fail_silently=False,
