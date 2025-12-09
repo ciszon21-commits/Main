@@ -163,12 +163,42 @@
     </header>
 
     <main class="container">
+        {% if messages %}
+        <div style="margin: 20px 0;">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}" style="
+                padding: 15px;
+                margin-bottom: 15px;
+                border-radius: 4px;
+                {% if message.tags == 'success' %}
+                    background-color: #d4edda;
+                    color: #155724;
+                    border-left: 4px solid #28a745;
+                {% elif message.tags == 'error' %}
+                    background-color: #f8d7da;
+                    color: #721c24;
+                    border-left: 4px solid #dc3545;
+                {% elif message.tags == 'warning' %}
+                    background-color: #fff3cd;
+                    color: #856404;
+                    border-left: 4px solid #ffc107;
+                {% else %}
+                    background-color: #d1ecf1;
+                    color: #0c5460;
+                    border-left: 4px solid #17a2b8;
+                {% endif %}
+            ">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% block content %}{% endblock %}
     </main>
 
     <footer>
         <div class="container" style="text-align: center; padding: 20px; color: #7f8c8d;">
-            &copy; {% now "Y" %} GoogleNews Keyword Subscriber
+            &copy; {% now "Y" %} 中興工程 CoDev Studio 開發成果
         </div>
     </footer>
 </body>

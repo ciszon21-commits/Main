@@ -4,7 +4,11 @@ from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.decorators.http import require_POST
+from django.http import JsonResponse
 from .models import Topic, Keyword, NewsItem, DailySummary, Subscription
+from django.core.management import call_command
+from io import StringIO
+import sys
 
 class TopicListView(ListView):
     model = Topic
@@ -31,10 +35,22 @@ class TopicDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        from django.utils import timezone
+
         # Get recent news items (last 50)
         context['news_items'] = self.object.news_items.all()[:50]
-        # Get recent summaries (last 7)
-        context['summaries'] = self.object.daily_summaries.all()[:7]
+
+        # Get recent summaries and separate today's summary
+        today = timezone.now().date()
+        context['today_summary'] = self.object.daily_summaries.filter(date=today).first()
+        context['past_summaries'] = self.object.daily_summaries.exclude(date=today)[:6]
+
+        # Get subscribers information
+        context['subscribers'] = Subscription.objects.filter(
+            topic=self.object,
+            is_active=True
+        ).select_related('user')
+
         return context
 
 class TopicCreateView(CreateView):
@@ -140,3 +156,30 @@ def unsubscribe_topic(request, topic_id):
         messages.info(request, f'您尚未訂閱「{topic.name}」。')
 
     return redirect('news_subscriber:topic_list')
+
+@login_required
+@require_POST
+def fetch_topic_news(request, topic_id):
+    """立即擷取特定主題的新聞"""
+    from .utils.news_fetcher import fetch_news_for_topic
+
+    topic = get_object_or_404(Topic, pk=topic_id)
+
+    try:
+        result = fetch_news_for_topic(topic)
+
+        if result['success']:
+            messages.success(
+                request,
+                f'成功擷取「{topic.name}」的新聞！\n'
+                f'收集到 {result["news_count"]} 則新聞。'
+            )
+        else:
+            messages.warning(
+                request,
+                f'擷取「{topic.name}」時發生問題：{result["message"]}'
+            )
+    except Exception as e:
+        messages.error(request, f'擷取失敗：{str(e)}')
+
+    return redirect('news_subscriber:topic_detail', pk=topic_id)
