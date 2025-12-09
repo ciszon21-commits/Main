@@ -10,4 +10,5 @@ urlpatterns = [
     path('topic/<int:topic_id>/keyword/add/', views.KeywordCreateView.as_view(), name='keyword_add'),
     path('topic/<int:topic_id>/subscribe/', views.subscribe_topic, name='subscribe_topic'),
     path('topic/<int:topic_id>/unsubscribe/', views.unsubscribe_topic, name='unsubscribe_topic'),
+    path('topic/<int:topic_id>/fetch/', views.fetch_topic_news, name='fetch_topic_news'),
 ]
