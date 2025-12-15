@@ -1,0 +1,397 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>常用組件碳排概算平台</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'carbon_estimation/css/calculator.css' %}?v=3">
+</head>
+
+<body>
+    <div class="container">
+        <header class="header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 class="title">高快速公路碳排概算平台</h1>
+                    <p class="subtitle">園路部高快速公路常用組件碳排概算</p>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <!-- Guide Button -->
+                    <a href="{% static 'carbon_estimation/docs/guide.pdf' %}" target="_blank"
+                        class="btn-lg-action btn-action-guide">
+                        高快速公路減碳指引
+                    </a>
+                    <!-- Create Button -->
+                    <button onclick="openCreateModal()" class="btn-lg-action btn-action-create"
+                        style="cursor: pointer;">
+                        <span style="margin-right: 8px; font-size: 1.2rem;">+</span> 建立新方案
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Create Scenario Modal -->
+        <div id="createModal" class="modal-overlay" style="display: none;">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 class="modal-title">建立新方案</h3>
+                    <button class="close-btn" onclick="closeCreateModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <form id="createScenarioForm">
+                        <div class="form-group">
+                            <label class="form-label">計畫編號</label>
+                            <input type="text" class="form-input" id="projectNumber" required
+                                placeholder="例如：P-2024-001">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">計畫名稱</label>
+                            <input type="text" class="form-input" id="projectName" required placeholder="例如：新建工程計畫">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">方案名稱</label>
+                            <input type="text" class="form-input" id="scenarioName" required placeholder="例如：方案 A">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" onclick="submitCreateScenario()">建立方案</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Scenario Modal -->
+        <div id="editModal" class="modal-overlay" style="display: none;">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 class="modal-title">方案資訊設定</h3>
+                    <button class="close-btn" onclick="closeEditModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <form id="editScenarioForm">
+                        <input type="hidden" id="editScenarioId">
+                        <div class="form-group">
+                            <label class="form-label">計畫編號</label>
+                            <input type="text" class="form-input" id="editProjectNumber" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">計畫名稱</label>
+                            <input type="text" class="form-input" id="editProjectName" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">方案名稱</label>
+                            <input type="text" class="form-input" id="editScenarioName" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">方案說明 (選填)</label>
+                            <textarea class="form-input" id="editDescription" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer modal-footer-between">
+                    <button class="btn btn-danger" onclick="deleteScenario()">刪除方案</button>
+                    <button class="btn btn-primary" onclick="submitEditScenario()">儲存變更</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Collaborator Modal -->
+        <div id="collaboratorModal" class="modal-overlay" style="display: none;">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 class="modal-title">協作人員設定 - <span id="collabScenarioName"></span></h3>
+                    <button class="close-btn" onclick="closeCollaboratorModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">新增協作人員</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" class="form-input" id="collaboratorUsername" placeholder="輸入 Username">
+                            <button class="btn btn-primary" onclick="addCollaborator()">加入</button>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 1.5rem;">
+                        <label class="form-label">目前協作人員</label>
+                        <ul id="collaboratorList"
+                            style="list-style: none; padding: 0; border: 1px solid var(--border-color); border-radius: 8px;">
+                            <li style="padding: 1rem; color: #666; text-align: center;">載入中...</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="scenario-list">
+            {% if scenarios %}
+            {% for scenario in scenarios %}
+            <div class="scenario-item">
+                <div class="scenario-header">
+                    <div>
+                        <div class="scenario-title" style="margin-bottom: 0.8rem;">{{ scenario.scenario_name }}</div>
+                        <div class="scenario-meta">
+                            計畫編號：{{ scenario.project_number }} | 計畫名稱：{{ scenario.project_name }}
+                        </div>
+                        <div class="scenario-meta" style="margin-bottom: 0rem;">
+                            創建者：{{ scenario.creator.username|default:"訪客" }} |
+                            建立時間：{{ scenario.created_at|date:"Y-m-d H:i" }} |
+                            最後更新：{{ scenario.updated_at|date:"Y-m-d H:i" }}
+                        </div>
+                        {% if scenario.description %}
+                        <div class="scenario-meta" style="margin-top: 5px; font-style: italic;">{{ scenario.description
+                            }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="scenario-actions">
+                        <button class="btn btn-start" onclick="loadScenario({{ scenario.id }})">開始概算</button>
+
+                        {% if not scenario.creator or user == scenario.creator %}
+                        <!-- Only creator (or anyone for guest scenarios) checks -->
+                        <button class="btn btn-settings"
+                            onclick="openEditModal({{ scenario.id }}, '{{ scenario.project_number|escapejs }}', '{{ scenario.project_name|escapejs }}', '{{ scenario.scenario_name|escapejs }}', '{{ scenario.description|default:''|escapejs }}')">方案設定</button>
+                        {% endif %}
+
+                        {% if user.is_authenticated and scenario.creator == user %}
+                        <button class="btn btn-collab"
+                            onclick="openCollaboratorModal({{ scenario.id }}, '{{ scenario.scenario_name|escapejs }}', {{ scenario.collaborators.count }})">人員設定</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p style="text-align: center; color: var(--text-secondary); padding: 2rem;">
+                目前沒有任何方案。請先建立方案，或點擊上方「+」按鈕新增。
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // --- Create Modal Functions ---
+        function openCreateModal() {
+            document.getElementById('createModal').style.display = 'flex';
+        }
+
+        function closeCreateModal() {
+            document.getElementById('createModal').style.display = 'none';
+        }
+
+        // --- Edit Modal Functions ---
+        function openEditModal(id, pNum, pName, sName, desc) {
+            document.getElementById('editScenarioId').value = id;
+            document.getElementById('editProjectNumber').value = pNum;
+            document.getElementById('editProjectName').value = pName;
+            document.getElementById('editScenarioName').value = sName;
+            document.getElementById('editDescription').value = desc;
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        async function submitEditScenario() {
+            const id = document.getElementById('editScenarioId').value;
+            const projectNumber = document.getElementById('editProjectNumber').value;
+            const projectName = document.getElementById('editProjectName').value;
+            const scenarioName = document.getElementById('editScenarioName').value;
+            const description = document.getElementById('editDescription').value;
+
+            if (!projectNumber || !projectName || !scenarioName) {
+                alert('請填寫必填欄位');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/carbon/api/scenarios/${id}/update/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        project_number: projectNumber,
+                        project_name: projectName,
+                        scenario_name: scenarioName,
+                        description: description
+                    })
+                });
+
+                if (response.ok) {
+                    alert('方案資訊已更新');
+                    location.reload();
+                } else {
+                    const result = await response.json();
+                    alert(result.error || '更新失敗');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('發生錯誤');
+            }
+        }
+
+        async function deleteScenario() {
+            const id = document.getElementById('editScenarioId').value;
+            if (!confirm('確定要刪除此方案嗎？此操作無法復原！')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/carbon/api/scenarios/${id}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+
+                if (response.ok) {
+                    alert('方案已刪除');
+                    location.reload();
+                } else {
+                    const result = await response.json();
+                    alert(result.error || '刪除失敗');
+                }
+            } catch (error) {
+                alert('刪除時發生錯誤');
+            }
+        }
+
+        // --- Collaborator Modal Functions ---
+        let currentManageScenarioId = null;
+
+        function openCollaboratorModal(scenarioId, scenarioName) {
+            currentManageScenarioId = scenarioId;
+            document.getElementById('collabScenarioName').textContent = scenarioName;
+            document.getElementById('collaboratorModal').style.display = 'flex';
+            document.getElementById('collaboratorUsername').value = '';
+            document.getElementById('collaboratorList').innerHTML = '<li style="padding: 1rem; color: #666; text-align: center;">請輸入使用者名稱來管理協作人員</li>';
+        }
+
+        function closeCollaboratorModal() {
+            document.getElementById('collaboratorModal').style.display = 'none';
+            currentManageScenarioId = null;
+        }
+
+        async function addCollaborator() {
+            const username = document.getElementById('collaboratorUsername').value;
+            if (!username) return;
+            await manageCollaborator('add', username);
+            document.getElementById('collaboratorUsername').value = '';
+        }
+
+        async function removeCollaborator(username) {
+            if (confirm(`確定要移除 ${username} 嗎？`)) {
+                await manageCollaborator('remove', username);
+            }
+        }
+
+        async function manageCollaborator(action, username) {
+            try {
+                const response = await fetch(`/carbon/api/scenarios/${currentManageScenarioId}/collaborators/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        action: action,
+                        username: username
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    if (action === 'add') alert(result.message);
+
+                    if (result.collaborators && result.collaborators.length > 0) {
+                        const listHtml = result.collaborators.map(u =>
+                            `<li class="collaborator-item">
+                                <span>${u}</span>
+                                <button class="remove-collab-btn" onclick="removeCollaborator('${u}')">移除</button>
+                            </li>`
+                        ).join('');
+                        document.getElementById('collaboratorList').innerHTML = listHtml;
+                    } else {
+                        document.getElementById('collaboratorList').innerHTML = '<li style="padding: 1rem; color: #666; text-align: center;">目前無協作人員</li>';
+                    }
+                } else {
+                    alert(result.error);
+                }
+            } catch (error) {
+                console.error(error);
+                alert('發生錯誤');
+            }
+        }
+
+        // --- Common Functions ---
+
+        // Close modals when clicking outside
+        window.onclick = function (event) {
+            if (event.target.classList.contains('modal-overlay')) {
+                event.target.style.display = "none";
+            }
+        }
+
+        async function submitCreateScenario() {
+            const projectNumber = document.getElementById('projectNumber').value;
+            const projectName = document.getElementById('projectName').value;
+            const scenarioName = document.getElementById('scenarioName').value;
+
+            if (!projectNumber || !projectName || !scenarioName) {
+                alert('請填寫所有欄位');
+                return;
+            }
+
+            try {
+                const response = await fetch('/carbon/api/scenarios/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        project_number: projectNumber,
+                        project_name: projectName,
+                        scenario_name: scenarioName
+                    })
+                });
+
+                if (response.ok) {
+                    alert('方案已成功建立！');
+                    location.reload();
+                } else {
+                    alert('建立失敗，請稍後再試');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('發生錯誤');
+            }
+        }
+
+        function loadScenario(scenarioId) {
+            window.location.href = `/carbon/calculator/?scenario=${scenarioId}`;
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+
+</html>
