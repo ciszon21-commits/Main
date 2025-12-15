@@ -2,10 +2,12 @@ from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
 from django.db import models
 import json
 from .models import MainCategory, ComponentItem, Scenario, ScenarioData
+from UserProfile.models import UserProfile
 
 
 def calculator_view(request):
@@ -248,7 +250,12 @@ def manage_collaborators(request, scenario_id):
         return JsonResponse({
             'success': True, 
             'message': message,
-            'collaborators': [u.username for u in scenario.collaborators.all()]
+            'collaborators': [
+                {
+                    'username': u.username, 
+                    'display': u.get_full_name() or u.username
+                } for u in scenario.collaborators.all()
+            ]
         })
         
     except Exception as e:
@@ -267,8 +274,61 @@ def scenario_list(request):
             models.Q(creator=request.user) | models.Q(collaborators=request.user)
         ).distinct()
     
+    current_user_display = ""
+    if request.user.is_authenticated:
+        # Use get_full_name if available, else username
+        current_name = request.user.get_full_name() or request.user.username
+        current_user_display = current_name
+        
+        if hasattr(request.user, 'profile') and request.user.profile.emp_name:
+            current_user_display = f"{request.user.profile.emp_name} ({current_name})"
+            
     context = {
-        'scenarios': scenarios
+        'scenarios': scenarios,
+        'current_user_display': current_user_display
     }
     
     return render(request, 'carbon_estimation/scenario_list.html', context)
+
+
+@login_required
+def search_users(request):
+    """搜尋使用者 API (含 UserProfile 資訊)"""
+    q = request.GET.get('q', '')
+    
+    # Use prefetch_related for reverse OneToOne relation
+    users = User.objects.exclude(id=request.user.id).prefetch_related('profile').order_by('username')
+    
+    if q:
+        # Search by username OR employee name OR partial full name
+        users = users.filter(
+            models.Q(username__icontains=q) | 
+            models.Q(profile__emp_name__icontains=q) |
+            models.Q(first_name__icontains=q) |
+            models.Q(last_name__icontains=q)
+        )
+    
+    data = []
+    for user in users:
+        # Default display
+        display_name = user.username
+        dept = ""
+        
+        # Try to get profile data
+        if hasattr(user, 'profile'):
+            profile = user.profile
+            name = profile.emp_name
+            dept = profile.dept_display  # Use the property from model
+            
+            if name:
+                display_name = f"{name} ({user.username})"
+        
+        if dept:
+            display_name += f" - {dept}"
+        
+        data.append({
+            'username': user.username,
+            'display': display_name
+        })
+    
+    return JsonResponse({'users': data})

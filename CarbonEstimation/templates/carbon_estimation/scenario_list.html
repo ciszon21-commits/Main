@@ -19,6 +19,13 @@
                     <p class="subtitle">園路部高快速公路常用組件碳排概算</p>
                 </div>
                 <div style="display: flex; gap: 10px; align-items: center;">
+                    <!-- User Info -->
+                    {% if user.is_authenticated %}
+                    <div style="margin-right: 15px; color: #64748b; font-weight: 500;">
+                        <span style="font-size: 0.9em; color: #94a3b8;">Hi,</span> {{ current_user_display }}
+                    </div>
+                    {% endif %}
+
                     <!-- Guide Button -->
                     <a href="{% static 'carbon_estimation/docs/guide.pdf' %}" target="_blank"
                         class="btn-lg-action btn-action-guide">
@@ -109,7 +116,9 @@
                     <div class="form-group">
                         <label class="form-label">新增協作人員</label>
                         <div style="display: flex; gap: 10px;">
-                            <input type="text" class="form-input" id="collaboratorUsername" placeholder="輸入 Username">
+                            <input type="text" id="collaboratorInput" class="form-input" list="userList"
+                                placeholder="輸入或選擇使用者..." style="flex: 1;">
+                            <datalist id="userList"></datalist>
                             <button class="btn btn-primary" onclick="addCollaborator()">加入</button>
                         </div>
                     </div>
@@ -136,7 +145,7 @@
                             計畫編號：{{ scenario.project_number }} | 計畫名稱：{{ scenario.project_name }}
                         </div>
                         <div class="scenario-meta" style="margin-bottom: 0rem;">
-                            創建者：{{ scenario.creator.username|default:"訪客" }} |
+                            創建者：{{ scenario.creator.get_full_name|default:scenario.creator.username|default:"訪客" }} |
                             建立時間：{{ scenario.created_at|date:"Y-m-d H:i" }} |
                             最後更新：{{ scenario.updated_at|date:"Y-m-d H:i" }}
                         </div>
@@ -267,8 +276,13 @@
             currentManageScenarioId = scenarioId;
             document.getElementById('collabScenarioName').textContent = scenarioName;
             document.getElementById('collaboratorModal').style.display = 'flex';
-            document.getElementById('collaboratorUsername').value = '';
-            document.getElementById('collaboratorList').innerHTML = '<li style="padding: 1rem; color: #666; text-align: center;">請輸入使用者名稱來管理協作人員</li>';
+
+            // Clear list and show loading
+            document.getElementById('collaboratorList').innerHTML = '<li style="padding: 1rem; color: #666; text-align: center;">載入中...</li>';
+            if (document.getElementById('collaboratorInput')) document.getElementById('collaboratorInput').value = '';
+
+            // Load available users
+            loadAvailableUsers();
         }
 
         function closeCollaboratorModal() {
@@ -276,11 +290,36 @@
             currentManageScenarioId = null;
         }
 
+        async function loadAvailableUsers() {
+            const datalist = document.getElementById('userList');
+            if (!datalist) return;
+            datalist.innerHTML = '';
+
+            try {
+                const response = await fetch('/carbon/api/users/search/');
+                const data = await response.json();
+
+                let options = '';
+                data.users.forEach(user => {
+                    options += `<option value="${user.username}">${user.display}</option>`;
+                });
+                datalist.innerHTML = options;
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+        }
+
         async function addCollaborator() {
-            const username = document.getElementById('collaboratorUsername').value;
-            if (!username) return;
+            const input = document.getElementById('collaboratorInput');
+            const username = input.value;
+
+            if (!username) {
+                alert('請輸入或選擇使用者');
+                return;
+            }
+
             await manageCollaborator('add', username);
-            document.getElementById('collaboratorUsername').value = '';
+            input.value = ''; // Reset input
         }
 
         async function removeCollaborator(username) {
@@ -311,8 +350,8 @@
                     if (result.collaborators && result.collaborators.length > 0) {
                         const listHtml = result.collaborators.map(u =>
                             `<li class="collaborator-item">
-                                <span>${u}</span>
-                                <button class="remove-collab-btn" onclick="removeCollaborator('${u}')">移除</button>
+                                <span>${u.display}</span>
+                                <button class="remove-collab-btn" onclick="removeCollaborator('${u.username}')">移除</button>
                             </li>`
                         ).join('');
                         document.getElementById('collaboratorList').innerHTML = listHtml;
