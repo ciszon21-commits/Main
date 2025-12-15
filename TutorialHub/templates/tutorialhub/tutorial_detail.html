@@ -1,0 +1,594 @@
+{% extends 'tutorialhub/base.html' %}
+{% load static %}
+
+{% block title %}{{ tutorial.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Tutorial-specific styles */
+    .tutorial-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 60px 0;
+        margin-bottom: 40px;
+    }
+
+    .tutorial-content {
+        max-width: 100%;
+    }
+
+    .step-container {
+        margin-bottom: 30px;
+    }
+
+    .step-header {
+        background: #f8f9fa;
+        border-left: 4px solid #667eea;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .step-header:hover {
+        background: #e9ecef;
+        transform: translateX(5px);
+    }
+
+    .step-header h3 {
+        margin: 0;
+        font-size: 1.3rem;
+        color: #2d3748;
+    }
+
+    .step-toggle {
+        font-size: 1.2rem;
+        color: #667eea;
+        transition: transform 0.3s;
+    }
+
+    .step-content {
+        padding: 30px;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-top: none;
+        display: none;
+    }
+
+    .step-content.active {
+        display: block;
+    }
+
+    .snippet {
+        margin-bottom: 25px;
+    }
+
+    .snippet-text {
+        line-height: 1.8;
+        color: #4a5568;
+        font-size: 1.05rem;
+    }
+
+    .snippet-image {
+        text-align: center;
+        margin: 20px 0;
+    }
+
+    .snippet-image img {
+        max-width: 100%;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        transition: transform 0.3s;
+    }
+
+    .snippet-image img:hover {
+        transform: scale(1.02);
+    }
+
+    .snippet-caption {
+        text-align: center;
+        color: #718096;
+        font-size: 0.9rem;
+        margin-top: 10px;
+        font-style: italic;
+    }
+
+    .snippet-code {
+        position: relative;
+        margin: 20px 0;
+    }
+
+    .code-header {
+        background: #2d3748;
+        color: white;
+        padding: 10px 15px;
+        border-radius: 8px 8px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.9rem;
+    }
+
+    .code-language {
+        text-transform: uppercase;
+        font-weight: 600;
+        color: #a0aec0;
+    }
+
+    .copy-btn {
+        background: #4a5568;
+        border: none;
+        color: white;
+        padding: 5px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: background 0.3s;
+    }
+
+    .copy-btn:hover {
+        background: #667eea;
+    }
+
+    .copy-btn.copied {
+        background: #48bb78;
+    }
+
+    pre[class*="language-"] {
+        margin: 0;
+        border-radius: 0 0 8px 8px;
+    }
+
+    .qa-section {
+        margin-top: 40px;
+        padding-top: 30px;
+        border-top: 2px solid #e2e8f0;
+    }
+
+    .question {
+        background: #f7fafc;
+        border-left: 3px solid #4299e1;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+
+    .question.resolved {
+        border-left-color: #48bb78;
+    }
+
+    .question-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+
+    .question-user {
+        font-weight: 600;
+        color: #2d3748;
+    }
+
+    .question-time {
+        color: #718096;
+        font-size: 0.9rem;
+    }
+
+    .question-content {
+        margin: 15px 0;
+        line-height: 1.6;
+    }
+
+    .answers {
+        margin-top: 15px;
+        padding-left: 20px;
+        border-left: 2px solid #e2e8f0;
+    }
+
+    .answer {
+        background: white;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+    }
+
+    .answer.maintainer {
+        background: #edf2f7;
+        border-left: 3px solid #667eea;
+    }
+
+    .answer-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+
+    .answer-form {
+        margin-top: 15px;
+        padding: 15px;
+        background: white;
+        border-radius: 4px;
+    }
+
+    .question-form {
+        background: #f7fafc;
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tutorial-header">
+    <div class="container">
+        <h1>{{ tutorial.title }}</h1>
+        <p>{{ tutorial.description }}</p>
+        <div class="tutorial-stats-header">
+            <span><i class="fas fa-list-ol"></i> {{ tutorial.step_count }} 步驟</span>
+            <span><i class="fas fa-eye"></i> {{ tutorial.view_count }} 瀏覽</span>
+            <span><i class="fas fa-users"></i> {{ tutorial.unique_readers }} 讀者</span>
+        </div>
+        {% if is_maintainer %}
+        <div style="margin-top: 20px;">
+            <a href="{% url 'tutorialhub:tutorial_update' tutorial.slug %}" class="btn btn-light">
+                <i class="fas fa-edit"></i> 編輯教材
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="container">
+    <div class="tutorial-layout">
+        <div class="tutorial-content">
+            <!-- Tutorial Steps -->
+            {% for step in steps %}
+            <div class="step-container">
+                <div class="step-header" onclick="toggleStep({{ forloop.counter }})">
+                    <h3>{{ forloop.counter }}. {{ step.title }}</h3>
+                    <span class="step-toggle" id="toggle-{{ forloop.counter }}">
+                        <i
+                            class="fas fa-chevron-{% if forloop.first or step.is_expanded_default %}up{% else %}down{% endif %}"></i>
+                    </span>
+                </div>
+                <div class="step-content {% if forloop.first or step.is_expanded_default %}active{% endif %}"
+                    id="step-{{ forloop.counter }}">
+                    <!-- Snippets -->
+                    {% for snippet in step.snippets.all %}
+                    {% if snippet.snippet_type == 'text' %}
+                    <div class="snippet snippet-text">
+                        {{ snippet.content|linebreaks }}
+                    </div>
+
+                    {% elif snippet.snippet_type == 'image' %}
+                    <div class="snippet snippet-image">
+                        <a href="{{ snippet.image.url }}" class="glightbox" data-gallery="tutorial-{{ tutorial.id }}">
+                            <img src="{{ snippet.image.url }}" alt="{{ snippet.caption|default:'圖片' }}">
+                        </a>
+                        {% if snippet.caption %}
+                        <div class="snippet-caption">{{ snippet.caption }}</div>
+                        {% endif %}
+                    </div>
+
+                    {% elif snippet.snippet_type == 'code' %}
+                    <div class="snippet snippet-code">
+                        <div class="code-header">
+                            <span class="code-language">{{ snippet.get_language_display }}</span>
+                            <button class="copy-btn" onclick="copyCode(this)"
+                                data-code="{{ snippet.content|escapejs }}">
+                                <i class="fas fa-copy"></i> 複製
+                            </button>
+                        </div>
+                        <pre><code class="language-{{ snippet.language }}">{{ snippet.content }}</code></pre>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+
+                    <!-- Q&A Section for this step -->
+                    <div class="qa-section">
+                        <h4><i class="fas fa-comments"></i> 問題與回答</h4>
+
+                        <!-- Existing Questions -->
+                        {% for question in step.questions.all %}
+                        <div class="question {% if question.is_resolved %}resolved{% endif %}">
+                            <div class="question-header">
+                                <span class="question-user">
+                                    <i class="fas fa-user-circle"></i>
+                                    {{ question.user.get_full_name|default:question.user.username }}
+                                </span>
+                                <span class="question-time">
+                                    {{ question.created_at|date:"Y-m-d H:i" }}
+                                    {% if question.is_resolved %}
+                                    <span class="badge badge-success"><i class="fas fa-check"></i> 已解決</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="question-content">{{ question.content|linebreaks }}</div>
+
+                            <!-- Answers -->
+                            {% if question.answers.all %}
+                            <div class="answers">
+                                {% for answer in question.answers.all %}
+                                <div class="answer {% if answer.is_from_maintainer %}maintainer{% endif %}">
+                                    <div class="answer-header">
+                                        <span class="answer-user">
+                                            <i class="fas fa-user"></i>
+                                            {{ answer.user.get_full_name|default:answer.user.username }}
+                                            {% if answer.is_from_maintainer %}<span
+                                                class="badge badge-primary">維護者</span>{% endif %}
+                                        </span>
+                                        <span class="answer-time">{{ answer.created_at|date:"Y-m-d H:i" }}</span>
+                                    </div>
+                                    <div class="answer-content">{{ answer.content|linebreaks }}</div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            <!-- Answer Form Toggle -->
+                            {% if user.is_authenticated %}
+                            <button class="btn btn-outline btn-sm toggle-form-btn"
+                                onclick="toggleAnswerForm({{ question.id }})" id="answer-toggle-{{ question.id }}"
+                                style="margin-top: 10px;">
+                                <i class="fas fa-reply"></i> 我要回答
+                            </button>
+                            <div class="answer-form" id="answer-form-{{ question.id }}" style="display: none;">
+                                <textarea class="form-control" placeholder="輸入您的回答..." id="answer-{{ question.id }}"
+                                    rows="3"></textarea>
+                                <div style="margin-top: 10px; display: flex; gap: 10px;">
+                                    <button class="btn btn-primary btn-sm" onclick="submitAnswer({{ question.id }})">
+                                        <i class="fas fa-paper-plane"></i> 送出回答
+                                    </button>
+                                    <button class="btn btn-secondary btn-sm"
+                                        onclick="toggleAnswerForm({{ question.id }})">
+                                        取消
+                                    </button>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+
+                        <!-- Ask Question Toggle -->
+                        {% if user.is_authenticated %}
+                        <button class="btn btn-outline toggle-form-btn" onclick="toggleQuestionForm({{ step.id }})"
+                            id="question-toggle-{{ step.id }}" style="margin-top: 15px;">
+                            <i class="fas fa-question-circle"></i> 我要提問
+                        </button>
+                        <div class="question-form" id="question-form-{{ step.id }}" style="display: none;">
+                            <h5>有問題嗎？</h5>
+                            <textarea class="form-control" placeholder="輸入您的問題..." id="question-{{ step.id }}"
+                                rows="3"></textarea>
+                            <div style="margin-top: 10px; display: flex; gap: 10px;">
+                                <button class="btn btn-primary" onclick="submitQuestion({{ step.id }})">
+                                    <i class="fas fa-paper-plane"></i> 送出問題
+                                </button>
+                                <button class="btn btn-secondary" onclick="toggleQuestionForm({{ step.id }})">
+                                    取消
+                                </button>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted" style="margin-top: 15px;">請<a
+                                href="/admin/login/?next={{ request.path }}">登入</a>後提問</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <h3>此教材尚無步驟</h3>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="tutorial-sidebar">
+            <div class="sidebar-card">
+                <h4>維護者</h4>
+                <div class="maintainers-list">
+                    {% for maintainer in maintainers %}
+                    <div class="maintainer-item">
+                        <a href="{% url 'tutorialhub:user_profile' maintainer.user.username %}">
+                            <i class="fas fa-user-circle"></i>
+                            {{ maintainer.user.get_full_name|default:maintainer.user.username }}
+                        </a>
+                        <span class="role-badge">{{ maintainer.get_role_display }}</span>
+                        <span class="contribution">貢獻度: {{ maintainer.contribution_score }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    // Toggle step
+    function toggleStep(stepNum) {
+        const content = document.getElementById('step-' + stepNum);
+        const toggle = document.getElementById('toggle-' + stepNum);
+        const icon = toggle.querySelector('i');
+
+        if (content.classList.contains('active')) {
+            content.classList.remove('active');
+            icon.className = 'fas fa-chevron-down';
+        } else {
+            content.classList.add('active');
+            icon.className = 'fas fa-chevron-up';
+        }
+    }
+
+    // Toggle answer form visibility
+    function toggleAnswerForm(questionId) {
+        const form = document.getElementById('answer-form-' + questionId);
+        const btn = document.getElementById('answer-toggle-' + questionId);
+        if (form.style.display === 'none') {
+            form.style.display = 'block';
+            btn.style.display = 'none';
+        } else {
+            form.style.display = 'none';
+            btn.style.display = 'inline-block';
+        }
+    }
+
+    // Toggle question form visibility
+    function toggleQuestionForm(stepId) {
+        const form = document.getElementById('question-form-' + stepId);
+        const btn = document.getElementById('question-toggle-' + stepId);
+        if (form.style.display === 'none') {
+            form.style.display = 'block';
+            btn.style.display = 'none';
+        } else {
+            form.style.display = 'none';
+            btn.style.display = 'inline-block';
+        }
+    }
+
+    // Copy code to clipboard
+    function copyCode(button) {
+        const code = button.getAttribute('data-code');
+        navigator.clipboard.writeText(code).then(() => {
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-check"></i> 已複製';
+            button.classList.add('copied');
+
+            setTimeout(() => {
+                button.innerHTML = originalHTML;
+                button.classList.remove('copied');
+            }, 2000);
+        });
+    }
+
+    // Submit question
+    function submitQuestion(stepId) {
+        const textarea = document.getElementById('question-' + stepId);
+        const content = textarea.value.trim();
+
+        if (!content) {
+            alert('請輸入問題內容');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('step_id', stepId);
+        formData.append('content', content);
+
+        fetch('{% url "tutorialhub:create_question" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+            },
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('發生錯誤，請稍後再試');
+            });
+    }
+
+    // Submit answer
+    function submitAnswer(questionId) {
+        const textarea = document.getElementById('answer-' + questionId);
+        const content = textarea.value.trim();
+
+        if (!content) {
+            alert('請輸入回答內容');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('question_id', questionId);
+        formData.append('content', content);
+
+        fetch('{% url "tutorialhub:create_answer" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+            },
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('發生錯誤，請稍後再試');
+            });
+    }
+
+    // Reading time tracker
+    {% if user.is_authenticated %}
+    let readingTime = 0;
+    let tutorialId = {{ tutorial.id }};
+
+    setInterval(() => {
+        readingTime += 30; // 30 seconds
+
+        const formData = new FormData();
+        formData.append('tutorial_id', tutorialId);
+        formData.append('seconds', 30);
+
+        fetch('{% url "tutorialhub:update_reading_time" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+            },
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Reading time updated:', data.display);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }, 30000); // Every 30 seconds
+    {% endif %}
+
+    // Initialize GLightbox
+    const lightbox = GLightbox({
+        touchNavigation: true,
+        loop: true,
+        autoplayVideos: true
+    });
+</script>
+{% endblock %}

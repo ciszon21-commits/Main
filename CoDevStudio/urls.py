@@ -17,6 +17,7 @@ urlpatterns = [
     path('gallery/', include('ImageGallery.urls')),
     path('single_auth/', include('SingleAuth.urls')),
     path('courses/', include('CourseRegistration.urls')),
+    path('tutorials/', include('TutorialHub.urls', namespace='tutorialhub')),
     path('rnd-request/', include('RndRequest.urls')),
     path('news/', include('NewsSubscriber.urls')),
 ]

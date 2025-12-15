@@ -1,0 +1,220 @@
+{% extends 'tutorialhub/base.html' %}
+{% load static %}
+
+{% block title %}教材列表{% endblock %}
+
+{% block extra_css %}
+<style>
+    .compact-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .compact-header h1 {
+        margin: 0;
+        font-size: 1.5rem;
+    }
+
+    .compact-search {
+        display: flex;
+        align-items: center;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 6px 12px;
+        gap: 8px;
+    }
+
+    .compact-search input {
+        border: none;
+        outline: none;
+        width: 200px;
+        font-size: 0.9rem;
+    }
+
+    .compact-search button {
+        background: none;
+        border: none;
+        color: #667eea;
+        cursor: pointer;
+    }
+
+    .tutorials-table {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .tutorial-row {
+        display: flex;
+        align-items: center;
+        padding: 15px 20px;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background 0.2s;
+        gap: 15px;
+    }
+
+    .tutorial-row:hover {
+        background: #f8f9fa;
+    }
+
+    .tutorial-row:last-child {
+        border-bottom: none;
+    }
+
+    .tutorial-thumb {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        flex-shrink: 0;
+        font-size: 1.2rem;
+        background-size: cover;
+        background-position: center;
+    }
+
+    .tutorial-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .tutorial-info h3 {
+        margin: 0 0 4px 0;
+        font-size: 1rem;
+    }
+
+    .tutorial-info h3 a {
+        color: #2d3748;
+        text-decoration: none;
+    }
+
+    .tutorial-info h3 a:hover {
+        color: #667eea;
+    }
+
+    .tutorial-info p {
+        margin: 0;
+        color: #718096;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .tutorial-stats-compact {
+        display: flex;
+        gap: 15px;
+        color: #718096;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+
+    .tutorial-stats-compact span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .tutorial-action {
+        flex-shrink: 0;
+    }
+
+    .tutorial-action .btn {
+        padding: 6px 16px;
+        font-size: 0.85rem;
+    }
+
+    @media (max-width: 768px) {
+        .tutorial-stats-compact {
+            display: none;
+        }
+
+        .compact-search input {
+            width: 150px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="compact-header">
+        <h1><i class="fas fa-book-open"></i> 教材列表</h1>
+
+        <form method="get" class="compact-search">
+            <i class="fas fa-search" style="color: #a0aec0;"></i>
+            <input type="text" name="search" placeholder="搜尋教材..." value="{{ search }}">
+            <button type="submit"><i class="fas fa-arrow-right"></i></button>
+        </form>
+    </div>
+
+    {% if tutorials %}
+    <div class="tutorials-table">
+        {% for tutorial in tutorials %}
+        <div class="tutorial-row">
+            {% if tutorial.cover_image %}
+            <div class="tutorial-thumb" style="background-image: url('{{ tutorial.cover_image.url }}');"></div>
+            {% else %}
+            <div class="tutorial-thumb">
+                <i class="fas fa-book"></i>
+            </div>
+            {% endif %}
+
+            <div class="tutorial-info">
+                <h3><a href="{% url 'tutorialhub:tutorial_detail' tutorial.slug %}">{{ tutorial.title }}</a></h3>
+                <p>{{ tutorial.description|truncatewords:15 }}</p>
+            </div>
+
+            <div class="tutorial-stats-compact">
+                <span><i class="fas fa-list-ol"></i> {{ tutorial.step_count }}</span>
+                <span><i class="fas fa-eye"></i> {{ tutorial.view_count }}</span>
+            </div>
+
+            <div class="tutorial-action">
+                <a href="{% url 'tutorialhub:tutorial_detail' tutorial.slug %}" class="btn btn-primary btn-sm">
+                    查看
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if is_paginated %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}"
+            class="page-link">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        {% endif %}
+
+        <span class="page-current">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}" class="page-link">
+            <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <h3>{% if search %}找不到「{{ search }}」{% else %}目前沒有教材{% endif %}</h3>
+        {% if user.is_authenticated %}
+        <a href="{% url 'tutorialhub:tutorial_create' %}" class="btn btn-primary">建立教材</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
