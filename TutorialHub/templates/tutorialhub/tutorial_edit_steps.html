@@ -129,6 +129,91 @@
     .order-changed-notice.show {
         display: flex;
     }
+
+    /* 步驟標題編輯樣式 */
+    .step-title-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+    }
+
+    .step-title-display {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+    }
+
+    .step-title-edit {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+    }
+
+    .step-title-edit.active {
+        display: flex;
+    }
+
+    .step-title-display.hidden {
+        display: none;
+    }
+
+    .step-title-input {
+        flex: 1;
+        padding: 6px 12px;
+        border: 2px solid #667eea;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 500;
+    }
+
+    .step-title-input:focus {
+        outline: none;
+        border-color: #764ba2;
+    }
+
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-edit-title {
+        background: transparent;
+        color: #a0aec0;
+    }
+
+    .btn-edit-title:hover {
+        background: #edf2f7;
+        color: #667eea;
+    }
+
+    .btn-save-title {
+        background: #48bb78;
+        color: white;
+    }
+
+    .btn-save-title:hover {
+        background: #38a169;
+    }
+
+    .btn-cancel-title {
+        background: #e2e8f0;
+        color: #4a5568;
+    }
+
+    .btn-cancel-title:hover {
+        background: #cbd5e0;
+    }
 </style>
 {% endblock %}
 
@@ -169,7 +254,27 @@
                     <div class="step-info">
                         <span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>
                         <span class="step-number step-num-display">{{ forloop.counter }}</span>
-                        <h3>{{ step.title }}</h3>
+                        <div class="step-title-wrapper">
+                            <div class="step-title-display" id="title-display-{{ step.id }}">
+                                <h3 id="title-text-{{ step.id }}">{{ step.title }}</h3>
+                                <button class="btn-icon btn-edit-title" onclick="editStepTitle({{ step.id }})"
+                                    title="編輯標題">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </button>
+                            </div>
+                            <div class="step-title-edit" id="title-edit-{{ step.id }}">
+                                <input type="text" class="step-title-input" id="title-input-{{ step.id }}"
+                                    value="{{ step.title }}">
+                                <button class="btn-icon btn-save-title" onclick="saveStepTitle({{ step.id }})"
+                                    title="儲存">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn-icon btn-cancel-title" onclick="cancelEditStepTitle({{ step.id }})"
+                                    title="取消">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <div class="step-actions">
                         <span class="snippet-count">
@@ -350,6 +455,84 @@
                 alert('發生錯誤，請稍後再試');
             });
     }
+
+    function editStepTitle(stepId) {
+        const displayEl = document.getElementById(`title-display-${stepId}`);
+        const editEl = document.getElementById(`title-edit-${stepId}`);
+        const inputEl = document.getElementById(`title-input-${stepId}`);
+
+        displayEl.classList.add('hidden');
+        editEl.classList.add('active');
+        inputEl.focus();
+        inputEl.select();
+    }
+
+    function cancelEditStepTitle(stepId) {
+        const displayEl = document.getElementById(`title-display-${stepId}`);
+        const editEl = document.getElementById(`title-edit-${stepId}`);
+        const inputEl = document.getElementById(`title-input-${stepId}`);
+        const originalTitle = document.getElementById(`title-text-${stepId}`).textContent;
+
+        inputEl.value = originalTitle;
+        displayEl.classList.remove('hidden');
+        editEl.classList.remove('active');
+    }
+
+    function saveStepTitle(stepId) {
+        const inputEl = document.getElementById(`title-input-${stepId}`);
+        const titleTextEl = document.getElementById(`title-text-${stepId}`);
+        const displayEl = document.getElementById(`title-display-${stepId}`);
+        const editEl = document.getElementById(`title-edit-${stepId}`);
+        const newTitle = inputEl.value.trim();
+
+        if (!newTitle) {
+            alert('標題不可為空');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('title', newTitle);
+
+        fetch(`/tutorials/${tutorialSlug}/steps/${stepId}/update/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+            },
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    titleTextEl.textContent = newTitle;
+                    displayEl.classList.remove('hidden');
+                    editEl.classList.remove('active');
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('發生錯誤，請稍後再試');
+            });
+    }
+
+    // Add Enter key support for step title editing
+    document.querySelectorAll('.step-title-input').forEach(input => {
+        input.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const stepId = this.id.replace('title-input-', '');
+                saveStepTitle(stepId);
+            }
+        });
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                const stepId = this.id.replace('title-input-', '');
+                cancelEditStepTitle(stepId);
+            }
+        });
+    });
 
     // Enter key to submit
     document.getElementById('new-step-title').addEventListener('keypress', function (e) {
