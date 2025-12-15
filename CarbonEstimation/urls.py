@@ -13,6 +13,7 @@ urlpatterns = [
     path('api/scenarios/<int:scenario_id>/save-category/', views.save_category_data, name='save_category'),
     path('api/scenarios/<int:scenario_id>/load/', views.load_scenario, name='load_scenario'),
     path('api/scenarios/<int:scenario_id>/collaborators/', views.manage_collaborators, name='manage_collaborators'),
+    path('api/users/search/', views.search_users, name='search_users'),
         
     # Scenario management
     path('scenarios/', views.scenario_list, name='scenario_list'),

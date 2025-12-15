@@ -13,8 +13,7 @@ from datetime import timedelta
 import os
 from pathlib import Path
 
-from . import _local_settings as local
-
+from .settings_local import settings as local
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,14 +23,12 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = getattr(local, "SECRET_KEY", 'django-insecure--%dbcahm$h45=qeyio&^8$*iz1!-tnby))#oeowkq0@90c#k!(')
+SECRET_KEY = local.SECRET_KEY
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG =  getattr(local, 'DEBUG', True)
+DEBUG =  local.DEBUG
 
-ALLOWED_HOSTS = getattr(local, 'ALLOWED_HOSTS',
-    ['localhost', '127.0.0.1', '0.0.0.0']
-)
+ALLOWED_HOSTS = local.ALLOWED_HOSTS
 
 # Application definition
 
@@ -71,10 +68,10 @@ INSTALLED_APPS = [
     "RndRequest",
     "NewsSubscriber",
     "CarbonEstimation",
-] + getattr(local, 'STAGE_INSTALLED_APPS', [])
+] + local.STAGE_INSTALLED_APPS
 
-GEMINI_API_KEY = getattr(local, "GEMINI_API_KEY", None)
-GEMINI_MODEL = getattr(local, "GEMINI_MODEL", None)
+GEMINI_API_KEY = local.GEMINI_API_KEY
+GEMINI_MODEL = local.GEMINI_MODEL
 
 MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -84,17 +81,17 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.RemoteUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.security.SecurityMiddleware",
-] + getattr(local, 'STAGE_MIDDLEWARES', [])
+] + local.STAGE_MIDDLEWARES
 
 
 READ_DB_LABELS = [
-    *getattr(local, 'STAGE_READ_DB_LABELS', [])
+    *local.STAGE_READ_DB_LABELS
 ]
 WRITE_DB_LABELS = [
-    *getattr(local, 'STAGE_WRITE_DB_LABELS', [])
+    *local.STAGE_WRITE_DB_LABELS
 ]
 MIGRATE_DB_LABELS = [
-    *getattr(local, 'STAGE_MIGRATE_DB_LABELS', [])
+    *local.STAGE_MIGRATE_DB_LABELS
 ]
 
 
@@ -103,14 +100,10 @@ AUTH_SAFE_APPS = [
 ]
 
 
-SINO_AUTH_SERVICE_TOKEN = getattr(local, 'SINO_AUTH_SERVICE_TOKEN', None)
-SINO_AUTH_SERVICE_DOMAIN = getattr(local, 'SINO_AUTH_SERVICE_DOMAIN', None)
-SINO_AUTH_SERVICE_APP_PATH = getattr(local, 'SINO_AUTH_SERVICE_APP_PATH', None)
-ANYTHINGLLM_KEY = getattr(local, 'ANYTHINGLLM_KEY', '')
-
-
-
-
+SINO_AUTH_SERVICE_TOKEN = local.SINO_AUTH_SERVICE_TOKEN
+SINO_AUTH_SERVICE_DOMAIN = local.SINO_AUTH_SERVICE_DOMAIN
+SINO_AUTH_SERVICE_APP_PATH = local.SINO_AUTH_SERVICE_APP_PATH
+ANYTHINGLLM_KEY = local.ANYTHINGLLM_KEY
 
 ROOT_URLCONF = 'CoDevStudio.urls'
 
@@ -138,12 +131,7 @@ WSGI_APPLICATION = 'CoDevStudio.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = getattr(local, "DATABASES", {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
-})
+DATABASES = {name: cfg.to_django() for name, cfg in local.DATABASES.items()}
 
 DATABASE_ROUTERS = [
     "CoDevStudio.routers.DataBaseRouter",
@@ -156,7 +144,7 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": False,
     "ALGORITHM": "HS256",
-    "SIGNING_KEY": getattr(local, "SECRET_KEY", 'django-insecure--%dbcahm$h45=qeyio&^8$*iz1!-tnby))#oeowkq0@90c#k!('),
+    "SIGNING_KEY": local.SECRET_KEY,
     "VERIFYING_KEY": None,
     "AUDIENCE": None,
     "ISSUER": None,
@@ -228,21 +216,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 EMAIL_PORT = 465
 EMAIL_USE_SSL = True
-EMAIL_HOST = getattr(local, "EMAIL_HOST", None)
-EMAIL_HOST_USER = getattr(local, "EMAIL_HOST_USER", None)
-EMAIL_HOST_PASSWORD = getattr(local, "EMAIL_HOST_PASSWORD", None)
-
-
-SYSTEM_EMAIL = getattr(local, "SYSTEM_EMAIL", "測試郵件")
-NOTIFY_EMAIL_NAME = getattr(local, "NOTIFY_EMAIL_NAME", "測試開發者")
-NOTIFY_EMAIL = getattr(local, "NOTIFY_EMAIL", "通知郵件")
-
-AUTHENTICATION_BACKENDS = getattr(local, "AUTHENTICATION_BACKENDS", [
-    'CoDevStudio.backends.sino_remote_user_backend.SinoRemoteUserBackend',
-    'django.contrib.auth.backends.ModelBackend',
-])
-
-EMAIL_BACKEND = getattr(local, 'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = local.EMAIL_HOST
+EMAIL_HOST_USER = local.EMAIL_HOST_USER
+EMAIL_HOST_PASSWORD = local.EMAIL_HOST_PASSWORD
+SYSTEM_EMAIL = local.SYSTEM_EMAIL
+NOTIFY_EMAIL_NAME = local.NOTIFY_EMAIL_NAME
+NOTIFY_EMAIL = local.NOTIFY_EMAIL
+AUTHENTICATION_BACKENDS = local.AUTHENTICATION_BACKENDS
+EMAIL_BACKEND = local.EMAIL_BACKEND
 
 
 # CKEditor 5 Configuration
@@ -276,5 +257,5 @@ CKEDITOR_5_FILE_UPLOAD_PERMISSION = "authenticated"
 # File Upload Limits
 FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
-DATA_UPLOAD_MAX_NUMBER_FILES = getattr(local, 'DATA_UPLOAD_MAX_NUMBER_FILES', 2000)
+DATA_UPLOAD_MAX_NUMBER_FILES = local.DATA_UPLOAD_MAX_NUMBER_FILES
 
