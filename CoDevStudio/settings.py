@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "SingleAuth",
     "SinoAuth",
     "CourseRegistration",
+    "TutorialHub",
 ]
 
 

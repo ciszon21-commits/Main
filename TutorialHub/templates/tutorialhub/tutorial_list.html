@@ -1,0 +1,110 @@
+{% extends 'tutorialhub/base.html' %}
+{% load static %}
+
+{% block title %}教材列表{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1><i class="fas fa-book-open"></i> 教材列表</h1>
+        <p class="subtitle">探索豐富的互動式教材，提升您的技能</p>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="search-section">
+        <form method="get" class="search-form">
+            <div class="search-input-group">
+                <i class="fas fa-search"></i>
+                <input type="text" name="search" placeholder="搜尋教材..." value="{{ search }}">
+                <button type="submit" class="btn btn-primary">搜尋</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tutorials Grid -->
+    {% if tutorials %}
+    <div class="tutorials-grid">
+        {% for tutorial in tutorials %}
+        <div class="tutorial-card">
+            {% if tutorial.cover_image %}
+            <div class="tutorial-cover" style="background-image: url('{{ tutorial.cover_image.url }}');"></div>
+            {% else %}
+            <div class="tutorial-cover tutorial-cover-default">
+                <i class="fas fa-book"></i>
+            </div>
+            {% endif %}
+
+            <div class="tutorial-card-content">
+                <h3><a href="{% url 'tutorialhub:tutorial_detail' tutorial.slug %}">{{ tutorial.title }}</a></h3>
+                <p class="tutorial-description">{{ tutorial.description|truncatewords:20 }}</p>
+
+                <div class="tutorial-stats">
+                    <span class="stat-item">
+                        <i class="fas fa-list-ol"></i>
+                        {{ tutorial.step_count }} 步驟
+                    </span>
+                    <span class="stat-item">
+                        <i class="fas fa-image"></i>
+                        {{ tutorial.image_count }} 圖片
+                    </span>
+                    <span class="stat-item">
+                        <i class="fas fa-code"></i>
+                        {{ tutorial.code_count }} 程式碼
+                    </span>
+                    <span class="stat-item">
+                        <i class="fas fa-eye"></i>
+                        {{ tutorial.view_count }} 瀏覽
+                    </span>
+                </div>
+
+                <div class="tutorial-meta">
+                    <div class="maintainers">
+                        {% for maintainer in tutorial.maintainers.all|slice:":3" %}
+                        <span class="maintainer-badge"
+                            title="{{ maintainer.user.get_full_name|default:maintainer.user.username }}">
+                            <i class="fas fa-user-circle"></i>
+                            {{ maintainer.user.get_full_name|default:maintainer.user.username }}
+                        </span>
+                        {% endfor %}
+                        {% if tutorial.maintainers.count > 3 %}
+                        <span class="more-maintainers">+{{ tutorial.maintainers.count|add:"-3" }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <a href="{% url 'tutorialhub:tutorial_detail' tutorial.slug %}"
+                    class="btn btn-outline btn-block">查看教材</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page=1{% if search %}&search={{ search }}{% endif %}" class="page-link">首頁</a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}"
+            class="page-link">上一頁</a>
+        {% endif %}
+
+        <span class="page-current">第 {{ page_obj.number }} 頁 / 共 {{ page_obj.paginator.num_pages }} 頁</span>
+
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}"
+            class="page-link">下一頁</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}"
+            class="page-link">末頁</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <h3>{% if search %}找不到符合「{{ search }}」的教材{% else %}目前沒有教材{% endif %}</h3>
+        <p>{% if user.is_authenticated %}<a href="{% url 'tutorialhub:tutorial_create' %}">建立第一個教材</a>{% endif %}</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

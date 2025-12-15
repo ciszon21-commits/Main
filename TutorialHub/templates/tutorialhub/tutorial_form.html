@@ -1,0 +1,76 @@
+{% extends 'tutorialhub/base.html' %}
+{% load static %}
+
+{% block title %}{% if object %}編輯教材{% else %}建立教材{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>{% if object %}<i class="fas fa-edit"></i> 編輯教材{% else %}<i class="fas fa-plus-circle"></i> 建立教材{% endif %}
+        </h1>
+    </div>
+
+    <div class="form-container">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="id_title">教材標題 *</label>
+                {{ form.title }}
+                {% if form.title.errors %}
+                <div class="error-message">{{ form.title.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_description">教材簡介 *</label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                <div class="error-message">{{ form.description.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_cover_image">封面圖片</label>
+                {{ form.cover_image }}
+                {% if form.cover_image.errors %}
+                <div class="error-message">{{ form.cover_image.errors }}</div>
+                {% endif %}
+                {% if object and object.cover_image %}
+                <div class="current-image">
+                    <img src="{{ object.cover_image.url }}" alt="Current cover"
+                        style="max-width: 200px; margin-top: 10px;">
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label>
+                    {{ form.is_published }}
+                    發布教材（勾選後其他人可以看到）
+                </label>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> 儲存
+                </button>
+                <a href="{% if object %}{{ object.get_absolute_url }}{% else %}{% url 'tutorialhub:tutorial_list' %}{% endif %}"
+                    class="btn btn-outline">
+                    取消
+                </a>
+            </div>
+        </form>
+
+        {% if object %}
+        <div class="help-text" style="margin-top: 40px; padding: 20px; background: #f7fafc; border-radius: 8px;">
+            <h4>💡 下一步</h4>
+            <p>教材已建立！請使用 Django Admin 管理介面來新增步驟和片段：</p>
+            <a href="/admin/TutorialHub/tutorial/{{ object.id }}/change/" class="btn btn-primary" target="_blank">
+                <i class="fas fa-cog"></i> 在 Admin 中編輯完整內容
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

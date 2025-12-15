@@ -1,0 +1,88 @@
+{% extends 'tutorialhub/base.html' %}
+{% load static %}
+
+{% block title %}統計分析{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1><i class="fas fa-chart-bar"></i> 統計分析</h1>
+        <p class="subtitle">探索平台使用統計與熱門內容</p>
+    </div>
+
+    <!-- Popular Tutorials -->
+    <div class="analytics-section">
+        <h2><i class="fas fa-fire"></i> 熱門教材</h2>
+        <div class="ranking-list">
+            {% for tutorial in popular_tutorials %}
+            <div class="ranking-item">
+                <div class="rank-number">{{ forloop.counter }}</div>
+                <div class="ranking-content">
+                    <h3><a href="{% url 'tutorialhub:tutorial_detail' tutorial.slug %}">{{ tutorial.title }}</a></h3>
+                    <div class="ranking-stats">
+                        <span><i class="fas fa-clock"></i> 總閱讀時間: {{ tutorial.total_time|default:0 }} 秒</span>
+                        <span><i class="fas fa-users"></i> {{ tutorial.reader_count|default:0 }} 讀者</span>
+                        <span><i class="fas fa-eye"></i> {{ tutorial.view_count }} 瀏覽</span>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-muted">目前沒有資料</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Top Contributors -->
+    <div class="analytics-section">
+        <h2><i class="fas fa-trophy"></i> 貢獻者排行榜</h2>
+        <div class="ranking-list">
+            {% for user in top_contributors %}
+            <div class="ranking-item">
+                <div
+                    class="rank-number {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
+                    {{ forloop.counter }}
+                </div>
+                <div class="ranking-content">
+                    <h3>
+                        <a href="{% url 'tutorialhub:user_profile' user.username %}">
+                            {{ user.get_full_name|default:user.username }}
+                        </a>
+                    </h3>
+                    <div class="ranking-stats">
+                        <span><i class="fas fa-star"></i> 總貢獻度: {{ user.total_contribution }}</span>
+                        <span><i class="fas fa-book"></i> {{ user.tutorial_count }} 教材</span>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-muted">目前沒有資料</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Top Readers -->
+    <div class="analytics-section">
+        <h2><i class="fas fa-user-graduate"></i> 閱讀時長排行榜</h2>
+        <div class="ranking-list">
+            {% for user in top_readers %}
+            <div class="ranking-item">
+                <div class="rank-number">{{ forloop.counter }}</div>
+                <div class="ranking-content">
+                    <h3>
+                        <a href="{% url 'tutorialhub:user_profile' user.username %}">
+                            {{ user.get_full_name|default:user.username }}
+                        </a>
+                    </h3>
+                    <div class="ranking-stats">
+                        <span><i class="fas fa-clock"></i> 總閱讀時間: {{ user.total_time }} 秒 ({{
+                            user.total_time|floatformat:0|add:"0"|default:0|divide:60 }} 分鐘)</span>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-muted">目前沒有資料</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
