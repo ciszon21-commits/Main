@@ -16,6 +16,7 @@ class UserProfile(models.Model):
     emp_email = models.CharField(max_length=100,verbose_name='電子郵件', blank=True, null=True)
     emp_dept = models.CharField(max_length=20,verbose_name='部門', blank=True, null=True)
     emp_company = models.CharField(max_length=20,verbose_name='公司', blank=True, null=True)
+    bio = models.TextField(verbose_name='自我介紹', blank=True, null=True)
 
     def __str__(self): return self.user.username
 

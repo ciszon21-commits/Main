@@ -58,14 +58,14 @@ INSTALLED_APPS = [
     "SinoErrorPage",
     "BimAuth",
     "SinoAuth",
+    "CourseRegistration",
+    "TutorialHub",
     "SingleAuth",
     "SinoArchive",
-
     # CoDevStudio
     "StudioBase",
     "Home",
     "UserProfile",
-    "CourseRegistration",
     "ImageGallery",
     "DevShowcase",
     "RndRequest",
