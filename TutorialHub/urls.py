@@ -34,6 +34,7 @@ urlpatterns = [
     path('<uslug:slug>/steps/', views.tutorial_edit_steps, name='tutorial_edit_steps'),
     path('<uslug:slug>/steps/add/', views.add_step, name='add_step'),
     path('<uslug:slug>/steps/<int:step_id>/delete/', views.delete_step, name='delete_step'),
+    path('<uslug:slug>/steps/<int:step_id>/update/', views.update_step, name='update_step'),
     path('<uslug:slug>/steps/<int:step_id>/snippets/', views.step_edit_snippets, name='step_edit_snippets'),
     path('<uslug:slug>/steps/reorder/', views.reorder_steps, name='reorder_steps'),
     

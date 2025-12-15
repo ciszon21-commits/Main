@@ -5,190 +5,387 @@
 
 {% block extra_css %}
 <style>
-    .compact-header {
+    .page-header-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 40px 0;
+        margin-bottom: 40px;
+        color: white;
+    }
+
+    .page-header-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 25px;
         flex-wrap: wrap;
-        gap: 15px;
+        gap: 20px;
     }
 
-    .compact-header h1 {
+    .page-header-content h1 {
         margin: 0;
-        font-size: 1.5rem;
+        font-size: 2rem;
+        font-weight: 700;
     }
 
-    .compact-search {
+    .page-header-content p {
+        margin: 8px 0 0;
+        opacity: 0.9;
+    }
+
+    .header-search {
         display: flex;
         align-items: center;
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 6px 12px;
-        gap: 8px;
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50px;
+        padding: 8px 20px;
+        gap: 10px;
     }
 
-    .compact-search input {
+    .header-search input {
         border: none;
         outline: none;
+        background: transparent;
+        color: white;
         width: 200px;
-        font-size: 0.9rem;
+        font-size: 0.95rem;
     }
 
-    .compact-search button {
-        background: none;
+    .header-search input::placeholder {
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .header-search button {
+        background: white;
         border: none;
         color: #667eea;
         cursor: pointer;
-    }
-
-    .tutorials-table {
-        background: white;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-
-    .tutorial-row {
-        display: flex;
-        align-items: center;
-        padding: 15px 20px;
-        border-bottom: 1px solid #f0f0f0;
-        transition: background 0.2s;
-        gap: 15px;
-    }
-
-    .tutorial-row:hover {
-        background: #f8f9fa;
-    }
-
-    .tutorial-row:last-child {
-        border-bottom: none;
-    }
-
-    .tutorial-thumb {
-        width: 48px;
-        height: 48px;
-        border-radius: 8px;
-        background: linear-gradient(135deg, #667eea, #764ba2);
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
-        flex-shrink: 0;
-        font-size: 1.2rem;
-        background-size: cover;
-        background-position: center;
+        transition: transform 0.2s;
     }
 
-    .tutorial-info {
-        flex: 1;
-        min-width: 0;
+    .header-search button:hover {
+        transform: scale(1.1);
     }
 
-    .tutorial-info h3 {
-        margin: 0 0 4px 0;
-        font-size: 1rem;
+    /* 卡片網格佈局 */
+    .tutorials-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 30px;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
     }
 
-    .tutorial-info h3 a {
-        color: #2d3748;
-        text-decoration: none;
-    }
-
-    .tutorial-info h3 a:hover {
-        color: #667eea;
-    }
-
-    .tutorial-info p {
-        margin: 0;
-        color: #718096;
-        font-size: 0.85rem;
-        white-space: nowrap;
+    /* 教材卡片 */
+    .tutorial-card {
+        background: white;
+        border-radius: 16px;
         overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .tutorial-stats-compact {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: transform 0.3s, box-shadow 0.3s;
         display: flex;
-        gap: 15px;
-        color: #718096;
-        font-size: 0.85rem;
-        flex-shrink: 0;
+        flex-direction: column;
     }
 
-    .tutorial-stats-compact span {
+    .tutorial-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 40px rgba(102, 126, 234, 0.2);
+    }
+
+    .card-cover {
+        height: 160px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .card-cover img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .card-cover-icon {
+        font-size: 3rem;
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .popularity-badge {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(255, 255, 255, 0.95);
+        color: #e74c3c;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
         display: flex;
         align-items: center;
         gap: 4px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
 
-    .tutorial-action {
-        flex-shrink: 0;
+    .card-content {
+        padding: 20px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
     }
 
-    .tutorial-action .btn {
-        padding: 6px 16px;
+    .card-content h3 {
+        margin: 0 0 10px;
+        font-size: 1.15rem;
+        font-weight: 600;
+        line-height: 1.4;
+    }
+
+    .card-content h3 a {
+        color: #2d3748;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .card-content h3 a:hover {
+        color: #667eea;
+    }
+
+    .card-description {
+        color: #718096;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        margin: 0 0 15px;
+        flex: 1;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .card-stats {
+        display: flex;
+        gap: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #f0f0f0;
+        margin-bottom: 15px;
+    }
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #718096;
         font-size: 0.85rem;
     }
 
-    @media (max-width: 768px) {
-        .tutorial-stats-compact {
-            display: none;
+    .stat-item i {
+        color: #667eea;
+    }
+
+    .card-action {
+        margin-top: auto;
+    }
+
+    .card-action .btn {
+        width: 100%;
+        padding: 12px;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+    .card-action .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    /* 分頁樣式 */
+    .pagination-wrapper {
+        max-width: 1200px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .page-link {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: white;
+        border-radius: 10px;
+        color: #667eea;
+        text-decoration: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transition: all 0.2s;
+    }
+
+    .page-link:hover {
+        background: #667eea;
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .page-current {
+        padding: 8px 16px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+    /* 空狀態 */
+    .empty-state-wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 60px 20px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: #e2e8f0;
+        margin-bottom: 20px;
+    }
+
+    .empty-state h3 {
+        color: #4a5568;
+        margin-bottom: 20px;
+    }
+
+    /* 響應式設計 */
+    @media (max-width: 992px) {
+        .tutorials-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .tutorials-grid {
+            grid-template-columns: 1fr;
         }
 
-        .compact-search input {
-            width: 150px;
+        .page-header-content {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .header-search input {
+            width: 160px;
+        }
+
+        .card-cover {
+            height: 140px;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="compact-header">
-        <h1><i class="fas fa-book-open"></i> 教材列表</h1>
+<!-- 頁面標題區 -->
+<div class="page-header-section">
+    <div class="page-header-content">
+        <div>
+            <h1><i class="fas fa-fire"></i> 熱門教材</h1>
+            <p>探索最受歡迎的學習資源，依熱門程度排序</p>
+        </div>
 
-        <form method="get" class="compact-search">
-            <i class="fas fa-search" style="color: #a0aec0;"></i>
+        <form method="get" class="header-search">
+            <i class="fas fa-search"></i>
             <input type="text" name="search" placeholder="搜尋教材..." value="{{ search }}">
             <button type="submit"><i class="fas fa-arrow-right"></i></button>
         </form>
     </div>
+</div>
 
-    {% if tutorials %}
-    <div class="tutorials-table">
-        {% for tutorial in tutorials %}
-        <div class="tutorial-row">
+{% if tutorials %}
+<!-- 教材卡片網格 -->
+<div class="tutorials-grid">
+    {% for tutorial in tutorials %}
+    <div class="tutorial-card">
+        <!-- 封面圖 -->
+        <div class="card-cover">
             {% if tutorial.cover_image %}
-            <div class="tutorial-thumb" style="background-image: url('{{ tutorial.cover_image.url }}');"></div>
+            <img src="{{ tutorial.cover_image.url }}" alt="{{ tutorial.title }}">
             {% else %}
-            <div class="tutorial-thumb">
-                <i class="fas fa-book"></i>
-            </div>
+            <i class="fas fa-book-reader card-cover-icon"></i>
             {% endif %}
 
-            <div class="tutorial-info">
-                <h3><a href="{% url 'tutorialhub:tutorial_detail' tutorial.slug %}">{{ tutorial.title }}</a></h3>
-                <p>{{ tutorial.description|truncatewords:15 }}</p>
-            </div>
-
-            <div class="tutorial-stats-compact">
-                <span><i class="fas fa-list-ol"></i> {{ tutorial.step_count }}</span>
-                <span><i class="fas fa-eye"></i> {{ tutorial.view_count }}</span>
-            </div>
-
-            <div class="tutorial-action">
-                <a href="{% url 'tutorialhub:tutorial_detail' tutorial.slug %}" class="btn btn-primary btn-sm">
-                    查看
-                </a>
-            </div>
+            {% if forloop.counter <= 3 %} <div class="popularity-badge">
+                <i class="fas fa-fire-alt"></i>
+                TOP {{ forloop.counter }}
         </div>
-        {% endfor %}
+        {% elif tutorial.view_count >= 10 %}
+        <div class="popularity-badge" style="color: #667eea;">
+            <i class="fas fa-eye"></i>
+            {{ tutorial.view_count }}
+        </div>
+        {% endif %}
     </div>
 
-    {% if is_paginated %}
+    <!-- 卡片內容 -->
+    <div class="card-content">
+        <h3>
+            <a href="{% url 'tutorialhub:tutorial_detail' tutorial.slug %}">
+                {{ tutorial.title }}
+            </a>
+        </h3>
+        <p class="card-description">{{ tutorial.description|truncatewords:20 }}</p>
+
+        <div class="card-stats">
+            <span class="stat-item">
+                <i class="fas fa-list-ol"></i>
+                {{ tutorial.step_count }} 步驟
+            </span>
+            <span class="stat-item">
+                <i class="fas fa-eye"></i>
+                {{ tutorial.view_count }} 瀏覽
+            </span>
+            <span class="stat-item">
+                <i class="fas fa-users"></i>
+                {{ tutorial.unique_readers }} 讀者
+            </span>
+        </div>
+
+        <div class="card-action">
+            <a href="{% url 'tutorialhub:tutorial_detail' tutorial.slug %}" class="btn btn-primary">
+                <i class="fas fa-play-circle"></i> 開始學習
+            </a>
+        </div>
+    </div>
+</div>
+{% endfor %}
+</div>
+
+{% if is_paginated %}
+<div class="pagination-wrapper">
     <div class="pagination">
         {% if page_obj.has_previous %}
         <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}"
@@ -205,16 +402,20 @@
         </a>
         {% endif %}
     </div>
-    {% endif %}
+</div>
+{% endif %}
 
-    {% else %}
+{% else %}
+<div class="empty-state-wrapper">
     <div class="empty-state">
         <i class="fas fa-inbox"></i>
         <h3>{% if search %}找不到「{{ search }}」{% else %}目前沒有教材{% endif %}</h3>
         {% if user.is_authenticated %}
-        <a href="{% url 'tutorialhub:tutorial_create' %}" class="btn btn-primary">建立教材</a>
+        <a href="{% url 'tutorialhub:tutorial_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> 建立教材
+        </a>
         {% endif %}
     </div>
-    {% endif %}
 </div>
+{% endif %}
 {% endblock %}

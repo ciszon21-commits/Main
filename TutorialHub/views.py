@@ -41,7 +41,7 @@ class TutorialListView(ListView):
                 Q(description__icontains=search)
             )
         
-        return queryset.order_by('-created_at')
+        return queryset.order_by('-view_count', '-created_at')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -283,6 +283,27 @@ def delete_step(request, slug, step_id):
     if request.method == 'POST':
         step.delete()
         return JsonResponse({'success': True, 'message': '步驟已刪除'})
+    
+    return JsonResponse({'success': False, 'message': '無效請求'}, status=405)
+
+
+@login_required
+def update_step(request, slug, step_id):
+    """更新步驟標題 (AJAX)"""
+    tutorial = get_object_or_404(Tutorial, slug=slug)
+    step = get_object_or_404(TutorialStep, pk=step_id, tutorial=tutorial)
+    
+    if not tutorial.maintainers.filter(user=request.user).exists():
+        return JsonResponse({'success': False, 'message': '權限不足'}, status=403)
+    
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        if not title:
+            return JsonResponse({'success': False, 'message': '標題不可為空'}, status=400)
+        
+        step.title = title
+        step.save()
+        return JsonResponse({'success': True, 'message': '步驟標題已更新'})
     
     return JsonResponse({'success': False, 'message': '無效請求'}, status=405)
 
