@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     "DevShowcase",
     "RndRequest",
     "NewsSubscriber",
+    "CarbonEstimation",
 ] + getattr(local, 'STAGE_INSTALLED_APPS', [])
 
 GEMINI_API_KEY = getattr(local, "GEMINI_API_KEY", None)
