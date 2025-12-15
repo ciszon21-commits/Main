@@ -20,4 +20,7 @@ urlpatterns = [
     
     # PDF 下載
     path('<int:pk>/download-pdf/', views.download_pdf, name='download_pdf'),
+    
+    # 留言功能
+    path('<int:pk>/comment/', views.add_comment, name='add_comment'),
 ]

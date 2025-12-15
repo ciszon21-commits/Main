@@ -8,69 +8,72 @@
     <div class="page-header">
         <h1>{% if object %}<i class="fas fa-edit"></i> 編輯教材{% else %}<i class="fas fa-plus-circle"></i> 建立教材{% endif %}
         </h1>
+        <p class="subtitle">填寫教材基本資訊</p>
     </div>
 
     <div class="form-container">
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" class="tutorial-form">
             {% csrf_token %}
 
             <div class="form-group">
-                <label for="id_title">教材標題 *</label>
-                {{ form.title }}
+                <label for="id_title">教材標題 <span class="required">*</span></label>
+                <input type="text" name="title" id="id_title" class="form-control"
+                    value="{{ form.title.value|default:'' }}" placeholder="輸入教材標題" required>
                 {% if form.title.errors %}
-                <div class="error-message">{{ form.title.errors }}</div>
+                <div class="error-message">{{ form.title.errors.0 }}</div>
                 {% endif %}
             </div>
 
             <div class="form-group">
-                <label for="id_description">教材簡介 *</label>
-                {{ form.description }}
+                <label for="id_description">教材簡介 <span class="required">*</span></label>
+                <textarea name="description" id="id_description" class="form-control" rows="4"
+                    placeholder="教材簡介，說明此教材的內容和目標" required>{{ form.description.value|default:'' }}</textarea>
                 {% if form.description.errors %}
-                <div class="error-message">{{ form.description.errors }}</div>
+                <div class="error-message">{{ form.description.errors.0 }}</div>
                 {% endif %}
             </div>
 
             <div class="form-group">
-                <label for="id_cover_image">封面圖片</label>
-                {{ form.cover_image }}
-                {% if form.cover_image.errors %}
-                <div class="error-message">{{ form.cover_image.errors }}</div>
-                {% endif %}
+                <label for="id_cover_image">封面圖片（選填）</label>
+                <input type="file" name="cover_image" id="id_cover_image" class="form-control" accept="image/*">
                 {% if object and object.cover_image %}
-                <div class="current-image">
+                <div class="current-image" style="margin-top: 10px;">
+                    <p style="color: #666; font-size: 0.9rem;">目前圖片：</p>
                     <img src="{{ object.cover_image.url }}" alt="Current cover"
-                        style="max-width: 200px; margin-top: 10px;">
+                        style="max-width: 200px; border-radius: 8px;">
                 </div>
                 {% endif %}
+                {% if form.cover_image.errors %}
+                <div class="error-message">{{ form.cover_image.errors.0 }}</div>
+                {% endif %}
             </div>
 
-            <div class="form-group">
-                <label>
-                    {{ form.is_published }}
+            <div class="form-group form-check">
+                <input type="checkbox" name="is_published" id="id_is_published" class="form-check-input" 
+                {% if form.is_published.value %}checked{% endif %}>
+                <label for="id_is_published" class="form-check-label">
                     發布教材（勾選後其他人可以看到）
                 </label>
             </div>
 
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i> 儲存
+                    <i class="fas fa-save"></i> {% if object %}儲存變更{% else %}建立教材{% endif %}
                 </button>
-                <a href="{% if object %}{{ object.get_absolute_url }}{% else %}{% url 'tutorialhub:tutorial_list' %}{% endif %}"
-                    class="btn btn-outline">
+                {% if object %}
+                <a href="{% url 'tutorialhub:tutorial_edit_steps' object.slug %}" class="btn btn-outline">
+                    <i class="fas fa-list"></i> 編輯步驟
+                </a>
+                <a href="{% url 'tutorialhub:tutorial_detail' object.slug %}" class="btn btn-secondary">
                     取消
                 </a>
+                {% else %}
+                <a href="{% url 'tutorialhub:tutorial_list' %}" class="btn btn-secondary">
+                    取消
+                </a>
+                {% endif %}
             </div>
         </form>
-
-        {% if object %}
-        <div class="help-text" style="margin-top: 40px; padding: 20px; background: #f7fafc; border-radius: 8px;">
-            <h4>💡 下一步</h4>
-            <p>教材已建立！請使用 Django Admin 管理介面來新增步驟和片段：</p>
-            <a href="/admin/TutorialHub/tutorial/{{ object.id }}/change/" class="btn btn-primary" target="_blank">
-                <i class="fas fa-cog"></i> 在 Admin 中編輯完整內容
-            </a>
-        </div>
-        {% endif %}
     </div>
 </div>
 {% endblock %}

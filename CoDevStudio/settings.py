@@ -9,10 +9,12 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
-from pathlib import Path
-from . import _local_settings as local
 from datetime import timedelta
+import os
+from pathlib import Path
+
+from . import _local_settings as local
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,7 +30,7 @@ SECRET_KEY = getattr(local, "SECRET_KEY", 'django-insecure--%dbcahm$h45=qeyio&^8
 DEBUG =  getattr(local, 'DEBUG', True)
 
 ALLOWED_HOSTS = getattr(local, 'ALLOWED_HOSTS',
-    ['localhost', '127.0.0.1']
+    ['localhost', '127.0.0.1', '0.0.0.0']
 )
 
 # Application definition
@@ -47,32 +49,67 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "rest_framework_simplejwt.token_blacklist",
 
-    # 中興擴充套件
-    "StudioBase",
-    "BimAuth",
+    # CKEditor 5
+    "django_ckeditor_5",
 
-    "UserProfile",
-    "SinoArchive",
+    # 中興擴充套件
     "SinoExtension",
-    "PMIS",
-    "ImageGallery",
-    "SingleAuth",
+    "SinoTemplate",
+    "SinoErrorPage",
+    "BimAuth",
     "SinoAuth",
     "CourseRegistration",
     "TutorialHub",
-]
+    "SingleAuth",
+    "SinoArchive",
+    # CoDevStudio
+    "StudioBase",
+    "Home",
+    "UserProfile",
+    "ImageGallery",
+    "DevShowcase",
+    "RndRequest",
+    "NewsSubscriber",
+] + getattr(local, 'STAGE_INSTALLED_APPS', [])
 
+GEMINI_API_KEY = getattr(local, "GEMINI_API_KEY", None)
+GEMINI_MODEL = getattr(local, "GEMINI_MODEL", None)
 
 MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "CoDevStudio.middleware.user_auth.UserAuthMiddleware",  # django auth 之後
     "django.contrib.auth.middleware.RemoteUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.security.SecurityMiddleware",
+] + getattr(local, 'STAGE_MIDDLEWARES', [])
+
+
+READ_DB_LABELS = [
+    *getattr(local, 'STAGE_READ_DB_LABELS', [])
 ]
+WRITE_DB_LABELS = [
+    *getattr(local, 'STAGE_WRITE_DB_LABELS', [])
+]
+MIGRATE_DB_LABELS = [
+    *getattr(local, 'STAGE_MIGRATE_DB_LABELS', [])
+]
+
+
+AUTH_SAFE_APPS = [
+    'Single_Redirect',
+]
+
+
+SINO_AUTH_SERVICE_TOKEN = getattr(local, 'SINO_AUTH_SERVICE_TOKEN', None)
+SINO_AUTH_SERVICE_DOMAIN = getattr(local, 'SINO_AUTH_SERVICE_DOMAIN', None)
+SINO_AUTH_SERVICE_APP_PATH = getattr(local, 'SINO_AUTH_SERVICE_APP_PATH', None)
+ANYTHINGLLM_KEY = getattr(local, 'ANYTHINGLLM_KEY', '')
+
+
+
+
 
 ROOT_URLCONF = 'CoDevStudio.urls'
 
@@ -103,7 +140,7 @@ WSGI_APPLICATION = 'CoDevStudio.wsgi.application'
 DATABASES = getattr(local, "DATABASES", {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 })
 
@@ -187,10 +224,6 @@ MEDIA_URL = "media/"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-LTD_EMPNO_FIELDS = [
-    "EmpNo",
-    "EmpNo5",
-]
 
 EMAIL_PORT = 465
 EMAIL_USE_SSL = True
@@ -203,10 +236,44 @@ SYSTEM_EMAIL = getattr(local, "SYSTEM_EMAIL", "測試郵件")
 NOTIFY_EMAIL_NAME = getattr(local, "NOTIFY_EMAIL_NAME", "測試開發者")
 NOTIFY_EMAIL = getattr(local, "NOTIFY_EMAIL", "通知郵件")
 
-AUTHENTICATION_BACKENDS = getattr(local, "AUTHENTICATION_BACKENDS", ['CoDevStudio.backends.sino_remote_user_backend.SinoRemoteUserBackend'])
+AUTHENTICATION_BACKENDS = getattr(local, "AUTHENTICATION_BACKENDS", [
+    'CoDevStudio.backends.sino_remote_user_backend.SinoRemoteUserBackend',
+    'django.contrib.auth.backends.ModelBackend',
+])
 
 EMAIL_BACKEND = getattr(local, 'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 
-SINGLE_TOKEN = getattr(local, 'SINGLE_TOKEN', None)
 
+# CKEditor 5 Configuration
+CKEDITOR_5_CONFIGS = {
+    'default': {
+        'toolbar': {
+            'items': ['heading', '|', 'bold', 'italic', 'link',
+                      'bulletedList', 'numberedList', 'blockQuote', 'imageUpload'],
+        }
+    },
+    'extends': {
+        'toolbar': {
+            'items': ['heading', '|', 'bold', 'italic', 'link', 'underline',
+                      'strikethrough', 'code', 'subscript', 'superscript', '|',
+                      'bulletedList', 'numberedList', 'todoList', '|',
+                      'outdent', 'indent', '|', 'blockQuote', 'insertImage',
+                      'mediaEmbed', 'insertTable', 'codeBlock', 'sourceEditing'],
+            'shouldNotGroupWhenFull': True
+        },
+        'image': {
+            'toolbar': ['imageTextAlternative', 'imageStyle:alignLeft',
+                        'imageStyle:alignCenter', 'imageStyle:alignRight']
+        },
+        'table': {
+            'contentToolbar': ['tableColumn', 'tableRow', 'mergeTableCells']
+        }
+    }
+}
+CKEDITOR_5_FILE_UPLOAD_PERMISSION = "authenticated"
+
+# File Upload Limits
+FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
 DATA_UPLOAD_MAX_NUMBER_FILES = getattr(local, 'DATA_UPLOAD_MAX_NUMBER_FILES', 2000)
+

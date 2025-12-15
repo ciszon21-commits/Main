@@ -14,8 +14,7 @@
     }
 
     .tutorial-content {
-        max-width: 900px;
-        margin: 0 auto;
+        max-width: 100%;
     }
 
     .step-container {
@@ -251,10 +250,11 @@
                 <div class="step-header" onclick="toggleStep({{ forloop.counter }})">
                     <h3>{{ forloop.counter }}. {{ step.title }}</h3>
                     <span class="step-toggle" id="toggle-{{ forloop.counter }}">
-                        <i class="fas fa-chevron-{% if step.is_expanded_default %}up{% else %}down{% endif %}"></i>
+                        <i
+                            class="fas fa-chevron-{% if forloop.first or step.is_expanded_default %}up{% else %}down{% endif %}"></i>
                     </span>
                 </div>
-                <div class="step-content {% if step.is_expanded_default %}active{% endif %}"
+                <div class="step-content {% if forloop.first or step.is_expanded_default %}active{% endif %}"
                     id="step-{{ forloop.counter }}">
                     <!-- Snippets -->
                     {% for snippet in step.snippets.all %}
@@ -328,33 +328,52 @@
                             </div>
                             {% endif %}
 
-                            <!-- Answer Form -->
+                            <!-- Answer Form Toggle -->
                             {% if user.is_authenticated %}
-                            <div class="answer-form">
+                            <button class="btn btn-outline btn-sm toggle-form-btn"
+                                onclick="toggleAnswerForm({{ question.id }})" id="answer-toggle-{{ question.id }}"
+                                style="margin-top: 10px;">
+                                <i class="fas fa-reply"></i> 我要回答
+                            </button>
+                            <div class="answer-form" id="answer-form-{{ question.id }}" style="display: none;">
                                 <textarea class="form-control" placeholder="輸入您的回答..." id="answer-{{ question.id }}"
                                     rows="3"></textarea>
-                                <button class="btn btn-primary btn-sm" style="margin-top: 10px;"
-                                    onclick="submitAnswer({{ question.id }})">
-                                    <i class="fas fa-reply"></i> 回答
-                                </button>
+                                <div style="margin-top: 10px; display: flex; gap: 10px;">
+                                    <button class="btn btn-primary btn-sm" onclick="submitAnswer({{ question.id }})">
+                                        <i class="fas fa-paper-plane"></i> 送出回答
+                                    </button>
+                                    <button class="btn btn-secondary btn-sm"
+                                        onclick="toggleAnswerForm({{ question.id }})">
+                                        取消
+                                    </button>
+                                </div>
                             </div>
                             {% endif %}
                         </div>
                         {% endfor %}
 
-                        <!-- Ask Question Form -->
+                        <!-- Ask Question Toggle -->
                         {% if user.is_authenticated %}
-                        <div class="question-form">
+                        <button class="btn btn-outline toggle-form-btn" onclick="toggleQuestionForm({{ step.id }})"
+                            id="question-toggle-{{ step.id }}" style="margin-top: 15px;">
+                            <i class="fas fa-question-circle"></i> 我要提問
+                        </button>
+                        <div class="question-form" id="question-form-{{ step.id }}" style="display: none;">
                             <h5>有問題嗎？</h5>
                             <textarea class="form-control" placeholder="輸入您的問題..." id="question-{{ step.id }}"
                                 rows="3"></textarea>
-                            <button class="btn btn-primary" style="margin-top: 10px;"
-                                onclick="submitQuestion({{ step.id }})">
-                                <i class="fas fa-question-circle"></i> 提問
-                            </button>
+                            <div style="margin-top: 10px; display: flex; gap: 10px;">
+                                <button class="btn btn-primary" onclick="submitQuestion({{ step.id }})">
+                                    <i class="fas fa-paper-plane"></i> 送出問題
+                                </button>
+                                <button class="btn btn-secondary" onclick="toggleQuestionForm({{ step.id }})">
+                                    取消
+                                </button>
+                            </div>
                         </div>
                         {% else %}
-                        <p class="text-muted">請<a href="/admin/login/?next={{ request.path }}">登入</a>後提問</p>
+                        <p class="text-muted" style="margin-top: 15px;">請<a
+                                href="/admin/login/?next={{ request.path }}">登入</a>後提問</p>
                         {% endif %}
                     </div>
                 </div>
@@ -420,6 +439,32 @@
         } else {
             content.classList.add('active');
             icon.className = 'fas fa-chevron-up';
+        }
+    }
+
+    // Toggle answer form visibility
+    function toggleAnswerForm(questionId) {
+        const form = document.getElementById('answer-form-' + questionId);
+        const btn = document.getElementById('answer-toggle-' + questionId);
+        if (form.style.display === 'none') {
+            form.style.display = 'block';
+            btn.style.display = 'none';
+        } else {
+            form.style.display = 'none';
+            btn.style.display = 'inline-block';
+        }
+    }
+
+    // Toggle question form visibility
+    function toggleQuestionForm(stepId) {
+        const form = document.getElementById('question-form-' + stepId);
+        const btn = document.getElementById('question-toggle-' + stepId);
+        if (form.style.display === 'none') {
+            form.style.display = 'block';
+            btn.style.display = 'none';
+        } else {
+            form.style.display = 'none';
+            btn.style.display = 'inline-block';
         }
     }
 
