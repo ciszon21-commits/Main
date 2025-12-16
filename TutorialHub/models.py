@@ -148,6 +148,7 @@ class StepSnippet(models.Model):
         ('text', '文字'),
         ('image', '圖片'),
         ('code', '程式碼'),
+        ('link', '超連結'),
     ]
 
     LANGUAGE_CHOICES = [
@@ -204,6 +205,19 @@ class StepSnippet(models.Model):
         blank=True,
         null=True,
         verbose_name='說明文字'
+    )
+    link_url = models.URLField(
+        blank=True,
+        null=True,
+        verbose_name='連結網址',
+        help_text='超連結的目標網址'
+    )
+    link_text = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        verbose_name='連結文字',
+        help_text='顯示的連結文字'
     )
 
     class Meta:

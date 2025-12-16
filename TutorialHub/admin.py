@@ -78,7 +78,7 @@ class StepSnippetInline(admin.TabularInline):
     """步驟片段內嵌管理"""
     model = StepSnippet
     extra = 1
-    fields = ['snippet_type', 'order', 'content', 'image', 'language', 'caption']
+    fields = ['snippet_type', 'order', 'content', 'image', 'language', 'caption', 'link_url', 'link_text']
 
 
 @admin.register(TutorialStep)
@@ -96,7 +96,7 @@ class StepSnippetAdmin(admin.ModelAdmin):
     """步驟片段管理介面"""
     list_display = ['__str__', 'step', 'snippet_type', 'language', 'order']
     list_filter = ['snippet_type', 'language', 'step__tutorial']
-    search_fields = ['content', 'caption', 'step__title']
+    search_fields = ['content', 'caption', 'step__title', 'link_url', 'link_text']
 
 
 @admin.register(TutorialMaintainer)

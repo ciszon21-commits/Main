@@ -244,6 +244,8 @@ def add_snippet(request, slug, step_id):
         content = request.POST.get('content', '')
         language = request.POST.get('language', 'plaintext')
         caption = request.POST.get('caption', '')
+        link_url = request.POST.get('link_url', '')
+        link_text = request.POST.get('link_text', '')
         
         # 計算最大順序
         max_order = step.snippets.aggregate(db_models.Max('order'))['order__max'] or 0
@@ -254,7 +256,9 @@ def add_snippet(request, slug, step_id):
             order=max_order + 1,
             content=content,
             language=language,
-            caption=caption
+            caption=caption,
+            link_url=link_url if snippet_type == 'link' else '',
+            link_text=link_text if snippet_type == 'link' else ''
         )
         
         # 處理圖片上傳
@@ -338,6 +342,11 @@ def update_snippet(request, slug, snippet_id):
         snippet.content = request.POST.get('content', snippet.content)
         snippet.language = request.POST.get('language', snippet.language)
         snippet.caption = request.POST.get('caption', snippet.caption)
+        
+        # 處理超連結欄位
+        if snippet.snippet_type == 'link':
+            snippet.link_url = request.POST.get('link_url', snippet.link_url)
+            snippet.link_text = request.POST.get('link_text', snippet.link_text)
         
         if 'image' in request.FILES:
             snippet.image = request.FILES['image']

@@ -96,6 +96,35 @@
         font-style: italic;
     }
 
+    .snippet-link {
+        margin: 20px 0;
+    }
+
+    .snippet-link a {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #667eea;
+        text-decoration: none;
+        font-size: 1.05rem;
+        font-weight: 500;
+        padding: 12px 20px;
+        background: linear-gradient(135deg, #667eea10, #764ba210);
+        border: 1px solid #667eea30;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .snippet-link a:hover {
+        background: linear-gradient(135deg, #667eea20, #764ba220);
+        border-color: #667eea60;
+        transform: translateX(5px);
+    }
+
+    .snippet-link a i {
+        font-size: 1rem;
+    }
+
     .snippet-code {
         position: relative;
         margin: 20px 0;
@@ -311,6 +340,14 @@
                             </button>
                         </div>
                         <pre><code class="language-{{ snippet.language }}">{{ snippet.content }}</code></pre>
+                    </div>
+
+                    {% elif snippet.snippet_type == 'link' %}
+                    <div class="snippet snippet-link">
+                        <a href="{{ snippet.link_url }}" target="_blank" rel="noopener noreferrer">
+                            <i class="fas fa-external-link-alt"></i>
+                            {{ snippet.link_text|default:snippet.link_url }}
+                        </a>
                     </div>
                     {% endif %}
                     {% endfor %}

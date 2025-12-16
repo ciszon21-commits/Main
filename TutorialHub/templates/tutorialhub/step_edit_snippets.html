@@ -83,6 +83,11 @@
         color: #c2185b;
     }
 
+    .snippet-type-link {
+        background: #e0f2f1;
+        color: #00695c;
+    }
+
     .snippet-body {
         padding: 20px;
     }
@@ -173,6 +178,10 @@
         color: #c2185b;
     }
 
+    .type-btn.link-type i {
+        color: #00695c;
+    }
+
     .snippet-form-fields {
         margin-top: 20px;
     }
@@ -202,7 +211,8 @@
 
     #code-fields,
     #image-fields,
-    #text-fields {
+    #text-fields,
+    #link-fields {
         display: none;
     }
 
@@ -265,6 +275,8 @@
                             <i class="fas fa-align-left"></i> 文字
                             {% elif snippet.snippet_type == 'image' %}
                             <i class="fas fa-image"></i> 圖片
+                            {% elif snippet.snippet_type == 'link' %}
+                            <i class="fas fa-link"></i> 超連結
                             {% else %}
                             <i class="fas fa-code"></i> 程式碼 ({{ snippet.get_language_display }})
                             {% endif %}
@@ -284,6 +296,12 @@
                         {% else %}
                         <p class="text-muted">尚未上傳圖片</p>
                         {% endif %}
+                        {% elif snippet.snippet_type == 'link' %}
+                        <a href="{{ snippet.link_url }}" target="_blank" rel="noopener noreferrer"
+                            style="color: #00695c;">
+                            <i class="fas fa-external-link-alt"></i>
+                            {{ snippet.link_text|default:snippet.link_url }}
+                        </a>
                         {% else %}
                         <pre><code>{{ snippet.content|truncatechars:300 }}</code></pre>
                         {% endif %}
@@ -312,6 +330,18 @@
                             <label>說明文字</label>
                             <input type="text" name="caption" class="form-control"
                                 value="{{ snippet.caption|default:'' }}">
+                        </div>
+                        {% elif snippet.snippet_type == 'link' %}
+                        <div class="form-group">
+                            <label>連結網址</label>
+                            <input type="url" name="link_url" class="form-control"
+                                value="{{ snippet.link_url|default:'' }}"
+                                placeholder="輸入連結網址 (例如: https://example.com)">
+                        </div>
+                        <div class="form-group">
+                            <label>連結文字</label>
+                            <input type="text" name="link_text" class="form-control"
+                                value="{{ snippet.link_text|default:'' }}" placeholder="輸入顯示的連結文字">
                         </div>
                         {% else %}
                         <div class="form-row">
@@ -365,6 +395,10 @@
                     <i class="fas fa-code"></i>
                     <span>程式碼</span>
                 </div>
+                <div class="type-btn link-type" onclick="selectType('link')">
+                    <i class="fas fa-link"></i>
+                    <span>超連結</span>
+                </div>
             </div>
 
             <form id="add-snippet-form" method="post" enctype="multipart/form-data">
@@ -410,6 +444,18 @@
                         <label>程式碼</label>
                         <textarea name="code_content" class="form-control" rows="8"
                             style="font-family: 'JetBrains Mono', monospace;" placeholder="貼上程式碼..."></textarea>
+                    </div>
+                </div>
+
+                <div id="link-fields" class="snippet-form-fields">
+                    <div class="form-group">
+                        <label>連結網址</label>
+                        <input type="url" name="link_url" class="form-control"
+                            placeholder="輸入連結網址 (例如: https://example.com)">
+                    </div>
+                    <div class="form-group">
+                        <label>連結文字</label>
+                        <input type="text" name="link_text" class="form-control" placeholder="輸入顯示的連結文字">
                     </div>
                 </div>
 
@@ -506,6 +552,7 @@
         document.getElementById('text-fields').style.display = type === 'text' ? 'block' : 'none';
         document.getElementById('image-fields').style.display = type === 'image' ? 'block' : 'none';
         document.getElementById('code-fields').style.display = type === 'code' ? 'block' : 'none';
+        document.getElementById('link-fields').style.display = type === 'link' ? 'block' : 'none';
 
         document.getElementById('add-snippet-btn').style.display = 'inline-block';
     }

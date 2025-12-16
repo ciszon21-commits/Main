@@ -64,7 +64,7 @@ class StepSnippetForm(forms.ModelForm):
     """步驟片段表單"""
     class Meta:
         model = StepSnippet
-        fields = ['snippet_type', 'order', 'content', 'image', 'language', 'caption']
+        fields = ['snippet_type', 'order', 'content', 'image', 'language', 'caption', 'link_url', 'link_text']
         widgets = {
             'snippet_type': forms.Select(attrs={
                 'class': 'form-control snippet-type-select',
@@ -91,6 +91,14 @@ class StepSnippetForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': '說明文字（選填）'
             }),
+            'link_url': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': '輸入連結網址 (例如: https://example.com)'
+            }),
+            'link_text': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '輸入顯示的連結文字'
+            }),
         }
         labels = {
             'snippet_type': '類型',
@@ -99,6 +107,8 @@ class StepSnippetForm(forms.ModelForm):
             'image': '圖片',
             'language': '程式語言',
             'caption': '說明文字',
+            'link_url': '連結網址',
+            'link_text': '連結文字',
         }
 
 
