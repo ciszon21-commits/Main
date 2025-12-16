@@ -49,7 +49,14 @@ urlpatterns = [
     path('api/questions/', views.create_question, name='create_question'),
     path('api/answers/', views.create_answer, name='create_answer'),
     path('api/questions/<int:question_id>/toggle/', views.toggle_question_resolved, name='toggle_question'),
+    path('api/users/search/', views.search_users, name='search_users'),
+    
+    # 貢獻者管理
+    path('<uslug:slug>/contributors/', views.manage_contributors, name='manage_contributors'),
+    path('<uslug:slug>/contributors/add/', views.add_contributor, name='add_contributor'),
+    path('<uslug:slug>/contributors/<int:user_id>/remove/', views.remove_contributor, name='remove_contributor'),
     
     # 使用者頁面
     path('user/<str:username>/', views.UserProfileView.as_view(), name='user_profile'),
 ]
+

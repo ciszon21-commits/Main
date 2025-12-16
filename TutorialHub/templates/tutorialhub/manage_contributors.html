@@ -1,0 +1,437 @@
+{% extends 'tutorialhub/base.html' %}
+{% load static %}
+
+{% block title %}管理貢獻者 - {{ tutorial.title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1><i class="fas fa-users-cog"></i> 管理貢獻者</h1>
+        <p class="subtitle">{{ tutorial.title }}</p>
+    </div>
+
+    <div class="contributors-container">
+        <!-- 搜尋區塊 -->
+        <div class="search-section card">
+            <h3><i class="fas fa-user-plus"></i> 添加貢獻者</h3>
+            <p class="help-text">搜尋使用者名稱或姓名，將其加入為教材貢獻者</p>
+
+            <div class="search-box">
+                <input type="text" id="userSearch" class="form-control" placeholder="輸入使用者名稱或姓名（至少 2 個字元）..."
+                    autocomplete="off">
+                <button type="button" id="searchBtn" class="btn btn-primary">
+                    <i class="fas fa-search"></i> 搜尋
+                </button>
+            </div>
+
+            <div id="searchResults" class="search-results" style="display: none;"></div>
+        </div>
+
+        <!-- 目前貢獻者列表 -->
+        <div class="contributors-section card">
+            <h3><i class="fas fa-users"></i> 目前貢獻者</h3>
+
+            <div id="contributorsList" class="contributors-list">
+                {% for contributor in contributors %}
+                <div class="contributor-card" data-user-id="{{ contributor.user.id }}">
+                    <div class="contributor-info">
+                        <div class="contributor-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="contributor-details">
+                            <span class="contributor-name">
+                                {{ contributor.user.get_full_name|default:contributor.user.username }}
+                            </span>
+                            <span class="contributor-username">@{{ contributor.user.username }}</span>
+                        </div>
+                    </div>
+                    <div class="contributor-meta">
+                        <span class="role-badge role-{{ contributor.role }}">
+                            {{ contributor.get_role_display }}
+                        </span>
+                        <span class="joined-date">
+                            <i class="fas fa-calendar-alt"></i>
+                            {{ contributor.joined_at|date:"Y-m-d" }}
+                        </span>
+                        {% if contributor.role != 'creator' %}
+                        <button type="button" class="btn btn-danger btn-sm remove-btn"
+                            data-user-id="{{ contributor.user.id }}" title="移除此貢獻者">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="empty-message">尚無其他貢獻者</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 返回按鈕 -->
+        <div class="form-actions">
+            <a href="{% url 'tutorialhub:tutorial_edit_steps' tutorial.slug %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> 返回編輯步驟
+            </a>
+            <a href="{% url 'tutorialhub:tutorial_detail' tutorial.slug %}" class="btn btn-outline">
+                <i class="fas fa-eye"></i> 檢視教材
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .contributors-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .card {
+        background: var(--card-bg, #fff);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .card h3 {
+        margin: 0 0 8px 0;
+        font-size: 1.25rem;
+        color: var(--text-primary, #333);
+    }
+
+    .help-text {
+        color: var(--text-secondary, #666);
+        font-size: 0.9rem;
+        margin-bottom: 16px;
+    }
+
+    .search-box {
+        display: flex;
+        gap: 12px;
+    }
+
+    .search-box input {
+        flex: 1;
+    }
+
+    .search-results {
+        margin-top: 16px;
+        border-top: 1px solid var(--border-color, #eee);
+        padding-top: 16px;
+    }
+
+    .search-result-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
+        border-radius: 8px;
+        background: var(--bg-secondary, #f8f9fa);
+        margin-bottom: 8px;
+        transition: background 0.2s;
+    }
+
+    .search-result-item:hover {
+        background: var(--bg-tertiary, #e9ecef);
+    }
+
+    .search-result-item .user-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .search-result-item .display-name {
+        font-weight: 500;
+        color: var(--text-primary, #333);
+    }
+
+    .contributor-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        border-radius: 8px;
+        background: var(--bg-secondary, #f8f9fa);
+        margin-bottom: 12px;
+        transition: all 0.2s;
+    }
+
+    .contributor-card:hover {
+        background: var(--bg-tertiary, #e9ecef);
+    }
+
+    .contributor-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .contributor-avatar {
+        font-size: 2.5rem;
+        color: var(--primary-color, #6366f1);
+    }
+
+    .contributor-details {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .contributor-name {
+        font-weight: 600;
+        color: var(--text-primary, #333);
+    }
+
+    .contributor-username {
+        color: var(--text-secondary, #666);
+        font-size: 0.85rem;
+    }
+
+    .contributor-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .role-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .role-creator {
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        color: #fff;
+    }
+
+    .role-maintainer {
+        background: linear-gradient(135deg, #60a5fa, #3b82f6);
+        color: #fff;
+    }
+
+    .joined-date {
+        color: var(--text-secondary, #666);
+        font-size: 0.85rem;
+    }
+
+    .remove-btn {
+        padding: 6px 10px;
+    }
+
+    .empty-message {
+        text-align: center;
+        color: var(--text-secondary, #666);
+        padding: 24px;
+    }
+
+    .no-results {
+        text-align: center;
+        color: var(--text-secondary, #666);
+        padding: 16px;
+    }
+
+    .loading {
+        text-align: center;
+        color: var(--text-secondary, #666);
+        padding: 16px;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('userSearch');
+        const searchBtn = document.getElementById('searchBtn');
+        const searchResults = document.getElementById('searchResults');
+        const contributorsList = document.getElementById('contributorsList');
+        const csrfToken = '{{ csrf_token }}';
+
+        let searchTimeout;
+
+        // 搜尋使用者
+        async function searchUsers(query) {
+            if (query.length < 2) {
+                searchResults.style.display = 'none';
+                return;
+            }
+
+            searchResults.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> 搜尋中...</div>';
+            searchResults.style.display = 'block';
+
+            try {
+                const response = await fetch(`{% url 'tutorialhub:search_users' %}?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+
+                if (data.users.length === 0) {
+                    searchResults.innerHTML = '<div class="no-results">找不到符合的使用者</div>';
+                    return;
+                }
+
+                let html = '';
+                data.users.forEach(user => {
+                    html += `
+                    <div class="search-result-item">
+                        <div class="user-info">
+                            <span class="display-name">${user.display}</span>
+                        </div>
+                        <button type="button" class="btn btn-success btn-sm add-contributor-btn" 
+                                data-username="${user.username}">
+                            <i class="fas fa-plus"></i> 添加
+                        </button>
+                    </div>
+                `;
+                });
+                searchResults.innerHTML = html;
+
+                // 綁定添加按鈕事件
+                document.querySelectorAll('.add-contributor-btn').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        addContributor(this.dataset.username);
+                    });
+                });
+            } catch (error) {
+                console.error('Search error:', error);
+                searchResults.innerHTML = '<div class="no-results">搜尋時發生錯誤</div>';
+            }
+        }
+
+        // 添加貢獻者
+        async function addContributor(username) {
+            try {
+                const formData = new FormData();
+                formData.append('username', username);
+
+                const response = await fetch('{% url "tutorialhub:add_contributor" tutorial.slug %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 添加到列表
+                    const emptyMsg = contributorsList.querySelector('.empty-message');
+                    if (emptyMsg) emptyMsg.remove();
+
+                    const newCard = document.createElement('div');
+                    newCard.className = 'contributor-card';
+                    newCard.dataset.userId = data.contributor.user_id;
+                    newCard.innerHTML = `
+                    <div class="contributor-info">
+                        <div class="contributor-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="contributor-details">
+                            <span class="contributor-name">${data.contributor.display_name}</span>
+                            <span class="contributor-username">@${data.contributor.username}</span>
+                        </div>
+                    </div>
+                    <div class="contributor-meta">
+                        <span class="role-badge role-maintainer">${data.contributor.role}</span>
+                        <span class="joined-date">
+                            <i class="fas fa-calendar-alt"></i> ${data.contributor.joined_at.split(' ')[0]}
+                        </span>
+                        <button type="button" class="btn btn-danger btn-sm remove-btn" 
+                                data-user-id="${data.contributor.user_id}"
+                                title="移除此貢獻者">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                    contributorsList.appendChild(newCard);
+
+                    // 綁定移除按鈕
+                    newCard.querySelector('.remove-btn').addEventListener('click', function () {
+                        removeContributor(this.dataset.userId);
+                    });
+
+                    // 清空搜尋
+                    searchInput.value = '';
+                    searchResults.style.display = 'none';
+
+                    alert(data.message);
+                } else {
+                    alert(data.message || '添加失敗');
+                }
+            } catch (error) {
+                console.error('Add contributor error:', error);
+                alert('添加貢獻者時發生錯誤');
+            }
+        }
+
+        // 移除貢獻者
+        async function removeContributor(userId) {
+            if (!confirm('確定要移除此貢獻者嗎？')) return;
+
+            try {
+                const response = await fetch(`{% url 'tutorialhub:tutorial_detail' tutorial.slug %}../contributors/${userId}/remove/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 從列表移除
+                    const card = contributorsList.querySelector(`[data-user-id="${userId}"]`);
+                    if (card) card.remove();
+
+                    // 檢查是否為空
+                    if (contributorsList.querySelectorAll('.contributor-card').length === 0) {
+                        contributorsList.innerHTML = '<p class="empty-message">尚無其他貢獻者</p>';
+                    }
+
+                    alert(data.message);
+                } else {
+                    alert(data.message || '移除失敗');
+                }
+            } catch (error) {
+                console.error('Remove contributor error:', error);
+                alert('移除貢獻者時發生錯誤');
+            }
+        }
+
+        // 搜尋輸入事件
+        searchInput.addEventListener('input', function () {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                searchUsers(this.value.trim());
+            }, 300);
+        });
+
+        // 搜尋按鈕事件
+        searchBtn.addEventListener('click', function () {
+            searchUsers(searchInput.value.trim());
+        });
+
+        // Enter 鍵搜尋
+        searchInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchUsers(this.value.trim());
+            }
+        });
+
+        // 綁定現有的移除按鈕
+        document.querySelectorAll('.remove-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                removeContributor(this.dataset.userId);
+            });
+        });
+    });
+</script>
+{% endblock %}
