@@ -612,3 +612,132 @@ def analytics_view(request):
     }
 
     return render(request, 'tutorialhub/analytics.html', context)
+
+
+@login_required
+def search_users(request):
+    """搜尋使用者 API"""
+    q = request.GET.get('q', '').strip()
+    
+    if len(q) < 2:
+        return JsonResponse({'users': []})
+    
+    # 搜尋使用者（排除當前使用者）
+    users = User.objects.exclude(id=request.user.id).filter(
+        Q(username__icontains=q) |
+        Q(first_name__icontains=q) |
+        Q(last_name__icontains=q)
+    ).order_by('username')[:20]
+    
+    data = []
+    for user in users:
+        full_name = user.get_full_name()
+        if full_name:
+            display_name = f"{full_name} ({user.username})"
+        else:
+            display_name = user.username
+        
+        data.append({
+            'id': user.id,
+            'username': user.username,
+            'display': display_name
+        })
+    
+    return JsonResponse({'users': data})
+
+
+@login_required
+def manage_contributors(request, slug):
+    """貢獻者管理頁面"""
+    tutorial = get_object_or_404(Tutorial, slug=slug)
+    
+    # 只有創建者可以管理貢獻者
+    is_creator = tutorial.maintainers.filter(user=request.user, role='creator').exists()
+    if not is_creator:
+        messages.error(request, '只有教材創建者可以管理貢獻者。')
+        return redirect('tutorialhub:tutorial_detail', slug=slug)
+    
+    # 獲取所有貢獻者
+    contributors = tutorial.maintainers.select_related('user').order_by('-contribution_score', 'joined_at')
+    
+    return render(request, 'tutorialhub/manage_contributors.html', {
+        'tutorial': tutorial,
+        'contributors': contributors,
+    })
+
+
+@login_required
+def add_contributor(request, slug):
+    """添加貢獻者 API"""
+    tutorial = get_object_or_404(Tutorial, slug=slug)
+    
+    # 只有創建者可以添加貢獻者
+    is_creator = tutorial.maintainers.filter(user=request.user, role='creator').exists()
+    if not is_creator:
+        return JsonResponse({'success': False, 'message': '只有創建者可以添加貢獻者'}, status=403)
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': '無效請求'}, status=405)
+    
+    username = request.POST.get('username', '').strip()
+    if not username:
+        return JsonResponse({'success': False, 'message': '請提供使用者名稱'}, status=400)
+    
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'message': '找不到此使用者'}, status=404)
+    
+    # 檢查是否已經是貢獻者
+    if tutorial.maintainers.filter(user=user).exists():
+        return JsonResponse({'success': False, 'message': '此使用者已經是貢獻者'}, status=400)
+    
+    # 創建貢獻者關聯
+    maintainer = TutorialMaintainer.objects.create(
+        tutorial=tutorial,
+        user=user,
+        role='maintainer',
+        contribution_score=0
+    )
+    
+    return JsonResponse({
+        'success': True,
+        'message': f'已成功添加 {user.get_full_name() or user.username} 為貢獻者',
+        'contributor': {
+            'id': maintainer.id,
+            'user_id': user.id,
+            'username': user.username,
+            'display_name': user.get_full_name() or user.username,
+            'role': maintainer.get_role_display(),
+            'joined_at': maintainer.joined_at.strftime('%Y-%m-%d %H:%M')
+        }
+    })
+
+
+@login_required
+def remove_contributor(request, slug, user_id):
+    """移除貢獻者 API"""
+    tutorial = get_object_or_404(Tutorial, slug=slug)
+    
+    # 只有創建者可以移除貢獻者
+    is_creator = tutorial.maintainers.filter(user=request.user, role='creator').exists()
+    if not is_creator:
+        return JsonResponse({'success': False, 'message': '只有創建者可以移除貢獻者'}, status=403)
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': '無效請求'}, status=405)
+    
+    # 獲取要移除的貢獻者
+    maintainer = get_object_or_404(TutorialMaintainer, tutorial=tutorial, user_id=user_id)
+    
+    # 創建者不能被移除
+    if maintainer.role == 'creator':
+        return JsonResponse({'success': False, 'message': '無法移除創建者'}, status=400)
+    
+    username = maintainer.user.get_full_name() or maintainer.user.username
+    maintainer.delete()
+    
+    return JsonResponse({
+        'success': True,
+        'message': f'已移除貢獻者 {username}'
+    })
