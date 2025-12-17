@@ -1,14 +1,14 @@
 {% extends 'tutorialhub/base.html' %}
 {% load static %}
 
-{% block title %}{% if object %}編輯教材{% else %}建立教材{% endif %}{% endblock %}
+{% block title %}{% if object %}編輯筆記{% else %}建立筆記{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container">
     <div class="page-header">
-        <h1>{% if object %}<i class="fas fa-edit"></i> 編輯教材{% else %}<i class="fas fa-plus-circle"></i> 建立教材{% endif %}
+        <h1>{% if object %}<i class="fas fa-edit"></i> 編輯筆記{% else %}<i class="fas fa-plus-circle"></i> 建立筆記{% endif %}
         </h1>
-        <p class="subtitle">填寫教材基本資訊</p>
+        <p class="subtitle">填寫筆記基本資訊</p>
     </div>
 
     <div class="form-container">
@@ -16,18 +16,18 @@
             {% csrf_token %}
 
             <div class="form-group">
-                <label for="id_title">教材標題 <span class="required">*</span></label>
+                <label for="id_title">筆記標題 <span class="required">*</span></label>
                 <input type="text" name="title" id="id_title" class="form-control"
-                    value="{{ form.title.value|default:'' }}" placeholder="輸入教材標題" required>
+                    value="{{ form.title.value|default:'' }}" placeholder="輸入筆記標題" required>
                 {% if form.title.errors %}
                 <div class="error-message">{{ form.title.errors.0 }}</div>
                 {% endif %}
             </div>
 
             <div class="form-group">
-                <label for="id_description">教材簡介 <span class="required">*</span></label>
+                <label for="id_description">筆記簡介 <span class="required">*</span></label>
                 <textarea name="description" id="id_description" class="form-control" rows="4"
-                    placeholder="教材簡介，說明此教材的內容和目標" required>{{ form.description.value|default:'' }}</textarea>
+                    placeholder="筆記簡介，說明此筆記的內容和目標" required>{{ form.description.value|default:'' }}</textarea>
                 {% if form.description.errors %}
                 <div class="error-message">{{ form.description.errors.0 }}</div>
                 {% endif %}
@@ -52,13 +52,13 @@
                 <input type="checkbox" name="is_published" id="id_is_published" class="form-check-input" 
                 {% if form.is_published.value %}checked{% endif %}>
                 <label for="id_is_published" class="form-check-label">
-                    發布教材（勾選後其他人可以看到）
+                    發布筆記（勾選後其他人可以看到）
                 </label>
             </div>
 
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i> {% if object %}儲存變更{% else %}建立教材{% endif %}
+                    <i class="fas fa-save"></i> {% if object %}儲存變更{% else %}建立筆記{% endif %}
                 </button>
                 {% if object %}
                 <a href="{% url 'tutorialhub:tutorial_edit_steps' object.slug %}" class="btn btn-outline">
