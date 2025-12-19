@@ -47,6 +47,7 @@ class NewsItem(models.Model):
 class DailySummary(models.Model):
     topic = models.ForeignKey(Topic, on_delete=models.CASCADE, related_name='daily_summaries', verbose_name="所屬主題")
     summary = models.TextField(verbose_name="摘要內容")
+    news_source_html = models.TextField(blank=True, verbose_name="新聞來源HTML")
     date = models.DateField(default=timezone.now, verbose_name="摘要日期")
     news_count = models.IntegerField(default=0, verbose_name="新聞數量")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
