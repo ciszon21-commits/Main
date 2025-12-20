@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}BudgetReview 預算數量管理平台{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+TC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- 核心設計系統 CSS -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'BudgetReview/css/design-system.css' %}">
+    <link rel="stylesheet" href="{% static 'BudgetReview/css/components.css' %}">
+    <link rel="stylesheet" href="{% static 'BudgetReview/css/utilities.css' %}">
+
+    <!-- 頁面專屬樣式 -->
+    {% block extra_css %}{% endblock %}
+
+    <style>
+        /* 僅保留少量基礎樣式供 base.html 使用 */
+        .container {
+            max-width: 1200px;
+            margin: var(--spacing-xl) auto;
+            padding: 0 var(--spacing-md);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding-left: var(--spacing-xl);
+            border-left: 1px solid var(--border-color);
+        }
+
+        .role-tag {
+            font-size: var(--font-size-xs);
+            padding: 0.2rem 0.6rem;
+            border-radius: var(--radius-full);
+            font-weight: var(--font-weight-semibold);
+            text-transform: uppercase;
+        }
+
+        .role-admin {
+            background: var(--danger-bg);
+            color: var(--danger-dark);
+        }
+
+        .role-professional {
+            background: var(--success-bg);
+            color: var(--success-dark);
+        }
+
+        .role-budget {
+            background: var(--info-bg);
+            color: var(--info-dark);
+        }
+
+        .messages {
+            position: fixed;
+            top: 80px;
+            right: var(--spacing-xl);
+            z-index: var(--z-tooltip);
+            max-width: 400px;
+            width: 100%;
+        }
+    </style>
+
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="{% url 'budget_review:project_list' %}" class="navbar-brand">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="32" height="32" rx="8" fill="#2563EB" />
+                <path
+                    d="M10 10V22M10 22H22M10 16H18M10 10H18C19.1046 10 20 10.8954 20 12C20 13.1046 19.1046 14 18 14H10"
+                    stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            預算數量管理平台 BudgetReview
+        </a>
+        <div class="navbar-nav">
+            <a href="{% url 'budget_review:project_list' %}" class="nav-link">標案列表</a>
+            {% if user.is_authenticated %}
+            <div class="user-info">
+                <span>{{ user.get_full_name }}</span>
+                {% if user.groups.all %}
+                {% for group in user.groups.all %}
+                <span class="role-tag role-{{ group.name|lower }}">{{ group.name }}</span>
+                {% endfor %}
+                {% endif %}
+                {% if user.is_superuser %}
+                <span class="role-tag role-admin">Superuser</span>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="container">
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block breadcrumbs %}{% endblock %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+        // Auto-dismiss alerts after 5 seconds
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                alert.style.transition = 'opacity 0.5s ease';
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 500);
+            });
+        }, 5000);
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

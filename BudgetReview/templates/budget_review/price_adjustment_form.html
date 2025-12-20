@@ -1,0 +1,178 @@
+{% extends 'budget_review/base.html' %}
+
+{% block title %}新增單價調整 - {{ project.name }} - BudgetReview{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="card glass-form">
+        <div class="form-header">
+            <div class="form-icon">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+            </div>
+            <h2>新增單價調整紀錄</h2>
+            <p>紀錄標案 <strong>{{ project.name }}</strong> 的特定項目單價調整原因與金額</p>
+        </div>
+
+        <form method="post" class="luxury-form">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<p class="help-text">{{ field.help_text }}</p>{% endif %}
+                {% for error in field.errors %}<p class="error-text">{{ error }}</p>{% endfor %}
+            </div>
+            {% endfor %}
+
+            <div class="form-actions">
+                <a href="{% url 'budget_review:project_detail' project.id %}" class="btn-cancel">取消</a>
+                <button type="submit" class="btn-submit">
+                    儲存調整紀錄
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        max-width: 650px;
+        margin: 4rem auto;
+    }
+
+    .glass-form {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        border-radius: 2rem;
+        padding: 3.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+    }
+
+    .form-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .form-icon {
+        width: 60px;
+        height: 60px;
+        background: rgba(37, 99, 235, 0.1);
+        color: var(--primary);
+        border-radius: 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+    }
+
+    .form-header h2 {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.02em;
+    }
+
+    .form-header p {
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .luxury-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .form-group label {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        width: 100%;
+        padding: 1rem 1.25rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 1rem;
+        font-family: inherit;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #0f172a;
+        transition: all 0.3s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.08);
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 2rem;
+        margin-top: 1.5rem;
+    }
+
+    .btn-cancel {
+        color: #64748b;
+        font-weight: 700;
+        text-decoration: none;
+        font-size: 1rem;
+    }
+
+    .btn-submit {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 1rem 2.5rem;
+        border-radius: 1rem;
+        font-size: 1.15rem;
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        transition: all 0.3s;
+        box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 25px -5px rgba(37, 99, 235, 0.4);
+    }
+
+    .help-text {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        font-weight: 500;
+    }
+
+    .error-text {
+        font-size: 0.8rem;
+        color: #ef4444;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}

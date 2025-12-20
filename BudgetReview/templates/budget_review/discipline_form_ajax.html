@@ -1,0 +1,173 @@
+<!-- AJAX 版本的專業分組表單，用於 Modal -->
+<style>
+    /* 使用與 project_form_ajax.html 相同的樣式 */
+    .luxury-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .form-group label {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        width: 100%;
+        padding: 1rem 1.25rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 1rem;
+        font-family: inherit;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #0f172a;
+        transition: all 0.3s;
+        background: white;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.08);
+    }
+
+    .form-group textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .help-text {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        font-weight: 500;
+    }
+
+    .error-text {
+        font-size: 0.8rem;
+        color: #ef4444;
+        font-weight: 600;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #f1f5f9;
+    }
+
+    .modal-actions-right {
+        display: flex;
+        gap: 1rem;
+        margin-left: auto;
+    }
+
+    .btn-cancel {
+        color: #64748b;
+        font-weight: 700;
+        text-decoration: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.75rem;
+        font-size: 0.875rem;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-cancel:hover {
+        color: #1e293b;
+        background: #f1f5f9;
+    }
+
+    .btn-submit {
+        background: #2563eb;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.75rem;
+        border-radius: 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 800;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s;
+        box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-submit:hover {
+        background: #1d4ed8;
+        transform: translateY(-3px);
+        box-shadow: 0 15px 25px -5px rgba(37, 99, 235, 0.4);
+    }
+
+    .btn-delete {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        color: white;
+        padding: 0.75rem 1.75rem;
+        border: none;
+        border-radius: 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 800;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s;
+    }
+
+    .btn-delete:hover {
+        background: #991b1b;
+        transform: translateY(-3px);
+    }
+</style>
+
+<form method="post" class="luxury-form">
+    {% csrf_token %}
+    <!-- 隱藏欄位：用於標識是否為更新模式 -->
+    {% if is_update and discipline %}
+    <input type="hidden" name="discipline_id" value="{{ discipline.id }}">
+    {% endif %}
+
+    {% for field in form %}
+    <div class="form-group">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<p class="help-text">{{ field.help_text }}</p>{% endif %}
+        {% for error in field.errors %}<p class="error-text">{{ error }}</p>{% endfor %}
+    </div>
+    {% endfor %}
+
+    <div class="modal-footer">
+        <!-- 刪除按鈕（僅編輯模式且非整合專業） -->
+        {% if is_update and discipline and not discipline.is_overall %}
+        <div>
+            <button type="button" class="btn-delete" onclick="deleteDiscipline({{ project.id }}, {{ discipline.id }})">
+                刪除分組
+            </button>
+        </div>
+        {% else %}
+        <div></div>
+        {% endif %}
+
+        <div class="modal-actions-right">
+            <button type="button" class="btn-cancel" onclick="closeCurrentModal()">取消</button>
+            <button type="submit" class="btn-submit">
+                {% if is_update %}更新{% else %}儲存{% endif %}
+            </button>
+        </div>
+    </div>
+</form>
