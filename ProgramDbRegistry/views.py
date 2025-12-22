@@ -144,12 +144,15 @@ def search_users(request):
         Q(username__icontains=query) |
         Q(first_name__icontains=query) |
         Q(last_name__icontains=query)
-    )[:10]
+    )
     
     # 排除已經是成員的使用者
     if team_id:
         existing_members = DevTeamMember.objects.filter(team_id=team_id).values_list('user_id', flat=True)
         users = users.exclude(id__in=existing_members)
+    
+    # Apply limit after all filtering is done
+    users = users[:10]
     
     user_list = [{
         'id': u.id,
