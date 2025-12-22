@@ -1,0 +1,80 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - 程式使用資料庫清冊</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'ProgramDbRegistry/css/program_db.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <div class="container">
+        <div class="form-container wide">
+            <div class="form-header">
+                <a href="{% url 'programdb:design_doc_detail' doc.pk %}" class="back-link">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd"
+                            d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+                    </svg>
+                    返回設計文件
+                </a>
+                <h1>{{ title }}</h1>
+            </div>
+
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="message message-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="post" class="form">
+                {% csrf_token %}
+                {{ table_formset.management_form }}
+
+                <div class="form-section">
+                    <h2 class="form-section-title">資料表清單</h2>
+                    <p class="help-text">新增或編輯設計文件中的資料表。</p>
+
+                    <div id="table-forms">
+                        {% for table_form in table_formset %}
+                        <div class="inline-form-row">
+                            {% if table_form.instance.pk %}
+                            <input type="hidden" name="{{ table_form.prefix }}-id" value="{{ table_form.instance.pk }}">
+                            {% endif %}
+                            <div class="form-group flex-grow">
+                                <label>資料表名稱</label>
+                                {{ table_form.table_name }}
+                            </div>
+                            <div class="form-group flex-grow">
+                                <label>說明</label>
+                                {{ table_form.description }}
+                            </div>
+                            <div class="form-group">
+                                <label>排序</label>
+                                {{ table_form.order }}
+                            </div>
+                            <div class="form-group delete-col">
+                                {{ table_form.DELETE }}
+                                <label for="{{ table_form.DELETE.id_for_label }}">刪除</label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <a href="{% url 'programdb:design_doc_detail' doc.pk %}" class="btn btn-secondary">取消</a>
+                    <button type="submit" class="btn btn-primary">儲存資料表</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

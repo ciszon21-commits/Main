@@ -1,0 +1,170 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理成員 - {{ team.name }} - 程式使用資料庫清冊</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'ProgramDbRegistry/css/program_db.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <div class="container">
+        <div class="form-container wide">
+            <div class="form-header">
+                <a href="{% url 'programdb:team_detail' team.pk %}" class="back-link">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd"
+                            d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+                    </svg>
+                    返回團隊
+                </a>
+                <h1>管理成員 - {{ team.name }}</h1>
+            </div>
+
+            <!-- Add Member Section -->
+            <div class="section">
+                <h2 class="section-title">新增成員</h2>
+                <div class="search-box">
+                    <svg viewBox="0 0 16 16" fill="currentColor">
+                        <path
+                            d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+                    </svg>
+                    <input type="text" id="userSearch" placeholder="搜尋使用者（輸入帳號或姓名）...">
+                </div>
+                <div id="searchResults" class="search-results"></div>
+            </div>
+
+            <!-- Current Members Section -->
+            <div class="section">
+                <h2 class="section-title">目前成員 ({{ members|length }})</h2>
+                <div class="member-table" id="memberTable">
+                    {% for member in members %}
+                    <div class="member-row" data-user-id="{{ member.user.id }}">
+                        <div class="member-info">
+                            <span class="member-avatar">
+                                {{ member.user.first_name|slice:":1"|default:member.user.username|slice:":1" }}</span>
+                            <div class="member-details">
+                                <span class="member-name">
+                                    {{ member.user.get_full_name|default:member.user.username }}</span>
+                                <span class="member-username">@{{ member.user.username }}</span>
+                            </div>
+                        </div>
+                        <div class="member-actions">
+                            {% if member.role == 'creator' %}
+                            <span class="member-role-badge">建立者</span>
+                            {% else %}
+                            <button class="btn btn-danger btn-sm remove-member" data-user-id="{{ member.user.id }}">
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                    <path
+                                        d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" />
+                                    <path fill-rule="evenodd"
+                                        d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" />
+                                </svg>
+                                移除
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const teamId = {{ team.pk }};
+        let searchTimeout = null;
+
+        // 搜尋使用者
+        document.getElementById('userSearch').addEventListener('input', function (e) {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+            const resultsDiv = document.getElementById('searchResults');
+
+            if (query.length < 2) {
+                resultsDiv.innerHTML = '';
+                return;
+            }
+
+            searchTimeout = setTimeout(() => {
+                fetch(`{% url 'programdb:search_users' %}?q=${encodeURIComponent(query)}&team_id=${teamId}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.users.length === 0) {
+                            resultsDiv.innerHTML = '<div class="no-results-small">找不到符合的使用者</div>';
+                            return;
+                        }
+
+                        resultsDiv.innerHTML = data.users.map(user => `
+                            <div class="search-result-item" data-user-id="${user.id}">
+                                <span class="user-avatar">${user.full_name.charAt(0)}</span>
+                                <div class="user-info">
+                                    <span class="user-name">${user.full_name}</span>
+                                    <span class="user-username">@${user.username}</span>
+                                </div>
+                                <button class="btn btn-primary btn-sm add-member-btn">新增</button>
+                            </div>
+                        `).join('');
+                    });
+            }, 300);
+        });
+
+        // 新增成員
+        document.getElementById('searchResults').addEventListener('click', function (e) {
+            const btn = e.target.closest('.add-member-btn');
+            if (!btn) return;
+
+            const item = btn.closest('.search-result-item');
+            const userId = item.dataset.userId;
+
+            fetch(`{% url 'programdb:add_member' team.pk %}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ user_id: userId })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        item.remove();
+                        location.reload();
+                    } else {
+                        alert(data.error);
+                    }
+                });
+        });
+
+        // 移除成員
+        document.getElementById('memberTable').addEventListener('click', function (e) {
+            const btn = e.target.closest('.remove-member');
+            if (!btn) return;
+
+            if (!confirm('確定要移除此成員嗎？')) return;
+
+            const userId = btn.dataset.userId;
+
+            fetch(`{% url 'programdb:remove_member' team.pk 0 %}`.replace('/0/', `/${userId}/`), {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        btn.closest('.member-row').remove();
+                    } else {
+                        alert(data.error);
+                    }
+                });
+        });
+    </script>
+</body>
+
+</html>
