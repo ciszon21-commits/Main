@@ -21,6 +21,7 @@ urlpatterns = [
     path('rnd-request/', include('RndRequest.urls')),
     path('news/', include('NewsSubscriber.urls')),
     path('carbon/', include('CarbonEstimation.urls')),
+    path('program-db/', include('ProgramDbRegistry.urls')),
 ]
 
 # 開發環境下提供 media 檔案服務
