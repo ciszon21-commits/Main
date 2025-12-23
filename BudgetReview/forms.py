@@ -6,14 +6,14 @@ class ProjectForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         user_choices = [(u.id, f"{u.get_full_name() or u.username} ({u.username})") for u in User.objects.all()]
-        self.fields['responsible_user'].choices = [('', '---------')] + user_choices
+        self.fields['admins'].choices = user_choices
         
     class Meta:
         model = Project
-        fields = ['name', 'code', 'description', 'responsible_user', 'status']
+        fields = ['name', 'code', 'description', 'admins', 'status']
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4}),
-            'responsible_user': forms.Select(attrs={'class': 'searchable-select'}),
+            'admins': forms.SelectMultiple(attrs={'class': 'select-multiple searchable-select'}),
         }
 
 class DisciplineForm(forms.ModelForm):
@@ -21,17 +21,15 @@ class DisciplineForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         user_choices = [(u.id, f"{u.get_full_name() or u.username} ({u.username})") for u in User.objects.all()]
         self.fields['responsible_user'].choices = [('', '---------')] + user_choices
-        self.fields['budget_manager'].choices = [('', '---------')] + user_choices
         self.fields['members'].choices = user_choices
         self.fields['budget_members'].choices = user_choices
     
     class Meta:
         model = Discipline
-        fields = ['name', 'code', 'responsible_user', 'members', 'budget_manager', 'budget_members']
+        fields = ['name', 'code', 'responsible_user', 'members', 'budget_members']
         widgets = {
             'members': forms.SelectMultiple(attrs={'class': 'select-multiple searchable-select'}),
             'responsible_user': forms.Select(attrs={'class': 'searchable-select'}),
-            'budget_manager': forms.Select(attrs={'class': 'searchable-select'}),
             'budget_members': forms.SelectMultiple(attrs={'class': 'select-multiple searchable-select'}),
         }
 

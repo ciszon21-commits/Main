@@ -71,12 +71,14 @@ class Modal {
 let editModal = null;
 let createModal = null;
 let disciplineModal = null;
+let stageModal = null;
 let uploadModal = null;
 
 document.addEventListener('DOMContentLoaded', function () {
     editModal = new Modal('editProjectModal');
     createModal = new Modal('createProjectModal');
     disciplineModal = new Modal('createDisciplineModal');
+    stageModal = new Modal('createStageModal');
     uploadModal = new Modal('uploadFileModal');
 
     // 編輯按鈕點擊事件
@@ -95,6 +97,8 @@ document.addEventListener('DOMContentLoaded', function () {
 function closeCurrentModal() {
     if (disciplineModal && disciplineModal.isOpen()) {
         disciplineModal.close();
+    } else if (stageModal && stageModal.isOpen()) {
+        stageModal.close();
     } else if (createModal && createModal.isOpen()) {
         createModal.close();
     } else if (editModal && editModal.isOpen()) {
@@ -568,6 +572,178 @@ function deleteDiscipline(projectId, disciplineId) {
     }
 
     fetch(`/budget/project/${projectId}/discipline/${disciplineId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message || '刪除成功');
+                closeCurrentModal();
+                location.reload();
+            } else {
+                alert(data.message || '刪除失敗');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('發生錯誤');
+        });
+}
+
+/**
+ * 刪除標案（軟刪除）
+ */
+function deleteProject(projectId) {
+    if (confirm('確定要刪除此標案嗎？標案將被移至隱藏列表，可由超級管理員復原。')) {
+        fetch(`/budget/project/${projectId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            }
+        })
+            .then(response => {
+                if (response.ok) {
+                    if (typeof editModal !== 'undefined' && editModal) {
+                        editModal.close();
+                    }
+                    alert('標案已移至隱藏列表');
+                    window.location.href = '/budget/';
+                } else {
+                    alert('刪除失敗，請重試。');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('刪除失敗，請重試。');
+            });
+    }
+}
+
+/**
+ * 開啟建立階段 Modal
+ */
+function openStageModal(projectId) {
+    if (!stageModal) {
+        console.error('stageModal 不存在！');
+        return;
+    }
+
+    stageModal.open();
+    stageModal.showLoading();
+
+    fetch(`/budget/project/${projectId}/stage/create/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.html) {
+                stageModal.setContent(data.html);
+
+                // 初始化表單提交
+                const form = document.querySelector('#createStageModal form');
+                if (form) {
+                    initStageFormSubmit(form, projectId);
+                }
+            } else {
+                stageModal.setContent('<p class="error-text">載入表單失敗：無效的回應格式</p>');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading stage form:', error);
+            stageModal.setContent('<p class="error-text">載入表單失敗，請重試。</p>');
+        });
+}
+
+/**
+ * 開啟編輯階段 Modal
+ */
+function openStageEditModal(projectId, stageId) {
+    if (!stageModal) {
+        console.error('stageModal 不存在！');
+        return;
+    }
+
+    stageModal.open();
+    stageModal.showLoading();
+
+    fetch(`/budget/project/${projectId}/stage/${stageId}/edit/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.html) {
+                stageModal.setContent(data.html);
+
+                // 初始化表單提交
+                const form = document.querySelector('#createStageModal form');
+                if (form) {
+                    initStageFormSubmit(form, projectId, stageId);
+                }
+            } else {
+                stageModal.setContent('<p class="error-text">載入表單失敗：無效的回應格式</p>');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading stage edit form:', error);
+            stageModal.setContent('<p class="error-text">載入表單失敗，請重試。</p>');
+        });
+}
+
+/**
+ * 初始化階段表單提交
+ */
+function initStageFormSubmit(form, projectId, stageId = null) {
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(form);
+        const url = stageId
+            ? `/budget/project/${projectId}/stage/${stageId}/edit/`
+            : `/budget/project/${projectId}/stage/create/`;
+
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    stageModal.close();
+                    showMessage('success', data.message || '階段已儲存');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    if (data.html) {
+                        stageModal.setContent(data.html);
+                        const newForm = document.querySelector('#createStageModal form');
+                        if (newForm) {
+                            initStageFormSubmit(newForm, projectId, stageId);
+                        }
+                    } else {
+                        showMessage('error', data.message || '儲存失敗');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting stage form:', error);
+                showMessage('error', '提交失敗，請重試');
+            });
+    });
+}
+
+/**
+ * 刪除階段
+ */
+function deleteStage(projectId, stageId) {
+    if (!confirm('確定要刪除此階段嗎？相關檔案將無法與此階段關聯。')) {
+        return;
+    }
+
+    fetch(`/budget/project/${projectId}/stage/${stageId}/delete/`, {
         method: 'POST',
         headers: {
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,

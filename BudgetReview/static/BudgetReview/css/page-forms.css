@@ -396,91 +396,163 @@
 }
 
 /* =====================================
-   可搜尋下拉選單 (由 JS 組件控制)
+   可搜尋下拉選單 (Enhanced Enterprise Style)
    ===================================== */
 .searchable-select-container {
     position: relative;
+    width: 100%;
 }
 
+/* Base Input Style - "Chip" / Trigger */
 .search-input {
     width: 100%;
-    padding: var(--spacing-md) 1.25rem;
-    border: 2px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    font-family: var(--font-family-base);
-    font-size: var(--font-size-base);
-    font-weight: var(--font-weight-semibold);
-    color: var(--text-main);
-    transition: var(--transition-all);
-    box-shadow: var(--shadow-sm);
+    height: 40px;
+    /* 36-40px conformant */
+    padding: 0 16px;
+    /* 12-16px padding */
+    border: 1px solid #CBD5E1;
+    /* Light gray border */
+    border-radius: 4px;
+    /* 4-6px */
+    background-color: #FFFFFF;
+    color: #1E293B;
+    /* Dark gray/blue */
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    cursor: text;
 }
 
+/* Hover State */
+.search-input:hover {
+    border-color: #94A3B8;
+    /* Darker border on hover */
+}
+
+/* Focus State */
 .search-input:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
+/* Disabled State */
+.search-input:disabled {
+    background-color: #F1F5F9;
+    color: #94A3B8;
+    cursor: not-allowed;
+    border-color: #E2E8F0;
+}
+
+/* Options List Container */
 .options-list {
     position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
     width: 100%;
-    max-height: 250px;
+    max-height: 280px;
     overflow-y: auto;
-    background: var(--surface);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    z-index: var(--z-dropdown);
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    /* Same as chip border */
+    border-radius: 4px;
+    /* 4-6px */
+    z-index: 1000;
     display: none;
-    margin-top: 5px;
-    box-shadow: var(--shadow-xl);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    /* Light shadow */
+    padding: 4px 0;
 }
 
+/* Scrollbar styling */
+.options-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.options-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.options-list::-webkit-scrollbar-thumb {
+    background-color: #CBD5E1;
+    border-radius: 3px;
+}
+
+/* Option Items */
 .option-item {
-    padding: var(--spacing-md) 1.25rem;
+    height: 36px;
+    /* 32-36px */
+    padding: 0 16px;
+    /* 12-16px */
+    display: flex;
+    align-items: center;
     cursor: pointer;
-    transition: var(--transition-all);
-    font-weight: var(--font-weight-semibold);
-    color: var(--gray-600);
+    font-size: 14px;
+    color: #334155;
+    background-color: transparent;
+    transition: background-color 0.15s ease;
+    border-left: 3px solid transparent;
+    /* Reserve space for selection mark */
+    margin-bottom: 0;
+    border-radius: 0;
 }
 
+/* Option Hover */
 .option-item:hover {
-    background: var(--gray-50);
-    color: var(--primary);
+    background-color: #F8FAFC;
+    /* Light gray/blue */
+    color: #334155;
+    /* Text color unchanged */
 }
 
+/* Option Selected */
 .option-item.selected {
-    background: var(--primary-lightest);
-    color: var(--primary);
+    background-color: #EFF6FF;
+    /* Primary-50 */
+    color: #1E40AF;
+    /* Primary-800 */
+    border-left-color: var(--primary);
+    /* 3px solid mark */
+    font-weight: 500;
 }
 
+/* Remove checkmark as we use left border */
+.option-item.selected::after {
+    display: none;
+}
+
+/* Multi-select Chips (Tags) */
 .select-multiple-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--spacing-md);
-    margin-top: var(--spacing-md);
+    gap: 8px;
+    margin-top: 8px;
 }
 
 .chip {
-    background: var(--primary-lightest);
-    color: var(--primary);
-    padding: var(--spacing-sm) var(--spacing-md);
-    border-radius: var(--radius-full);
-    font-size: var(--font-size-base);
-    font-weight: var(--font-weight-bold);
+    height: 28px;
+    padding: 0 10px;
+    background-color: #F1F5F9;
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    color: #475569;
+    font-size: 13px;
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
-    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.05);
+    gap: 6px;
+    font-weight: 500;
 }
 
 .chip-remove {
     cursor: pointer;
-    opacity: 0.6;
-    font-size: 1.2rem;
-    line-height: 1;
-    transition: opacity var(--transition-base);
+    color: #94A3B8;
+    font-size: 16px;
+    width: auto;
+    height: auto;
+    display: inline-block;
 }
 
 .chip-remove:hover {
-    opacity: 1;
+    color: #EF4444;
+    background-color: transparent;
 }

@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="{% static 'BudgetReview/css/design-system.css' %}">
     <link rel="stylesheet" href="{% static 'BudgetReview/css/components.css' %}">
     <link rel="stylesheet" href="{% static 'BudgetReview/css/utilities.css' %}">
+    <link rel="stylesheet" href="{% static 'BudgetReview/css/navbar.css' %}">
 
     <!-- 頁面專屬樣式 -->
     {% block extra_css %}{% endblock %}
@@ -72,31 +73,35 @@
 </head>
 
 <body>
+    <!-- 導航列 -->
     <nav class="navbar">
-        <a href="{% url 'budget_review:project_list' %}" class="navbar-brand">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="32" height="32" rx="8" fill="#2563EB" />
-                <path
-                    d="M10 10V22M10 22H22M10 16H18M10 10H18C19.1046 10 20 10.8954 20 12C20 13.1046 19.1046 14 18 14H10"
-                    stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            預算數量管理平台 BudgetReview
-        </a>
-        <div class="navbar-nav">
-            <a href="{% url 'budget_review:project_list' %}" class="nav-link">標案列表</a>
-            {% if user.is_authenticated %}
-            <div class="user-info">
-                <span>{{ user.get_full_name }}</span>
-                {% if user.groups.all %}
-                {% for group in user.groups.all %}
-                <span class="role-tag role-{{ group.name|lower }}">{{ group.name }}</span>
-                {% endfor %}
-                {% endif %}
-                {% if user.is_superuser %}
-                <span class="role-tag role-admin">Superuser</span>
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <a href="{% url 'budget_review:project_list' %}" class="brand-link">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span class="brand-text">預算數量管理平台</span>
+                </a>
+            </div>
+
+            <div class="navbar-user">
+                {% if user.is_authenticated %}
+                <div class="user-info">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
+                    {% if user.is_superuser %}
+                    {% include 'budget_review/includes/_badge.html' with text="Admin" variant="danger" size="sm" %}
+                    {% endif %}
+                </div>
+                {% else %}
+                <a href="{% url 'login' %}" class="btn btn-primary btn-sm">登入</a>
                 {% endif %}
             </div>
-            {% endif %}
         </div>
     </nav>
 
@@ -127,6 +132,10 @@
             });
         }, 5000);
     </script>
+
+    <!-- Toast Notifications -->
+    {% include 'budget_review/includes/_toast.html' %}
+
     {% block extra_js %}{% endblock %}
 </body>
 

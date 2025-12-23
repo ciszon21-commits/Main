@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from .models import Project, Discipline, QuantityFile, PriceInquiryFile, BudgetFile, FinalBudgetFile, PriceAdjustment, AuditLog
 from .forms import ProjectForm, DisciplineForm, FileUploadForm, PriceAdjustmentForm
+from .validators import validate_file_extension
 import os
 
 class AdminRequiredMixin(UserPassesTestMixin):
@@ -18,6 +19,10 @@ class ProjectListView(LoginRequiredMixin, ListView):
     template_name = 'budget_review/project_list.html'
     context_object_name = 'projects'
     ordering = ['-created_at']
+    
+    def get_queryset(self):
+        """僅顯示未刪除的標案"""
+        return Project.objects.filter(deleted_at__isnull=True).order_by('-created_at')
 
 class ProjectCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
     model = Project
@@ -27,10 +32,8 @@ class ProjectCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.created_by = self.request.user
-        # 如果未指定專業管理員，預設為建立者
-        if not form.instance.responsible_user:
-            form.instance.responsible_user = self.request.user
         response = super().form_valid(form)
+        # admins 是 ManyToMany，會在 form.save() 後自動處理
         AuditLog.objects.create(
             user=self.request.user,
             action='CREATE',
@@ -60,10 +63,8 @@ class ProjectCreateAjaxView(LoginRequiredMixin, AdminRequiredMixin, View):
         if form.is_valid():
             project = form.save(commit=False)
             project.created_by = request.user
-            # 如果未指定專業管理員，預設為建立者
-            if not project.responsible_user:
-                project.responsible_user = request.user
             project.save()
+            form.save_m2m()  # 儲存 ManyToMany 關係 (admins)
             
             AuditLog.objects.create(
                 user=request.user,
@@ -153,26 +154,30 @@ class ProjectUpdateAjaxView(LoginRequiredMixin, AdminRequiredMixin, View):
 
 class ProjectDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
+        from django.utils import timezone
+        from .permissions import can_delete_project
+        
         project = get_object_or_404(Project, pk=pk)
         
-        # 檢查權限：必須是 Admin 或建立者
-        is_admin = request.user.is_superuser or request.user.groups.filter(name='Admin').exists()
-        is_creator = project.created_by == request.user
-        
-        if not (is_admin or is_creator):
+        # 使用 permissions.py 檢查權限
+        if not can_delete_project(request.user, project):
             messages.error(request, "您沒有權限刪除此標案。")
             return redirect('budget_review:project_detail', pk=pk)
         
         name = project.name
-        project.delete()
+        # 軟刪除：設定刪除時間與刪除者
+        project.deleted_at = timezone.now()
+        project.deleted_by = request.user
+        project.save()
+        
         AuditLog.objects.create(
             user=request.user,
             action='DELETE',
             model_name='Project',
             object_id=pk,
-            detail={'name': name}
+            detail={'name': name, 'deleted_at': project.deleted_at.isoformat()}
         )
-        messages.success(request, f"標案 「{name}」 已成功刪除。")
+        messages.success(request, f"標案 「{name}」 已移至隱藏標案。")
         return redirect('budget_review:project_list')
 
 class ProjectDetailView(LoginRequiredMixin, DetailView):
@@ -181,38 +186,20 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'project'
 
     def get_context_data(self, **kwargs):
+        from .models import Stage
         context = super().get_context_data(**kwargs)
-        context['disciplines'] = self.object.disciplines.all()
-        # Latest files
-        context['quantity_files'] = QuantityFile.objects.filter(project=self.object, is_latest=True)
-        context['price_inquiry_files'] = PriceInquiryFile.objects.filter(project=self.object, is_latest=True)
-        # Separate budget files by discipline type
-        context['budget_files'] = BudgetFile.objects.filter(project=self.object, is_latest=True)
-        context['general_budget_files'] = BudgetFile.objects.filter(project=self.object, is_latest=True, discipline__is_overall=False)
-        context['overall_budget_files'] = BudgetFile.objects.filter(project=self.object, is_latest=True, discipline__is_overall=True)
-        # Separate final budget files by type
-        context['final_budget_files'] = FinalBudgetFile.objects.filter(project=self.object, is_latest=True, file_type='INTEGRATED')
-        context['blank_tender_files'] = FinalBudgetFile.objects.filter(project=self.object, is_latest=True, file_type='BLANK_TENDER')
-        # Calculate overall budget tab count (overall discipline budgets + integrated budgets)
-        context['overall_budget_count'] = context['overall_budget_files'].count() + context['final_budget_files'].count()
-        context['price_adjustments'] = self.object.price_adjustments.all().order_by('-adjusted_at')
-
-        # Submission Status Tracking Matrix
-        tracking = []
-        for d in context['disciplines']:
-            q_file = QuantityFile.objects.filter(project=self.object, discipline=d, is_latest=True).first()
-            p_file = PriceInquiryFile.objects.filter(project=self.object, discipline=d, is_latest=True).first()
-            b_file = BudgetFile.objects.filter(project=self.object, discipline=d, is_latest=True, budget_type='GROUP').first()
-            bt_file = FinalBudgetFile.objects.filter(project=self.object, discipline=d, is_latest=True, file_type='BLANK_TENDER').first()
-            
-            tracking.append({
-                'discipline': d,
-                'quantity': q_file,
-                'price': p_file,
-                'budget': b_file,
-                'blank_tender': bt_file,
-            })
-        context['discipline_tracking'] = tracking
+        project = self.get_object()
+        
+        # 取得專業分組
+        context['disciplines'] = project.disciplines.all()
+        
+        # 取得階段（按順序排序）
+        context['stages'] = project.stages.all().order_by('order')
+        
+        # 檢查使用者權限
+        from .permissions import has_project_admin_permission
+        context['can_manage_project'] = has_project_admin_permission(self.request.user, project)
+        
         return context
 
 # Discipline Views
@@ -446,6 +433,18 @@ class FileUploadViewBase(LoginRequiredMixin, FormView):
         uploaded_file = self.request.FILES['file']
         description = form.cleaned_data.get('description', '')
         discipline_id = self.request.POST.get('discipline')
+        
+        # 嚴格驗證檔案格式
+        upload_type = self.kwargs.get('upload_type', '')
+        if not upload_type:
+            # Try to infer from model_class
+            model_map = {QuantityFile: 'quantity', PriceInquiryFile: 'price_inquiry', BudgetFile: 'budget', FinalBudgetFile: 'integrated_budget'}
+            upload_type = model_map.get(self.model_class, '')
+            
+        is_valid, error_msg = validate_file_extension(uploaded_file, upload_type)
+        if not is_valid:
+            messages.error(self.request, error_msg)
+            return self.form_invalid(form)
 
         # Handle versioning
 
@@ -521,6 +520,12 @@ class QuantityFileUploadAjaxView(LoginRequiredMixin, View):
             })
         
         uploaded_file = request.FILES['file']
+        
+        # 嚴格驗證檔案格式
+        is_valid, error_msg = validate_file_extension(uploaded_file, 'quantity')
+        if not is_valid:
+            return JsonResponse({'success': False, 'message': error_msg})
+            
         description = request.POST.get('description', '')
         discipline_id = request.POST.get('discipline')
         
@@ -595,6 +600,13 @@ class PriceInquiryFileUploadAjaxView(LoginRequiredMixin, View):
             })
         
         files = request.FILES.getlist('file')  # 獲取多個檔案
+        
+        # 嚴格驗證檔案格式
+        for uploaded_file in files:
+            is_valid, error_msg = validate_file_extension(uploaded_file, 'price_inquiry')
+            if not is_valid:
+                return JsonResponse({'success': False, 'message': error_msg})
+                
         description = request.POST.get('description', '')
         discipline_id = request.POST.get('discipline')
         
@@ -730,6 +742,12 @@ class BudgetFileUploadAjaxView(LoginRequiredMixin, View):
             })
         
         uploaded_file = request.FILES['file']
+        
+        # 嚴格驗證檔案格式
+        is_valid, error_msg = validate_file_extension(uploaded_file, 'budget')
+        if not is_valid:
+            return JsonResponse({'success': False, 'message': error_msg})
+            
         description = request.POST.get('description', '')
         discipline_id = request.POST.get('discipline')
         budget_type = request.POST.get('budget_type', 'GROUP')
@@ -814,6 +832,13 @@ class BlankTenderFileUploadAjaxView(LoginRequiredMixin, View):
     def post(self, request, project_id):
         project = get_object_or_404(Project, pk=project_id)
         uploaded_file = request.FILES.get('file')
+        
+        # 嚴格驗證檔案格式
+        if uploaded_file:
+            is_valid, error_msg = validate_file_extension(uploaded_file, 'blank_tender')
+            if not is_valid:
+                return JsonResponse({'success': False, 'message': error_msg})
+                
         discipline_id = request.POST.get('discipline')  # Changed from 'discipline_id' to 'discipline'
         
         if not uploaded_file:
@@ -875,6 +900,7 @@ class FileDownloadView(LoginRequiredMixin, View):
             'price_inquiry': PriceInquiryFile,
             'budget': BudgetFile,
             'final_budget': FinalBudgetFile,
+            'blank_tender': FinalBudgetFile,
         }
         model_class = models_map.get(file_model)
         if not model_class:
@@ -897,15 +923,11 @@ class FileDownloadView(LoginRequiredMixin, View):
         if not content_type:
             content_type = 'application/octet-stream'
         
-        # Read file content
-        with open(file_path, 'rb') as f:
-            file_content = f.read()
-        
-        # Create response with proper content type
-        response = HttpResponse(file_content, content_type=content_type)
-        
-        # Properly encode filename for Content-Disposition
+        # Use FileResponse to handle download properly
+        from django.http import FileResponse
         from urllib.parse import quote
+        
+        response = FileResponse(open(file_path, 'rb'), content_type=content_type)
         encoded_filename = quote(file_obj.file_name)
         response['Content-Disposition'] = f'attachment; filename*=UTF-8\'\'{encoded_filename}'
         return response
@@ -940,3 +962,82 @@ class PriceAdjustmentCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateVi
 
     def get_success_url(self):
         return reverse('budget_review:project_detail', kwargs={'pk': self.kwargs.get('project_id')})
+
+# Hidden Projects Management
+class HiddenProjectListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+    """隱藏標案列表 - 僅超級管理員可見"""
+    model = Project
+    template_name = 'budget_review/hidden_project_list.html'
+    context_object_name = 'projects'
+    ordering = ['-deleted_at']
+    
+    def test_func(self):
+        """僅超級管理員可查看"""
+        from .permissions import can_access_hidden_projects
+        return can_access_hidden_projects(self.request.user)
+    
+    def get_queryset(self):
+        """僅顯示已刪除的標案"""
+        return Project.objects.filter(deleted_at__isnull=False).order_by('-deleted_at')
+class ProjectRestoreView(LoginRequiredMixin, UserPassesTestMixin, View):
+    """復原標案"""
+    
+    def test_func(self):
+        """僅超級管理員可復原"""
+        from .permissions import can_restore_project
+        return can_restore_project(self.request.user)
+    
+    def post(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+        
+        if not project.is_deleted:
+            messages.warning(request, f"標案 「{project.name}」 未被刪除。")
+            return redirect('budget_review:hidden_project_list')
+        
+        name = project.name
+        # 復原：清除刪除時間與刪除者
+        project.deleted_at = None
+        project.deleted_by = None
+        project.save()
+        
+        AuditLog.objects.create(
+            user=request.user,
+            action='UPDATE',
+            model_name='Project',
+            object_id=pk,
+            detail={'name': name, 'action': 'restored'}
+        )
+        messages.success(request, f"標案 「{name}」 已成功復原。")
+        return redirect('budget_review:project_list')
+class ProjectPermanentDeleteView(LoginRequiredMixin, UserPassesTestMixin, View):
+    """永久刪除標案"""
+    
+    def test_func(self):
+        """僅超級管理員可永久刪除"""
+        from .permissions import can_permanent_delete_project
+        return can_permanent_delete_project(self.request.user)
+    
+    def post(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+        
+        if not project.is_deleted:
+            messages.warning(request, "只能永久刪除已在隱藏列表中的標案。")
+            return redirect('budget_review:hidden_project_list')
+        
+        name = project.name
+        code = project.code
+        
+        # 記錄日誌後刪除
+        AuditLog.objects.create(
+            user=request.user,
+            action='DELETE',
+            model_name='Project',
+            object_id=pk,
+            detail={'name': name, 'code': code, 'permanent': True}
+        )
+        
+        # 真正刪除
+        project.delete()
+        
+        messages.success(request, f"標案 「{name}」 已永久刪除。")
+        return redirect('budget_review:hidden_project_list')
