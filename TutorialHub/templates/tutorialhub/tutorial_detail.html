@@ -535,7 +535,9 @@
 
     // Copy code to clipboard
     function copyCode(button) {
-        const code = button.getAttribute('data-code');
+        const rawCode = button.getAttribute('data-code');
+        // Decode the JSON/Unicode escaped string (e.g., \u002D -> -)
+        const code = JSON.parse('"' + rawCode + '"');
         navigator.clipboard.writeText(code).then(() => {
             const originalHTML = button.innerHTML;
             button.innerHTML = '<i class="fas fa-check"></i> 已複製';
