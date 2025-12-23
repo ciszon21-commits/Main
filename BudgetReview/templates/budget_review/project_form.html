@@ -1,0 +1,82 @@
+{% extends 'budget_review/base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}編輯標案{% else %}建立標案{% endif %} - BudgetReview{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="card glass-form">
+        <div class="form-header">
+            <div class="form-icon">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            </div>
+            <h2>{% if form.instance.pk %}編輯標案{% else %}建立新標案{% endif %}</h2>
+            <p>請填寫標案的基本資訊以進行管理</p>
+        </div>
+
+        <form method="post" class="luxury-form">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<p class="help-text">{{ field.help_text }}</p>{% endif %}
+                {% for error in field.errors %}<p class="error-text">{{ error }}</p>{% endfor %}
+            </div>
+            {% endfor %}
+
+            <div class="form-actions">
+                {% if form.instance.pk %}
+                {% if user.is_superuser or form.instance.created_by == user %}
+                <form action="{% url 'budget_review:project_delete' form.instance.pk %}" method="post"
+                    style="display: inline; margin-right: auto;" onsubmit="return confirm('確定要刪除此標案嗎？所有相關資料將被移除。');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-delete">刪除標案</button>
+                </form>
+                {% endif %}
+                {% endif %}
+                <div style="display: flex; gap: 2rem; margin-left: auto;">
+                    <a href="{% url 'budget_review:project_list' %}" class="btn-cancel">取消</a>
+                    <button type="submit" class="btn-submit">
+                        儲存標案
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'BudgetReview/css/page-forms.css' %}">
+<style>
+    .btn-delete {
+        background: var(--danger-bg);
+        color: var(--danger);
+        border: 1px solid var(--danger);
+        padding: 1rem 2rem;
+        border-radius: 1rem;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-delete:hover {
+        background: var(--danger);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px -5px rgba(239, 68, 68, 0.4);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'BudgetReview/js/searchable-select.js' %}"></script>
+{% endblock %}

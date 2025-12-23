@@ -1,0 +1,562 @@
+{% extends 'budget_review/base.html' %}
+
+{% block title %}檔案上傳 - {{ project.name }} - BudgetReview{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'budget_review:project_list' %}">標案列表</a>
+    <span>/</span>
+    <a href="{% url 'budget_review:project_detail' project.id %}">{{ project.name }}</a>
+    <span>/</span>
+    <span>檔案上傳</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="upload-container">
+    <div class="upload-card glass">
+        <div class="upload-header">
+            <div class="header-icon">
+                <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+            </div>
+            <h2>檔案上傳</h2>
+            <p>請為標案 <strong>{{ project.name }}</strong> 上傳相關文件</p>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="premium-form">
+            {% csrf_token %}
+
+            <div class="form-section">
+                <!-- Discipline Selection (if exists) -->
+                {% if request.resolver_match.view_name == 'budget_review:upload_quantity' or request.resolver_match.view_name == 'budget_review:upload_price_inquiry' %}
+                <div class="form-group">
+                    <label for="discipline">專業分組 <span class="required">*</span></label>
+                    <div class="select-wrapper">
+                        <select name="discipline" id="discipline" required>
+                            <option value="">請選擇分組...</option>
+                            {% for d in project.disciplines.all %}
+                            <option value="{{ d.id }}" {% if request.GET.discipline == d.id|stringformat:"i" %}selected{% endif %}>{{ d.name }} ({{ d.code }})</option>
+                            {% endfor %}
+                        </select>
+                        <div class="select-arrow"></div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Project-level Budget Type -->
+                {% if request.resolver_match.view_name == 'budget_review:upload_budget' %}
+                <div class="form-group">
+                    <label for="budget_type">預算類型 <span class="required">*</span></label>
+                    <div class="radio-group luxury-radio">
+                        <label class="radio-card">
+                            <input type="radio" name="budget_type" value="GROUP" checked>
+                            <div class="radio-content">
+                                <span class="radio-label">分組預算</span>
+                                <span class="radio-subtext">由各專業組上報之預算</span>
+                            </div>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="budget_type" value="EXTERNAL">
+                            <div class="radio-content">
+                                <span class="radio-label">外部門預算</span>
+                                <span class="radio-subtext">由其他相關部門提供之預算</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Final Budget Confidentiality -->
+                {% if request.resolver_match.view_name == 'budget_review:upload_final_budget' %}
+                <div class="form-group">
+                    <label for="is_confidential" class="checkbox-container">
+                        <input type="checkbox" name="is_confidential" id="is_confidential">
+                        <span class="checkmark"></span>
+                        <div class="checkbox-text">
+                            <span class="main-label">設定為保密版預算</span>
+                            <span class="sub-label">勾選後僅限特定高權限人員可查看此檔案</span>
+                        </div>
+                    </label>
+                </div>
+                {% endif %}
+
+                <!-- File Drop Zone -->
+                <div class="form-group">
+                    <label>上傳檔案 <span class="required">*</span></label>
+                    <div class="drop-zone" id="drop-zone">
+                        <div class="drop-zone-prompt">
+                            <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <p class="main-prompt">拖放檔案至此處，或<span>點擊瀏覽</span></p>
+                            <p class="support-text">支援格式：.xlsx, .pdf, .xml (最大 50MB)</p>
+                        </div>
+                        <input type="file" name="file" id="file-input" required class="drop-zone-input">
+                        <div class="file-preview" id="file-preview">
+                            <div class="preview-info">
+                                <svg width="24" height="24" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
+                                </svg>
+                                <span id="file-name-display"></span>
+                            </div>
+                            <button type="button" class="btn-remove" id="btn-remove">移除</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="form-group">
+                    <label for="description">說明備註</label>
+                    <textarea name="description" id="description" rows="3"
+                        placeholder="請輸入本次上傳的版本說明或注意事項..."></textarea>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <a href="{% url 'budget_review:project_detail' project.id %}" class="btn-cancel">取消上傳</a>
+                <button type="submit" class="btn-submit">
+                    確認上傳
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .upload-container {
+        max-width: 800px;
+        margin: 3rem auto;
+    }
+
+    .upload-card {
+        border-radius: 2rem;
+        padding: 4rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .upload-header {
+        text-align: center;
+        margin-bottom: 3.5rem;
+    }
+
+    .header-icon {
+        width: 80px;
+        height: 80px;
+        background: rgba(37, 99, 235, 0.1);
+        color: var(--primary);
+        border-radius: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+    }
+
+    .upload-header h2 {
+        font-size: 2.25rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 0.75rem;
+        letter-spacing: -0.02em;
+    }
+
+    .upload-header p {
+        color: #64748b;
+        font-size: 1.1rem;
+    }
+
+    .premium-form {
+        display: flex;
+        flex-direction: column;
+        gap: 2.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+    }
+
+    .form-group label {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .required {
+        color: #ef4444;
+    }
+
+    /* Custom Select */
+    .select-wrapper {
+        position: relative;
+    }
+
+    select {
+        width: 100%;
+        padding: 1rem 1.25rem;
+        border-radius: 1rem;
+        border: 2px solid #e2e8f0;
+        background: white;
+        font-size: 1rem;
+        font-weight: 600;
+        appearance: none;
+        color: #0f172a;
+        transition: all 0.3s;
+    }
+
+    select:focus {
+        border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    }
+
+    .select-arrow {
+        position: absolute;
+        right: 1.25rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-top: 6px solid #94a3b8;
+        pointer-events: none;
+    }
+
+    /* Radio Cards */
+    .luxury-radio {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+    }
+
+    .radio-card {
+        cursor: pointer;
+        position: relative;
+    }
+
+    .radio-card input {
+        position: absolute;
+        opacity: 0;
+    }
+
+    .radio-content {
+        padding: 1.5rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 1.25rem;
+        background: white;
+        transition: all 0.3s;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .radio-card input:checked+.radio-content {
+        border-color: var(--primary);
+        background: #eff6ff;
+        box-shadow: 0 8px 15px -5px rgba(37, 99, 235, 0.2);
+    }
+
+    .radio-label {
+        font-weight: 800;
+        color: #0f172a;
+        font-size: 1.1rem;
+    }
+
+    .radio-subtext {
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    /* Drop Zone */
+    .drop-zone {
+        border: 3px dashed #e2e8f0;
+        border-radius: 1.5rem;
+        padding: 4rem 2rem;
+        text-align: center;
+        position: relative;
+        transition: all 0.3s;
+        background: rgba(248, 250, 252, 0.5);
+    }
+
+    .drop-zone:hover,
+    .drop-zone.over {
+        border-color: var(--primary);
+        background: #eff6ff;
+    }
+
+    .drop-zone-prompt {
+        pointer-events: none;
+        transition: opacity 0.3s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .drop-zone-prompt svg {
+        color: #94a3b8;
+        margin-bottom: 0.5rem;
+    }
+
+    .main-prompt {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #334155;
+    }
+
+    .main-prompt span {
+        color: var(--primary);
+        text-decoration: underline;
+    }
+
+    .support-text {
+        font-size: 0.9rem;
+        color: #94a3b8;
+        font-weight: 500;
+    }
+
+    .drop-zone-input {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .file-preview {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .preview-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 800;
+        color: #0f172a;
+        background: white;
+        padding: 1rem 2rem;
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .btn-remove {
+        background: #fee2e2;
+        color: #ef4444;
+        border: none;
+        padding: 0.6rem 1.5rem;
+        border-radius: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-remove:hover {
+        background: #ef4444;
+        color: white;
+    }
+
+    /* Textarea */
+    textarea {
+        width: 100%;
+        padding: 1.25rem;
+        border-radius: 1rem;
+        border: 2px solid #e2e8f0;
+        font-family: inherit;
+        font-size: 1rem;
+        font-weight: 600;
+        transition: all 0.3s;
+        resize: vertical;
+    }
+
+    textarea:focus {
+        border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    }
+
+    /* Actions */
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 2rem;
+        padding-top: 1rem;
+    }
+
+    .btn-cancel {
+        color: #64748b;
+        font-weight: 700;
+        text-decoration: none;
+        font-size: 1.1rem;
+    }
+
+    .btn-submit {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 1.25rem 3rem;
+        border-radius: 1.25rem;
+        font-size: 1.25rem;
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        transition: all 0.3s;
+        box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 30px -10px rgba(37, 99, 235, 0.5);
+    }
+
+    /* Checkbox luxury */
+    .checkbox-container {
+        position: relative;
+        cursor: pointer;
+        user-select: none;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: flex-start !important;
+        padding: 1.5rem;
+        background: rgba(248, 250, 252, 0.8);
+        border-radius: 1.25rem;
+        border: 2px solid #e2e8f0;
+        transition: all 0.3s;
+        gap: 1.25rem !important;
+    }
+
+    .checkbox-container:hover {
+        border-color: var(--primary);
+    }
+
+    .checkbox-container input {
+        position: absolute;
+        opacity: 0;
+    }
+
+    .checkmark {
+        height: 24px;
+        width: 24px;
+        background-color: white;
+        border: 2px solid #cbd5e1;
+        border-radius: 6px;
+        flex-shrink: 0;
+        transition: all 0.2s;
+        position: relative;
+        top: 4px;
+    }
+
+    .checkbox-container input:checked~.checkmark {
+        background-color: var(--primary);
+        border-color: var(--primary);
+    }
+
+    .checkmark:after {
+        content: "";
+        position: absolute;
+        display: none;
+        left: 8px;
+        top: 3px;
+        width: 5px;
+        height: 10px;
+        border: solid white;
+        border-width: 0 3px 3px 0;
+        transform: rotate(45deg);
+    }
+
+    .checkbox-container input:checked~.checkmark:after {
+        display: block;
+    }
+
+    .checkbox-text {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .main-label {
+        font-weight: 800;
+        color: #0f172a;
+        font-size: 1.1rem;
+    }
+
+    .sub-label {
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const prompt = dropZone.querySelector('.drop-zone-prompt');
+    const preview = document.getElementById('file-preview');
+    const fileNameDisplay = document.getElementById('file-name-display');
+    const btnRemove = document.getElementById('btn-remove');
+
+    ['dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, e => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+    });
+
+    dropZone.addEventListener('dragover', () => dropZone.classList.add('over'));
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.remove('over'));
+    });
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length) {
+            updatePreview(fileInput.files[0].name);
+        }
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        const files = e.dataTransfer.files;
+        if (files.length) {
+            fileInput.files = files;
+            updatePreview(files[0].name);
+        }
+    });
+
+    function updatePreview(name) {
+        prompt.style.display = 'none';
+        preview.style.display = 'flex';
+        fileNameDisplay.textContent = name;
+    }
+
+    btnRemove.addEventListener('click', () => {
+        fileInput.value = '';
+        prompt.style.display = 'flex';
+        preview.style.display = 'none';
+    });
+</script>
+{% endblock %}

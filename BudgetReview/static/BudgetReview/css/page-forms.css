@@ -1,0 +1,558 @@
+/**
+ * BudgetReview - 表單頁面統一樣式
+ * page-forms.css
+ * 適用於: project_form, discipline_form, file_upload, price_adjustment_form
+ */
+
+/* =====================================
+   表單容器
+   ===================================== */
+.form-container {
+    max-width: 650px;
+    margin: var(--spacing-4xl) auto;
+}
+
+.upload-container {
+    max-width: 800px;
+    margin: var(--spacing-3xl) auto;
+}
+
+/* =====================================
+   玻璃擬態表單卡片
+   ===================================== */
+.glass-form,
+.upload-card.glass {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    border-radius: var(--radius-3xl);
+    padding: var(--spacing-4xl);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: var(--shadow-2xl);
+}
+
+.upload-card.glass {
+    position: relative;
+    overflow: hidden;
+}
+
+/* =====================================
+   表單標題區
+   ===================================== */
+.form-header,
+.upload-header {
+    text-align: center;
+    margin-bottom: var(--spacing-3xl);
+}
+
+.upload-header {
+    margin-bottom: var(--spacing-4xl);
+}
+
+.form-icon,
+.header-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--primary);
+    border-radius: var(--radius-xl);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--spacing-xl);
+}
+
+.header-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius-2xl);
+}
+
+.form-header h2,
+.upload-header h2 {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-extrabold);
+    color: var(--gray-900);
+    margin-bottom: var(--spacing-sm);
+    letter-spacing: -0.02em;
+}
+
+.upload-header h2 {
+    font-size: var(--font-size-4xl);
+    margin-bottom: var(--spacing-md);
+}
+
+.form-header p,
+.upload-header p {
+    color: var(--text-muted);
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-base);
+}
+
+.upload-header p {
+    font-size: var(--font-size-lg);
+}
+
+/* =====================================
+   表單佈局
+   ===================================== */
+.luxury-form,
+.premium-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+}
+
+.premium-form {
+    gap: var(--spacing-2xl);
+}
+
+.form-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2xl);
+}
+
+/* Form group 已在 components.css 中定義，這裡只補充特定樣式 */
+.form-group label {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-main);
+}
+
+/* =====================================
+   選擇器增強
+   ===================================== */
+.select-wrapper {
+    position: relative;
+}
+
+.select-arrow {
+    position: absolute;
+    right: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid var(--text-light);
+    pointer-events: none;
+}
+
+/* =====================================
+   單選按鈕組 (Luxury Radio)
+   ===================================== */
+.radio-group.luxury-radio {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-lg);
+}
+
+.radio-card {
+    cursor: pointer;
+    position: relative;
+}
+
+.radio-card input {
+    position: absolute;
+    opacity: 0;
+}
+
+.radio-content {
+    padding: var(--spacing-xl);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    transition: var(--transition-all);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.radio-card input:checked+.radio-content {
+    border-color: var(--primary);
+    background: var(--primary-lightest);
+    box-shadow: 0 8px 15px -5px rgba(37, 99, 235, 0.2);
+}
+
+.radio-label {
+    font-weight: var(--font-weight-extrabold);
+    color: var(--gray-900);
+    font-size: var(--font-size-lg);
+}
+
+.radio-subtext {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    font-weight: var(--font-weight-medium);
+}
+
+/* =====================================
+   檔案拖放區
+   ===================================== */
+.drop-zone {
+    border: 3px dashed var(--border-color);
+    border-radius: var(--radius-2xl);
+    padding: var(--spacing-4xl) var(--spacing-xl);
+    text-align: center;
+    position: relative;
+    transition: var(--transition-all);
+    background: rgba(248, 250, 252, 0.5);
+}
+
+.drop-zone:hover,
+.drop-zone.over {
+    border-color: var(--primary);
+    background: var(--primary-lightest);
+}
+
+.drop-zone-prompt {
+    pointer-events: none;
+    transition: opacity var(--transition-slow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.drop-zone-prompt svg {
+    color: var(--text-light);
+    margin-bottom: var(--spacing-sm);
+}
+
+.main-prompt {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--gray-700);
+}
+
+.main-prompt span {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+.support-text {
+    font-size: var(--font-size-base);
+    color: var(--text-light);
+    font-weight: var(--font-weight-medium);
+}
+
+.drop-zone-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.file-preview {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xl);
+}
+
+.preview-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    font-weight: var(--font-weight-extrabold);
+    color: var(--gray-900);
+    background: var(--surface);
+    padding: var(--spacing-md) var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-remove {
+    background: var(--danger-bg);
+    color: var(--danger);
+    border: none;
+    padding: 0.6rem var(--spacing-xl);
+    border-radius: var(--radius-md);
+    font-weight: var(--font-weight-bold);
+    cursor: pointer;
+    transition: var(--transition-all);
+}
+
+.btn-remove:hover {
+    background: var(--danger);
+    color: var(--text-white);
+}
+
+/* =====================================
+   複選框 (Luxury Checkbox)
+   ===================================== */
+.checkbox-container {
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    padding: var(--spacing-xl);
+    background: rgba(248, 250, 252, 0.8);
+    border-radius: var(--radius-xl);
+    border: 2px solid var(--border-color);
+    transition: var(--transition-all);
+    gap: var(--spacing-lg) !important;
+}
+
+.checkbox-container:hover {
+    border-color: var(--primary);
+}
+
+.checkbox-container input {
+    position: absolute;
+    opacity: 0;
+}
+
+.checkmark {
+    height: 24px;
+    width: 24px;
+    background-color: var(--surface);
+    border: 2px solid var(--gray-300);
+    border-radius: 6px;
+    flex-shrink: 0;
+    transition: var(--transition-all);
+    position: relative;
+    top: 4px;
+}
+
+.checkbox-container input:checked~.checkmark {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 8px;
+    top: 3px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+}
+
+.checkbox-container input:checked~.checkmark:after {
+    display: block;
+}
+
+.checkbox-text {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.main-label {
+    font-weight: var(--font-weight-extrabold);
+    color: var(--gray-900);
+    font-size: var(--font-size-lg);
+}
+
+.sub-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    font-weight: var(--font-weight-medium);
+}
+
+/* =====================================
+   表單操作按鈕
+   ===================================== */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--spacing-xl);
+    margin-top: var(--spacing-xl);
+    padding-top: var(--spacing-md);
+}
+
+.btn-submit {
+    background: var(--primary);
+    color: var(--text-white);
+    border: none;
+    padding: var(--spacing-md) var(--spacing-2xl);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-extrabold);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    transition: var(--transition-all);
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+}
+
+.btn-submit:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 25px -5px rgba(37, 99, 235, 0.4);
+}
+
+/* =====================================
+   可搜尋下拉選單 (Enhanced Enterprise Style)
+   ===================================== */
+.searchable-select-container {
+    position: relative;
+    width: 100%;
+}
+
+/* Base Input Style - "Chip" / Trigger */
+.search-input {
+    width: 100%;
+    height: 40px;
+    /* 36-40px conformant */
+    padding: 0 16px;
+    /* 12-16px padding */
+    border: 1px solid #CBD5E1;
+    /* Light gray border */
+    border-radius: 4px;
+    /* 4-6px */
+    background-color: #FFFFFF;
+    color: #1E293B;
+    /* Dark gray/blue */
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    cursor: text;
+}
+
+/* Hover State */
+.search-input:hover {
+    border-color: #94A3B8;
+    /* Darker border on hover */
+}
+
+/* Focus State */
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Disabled State */
+.search-input:disabled {
+    background-color: #F1F5F9;
+    color: #94A3B8;
+    cursor: not-allowed;
+    border-color: #E2E8F0;
+}
+
+/* Options List Container */
+.options-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 100%;
+    max-height: 280px;
+    overflow-y: auto;
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    /* Same as chip border */
+    border-radius: 4px;
+    /* 4-6px */
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    /* Light shadow */
+    padding: 4px 0;
+}
+
+/* Scrollbar styling */
+.options-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.options-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.options-list::-webkit-scrollbar-thumb {
+    background-color: #CBD5E1;
+    border-radius: 3px;
+}
+
+/* Option Items */
+.option-item {
+    height: 36px;
+    /* 32-36px */
+    padding: 0 16px;
+    /* 12-16px */
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 14px;
+    color: #334155;
+    background-color: transparent;
+    transition: background-color 0.15s ease;
+    border-left: 3px solid transparent;
+    /* Reserve space for selection mark */
+    margin-bottom: 0;
+    border-radius: 0;
+}
+
+/* Option Hover */
+.option-item:hover {
+    background-color: #F8FAFC;
+    /* Light gray/blue */
+    color: #334155;
+    /* Text color unchanged */
+}
+
+/* Option Selected */
+.option-item.selected {
+    background-color: #EFF6FF;
+    /* Primary-50 */
+    color: #1E40AF;
+    /* Primary-800 */
+    border-left-color: var(--primary);
+    /* 3px solid mark */
+    font-weight: 500;
+}
+
+/* Remove checkmark as we use left border */
+.option-item.selected::after {
+    display: none;
+}
+
+/* Multi-select Chips (Tags) */
+.select-multiple-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.chip {
+    height: 28px;
+    padding: 0 10px;
+    background-color: #F1F5F9;
+    border: 1px solid #CBD5E1;
+    border-radius: 4px;
+    color: #475569;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+}
+
+.chip-remove {
+    cursor: pointer;
+    color: #94A3B8;
+    font-size: 16px;
+    width: auto;
+    height: auto;
+    display: inline-block;
+}
+
+.chip-remove:hover {
+    color: #EF4444;
+    background-color: transparent;
+}

@@ -1,0 +1,33 @@
+<!-- AJAX 版本的階段表單，用於 Modal -->
+
+
+<form method="post" class="luxury-form">
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="form-group">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<p class="help-text">{{ field.help_text }}</p>{% endif %}
+        {% for error in field.errors %}<p class="error-text">{{ error }}</p>{% endfor %}
+    </div>
+    {% endfor %}
+
+    <div class="modal-footer">
+        <!-- 刪除按鈕（左側） -->
+        {% if stage.pk %}
+        <button type="button" class="btn-delete-modal" onclick="deleteStage({{ project.pk }}, {{ stage.pk }})">
+            刪除階段
+        </button>
+        {% else %}
+        <div></div>
+        {% endif %}
+
+        <!-- 取消和儲存按鈕（右側） -->
+        <div class="modal-actions-right">
+            <button type="button" class="btn-cancel" onclick="closeCurrentModal()">取消</button>
+            <button type="submit" class="btn-submit">
+                儲存
+            </button>
+        </div>
+    </div>
+</form>
