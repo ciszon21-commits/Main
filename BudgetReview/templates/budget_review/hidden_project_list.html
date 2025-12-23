@@ -1,0 +1,144 @@
+{% extends 'budget_review/base.html' %}
+{% load static %}
+
+{% block title %}隱藏標案列表{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumb-nav">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'budget_review:project_list' %}">標案列表</a></li>
+        <li class="breadcrumb-separator">/</li>
+        <li class="breadcrumb-item active"><span>隱藏標案</span></li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+{# 頁面標題 #}
+<div class="page-header">
+    <div class="page-header-content">
+        <div>
+            <h1 class="page-title">🗑️ 隱藏標案列表</h1>
+            <p class="page-subtitle text-danger">這些是已刪除的標案，您可以復原或永久刪除它們</p>
+        </div>
+        <a href="{% url 'budget_review:project_list' %}" class="btn btn-secondary">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            返回標案列表
+        </a>
+    </div>
+</div>
+
+{# 警告提示 #}
+<div class="alert alert-warning mb-lg">
+    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    </svg>
+    <strong>注意：</strong>永久刪除後無法復原，請謹慎操作！
+</div>
+
+{# 標案列表 #}
+<div class="card" style="filter: grayscale(0.3);">
+    {% if projects %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>標案資訊</th>
+                <th>刪除資訊</th>
+                <th class="actions-column">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for project in projects %}
+            <tr class="deleted-project-row">
+                <td>
+                    <div class="project-name text-muted font-semibold">{{ project.name }}</div>
+                    <div class="text-sm text-muted">{{ project.code }}</div>
+                </td>
+                <td>
+                    <div class="d-flex align-center gap-sm text-muted text-sm">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        {{ project.deleted_at|timesince }} 前刪除
+                        {% if project.deleted_by %}
+                        <span>| 由 {{ project.deleted_by.get_full_name }}</span>
+                        {% endif %}
+                    </div>
+                </td>
+                <td class="actions-column">
+                    <div class="d-flex gap-sm">
+                        <form method="POST" action="{% url 'budget_review:project_restore' project.pk %}"
+                            style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                復原
+                            </button>
+                        </form>
+                        <button class="btn btn-danger btn-sm"
+                            onclick="confirmDelete({{ project.pk }}, '{{ project.name|escapejs }}')">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            永久刪除
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    {% include 'budget_review/includes/_empty_state.html' with
+    icon="inbox"
+    title="沒有隱藏的標案"
+    description="所有標案都在正常列表中"
+    %}
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .deleted-project-row {
+        background: var(--gray-100);
+        border-left: 3px solid var(--danger);
+    }
+
+    .deleted-project-row:hover {
+        background: var(--gray-200);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function confirmDelete(projectId, projectName) {
+        if (confirm(`確定要永久刪除「${projectName}」嗎？\n\n此操作無法復原！`)) {
+            // 執行刪除
+            fetch(`/budget-review/project/${projectId}/permanent-delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                }
+            })
+                .then(response => {
+                    if (response.ok) {
+                        showToast('標案已永久刪除', 'success');
+                        location.reload();
+                    } else {
+                        showToast('刪除失敗，請重試', 'danger');
+                    }
+                });
+        }
+    }
+</script>
+{% endblock %}

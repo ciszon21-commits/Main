@@ -1,0 +1,307 @@
+{% extends 'budget_review/base.html' %}
+{% load static %}
+
+{% block title %}{{ project.name }} - 標案詳情{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumb-nav">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'budget_review:project_list' %}">標案列表</a></li>
+        <li class="breadcrumb-separator">/</li>
+        <li class="breadcrumb-item active"><span>{{ project.name }}</span></li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+{# 標案基本資訊 #}
+<div class="card mb-lg">
+    <div class="card-body">
+        <div class="d-flex justify-between align-start flex-wrap gap-md">
+            <div>
+                <div class="d-flex align-center gap-md mb-xs flex-wrap">
+                    <h1 class="project-title m-0">{{ project.name }}</h1>
+                    <div class="project-status">
+                        {% if project.status == 'PREPARING' %}
+                        {% include 'budget_review/includes/_badge.html' with text="籌備中" variant="warning" %}
+                        {% elif project.status == 'ONGOING' %}
+                        {% include 'budget_review/includes/_badge.html' with text="進行中" variant="info" %}
+                        {% elif project.status == 'FINISHED' %}
+                        {% include 'budget_review/includes/_badge.html' with text="已結案" variant="neutral" %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="project-meta text-muted text-sm d-flex gap-md align-center flex-wrap">
+                    <span class="d-flex align-center gap-xs" title="標案編號">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                        </svg>
+                        <span class="font-mono">{{ project.code }}</span>
+                    </span>
+                    <span class="text-muted" style="opacity: 0.3;">|</span>
+                    <span class="d-flex align-center gap-xs" title="建立時間">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        標案建立時間：{{ project.created_at|date:"Y/m/d H:i" }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        {% if project.description %}
+        <div class="mt-md pt-md border-top">
+            <div class="text-sm text-secondary" style="line-height: 1.6;">
+                {{ project.description|linebreaksbr }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{# 階段管理 #}
+<div class="card mb-lg">
+    <div class="card-body">
+        <div class="d-flex justify-between align-center mb-lg">
+            <h2 class="card-title m-0">🎯 階段管理</h2>
+            {% if can_manage_project %}
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openStageModal({{ project.pk }})">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                新增階段
+            </button>
+            {% endif %}
+        </div>
+
+        {% if stages %}
+        <div class="stage-list">
+            {% for stage in stages %}
+            <div class="stage-item d-flex flex-column gap-md p-md rounded bg-neutral-50 mb-md">
+                <div class="d-flex justify-between align-start">
+                    <div class="d-flex flex-column gap-xs">
+                        <div class="d-flex align-center gap-sm">
+                            {% include 'budget_review/includes/_badge.html' with text="#"|add:stage.order variant="neutral" size="sm" %}
+                            <h3 class="m-0 font-bold text-lg">{{ stage.name }}</h3>
+                        </div>
+                        {% if stage.deadline %}
+                        <div class="d-flex align-center gap-xs text-muted text-sm">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            檔案提送截止時間：{{ stage.deadline|date:"Y/m/d H:i" }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if can_manage_project %}
+                    <button class="btn btn-icon btn-sm text-muted hover:text-primary"
+                        onclick="openStageEditModal({{ project.pk }}, {{ stage.pk }})" title="編輯階段">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </button>
+                    {% endif %}
+                </div>
+
+                {% if stage.description %}
+                <p class="text-secondary text-sm m-0">{{ stage.description }}</p>
+                {% endif %}
+
+                <div class="d-flex gap-sm mt-xs">
+                    <a href="{% url 'budget_review:project_workspace' project.pk stage.pk %}"
+                        class="btn btn-primary btn-sm flex-1 justify-center">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        工作區
+                    </a>
+                    <a href="{% url 'budget_review:project_integration' project.pk stage.pk %}"
+                        class="btn btn-primary btn-sm flex-1 justify-center">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                        </svg>
+                        提送區
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        {% include 'budget_review/includes/_empty_state.html' with icon="inbox" title="尚未建立階段" description="點擊右上角「新增階段」開始" %}
+        {% endif %}
+    </div>
+</div>
+
+{# 專業分組 #}
+<div class="card">
+    <div class="card-header">
+        <h2>👥 專業分組</h2>
+        {% if can_manage_project %}
+        <button type="button" class="btn btn-secondary btn-sm" onclick="openDisciplineModal({{ project.pk }})">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            新增專業分組
+        </button>
+        {% endif %}
+    </div>
+
+    {% if disciplines %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>代碼</th>
+                <th>專業名稱</th>
+                <th>負責人</th>
+                <th>成員數</th>
+                {% if can_manage_project %}
+                <th class="actions-column">操作</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for discipline in disciplines %}
+            <tr>
+                <td>
+                    <div class="d-flex align-center gap-sm">
+                        <strong>{{ discipline.code }}</strong>
+                        {% if discipline.is_overall %}
+                        {% include 'budget_review/includes/_badge.html' with text="整合" variant="info" size="sm" %}
+                        {% endif %}
+                    </div>
+                </td>
+                <td>{{ discipline.name }}</td>
+                <td class="text-muted">
+                    {% if discipline.is_overall %}
+                    {% if discipline.budget_manager %}
+                    {{ discipline.budget_manager.get_full_name }}
+                    {% else %}
+                    -
+                    {% endif %}
+                    {% else %}
+                    {% if discipline.responsible_user %}
+                    {{ discipline.responsible_user.get_full_name }}
+                    {% else %}
+                    -
+                    {% endif %}
+                    {% endif %}
+                </td>
+                <td class="text-muted">
+                    {% if discipline.is_overall %}
+                    {{ discipline.budget_members.count }}
+                    {% else %}
+                    {{ discipline.members.count }}
+                    {% endif %}
+                    人
+                </td>
+                {% if can_manage_project %}
+                <td class="actions-column">
+                    <button class="btn btn-icon btn-sm"
+                        onclick="openDisciplineEditModal({{ project.pk }}, {{ discipline.pk }})" title="編輯專業分組">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </button>
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="card-body">
+        {% include 'budget_review/includes/_empty_state.html' with icon="folder" title="尚未建立專業分組" description="點擊右上角「新增專業分組」開始" %}
+    </div>
+    {% endif %}
+</div>
+
+{# Modals #}
+<div id="createDisciplineModal">
+    <div class="modal-backdrop">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">新增專業分組</h3>
+                <button type="button" class="modal-close">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body"></div>
+        </div>
+    </div>
+</div>
+
+<div id="createStageModal">
+    <div class="modal-backdrop">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">新增階段</h3>
+                <button type="button" class="modal-close">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'BudgetReview/css/modal.css' %}">
+<link rel="stylesheet" href="{% static 'BudgetReview/css/page-forms.css' %}">
+<style>
+    .project-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        letter-spacing: -0.025em;
+    }
+
+    .font-mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .bg-neutral-50 {
+        background-color: #F9FAFB;
+    }
+
+    .rounded {
+        border-radius: var(--radius-md);
+    }
+
+    .stage-item {
+        border: 1px solid var(--border-color);
+        transition: all 0.2s;
+    }
+
+    .stage-item:hover {
+        border-color: var(--primary-color);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-sm);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'BudgetReview/js/searchable-select.js' %}"></script>
+<script src="{% static 'BudgetReview/js/modal.js' %}"></script>
+{% endblock %}

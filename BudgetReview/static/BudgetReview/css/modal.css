@@ -1,0 +1,350 @@
+/**
+ * BudgetReview - Modal 樣式 (Compact Enterprise Edition)
+ * modal.css
+ * 設計目標：精準、高密度、工程導向，適合長時間操作的管理介面
+ */
+
+/* Modal 背景遮罩 */
+.modal-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 1000;
+    animation: fadeIn 0.15s ease-out;
+}
+
+.modal-backdrop.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Modal 容器 */
+.modal {
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 6px;
+    box-shadow:
+        0 10px 15px -3px rgba(0, 0, 0, 0.1),
+        0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Modal Header */
+.modal-header {
+    padding: 12px 20px;
+    border-bottom: 1px solid #E2E8F0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #FFFFFF;
+    min-height: 52px;
+}
+
+.modal-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #0F172A;
+    line-height: 1.4;
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.modal-close {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    color: #64748B;
+    margin-right: -4px;
+}
+
+.modal-close:hover {
+    background-color: #F1F5F9;
+    color: #EF4444;
+}
+
+/* Modal Body */
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    background-color: #FFFFFF;
+}
+
+.modal-body .form-group {
+    margin-bottom: 16px;
+}
+
+.modal-body label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    letter-spacing: 0.01em;
+}
+
+/* =====================================
+   Modal Footer & Buttons - SOLID ENFORCEMENT
+   ===================================== */
+
+/* Base Footer Style - for direct children of .modal */
+.modal>.modal-footer {
+    padding: 12px 20px !important;
+    border-top: 1px solid #E2E8F0 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 12px !important;
+    background-color: #F8FAFC !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Nested Footer Adjustment - for footers inside .modal-body (AJAX) */
+.modal-body .modal-footer {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 12px !important;
+    background-color: #F8FAFC !important;
+    border-top: 1px solid #E2E8F0 !important;
+    padding: 12px 20px !important;
+    margin: 20px -20px -20px -20px !important;
+    width: auto !important;
+    /* Let margins handle expansion */
+    border-bottom-left-radius: 6px !important;
+    border-bottom-right-radius: 6px !important;
+}
+
+/* Button Base Styles */
+.modal .modal-footer .btn,
+.modal .modal-footer button,
+.modal-body .modal-footer .btn,
+.modal-body .modal-footer button {
+    height: 36px !important;
+    padding: 0 20px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    border-radius: 4px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: background-color 0.15s ease, transform 0.1s ease !important;
+    user-select: none !important;
+    border: 1px solid transparent !important;
+    letter-spacing: 0.01em !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    margin: 0 !important;
+    text-decoration: none !important;
+}
+
+.modal .modal-footer .btn:active,
+.modal-body .modal-footer .btn:active {
+    transform: translateY(1px) !important;
+}
+
+/* Primary / Submit */
+.modal .modal-footer .btn-primary,
+.modal .modal-footer .btn-submit,
+.modal-body .modal-footer .btn-primary,
+.modal-body .modal-footer .btn-submit {
+    background-color: #2563EB !important;
+    color: #FFFFFF !important;
+    border: 1px solid #2563EB !important;
+}
+
+.modal .modal-footer .btn-primary:hover,
+.modal .modal-footer .btn-submit:hover,
+.modal-body .modal-footer .btn-primary:hover,
+.modal-body .modal-footer .btn-submit:hover {
+    background-color: #1D4ED8 !important;
+    box-shadow: none !important;
+}
+
+/* Secondary / Cancel */
+.modal .modal-footer .btn-secondary,
+.modal .modal-footer .btn-cancel,
+.modal-body .modal-footer .btn-secondary,
+.modal-body .modal-footer .btn-cancel {
+    background-color: #F1F5F9 !important;
+    border: 1px solid #E2E8F0 !important;
+    color: #475569 !important;
+}
+
+.modal .modal-footer .btn-secondary:hover,
+.modal .modal-footer .btn-cancel:hover,
+.modal-body .modal-footer .btn-secondary:hover,
+.modal-body .modal-footer .btn-cancel:hover {
+    background-color: #E2E8F0 !important;
+    border-color: #CBD5E1 !important;
+    color: #1E293B !important;
+    box-shadow: none !important;
+}
+
+/* Danger / Delete */
+.modal .modal-footer .btn-danger,
+.modal .modal-footer .btn-delete-modal,
+.modal .modal-footer .btn-delete,
+.modal-body .modal-footer .btn-danger,
+.modal-body .modal-footer .btn-delete-modal,
+.modal-body .modal-footer .btn-delete {
+    background-color: #EF4444 !important;
+    color: #FFFFFF !important;
+    border: 1px solid #EF4444 !important;
+}
+
+.modal .modal-footer .btn-danger:hover,
+.modal .modal-footer .btn-delete-modal:hover,
+.modal .modal-footer .btn-delete:hover,
+.modal-body .modal-footer .btn-danger:hover,
+.modal-body .modal-footer .btn-delete-modal:hover,
+.modal-body .modal-footer .btn-delete:hover {
+    background-color: #DC2626 !important;
+    box-shadow: none !important;
+}
+
+/* Layout Reset */
+.luxury-form {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+}
+
+.modal-actions-right {
+    display: flex !important;
+    gap: 12px !important;
+    margin-left: auto !important;
+}
+
+/* =====================================
+   Input Inputs - High Density (36px)
+   ===================================== */
+.modal-body input[type="text"],
+.modal-body input[type="number"],
+.modal-body input[type="email"],
+.modal-body input[type="password"],
+.modal-body input[type="date"],
+.modal-body input[type="datetime-local"],
+.modal-body select,
+.modal-body textarea {
+    width: 100% !important;
+    border: 1px solid #CBD5E1 !important;
+    border-radius: 4px !important;
+    background-color: #FFFFFF !important;
+    color: #1E293B !important;
+    font-size: 14px !important;
+    font-family: inherit !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.modal-body input,
+.modal-body select {
+    height: 36px !important;
+    padding: 0 12px !important;
+}
+
+.modal-body input[type="file"] {
+    height: auto;
+    padding: 12px;
+    border: 1px dashed #CBD5E1;
+    background-color: #F8FAFC;
+    cursor: pointer;
+}
+
+.modal-body input[type="file"]:hover {
+    border-color: #2563EB;
+    background-color: #EFF6FF;
+}
+
+.modal-body select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748B'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 14px;
+    padding-right: 36px;
+}
+
+.modal-body textarea {
+    padding: 10px 12px;
+    min-height: 100px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.modal-body textarea[name="description"] {
+    min-height: 160px;
+}
+
+.modal-body input:hover,
+.modal-body select:hover,
+.modal-body textarea:hover {
+    border-color: #94A3B8;
+}
+
+.modal-body input:focus,
+.modal-body select:focus,
+.modal-body textarea:focus {
+    outline: none;
+    border-color: #2563EB;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.modal-body input:disabled,
+.modal-body select:disabled,
+.modal-body textarea:disabled {
+    background-color: #F8FAFC;
+    color: #94A3B8;
+    cursor: not-allowed;
+    border-color: #E2E8F0;
+}
+
+.modal-loading {
+    padding: 32px;
+    color: #64748B;
+    font-size: 14px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(12px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
