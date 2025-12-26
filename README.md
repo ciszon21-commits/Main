@@ -3,7 +3,7 @@
 <div align="center">
 
 ![CoDev Studio](https://img.shields.io/badge/CoDev-Studio-blueviolet?style=for-the-badge)
-![Version](https://img.shields.io/badge/version-1.0.0-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.1.0-blue?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-Internal-green?style=for-the-badge)
 
 **中興工程協作開發平台**
@@ -66,10 +66,10 @@ CoDev Studio 是中興工程顧問股份有限公司專為全體同仁打造的�
 
 ```bash
 # 使用 HTTPS
-git clone https://itworkshop.sinotech.com.tw:6981/public/CoDevStudio.git
+git clone https://50-129.sinotech.com.tw:6981/public/CoDevStudio.git
 
 # 或使用 SSH
-git clone git@itworkshop.sinotech.com.tw:6981:public/CoDevStudio.git
+git clone git@50-129.sinotech.com.tw:6981:public/CoDevStudio.git
 
 # 進入專案目錄
 cd CoDevStudio
@@ -78,7 +78,10 @@ cd CoDevStudio
 ### 2️⃣ 設定開發環境
 
 ```bash
-# 或使用 Python
+# 建立venv
+py -m venv venv
+venv\Scripts\activate
+# 安裝套件
 pip install -r requirements.txt
 
 ```
@@ -457,27 +460,6 @@ git merge upstream/develop
 - 遵守公司資安政策
 - 尊重智慧財產權
 
----
-
-## 🎯 未來規劃
-
-### 短期目標（Q1-Q2 2025）
-- [ ] 完善 CI/CD 自動化流程
-- [ ] 建立內部套件管理系統
-- [ ] 開發專案模板庫
-- [ ] 舉辦內部技術工作坊
-
-### 中期目標（Q3-Q4 2025）
-- [ ] 整合更多 AI 開發工具
-- [ ] 建立知識庫與最佳實踐文件
-- [ ] 開發內部開發者工具
-- [ ] 建立效能監控儀表板
-
-### 長期目標（2026+）
-- [ ] 打造完整的 DevOps 平台
-- [ ] 建立微服務架構範本
-- [ ] 發展低程式碼開發平台
-- [ ] 推動開源文化
 
 ---
 
@@ -496,6 +478,6 @@ git merge upstream/develop
 
 **讓我們一起打造更好的開發體驗！**
 
-Made with ❤️ by 中興工程研發及資訊部
+Made by 中興工程研發及資訊部
 
 </div>

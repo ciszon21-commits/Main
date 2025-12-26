@@ -23,6 +23,7 @@ urlpatterns = [
     path('carbon/', include('CarbonEstimation.urls')),
     path('program-db/', include('ProgramDbRegistry.urls')),
     path('budget/', include('BudgetReview.urls')),
+    path('er-model/', include('ERModelGenerator.urls')),  # ER Model 圖表產生器
 ]
 
 # 開發環境下提供 media 檔案服務

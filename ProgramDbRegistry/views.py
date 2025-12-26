@@ -504,10 +504,11 @@ def design_doc_update(request, pk):
             # 如果是 Django Model 模式，重新解析
             if doc.doc_type == 'django' and doc.django_model_code:
                 doc.parse_django_model()
-            else:
-                # 手動模式，只更新 Mermaid
+            elif doc.doc_type == 'manual':
+                # 手動模式，從資料表生成 Mermaid
                 doc.mermaid_content = doc.generate_mermaid()
                 doc.save(update_fields=['mermaid_content'])
+            # 當 doc_type == 'mermaid' 時，保留使用者輸入的內容，不覆寫
             
             messages.success(request, f'設計文件「{doc.name}」已更新！')
             return redirect('programdb:design_doc_detail', pk=doc.pk)
