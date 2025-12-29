@@ -150,6 +150,23 @@
                     </div>
                     {% include 'budget_review/includes/_file_grouped_list.html' with grouped_files=discipline.grouped_blank_tender_files file_type='blank_tender' discipline_id=discipline.id %}
                 </div>
+
+                <div class="file-category-section">
+                    <div class="section-title-bar">
+                        <div class="title-with-icon">
+                            <span class="emoji">💰</span>
+                            <h3>單價資料</h3>
+                            <span class="format-hint">（支援 PDF, Excel, 圖片, XML）</span>
+                        </div>
+                        {% if discipline.user_can_upload and not is_past_deadline %}
+                        <button class="btn btn-primary btn-sm rounded-pill px-4"
+                            onclick="handleUpload('price_data', {{ discipline.id }})">
+                            上傳檔案
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% include 'budget_review/includes/_file_grouped_list.html' with grouped_files=discipline.grouped_price_files file_type='price_data' discipline_id=discipline.id %}
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -520,20 +537,22 @@
     function handleUpload(fileType, disciplineId) {
         const input = document.createElement('input');
         input.type = 'file';
-        
+
         // 定義各類型的 accept 屬性
         const acceptRules = {
             'quantity': '.xls,.xlsx,.pdf',
             'price_inquiry': '.pdf,.xls,.xlsx,.jpg,.jpeg,.png',
             'budget': '.xml',
-            'blank_tender': '.xml'
+            'blank_tender': '.xml',
+            'price_data': '.pdf,.xls,.xlsx,.jpg,.jpeg,.png,.xml'
         };
-        
+
         const formatLabels = {
             'quantity': 'Excel (.xls, .xlsx) 或 PDF (.pdf)',
             'price_inquiry': 'PDF (.pdf), Excel (.xls, .xlsx) 或 圖片 (.jpg, .jpeg, .png)',
             'budget': 'XML (.xml)',
-            'blank_tender': 'XML (.xml)'
+            'blank_tender': 'XML (.xml)',
+            'price_data': 'PDF, Excel, 圖片 或 XML'
         };
 
         input.accept = acceptRules[fileType] || '*';
@@ -546,7 +565,7 @@
             const fileName = file.name.toLowerCase();
             const allowedExtensions = acceptRules[fileType].split(',');
             const fileExtension = '.' + fileName.split('.').pop();
-            
+
             if (!allowedExtensions.includes(fileExtension)) {
                 showToast(`此類型僅接受 ${formatLabels[fileType]} 格式檔案，請重新選擇。`, 'danger');
                 return;
