@@ -100,6 +100,10 @@ class Command(BaseCommand):
             if saved_news:
                 self.stdout.write(f"\n【步驟 4】生成每日整合摘要（基於新聞標題）...")
                 daily_summary_html = self._generate_daily_summary(saved_news, topic)
+                
+                # 生成新聞來源HTML（程式生成，確保連結正確）
+                self.stdout.write(f"\n【步驟 4.1】生成新聞來源區塊...")
+                news_source_html = self._generate_news_source_html(saved_news)
 
                 if daily_summary_html:
                     # 儲存摘要
@@ -107,6 +111,7 @@ class Command(BaseCommand):
                         daily_summary = DailySummary.objects.create(
                             topic=topic,
                             summary=daily_summary_html,
+                            news_source_html=news_source_html,
                             date=today,
                             news_count=len(saved_news)
                         )
@@ -114,11 +119,16 @@ class Command(BaseCommand):
 
                         # 發送郵件給訂閱者
                         self.stdout.write(f"\n【步驟 5】發送郵件給訂閱者...")
-                        self._send_emails(topic, daily_summary_html, saved_news)
+                        self._send_emails(topic, daily_summary_html, news_source_html, saved_news)
                     except IntegrityError:
                         self.stdout.write(f"  ⚠ 今天已有摘要（併發寫入），跳過")
                 else:
                     self.stdout.write(f"  ⚠ 每日摘要生成失敗")
+
+            # 在處理下一個主題前等待，避免API速率限制
+            if topic != topics.last():
+                self.stdout.write(f"\n⏳ 等待 30 秒後處理下一個主題...")
+                time.sleep(30)
 
         self.stdout.write(f"\n{'='*60}")
         self.stdout.write(f"完成時間: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -500,49 +510,32 @@ class Command(BaseCommand):
         return saved_news
 
     def _generate_daily_summary(self, news_list, topic):
-        """基於新聞標題生成每日整合摘要"""
+        """基於新聞標題生成今日重點摘要（純文字，不含連結）"""
         try:
-            # 準備新聞標題資料
+            # 準備新聞標題資料（只提供標題和來源，不提供URL避免AI產生錯誤連結）
             news_titles = []
             for i, news in enumerate(news_list, 1):
                 news_titles.append(f"{i}. 【{news['source']}】{news['title']}")
-                news_titles.append(f"   時間: {news['date'].strftime('%Y-%m-%d %H:%M')}")
-                news_titles.append(f"   連結: {news['url']}")
-                news_titles.append("")
 
             titles_text = "\n".join(news_titles)
 
-            # 建立提示詞
-            prompt = f"""你是一位專業的新聞分析師。請根據以下「{topic.name}」主題的新聞標題，生成一份今日新聞整合報告。
+            # 建立提示詞 - 只要求生成今日重點，不包含連結
+            prompt = f"""你是一位專業的新聞分析師。請根據以下「{topic.name}」主題的新聞標題，生成今日重點摘要。
 
 【嚴格限制 - 必須遵守】
-1. 只能使用下方提供的新聞標題
-2. 絕對不可以添加、編造或引用任何未提供的新聞
-3. 所有新聞連結必須完全使用下方提供的URL，不可修改
-4. 不可以生成任何額外的新聞項目
-5. 每則新聞只有標題，請根據標題內容提供簡短說明（1-2句話）
+1. 只能使用下方提供的新聞標題進行分析
+2. 絕對不可以添加、編造任何未提供的資訊
+3. 不要提供任何網址或連結
+4. 不要列出個別新聞標題，只提供綜合分析
 
 【輸出格式要求】
 1. 使用繁體中文
 2. 使用 HTML 格式（不需要<!DOCTYPE>、<html>、<body>等標籤）
-3. 包含兩個部分：
-
-第一部分 - 今日重點：
-- 用 <h2> 標題「今日重點」
-- 根據新聞標題，用 <ul><li> 格式條列3-5個重要趨勢或發展
-- 這部分不包含連結，只是重點摘述
-
-第二部分 - 重要新聞：
-- 用 <h2> 標題「重要新聞」
-- 依序列出下方提供的所有新聞標題
-- 每則新聞使用以下HTML結構：
-  <div style="margin-bottom: 20px; padding: 15px; border-left: 3px solid #3498db; background-color: #f8f9fa;">
-    <h3 style="margin: 0 0 10px 0;">
-      <a href="[使用下方提供的完整URL]" target="_blank" style="color: #2980b9; text-decoration: none;">[新聞標題]</a>
-    </h3>
-    <p style="margin: 5px 0; color: #7f8c8d; font-size: 0.9em;">來源：[來源] | 時間：[時間]</p>
-    <p style="margin: 10px 0 0 0;">[根據標題內容提供1-2句話的簡短說明]</p>
-  </div>
+3. 只輸出「今日重點」區塊：
+   - 用 <h2> 標題「📌 今日重點」
+   - 根據新聞標題分析，用 <ul><li> 格式條列 3-10 個重要趨勢或發展
+   - 每個重點應該是綜合多則新聞的分析結果
+   - 這部分不包含任何連結，只是重點摘述
 
 【今日新聞資料 - 共{len(news_list)}則】
 {titles_text}
@@ -565,7 +558,24 @@ class Command(BaseCommand):
             self.stderr.write(f"  生成每日摘要時發生錯誤: {e}")
             return None
 
-    def _send_emails(self, topic, summary_html, news_list):
+    def _generate_news_source_html(self, news_list):
+        """程式生成新聞來源HTML，確保連結正確"""
+        html_parts = []
+        html_parts.append('<h2>📰 新聞來源</h2>')
+        
+        for news in news_list:
+            date_str = news['date'].strftime('%Y-%m-%d %H:%M') if hasattr(news['date'], 'strftime') else str(news['date'])
+            html_parts.append(f'''
+<div style="margin-bottom: 15px; padding: 12px; border-left: 3px solid #3498db; background-color: #f8f9fa;">
+    <h3 style="margin: 0 0 8px 0; font-size: 1em;">
+        <a href="{news['url']}" target="_blank" style="color: #2980b9; text-decoration: none;">{news['title']}</a>
+    </h3>
+    <p style="margin: 0; color: #7f8c8d; font-size: 0.85em;">來源：{news['source']} | 時間：{date_str}</p>
+</div>''')
+        
+        return '\n'.join(html_parts)
+
+    def _send_emails(self, topic, summary_html, news_source_html, news_list):
         """發送郵件給訂閱者"""
         subscriptions = Subscription.objects.filter(
             topic=topic,
@@ -598,7 +608,15 @@ class Command(BaseCommand):
             <p style="margin: 5px 0;"><strong>新聞數量：</strong>{len(news_list)} 則</p>
         </div>
 
-        {summary_html}
+        <!-- 今日重點摘要 -->
+        <div style="margin-bottom: 30px;">
+            {summary_html}
+        </div>
+
+        <!-- 新聞來源 -->
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #ecf0f1;">
+            {news_source_html}
+        </div>
 
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #7f8c8d; font-size: 0.9em;">
             <p>此郵件由新聞訂閱系統自動發送</p>

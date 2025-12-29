@@ -1,0 +1,88 @@
+{% extends 'tutorialhub/base.html' %}
+{% load static %}
+
+{% block title %}我的筆記{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1><i class="fas fa-book-reader"></i> 我的筆記</h1>
+        <p class="subtitle">管理您建立或共同維護的筆記</p>
+    </div>
+
+    <div class="toolbar" style="margin-bottom: 30px;">
+        <a href="{% url 'tutorialhub:tutorial_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> 建立新筆記
+        </a>
+    </div>
+
+    {% if contributions %}
+    <div class="tutorials-grid">
+        {% for contribution in contributions %}
+        <div class="tutorial-card">
+            {% if contribution.tutorial.cover_image %}
+            <div class="tutorial-cover" style="background-image: url('{{ contribution.tutorial.cover_image.url }}');">
+            </div>
+            {% else %}
+            <div class="tutorial-cover tutorial-cover-default">
+                <i class="fas fa-book"></i>
+            </div>
+            {% endif %}
+
+            <div class="tutorial-card-content">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                    <h3 style="margin: 0;"><a href="{% url 'tutorialhub:tutorial_detail' contribution.tutorial.slug %}">
+                            {{ contribution.tutorial.title }}</a></h3>
+                    {% if not contribution.tutorial.is_published %}
+                    <span class="badge" style="background: #ed8936; color: white;">草稿</span>
+                    {% endif %}
+                </div>
+
+                <p class="tutorial-description">{{ contribution.tutorial.description|truncatewords:15 }}</p>
+
+                <div class="tutorial-stats">
+                    <span class="stat-item">
+                        <i class="fas fa-list-ol"></i>
+                        {{ contribution.tutorial.step_count }} 步驟
+                    </span>
+                    <span class="stat-item">
+                        <i class="fas fa-image"></i>
+                        {{ contribution.tutorial.image_count }} 圖片
+                    </span>
+                    <span class="stat-item">
+                        <i class="fas fa-code"></i>
+                        {{ contribution.tutorial.code_count }} 程式碼
+                    </span>
+                </div>
+
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+                    <span class="role-badge">{{ contribution.get_role_display }}</span>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <a href="{% url 'tutorialhub:tutorial_edit_steps' contribution.tutorial.slug %}"
+                        class="btn btn-primary btn-sm" style="flex: 1;">
+                        <i class="fas fa-edit"></i> 編輯
+                    </a>
+                    <a href="{% url 'tutorialhub:tutorial_detail' contribution.tutorial.slug %}"
+                        class="btn btn-outline btn-sm" style="flex: 1;">
+                        <i class="fas fa-eye"></i> 查看
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <h3>您還沒有任何筆記</h3>
+        <p>開始建立您的第一個筆記吧！</p>
+        <a href="{% url 'tutorialhub:tutorial_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> 建立筆記
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

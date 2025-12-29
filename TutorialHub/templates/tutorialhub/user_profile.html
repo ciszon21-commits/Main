@@ -1,0 +1,68 @@
+{% extends 'tutorialhub/base.html' %}
+{% load static %}
+
+{% block title %}{{ profile_user.get_full_name|default:profile_user.username }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="profile-header">
+        <div class="profile-avatar">
+            <i class="fas fa-user-circle"></i>
+        </div>
+        <div class="profile-info">
+            <h1>{{ profile_user.get_full_name|default:profile_user.username }}</h1>
+            <p class="username">@{{ profile_user.username }}</p>
+            {% if profile_user.email %}
+            <p class="email"><i class="fas fa-envelope"></i> {{ profile_user.email }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="profile-stats">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_tutorials }}</div>
+            <div class="stat-label">貢獻筆記</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ total_contribution }}</div>
+            <div class="stat-label">總貢獻度</div>
+        </div>
+    </div>
+
+    <div class="profile-section">
+        <h2><i class="fas fa-book-open"></i> 貢獻的筆記</h2>
+
+        {% if contributions %}
+        <div class="contributions-list">
+            {% for contribution in contributions %}
+            <div class="contribution-item">
+                <div class="contribution-main">
+                    <h3>
+                        <a href="{% url 'tutorialhub:tutorial_detail' contribution.tutorial.slug %}">
+                            {{ contribution.tutorial.title }}
+                        </a>
+                    </h3>
+                    <p>{{ contribution.tutorial.description|truncatewords:30 }}</p>
+                    <div class="contribution-meta">
+                        <span class="role-badge">{{ contribution.get_role_display }}</span>
+                        <span class="contribution-score">貢獻度: {{ contribution.contribution_score }}</span>
+                        <span><i class="fas fa-list-ol"></i> {{ contribution.tutorial.step_count }} 步驟</span>
+                        <span><i class="fas fa-eye"></i> {{ contribution.tutorial.view_count }} 瀏覽</span>
+                    </div>
+                </div>
+                <div class="contribution-actions">
+                    <a href="{% url 'tutorialhub:tutorial_detail' contribution.tutorial.slug %}"
+                        class="btn btn-outline btn-sm">查看</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>尚未貢獻任何筆記</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - 程式使用資料庫清冊</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'ProgramDbRegistry/css/program_db.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <div class="container">
+        <div class="form-container wide">
+            <div class="form-header">
+                <a href="{% url 'programdb:program_detail' program.pk %}" class="back-link">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd"
+                            d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+                    </svg>
+                    返回 {{ program.name }}
+                </a>
+                <h1>{{ title }}</h1>
+            </div>
+
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="message message-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="post" class="form">
+                {% csrf_token %}
+
+                <div class="form-section">
+                    <h2 class="form-section-title">基本資訊</h2>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="id_name">文件名稱 *</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <span class="error">{{ form.name.errors.0 }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_doc_type">文件類型 *</label>
+                            {{ form.doc_type }}
+                            <div class="help-text">
+                                <strong>手動建立</strong>：手動新增資料表與欄位<br>
+                                <strong>Django Model</strong>：貼上程式碼自動解析<br>
+                                <strong>Mermaid 圖表</strong>：直接貼上 Mermaid ER Diagram
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="id_description">說明</label>
+                        {{ form.description }}
+                    </div>
+                </div>
+
+                <!-- Django Model Section -->
+                <div class="form-section" id="django-code-section">
+                    <h2 class="form-section-title">Django Model 程式碼</h2>
+                    <p class="help-text">貼上 Django Model 程式碼，系統將自動解析出資料表與欄位。</p>
+                    <div class="form-group">
+                        {{ form.django_model_code }}
+                    </div>
+                </div>
+
+                <!-- Mermaid Section -->
+                <div class="form-section" id="mermaid-section">
+                    <h2 class="form-section-title">Mermaid ER Diagram</h2>
+                    <p class="help-text">貼上 Mermaid ER Diagram
+                        程式碼，例如：<code>erDiagram CUSTOMER ||--o{ ORDER : places</code></p>
+                    <div class="form-group">
+                        {{ form.mermaid_content }}
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <a href="{% url 'programdb:program_detail' program.pk %}" class="btn btn-secondary">取消</a>
+                    <button type="submit" class="btn btn-primary">
+                        {% if is_edit %}儲存變更{% else %}建立文件{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 根據文件類型顯示/隱藏對應區塊
+        const docTypeSelect = document.getElementById('id_doc_type');
+        const djangoSection = document.getElementById('django-code-section');
+        const mermaidSection = document.getElementById('mermaid-section');
+
+        function updateVisibility() {
+            djangoSection.style.display = 'none';
+            mermaidSection.style.display = 'none';
+
+            if (docTypeSelect.value === 'django') {
+                djangoSection.style.display = 'block';
+            } else if (docTypeSelect.value === 'mermaid') {
+                mermaidSection.style.display = 'block';
+            }
+        }
+
+        docTypeSelect.addEventListener('change', updateVisibility);
+        updateVisibility();
+    </script>
+</body>
+
+</html>

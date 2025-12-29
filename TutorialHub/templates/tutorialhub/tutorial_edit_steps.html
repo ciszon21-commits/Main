@@ -1,0 +1,556 @@
+{% extends 'tutorialhub/base.html' %}
+{% load static %}
+
+{% block title %}編輯步驟 - {{ tutorial.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .steps-container {
+        max-width: 900px;
+    }
+
+    .step-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .step-card.sortable-ghost {
+        opacity: 0.4;
+        background: #f0f0ff;
+    }
+
+    .step-card.sortable-chosen {
+        box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+    }
+
+    .step-header {
+        background: #f8f9fa;
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .step-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        color: #2d3748;
+    }
+
+    .step-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .step-number {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 15px;
+        flex-shrink: 0;
+    }
+
+    .step-info {
+        flex: 1;
+        display: flex;
+        align-items: center;
+    }
+
+    .snippet-count {
+        background: #e2e8f0;
+        color: #4a5568;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+    }
+
+    .add-step-form {
+        background: white;
+        border: 2px dashed #e2e8f0;
+        border-radius: 12px;
+        padding: 30px;
+        text-align: center;
+    }
+
+    .add-step-input {
+        max-width: 400px;
+        margin: 0 auto 15px;
+    }
+
+    .drag-handle {
+        cursor: grab;
+        color: #a0aec0;
+        padding: 10px;
+        font-size: 1.2rem;
+    }
+
+    .drag-handle:hover {
+        color: #667eea;
+    }
+
+    .drag-handle:active {
+        cursor: grabbing;
+    }
+
+    .toolbar {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .order-changed-notice {
+        display: none;
+        background: #ffeaa7;
+        color: #333;
+        padding: 10px 20px;
+        border-radius: 8px;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .order-changed-notice.show {
+        display: flex;
+    }
+
+    /* 步驟標題編輯樣式 */
+    .step-title-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+    }
+
+    .step-title-display {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+    }
+
+    .step-title-edit {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+    }
+
+    .step-title-edit.active {
+        display: flex;
+    }
+
+    .step-title-display.hidden {
+        display: none;
+    }
+
+    .step-title-input {
+        flex: 1;
+        padding: 6px 12px;
+        border: 2px solid #667eea;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 500;
+    }
+
+    .step-title-input:focus {
+        outline: none;
+        border-color: #764ba2;
+    }
+
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-edit-title {
+        background: transparent;
+        color: #a0aec0;
+    }
+
+    .btn-edit-title:hover {
+        background: #edf2f7;
+        color: #667eea;
+    }
+
+    .btn-save-title {
+        background: #48bb78;
+        color: white;
+    }
+
+    .btn-save-title:hover {
+        background: #38a169;
+    }
+
+    .btn-cancel-title {
+        background: #e2e8f0;
+        color: #4a5568;
+    }
+
+    .btn-cancel-title:hover {
+        background: #cbd5e0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1><i class="fas fa-list-ol"></i> 編輯步驟</h1>
+        <p class="subtitle">{{ tutorial.title }}</p>
+    </div>
+
+    <div class="toolbar">
+        <div>
+            <a href="{% url 'tutorialhub:tutorial_update' tutorial.slug %}" class="btn btn-outline btn-sm">
+                <i class="fas fa-cog"></i> 基本設定
+            </a>
+            <a href="{% url 'tutorialhub:manage_contributors' tutorial.slug %}" class="btn btn-outline btn-sm">
+                <i class="fas fa-users"></i> 管理貢獻者
+            </a>
+            <a href="{% url 'tutorialhub:tutorial_detail' tutorial.slug %}" class="btn btn-outline btn-sm">
+                <i class="fas fa-eye"></i> 預覽筆記
+            </a>
+        </div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div class="order-changed-notice" id="order-notice">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>順序已變更</span>
+                <button class="btn btn-primary btn-sm" onclick="saveOrder()">
+                    <i class="fas fa-save"></i> 儲存順序
+                </button>
+            </div>
+            <span class="text-muted">共 {{ tutorial.steps.count }} 個步驟</span>
+        </div>
+    </div>
+
+    <div class="steps-container">
+        <!-- 現有步驟列表 -->
+        <div id="steps-list">
+            {% for step in tutorial.steps.all %}
+            <div class="step-card" data-step-id="{{ step.id }}">
+                <div class="step-header">
+                    <div class="step-info">
+                        <span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                        <span class="step-number step-num-display">{{ forloop.counter }}</span>
+                        <div class="step-title-wrapper">
+                            <div class="step-title-display" id="title-display-{{ step.id }}">
+                                <h3 id="title-text-{{ step.id }}">{{ step.title }}</h3>
+                                <button class="btn-icon btn-edit-title" onclick="editStepTitle({{ step.id }})"
+                                    title="編輯標題">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </button>
+                            </div>
+                            <div class="step-title-edit" id="title-edit-{{ step.id }}">
+                                <input type="text" class="step-title-input" id="title-input-{{ step.id }}"
+                                    value="{{ step.title }}">
+                                <button class="btn-icon btn-save-title" onclick="saveStepTitle({{ step.id }})"
+                                    title="儲存">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn-icon btn-cancel-title" onclick="cancelEditStepTitle({{ step.id }})"
+                                    title="取消">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="step-actions">
+                        <span class="snippet-count">
+                            <i class="fas fa-puzzle-piece"></i> {{ step.snippets.count }} 個片段
+                        </span>
+                        <a href="{% url 'tutorialhub:step_edit_snippets' tutorial.slug step.id %}"
+                            class="btn btn-primary btn-sm">
+                            <i class="fas fa-edit"></i> 編輯內容
+                        </a>
+                        <button class="btn btn-danger btn-sm"
+                            onclick="deleteStep({{ step.id }}, '{{ step.title|escapejs }}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state" style="padding: 40px;" id="empty-state">
+                <i class="fas fa-inbox" style="font-size: 3rem; color: #e2e8f0;"></i>
+                <h3>尚未新增任何步驟</h3>
+                <p>從下方新增第一個步驟開始</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 新增步驟表單 -->
+        <div class="add-step-form">
+            <h4><i class="fas fa-plus"></i> 新增步驟</h4>
+            <div class="add-step-input">
+                <input type="text" id="new-step-title" class="form-control" placeholder="輸入步驟標題...">
+            </div>
+            <button class="btn btn-primary" onclick="addStep()">
+                <i class="fas fa-plus"></i> 新增步驟
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- SortableJS for drag and drop -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+    const csrftoken = getCookie('csrftoken');
+    const tutorialSlug = '{{ tutorial.slug }}';
+    let orderChanged = false;
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Initialize sortable
+    const stepsList = document.getElementById('steps-list');
+    if (stepsList) {
+        new Sortable(stepsList, {
+            animation: 150,
+            handle: '.drag-handle',
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            onEnd: function (evt) {
+                orderChanged = true;
+                document.getElementById('order-notice').classList.add('show');
+                updateStepNumbers();
+            }
+        });
+    }
+
+    function updateStepNumbers() {
+        const cards = document.querySelectorAll('.step-card');
+        cards.forEach((card, index) => {
+            const numDisplay = card.querySelector('.step-num-display');
+            if (numDisplay) {
+                numDisplay.textContent = index + 1;
+            }
+        });
+    }
+
+    function saveOrder() {
+        const cards = document.querySelectorAll('.step-card');
+        const orderData = [];
+
+        cards.forEach((card, index) => {
+            orderData.push({
+                id: parseInt(card.dataset.stepId),
+                order: index
+            });
+        });
+
+        fetch(`/tutorials/${tutorialSlug}/steps/reorder/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    orderChanged = false;
+                    document.getElementById('order-notice').classList.remove('show');
+                    alert('順序已儲存！');
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('發生錯誤，請稍後再試');
+            });
+    }
+
+    function addStep() {
+        const titleInput = document.getElementById('new-step-title');
+        const title = titleInput.value.trim();
+
+        if (!title) {
+            alert('請輸入步驟標題');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('title', title);
+
+        fetch(`/tutorials/${tutorialSlug}/steps/add/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+            },
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('發生錯誤，請稍後再試');
+            });
+    }
+
+    function deleteStep(stepId, stepTitle) {
+        if (!confirm(`確定要刪除步驟「${stepTitle}」嗎？所有內容都會被刪除。`)) {
+            return;
+        }
+
+        fetch(`/tutorials/${tutorialSlug}/steps/${stepId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('發生錯誤，請稍後再試');
+            });
+    }
+
+    function editStepTitle(stepId) {
+        const displayEl = document.getElementById(`title-display-${stepId}`);
+        const editEl = document.getElementById(`title-edit-${stepId}`);
+        const inputEl = document.getElementById(`title-input-${stepId}`);
+
+        displayEl.classList.add('hidden');
+        editEl.classList.add('active');
+        inputEl.focus();
+        inputEl.select();
+    }
+
+    function cancelEditStepTitle(stepId) {
+        const displayEl = document.getElementById(`title-display-${stepId}`);
+        const editEl = document.getElementById(`title-edit-${stepId}`);
+        const inputEl = document.getElementById(`title-input-${stepId}`);
+        const originalTitle = document.getElementById(`title-text-${stepId}`).textContent;
+
+        inputEl.value = originalTitle;
+        displayEl.classList.remove('hidden');
+        editEl.classList.remove('active');
+    }
+
+    function saveStepTitle(stepId) {
+        const inputEl = document.getElementById(`title-input-${stepId}`);
+        const titleTextEl = document.getElementById(`title-text-${stepId}`);
+        const displayEl = document.getElementById(`title-display-${stepId}`);
+        const editEl = document.getElementById(`title-edit-${stepId}`);
+        const newTitle = inputEl.value.trim();
+
+        if (!newTitle) {
+            alert('標題不可為空');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('title', newTitle);
+
+        fetch(`/tutorials/${tutorialSlug}/steps/${stepId}/update/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+            },
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    titleTextEl.textContent = newTitle;
+                    displayEl.classList.remove('hidden');
+                    editEl.classList.remove('active');
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('發生錯誤，請稍後再試');
+            });
+    }
+
+    // Add Enter key support for step title editing
+    document.querySelectorAll('.step-title-input').forEach(input => {
+        input.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const stepId = this.id.replace('title-input-', '');
+                saveStepTitle(stepId);
+            }
+        });
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                const stepId = this.id.replace('title-input-', '');
+                cancelEditStepTitle(stepId);
+            }
+        });
+    });
+
+    // Enter key to submit
+    document.getElementById('new-step-title').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addStep();
+        }
+    });
+
+    // Warn before leaving if order changed
+    window.addEventListener('beforeunload', function (e) {
+        if (orderChanged) {
+            e.preventDefault();
+            e.returnValue = '您有未儲存的順序變更，確定要離開嗎？';
+        }
+    });
+</script>
+{% endblock %}
