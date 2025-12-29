@@ -72,6 +72,7 @@
                 <div class="text-center">數計</div>
                 <div class="text-center">訪價</div>
                 <div class="text-center">預算</div>
+                <div class="text-center">單價</div>
                 <div class="text-center">整合<br>預算</div>
                 <div class="text-center">空白<br>標單</div>
                 <div class="text-center">進度</div>
@@ -100,11 +101,16 @@
                     </div>
                     <div class="text-center text-muted">-</div>
                     <div class="text-center text-muted">-</div>
+                    <div class="text-center text-muted">-</div>
                     {% else %}
                     {# 整合專業 #}
                     <div class="text-center text-muted">-</div>
                     <div class="text-center text-muted">-</div>
                     <div class="text-center text-muted">-</div>
+                    <div class="text-center">
+                        {% if disc_data.price_qs.exists %}<span class="dot dot-info"></span>{% else %}<span
+                            class="dot dot-gray"></span>{% endif %}
+                    </div>
                     <div class="text-center">
                         {% if disc_data.budget_qs.exists %}<span class="dot dot-info"></span>{% else %}<span
                             class="dot dot-gray"></span>{% endif %}
@@ -183,6 +189,10 @@
                     <div class="integrated-file-group mt-lg">
                         <div class="sub-category-label">空白標單</div>
                         {% include 'budget_review/includes/_file_grouped_list.html' with grouped_files=discipline.grouped_blank_tender_files file_type='blank_tender' discipline_id=discipline.id is_view_only=True %}
+                    </div>
+                    <div class="integrated-file-group mt-lg">
+                        <div class="sub-category-label">單價資料</div>
+                        {% include 'budget_review/includes/_file_grouped_list.html' with grouped_files=discipline.grouped_price_files file_type='price_data' discipline_id=discipline.id is_view_only=True %}
                     </div>
                 </div>
                 {% endif %}
@@ -307,7 +317,8 @@
 
     .tracker-row {
         display: grid;
-        grid-template-columns: 1fr 35px 35px 35px 35px 35px 55px;
+        grid-template-columns: 1fr 35px 35px 35px 35px 35px 35px 55px;
+        /* Added one more column */
         align-items: center;
         padding: 8px 10px;
         border-bottom: 1px solid #F8FAFC;
