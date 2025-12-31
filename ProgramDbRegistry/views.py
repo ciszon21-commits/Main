@@ -53,7 +53,7 @@ def team_detail(request, pk):
     members = team.members.select_related('user').all()
     db_servers = DatabaseServer.objects.all()
     platform_apis = PlatformApi.objects.all()
-    virtual_employees = team.virtual_employees.select_related('created_by').all()
+    virtual_employees = team.virtual_employees.select_related('created_by').order_by('code')
     
     # Group programs by type for categorized display
     programs_by_type = {
@@ -829,7 +829,7 @@ def virtual_employee_create(request, team_pk):
             ve.save()
             
             messages.success(request, f'虛擬員工「{ve.name}」已成功建立！')
-            return redirect('programdb:team_detail', pk=team.pk)
+            return redirect('programdb:virtual_employee_list', team_pk=team.pk)
     else:
         form = VirtualEmployeeForm()
     
@@ -838,6 +838,25 @@ def virtual_employee_create(request, team_pk):
         'team': team,
         'title': '新增虛擬員工',
         'is_edit': False
+    })
+
+
+@login_required
+def virtual_employee_list(request, team_pk):
+    """虛擬員工列表頁面"""
+    team = get_object_or_404(DevTeam, pk=team_pk)
+    
+    if not check_team_member(request.user, team):
+        return render(request, 'ProgramDbRegistry/team_access_denied.html', {
+            'team': team
+        })
+    
+    virtual_employees = team.virtual_employees.select_related('created_by').order_by('code')
+    
+    return render(request, 'ProgramDbRegistry/virtual_employee_list.html', {
+        'team': team,
+        'virtual_employees': virtual_employees,
+        'is_creator': check_team_creator(request.user, team)
     })
 
 
@@ -855,7 +874,7 @@ def virtual_employee_update(request, pk):
         if form.is_valid():
             form.save()
             messages.success(request, f'虛擬員工「{ve.name}」已更新！')
-            return redirect('programdb:team_detail', pk=team.pk)
+            return redirect('programdb:virtual_employee_list', team_pk=team.pk)
     else:
         form = VirtualEmployeeForm(instance=ve)
     
@@ -883,7 +902,7 @@ def virtual_employee_delete(request, pk):
     ve.delete()
     
     messages.success(request, f'虛擬員工「{ve_name}」已刪除！')
-    return redirect('programdb:team_detail', pk=team_pk)
+    return redirect('programdb:virtual_employee_list', team_pk=team_pk)
 
 
 @login_required
@@ -904,7 +923,7 @@ def virtual_employee_retire(request, pk):
             ve.save()
             
             messages.success(request, f'虛擬員工「{ve.name}」已標記為退休！')
-            return redirect('programdb:team_detail', pk=team.pk)
+            return redirect('programdb:virtual_employee_list', team_pk=team.pk)
     else:
         form = VirtualEmployeeRetireForm()
     
