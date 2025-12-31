@@ -1,0 +1,532 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>簽章管理員設定 - EV Code Signing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'EVCodeSigning/css/ev_code_signing.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    <style>
+        .admin-manage-page {
+            max-width: 900px;
+            margin: 2rem auto;
+        }
+
+        .search-section {
+            background: var(--card-background);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .search-input-wrapper {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3rem;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+        }
+
+        .search-results.show {
+            display: block;
+        }
+
+        .search-result-item {
+            padding: 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background: var(--background-color);
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .user-details {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .admin-list {
+            background: var(--card-background);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .admin-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .admin-list-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .admin-count {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .admin-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 0.75rem;
+            background: var(--background-color);
+            transition: all 0.2s;
+        }
+
+        .admin-item:hover {
+            transform: translateX(4px);
+        }
+
+        .admin-item.inactive {
+            opacity: 0.6;
+        }
+
+        .admin-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.25rem;
+            margin-right: 1rem;
+        }
+
+        .admin-details {
+            flex: 1;
+        }
+
+        .admin-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .admin-meta {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .admin-status {
+            margin-right: 1rem;
+        }
+
+        .status-active {
+            color: var(--success-color);
+            font-weight: 500;
+        }
+
+        .status-inactive {
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .empty-admin-list {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .empty-admin-list svg {
+            margin-bottom: 1rem;
+        }
+
+        .no-results {
+            padding: 1rem;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .loading {
+            padding: 1rem;
+            text-align: center;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="breadcrumb-nav">
+        <div class="container">
+            <a href="{% url 'evcodesigning:info' %}">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd"
+                        d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5z" />
+                </svg>
+                返回 EV Code Signing
+            </a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="admin-manage-page">
+            <header class="page-header">
+                <div class="page-header-content">
+                    <h1 class="page-title">
+                        <svg width="28" height="28" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M6.5 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3zM11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+                            <path
+                                d="M4.5 0A2.5 2.5 0 0 0 2 2.5V14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2.5A2.5 2.5 0 0 0 11.5 0h-7zM3 2.5A1.5 1.5 0 0 1 4.5 1h7A1.5 1.5 0 0 1 13 2.5v10.795a4.2 4.2 0 0 0-.776-.492C11.392 12.387 10.063 12 8 12s-3.392.387-4.224.803a4.2 4.2 0 0 0-.776.492V2.5z" />
+                        </svg>
+                        簽章管理員設定
+                    </h1>
+                    <p class="page-subtitle">管理 EV Code Signing 簽章管理員名單</p>
+                </div>
+            </header>
+
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Search Section -->
+            <section class="search-section">
+                <h3 style="margin-bottom: 1rem;">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                    </svg>
+                    新增簽章管理員
+                </h3>
+                <div class="search-input-wrapper">
+                    <svg class="search-icon" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+                    </svg>
+                    <input type="text" id="search-input" class="search-input" placeholder="輸入使用者帳號、姓名或 Email 搜尋..."
+                        autocomplete="off">
+                    <div id="search-results" class="search-results"></div>
+                </div>
+                <p style="margin-top: 0.75rem; font-size: 0.85rem; color: var(--text-muted);">
+                    搜尋並選擇要新增為簽章管理員的使用者
+                </p>
+            </section>
+
+            <!-- Admin List -->
+            <section class="admin-list">
+                <div class="admin-list-header">
+                    <h3 class="admin-list-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                            <path fill-rule="evenodd"
+                                d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z" />
+                            <path d="M4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z" />
+                        </svg>
+                        目前簽章管理員
+                    </h3>
+                    <span class="admin-count" id="admin-count">{{ signing_admins|length }} 位</span>
+                </div>
+
+                <div id="admin-list-container">
+                    {% if signing_admins %}
+                    {% for admin in signing_admins %}
+                    <div class="admin-item {% if not admin.is_active %}inactive{% endif %}"
+                        data-admin-id="{{ admin.pk }}">
+                        <div class="admin-avatar">
+                            {{ admin.user.username|first|upper }}
+                        </div>
+                        <div class="admin-details">
+                            <div class="admin-name">{{ admin.user.get_full_name|default:admin.user.username }}</div>
+                            <div class="admin-meta">
+                                {{ admin.user.username }}
+                                {% if admin.user.email %}• {{ admin.user.email }}{% endif %}
+                                • 新增於 {{ admin.created_at|date:"Y-m-d" }}
+                                {% if admin.created_by %}
+                                （由 {{ admin.created_by.get_full_name|default:admin.created_by.username }} 設定）
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="admin-status">
+                            <span class="{% if admin.is_active %}status-active{% else %}status-inactive{% endif %}">
+                                {% if admin.is_active %}● 已啟用{% else %}○ 已停用{% endif %}
+                            </span>
+                        </div>
+                        <div class="admin-actions">
+                            <button type="button" class="btn btn-sm btn-secondary btn-icon toggle-btn"
+                                data-admin-id="{{ admin.pk }}"
+                                title="{% if admin.is_active %}停用{% else %}啟用{% endif %}">
+                                {% if admin.is_active %}
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path
+                                        d="M10.706 3.294A12.545 12.545 0 0 0 8 3C5.259 3 2.723 3.882.663 5.379a.485.485 0 0 0-.048.736.518.518 0 0 0 .668.05A11.448 11.448 0 0 1 8 4c.63 0 1.249.05 1.852.145l.854-.854zM8 5.754a4.5 4.5 0 0 0-4.465 3.889l-.983.984C2.242 8.17 4.9 6 8 6c.741 0 1.454.11 2.123.315l-.78.78A3.486 3.486 0 0 0 8 5.754zm.626 4.374 1.021 1.021c.478-.229.887-.571 1.191-.994l-1.146-1.146a2.5 2.5 0 0 1-1.066 1.12z" />
+                                    <path d="m.854.854 14.292 14.292.708-.708L1.562.146l-.708.708z" />
+                                </svg>
+                                {% else %}
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z" />
+                                    <path
+                                        d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" />
+                                </svg>
+                                {% endif %}
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger btn-icon remove-btn"
+                                data-admin-id="{{ admin.pk }}"
+                                data-admin-name="{{ admin.user.get_full_name|default:admin.user.username }}" title="移除">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path
+                                        d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" />
+                                    <path fill-rule="evenodd"
+                                        d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="empty-admin-list">
+                        <svg width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                            <path fill-rule="evenodd"
+                                d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z" />
+                            <path d="M4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z" />
+                        </svg>
+                        <p>尚未設定任何簽章管理員</p>
+                        <p style="font-size: 0.9rem;">請使用上方搜尋欄新增簽章管理員</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('search-input');
+            const searchResults = document.getElementById('search-results');
+            let searchTimeout = null;
+
+            // Search users
+            searchInput.addEventListener('input', function () {
+                const query = this.value.trim();
+
+                if (searchTimeout) clearTimeout(searchTimeout);
+
+                if (query.length < 2) {
+                    searchResults.classList.remove('show');
+                    return;
+                }
+
+                searchTimeout = setTimeout(() => {
+                    searchResults.innerHTML = '<div class="loading">搜尋中...</div>';
+                    searchResults.classList.add('show');
+
+                    fetch(`{% url 'evcodesigning:search_users_for_admin' %}?q=${encodeURIComponent(query)}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.users.length === 0) {
+                                searchResults.innerHTML = '<div class="no-results">找不到符合的使用者</div>';
+                            } else {
+                                searchResults.innerHTML = data.users.map(user => `
+                                    <div class="search-result-item" data-user-id="${user.id}">
+                                        <div class="user-info">
+                                            <div class="user-name">${user.full_name}</div>
+                                            <div class="user-details">${user.username}${user.email ? ' • ' + user.email : ''}</div>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-primary add-admin-btn" data-user-id="${user.id}">
+                                            新增
+                                        </button>
+                                    </div>
+                                `).join('');
+                            }
+                        })
+                        .catch(err => {
+                            searchResults.innerHTML = '<div class="no-results">搜尋時發生錯誤</div>';
+                            console.error(err);
+                        });
+                }, 300);
+            });
+
+            // Add admin
+            searchResults.addEventListener('click', function (e) {
+                const addBtn = e.target.closest('.add-admin-btn');
+                if (!addBtn) return;
+
+                const userId = addBtn.dataset.userId;
+                addBtn.disabled = true;
+                addBtn.textContent = '新增中...';
+
+                const formData = new FormData();
+                formData.append('user_id', userId);
+
+                fetch('{% url "evcodesigning:add_signing_admin" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    }
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert(data.message);
+                            location.reload();
+                        } else {
+                            alert('錯誤：' + data.error);
+                            addBtn.disabled = false;
+                            addBtn.textContent = '新增';
+                        }
+                    })
+                    .catch(err => {
+                        alert('發生錯誤，請稍後再試');
+                        addBtn.disabled = false;
+                        addBtn.textContent = '新增';
+                        console.error(err);
+                    });
+            });
+
+            // Toggle admin
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const adminId = this.dataset.adminId;
+
+                    fetch(`/ev-signing/superuser/admins/${adminId}/toggle/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                        }
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert(data.message);
+                                location.reload();
+                            } else {
+                                alert('錯誤：' + data.error);
+                            }
+                        })
+                        .catch(err => {
+                            alert('發生錯誤，請稍後再試');
+                            console.error(err);
+                        });
+                });
+            });
+
+            // Remove admin
+            document.querySelectorAll('.remove-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const adminId = this.dataset.adminId;
+                    const adminName = this.dataset.adminName;
+
+                    if (!confirm(`確定要移除 ${adminName} 的簽章管理員權限嗎？`)) return;
+
+                    fetch(`/ev-signing/superuser/admins/${adminId}/remove/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                        }
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert(data.message);
+                                location.reload();
+                            } else {
+                                alert('錯誤：' + data.error);
+                            }
+                        })
+                        .catch(err => {
+                            alert('發生錯誤，請稍後再試');
+                            console.error(err);
+                        });
+                });
+            });
+
+            // Hide search results when clicking outside
+            document.addEventListener('click', function (e) {
+                if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                    searchResults.classList.remove('show');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

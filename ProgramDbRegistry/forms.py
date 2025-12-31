@@ -2,7 +2,8 @@ from django import forms
 from django.contrib.auth.models import User
 from .models import (
     DevTeam, Program, ProgramDatabase, FileLocation,
-    DatabaseDesignDoc, DesignTable, DesignField, DatabaseServer
+    DatabaseDesignDoc, DesignTable, DesignField, DatabaseServer,
+    PlatformApi, ProgramApiUsage
 )
 
 
@@ -236,5 +237,63 @@ DesignTableFormSet = forms.inlineformset_factory(
 
 DesignFieldFormSet = forms.inlineformset_factory(
     DesignTable, DesignField, form=DesignFieldForm,
+    extra=1, can_delete=True
+)
+
+
+class PlatformApiForm(forms.ModelForm):
+    """平台 API 表單"""
+    class Meta:
+        model = PlatformApi
+        fields = ['name', 'api_endpoint', 'description', 'auth_type', 'documentation_url']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'ui input',
+                'placeholder': '例如：PMIS API、ERP API'
+            }),
+            'api_endpoint': forms.URLInput(attrs={
+                'class': 'ui input',
+                'placeholder': '例如：https://api.example.com'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'ui textarea',
+                'placeholder': '平台 API 說明（選填）',
+                'rows': 2
+            }),
+            'auth_type': forms.Select(attrs={
+                'class': 'ui dropdown'
+            }),
+            'documentation_url': forms.URLInput(attrs={
+                'class': 'ui input',
+                'placeholder': 'API 文件連結（選填）'
+            }),
+        }
+
+
+class ProgramApiUsageForm(forms.ModelForm):
+    """程式使用平台 API 表單"""
+    class Meta:
+        model = ProgramApiUsage
+        fields = ['platform_api', 'api_path', 'access_type', 'description']
+        widgets = {
+            'platform_api': forms.Select(attrs={
+                'class': 'ui dropdown'
+            }),
+            'api_path': forms.TextInput(attrs={
+                'class': 'ui input',
+                'placeholder': '例如：/api/v1/projects'
+            }),
+            'access_type': forms.Select(attrs={
+                'class': 'ui dropdown'
+            }),
+            'description': forms.TextInput(attrs={
+                'class': 'ui input',
+                'placeholder': '說明（選填）'
+            }),
+        }
+
+
+ProgramApiUsageFormSet = forms.inlineformset_factory(
+    Program, ProgramApiUsage, form=ProgramApiUsageForm,
     extra=1, can_delete=True
 )
