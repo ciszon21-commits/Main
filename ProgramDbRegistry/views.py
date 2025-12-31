@@ -11,12 +11,12 @@ import json
 from .models import (
     DevTeam, DevTeamMember, Program, ProgramDatabase,
     FileLocation, DatabaseDesignDoc, DesignTable, DesignField, DatabaseServer,
-    PlatformApi, ProgramApiUsage
+    PlatformApi, ProgramApiUsage, VirtualEmployee
 )
 from .forms import (
     DevTeamForm, ProgramForm, ProgramDatabaseFormSet, FileLocationFormSet,
     DatabaseDesignDocForm, DesignTableFormSet, DesignFieldFormSet, DatabaseServerForm,
-    PlatformApiForm, ProgramApiUsageFormSet
+    PlatformApiForm, ProgramApiUsageFormSet, VirtualEmployeeForm, VirtualEmployeeRetireForm
 )
 
 
@@ -53,6 +53,7 @@ def team_detail(request, pk):
     members = team.members.select_related('user').all()
     db_servers = DatabaseServer.objects.all()
     platform_apis = PlatformApi.objects.all()
+    virtual_employees = team.virtual_employees.select_related('created_by').all()
     
     # Group programs by type for categorized display
     programs_by_type = {
@@ -72,6 +73,7 @@ def team_detail(request, pk):
         'members': members,
         'db_servers': db_servers,
         'platform_apis': platform_apis,
+        'virtual_employees': virtual_employees,
         'is_creator': check_team_creator(request.user, team)
     })
 
@@ -807,3 +809,108 @@ def get_api_programs(request, pk, api_id):
     except PlatformApi.DoesNotExist:
         return JsonResponse({'success': False, 'error': '找不到該平台 API'}, status=404)
 
+
+# ===== Virtual Employee Management Views =====
+
+@login_required
+def virtual_employee_create(request, team_pk):
+    """建立虛擬員工"""
+    team = get_object_or_404(DevTeam, pk=team_pk)
+    
+    if not check_team_member(request.user, team):
+        return HttpResponseForbidden("只有團隊成員可以建立虛擬員工")
+    
+    if request.method == 'POST':
+        form = VirtualEmployeeForm(request.POST)
+        if form.is_valid():
+            ve = form.save(commit=False)
+            ve.team = team
+            ve.created_by = request.user
+            ve.save()
+            
+            messages.success(request, f'虛擬員工「{ve.name}」已成功建立！')
+            return redirect('programdb:team_detail', pk=team.pk)
+    else:
+        form = VirtualEmployeeForm()
+    
+    return render(request, 'ProgramDbRegistry/virtual_employee_form.html', {
+        'form': form,
+        'team': team,
+        'title': '新增虛擬員工',
+        'is_edit': False
+    })
+
+
+@login_required
+def virtual_employee_update(request, pk):
+    """編輯虛擬員工"""
+    ve = get_object_or_404(VirtualEmployee, pk=pk)
+    team = ve.team
+    
+    if not check_team_member(request.user, team):
+        return HttpResponseForbidden("只有團隊成員可以編輯虛擬員工")
+    
+    if request.method == 'POST':
+        form = VirtualEmployeeForm(request.POST, instance=ve)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'虛擬員工「{ve.name}」已更新！')
+            return redirect('programdb:team_detail', pk=team.pk)
+    else:
+        form = VirtualEmployeeForm(instance=ve)
+    
+    return render(request, 'ProgramDbRegistry/virtual_employee_form.html', {
+        'form': form,
+        'team': team,
+        've': ve,
+        'title': f'編輯虛擬員工：{ve.name}',
+        'is_edit': True
+    })
+
+
+@login_required
+@require_POST
+def virtual_employee_delete(request, pk):
+    """刪除虛擬員工"""
+    ve = get_object_or_404(VirtualEmployee, pk=pk)
+    team = ve.team
+    
+    if not check_team_member(request.user, team):
+        return JsonResponse({'success': False, 'error': '只有團隊成員可以刪除虛擬員工'}, status=403)
+    
+    ve_name = ve.name
+    team_pk = team.pk
+    ve.delete()
+    
+    messages.success(request, f'虛擬員工「{ve_name}」已刪除！')
+    return redirect('programdb:team_detail', pk=team_pk)
+
+
+@login_required
+def virtual_employee_retire(request, pk):
+    """將虛擬員工標記為已退休"""
+    ve = get_object_or_404(VirtualEmployee, pk=pk)
+    team = ve.team
+    
+    if not check_team_member(request.user, team):
+        return HttpResponseForbidden("只有團隊成員可以操作")
+    
+    if request.method == 'POST':
+        form = VirtualEmployeeRetireForm(request.POST)
+        if form.is_valid():
+            ve.status = 'retired'
+            ve.retirement_reason = form.cleaned_data['retirement_reason']
+            ve.retired_at = timezone.now()
+            ve.save()
+            
+            messages.success(request, f'虛擬員工「{ve.name}」已標記為退休！')
+            return redirect('programdb:team_detail', pk=team.pk)
+    else:
+        form = VirtualEmployeeRetireForm()
+    
+    return render(request, 'ProgramDbRegistry/virtual_employee_retire.html', {
+        'form': form,
+        'team': team,
+        've': ve,
+        'title': f'退休虛擬員工：{ve.name}'
+    })
