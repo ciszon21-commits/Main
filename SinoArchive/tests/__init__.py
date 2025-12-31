@@ -1,1 +1,0 @@
-# SinoArchive tests package

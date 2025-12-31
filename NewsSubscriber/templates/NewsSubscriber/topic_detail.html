@@ -1,0 +1,178 @@
+{% extends 'NewsSubscriber/base.html' %}
+
+{% block content %}
+<!-- 主題資訊卡片 -->
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+        <div style="flex: 1;">
+            <h1 style="margin: 0 0 10px 0;">{{ topic.name }}</h1>
+            <div style="margin-bottom: 10px;">
+                <strong>關鍵字：</strong>
+                {% for keyword in topic.keywords.all %}
+                <span class="keyword-tag">{{ keyword.word }}</span>
+                {% empty %}
+                <span style="color: #999;">尚無關鍵字</span>
+                {% endfor %}
+            </div>
+            <div style="font-size: 0.9em; color: #7f8c8d;">
+                <strong>訂閱者：</strong>
+                {% if subscribers %}
+                <span>{{ subscribers.count }} 人</span>
+                <button onclick="toggleSubscribers()" class="btn-small" style="margin-left: 10px;">顯示/隱藏</button>
+                <div id="subscribers-list"
+                    style="display: none; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                    {% for sub in subscribers %}
+                    <div style="padding: 3px 0;">
+                        {{ sub.user.get_full_name }} ({{ sub.email }})
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <span style="color: #999;">暫無訂閱者</span>
+                {% endif %}
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px; flex-shrink: 0;">
+            <form method="post" action="{% url 'news_subscriber:fetch_topic_news' topic.id %}" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn" onclick="return confirm('確定要立即擷取最新新聞嗎？');">立即擷取</button>
+            </form>
+            <a href="{% url 'news_subscriber:keyword_add' topic.id %}" class="btn">新增關鍵字</a>
+        </div>
+    </div>
+</div>
+
+<!-- 今日摘要 -->
+{% if today_summary %}
+<div class="card" style="border-left: 4px solid #27ae60;">
+    <h2 style="color: #27ae60; margin-top: 0;">今日摘要 ({{ today_summary.date }})</h2>
+    <div style="font-size: 0.9em; color: #7f8c8d; margin-bottom: 10px;">
+        新聞數量：{{ today_summary.news_count }} 則
+    </div>
+
+    <!-- 今日重點 -->
+    <div class="summary-content">{{ today_summary.summary|safe }}</div>
+
+    <!-- 新聞來源 -->
+    {% if today_summary.news_source_html %}
+    <div style="margin-top: 25px; padding-top: 20px; border-top: 2px solid #ecf0f1;">
+        {{ today_summary.news_source_html|safe }}
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- 歷史摘要（收合） -->
+{% if past_summaries %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;"
+        onclick="togglePastSummaries()">
+        <h2 style="margin: 0; color: #7f8c8d;">歷史摘要 ({{ past_summaries.count }} 天)</h2>
+        <span id="toggle-icon" style="font-size: 1.5em; color: #7f8c8d;">▼</span>
+    </div>
+    <div id="past-summaries" style="display: none; margin-top: 15px;">
+        {% for summary in past_summaries %}
+        <div class="summary-box-collapsed" style="margin-bottom: 15px;">
+            <h3 style="margin: 0 0 5px 0; font-size: 1.1em;">{{ summary.date }}</h3>
+            <div style="font-size: 0.85em; color: #7f8c8d; margin-bottom: 8px;">
+                新聞數量：{{ summary.news_count }} 則
+            </div>
+            <div style="font-size: 0.95em;">{{ summary.summary|safe }}</div>
+            {% if summary.news_source_html %}
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+                {{ summary.news_source_html|safe }}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- 最新新聞 -->
+<div class="card">
+    <h2 style="margin-top: 0;">最新新聞 (前 50 筆)</h2>
+    {% for news in news_items %}
+    <div class="news-item">
+        <h3 style="margin: 0 0 5px 0; font-size: 1.05em;">
+            <a href="{{ news.url }}" target="_blank" style="text-decoration: none; color: #2980b9;">{{ news.title }}</a>
+        </h3>
+        <div class="news-meta">
+            <span>{{ news.source }}</span> | <span>{{ news.date|date:"Y-m-d H:i" }}</span>
+        </div>
+    </div>
+    {% empty %}
+    <p style="color: #999;">尚無新聞資料。請點擊「立即擷取」按鈕開始抓取新聞。</p>
+    {% endfor %}
+</div>
+
+<script>
+    function toggleSubscribers() {
+        const list = document.getElementById('subscribers-list');
+        list.style.display = list.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function togglePastSummaries() {
+        const summaries = document.getElementById('past-summaries');
+        const icon = document.getElementById('toggle-icon');
+        if (summaries.style.display === 'none') {
+            summaries.style.display = 'block';
+            icon.textContent = '▲';
+        } else {
+            summaries.style.display = 'none';
+            icon.textContent = '▼';
+        }
+    }
+</script>
+
+<style>
+    .keyword-tag {
+        background: #3498db;
+        color: white;
+        padding: 4px 10px;
+        border-radius: 12px;
+        margin-right: 5px;
+        font-size: 0.9em;
+        display: inline-block;
+    }
+
+    .btn-small {
+        background-color: #95a5a6;
+        color: white;
+        padding: 3px 10px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85em;
+    }
+
+    .btn-small:hover {
+        background-color: #7f8c8d;
+    }
+
+    .summary-content {
+        line-height: 1.8;
+    }
+
+    .summary-box-collapsed {
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-left: 3px solid #95a5a6;
+        border-radius: 4px;
+    }
+
+    .news-item {
+        border-bottom: 1px solid #ecf0f1;
+        padding: 12px 0;
+    }
+
+    .news-item:last-child {
+        border-bottom: none;
+    }
+
+    .news-meta {
+        font-size: 0.85rem;
+        color: #7f8c8d;
+    }
+</style>
+{% endblock %}

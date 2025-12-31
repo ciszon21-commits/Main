@@ -1,0 +1,650 @@
+{% extends 'budget_review/base.html' %}
+{% load static %}
+
+{% block title %}{{ stage.name }} - 工作區{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumb-nav">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'budget_review:project_list' %}">標案列表</a></li>
+        <li class="breadcrumb-separator">/</li>
+        <li class="breadcrumb-item"><a href="{% url 'budget_review:project_detail' project.pk %}">{{ project.name }}</a>
+        </li>
+        <li class="breadcrumb-separator">/</li>
+        <li class="breadcrumb-item active"><span>{{ stage.name }} - 工作區</span></li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+{# CSRF Token for AJAX #}
+<form style="display: none;">{% csrf_token %}</form>
+
+{# 階段資訊 #}
+<div class="stage-info-section">
+    <h1 class="stage-header-title">{{ stage.name }} - <span style="color: #64748B;">工作區</span></h1>
+
+    <div class="stage-header-meta">
+        {% if stage.deadline %}
+        <div class="meta-inline-item">
+            <span class="meta-label">提送截止時間：</span>
+            <span class="meta-deadline">{{ stage.deadline|date:"Y/m/d H:i" }}</span>
+            <span class="meta-countdown {% if is_past_deadline %}status-expired{% endif %}">
+                ({{ stage.time_remaining }})
+            </span>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if stage.description %}
+    <p class="stage-header-desc">{{ stage.description }}</p>
+    {% endif %}
+</div>
+
+{# 專業分組 Tabs #}
+<div class="workspace-wrapper">
+    <div class="tabs-scroll-container">
+        <div class="minimal-tabs">
+            {% for discipline in disciplines %}
+            <button class="tab-pill {% if forloop.first %}active{% endif %}" data-tab-id="disc-{{ discipline.id }}"
+                onclick="switchTab({{ discipline.id }})">
+                {% if not discipline.is_overall %}
+                <span class="tab-code-flat">{{ discipline.code }}</span>
+                {% endif %}
+                <span class="tab-label-flat">{{ discipline.name }}</span>
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# Tab 內容 #}
+    <div class="workspace-panel-flat">
+        {% for discipline in disciplines %}
+        <div class="tab-pane {% if forloop.first %}active{% endif %}" id="disc-{{ discipline.id }}">
+            <div class="discipline-content-flat">
+                {% if not discipline.is_overall %}
+                {# 一般專業：三種檔案 #}
+                <div class="file-category-section">
+                    <div class="section-title-bar">
+                        <div class="title-with-icon">
+                            <span class="emoji">📊</span>
+                            <h3>數量計算書</h3>
+                            <span class="format-hint">（支援 Excel, PDF）</span>
+                        </div>
+                        {% if discipline.user_can_upload and not is_past_deadline %}
+                        <button class="btn btn-primary btn-sm rounded-pill px-4"
+                            onclick="handleUpload('quantity', {{ discipline.id }})">
+                            上傳檔案
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% include 'budget_review/includes/_file_grouped_list.html' with grouped_files=discipline.grouped_quantity_files file_type='quantity' discipline_id=discipline.id %}
+                </div>
+
+                <div class="file-category-section">
+                    <div class="section-title-bar">
+                        <div class="title-with-icon">
+                            <span class="emoji">💰</span>
+                            <h3>訪價資料</h3>
+                            <span class="format-hint">（支援 PDF, Excel, 圖片）</span>
+                        </div>
+                        {% if discipline.user_can_upload and not is_past_deadline %}
+                        <button class="btn btn-primary btn-sm rounded-pill px-4"
+                            onclick="handleUpload('price_inquiry', {{ discipline.id }})">
+                            上傳檔案
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% include 'budget_review/includes/_file_grouped_list.html' with grouped_files=discipline.grouped_price_files file_type='price_inquiry' discipline_id=discipline.id %}
+                </div>
+
+                <div class="file-category-section">
+                    <div class="section-title-bar">
+                        <div class="title-with-icon">
+                            <span class="emoji">📑</span>
+                            <h3>分組預算書</h3>
+                            <span class="format-hint">（僅接受 XML）</span>
+                        </div>
+                        {% if discipline.user_can_upload and not is_past_deadline %}
+                        <button class="btn btn-primary btn-sm rounded-pill px-4"
+                            onclick="handleUpload('budget', {{ discipline.id }})">
+                            上傳檔案
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% include 'budget_review/includes/_file_grouped_list.html' with grouped_files=discipline.grouped_budget_files file_type='budget' discipline_id=discipline.id %}
+                </div>
+
+                {% else %}
+                {# 整合專業：兩種檔案 #}
+                <div class="file-category-section">
+                    <div class="section-title-bar">
+                        <div class="title-with-icon">
+                            <span class="emoji">📑</span>
+                            <h3>整合預算書</h3>
+                            <span class="format-hint">（僅接受 XML）</span>
+                        </div>
+                        {% if discipline.user_can_upload and not is_past_deadline %}
+                        <button class="btn btn-primary btn-sm rounded-pill px-4"
+                            onclick="handleUpload('budget', {{ discipline.id }})">
+                            上傳檔案
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% include 'budget_review/includes/_file_grouped_list.html' with grouped_files=discipline.grouped_budget_files file_type='budget' discipline_id=discipline.id %}
+                </div>
+
+                <div class="file-category-section">
+                    <div class="section-title-bar">
+                        <div class="title-with-icon">
+                            <span class="emoji">📄</span>
+                            <h3>空白標單</h3>
+                            <span class="format-hint">（僅接受 XML）</span>
+                        </div>
+                        {% if discipline.user_can_upload and not is_past_deadline %}
+                        <button class="btn btn-primary btn-sm rounded-pill px-4"
+                            onclick="handleUpload('blank_tender', {{ discipline.id }})">
+                            上傳檔案
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% include 'budget_review/includes/_file_grouped_list.html' with grouped_files=discipline.grouped_blank_tender_files file_type='blank_tender' discipline_id=discipline.id %}
+                </div>
+
+                <div class="file-category-section">
+                    <div class="section-title-bar">
+                        <div class="title-with-icon">
+                            <span class="emoji">💰</span>
+                            <h3>單價資料</h3>
+                            <span class="format-hint">（支援 PDF, Excel, 圖片, XML）</span>
+                        </div>
+                        {% if discipline.user_can_upload and not is_past_deadline %}
+                        <button class="btn btn-primary btn-sm rounded-pill px-4"
+                            onclick="handleUpload('price_data', {{ discipline.id }})">
+                            上傳檔案
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% include 'budget_review/includes/_file_grouped_list.html' with grouped_files=discipline.grouped_price_files file_type='price_data' discipline_id=discipline.id %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Stage Info Section */
+    .stage-info-section {
+        padding: 4px 0 24px 0;
+        margin-bottom: 0px;
+        border-bottom: 2px solid #F1F5F9;
+    }
+
+    .stage-header-title {
+        margin: 0 0 10px 0;
+        font-size: 24px;
+        font-weight: 700;
+        color: #1E293B;
+    }
+
+    .stage-header-meta {
+        font-size: 14px;
+        color: #64748B;
+        margin-bottom: 0;
+    }
+
+    .meta-deadline {
+        color: #475569;
+        font-weight: 600;
+    }
+
+    .meta-countdown {
+        color: #3B82F6;
+        font-weight: 700;
+    }
+
+    .meta-countdown.status-expired {
+        color: #94A3B8;
+    }
+
+    .stage-header-desc {
+        padding-top: 12px;
+        margin: 0;
+        font-size: 14px;
+        color: #64748B;
+    }
+
+    /* Workspace Wrapper (Flat & Rounded) */
+    .workspace-wrapper {
+        margin-top: 24px;
+        background: #FFFFFF;
+        border: 2px solid #F1F5F9;
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .tabs-scroll-container {
+        background: #F8FAFC;
+        padding: 16px 16px 10px 16px;
+        border-bottom: 2px solid #F1F5F9;
+        overflow-x: auto;
+    }
+
+    .minimal-tabs {
+        display: flex;
+        gap: 12px;
+    }
+
+    .tab-pill {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: #FFFFFF;
+        border: 1.5px solid #E2E8F0;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        white-space: nowrap;
+        color: #64748B;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .tab-pill:hover {
+        border-color: #3B82F6;
+        color: #3B82F6;
+        background: #EFF6FF;
+    }
+
+    .tab-pill.active {
+        background: #3B82F6;
+        color: #FFFFFF;
+        border-color: #3B82F6;
+    }
+
+    .tab-code-flat {
+        font-size: 11px;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 1px 6px;
+        border-radius: 4px;
+    }
+
+    .tab-pill.active .tab-code-flat {
+        background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Flat Discipline Content */
+    .discipline-content-flat {
+        padding: 0;
+    }
+
+    .file-category-section {
+        padding: 24px 32px;
+        border-bottom: 1.5px solid #F1F5F9;
+    }
+
+    .file-category-section:last-child {
+        border-bottom: none;
+    }
+
+    .section-title-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .title-with-icon {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .title-with-icon h3 {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 700;
+        color: #334155;
+    }
+
+    .format-hint {
+        font-size: 13px;
+        color: #94A3B8;
+        font-weight: 400;
+        margin-left: 4px;
+    }
+
+    .emoji {
+        font-size: 18px;
+    }
+
+    /* Updated 6-Column Table Design */
+    .table-container {
+        border: 1.5px solid #F1F5F9;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .table-header {
+        display: grid;
+        grid-template-columns: 1fr 100px 120px 140px 100px 100px;
+        padding: 12px 20px;
+        background: #F8FAFC;
+        border-bottom: 1.5px solid #F1F5F9;
+        font-size: 12px;
+        font-weight: 700;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .file-row {
+        display: grid;
+        grid-template-columns: 1fr 100px 120px 140px 100px 100px;
+        align-items: center;
+        padding: 14px 20px;
+        background: #FFFFFF;
+        border-bottom: 1px solid #F1F5F9;
+        font-size: 14px;
+        transition: background 0.15s;
+    }
+
+    .file-row:hover {
+        background: #F8FAFC;
+    }
+
+    /* Filename 2-line wrapping */
+    .file-name-cell {
+        font-weight: 600;
+        color: #1E293B;
+        padding-right: 20px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-height: 1.5;
+        max-height: 3em;
+        word-break: break-all;
+    }
+
+    .file-version-cell select {
+        width: 85px;
+        padding: 4px 6px;
+        font-size: 12px;
+        border: 1.5px solid #E2E8F0;
+        border-radius: 8px;
+        background: #FFFFFF;
+        cursor: pointer;
+    }
+
+    .file-user-cell {
+        color: #64748B;
+        font-size: 13px;
+    }
+
+    .file-time-cell {
+        color: #94A3B8;
+        font-size: 12px;
+    }
+
+    /* Action Columns Wrapper */
+    .action-cell {
+        display: flex;
+        justify-content: center;
+    }
+
+    .btn-action-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        border-radius: 999px;
+        border: 1.5px solid #E2E8F0;
+        background: #FFFFFF;
+        color: #475569;
+        transition: all 0.2s;
+        min-width: 80px;
+    }
+
+    .btn-action-pill:hover {
+        background: #F8FAFC;
+        border-color: #3B82F6;
+        color: #3B82F6;
+    }
+
+    /* Submitted Status as Button */
+    .btn-submitted {
+        background: #F0FDF4;
+        color: #16A34A;
+        border-color: #DCFCE7;
+        cursor: default;
+    }
+
+    .btn-submit-active {
+        background: #EFF6FF;
+        color: #2563EB;
+        border-color: #DBEAFE;
+    }
+
+    .btn-submit-active:hover {
+        background: #3B82F6;
+        color: #FFFFFF;
+        border-color: #3B82F6;
+    }
+
+    /* Global Utils */
+    .tab-pane {
+        display: none;
+    }
+
+    .tab-pane.active {
+        display: block;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const projectId = {{ project.pk }};
+    const stageId = {{ stage.pk }};
+
+    function switchTab(disciplineId) {
+        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+        document.querySelectorAll('.tab-pill').forEach(btn => btn.classList.remove('active'));
+
+        const pane = document.getElementById('disc-' + disciplineId);
+        const btn = document.querySelector(`[data-tab-id="disc-${disciplineId}"]`);
+
+        if (pane && btn) {
+            pane.classList.add('active');
+            btn.classList.add('active');
+            localStorage.setItem('activeWorkspaceTab', disciplineId);
+        }
+    }
+
+    function updateRowMetaData(selectElement) {
+        const option = selectElement.options[selectElement.selectedIndex];
+        const row = selectElement.closest('.file-row');
+        const fileType = row.dataset.fileType;
+        const disciplineId = row.dataset.disciplineId;
+        const fileId = selectElement.value;
+
+        // 權限與狀態旗標
+        const canUpload = row.dataset.canUpload === 'true';
+        const isOverall = row.dataset.isOverall === 'true';
+        const isPastDeadline = row.dataset.isPastDeadline === 'true';
+
+        // 更新人員與時間
+        row.querySelector('.file-user-cell').innerText = option.dataset.user;
+        row.querySelector('.file-time-cell').innerText = option.dataset.time;
+
+        // 更新下載連結
+        const downloadBtn = row.querySelector('.btn-download');
+        if (downloadBtn) downloadBtn.href = option.dataset.url;
+
+        // 更新操作按鈕（提送邏輯）
+        const actionContainer = row.querySelector('.submit-action-container');
+        const isSubmitted = option.dataset.submitted === 'true';
+        const isLatest = option.dataset.latest === 'true';
+
+        if (isSubmitted) {
+            actionContainer.innerHTML = `
+                <div class="btn-action-pill btn-submitted">
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span>已提送</span>
+                </div>
+            `;
+        } else if (isLatest && canUpload && (!isPastDeadline || isOverall)) {
+            actionContainer.innerHTML = `
+                <button class="btn-action-pill btn-submit-active" onclick="submitFile('${fileType}', ${fileId}, ${disciplineId})" title="提送">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <span>提送</span>
+                </button>
+            `;
+        } else {
+            actionContainer.innerHTML = '';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedTab = localStorage.getItem('activeWorkspaceTab');
+        if (savedTab) switchTab(savedTab);
+    });
+
+    function handleUpload(fileType, disciplineId) {
+        const input = document.createElement('input');
+        input.type = 'file';
+
+        // 定義各類型的 accept 屬性
+        const acceptRules = {
+            'quantity': '.xls,.xlsx,.pdf',
+            'price_inquiry': '.pdf,.xls,.xlsx,.jpg,.jpeg,.png',
+            'budget': '.xml',
+            'blank_tender': '.xml',
+            'price_data': '.pdf,.xls,.xlsx,.jpg,.jpeg,.png,.xml'
+        };
+
+        const formatLabels = {
+            'quantity': 'Excel (.xls, .xlsx) 或 PDF (.pdf)',
+            'price_inquiry': 'PDF (.pdf), Excel (.xls, .xlsx) 或 圖片 (.jpg, .jpeg, .png)',
+            'budget': 'XML (.xml)',
+            'blank_tender': 'XML (.xml)',
+            'price_data': 'PDF, Excel, 圖片 或 XML'
+        };
+
+        input.accept = acceptRules[fileType] || '*';
+
+        input.onchange = function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // JS 驗證副檔名
+            const fileName = file.name.toLowerCase();
+            const allowedExtensions = acceptRules[fileType].split(',');
+            const fileExtension = '.' + fileName.split('.').pop();
+
+            if (!allowedExtensions.includes(fileExtension)) {
+                showToast(`此類型僅接受 ${formatLabels[fileType]} 格式檔案，請重新選擇。`, 'danger');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('file_type', fileType);
+            formData.append('discipline', disciplineId);
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+            console.log(`Starting upload for ${fileType} to URL: /budget/project/${projectId}/stage/${stageId}/upload/${fileType}/`);
+
+            fetch(`/budget/project/${projectId}/stage/${stageId}/upload/${fileType}/`, {
+                method: 'POST',
+                body: formData
+            })
+                .then(async response => {
+                    if (!response.ok) {
+                        const text = await response.text();
+                        console.error('Server error response:', text);
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Upload response data:', data);
+                    if (data.success) {
+                        showToast(data.message || '檔案上傳成功！', 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showToast(data.error || data.message || '上傳失敗', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Upload fetch error:', error);
+                    showToast('上傳失敗，報錯已記錄於控制台', 'danger');
+                });
+        };
+
+        input.click();
+    }
+
+    function submitFile(fileType, fileId, disciplineId) {
+        if (!confirm('確定要提送此檔案嗎？提送後將無法修改。')) return;
+
+        const formData = new FormData();
+        formData.append('file_id', fileId);
+        formData.append('file_type', fileType);
+        formData.append('discipline', disciplineId);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+        console.log(`Submitting file: type=${fileType}, id=${fileId}`);
+
+        fetch(`/budget/file/${fileType}/${fileId}/submit/`, {
+            method: 'POST',
+            body: formData
+        })
+            .then(async response => {
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error('Submission server error:', text);
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Submission response:', data);
+                if (data.success) {
+                    showToast(data.message || '檔案已提送！', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(data.error || data.message || '提送失敗', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Submission fetch error:', error);
+                showToast('提送失敗，請查看控制台報錯', 'danger');
+            });
+    }
+</script>
+{% endblock %}

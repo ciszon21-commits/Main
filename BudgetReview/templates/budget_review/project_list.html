@@ -1,0 +1,182 @@
+{% extends 'budget_review/base.html' %}
+{% load static %}
+
+{% block title %}預算數量管理平台{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumb-nav" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item active">
+            <span>標案管理</span>
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+{# 頁面標題 + 操作按鈕 #}
+<div class="page-header">
+    <div class="page-header-content">
+        <div class="page-title-group">
+            <h1 class="page-title">標案管理列表</h1>
+            <p class="page-subtitle">管理您的標案預算書、數量計算書與訪價資料</p>
+        </div>
+
+        <div class="page-actions">
+            {% if user.is_superuser %}
+            <a href="{% url 'budget_review:hidden_project_list' %}" class="btn btn-secondary">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                隱藏標案
+            </a>
+            {% endif %}
+
+            {% if user.is_authenticated %}
+            <button type="button" class="btn btn-primary" onclick="openCreateModal()">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                建立標案
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{# 標案列表 #}
+<div class="card">
+    {% if projects %}
+    {# 使用真正的 HTML table #}
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>標案編號</th>
+                <th>標案資訊</th>
+                <th>狀態</th>
+                <th>專業分組</th>
+                <th>建立日期</th>
+                <th class="actions-column">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for project in projects %}
+            <tr>
+                {# 標案編號 #}
+                <td class="nowrap">
+                    <strong>{{ project.code }}</strong>
+                </td>
+
+                {# 標案資訊 #}
+                <td>
+                    <div class="project-name">{{ project.name }}</div>
+                    <div class="project-description text-muted">{{ project.description|default:"尚無說明" }}</div>
+                </td>
+
+                {# 狀態徽章 #}
+                <td>
+                    {% if project.status == 'PREPARING' %}
+                    {% include 'budget_review/includes/_badge.html' with text="籌備中" variant="warning" %}
+                    {% elif project.status == 'ONGOING' %}
+                    {% include 'budget_review/includes/_badge.html' with text="進行中" variant="info" %}
+                    {% elif project.status == 'FINISHED' %}
+                    {% include 'budget_review/includes/_badge.html' with text="已結案" variant="neutral" %}
+                    {% endif %}
+                </td>
+
+                {# 專業分組數 #}
+                <td>
+                    <div class="d-flex align-center gap-sm">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <span>{{ project.disciplines.count }}</span>
+                    </div>
+                </td>
+
+                {# 建立日期 #}
+                <td class="nowrap text-muted">
+                    {{ project.created_at|date:"Y/m/d" }}
+                </td>
+
+                {# 操作按鈕 #}
+                <td class="actions-column">
+                    <div class="d-flex gap-sm">
+                        <a href="{% url 'budget_review:project_detail' project.pk %}" class="btn btn-text btn-sm">
+                            標案詳情
+                        </a>
+
+                        {% if user.is_superuser or 'Admin' in user.groups.all.values_list.name %}
+                        <button type="button" class="btn btn-icon btn-sm btn-edit-modal"
+                            data-project-id="{{ project.pk }}" title="編輯標案">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                        </button>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    {# 空狀態 #}
+    {% include 'budget_review/includes/_empty_state.html' with icon="folder" title="尚無標案" description="目前尚無任何標案，點擊右上角「建立標案」開始使用" %}
+    {% endif %}
+</div>
+
+{# Modal: 編輯標案 #}
+<div id="editProjectModal">
+    <div class="modal-backdrop">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">編輯標案</h3>
+                <button type="button" class="modal-close">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- 表單內容將通過 AJAX 載入 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Modal: 建立標案 #}
+<div id="createProjectModal">
+    <div class="modal-backdrop">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">建立新標案</h3>
+                <button type="button" class="modal-close" onclick="createModal.close()">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- 表單內容將通過 AJAX 載入 -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'BudgetReview/css/page-project-list.css' %}">
+<link rel="stylesheet" href="{% static 'BudgetReview/css/modal.css' %}">
+<link rel="stylesheet" href="{% static 'BudgetReview/css/page-forms.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'BudgetReview/js/searchable-select.js' %}"></script>
+<script src="{% static 'BudgetReview/js/modal.js' %}"></script>
+{% endblock %}

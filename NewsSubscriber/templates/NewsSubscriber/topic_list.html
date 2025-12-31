@@ -1,0 +1,60 @@
+{% extends 'NewsSubscriber/base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h1>訂閱主題</h1>
+    <a href="{% url 'news_subscriber:topic_add' %}" class="btn">新增主題</a>
+</div>
+
+{% if messages %}
+<div style="margin-bottom: 20px;">
+    {% for message in messages %}
+    <div style="padding: 12px; border-radius: 5px; margin-bottom: 10px;
+                {% if message.tags == 'success' %}background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;
+                {% elif message.tags == 'error' %}background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;
+                {% elif message.tags == 'warning' %}background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7;
+                {% else %}background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb;{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="topic-grid">
+    {% for topic in topics %}
+    <div class="card">
+        <h2><a href="{% url 'news_subscriber:topic_detail' topic.pk %}"
+                style="text-decoration: none; color: inherit;">{{ topic.name }}</a></h2>
+        <p style="color: #7f8c8d;">關鍵字:
+            {% for keyword in topic.keywords.all %}
+            <span style="background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 0.9em;">
+                {{ keyword.word }}</span>
+            {% empty %}
+            <span style="font-style: italic;">尚無關鍵字</span>
+            {% endfor %}
+        </p>
+        <div style="margin-top: 15px; display: flex; gap: 10px;">
+            <a href="{% url 'news_subscriber:topic_detail' topic.pk %}" class="btn" style="font-size: 0.9rem;">查看詳情</a>
+
+            {% if user.is_authenticated %}
+                {% if topic.pk in subscribed_topics %}
+                    <form method="post" action="{% url 'news_subscriber:unsubscribe_topic' topic.pk %}" style="margin: 0;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn" style="font-size: 0.9rem; background-color: #95a5a6; border-color: #95a5a6;">已訂閱 ✓</button>
+                    </form>
+                {% else %}
+                    <form method="post" action="{% url 'news_subscriber:subscribe_topic' topic.pk %}" style="margin: 0;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn" style="font-size: 0.9rem; background-color: #27ae60; border-color: #27ae60;">訂閱</button>
+                    </form>
+                {% endif %}
+            {% else %}
+                <a href="{% url 'login' %}?next={{ request.path }}" class="btn" style="font-size: 0.9rem; background-color: #95a5a6; border-color: #95a5a6;">登入以訂閱</a>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <p>目前沒有訂閱的主題。</p>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+<!-- AJAX 版本的專業分組表單，用於 Modal -->
+
+
+<form method="post" class="luxury-form">
+    {% csrf_token %}
+    <!-- 隱藏欄位：用於標識是否為更新模式 -->
+    {% if is_update and discipline %}
+    <input type="hidden" name="discipline_id" value="{{ discipline.id }}">
+    {% endif %}
+
+    {% for field in form %}
+    <div class="form-group">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<p class="help-text">{{ field.help_text }}</p>{% endif %}
+        {% for error in field.errors %}<p class="error-text">{{ error }}</p>{% endfor %}
+    </div>
+    {% endfor %}
+
+    <div class="modal-footer">
+        <!-- 刪除按鈕（僅編輯模式且非整合專業） -->
+        {% if is_update and discipline and not discipline.is_overall %}
+        <div>
+            <button type="button" class="btn-delete" onclick="deleteDiscipline({{ project.id }}, {{ discipline.id }})">
+                刪除分組
+            </button>
+        </div>
+        {% else %}
+        <div></div>
+        {% endif %}
+
+        <div class="modal-actions-right">
+            <button type="button" class="btn-cancel" onclick="closeCurrentModal()">取消</button>
+            <button type="submit" class="btn-submit">
+                {% if is_update %}更新{% else %}儲存{% endif %}
+            </button>
+        </div>
+    </div>
+</form>

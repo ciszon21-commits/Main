@@ -1,0 +1,128 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>程式使用資料庫清冊</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'ProgramDbRegistry/css/program_db.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <!-- Banner Section -->
+    <div class="banner">
+        <div class="banner-content">
+            <div class="banner-info">
+                <h1 class="banner-title">程式使用資料庫清冊</h1>
+                <p class="banner-subtitle">管理開發團隊與程式資料庫使用紀錄</p>
+            </div>
+            <div class="banner-actions">
+                {% if user.is_authenticated %}
+                <a href="{% url 'programdb:team_create' %}" class="btn btn-primary">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                    </svg>
+                    建立團隊
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Search Section -->
+        <div class="search-section">
+            <div class="search-box">
+                <svg viewBox="0 0 16 16" fill="currentColor">
+                    <path
+                        d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+                </svg>
+                <input type="text" id="searchInput" placeholder="搜尋團隊名稱...">
+            </div>
+            <div class="results-count">
+                共 <span id="totalCount">{{ teams|length }}</span> 個團隊
+            </div>
+        </div>
+
+        <!-- Teams Grid -->
+        <div class="team-grid" id="teamGrid">
+            {% for team in teams %}
+            <div class="team-card" data-name="{{ team.name }}">
+                <div class="team-icon">
+                    <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1h8zm-7.978-1A.261.261 0 0 1 7 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002a.274.274 0 0 1-.014.002H7.022zM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM6.936 9.28a5.88 5.88 0 0 0-1.23-.247A7.35 7.35 0 0 0 5 9c-4 0-5 3-5 4 0 .667.333 1 1 1h4.216A2.238 2.238 0 0 1 5 13c0-1.01.377-2.042 1.09-2.904.243-.294.526-.569.846-.816zM4.92 10A5.493 5.493 0 0 0 4 13H1c0-.26.164-1.03.76-1.724.545-.636 1.492-1.256 3.16-1.275zM1.5 5.5a3 3 0 1 1 6 0 3 3 0 0 1-6 0zm3-2a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
+                    </svg>
+                </div>
+                <div class="team-content">
+                    <h3 class="team-name">{{ team.name }}</h3>
+                    <div class="team-meta">
+                        <span class="meta-item">
+                            <svg fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                            </svg>
+                            {{ team.members.count }} 位成員
+                        </span>
+                        <span class="meta-item">
+                            <svg fill="currentColor" viewBox="0 0 16 16">
+                                <path
+                                    d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
+                                <path
+                                    d="M6.854 4.646a.5.5 0 0 1 0 .708L4.207 8l2.647 2.646a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 0 1 .708 0zm2.292 0a.5.5 0 0 0 0 .708L11.793 8l-2.647 2.646a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708 0z" />
+                            </svg>
+                            {{ team.programs.count }} 個程式
+                        </span>
+                    </div>
+                    <div class="team-creator">
+                        建立者：{{ team.created_by.get_full_name|default:team.created_by.username }}
+                    </div>
+                </div>
+                <a href="{% url 'programdb:team_detail' team.pk %}" class="team-link">
+                    查看
+                    <svg fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd"
+                            d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z" />
+                    </svg>
+                </a>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <svg width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
+                    <path
+                        d="M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1h8zm-7.978-1A.261.261 0 0 1 7 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002a.274.274 0 0 1-.014.002H7.022zM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+                </svg>
+                <h3>尚無開發團隊</h3>
+                <p>點擊「建立團隊」開始新增您的第一個開發團隊</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        // 搜尋功能
+        document.getElementById('searchInput').addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase();
+            const cards = document.querySelectorAll('.team-card');
+            let visibleCount = 0;
+
+            cards.forEach(card => {
+                const name = card.dataset.name.toLowerCase();
+                if (name.includes(query)) {
+                    card.style.display = 'flex';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            document.getElementById('totalCount').textContent = visibleCount;
+        });
+    </script>
+</body>
+
+</html>

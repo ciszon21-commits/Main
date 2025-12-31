@@ -1,0 +1,368 @@
+{% extends 'budget_review/base.html' %}
+
+{% block title %}新增專業分組 - {{ project.name }} - BudgetReview{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="card glass-form">
+        <div class="form-header">
+            <div class="form-icon">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+            </div>
+            <h2>{% if form.instance.pk %}編輯專業分組{% else %}新增專業分組{% endif %}</h2>
+            <p>{% if form.instance.pk %}修改分組基本資訊與成員設定{% else %}為標案 <strong>{{ project.name }}</strong> 建立專業分工與指派專業管理員{% endif %}</p>
+        </div>
+
+        <form method="post" class="luxury-form">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<p class="help-text">{{ field.help_text }}</p>{% endif %}
+                {% for error in field.errors %}<p class="error-text">{{ error }}</p>{% endfor %}
+            </div>
+            {% endfor %}
+
+            <div class="form-actions">
+                <a href="{% url 'budget_review:project_detail' project.id %}" class="btn-cancel">取消</a>
+                <button type="submit" class="btn-submit">
+                    建立分組
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        max-width: 650px;
+        margin: 4rem auto;
+    }
+
+    .glass-form {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        border-radius: 2rem;
+        padding: 3.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+    }
+
+    .form-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .form-icon {
+        width: 60px;
+        height: 60px;
+        background: rgba(37, 99, 235, 0.1);
+        color: var(--primary);
+        border-radius: 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+    }
+
+    .form-header h2 {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.02em;
+    }
+
+    .form-header p {
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .luxury-form {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .form-group label {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        width: 100%;
+        padding: 1rem 1.25rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 1rem;
+        font-family: inherit;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #0f172a;
+        transition: all 0.3s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.08);
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 2rem;
+        margin-top: 1.5rem;
+    }
+
+    .btn-cancel {
+        color: #64748b;
+        font-weight: 700;
+        text-decoration: none;
+        font-size: 1rem;
+    }
+
+    .btn-submit {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 1rem 2.5rem;
+        border-radius: 1rem;
+        font-size: 1.15rem;
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        transition: all 0.3s;
+        box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 25px -5px rgba(37, 99, 235, 0.4);
+    }
+
+    .help-text {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        font-weight: 500;
+    }
+
+    .error-text {
+        font-size: 0.8rem;
+        color: #ef4444;
+        font-weight: 600;
+    }
+
+    /* Searchable Select Styles */
+    .searchable-select-container {
+        position: relative;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 1rem 1.25rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 1rem;
+        font-family: inherit;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #0f172a;
+        transition: all 0.3s;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.1);
+    }
+
+    .options-list {
+        position: absolute;
+        width: 100%;
+        max-height: 250px;
+        overflow-y: auto;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        z-index: 1000;
+        display: none;
+        margin-top: 5px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    .option-item {
+        padding: 1rem 1.25rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 600;
+        color: #475569;
+    }
+
+    .option-item:hover {
+        background: #f8fafc;
+        color: var(--primary);
+    }
+
+    .option-item.selected {
+        background: #eff6ff;
+        color: var(--primary);
+    }
+
+    .select-multiple-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .chip {
+        background: #eff6ff;
+        color: #2563eb;
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        font-size: 0.9rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 2px 4px rgba(37, 99, 235, 0.05);
+    }
+
+    .chip-remove {
+        cursor: pointer;
+        opacity: 0.6;
+        font-size: 1.2rem;
+        line-height: 1;
+    }
+
+    .chip-remove:hover {
+        opacity: 1;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchableSelects = document.querySelectorAll('.searchable-select');
+
+        searchableSelects.forEach(select => {
+            const isMultiple = select.hasAttribute('multiple');
+            const container = document.createElement('div');
+            container.className = 'searchable-select-container';
+
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.className = 'search-input';
+            searchInput.placeholder = isMultiple ? '輸入姓名搜尋並點擊加入...' : '輸入姓名搜尋...';
+
+            const optionsList = document.createElement('div');
+            optionsList.className = 'options-list';
+
+            const chipsContainer = document.createElement('div');
+            chipsContainer.className = 'select-multiple-chips';
+
+            const originalOptions = Array.from(select.options);
+
+            // Hide original select
+            select.style.display = 'none';
+            select.parentNode.insertBefore(container, select);
+            container.appendChild(searchInput);
+            container.appendChild(optionsList);
+            if (isMultiple) container.appendChild(chipsContainer);
+
+            function renderOptions(filter = '') {
+                optionsList.innerHTML = '';
+                let hasResults = false;
+                originalOptions.forEach(opt => {
+                    if (opt.value === '' && !isMultiple) return;
+                    if (opt.text.toLowerCase().includes(filter.toLowerCase())) {
+                        const item = document.createElement('div');
+                        item.className = 'option-item';
+                        if (opt.selected) item.classList.add('selected');
+                        item.textContent = opt.text;
+                        item.dataset.value = opt.value;
+
+                        item.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            if (isMultiple) {
+                                opt.selected = !opt.selected;
+                                renderOptions(searchInput.value);
+                            } else {
+                                originalOptions.forEach(o => o.selected = false);
+                                opt.selected = true;
+                                searchInput.value = opt.text;
+                                optionsList.style.display = 'none';
+                            }
+                            updateUI();
+                        });
+                        optionsList.appendChild(item);
+                        hasResults = true;
+                    }
+                });
+                optionsList.style.display = (hasResults && (filter !== '' || !isMultiple)) ? 'block' : 'none';
+            }
+
+            function updateUI() {
+                if (isMultiple) {
+                    chipsContainer.innerHTML = '';
+                    originalOptions.forEach(opt => {
+                        if (opt.selected) {
+                            const chip = document.createElement('div');
+                            chip.className = 'chip';
+                            chip.innerHTML = `${opt.text} <span class="chip-remove" data-value="${opt.value}">×</span>`;
+                            chip.querySelector('.chip-remove').onclick = (e) => {
+                                e.stopPropagation();
+                                opt.selected = false;
+                                updateUI();
+                            };
+                            chipsContainer.appendChild(chip);
+                        }
+                    });
+                } else {
+                    const selected = originalOptions.find(o => o.selected);
+                    if (selected && selected.value !== '') {
+                        searchInput.value = selected.text;
+                    }
+                }
+                // Important: Trigger change for Django
+                select.dispatchEvent(new Event('change'));
+            }
+
+            searchInput.addEventListener('input', (e) => renderOptions(e.target.value));
+            searchInput.addEventListener('focus', () => renderOptions(searchInput.value));
+
+            document.addEventListener('click', (e) => {
+                if (!container.contains(e.target)) {
+                    optionsList.style.display = 'none';
+                }
+            });
+
+            updateUI();
+        });
+    });
+</script>
+{% endblock %}

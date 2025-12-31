@@ -1,0 +1,381 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ doc.name }} - 資料庫設計文件</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'ProgramDbRegistry/css/program_db.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+</head>
+
+<body>
+    <!-- Banner Section -->
+    <div class="banner">
+        <div class="banner-content">
+            <div class="banner-info">
+                <a href="{% url 'programdb:program_detail' program.pk %}" class="back-link">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd"
+                            d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+                    </svg>
+                    返回 {{ program.name }}
+                </a>
+                <div class="doc-type-badge doc-type-{{ doc.doc_type }}">
+                    {{ doc.get_doc_type_display }}
+                </div>
+                <h1 class="banner-title">{{ doc.name }}</h1>
+                {% if doc.description %}
+                <p class="banner-subtitle">{{ doc.description }}</p>
+                {% endif %}
+            </div>
+            <div class="banner-actions">
+                <a href="{% url 'programdb:design_doc_update' doc.pk %}" class="btn btn-secondary">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3z" />
+                    </svg>
+                    編輯
+                </a>
+                {% if doc.doc_type == 'manual' or doc.doc_type == 'mermaid' %}
+                <a href="{% url 'programdb:design_table_edit' doc.pk %}" class="btn btn-secondary">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm15 2h-4v3h4V4zm0 4h-4v3h4V8zm0 4h-4v3h3a1 1 0 0 0 1-1v-2zm-5 3v-3H6v3h4zm-5 0v-3H1v2a1 1 0 0 0 1 1h3zm-4-4h4V8H1v3zm0-4h4V4H1v3zm5-3v3h4V4H6zm4 4H6v3h4V8z" />
+                    </svg>
+                    編輯資料表
+                </a>
+                {% endif %}
+                {% if doc.doc_type == 'django' %}
+                <button class="btn btn-secondary" id="parseBtn">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
+                        <path
+                            d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
+                    </svg>
+                    重新解析
+                </button>
+                {% endif %}
+                <a href="{% url 'programdb:design_doc_download' doc.pk %}" class="btn btn-primary">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+                        <path
+                            d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z" />
+                    </svg>
+                    下載 .md
+                </a>
+                {% if is_creator %}
+                <button type="button" class="btn btn-danger" id="deleteDocBtn">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" />
+                        <path fill-rule="evenodd"
+                            d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" />
+                    </svg>
+                    刪除
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Mermaid Diagram - Only show for mermaid type docs -->
+        {% if doc.doc_type == 'mermaid' and doc.mermaid_content %}
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M0 1a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V1zm4 0v6h8V1H4zm8 8H4v6h8V9zM1 1v2h2V1H1zm2 3H1v2h2V4zM1 7v2h2V7H1zm2 3H1v2h2v-2zm-2 3v2h2v-2H1zM15 1h-2v2h2V1zm-2 3v2h2V4h-2zm2 3h-2v2h2V7zm-2 3v2h2v-2h-2zm2 3h-2v2h2v-2z" />
+                    </svg>
+                    ER Diagram
+                </h2>
+                <div class="zoom-controls">
+                    <button type="button" class="btn btn-sm btn-secondary" id="zoomOutBtn" title="縮小">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8z" />
+                        </svg>
+                    </button>
+                    <span class="zoom-level" id="zoomLevel">100%</span>
+                    <button type="button" class="btn btn-sm btn-secondary" id="zoomInBtn" title="放大">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                        </svg>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary" id="zoomResetBtn" title="重設縮放">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd"
+                                d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
+                            <path
+                                d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="mermaid-viewport" id="mermaidViewport">
+                <div class="mermaid-zoom-container" id="mermaidZoomContainer">
+                    <div class="mermaid" id="mermaidDiagram">
+                        {{ doc.mermaid_content }}
+                    </div>
+                </div>
+            </div>
+            <p class="help-text" style="margin-top: 8px; text-align: center;">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: middle;">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                    <path
+                        d="M8.93 6.588l-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z" />
+                </svg>
+                使用滑鼠滾輪縮放，拖曳移動圖表
+            </p>
+        </div>
+        {% endif %}
+
+        <!-- Tables List -->
+        <div class="section">
+            <h2 class="section-title">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path
+                        d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm15 2h-4v3h4V4zm0 4h-4v3h4V8zm0 4h-4v3h3a1 1 0 0 0 1-1v-2zm-5 3v-3H6v3h4zm-5 0v-3H1v2a1 1 0 0 0 1 1h3zm-4-4h4V8H1v3zm0-4h4V4H1v3zm5-3v3h4V4H6zm4 4H6v3h4V8z" />
+                </svg>
+                資料表 ({{ tables|length }})
+            </h2>
+
+            {% for table in tables %}
+            <div class="table-card">
+                <div class="table-header">
+                    <h3 class="table-name">{{ table.table_name }}</h3>
+                    {% if doc.doc_type == 'manual' or doc.doc_type == 'mermaid' %}
+                    <a href="{% url 'programdb:design_field_edit' table.pk %}" class="btn btn-sm btn-secondary">
+                        編輯欄位
+                    </a>
+                    {% endif %}
+                </div>
+                {% if table.description %}
+                <p class="table-description">{{ table.description }}</p>
+                {% endif %}
+
+                {% if table.fields.all %}
+                <div class="database-table-wrapper">
+                    <table class="database-table">
+                        <thead>
+                            <tr>
+                                <th>欄位名稱</th>
+                                <th>資料類型</th>
+                                <th>PK</th>
+                                <th>FK</th>
+                                <th>可為空</th>
+                                <th>說明</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for field in table.fields.all %}
+                            <tr>
+                                <td><code>{{ field.field_name }}</code></td>
+                                <td>{{ field.data_type }}</td>
+                                <td>{% if field.is_primary_key %}✓{% endif %}</td>
+                                <td>{% if field.is_foreign_key %}{{ field.fk_reference_table }}{% endif %}</td>
+                                <td>{% if field.is_nullable %}✓{% endif %}</td>
+                                <td>{{ field.description }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="empty-text">尚無欄位定義</p>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <svg width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2z" />
+                </svg>
+                <h3>尚無資料表</h3>
+                {% if doc.doc_type == 'django' %}
+                <p>請貼上 Django Model 程式碼並點擊「重新解析」</p>
+                {% else %}
+                <p>點擊「編輯資料表」開始新增</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        // Initialize Mermaid
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            themeVariables: {
+                primaryColor: '#6366f1',
+                primaryTextColor: '#f1f5f9',
+                primaryBorderColor: '#334155',
+                lineColor: '#64748b',
+                secondaryColor: '#1e293b',
+                tertiaryColor: '#0f172a'
+            }
+        });
+
+        // ===== Zoom and Pan Functionality =====
+        const viewport = document.getElementById('mermaidViewport');
+        const container = document.getElementById('mermaidZoomContainer');
+        const zoomLevelDisplay = document.getElementById('zoomLevel');
+
+        if (viewport && container) {
+            let scale = 1;
+            let translateX = 0;
+            let translateY = 0;
+            let isDragging = false;
+            let startX, startY;
+            const minScale = 0.25;
+            const maxScale = 4;
+            const scaleStep = 0.1;
+
+            function updateTransform() {
+                container.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+                if (zoomLevelDisplay) {
+                    zoomLevelDisplay.textContent = Math.round(scale * 100) + '%';
+                }
+            }
+
+            // Mouse wheel zoom
+            viewport.addEventListener('wheel', function (e) {
+                e.preventDefault();
+
+                const rect = viewport.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                // Calculate zoom point relative to container
+                const prevScale = scale;
+                const delta = e.deltaY > 0 ? -scaleStep : scaleStep;
+                scale = Math.min(maxScale, Math.max(minScale, scale + delta));
+
+                // Adjust translation to zoom towards cursor
+                const scaleRatio = scale / prevScale;
+                translateX = mouseX - (mouseX - translateX) * scaleRatio;
+                translateY = mouseY - (mouseY - translateY) * scaleRatio;
+
+                updateTransform();
+            }, { passive: false });
+
+            // Mouse drag pan
+            viewport.addEventListener('mousedown', function (e) {
+                if (e.button === 0) { // Left mouse button
+                    isDragging = true;
+                    startX = e.clientX - translateX;
+                    startY = e.clientY - translateY;
+                    viewport.style.cursor = 'grabbing';
+                }
+            });
+
+            document.addEventListener('mousemove', function (e) {
+                if (isDragging) {
+                    translateX = e.clientX - startX;
+                    translateY = e.clientY - startY;
+                    updateTransform();
+                }
+            });
+
+            document.addEventListener('mouseup', function () {
+                if (isDragging) {
+                    isDragging = false;
+                    viewport.style.cursor = 'grab';
+                }
+            });
+
+            // Zoom control buttons
+            const zoomInBtn = document.getElementById('zoomInBtn');
+            const zoomOutBtn = document.getElementById('zoomOutBtn');
+            const zoomResetBtn = document.getElementById('zoomResetBtn');
+
+            if (zoomInBtn) {
+                zoomInBtn.addEventListener('click', function () {
+                    scale = Math.min(maxScale, scale + scaleStep);
+                    updateTransform();
+                });
+            }
+
+            if (zoomOutBtn) {
+                zoomOutBtn.addEventListener('click', function () {
+                    scale = Math.max(minScale, scale - scaleStep);
+                    updateTransform();
+                });
+            }
+
+            if (zoomResetBtn) {
+                zoomResetBtn.addEventListener('click', function () {
+                    scale = 1;
+                    translateX = 0;
+                    translateY = 0;
+                    updateTransform();
+                });
+            }
+
+            // Initialize cursor style
+            viewport.style.cursor = 'grab';
+        }
+
+        // ===== Delete Button =====
+        const deleteDocBtn = document.getElementById('deleteDocBtn');
+        if (deleteDocBtn) {
+            deleteDocBtn.addEventListener('click', function () {
+                if (!confirm('確定要刪除此設計文件嗎？此操作無法復原。')) return;
+
+                fetch('{% url "programdb:design_doc_delete" doc.pk %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                    .then(r => {
+                        if (r.redirected) {
+                            window.location.href = r.url;
+                        } else {
+                            return r.json();
+                        }
+                    })
+                    .then(data => {
+                        if (data && !data.success) {
+                            alert(data.error);
+                        }
+                    })
+                    .catch(err => {
+                        // Redirect manually if needed
+                        window.location.href = '{% url "programdb:program_detail" program.pk %}';
+                    });
+            });
+        }
+
+        // ===== Parse button =====
+        const parseBtn = document.getElementById('parseBtn');
+        if (parseBtn) {
+            parseBtn.addEventListener('click', function () {
+                if (!confirm('確定要重新解析 Django Model 嗎？這會更新現有的資料表結構。')) return;
+
+                fetch('{% url "programdb:design_doc_parse" doc.pk %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert(data.error);
+                        }
+                    });
+            });
+        }
+    </script>
+</body>
+
+</html>

@@ -10,7 +10,7 @@ from django.views.decorators.http import require_POST
 
 from .models import Image, ImageCategory, ImageRating
 from django.forms import modelformset_factory
-from .forms import ImageUploadForm, CategoryForm, BulkUploadForm, ImageBatchEditForm
+from .forms import ImageUploadForm, CategoryForm, BulkUploadForm, ImageBatchEditForm, ImageEditForm
 
 
 def gallery_list(request):
@@ -26,8 +26,9 @@ def gallery_list(request):
     search = request.GET.get('search')
     if search:
         images = images.filter(
-            Q(title__icontains=search) | 
-            Q(description__icontains=search)
+            Q(title__icontains=search) |
+            Q(description__icontains=search) |
+            Q(location__icontains=search)
         )
     
     # 排序
@@ -278,12 +279,38 @@ def category_manage(request):
             return redirect('gallery:category_manage')
     else:
         form = CategoryForm()
-    
+
     # 取得所有分類
     categories = ImageCategory.objects.select_related('created_by').all()
-    
+
     context = {
         'form': form,
         'categories': categories,
     }
     return render(request, 'gallery/category_manage.html', context)
+
+
+@login_required
+def gallery_edit(request, pk):
+    """單張圖片編輯頁面"""
+    image = get_object_or_404(Image, pk=pk)
+
+    # 確保只有上傳者可以編輯
+    if image.uploaded_by != request.user:
+        messages.error(request, '您沒有權限編輯此圖片')
+        return redirect('gallery:detail', pk=pk)
+
+    if request.method == 'POST':
+        form = ImageEditForm(request.POST, instance=image)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '圖片資訊更新成功！')
+            return redirect('gallery:detail', pk=pk)
+    else:
+        form = ImageEditForm(instance=image)
+
+    context = {
+        'form': form,
+        'image': image,
+    }
+    return render(request, 'gallery/gallery_edit.html', context)

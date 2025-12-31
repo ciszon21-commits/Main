@@ -9,6 +9,7 @@ urlpatterns = [
     path('upload/bulk/', views.gallery_upload_bulk, name='upload_bulk'),
     path('batch-edit/', views.gallery_batch_edit, name='batch_edit'),
     path('<int:pk>/', views.gallery_detail, name='detail'),
+    path('<int:pk>/edit/', views.gallery_edit, name='edit'),
     path('<int:pk>/rate/', views.image_rate, name='rate'),
     path('leaderboard/', views.leaderboard, name='leaderboard_all'),
     path('leaderboard/<str:period>/', views.leaderboard, name='leaderboard'),

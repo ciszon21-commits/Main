@@ -32,6 +32,20 @@ class Course(models.Model):
         help_text='留空表示不限制人數'
     )
     
+    # 課程資訊（可選）
+    instructor_name = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name='講師姓名',
+        help_text='選填，可事後編輯'
+    )
+    location = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name='課程地點',
+        help_text='選填，可事後編輯'
+    )
+    
     # 建立者與時間戳記
     created_by = models.ForeignKey(
         User,
@@ -128,7 +142,7 @@ class Registration(models.Model):
         ordering = ['registered_at']
     
     def __str__(self):
-        return f'{self.user.username} - {self.course.title}'
+        return f'{self.user.get_full_name} - {self.course.title}'
 
 
 class PDFDownloadLog(models.Model):
@@ -153,4 +167,30 @@ class PDFDownloadLog(models.Model):
         ordering = ['-downloaded_at']
     
     def __str__(self):
-        return f'{self.user.username} - {self.course.title} - {self.downloaded_at.strftime("%Y-%m-%d %H:%M")}'
+        return f'{self.user.get_full_name} - {self.course.title} - {self.downloaded_at.strftime("%Y-%m-%d %H:%M")}'
+
+
+class CourseComment(models.Model):
+    """課程留言模型"""
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        verbose_name='課程'
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='course_comments',
+        verbose_name='留言者'
+    )
+    content = models.TextField(verbose_name='留言內容')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='留言時間')
+    
+    class Meta:
+        verbose_name = '課程留言'
+        verbose_name_plural = '課程留言'
+        ordering = ['-created_at']  # 新到舊排序
+    
+    def __str__(self):
+        return f'{self.user.get_full_name} - {self.course.title} - {self.created_at.strftime("%Y-%m-%d %H:%M")}'

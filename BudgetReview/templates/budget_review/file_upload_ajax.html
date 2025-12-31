@@ -1,0 +1,43 @@
+<!-- AJAX 版本的文件上傳表單，用於 Modal -->
+
+
+<form method="post" enctype="multipart/form-data" class="luxury-form" id="fileUploadForm">
+    {% csrf_token %}
+
+    <input type="hidden" name="discipline" value="{{ discipline_id }}">
+    {% if budget_type %}
+    <input type="hidden" name="budget_type" value="{{ budget_type }}">
+    {% endif %}
+
+    <div class="form-group">
+        <label for="id_file">選擇檔案{% if multiple_files %} (可多選){% endif %}</label>
+        <input type="file" name="file" id="id_file" required {% if multiple_files %}multiple{% endif %} {% if
+            accept_formats %}accept="{{ accept_formats }}" {% endif %}>
+        <p class="help-text">
+            {% if upload_type == 'price_inquiry' %}
+            支援的檔案格式：Excel (.xlsx, .xls), PDF (.pdf), 圖片 (.jpg, .png)，可一次選擇多個檔案
+            {% else %}
+            支援的檔案格式：Excel (.xlsx, .xls), PDF (.pdf)
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="form-group">
+        <label for="id_description">版本說明（選填）</label>
+        <textarea name="description" id="id_description" rows="3" placeholder="請描述此版本的更新內容..."></textarea>
+    </div>
+
+    <div class="modal-footer">
+        <div></div>
+        <div class="modal-actions-right">
+            <button type="button" class="btn-cancel" onclick="closeCurrentModal()">取消</button>
+            <button type="submit" class="btn-submit">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                上傳檔案
+            </button>
+        </div>
+    </div>
+</form>

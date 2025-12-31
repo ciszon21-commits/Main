@@ -1,0 +1,208 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}GoogleNews 關鍵字訂閱{% endblock %}</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --text-color: #333;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 20px;
+        }
+
+        nav ul li a {
+            font-size: 1rem;
+            opacity: 0.9;
+            transition: opacity 0.3s;
+        }
+
+        nav ul li a:hover {
+            opacity: 1;
+        }
+
+        main {
+            padding: 2rem 0;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: var(--accent-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: var(--primary-color);
+        }
+
+        .topic-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .news-item {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+        }
+
+        .news-item:last-child {
+            border-bottom: none;
+        }
+
+        .news-meta {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+        }
+
+        .summary-box {
+            background-color: #e8f6f3;
+            border-left: 5px solid #1abc9c;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+    </style>
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <a href="{% url 'news_subscriber:topic_list' %}">GoogleNews 訂閱</a>
+                <ul>
+                    <li><a href="{% url 'news_subscriber:topic_list' %}">主題列表</a></li>
+                    <li><a href="{% url 'news_subscriber:topic_add' %}">新增主題</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        {% if messages %}
+        <div style="margin: 20px 0;">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}" style="
+                padding: 15px;
+                margin-bottom: 15px;
+                border-radius: 4px;
+                {% if message.tags == 'success' %}
+                    background-color: #d4edda;
+                    color: #155724;
+                    border-left: 4px solid #28a745;
+                {% elif message.tags == 'error' %}
+                    background-color: #f8d7da;
+                    color: #721c24;
+                    border-left: 4px solid #dc3545;
+                {% elif message.tags == 'warning' %}
+                    background-color: #fff3cd;
+                    color: #856404;
+                    border-left: 4px solid #ffc107;
+                {% else %}
+                    background-color: #d1ecf1;
+                    color: #0c5460;
+                    border-left: 4px solid #17a2b8;
+                {% endif %}
+            ">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <div class="container" style="text-align: center; padding: 20px; color: #7f8c8d;">
+            &copy; {% now "Y" %} 中興工程 CoDev Studio 開發成果
+        </div>
+    </footer>
+</body>
+
+</html>

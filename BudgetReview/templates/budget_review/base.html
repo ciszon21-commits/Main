@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}BudgetReview 預算數量管理平台{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+TC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- 核心設計系統 CSS -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'BudgetReview/css/design-system.css' %}">
+    <link rel="stylesheet" href="{% static 'BudgetReview/css/components.css' %}">
+    <link rel="stylesheet" href="{% static 'BudgetReview/css/utilities.css' %}">
+    <link rel="stylesheet" href="{% static 'BudgetReview/css/navbar.css' %}">
+
+    <!-- 頁面專屬樣式 -->
+    {% block extra_css %}{% endblock %}
+
+    <style>
+        /* 僅保留少量基礎樣式供 base.html 使用 */
+        .container {
+            max-width: 1200px;
+            margin: var(--spacing-xl) auto;
+            padding: 0 var(--spacing-md);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding-left: var(--spacing-xl);
+            border-left: 1px solid var(--border-color);
+        }
+
+        .role-tag {
+            font-size: var(--font-size-xs);
+            padding: 0.2rem 0.6rem;
+            border-radius: var(--radius-full);
+            font-weight: var(--font-weight-semibold);
+            text-transform: uppercase;
+        }
+
+        .role-admin {
+            background: var(--danger-bg);
+            color: var(--danger-dark);
+        }
+
+        .role-professional {
+            background: var(--success-bg);
+            color: var(--success-dark);
+        }
+
+        .role-budget {
+            background: var(--info-bg);
+            color: var(--info-dark);
+        }
+
+        .messages {
+            position: fixed;
+            top: 80px;
+            right: var(--spacing-xl);
+            z-index: var(--z-tooltip);
+            max-width: 400px;
+            width: 100%;
+        }
+    </style>
+
+</head>
+
+<body>
+    <!-- 導航列 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <a href="{% url 'budget_review:project_list' %}" class="brand-link">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span class="brand-text">預算數量管理平台</span>
+                </a>
+            </div>
+
+            <div class="navbar-user">
+                {% if user.is_authenticated %}
+                <div class="user-info">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
+                    {% if user.is_superuser %}
+                    {% include 'budget_review/includes/_badge.html' with text="Admin" variant="danger" size="sm" %}
+                    {% endif %}
+                </div>
+                {% else %}
+                <a href="{% url 'login' %}" class="btn btn-primary btn-sm">登入</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block breadcrumbs %}{% endblock %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+        // Auto-dismiss alerts after 5 seconds
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                alert.style.transition = 'opacity 0.5s ease';
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 500);
+            });
+        }, 5000);
+    </script>
+
+    <!-- Toast Notifications -->
+    {% include 'budget_review/includes/_toast.html' %}
+
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

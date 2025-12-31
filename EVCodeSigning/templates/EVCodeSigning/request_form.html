@@ -1,0 +1,209 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>提出簽章申請 - EV Code Signing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'EVCodeSigning/css/ev_code_signing.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <nav class="breadcrumb-nav">
+        <div class="container">
+            <a href="{% url 'evcodesigning:request_list' %}">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd"
+                        d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5z" />
+                </svg>
+                返回列表
+            </a>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="form-page">
+            <header class="form-header">
+                <div class="form-icon">
+                    <svg width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M5.338 1.59a61.44 61.44 0 0 0-2.837.856.481.481 0 0 0-.328.39c-.554 4.157.726 7.19 2.253 9.188a10.725 10.725 0 0 0 2.287 2.233c.346.244.652.42.893.533.12.057.218.095.293.118a.55.55 0 0 0 .101.025.615.615 0 0 0 .1-.025c.076-.023.174-.061.294-.118.24-.113.547-.29.893-.533a10.726 10.726 0 0 0 2.287-2.233c1.527-1.997 2.807-5.031 2.253-9.188a.48.48 0 0 0-.328-.39c-.651-.213-1.75-.56-2.837-.855C9.552 1.29 8.531 1.067 8 1.067c-.53 0-1.552.223-2.662.524zM5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887.87a1.54 1.54 0 0 1 1.044 1.262c.596 4.477-.787 7.795-2.465 9.99a11.775 11.775 0 0 1-2.517 2.453 7.159 7.159 0 0 1-1.048.625c-.28.132-.581.24-.829.24s-.548-.108-.829-.24a7.158 7.158 0 0 1-1.048-.625 11.777 11.777 0 0 1-2.517-2.453C1.928 10.487.545 7.169 1.141 2.692A1.54 1.54 0 0 1 2.185 1.43 62.456 62.456 0 0 1 5.072.56z" />
+                        <path
+                            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                    </svg>
+                </div>
+                <h1 class="form-title">提出簽章申請</h1>
+                <p class="form-subtitle">上傳需要簽章的檔案並填寫申請說明</p>
+            </header>
+
+            <form method="post" class="request-form" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <!-- 申請標題 -->
+                <div class="form-group">
+                    <label for="id_title" class="form-label required">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M2.5 3a.5.5 0 0 0 0 1h11a.5.5 0 0 0 0-1h-11zm5 3a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1h-6zm0 3a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1h-6zm-5 3a.5.5 0 0 0 0 1h11a.5.5 0 0 0 0-1h-11z" />
+                        </svg>
+                        申請標題
+                    </label>
+                    {{ form.title }}
+                    {% if form.title.errors %}
+                    <div class="form-error">{{ form.title.errors.0 }}</div>
+                    {% endif %}
+                    <div class="form-help">{{ form.title.help_text }}</div>
+                </div>
+
+                <!-- 申請說明 -->
+                <div class="form-group">
+                    <label for="id_description" class="form-label required">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z" />
+                            <path
+                                d="M4.5 12.5A.5.5 0 0 1 5 12h3a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 10h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 8h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5z" />
+                        </svg>
+                        申請說明
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                    <div class="form-error">{{ form.description.errors.0 }}</div>
+                    {% endif %}
+                    <div class="form-help">{{ form.description.help_text }}</div>
+                </div>
+
+                <hr class="form-divider">
+
+                <!-- 檔案上傳 -->
+                <div class="form-group">
+                    <label for="id_files" class="form-label required">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+                            <path
+                                d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z" />
+                        </svg>
+                        上傳檔案
+                    </label>
+                    <div class="file-upload-zone" id="file-upload-zone">
+                        <input type="file" name="files" id="id_files" multiple
+                            accept=".exe,.msi,.dll,.cab,.ocx,.xpi,.axp,.jar,.air,.airi" class="file-input">
+                        <div class="upload-placeholder">
+                            <svg width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
+                                <path
+                                    d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+                                <path
+                                    d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z" />
+                            </svg>
+                            <p>拖曳檔案到此處，或點擊選擇檔案</p>
+                            <p class="upload-hint">支援多檔案上傳</p>
+                        </div>
+                        <div class="selected-files" id="selected-files"></div>
+                    </div>
+                    <div class="form-help">
+                        允許的檔案格式：{{ allowed_extensions }}
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <a href="{% url 'evcodesigning:request_list' %}" class="btn btn-secondary">取消</a>
+                    <button type="submit" class="btn btn-primary">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z" />
+                        </svg>
+                        送出申請
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const fileInput = document.getElementById('id_files');
+            const uploadZone = document.getElementById('file-upload-zone');
+            const selectedFilesDiv = document.getElementById('selected-files');
+
+            // Allowed extensions
+            const allowedExtensions = ['.exe', '.msi', '.dll', '.cab', '.ocx', '.xpi', '.axp', '.jar', '.air', '.airi'];
+
+            function updateSelectedFiles() {
+                const files = fileInput.files;
+                if (files.length === 0) {
+                    selectedFilesDiv.innerHTML = '';
+                    uploadZone.classList.remove('has-files');
+                    return;
+                }
+
+                uploadZone.classList.add('has-files');
+                let html = '<ul class="file-list-preview">';
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+                    const isValid = allowedExtensions.includes(ext);
+                    const size = formatFileSize(file.size);
+
+                    html += `<li class="${isValid ? '' : 'invalid'}">
+                        <span class="file-name">${file.name}</span>
+                        <span class="file-size">${size}</span>
+                        ${!isValid ? '<span class="file-error">格式不支援</span>' : ''}
+                    </li>`;
+                }
+
+                html += '</ul>';
+                selectedFilesDiv.innerHTML = html;
+            }
+
+            function formatFileSize(bytes) {
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+                if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+                return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+            }
+
+            fileInput.addEventListener('change', updateSelectedFiles);
+
+            // Drag and drop
+            uploadZone.addEventListener('dragover', function (e) {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+
+            uploadZone.addEventListener('dragleave', function (e) {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+            });
+
+            uploadZone.addEventListener('drop', function (e) {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+
+                const files = e.dataTransfer.files;
+                const dataTransfer = new DataTransfer();
+
+                for (let i = 0; i < files.length; i++) {
+                    dataTransfer.items.add(files[i]);
+                }
+
+                fileInput.files = dataTransfer.files;
+                updateSelectedFiles();
+            });
+        });
+    </script>
+</body>
+
+</html>

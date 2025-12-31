@@ -1,0 +1,657 @@
+{% extends 'tutorialhub/base.html' %}
+{% load static %}
+
+{% block title %}編輯片段 - {{ step.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .snippets-container {
+        max-width: 900px;
+    }
+
+    .snippet-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .snippet-card.sortable-ghost {
+        opacity: 0.4;
+        background: #f0f0ff;
+    }
+
+    .snippet-card.sortable-chosen {
+        box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+    }
+
+    .snippet-header {
+        background: #f8f9fa;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .snippet-header-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .drag-handle {
+        cursor: grab;
+        color: #a0aec0;
+        padding: 8px;
+        font-size: 1.1rem;
+    }
+
+    .drag-handle:hover {
+        color: #667eea;
+    }
+
+    .drag-handle:active {
+        cursor: grabbing;
+    }
+
+    .snippet-type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .snippet-type-text {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .snippet-type-image {
+        background: #e3f2fd;
+        color: #1565c0;
+    }
+
+    .snippet-type-code {
+        background: #fce4ec;
+        color: #c2185b;
+    }
+
+    .snippet-type-link {
+        background: #e0f2f1;
+        color: #00695c;
+    }
+
+    .snippet-body {
+        padding: 20px;
+    }
+
+    .snippet-preview {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+
+    .snippet-preview img {
+        max-width: 100%;
+        max-height: 200px;
+        border-radius: 8px;
+    }
+
+    .snippet-preview pre {
+        margin: 0;
+        background: #2d3748;
+        color: #e2e8f0;
+        padding: 15px;
+        border-radius: 8px;
+        overflow-x: auto;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .form-row .form-group {
+        flex: 1;
+        min-width: 150px;
+    }
+
+    .add-snippet-section {
+        background: white;
+        border: 2px dashed #e2e8f0;
+        border-radius: 12px;
+        padding: 30px;
+    }
+
+    .snippet-type-selector {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+
+    .type-btn {
+        flex: 1;
+        min-width: 120px;
+        padding: 20px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        background: white;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.3s;
+    }
+
+    .type-btn:hover {
+        border-color: #667eea;
+    }
+
+    .type-btn.active {
+        border-color: #667eea;
+        background: linear-gradient(135deg, #667eea10, #764ba210);
+    }
+
+    .type-btn i {
+        font-size: 2rem;
+        margin-bottom: 10px;
+        display: block;
+    }
+
+    .type-btn.text-type i {
+        color: #2e7d32;
+    }
+
+    .type-btn.image-type i {
+        color: #1565c0;
+    }
+
+    .type-btn.code-type i {
+        color: #c2185b;
+    }
+
+    .type-btn.link-type i {
+        color: #00695c;
+    }
+
+    .snippet-form-fields {
+        margin-top: 20px;
+    }
+
+    .toolbar {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #718096;
+    }
+
+    .breadcrumb a {
+        color: #667eea;
+        text-decoration: none;
+    }
+
+    #code-fields,
+    #image-fields,
+    #text-fields,
+    #link-fields {
+        display: none;
+    }
+
+    .order-changed-notice {
+        display: none;
+        background: #ffeaa7;
+        color: #333;
+        padding: 10px 20px;
+        border-radius: 8px;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .order-changed-notice.show {
+        display: flex;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1><i class="fas fa-puzzle-piece"></i> 編輯內容</h1>
+        <p class="subtitle">{{ step.title }}</p>
+    </div>
+
+    <div class="toolbar">
+        <div class="breadcrumb">
+            <a href="{% url 'tutorialhub:tutorial_edit_steps' tutorial.slug %}">{{ tutorial.title }}</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>{{ step.title }}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div class="order-changed-notice" id="order-notice">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>順序已變更</span>
+                <button class="btn btn-primary btn-sm" onclick="saveSnippetOrder()">
+                    <i class="fas fa-save"></i> 儲存順序
+                </button>
+            </div>
+            <a href="{% url 'tutorialhub:tutorial_edit_steps' tutorial.slug %}" class="btn btn-outline btn-sm">
+                <i class="fas fa-arrow-left"></i> 返回步驟列表
+            </a>
+            <a href="{% url 'tutorialhub:tutorial_detail' tutorial.slug %}" class="btn btn-outline btn-sm">
+                <i class="fas fa-eye"></i> 預覽教材
+            </a>
+        </div>
+    </div>
+
+    <div class="snippets-container">
+        <!-- 現有片段列表 -->
+        <div id="snippets-list">
+            {% for snippet in step.snippets.all %}
+            <div class="snippet-card" data-snippet-id="{{ snippet.id }}">
+                <div class="snippet-header">
+                    <div class="snippet-header-left">
+                        <span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                        <span class="snippet-type-badge snippet-type-{{ snippet.snippet_type }}">
+                            {% if snippet.snippet_type == 'text' %}
+                            <i class="fas fa-align-left"></i> 文字
+                            {% elif snippet.snippet_type == 'image' %}
+                            <i class="fas fa-image"></i> 圖片
+                            {% elif snippet.snippet_type == 'link' %}
+                            <i class="fas fa-link"></i> 超連結
+                            {% else %}
+                            <i class="fas fa-code"></i> 程式碼 ({{ snippet.get_language_display }})
+                            {% endif %}
+                        </span>
+                    </div>
+                    <button class="btn btn-danger btn-sm" onclick="deleteSnippet({{ snippet.id }})">
+                        <i class="fas fa-trash"></i> 刪除
+                    </button>
+                </div>
+                <div class="snippet-body">
+                    <div class="snippet-preview">
+                        {% if snippet.snippet_type == 'text' %}
+                        {{ snippet.content|truncatewords:50|linebreaks }}
+                        {% elif snippet.snippet_type == 'image' %}
+                        {% if snippet.image %}
+                        <img src="{{ snippet.image.url }}" alt="{{ snippet.caption }}">
+                        {% else %}
+                        <p class="text-muted">尚未上傳圖片</p>
+                        {% endif %}
+                        {% elif snippet.snippet_type == 'link' %}
+                        <a href="{{ snippet.link_url }}" target="_blank" rel="noopener noreferrer"
+                            style="color: #00695c;">
+                            <i class="fas fa-external-link-alt"></i>
+                            {{ snippet.link_text|default:snippet.link_url }}
+                        </a>
+                        {% else %}
+                        <pre><code>{{ snippet.content|truncatechars:300 }}</code></pre>
+                        {% endif %}
+                    </div>
+                    {% if snippet.caption %}
+                    <p class="text-muted"><i class="fas fa-comment"></i> {{ snippet.caption }}</p>
+                    {% endif %}
+
+                    <!-- 編輯表單 -->
+                    <form method="post" enctype="multipart/form-data"
+                        action="{% url 'tutorialhub:update_snippet' tutorial.slug snippet.id %}"
+                        class="snippet-edit-form" id="form-{{ snippet.id }}">
+                        {% csrf_token %}
+
+                        {% if snippet.snippet_type == 'text' %}
+                        <div class="form-group">
+                            <label>內容</label>
+                            <textarea name="content" class="form-control" rows="4">{{ snippet.content }}</textarea>
+                        </div>
+                        {% elif snippet.snippet_type == 'image' %}
+                        <div class="form-group">
+                            <label>更換圖片</label>
+                            <input type="file" name="image" class="form-control" accept="image/*">
+                        </div>
+                        <div class="form-group">
+                            <label>說明文字</label>
+                            <input type="text" name="caption" class="form-control"
+                                value="{{ snippet.caption|default:'' }}">
+                        </div>
+                        {% elif snippet.snippet_type == 'link' %}
+                        <div class="form-group">
+                            <label>連結網址</label>
+                            <input type="url" name="link_url" class="form-control"
+                                value="{{ snippet.link_url|default:'' }}"
+                                placeholder="輸入連結網址 (例如: https://example.com)">
+                        </div>
+                        <div class="form-group">
+                            <label>連結文字</label>
+                            <input type="text" name="link_text" class="form-control"
+                                value="{{ snippet.link_text|default:'' }}" placeholder="輸入顯示的連結文字">
+                        </div>
+                        {% else %}
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 0 0 200px;">
+                                <label>程式語言</label>
+                                <select name="language" class="form-control">
+                                    {% for value, label in snippet.LANGUAGE_CHOICES %}
+                                    <option value="{{ value }}" {% if snippet.language == value %}selected{% endif %}>
+                                        {{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>程式碼</label>
+                            <textarea name="content" class="form-control" rows="8"
+                                style="font-family: 'JetBrains Mono', monospace;">{{ snippet.content }}</textarea>
+                        </div>
+                        {% endif %}
+
+                        <input type="hidden" name="snippet_type" value="{{ snippet.snippet_type }}">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="fas fa-save"></i> 儲存變更
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state" style="padding: 40px;" id="empty-state">
+                <i class="fas fa-inbox" style="font-size: 3rem; color: #e2e8f0;"></i>
+                <h3>尚未新增任何內容</h3>
+                <p>從下方選擇類型開始新增內容</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 新增片段區塊 -->
+        <div class="add-snippet-section">
+            <h4><i class="fas fa-plus"></i> 新增內容</h4>
+
+            <div class="snippet-type-selector">
+                <div class="type-btn text-type" onclick="selectType('text')">
+                    <i class="fas fa-align-left"></i>
+                    <span>文字</span>
+                </div>
+                <div class="type-btn image-type" onclick="selectType('image')">
+                    <i class="fas fa-image"></i>
+                    <span>圖片</span>
+                </div>
+                <div class="type-btn code-type" onclick="selectType('code')">
+                    <i class="fas fa-code"></i>
+                    <span>程式碼</span>
+                </div>
+                <div class="type-btn link-type" onclick="selectType('link')">
+                    <i class="fas fa-link"></i>
+                    <span>超連結</span>
+                </div>
+            </div>
+
+            <form id="add-snippet-form" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="snippet_type" id="new-snippet-type" value="text">
+
+                <div id="text-fields" class="snippet-form-fields">
+                    <div class="form-group">
+                        <label>文字內容</label>
+                        <textarea name="text_content" class="form-control" rows="4" placeholder="輸入文字內容..."></textarea>
+                    </div>
+                </div>
+
+                <div id="image-fields" class="snippet-form-fields">
+                    <div class="form-group">
+                        <label>選擇圖片</label>
+                        <input type="file" name="image" class="form-control" accept="image/*">
+                    </div>
+                    <div class="form-group">
+                        <label>說明文字（選填）</label>
+                        <input type="text" name="image_caption" class="form-control" placeholder="圖片說明...">
+                    </div>
+                </div>
+
+                <div id="code-fields" class="snippet-form-fields">
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 0 0 200px;">
+                            <label>程式語言</label>
+                            <select name="language" class="form-control">
+                                <option value="plaintext">純文字</option>
+                                <option value="bash">Command Line / Bash</option>
+                                <option value="python">Python</option>
+                                <option value="csharp">C#</option>
+                                <option value="html">HTML</option>
+                                <option value="css">CSS</option>
+                                <option value="javascript">JavaScript</option>
+                                <option value="sql">SQL</option>
+                                <option value="json">JSON</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>程式碼</label>
+                        <textarea name="code_content" class="form-control" rows="8"
+                            style="font-family: 'JetBrains Mono', monospace;" placeholder="貼上程式碼..."></textarea>
+                    </div>
+                </div>
+
+                <div id="link-fields" class="snippet-form-fields">
+                    <div class="form-group">
+                        <label>連結網址</label>
+                        <input type="url" name="link_url" class="form-control"
+                            placeholder="輸入連結網址 (例如: https://example.com)">
+                    </div>
+                    <div class="form-group">
+                        <label>連結文字</label>
+                        <input type="text" name="link_text" class="form-control" placeholder="輸入顯示的連結文字">
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-primary" onclick="addSnippet()" id="add-snippet-btn"
+                    style="display: none;">
+                    <i class="fas fa-plus"></i> 新增
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- SortableJS for drag and drop -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+    const csrftoken = getCookie('csrftoken');
+    const tutorialSlug = '{{ tutorial.slug }}';
+    const stepId = {{ step.id }};
+    let orderChanged = false;
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Initialize sortable for snippets
+    const snippetsList = document.getElementById('snippets-list');
+    if (snippetsList) {
+        new Sortable(snippetsList, {
+            animation: 150,
+            handle: '.drag-handle',
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            onEnd: function (evt) {
+                orderChanged = true;
+                document.getElementById('order-notice').classList.add('show');
+            }
+        });
+    }
+
+    function saveSnippetOrder() {
+        const cards = document.querySelectorAll('.snippet-card');
+        const orderData = [];
+
+        cards.forEach((card, index) => {
+            orderData.push({
+                id: parseInt(card.dataset.snippetId),
+                order: index
+            });
+        });
+
+        fetch(`/tutorials/${tutorialSlug}/snippets/reorder/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ step_id: stepId, snippets: orderData })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    orderChanged = false;
+                    document.getElementById('order-notice').classList.remove('show');
+                    alert('順序已儲存！');
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('發生錯誤，請稍後再試');
+            });
+    }
+
+    function selectType(type) {
+        document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`.${type}-type`).classList.add('active');
+
+        document.getElementById('new-snippet-type').value = type;
+
+        document.getElementById('text-fields').style.display = type === 'text' ? 'block' : 'none';
+        document.getElementById('image-fields').style.display = type === 'image' ? 'block' : 'none';
+        document.getElementById('code-fields').style.display = type === 'code' ? 'block' : 'none';
+        document.getElementById('link-fields').style.display = type === 'link' ? 'block' : 'none';
+
+        document.getElementById('add-snippet-btn').style.display = 'inline-block';
+    }
+
+    function addSnippet() {
+        const form = document.getElementById('add-snippet-form');
+        const formData = new FormData(form);
+        const snippetType = document.getElementById('new-snippet-type').value;
+
+        if (snippetType === 'text') {
+            formData.set('content', formData.get('text_content'));
+        } else if (snippetType === 'code') {
+            formData.set('content', formData.get('code_content'));
+        } else if (snippetType === 'image') {
+            formData.set('caption', formData.get('image_caption'));
+        }
+
+        fetch(`/tutorials/${tutorialSlug}/snippets/${stepId}/add/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+            },
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('發生錯誤，請稍後再試');
+            });
+    }
+
+    function deleteSnippet(snippetId) {
+        if (!confirm('確定要刪除此內容嗎？')) {
+            return;
+        }
+
+        fetch(`/tutorials/${tutorialSlug}/snippets/${snippetId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('發生錯誤，請稍後再試');
+            });
+    }
+
+    // Handle inline edit form submissions
+    document.querySelectorAll('.snippet-edit-form').forEach(form => {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+
+            fetch(this.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                },
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('已儲存！');
+                        location.reload();
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('發生錯誤，請稍後再試');
+                });
+        });
+    });
+
+    // Warn before leaving if order changed
+    window.addEventListener('beforeunload', function (e) {
+        if (orderChanged) {
+            e.preventDefault();
+            e.returnValue = '您有未儲存的順序變更，確定要離開嗎？';
+        }
+    });
+</script>
+{% endblock %}

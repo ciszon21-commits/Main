@@ -1,0 +1,77 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>刪除分類 - 開發成果展示</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'DevShowcase/css/showcase.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <div class="form-container">
+        <a href="{% url 'devshowcase:category_list' %}" class="back-button">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                <path fill-rule="evenodd"
+                    d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+            </svg>
+            返回分類列表
+        </a>
+
+        <h1 class="form-title">刪除分類</h1>
+
+        <div class="achievement-form">
+            <div style="text-align: center; padding: 20px 0;">
+                <svg width="64" height="64" fill="#f56565" viewBox="0 0 16 16" style="margin-bottom: 20px;">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                    <path
+                        d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z" />
+                </svg>
+
+                <h2 style="color: #2d3748; margin-bottom: 16px;">確定要刪除此分類嗎？</h2>
+
+                <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
+                    <p style="font-size: 1.2rem; font-weight: 600; color: #2d3748; margin-bottom: 8px;">{{ object.name
+                        }}</p>
+                    {% if object.description %}
+                    <p style="color: #718096;">{{ object.description }}</p>
+                    {% endif %}
+                </div>
+
+                {% if achievement_count > 0 %}
+                <div class="alert alert-error" style="text-align: left;">
+                    <strong>⚠️ 注意：</strong> 此分類目前有 <strong>{{ achievement_count }}</strong> 個成果使用中。
+                    <br>刪除分類前，請先將這些成果移至其他分類。
+                </div>
+                {% else %}
+                <p style="color: #718096; margin-bottom: 24px;">此操作無法復原，請確認後再繼續。</p>
+                {% endif %}
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-actions" style="justify-content: center;">
+                    {% if achievement_count == 0 %}
+                    <button type="submit" class="btn" style="background: #f56565; color: white;">
+                        <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" />
+                            <path fill-rule="evenodd"
+                                d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" />
+                        </svg>
+                        確定刪除
+                    </button>
+                    {% endif %}
+                    <a href="{% url 'devshowcase:category_list' %}" class="btn btn-secondary">取消</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{% static 'DevShowcase/js/showcase.js' %}"></script>
+</body>
+
+</html>

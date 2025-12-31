@@ -1,0 +1,103 @@
+{% if grouped_files %}
+<div class="table-container">
+    {# Table Header: 6 Columns #}
+    <div class="table-header">
+        <div class="header-name">檔案名稱</div>
+        <div class="header-version">版本</div>
+        <div class="header-user">上傳人員</div>
+        <div class="header-time">上傳時間</div>
+        <div class="header-download text-center">下載</div>
+        <div class="header-submit text-center">提送</div>
+    </div>
+
+    {# File Rows #}
+    {% for group in grouped_files %}
+    <div class="file-row" data-file-group="{{ forloop.counter }}" data-file-type="{{ file_type }}"
+        data-discipline-id="{{ discipline_id }}" data-can-upload="{{ discipline.user_can_upload|yesno:'true,false' }}"
+        data-is-past-deadline="{{ is_past_deadline|yesno:'true,false' }}"
+        data-is-overall="{{ discipline.is_overall|yesno:'true,false' }}">
+        <div class="file-name-cell" title="{{ group.file_name }}">
+            {{ group.file_name }}
+        </div>
+
+        <div class="file-version-cell">
+            <select onchange="updateRowMetaData(this)">
+                {% for v in group.versions %}
+                {% with v_ext=v.file.name|slice:"-4:" %}
+                <option value="{{ v.id }}"
+                    data-url="{% if v_ext == '.xml' %}{% url 'budget_review:file_download' file_model=file_type file_id=v.id %}{% else %}{{ v.file.url }}{% endif %}"
+                    data-user="{{ v.uploaded_by.get_full_name|default:v.uploaded_by.username }}"
+                    data-time="{{ v.uploaded_at|date:'Y/m/d H:i' }}"
+                    data-submitted="{{ v.is_submitted|yesno:'true,false' }}"
+                    data-latest="{{ v.is_latest|yesno:'true,false' }}">
+                    v{{ v.version }}{% if v.is_latest %} (最新){% endif %}
+                </option>
+                {% endwith %}
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="file-user-cell">
+            {{ group.latest.uploaded_by.get_full_name|default:group.latest.uploaded_by.username }}
+        </div>
+
+        <div class="file-time-cell">
+            {{ group.latest.uploaded_at|date:"Y/m/d H:i" }}
+        </div>
+
+        {# 下載欄位 #}
+        <div class="action-cell">
+            {% with latest_ext=group.latest.file.name|slice:"-4:" %}
+            <a href="{% if latest_ext == '.xml' %}{% url 'budget_review:file_download' file_model=file_type file_id=group.latest.id %}{% else %}{{ group.latest.file.url }}{% endif %}"
+                class="btn-action-pill btn-download" target="_blank" title="下載">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span>下載</span>
+            </a>
+            {% endwith %}
+        </div>
+
+        {# 提送欄位 #}
+        <div class="action-cell submit-action-container">
+            {% if is_view_only %}
+            {# 提送區僅顯示已提送狀態 #}
+            <div class="btn-action-pill btn-submitted">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clip-rule="evenodd" />
+                </svg>
+                <span>已提送</span>
+            </div>
+            {% else %}
+            {% if group.latest.is_submitted %}
+            <div class="btn-action-pill btn-submitted">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clip-rule="evenodd" />
+                </svg>
+                <span>已提送</span>
+            </div>
+            {% elif group.latest.is_latest and discipline.user_can_upload and not is_past_deadline or discipline.is_overall and discipline.user_can_upload %}
+            <button class="btn-action-pill btn-submit-active"
+                onclick="submitFile('{{ file_type }}', {{ group.latest.id }}, {{ discipline_id }})" title="提送">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>提送</span>
+            </button>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="px-lg py-lg"
+    style="background: #F8FAFC; border-radius: 12px; border: 1.5px dashed #E2E8F0; text-align: center; padding: 48px 24px;">
+    {% include 'budget_review/includes/_empty_state.html' with icon="file" title="尚無檔案" description="此分類目前尚無檔案版本" %}
+</div>
+{% endif %}

@@ -1,0 +1,447 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - 程式使用資料庫清冊</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'ProgramDbRegistry/css/program_db.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <div class="container">
+        <div class="form-container wide">
+            <div class="form-header">
+                <a href="{% url 'programdb:team_detail' team.pk %}" class="back-link">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd"
+                            d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+                    </svg>
+                    返回 {{ team.name }}
+                </a>
+                <h1>{{ title }}</h1>
+            </div>
+
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="message message-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="post" class="form">
+                {% csrf_token %}
+
+                <!-- Basic Info Section -->
+                <div class="form-section">
+                    <h2 class="form-section-title">基本資訊</h2>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="id_name">程式名稱 *</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <span class="error">{{ form.name.errors.0 }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_program_type">程式類型 *</label>
+                            {{ form.program_type }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="id_english_name">英文名稱</label>
+                            {{ form.english_name }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_dev_tool">開發工具 *</label>
+                            {{ form.dev_tool }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="id_url">網址</label>
+                            {{ form.url }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_git_url">Git 網址 *</label>
+                            {{ form.git_url }}
+                            {% if form.git_url.errors %}
+                            <span class="error">{{ form.git_url.errors.0 }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="id_developers">開發者</label>
+                            {{ form.developers }}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_maintainers">維運者</label>
+                            {{ form.maintainers }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Database Section -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2 class="form-section-title">使用資料庫</h2>
+                        <button type="button" class="btn btn-secondary btn-sm" id="addDbBtn">+ 新增資料庫</button>
+                    </div>
+                    <p class="help-text">選擇資料庫伺服器，輸入資料庫名稱與資料表。如需新增伺服器，請至團隊頁面管理。</p>
+                    {{ db_formset.management_form }}
+                    <div id="database-forms">
+                        {% for db_form in db_formset %}
+                        <div class="db-form-row">
+                            {% if db_form.instance.pk %}
+                            <input type="hidden" name="{{ db_form.prefix }}-id" value="{{ db_form.instance.pk }}">
+                            {% endif %}
+                            <div class="db-row-grid">
+                                <div class="form-group">
+                                    <label>伺服器</label>
+                                    {{ db_form.server }}
+                                </div>
+                                <div class="form-group">
+                                    <label>資料庫名稱</label>
+                                    {{ db_form.database_name }}
+                                </div>
+                                <div class="form-group">
+                                    <label>資料表</label>
+                                    {{ db_form.table_name }}
+                                </div>
+                                <div class="form-group">
+                                    <label>存取權限</label>
+                                    {{ db_form.access_permission }}
+                                </div>
+                                <div class="form-group delete-col">
+                                    {% if db_form.instance.pk %}
+                                    {{ db_form.DELETE }}
+                                    <label for="{{ db_form.DELETE.id_for_label }}">刪除</label>
+                                    {% else %}
+                                    <button type="button" class="btn btn-danger btn-sm remove-row-btn">移除</button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- File Locations Section -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2 class="form-section-title">存取檔案位置</h2>
+                        <button type="button" class="btn btn-secondary btn-sm" id="addFileBtn">+ 新增檔案位置</button>
+                    </div>
+                    {{ file_formset.management_form }}
+                    <div id="file-forms">
+                        {% for file_form in file_formset %}
+                        <div class="inline-form-row">
+                            {% if file_form.instance.pk %}
+                            <input type="hidden" name="{{ file_form.prefix }}-id" value="{{ file_form.instance.pk }}">
+                            {% endif %}
+                            <div class="form-group flex-grow">
+                                <label>路徑</label>
+                                {{ file_form.path }}
+                            </div>
+                            <div class="form-group">
+                                <label>說明</label>
+                                {{ file_form.description }}
+                            </div>
+                            <div class="form-group delete-col">
+                                {% if file_form.instance.pk %}
+                                {{ file_form.DELETE }}
+                                <label for="{{ file_form.DELETE.id_for_label }}">刪除</label>
+                                {% else %}
+                                <button type="button" class="btn btn-danger btn-sm remove-row-btn">移除</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Platform API Section -->
+                    <div class="form-section">
+                        <div class="section-header">
+                            <h2 class="form-section-title">介接平台 API</h2>
+                            <button type="button" class="btn btn-secondary btn-sm" id="addApiBtn">+ 新增 API 介接</button>
+                        </div>
+                        <p class="help-text">選擇要介接的平台 API。如需新增平台 API，請至團隊頁面管理。</p>
+                        {{ api_formset.management_form }}
+                        <div id="api-forms">
+                            {% for api_form in api_formset %}
+                            <div class="db-form-row api-form-row">
+                                {% if api_form.instance.pk %}
+                                <input type="hidden" name="{{ api_form.prefix }}-id" value="{{ api_form.instance.pk }}">
+                                {% endif %}
+                                <div class="api-row-grid">
+                                    <div class="form-group">
+                                        <label>平台 API</label>
+                                        {{ api_form.platform_api }}
+                                    </div>
+                                    <div class="form-group">
+                                        <label>API 路徑</label>
+                                        {{ api_form.api_path }}
+                                    </div>
+                                    <div class="form-group">
+                                        <label>存取類型</label>
+                                        {{ api_form.access_type }}
+                                    </div>
+                                    <div class="form-group">
+                                        <label>說明</label>
+                                        {{ api_form.description }}
+                                    </div>
+                                    <div class="form-group delete-col">
+                                        {% if api_form.instance.pk %}
+                                        {{ api_form.DELETE }}
+                                        <label for="{{ api_form.DELETE.id_for_label }}">刪除</label>
+                                        {% else %}
+                                        <button type="button" class="btn btn-danger btn-sm remove-row-btn">移除</button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <a href="{% url 'programdb:team_detail' team.pk %}" class="btn btn-secondary">取消</a>
+                        <button type="submit" class="btn btn-primary">
+                            {% if is_edit %}儲存變更{% else %}建立程式{% endif %}
+                        </button>
+                    </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Dynamic formset management
+        function updateFormCount(prefix) {
+            const totalForms = document.querySelector(`#id_${prefix}-TOTAL_FORMS`);
+            const forms = document.querySelectorAll(`#${prefix === 'databases' ? 'database' : 'file'}-forms > div`);
+            totalForms.value = forms.length;
+        }
+
+        function addFormRow(containerId, prefix, template) {
+            const container = document.getElementById(containerId);
+            const totalForms = document.querySelector(`#id_${prefix}-TOTAL_FORMS`);
+            const formCount = parseInt(totalForms.value);
+
+            const newForm = template.replace(/__prefix__/g, formCount);
+            container.insertAdjacentHTML('beforeend', newForm);
+            totalForms.value = formCount + 1;
+
+            // Attach remove handler to new row
+            const lastRow = container.lastElementChild;
+            const removeBtn = lastRow.querySelector('.remove-row-btn');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', function () {
+                    lastRow.remove();
+                    updateFormCount(prefix);
+                });
+            }
+        }
+
+        // Database form template
+        const dbTemplate = `
+        <div class="db-form-row">
+            <div class="db-row-grid">
+                <div class="form-group">
+                    <label>伺服器</label>
+                    <select name="databases-__prefix__-server" class="ui dropdown">
+                        <option value="">---------</option>
+                        {% for server in db_servers %}
+                        <option value="{{ server.id }}">{{ server.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>資料庫名稱</label>
+                    <input type="text" name="databases-__prefix__-database_name" class="ui input" placeholder="請輸入資料庫名稱">
+                </div>
+                <div class="form-group">
+                    <label>資料表</label>
+                    <input type="text" name="databases-__prefix__-table_name" class="ui input" placeholder="請輸入資料表名稱">
+                </div>
+                <div class="form-group">
+                    <label>存取權限</label>
+                    <select name="databases-__prefix__-access_permission" class="ui dropdown">
+                        <option value="readonly">唯讀</option>
+                        <option value="readwrite">可寫入</option>
+                    </select>
+                </div>
+                <div class="form-group delete-col">
+                    <button type="button" class="btn btn-danger btn-sm remove-row-btn">移除</button>
+                </div>
+            </div>
+        </div>`;
+
+        // File form template
+        const fileTemplate = `
+        <div class="inline-form-row">
+            <div class="form-group flex-grow">
+                <label>路徑</label>
+                <input type="text" name="files-__prefix__-path" class="ui input" placeholder="請輸入檔案路徑">
+            </div>
+            <div class="form-group">
+                <label>說明</label>
+                <input type="text" name="files-__prefix__-description" class="ui input" placeholder="說明（選填）">
+            </div>
+            <div class="form-group delete-col">
+                <button type="button" class="btn btn-danger btn-sm remove-row-btn">移除</button>
+            </div>
+        </div>`;
+
+        // API form template
+        const apiTemplate = `
+        <div class="db-form-row api-form-row">
+            <div class="api-row-grid">
+                <div class="form-group">
+                    <label>平台 API</label>
+                    <select name="apis-__prefix__-platform_api" class="ui dropdown">
+                        <option value="">---------</option>
+                        {% for api in platform_apis %}
+                        <option value="{{ api.id }}">{{ api.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>API 路徑</label>
+                    <input type="text" name="apis-__prefix__-api_path" class="ui input" placeholder="例如：/api/v1/projects">
+                </div>
+                <div class="form-group">
+                    <label>存取類型</label>
+                    <select name="apis-__prefix__-access_type" class="ui dropdown">
+                        <option value="consume">呼叫使用</option>
+                        <option value="provide">提供服務</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>說明</label>
+                    <input type="text" name="apis-__prefix__-description" class="ui input" placeholder="說明（選填）">
+                </div>
+                <div class="form-group delete-col">
+                    <button type="button" class="btn btn-danger btn-sm remove-row-btn">移除</button>
+                </div>
+            </div>
+        </div>`;
+
+        document.getElementById('addDbBtn').addEventListener('click', function () {
+            addFormRow('database-forms', 'databases', dbTemplate);
+        });
+
+        document.getElementById('addFileBtn').addEventListener('click', function () {
+            addFormRow('file-forms', 'files', fileTemplate);
+        });
+
+        const addApiBtn = document.getElementById('addApiBtn');
+        if (addApiBtn) {
+            addApiBtn.addEventListener('click', function () {
+                addFormRow('api-forms', 'apis', apiTemplate);
+            });
+        }
+
+        // Attach remove handlers to existing empty rows
+        document.querySelectorAll('.remove-row-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const row = this.closest('.db-form-row, .inline-form-row');
+                const container = row.parentElement;
+                let prefix = 'files';
+                if (container.id === 'database-forms') prefix = 'databases';
+                else if (container.id === 'api-forms') prefix = 'apis';
+                row.remove();
+                updateFormCount(prefix);
+            });
+        });
+    </script>
+
+    <style>
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .section-header .form-section-title {
+            margin-bottom: 0;
+        }
+
+        .db-form-row {
+            background: var(--background-color);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .db-row-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 120px auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .inline-form-row {
+            display: flex;
+            gap: 12px;
+            align-items: end;
+            background: var(--background-color);
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 8px;
+        }
+
+        .delete-col {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        @media (max-width: 992px) {
+            .db-row-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .db-row-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .inline-form-row {
+                flex-direction: column;
+            }
+        }
+
+        .api-row-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 100px 1fr auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        @media (max-width: 992px) {
+            .api-row-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .api-row-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</body>
+
+</html>
