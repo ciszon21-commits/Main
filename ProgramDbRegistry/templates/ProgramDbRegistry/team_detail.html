@@ -78,346 +78,406 @@
                 </div>
                 {% endfor %}
             </div>
+        </div>
 
-            <!-- Programs List by Category -->
-            {% for type_key, type_data in programs_by_type.items %}
-            {% if type_data.programs %}
-            <div class="section category-section category-{{ type_key }}">
+        <!-- Programs Tabs Section -->
+        <div class="section">
+            <div class="section-header">
                 <h2 class="section-title">
-                    {% if type_key == 'web' %}
                     <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                        <path
-                            d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm7.5-6.923c-.67.204-1.335.82-1.887 1.855A7.97 7.97 0 0 0 5.145 4H7.5V1.077zM4.09 4a9.267 9.267 0 0 1 .64-1.539 6.7 6.7 0 0 1 .597-.933A7.025 7.025 0 0 0 2.255 4H4.09zm-.582 3.5c.03-.877.138-1.718.312-2.5H1.674a6.958 6.958 0 0 0-.656 2.5h2.49zM4.847 5a12.5 12.5 0 0 0-.338 2.5H7.5V5H4.847zM8.5 5v2.5h2.99a12.495 12.495 0 0 0-.337-2.5H8.5zM4.51 8.5a12.5 12.5 0 0 0 .337 2.5H7.5V8.5H4.51zm3.99 0V11h2.653c.187-.765.306-1.608.338-2.5H8.5zM5.145 12c.138.386.295.744.468 1.068.552 1.035 1.218 1.65 1.887 1.855V12H5.145zm.182 2.472a6.696 6.696 0 0 1-.597-.933A9.268 9.268 0 0 1 4.09 12H2.255a7.024 7.024 0 0 0 3.072 2.472zM3.82 11a13.652 13.652 0 0 1-.312-2.5h-2.49c.062.89.291 1.733.656 2.5H3.82zm6.853 3.472A7.024 7.024 0 0 0 13.745 12H11.91a9.27 9.27 0 0 1-.64 1.539 6.688 6.688 0 0 1-.597.933zM8.5 12v2.923c.67-.204 1.335-.82 1.887-1.855.173-.324.33-.682.468-1.068H8.5zm3.68-1h2.146c.365-.767.594-1.61.656-2.5h-2.49a13.65 13.65 0 0 1-.312 2.5zm2.802-3.5a6.959 6.959 0 0 0-.656-2.5H12.18c.174.782.282 1.623.312 2.5h2.49zM11.27 2.461c.247.464.462.98.64 1.539h1.835a7.024 7.024 0 0 0-3.072-2.472c.218.284.418.598.597.933zM10.855 4a7.966 7.966 0 0 0-.468-1.068C9.835 1.897 9.17 1.282 8.5 1.077V4h2.355z" />
-                    </svg>
-                    {% elif type_key == 'desktop' %}
-                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                        <path
-                            d="M0 4s0-2 2-2h12s2 0 2 2v6s0 2-2 2h-4c0 .667.083 1.167.25 1.5H11a.5.5 0 0 1 0 1H5a.5.5 0 0 1 0-1h.75c.167-.333.25-.833.25-1.5H2s-2 0-2-2V4zm1.398-.855a.758.758 0 0 0-.254.302A1.46 1.46 0 0 0 1 4.01V10c0 .325.078.502.145.602.07.105.17.188.302.254a1.464 1.464 0 0 0 .538.143L2.01 11H14c.325 0 .502-.078.602-.145a.758.758 0 0 0 .254-.302 1.464 1.464 0 0 0 .143-.538L15 9.99V4c0-.325-.078-.502-.145-.602a.757.757 0 0 0-.302-.254A1.46 1.46 0 0 0 13.99 3H2c-.325 0-.502.078-.602.145z" />
-                    </svg>
-                    {% elif type_key == 'plugin' %}
-                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                        <path
-                            d="M4.879 4.515a.5.5 0 0 1 .606.364l1.036 4.144.997-1.994a.5.5 0 0 1 .894 0l1 2a.5.5 0 1 1-.894.448L8 8.5l-.518 1.036a.5.5 0 0 1-.948-.12L5.622 5.96l-.803 2.408a.5.5 0 0 1-.948.12L2.89 6.465A.5.5 0 1 1 3.784 6L4.05 6.532l.822-2.465a.5.5 0 0 1 .007.048z" />
-                        <path
-                            d="M6.5 1.5a.5.5 0 0 0-1 0V2h-1v-.5a.5.5 0 0 0-1 0V2H2a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-1.5v-.5a.5.5 0 0 0-1 0V2h-1v-.5a.5.5 0 0 0-1 0V2h-1v-.5zm7.5 3A1.5 1.5 0 0 0 12.5 3h-9A1.5 1.5 0 0 0 2 4.5V14a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5V4.5z" />
-                    </svg>
-                    {% endif %}
-                    {{ type_data.label }} ({{ type_data.programs|length }})
-                </h2>
-
-                <div class="program-grid">
-                    {% for program in type_data.programs %}
-                    <div class="program-card">
-                        <div class="program-header">
-                            <span class="program-type program-type-{{ program.program_type }}">
-                                {{ program.get_program_type_display }}
-                            </span>
-                            <span class="program-date">
-                                最後變更：{{ program.last_modified|date:"Y/m/d" }}
-                            </span>
-                        </div>
-                        <h3 class="program-name">{{ program.name }}</h3>
-                        {% if program.english_name %}
-                        <p class="program-english-name">{{ program.english_name }}</p>
-                        {% endif %}
-                        <div class="program-meta">
-                            <span class="meta-item">
-                                <svg fill="currentColor" viewBox="0 0 16 16">
-                                    <path
-                                        d="M5.5 0a.5.5 0 0 1 .5.5v4A1.5 1.5 0 0 1 4.5 6h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5zm5 0a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 10 4.5v-4a.5.5 0 0 1 .5-.5zM0 10.5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 6 11.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zm10 0a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4z" />
-                                </svg>
-                                {{ program.databases.count }} 個資料庫
-                            </span>
-                            <span class="meta-item">
-                                <svg fill="currentColor" viewBox="0 0 16 16">
-                                    <path
-                                        d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
-                                </svg>
-                                {{ program.developers }} 開發 / {{ program.maintainers }} 維運
-                            </span>
-                            {% if program.api_usages.count > 0 %}
-                            <span class="meta-item meta-api">
-                                <svg fill="currentColor" viewBox="0 0 16 16">
-                                    <path
-                                        d="M6 9a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3A.5.5 0 0 1 6 9zM2 8a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11A.5.5 0 0 1 2 8zm0-4a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11A.5.5 0 0 1 2 4zm0 8a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11A.5.5 0 0 1 2 12z" />
-                                </svg>
-                                {{ program.api_usages.count }} 個 API
-                            </span>
-                            {% endif %}
-                        </div>
-                        <div class="program-tool">
-                            <svg fill="currentColor" viewBox="0 0 16 16">
-                                <path
-                                    d="M1 0 0 1l2.2 3.081a1 1 0 0 0 .815.419h.07a1 1 0 0 1 .708.293l2.675 2.675-2.617 2.654A3.003 3.003 0 0 0 0 13a3 3 0 1 0 5.878-.851l2.654-2.617.968.968-.305.914a1 1 0 0 0 .242 1.023l3.27 3.27a.997.997 0 0 0 1.414 0l1.586-1.586a.997.997 0 0 0 0-1.414l-3.27-3.27a1 1 0 0 0-1.023-.242l-.914.305-.305-.305.914-.305a1 1 0 0 0 .242-1.023l-.305-.914 3.27-3.27a.997.997 0 0 0 0-1.414L13.293.293a.997.997 0 0 0-1.414 0l-3.27 3.27a1 1 0 0 0-.242 1.023l.305.914-.914.305a1 1 0 0 0-1.023.242l-.968-.968 2.617-2.654L5.851.878A3.003 3.003 0 0 0 3 0a3 3 0 0 0 0 6 3.003 3.003 0 0 0 2.148-.894L7.824 7.824 5.13 10.482A3.004 3.004 0 0 0 3 10a3 3 0 1 0 6 0 3.004 3.004 0 0 0-1.894-2.78z" />
-                            </svg>
-                            {{ program.dev_tool }}
-                        </div>
-                        <a href="{% url 'programdb:program_detail' program.pk %}" class="program-link">
-                            查看詳情
-                            <svg fill="currentColor" viewBox="0 0 16 16">
-                                <path fill-rule="evenodd"
-                                    d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z" />
-                            </svg>
-                        </a>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-            {% endfor %}
-
-            {% if not programs %}
-            <div class="section">
-                <div class="empty-state">
-                    <svg width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
                         <path
                             d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
                         <path
                             d="M6.854 4.646a.5.5 0 0 1 0 .708L4.207 8l2.647 2.646a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 0 1 .708 0zm2.292 0a.5.5 0 0 0 0 .708L11.793 8l-2.647 2.646a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708 0z" />
                     </svg>
-                    <h3>尚無程式</h3>
-                    <p>點擊「新增程式」開始建立</p>
+                    程式清單 ({{ programs|length }})
+                </h2>
+                <a href="{% url 'programdb:program_create' team.pk %}" class="btn btn-primary btn-sm">
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                    </svg>
+                    新增程式
+                </a>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="program-tabs">
+                <button class="tab-btn active" data-tab="web">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm7.5-6.923c-.67.204-1.335.82-1.887 1.855A7.97 7.97 0 0 0 5.145 4H7.5V1.077zM4.09 4a9.267 9.267 0 0 1 .64-1.539 6.7 6.7 0 0 1 .597-.933A7.025 7.025 0 0 0 2.255 4H4.09z" />
+                    </svg>
+                    網頁平台 ({{ programs_by_type.web.programs|length }})
+                </button>
+                <button class="tab-btn" data-tab="desktop">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M0 4s0-2 2-2h12s2 0 2 2v6s0 2-2 2h-4c0 .667.083 1.167.25 1.5H11a.5.5 0 0 1 0 1H5a.5.5 0 0 1 0-1h.75c.167-.333.25-.833.25-1.5H2s-2 0-2-2V4z" />
+                    </svg>
+                    單機程式 ({{ programs_by_type.desktop.programs|length }})
+                </button>
+                <button class="tab-btn" data-tab="plugin">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M6 0a.5.5 0 0 1 .5.5V3h3V.5a.5.5 0 0 1 1 0V3h1a.5.5 0 0 1 .5.5v3A3.5 3.5 0 0 1 8.5 10c-.002.434-.01.845-.04 1.22-.041.514-.126 1.003-.317 1.424a2.083 2.083 0 0 1-.97 1.028C6.725 13.9 6.169 14 5.5 14c-.998 0-1.61.33-1.974.718A1.922 1.922 0 0 0 3 16H2c0-.616.232-1.367.797-1.968C3.374 13.42 4.261 13 5.5 13c.581 0 .962-.088 1.218-.219.241-.123.4-.3.514-.55.121-.266.193-.621.23-1.09.027-.34.035-.718.037-1.141A3.5 3.5 0 0 1 4 6.5v-3a.5.5 0 0 1 .5-.5h1V.5A.5.5 0 0 1 6 0z" />
+                    </svg>
+                    外掛程式 ({{ programs_by_type.plugin.programs|length }})
+                </button>
+            </div>
+
+            <!-- Tab Contents -->
+            {% for type_key, type_data in programs_by_type.items %}
+            <div class="tab-content {% if type_key == 'web' %}active{% endif %}" id="tab-{{ type_key }}">
+                {% if type_data.programs %}
+                <div class="program-grid">
+                    {% for program in type_data.programs %}
+                    <div class="program-card">
+                        <div class="program-header">
+                            <span class="program-type program-type-{{ program.program_type }}">
+                                {{ program.get_program_type_display }}</span>
+                            <span class="program-date">最後變更：{{ program.last_modified|date:"Y/m/d" }}</span>
+                        </div>
+                        <h3 class="program-name">{{ program.name }}</h3>
+                        {% if program.english_name %}<p class="program-english-name">{{ program.english_name }}</p>
+                        {% endif %}
+                        <div class="program-meta">
+                            <span class="meta-item">{{ program.databases.count }} 個資料庫</span>
+                            <span class="meta-item">{{ program.developers }} 開發</span>
+                            {% if program.api_usages.count > 0 %}<span class="meta-item meta-api">{{
+                                program.api_usages.count }} 個 API</span>{% endif %}
+                        </div>
+                        <div class="program-tool">{{ program.dev_tool }}</div>
+                        <a href="{% url 'programdb:program_detail' program.pk %}" class="program-link">查看詳情 →</a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="empty-text">尚無{{ type_data.label }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Virtual Employees Section -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z" />
+                        <path fill-rule="evenodd"
+                            d="M13.5 5a.5.5 0 0 1 .5.5V7h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V8h-1.5a.5.5 0 0 1 0-1H13V5.5a.5.5 0 0 1 .5-.5z" />
+                    </svg>
+                    虛擬員工 ({{ virtual_employees|length }})
+                </h2>
+                <a href="{% url 'programdb:virtual_employee_create' team.pk %}" class="btn btn-primary btn-sm">
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                    </svg>
+                    新增虛擬員工
+                </a>
+            </div>
+            <div class="ve-list">
+                {% for ve in virtual_employees %}
+                <div class="ve-card {% if ve.status == 'retired' %}ve-retired{% endif %}">
+                    <div class="ve-header">
+                        <div class="ve-title-row">
+                            <span class="ve-code">{{ ve.code }}</span>
+                            <span class="ve-name">{{ ve.name }}</span>
+                            <span class="ve-status ve-status-{{ ve.status }}">{{ ve.get_status_display }}</span>
+                        </div>
+                        <div class="ve-actions">
+                            {% if ve.status == 'active' %}
+                            <a href="{% url 'programdb:virtual_employee_update' ve.pk %}"
+                                class="btn btn-secondary btn-xs" title="編輯">✎</a>
+                            <a href="{% url 'programdb:virtual_employee_retire' ve.pk %}" class="btn btn-warning btn-xs"
+                                title="退休">⏸</a>
+                            {% endif %}
+                            <form action="{% url 'programdb:virtual_employee_delete' ve.pk %}" method="post"
+                                style="display:inline;" onsubmit="return confirm('確定刪除？');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-xs" title="刪除">✕</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="ve-body">
+                        <div class="ve-info-row">
+                            <span class="ve-category ve-category-{{ ve.category }}">{{ ve.get_category_display }}</span>
+                            <span class="ve-device">{{ ve.device }}</span>
+                            <span class="ve-frequency">{{ ve.get_frequency_display }}{% if ve.frequency_note %} 
+                                ({{ ve.frequency_note }}){% endif %}</span>
+                        </div>
+                        <div class="ve-purpose">{{ ve.purpose }}</div>
+                        {% if ve.status == 'retired' %}
+                        <div class="ve-retirement-info"><strong>退休原因：</strong>{{ ve.retirement_reason }}<br><small>
+                            {{ ve.retired_at|date:"Y/m/d H:i" }}</small></div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="empty-text">尚無虛擬員工</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Database Servers Section -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm.5-5v1h1a.5.5 0 0 1 0 1h-1v1a.5.5 0 0 1-1 0v-1h-1a.5.5 0 0 1 0-1h1v-1a.5.5 0 0 1 1 0Zm-2-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                        <path
+                            d="M12.096 6.223A4.92 4.92 0 0 0 13 5.698V7c0 .289-.213.654-.753 1.007a4.493 4.493 0 0 1 1.753.25V4c0-1.007-.875-1.755-1.904-2.223C11.022 1.289 9.573 1 8 1s-3.022.289-4.096.777C2.875 2.245 2 2.993 2 4v9c0 1.007.875 1.755 1.904 2.223C4.978 15.71 6.427 16 8 16c.536 0 1.058-.034 1.555-.097a4.525 4.525 0 0 1-.813-.927C8.5 14.992 8.252 15 8 15c-1.464 0-2.766-.27-3.682-.687C3.356 13.875 3 13.373 3 13v-1.302c.271.202.58.378.904.525C4.978 12.71 6.427 13 8 13h.027a4.552 4.552 0 0 1 0-1H8c-1.464 0-2.766-.27-3.682-.687C3.356 10.875 3 10.373 3 10V8.698c.271.202.58.378.904.525C4.978 9.71 6.427 10 8 10c.262 0 .52-.008.774-.024a4.525 4.525 0 0 1 1.102-1.132C9.298 8.944 8.666 9 8 9c-1.464 0-2.766-.27-3.682-.687C3.356 7.875 3 7.373 3 7V5.698c.271.202.58.378.904.525C4.978 6.711 6.427 7 8 7s3.022-.289 4.096-.777ZM3 4c0-.374.356-.875 1.318-1.313C5.234 2.271 6.536 2 8 2s2.766.27 3.682.687C12.644 3.125 13 3.627 13 4c0 .374-.356.875-1.318 1.313C10.766 5.729 9.464 6 8 6s-2.766-.27-3.682-.687C3.356 4.875 3 4.373 3 4Z" />
+                    </svg>
+                    資料庫伺服器 ({{ db_servers|length }})
+                </h2>
+                <button type="button" class="btn btn-primary btn-sm" id="addServerBtn">
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                    </svg>
+                    新增伺服器
+                </button>
+            </div>
+
+            <!-- Add Server Form (hidden by default) -->
+            <div id="addServerForm" class="add-server-form" style="display: none;">
+                <form id="serverForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>伺服器名稱 *</label>
+                            <input type="text" name="name" class="ui input" placeholder="例如：SQL-PROD-01" required>
+                        </div>
+                        <div class="form-group">
+                            <label>說明</label>
+                            <input type="text" name="description" class="ui input" placeholder="說明（選填）">
+                        </div>
+                        <div class="form-actions-inline">
+                            <button type="submit" class="btn btn-primary btn-sm">新增</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="cancelAddServer">取消</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div id="serverList" class="server-list">
+                {% for server in db_servers %}
+                <div class="server-item" data-server-id="{{ server.id }}">
+                    <div class="server-info">
+                        <span class="server-name">{{ server.name }}</span>
+                        {% if server.description %}
+                        <span class="server-desc">{{ server.description }}</span>
+                        {% endif %}
+                        <span class="server-usage">使用數：{{ server.databases.count }}</span>
+                    </div>
+                    <button type="button" class="btn btn-danger btn-sm delete-server-btn"
+                        data-server-id="{{ server.id }}" {% if server.databases.count > 0 %}
+                        disabled title="此伺服器正在使用中"
+                        {%endif %}>
+                        刪除
+                    </button>
+                </div>
+                {% empty %}
+                <p class="empty-text">尚無資料庫伺服器，請先新增</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Server Usage Viewer Section -->
+        {% if db_servers %}
+        <div class="section">
+            <h2 class="section-title">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path
+                        d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3z" />
+                </svg>
+                查詢伺服器使用狀況
+            </h2>
+
+            <div class="server-query-section">
+                <div class="form-group">
+                    <label>選擇資料庫伺服器</label>
+                    <select id="serverSelector" class="ui dropdown">
+                        <option value="">請選擇伺服器...</option>
+                        {% for server in db_servers %}
+                        <option value="{{ server.id }}">{{ server.name }} ({{ server.databases.count }} 個使用)
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div id="serverUsageResult" class="server-usage-result" style="display: none;">
+                    <h3 id="resultTitle" class="result-title"></h3>
+                    <div id="programsList" class="programs-list"></div>
                 </div>
             </div>
             {% endif %}
 
-            <!-- Database Servers Section -->
+            <!-- Platform API Section -->
             <div class="section">
                 <div class="section-header">
                     <h2 class="section-title">
                         <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
                             <path
-                                d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm.5-5v1h1a.5.5 0 0 1 0 1h-1v1a.5.5 0 0 1-1 0v-1h-1a.5.5 0 0 1 0-1h1v-1a.5.5 0 0 1 1 0Zm-2-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                            <path
-                                d="M12.096 6.223A4.92 4.92 0 0 0 13 5.698V7c0 .289-.213.654-.753 1.007a4.493 4.493 0 0 1 1.753.25V4c0-1.007-.875-1.755-1.904-2.223C11.022 1.289 9.573 1 8 1s-3.022.289-4.096.777C2.875 2.245 2 2.993 2 4v9c0 1.007.875 1.755 1.904 2.223C4.978 15.71 6.427 16 8 16c.536 0 1.058-.034 1.555-.097a4.525 4.525 0 0 1-.813-.927C8.5 14.992 8.252 15 8 15c-1.464 0-2.766-.27-3.682-.687C3.356 13.875 3 13.373 3 13v-1.302c.271.202.58.378.904.525C4.978 12.71 6.427 13 8 13h.027a4.552 4.552 0 0 1 0-1H8c-1.464 0-2.766-.27-3.682-.687C3.356 10.875 3 10.373 3 10V8.698c.271.202.58.378.904.525C4.978 9.71 6.427 10 8 10c.262 0 .52-.008.774-.024a4.525 4.525 0 0 1 1.102-1.132C9.298 8.944 8.666 9 8 9c-1.464 0-2.766-.27-3.682-.687C3.356 7.875 3 7.373 3 7V5.698c.271.202.58.378.904.525C4.978 6.711 6.427 7 8 7s3.022-.289 4.096-.777ZM3 4c0-.374.356-.875 1.318-1.313C5.234 2.271 6.536 2 8 2s2.766.27 3.682.687C12.644 3.125 13 3.627 13 4c0 .374-.356.875-1.318 1.313C10.766 5.729 9.464 6 8 6s-2.766-.27-3.682-.687C3.356 4.875 3 4.373 3 4Z" />
+                                d="M6 9a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3A.5.5 0 0 1 6 9zM2 8a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11A.5.5 0 0 1 2 8zm0-4a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11A.5.5 0 0 1 2 4zm0 8a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11A.5.5 0 0 1 2 12z" />
                         </svg>
-                        資料庫伺服器 ({{ db_servers|length }})
+                        平台 API ({{ platform_apis|length }})
                     </h2>
-                    <button type="button" class="btn btn-primary btn-sm" id="addServerBtn">
+                    <button type="button" class="btn btn-primary btn-sm" id="addApiBtn">
                         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
                             <path
                                 d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
                         </svg>
-                        新增伺服器
+                        新增平台 API
                     </button>
                 </div>
 
-                <!-- Add Server Form (hidden by default) -->
-                <div id="addServerForm" class="add-server-form" style="display: none;">
-                    <form id="serverForm">
+                <!-- Add Platform API Form (hidden by default) -->
+                <div id="addApiForm" class="add-server-form" style="display: none;">
+                    <form id="apiForm">
                         <div class="form-row">
                             <div class="form-group">
-                                <label>伺服器名稱 *</label>
-                                <input type="text" name="name" class="ui input" placeholder="例如：SQL-PROD-01" required>
+                                <label>平台名稱 *</label>
+                                <input type="text" name="name" class="ui input" placeholder="例如：PMIS API、ERP API"
+                                    required>
                             </div>
                             <div class="form-group">
-                                <label>說明</label>
-                                <input type="text" name="description" class="ui input" placeholder="說明（選填）">
+                                <label>API 端點</label>
+                                <input type="url" name="api_endpoint" class="ui input"
+                                    placeholder="例如：https://api.example.com">
                             </div>
-                            <div class="form-actions-inline">
-                                <button type="submit" class="btn btn-primary btn-sm">新增</button>
-                                <button type="button" class="btn btn-secondary btn-sm" id="cancelAddServer">取消</button>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>驗證方式</label>
+                                <select name="auth_type" class="ui dropdown">
+                                    <option value="none">無需驗證</option>
+                                    <option value="api_key">API Key</option>
+                                    <option value="oauth">OAuth</option>
+                                    <option value="token">Token</option>
+                                    <option value="basic">Basic Auth</option>
+                                </select>
                             </div>
+                            <div class="form-group">
+                                <label>文件連結</label>
+                                <input type="url" name="documentation_url" class="ui input" placeholder="API 文件連結（選填）">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>說明</label>
+                            <textarea name="description" class="ui textarea" placeholder="平台 API 說明（選填）"
+                                rows="2"></textarea>
+                        </div>
+                        <div class="form-actions-inline">
+                            <button type="submit" class="btn btn-primary btn-sm">新增</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="cancelAddApi">取消</button>
                         </div>
                     </form>
                 </div>
 
-                <div id="serverList" class="server-list">
-                    {% for server in db_servers %}
-                    <div class="server-item" data-server-id="{{ server.id }}">
+                <div id="apiList" class="server-list">
+                    {% for api in platform_apis %}
+                    <div class="server-item api-item" data-api-id="{{ api.id }}">
                         <div class="server-info">
-                            <span class="server-name">{{ server.name }}</span>
-                            {% if server.description %}
-                            <span class="server-desc">{{ server.description }}</span>
+                            <span class="server-name">{{ api.name }}</span>
+                            {% if api.api_endpoint %}
+                            <span class="server-desc">{{ api.api_endpoint }}</span>
                             {% endif %}
-                            <span class="server-usage">使用數：{{ server.databases.count }}</span>
+                            <span class="api-auth-badge api-auth-{{ api.auth_type }}">
+                                {{ api.get_auth_type_display }}</span>
+                            <span class="server-usage">使用數：{{ api.usages.count }}</span>
                         </div>
-                        <button type="button" class="btn btn-danger btn-sm delete-server-btn"
-                            data-server-id="{{ server.id }}" {% if server.databases.count > 0 %}
-                            disabled title="此伺服器正在使用中"
-                            {%endif %}>
+                        <button type="button" class="btn btn-danger btn-sm delete-api-btn" data-api-id="{{ api.id }}" 
+                        {% if api.usages.count > 0 %}
+                            disabled title="此平台 API 正在使用中"
+                            {% endif %}>
                             刪除
                         </button>
                     </div>
                     {% empty %}
-                    <p class="empty-text">尚無資料庫伺服器，請先新增</p>
+                    <p class="empty-text">尚無平台 API，請先新增</p>
                     {% endfor %}
                 </div>
             </div>
 
-            <!-- Server Usage Viewer Section -->
-            {% if db_servers %}
+            <!-- Platform API Usage Viewer Section -->
+            {% if platform_apis %}
             <div class="section">
                 <h2 class="section-title">
                     <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
                         <path
                             d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3z" />
                     </svg>
-                    查詢伺服器使用狀況
+                    查詢平台 API 使用狀況
                 </h2>
 
                 <div class="server-query-section">
                     <div class="form-group">
-                        <label>選擇資料庫伺服器</label>
-                        <select id="serverSelector" class="ui dropdown">
-                            <option value="">請選擇伺服器...</option>
-                            {% for server in db_servers %}
-                            <option value="{{ server.id }}">{{ server.name }} ({{ server.databases.count }} 個使用)
-                            </option>
+                        <label>選擇平台 API</label>
+                        <select id="apiSelector" class="ui dropdown">
+                            <option value="">請選擇平台 API...</option>
+                            {% for api in platform_apis %}
+                            <option value="{{ api.id }}">{{ api.name }} ({{ api.usages.count }} 個使用)</option>
                             {% endfor %}
                         </select>
                     </div>
 
-                    <div id="serverUsageResult" class="server-usage-result" style="display: none;">
-                        <h3 id="resultTitle" class="result-title"></h3>
-                        <div id="programsList" class="programs-list"></div>
+                    <div id="apiUsageResult" class="server-usage-result" style="display: none;">
+                        <h3 id="apiResultTitle" class="result-title"></h3>
+                        <div id="apiProgramsList" class="programs-list"></div>
                     </div>
                 </div>
-                {% endif %}
-
-                <!-- Platform API Section -->
-                <div class="section">
-                    <div class="section-header">
-                        <h2 class="section-title">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                                <path
-                                    d="M6 9a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3A.5.5 0 0 1 6 9zM2 8a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11A.5.5 0 0 1 2 8zm0-4a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11A.5.5 0 0 1 2 4zm0 8a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11A.5.5 0 0 1 2 12z" />
-                            </svg>
-                            平台 API ({{ platform_apis|length }})
-                        </h2>
-                        <button type="button" class="btn btn-primary btn-sm" id="addApiBtn">
-                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                <path
-                                    d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
-                            </svg>
-                            新增平台 API
-                        </button>
-                    </div>
-
-                    <!-- Add Platform API Form (hidden by default) -->
-                    <div id="addApiForm" class="add-server-form" style="display: none;">
-                        <form id="apiForm">
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>平台名稱 *</label>
-                                    <input type="text" name="name" class="ui input" placeholder="例如：PMIS API、ERP API"
-                                        required>
-                                </div>
-                                <div class="form-group">
-                                    <label>API 端點</label>
-                                    <input type="url" name="api_endpoint" class="ui input"
-                                        placeholder="例如：https://api.example.com">
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>驗證方式</label>
-                                    <select name="auth_type" class="ui dropdown">
-                                        <option value="none">無需驗證</option>
-                                        <option value="api_key">API Key</option>
-                                        <option value="oauth">OAuth</option>
-                                        <option value="token">Token</option>
-                                        <option value="basic">Basic Auth</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>文件連結</label>
-                                    <input type="url" name="documentation_url" class="ui input"
-                                        placeholder="API 文件連結（選填）">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>說明</label>
-                                <textarea name="description" class="ui textarea" placeholder="平台 API 說明（選填）"
-                                    rows="2"></textarea>
-                            </div>
-                            <div class="form-actions-inline">
-                                <button type="submit" class="btn btn-primary btn-sm">新增</button>
-                                <button type="button" class="btn btn-secondary btn-sm" id="cancelAddApi">取消</button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <div id="apiList" class="server-list">
-                        {% for api in platform_apis %}
-                        <div class="server-item api-item" data-api-id="{{ api.id }}">
-                            <div class="server-info">
-                                <span class="server-name">{{ api.name }}</span>
-                                {% if api.api_endpoint %}
-                                <span class="server-desc">{{ api.api_endpoint }}</span>
-                                {% endif %}
-                                <span class="api-auth-badge api-auth-{{ api.auth_type }}">
-                                    {{ api.get_auth_type_display }}</span>
-                                <span class="server-usage">使用數：{{ api.usages.count }}</span>
-                            </div>
-                            <button type="button" class="btn btn-danger btn-sm delete-api-btn"
-                                data-api-id="{{ api.id }}" {% if api.usages.count > 0 %}
-                                disabled title="此平台 API 正在使用中"
-                                {% endif %}>
-                                刪除
-                            </button>
-                        </div>
-                        {% empty %}
-                        <p class="empty-text">尚無平台 API，請先新增</p>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- Platform API Usage Viewer Section -->
-                {% if platform_apis %}
-                <div class="section">
-                    <h2 class="section-title">
-                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                            <path
-                                d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3z" />
-                        </svg>
-                        查詢平台 API 使用狀況
-                    </h2>
-
-                    <div class="server-query-section">
-                        <div class="form-group">
-                            <label>選擇平台 API</label>
-                            <select id="apiSelector" class="ui dropdown">
-                                <option value="">請選擇平台 API...</option>
-                                {% for api in platform_apis %}
-                                <option value="{{ api.id }}">{{ api.name }} ({{ api.usages.count }} 個使用)</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-
-                        <div id="apiUsageResult" class="server-usage-result" style="display: none;">
-                            <h3 id="apiResultTitle" class="result-title"></h3>
-                            <div id="apiProgramsList" class="programs-list"></div>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
             </div>
+            {% endif %}
+        </div>
 
-            <script>
-                const csrfToken = '{{ csrf_token }}';
-                const teamId = {{ team.pk }};
+        <script>
+            const csrfToken = '{{ csrf_token }}';
+            const teamId = {{ team.pk }};
 
-                // Toggle add server form
-                document.getElementById('addServerBtn').addEventListener('click', function () {
-                    document.getElementById('addServerForm').style.display = 'block';
-                    this.style.display = 'none';
-                });
+            // Toggle add server form
+            document.getElementById('addServerBtn').addEventListener('click', function () {
+                document.getElementById('addServerForm').style.display = 'block';
+                this.style.display = 'none';
+            });
 
-                document.getElementById('cancelAddServer').addEventListener('click', function () {
-                    document.getElementById('addServerForm').style.display = 'none';
-                    document.getElementById('addServerBtn').style.display = 'inline-flex';
-                });
+            document.getElementById('cancelAddServer').addEventListener('click', function () {
+                document.getElementById('addServerForm').style.display = 'none';
+                document.getElementById('addServerBtn').style.display = 'inline-flex';
+            });
 
-                // Add server form submission
-                document.getElementById('serverForm').addEventListener('submit', function (e) {
-                    e.preventDefault();
-                    const formData = new FormData(this);
+            // Add server form submission
+            document.getElementById('serverForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const formData = new FormData(this);
 
-                    fetch(`/program-db/team/${teamId}/add-db-server/`, {
+                fetch(`/program-db/team/${teamId}/add-db-server/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken },
+                    body: formData
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert(data.error);
+                        }
+                    });
+            });
+
+            // Delete server
+            document.querySelectorAll('.delete-server-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    if (!confirm('確定要刪除此伺服器嗎？')) return;
+                    const serverId = this.dataset.serverId;
+
+                    fetch(`/program-db/team/${teamId}/delete-db-server/${serverId}/`, {
                         method: 'POST',
-                        headers: { 'X-CSRFToken': csrfToken },
-                        body: formData
+                        headers: { 'X-CSRFToken': csrfToken }
                     })
                         .then(r => r.json())
                         .then(data => {
@@ -428,53 +488,33 @@
                             }
                         });
                 });
+            });
 
-                // Delete server
-                document.querySelectorAll('.delete-server-btn').forEach(btn => {
-                    btn.addEventListener('click', function () {
-                        if (!confirm('確定要刪除此伺服器嗎？')) return;
-                        const serverId = this.dataset.serverId;
+            // Server usage query
+            const serverSelector = document.getElementById('serverSelector');
+            if (serverSelector) {
+                serverSelector.addEventListener('change', function () {
+                    const serverId = this.value;
+                    const resultDiv = document.getElementById('serverUsageResult');
+                    const titleEl = document.getElementById('resultTitle');
+                    const listEl = document.getElementById('programsList');
 
-                        fetch(`/program-db/team/${teamId}/delete-db-server/${serverId}/`, {
-                            method: 'POST',
-                            headers: { 'X-CSRFToken': csrfToken }
-                        })
-                            .then(r => r.json())
-                            .then(data => {
-                                if (data.success) {
-                                    location.reload();
+                    if (!serverId) {
+                        resultDiv.style.display = 'none';
+                        return;
+                    }
+
+                    fetch(`/program-db/api/team/${teamId}/server/${serverId}/programs/`)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                resultDiv.style.display = 'block';
+                                titleEl.textContent = `使用 ${data.server_name} 的程式 (${data.programs.length})`;
+
+                                if (data.programs.length === 0) {
+                                    listEl.innerHTML = '<p class="empty-text">目前沒有程式使用此伺服器</p>';
                                 } else {
-                                    alert(data.error);
-                                }
-                            });
-                    });
-                });
-
-                // Server usage query
-                const serverSelector = document.getElementById('serverSelector');
-                if (serverSelector) {
-                    serverSelector.addEventListener('change', function () {
-                        const serverId = this.value;
-                        const resultDiv = document.getElementById('serverUsageResult');
-                        const titleEl = document.getElementById('resultTitle');
-                        const listEl = document.getElementById('programsList');
-
-                        if (!serverId) {
-                            resultDiv.style.display = 'none';
-                            return;
-                        }
-
-                        fetch(`/program-db/api/team/${teamId}/server/${serverId}/programs/`)
-                            .then(r => r.json())
-                            .then(data => {
-                                if (data.success) {
-                                    resultDiv.style.display = 'block';
-                                    titleEl.textContent = `使用 ${data.server_name} 的程式 (${data.programs.length})`;
-
-                                    if (data.programs.length === 0) {
-                                        listEl.innerHTML = '<p class="empty-text">目前沒有程式使用此伺服器</p>';
-                                    } else {
-                                        listEl.innerHTML = data.programs.map(prog => `
+                                    listEl.innerHTML = data.programs.map(prog => `
                                     <div class="usage-program-card">
                                         <div class="usage-program-header">
                                             <a href="${prog.url}" class="usage-program-name">${prog.name}</a>
@@ -490,102 +530,102 @@
                                         </div>
                                     </div>
                                 `).join('');
-                                    }
-                                } else {
-                                    alert(data.error);
                                 }
-                            });
-                    });
-                }
-
-                // ===== Platform API Section =====
-
-                // Toggle add API form
-                const addApiBtn = document.getElementById('addApiBtn');
-                if (addApiBtn) {
-                    addApiBtn.addEventListener('click', function () {
-                        document.getElementById('addApiForm').style.display = 'block';
-                        this.style.display = 'none';
-                    });
-                }
-
-                const cancelAddApi = document.getElementById('cancelAddApi');
-                if (cancelAddApi) {
-                    cancelAddApi.addEventListener('click', function () {
-                        document.getElementById('addApiForm').style.display = 'none';
-                        document.getElementById('addApiBtn').style.display = 'inline-flex';
-                    });
-                }
-
-                // Add API form submission
-                const apiForm = document.getElementById('apiForm');
-                if (apiForm) {
-                    apiForm.addEventListener('submit', function (e) {
-                        e.preventDefault();
-                        const formData = new FormData(this);
-
-                        fetch(`/program-db/team/${teamId}/add-platform-api/`, {
-                            method: 'POST',
-                            headers: { 'X-CSRFToken': csrfToken },
-                            body: formData
-                        })
-                            .then(r => r.json())
-                            .then(data => {
-                                if (data.success) {
-                                    location.reload();
-                                } else {
-                                    alert(data.error);
-                                }
-                            });
-                    });
-                }
-
-                // Delete API
-                document.querySelectorAll('.delete-api-btn').forEach(btn => {
-                    btn.addEventListener('click', function () {
-                        if (!confirm('確定要刪除此平台 API 嗎？')) return;
-                        const apiId = this.dataset.apiId;
-
-                        fetch(`/program-db/team/${teamId}/delete-platform-api/${apiId}/`, {
-                            method: 'POST',
-                            headers: { 'X-CSRFToken': csrfToken }
-                        })
-                            .then(r => r.json())
-                            .then(data => {
-                                if (data.success) {
-                                    location.reload();
-                                } else {
-                                    alert(data.error);
-                                }
-                            });
-                    });
+                            } else {
+                                alert(data.error);
+                            }
+                        });
                 });
+            }
 
-                // Platform API usage query
-                const apiSelector = document.getElementById('apiSelector');
-                if (apiSelector) {
-                    apiSelector.addEventListener('change', function () {
-                        const apiId = this.value;
-                        const resultDiv = document.getElementById('apiUsageResult');
-                        const titleEl = document.getElementById('apiResultTitle');
-                        const listEl = document.getElementById('apiProgramsList');
+            // ===== Platform API Section =====
 
-                        if (!apiId) {
-                            resultDiv.style.display = 'none';
-                            return;
-                        }
+            // Toggle add API form
+            const addApiBtn = document.getElementById('addApiBtn');
+            if (addApiBtn) {
+                addApiBtn.addEventListener('click', function () {
+                    document.getElementById('addApiForm').style.display = 'block';
+                    this.style.display = 'none';
+                });
+            }
 
-                        fetch(`/program-db/api/team/${teamId}/platform-api/${apiId}/programs/`)
-                            .then(r => r.json())
-                            .then(data => {
-                                if (data.success) {
-                                    resultDiv.style.display = 'block';
-                                    titleEl.textContent = `使用 ${data.api_name} 的程式 (${data.programs.length})`;
+            const cancelAddApi = document.getElementById('cancelAddApi');
+            if (cancelAddApi) {
+                cancelAddApi.addEventListener('click', function () {
+                    document.getElementById('addApiForm').style.display = 'none';
+                    document.getElementById('addApiBtn').style.display = 'inline-flex';
+                });
+            }
 
-                                    if (data.programs.length === 0) {
-                                        listEl.innerHTML = '<p class="empty-text">目前沒有程式使用此平台 API</p>';
-                                    } else {
-                                        listEl.innerHTML = data.programs.map(prog => `
+            // Add API form submission
+            const apiForm = document.getElementById('apiForm');
+            if (apiForm) {
+                apiForm.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    const formData = new FormData(this);
+
+                    fetch(`/program-db/team/${teamId}/add-platform-api/`, {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': csrfToken },
+                        body: formData
+                    })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert(data.error);
+                            }
+                        });
+                });
+            }
+
+            // Delete API
+            document.querySelectorAll('.delete-api-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    if (!confirm('確定要刪除此平台 API 嗎？')) return;
+                    const apiId = this.dataset.apiId;
+
+                    fetch(`/program-db/team/${teamId}/delete-platform-api/${apiId}/`, {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': csrfToken }
+                    })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert(data.error);
+                            }
+                        });
+                });
+            });
+
+            // Platform API usage query
+            const apiSelector = document.getElementById('apiSelector');
+            if (apiSelector) {
+                apiSelector.addEventListener('change', function () {
+                    const apiId = this.value;
+                    const resultDiv = document.getElementById('apiUsageResult');
+                    const titleEl = document.getElementById('apiResultTitle');
+                    const listEl = document.getElementById('apiProgramsList');
+
+                    if (!apiId) {
+                        resultDiv.style.display = 'none';
+                        return;
+                    }
+
+                    fetch(`/program-db/api/team/${teamId}/platform-api/${apiId}/programs/`)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                resultDiv.style.display = 'block';
+                                titleEl.textContent = `使用 ${data.api_name} 的程式 (${data.programs.length})`;
+
+                                if (data.programs.length === 0) {
+                                    listEl.innerHTML = '<p class="empty-text">目前沒有程式使用此平台 API</p>';
+                                } else {
+                                    listEl.innerHTML = data.programs.map(prog => `
                                     <div class="usage-program-card">
                                         <div class="usage-program-header">
                                             <a href="${prog.url}" class="usage-program-name">${prog.name}</a>
@@ -601,217 +641,465 @@
                                         </div>
                                     </div>
                                 `).join('');
-                                    }
-                                } else {
-                                    alert(data.error);
                                 }
-                            });
-                    });
-                }
-            </script>
+                            } else {
+                                alert(data.error);
+                            }
+                        });
+                });
+            }
+        </script>
 
-            <style>
-                .add-server-form {
-                    background: var(--surface-color);
-                    border: 1px solid var(--border-color);
-                    border-radius: var(--radius-md);
-                    padding: 16px;
-                    margin-bottom: 16px;
-                }
+        <style>
+            .add-server-form {
+                background: var(--surface-color);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-md);
+                padding: 16px;
+                margin-bottom: 16px;
+            }
 
-                .add-server-form .form-row {
-                    display: flex;
-                    align-items: end;
-                    gap: 12px;
-                    flex-wrap: wrap;
-                }
+            .add-server-form .form-row {
+                display: flex;
+                align-items: end;
+                gap: 12px;
+                flex-wrap: wrap;
+            }
 
-                .add-server-form .form-group {
-                    flex: 1;
-                    min-width: 200px;
-                }
+            .add-server-form .form-group {
+                flex: 1;
+                min-width: 200px;
+            }
 
-                .form-actions-inline {
-                    display: flex;
-                    gap: 8px;
-                }
+            .form-actions-inline {
+                display: flex;
+                gap: 8px;
+            }
 
-                .server-list {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 8px;
-                }
+            .server-list {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
 
-                .server-item {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    background: var(--surface-color);
-                    border: 1px solid var(--border-color);
-                    border-radius: var(--radius-sm);
-                    padding: 12px 16px;
-                }
+            .server-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: var(--surface-color);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-sm);
+                padding: 12px 16px;
+            }
 
-                .server-info {
-                    display: flex;
-                    align-items: center;
-                    gap: 16px;
-                }
+            .server-info {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+            }
 
-                .server-name {
-                    font-weight: 600;
-                    color: var(--text-primary);
-                }
+            .server-name {
+                font-weight: 600;
+                color: var(--text-primary);
+            }
 
-                .server-desc {
-                    color: var(--text-secondary);
-                    font-size: 0.875rem;
-                }
+            .server-desc {
+                color: var(--text-secondary);
+                font-size: 0.875rem;
+            }
 
-                .server-usage {
-                    color: var(--text-muted);
-                    font-size: 0.75rem;
-                }
+            .server-usage {
+                color: var(--text-muted);
+                font-size: 0.75rem;
+            }
 
-                /* Server Usage Viewer Styles */
-                .server-query-section {
-                    background: var(--surface-color);
-                    border: 1px solid var(--border-color);
-                    border-radius: var(--radius-md);
-                    padding: 20px;
-                }
+            /* Server Usage Viewer Styles */
+            .server-query-section {
+                background: var(--surface-color);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-md);
+                padding: 20px;
+            }
 
-                .server-query-section .form-group {
-                    margin-bottom: 16px;
-                }
+            .server-query-section .form-group {
+                margin-bottom: 16px;
+            }
 
-                .server-query-section select {
-                    width: 100%;
-                    max-width: 400px;
-                    padding: 10px 14px;
-                    background: var(--background-color);
-                    border: 1px solid var(--border-color);
-                    border-radius: var(--radius-sm);
-                    color: var(--text-primary);
-                    font-size: 0.9375rem;
-                }
+            .server-query-section select {
+                width: 100%;
+                max-width: 400px;
+                padding: 10px 14px;
+                background: var(--background-color);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-sm);
+                color: var(--text-primary);
+                font-size: 0.9375rem;
+            }
 
-                .result-title {
-                    font-size: 1rem;
-                    font-weight: 600;
-                    margin-bottom: 16px;
-                    color: var(--text-primary);
-                }
+            .result-title {
+                font-size: 1rem;
+                font-weight: 600;
+                margin-bottom: 16px;
+                color: var(--text-primary);
+            }
 
-                .programs-list {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                }
+            .programs-list {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
 
-                .usage-program-card {
-                    background: var(--background-color);
-                    border-radius: var(--radius-sm);
-                    padding: 14px;
-                }
+            .usage-program-card {
+                background: var(--background-color);
+                border-radius: var(--radius-sm);
+                padding: 14px;
+            }
 
-                .usage-program-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 10px;
-                }
+            .usage-program-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+            }
 
-                .usage-program-name {
-                    font-weight: 600;
-                    color: var(--primary-color);
-                }
+            .usage-program-name {
+                font-weight: 600;
+                color: var(--primary-color);
+            }
 
-                .usage-program-team {
-                    font-size: 0.8125rem;
-                    color: var(--text-muted);
-                }
+            .usage-program-team {
+                font-size: 0.8125rem;
+                color: var(--text-muted);
+            }
 
-                .usage-db-list {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 8px;
-                }
+            .usage-db-list {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
 
-                .usage-db-item {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 6px;
-                    background: var(--surface-color);
-                    padding: 4px 8px;
-                    border-radius: 4px;
-                    font-size: 0.8125rem;
-                }
+            .usage-db-item {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                background: var(--surface-color);
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 0.8125rem;
+            }
 
-                .usage-db-item code {
-                    color: #22c55e;
-                }
+            .usage-db-item code {
+                color: #22c55e;
+            }
 
-                .usage-db-perm {
-                    font-size: 0.6875rem;
-                    color: var(--text-muted);
-                }
+            .usage-db-perm {
+                font-size: 0.6875rem;
+                color: var(--text-muted);
+            }
 
-                /* Platform API Auth Badges */
-                .api-auth-badge {
-                    font-size: 0.6875rem;
-                    font-weight: 500;
-                    padding: 2px 8px;
-                    border-radius: 10px;
-                }
+            /* Platform API Auth Badges */
+            .api-auth-badge {
+                font-size: 0.6875rem;
+                font-weight: 500;
+                padding: 2px 8px;
+                border-radius: 10px;
+            }
 
-                .api-auth-none {
-                    background: rgba(100, 116, 139, 0.15);
-                    color: #64748b;
-                }
+            .api-auth-none {
+                background: rgba(100, 116, 139, 0.15);
+                color: #64748b;
+            }
 
-                .api-auth-api_key {
-                    background: rgba(245, 158, 11, 0.15);
-                    color: #f59e0b;
-                }
+            .api-auth-api_key {
+                background: rgba(245, 158, 11, 0.15);
+                color: #f59e0b;
+            }
 
-                .api-auth-oauth {
-                    background: rgba(59, 130, 246, 0.15);
-                    color: #3b82f6;
-                }
+            .api-auth-oauth {
+                background: rgba(59, 130, 246, 0.15);
+                color: #3b82f6;
+            }
 
-                .api-auth-token {
-                    background: rgba(168, 85, 247, 0.15);
-                    color: #a855f7;
-                }
+            .api-auth-token {
+                background: rgba(168, 85, 247, 0.15);
+                color: #a855f7;
+            }
 
-                .api-auth-basic {
-                    background: rgba(34, 197, 94, 0.15);
-                    color: #22c55e;
-                }
+            .api-auth-basic {
+                background: rgba(34, 197, 94, 0.15);
+                color: #22c55e;
+            }
 
-                /* Category Section styling */
-                .category-section {
-                    border-left: 4px solid var(--primary-color);
-                    padding-left: 16px;
-                }
+            /* Category Section styling */
+            .category-section {
+                border-left: 4px solid var(--primary-color);
+                padding-left: 16px;
+            }
 
-                .category-web {
-                    border-left-color: #22c55e;
-                }
+            .category-web {
+                border-left-color: #22c55e;
+            }
 
-                .category-desktop {
-                    border-left-color: #3b82f6;
-                }
+            .category-desktop {
+                border-left-color: #3b82f6;
+            }
 
-                .category-plugin {
-                    border-left-color: #a855f7;
-                }
+            .category-plugin {
+                border-left-color: #a855f7;
+            }
 
-                .meta-api {
-                    color: #f59e0b;
-                }
-            </style>
+            .meta-api {
+                color: #f59e0b;
+            }
+
+            /* Virtual Employee Styles */
+            .ve-list {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .ve-card {
+                background: var(--surface-color);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-md);
+                padding: 16px;
+                transition: all 0.2s ease;
+            }
+
+            .ve-card:hover {
+                border-color: var(--primary-color);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            }
+
+            .ve-card.ve-retired {
+                opacity: 0.7;
+                background: rgba(100, 116, 139, 0.05);
+            }
+
+            .ve-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+            }
+
+            .ve-title-row {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .ve-code {
+                font-family: monospace;
+                font-size: 0.75rem;
+                background: var(--background-color);
+                padding: 2px 8px;
+                border-radius: 4px;
+                color: var(--text-secondary);
+            }
+
+            .ve-name {
+                font-weight: 600;
+                color: var(--text-primary);
+                font-size: 1rem;
+            }
+
+            .ve-status {
+                font-size: 0.6875rem;
+                font-weight: 500;
+                padding: 2px 8px;
+                border-radius: 10px;
+            }
+
+            .ve-status-active {
+                background: rgba(34, 197, 94, 0.15);
+                color: #22c55e;
+            }
+
+            .ve-status-retired {
+                background: rgba(100, 116, 139, 0.15);
+                color: #64748b;
+            }
+
+            .ve-actions {
+                display: flex;
+                gap: 6px;
+            }
+
+            .btn-xs {
+                padding: 4px 8px;
+                font-size: 0.75rem;
+            }
+
+            .btn-warning {
+                background: rgba(245, 158, 11, 0.15);
+                color: #f59e0b;
+                border: 1px solid rgba(245, 158, 11, 0.3);
+            }
+
+            .btn-warning:hover {
+                background: rgba(245, 158, 11, 0.25);
+            }
+
+            .ve-body {
+                padding-top: 8px;
+                border-top: 1px solid var(--border-color);
+            }
+
+            .ve-info-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px;
+                margin-bottom: 10px;
+            }
+
+            .ve-category {
+                font-size: 0.75rem;
+                font-weight: 500;
+                padding: 2px 8px;
+                border-radius: 4px;
+            }
+
+            .ve-category-data_sync {
+                background: rgba(59, 130, 246, 0.15);
+                color: #3b82f6;
+            }
+
+            .ve-category-report {
+                background: rgba(168, 85, 247, 0.15);
+                color: #a855f7;
+            }
+
+            .ve-category-notification {
+                background: rgba(245, 158, 11, 0.15);
+                color: #f59e0b;
+            }
+
+            .ve-category-backup {
+                background: rgba(34, 197, 94, 0.15);
+                color: #22c55e;
+            }
+
+            .ve-category-cleanup {
+                background: rgba(236, 72, 153, 0.15);
+                color: #ec4899;
+            }
+
+            .ve-category-monitoring {
+                background: rgba(6, 182, 212, 0.15);
+                color: #06b6d4;
+            }
+
+            .ve-category-other {
+                background: rgba(100, 116, 139, 0.15);
+                color: #64748b;
+            }
+
+            .ve-device,
+            .ve-frequency {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                font-size: 0.8125rem;
+                color: var(--text-secondary);
+            }
+
+            .ve-device svg,
+            .ve-frequency svg {
+                color: var(--text-muted);
+            }
+
+            .ve-purpose {
+                font-size: 0.875rem;
+                color: var(--text-secondary);
+                line-height: 1.5;
+            }
+
+            .ve-retirement-info {
+                margin-top: 12px;
+                padding: 10px 12px;
+                background: rgba(239, 68, 68, 0.08);
+                border-radius: var(--radius-sm);
+                font-size: 0.8125rem;
+                color: var(--text-secondary);
+            }
+
+            .ve-retirement-info strong {
+                color: #ef4444;
+            }
+
+            .ve-retirement-info small {
+                color: var(--text-muted);
+            }
+
+            /* Program Tabs Styles */
+            .program-tabs {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 20px;
+                border-bottom: 2px solid var(--border-color);
+                padding-bottom: 0;
+            }
+
+            .tab-btn {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 12px 20px;
+                border: none;
+                background: transparent;
+                color: var(--text-secondary);
+                font-size: 0.9375rem;
+                font-weight: 500;
+                cursor: pointer;
+                border-bottom: 3px solid transparent;
+                margin-bottom: -2px;
+                transition: all 0.2s ease;
+            }
+
+            .tab-btn:hover {
+                color: var(--text-primary);
+                background: var(--surface-color);
+            }
+
+            .tab-btn.active {
+                color: var(--primary-color);
+                border-bottom-color: var(--primary-color);
+            }
+
+            .tab-btn svg {
+                opacity: 0.7;
+            }
+
+            .tab-btn.active svg {
+                opacity: 1;
+            }
+
+            .tab-content {
+                display: none;
+            }
+
+            .tab-content.active {
+                display: block;
+            }
+        </style>
+
+        <script>
+            // Tab switching functionality
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    // Remove active from all tabs and contents
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+                    // Add active to clicked tab and corresponding content
+                    this.classList.add('active');
+                    const tabId = 'tab-' + this.dataset.tab;
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+        </script>
 </body>
 
 </html>

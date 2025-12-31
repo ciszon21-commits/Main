@@ -503,3 +503,89 @@ class ProgramApiUsage(models.Model):
 
     def __str__(self):
         return f"{self.platform_api.name} - {self.api_path or '(全部)'}"
+
+
+class VirtualEmployee(models.Model):
+    """虛擬員工模型 - 排程機器人"""
+    CATEGORY_CHOICES = [
+        ('data_sync', '資料同步'),
+        ('report', '報表產生'),
+        ('notification', '通知發送'),
+        ('backup', '備份作業'),
+        ('cleanup', '清理作業'),
+        ('monitoring', '監控檢查'),
+        ('other', '其他'),
+    ]
+
+    FREQUENCY_CHOICES = [
+        ('hourly', '每小時'),
+        ('daily', '每日'),
+        ('weekly', '每週'),
+        ('monthly', '每月'),
+        ('custom', '自訂'),
+    ]
+
+    STATUS_CHOICES = [
+        ('active', '運作中'),
+        ('retired', '已退休'),
+    ]
+
+    team = models.ForeignKey(
+        DevTeam,
+        on_delete=models.CASCADE,
+        related_name='virtual_employees',
+        verbose_name="所屬團隊"
+    )
+    category = models.CharField(
+        max_length=50,
+        choices=CATEGORY_CHOICES,
+        verbose_name="分類"
+    )
+    code = models.CharField(max_length=50, verbose_name="編號")
+    name = models.CharField(max_length=200, verbose_name="名稱")
+    device = models.CharField(max_length=200, verbose_name="排程設備")
+    frequency = models.CharField(
+        max_length=20,
+        choices=FREQUENCY_CHOICES,
+        verbose_name="頻率"
+    )
+    frequency_note = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="頻率備註",
+        help_text="例如：每天晚上3點"
+    )
+    purpose = models.TextField(verbose_name="作用")
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='active',
+        verbose_name="狀態"
+    )
+    retirement_reason = models.TextField(
+        blank=True,
+        verbose_name="退休原因"
+    )
+    retired_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="退休時間"
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_virtual_employees',
+        verbose_name="建立者"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新時間")
+
+    class Meta:
+        verbose_name = "虛擬員工"
+        verbose_name_plural = "虛擬員工"
+        ordering = ['status', 'category', 'code']
+        unique_together = ['team', 'code']
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
