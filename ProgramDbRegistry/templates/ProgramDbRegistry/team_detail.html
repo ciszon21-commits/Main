@@ -79,6 +79,28 @@
                 {% endfor %}
             </div>
         </div>
+                
+        <!-- Virtual Employees Link Card -->
+        <div class="section">
+            <a href="{% url 'programdb:virtual_employee_list' team.pk %}" class="nav-card">
+                <div class="nav-card-icon">
+                    <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z" />
+                        <path fill-rule="evenodd"
+                            d="M13.5 5a.5.5 0 0 1 .5.5V7h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V8h-1.5a.5.5 0 0 1 0-1H13V5.5a.5.5 0 0 1 .5-.5z" />
+                    </svg>
+                </div>
+                <div class="nav-card-content">
+                    <h3>虛擬員工</h3>
+                    <p>排程機器人管理 ({{ virtual_employees|length }} 個)</p>
+                </div>
+                <svg class="nav-card-arrow" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd"
+                        d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z" />
+                </svg>
+            </a>
+        </div>
 
         <!-- Programs Tabs Section -->
         <div class="section">
@@ -100,6 +122,8 @@
                     新增程式
                 </a>
             </div>
+
+            
 
             <!-- Tab Navigation -->
             <div class="program-tabs">
@@ -144,8 +168,8 @@
                         <div class="program-meta">
                             <span class="meta-item">{{ program.databases.count }} 個資料庫</span>
                             <span class="meta-item">{{ program.developers }} 開發</span>
-                            {% if program.api_usages.count > 0 %}<span class="meta-item meta-api">{{
-                                program.api_usages.count }} 個 API</span>{% endif %}
+                            {% if program.api_usages.count > 0 %}<span class="meta-item meta-api">
+                                {{ program.api_usages.count }} 個 API</span>{% endif %}
                         </div>
                         <div class="program-tool">{{ program.dev_tool }}</div>
                         <a href="{% url 'programdb:program_detail' program.pk %}" class="program-link">查看詳情 →</a>
@@ -159,68 +183,7 @@
             {% endfor %}
         </div>
 
-        <!-- Virtual Employees Section -->
-        <div class="section">
-            <div class="section-header">
-                <h2 class="section-title">
-                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                        <path
-                            d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z" />
-                        <path fill-rule="evenodd"
-                            d="M13.5 5a.5.5 0 0 1 .5.5V7h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V8h-1.5a.5.5 0 0 1 0-1H13V5.5a.5.5 0 0 1 .5-.5z" />
-                    </svg>
-                    虛擬員工 ({{ virtual_employees|length }})
-                </h2>
-                <a href="{% url 'programdb:virtual_employee_create' team.pk %}" class="btn btn-primary btn-sm">
-                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                        <path
-                            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
-                    </svg>
-                    新增虛擬員工
-                </a>
-            </div>
-            <div class="ve-list">
-                {% for ve in virtual_employees %}
-                <div class="ve-card {% if ve.status == 'retired' %}ve-retired{% endif %}">
-                    <div class="ve-header">
-                        <div class="ve-title-row">
-                            <span class="ve-code">{{ ve.code }}</span>
-                            <span class="ve-name">{{ ve.name }}</span>
-                            <span class="ve-status ve-status-{{ ve.status }}">{{ ve.get_status_display }}</span>
-                        </div>
-                        <div class="ve-actions">
-                            {% if ve.status == 'active' %}
-                            <a href="{% url 'programdb:virtual_employee_update' ve.pk %}"
-                                class="btn btn-secondary btn-xs" title="編輯">✎</a>
-                            <a href="{% url 'programdb:virtual_employee_retire' ve.pk %}" class="btn btn-warning btn-xs"
-                                title="退休">⏸</a>
-                            {% endif %}
-                            <form action="{% url 'programdb:virtual_employee_delete' ve.pk %}" method="post"
-                                style="display:inline;" onsubmit="return confirm('確定刪除？');">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-danger btn-xs" title="刪除">✕</button>
-                            </form>
-                        </div>
-                    </div>
-                    <div class="ve-body">
-                        <div class="ve-info-row">
-                            <span class="ve-category ve-category-{{ ve.category }}">{{ ve.get_category_display }}</span>
-                            <span class="ve-device">{{ ve.device }}</span>
-                            <span class="ve-frequency">{{ ve.get_frequency_display }}{% if ve.frequency_note %} 
-                                ({{ ve.frequency_note }}){% endif %}</span>
-                        </div>
-                        <div class="ve-purpose">{{ ve.purpose }}</div>
-                        {% if ve.status == 'retired' %}
-                        <div class="ve-retirement-info"><strong>退休原因：</strong>{{ ve.retirement_reason }}<br><small>
-                            {{ ve.retired_at|date:"Y/m/d H:i" }}</small></div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% empty %}
-                <p class="empty-text">尚無虛擬員工</p>
-                {% endfor %}
-            </div>
-        </div>
+
 
         <!-- Database Servers Section -->
         <div class="section">
@@ -1082,6 +1045,63 @@
 
             .tab-content.active {
                 display: block;
+            }
+
+            /* Navigation Card */
+            .nav-card {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                padding: 20px 24px;
+                background: var(--surface-color);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-md);
+                text-decoration: none;
+                transition: all 0.2s ease;
+            }
+
+            .nav-card:hover {
+                border-color: var(--primary-color);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                transform: translateX(4px);
+            }
+
+            .nav-card-icon {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 56px;
+                height: 56px;
+                background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+                border-radius: var(--radius-md);
+                color: var(--primary-color);
+            }
+
+            .nav-card-content {
+                flex: 1;
+            }
+
+            .nav-card-content h3 {
+                margin: 0 0 4px 0;
+                font-size: 1.125rem;
+                font-weight: 600;
+                color: var(--text-primary);
+            }
+
+            .nav-card-content p {
+                margin: 0;
+                font-size: 0.875rem;
+                color: var(--text-secondary);
+            }
+
+            .nav-card-arrow {
+                color: var(--text-muted);
+                transition: transform 0.2s ease;
+            }
+
+            .nav-card:hover .nav-card-arrow {
+                transform: translateX(4px);
+                color: var(--primary-color);
             }
         </style>
 
