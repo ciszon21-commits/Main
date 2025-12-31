@@ -7,7 +7,8 @@ ALLOWED_EXTENSIONS = {
     'price_inquiry': ['.pdf', '.xls', '.xlsx', '.jpg', '.jpeg', '.png'],
     'budget': ['.xml'],
     'blank_tender': ['.xml'],
-    'integrated_budget': ['.xml'], # 整合預算書與分組預算書共用 'budget' 類型，但邏輯上一致
+    'integrated_budget': ['.xml'],
+    'price_data': ['.pdf', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.xml'], # Added
 }
 
 # 格式化的提示文字
@@ -16,6 +17,7 @@ FORMAT_LABELS = {
     'price_inquiry': 'PDF (.pdf), Excel (.xls, .xlsx), 圖片 (.jpg, .jpeg, .png)',
     'budget': 'XML (.xml)',
     'blank_tender': 'XML (.xml)',
+    'price_data': 'PDF, Excel, 圖片, XML', # Added
 }
 
 def validate_file_extension(uploaded_file, file_type):

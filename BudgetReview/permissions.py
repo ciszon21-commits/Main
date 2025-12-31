@@ -18,6 +18,8 @@ def has_project_admin_permission(user, project):
     """
     if user.is_superuser:
         return True
+    if user.groups.filter(name='Admin').exists():
+        return True
     if user == project.created_by:
         return True
     if user in project.admins.all():

@@ -151,6 +151,7 @@ class FileSubmitView(LoginRequiredMixin, UserPassesTestMixin, View):
             'final_budget': FinalBudgetFile,
             'blank_tender': FinalBudgetFile, # New standard
             'blank-tender': FinalBudgetFile, # Legacy alias
+            'price_data': PriceInquiryFile,   # Added for Integrated Professional
         }
         
         if file_type not in file_models:
@@ -267,14 +268,16 @@ class WorkspaceFileUploadView(LoginRequiredMixin, UserPassesTestMixin, View):
             'quantity': QuantityFile,
             'price_inquiry': PriceInquiryFile,
             'budget': BudgetFile,
-            'blank_tender': FinalBudgetFile
+            'blank_tender': FinalBudgetFile,
+            'price_data': PriceInquiryFile     # Added for Integrated Professional
         }
         
         file_labels = {
             'quantity': '數量計算書',
             'price_inquiry': '訪價資料',
             'budget': '預算書',
-            'blank_tender': '空白標單'
+            'blank_tender': '空白標單',
+            'price_data': '單價資料'          # Added for Integrated Professional
         }
         
         if file_type not in file_models:
@@ -289,8 +292,8 @@ class WorkspaceFileUploadView(LoginRequiredMixin, UserPassesTestMixin, View):
             if not is_valid:
                 return JsonResponse({'success': False, 'message': error_msg})
         
-        # 處理多檔案上傳（僅訪價）
-        files_to_upload = request.FILES.getlist('file') if file_type == 'price_inquiry' else [request.FILES['file']]
+        # 處理多檔案上傳（訪價與整合單價資料）
+        files_to_upload = request.FILES.getlist('file') if file_type in ['price_inquiry', 'price_data'] else [request.FILES['file']]
         uploaded_count = 0
         last_version = 0
         
@@ -498,13 +501,15 @@ class IntegrationAreaView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     def _calculate_submission_progress(self, stage, discipline, files_dict):
         """計算單一專業的提送進度"""
         if discipline.is_overall:
-            # 整合專業：整合預算書、空白標單
-            expected_types = ['budget', 'blank_tender']
+            # 整合專業：整合預算書、空白標單、單價資料
+            expected_types = ['budget', 'blank_tender', 'price_data']
             submitted_count = 0
             
             if files_dict['budget_qs'].exists():
                 submitted_count += 1
             if files_dict['blank_tender_qs'].exists():
+                submitted_count += 1
+            if files_dict['price_qs'].exists():
                 submitted_count += 1
         else:
             # 一般專業：數量、訪價、預算

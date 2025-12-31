@@ -13,6 +13,24 @@ class AdminRequiredMixin(UserPassesTestMixin):
     def test_func(self):
         return self.request.user.is_superuser or self.request.user.groups.filter(name='Admin').exists()
 
+class ProjectPermissionMixin(UserPassesTestMixin):
+    def test_func(self):
+        project_id = self.kwargs.get('pk') or self.kwargs.get('project_id')
+        if not project_id:
+            return False
+        project = get_object_or_404(Project, pk=project_id)
+        from .permissions import has_project_admin_permission
+        return has_project_admin_permission(self.request.user, project)
+
+class DisciplinePermissionMixin(UserPassesTestMixin):
+    def test_func(self):
+        discipline_id = self.kwargs.get('pk')
+        if not discipline_id:
+            return False
+        discipline = get_object_or_404(Discipline, pk=discipline_id)
+        from .permissions import has_discipline_admin_permission
+        return has_discipline_admin_permission(self.request.user, discipline)
+
 # Project Views
 class ProjectListView(LoginRequiredMixin, ListView):
     model = Project
@@ -24,7 +42,7 @@ class ProjectListView(LoginRequiredMixin, ListView):
         """僅顯示未刪除的標案"""
         return Project.objects.filter(deleted_at__isnull=True).order_by('-created_at')
 
-class ProjectCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
+class ProjectCreateView(LoginRequiredMixin, CreateView):
     model = Project
     form_class = ProjectForm
     template_name = 'budget_review/project_form.html'
@@ -44,7 +62,7 @@ class ProjectCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
         messages.success(self.request, f"標案 「{self.object.name}」 已建立成功。")
         return response
 
-class ProjectCreateAjaxView(LoginRequiredMixin, AdminRequiredMixin, View):
+class ProjectCreateAjaxView(LoginRequiredMixin, View):
     """AJAX 版本的建立 view，用於 Modal"""
     def get(self, request):
         form = ProjectForm()
@@ -89,7 +107,7 @@ class ProjectCreateAjaxView(LoginRequiredMixin, AdminRequiredMixin, View):
                 'html': html
             })
 
-class ProjectUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
+class ProjectUpdateView(LoginRequiredMixin, ProjectPermissionMixin, UpdateView):
     model = Project
     form_class = ProjectForm
     template_name = 'budget_review/project_form.html'
@@ -109,7 +127,7 @@ class ProjectUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse('budget_review:project_detail', kwargs={'pk': self.object.id})
 
-class ProjectUpdateAjaxView(LoginRequiredMixin, AdminRequiredMixin, View):
+class ProjectUpdateAjaxView(LoginRequiredMixin, ProjectPermissionMixin, View):
     """AJAX 版本的編輯 view，用於 Modal"""
     def get(self, request, pk):
         project = get_object_or_404(Project, pk=pk)
@@ -203,7 +221,7 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         return context
 
 # Discipline Views
-class DisciplineCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
+class DisciplineCreateView(LoginRequiredMixin, ProjectPermissionMixin, CreateView):
     model = Discipline
     form_class = DisciplineForm
     template_name = 'budget_review/discipline_form.html'
@@ -233,7 +251,7 @@ class DisciplineCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
     def get_success_url(self):
         return reverse('budget_review:project_detail', kwargs={'pk': self.kwargs.get('project_id')})
 
-class DisciplineCreateAjaxView(LoginRequiredMixin, AdminRequiredMixin, View):
+class DisciplineCreateAjaxView(LoginRequiredMixin, ProjectPermissionMixin, View):
     """AJAX 版本的專業分組建立 view，用於 Modal"""
     def get(self, request, project_id):
         project = get_object_or_404(Project, pk=project_id)
@@ -282,7 +300,7 @@ class DisciplineCreateAjaxView(LoginRequiredMixin, AdminRequiredMixin, View):
                 'html': html
             })
 
-class DisciplineUpdateAjaxView(LoginRequiredMixin, AdminRequiredMixin, View):
+class DisciplineUpdateAjaxView(LoginRequiredMixin, DisciplinePermissionMixin, View):
     def get(self, request, project_id, pk):
         project = get_object_or_404(Project, pk=project_id)
         discipline = get_object_or_404(Discipline, pk=pk, project=project)
@@ -343,7 +361,7 @@ class DisciplineUpdateAjaxView(LoginRequiredMixin, AdminRequiredMixin, View):
                 'html': html
             })
 
-class DisciplineUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
+class DisciplineUpdateView(LoginRequiredMixin, DisciplinePermissionMixin, UpdateView):
     model = Discipline
     template_name = 'budget_review/discipline_form.html'
     
@@ -375,7 +393,7 @@ class DisciplineUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
         context['project'] = self.get_project()
         return context
 
-class DisciplineDeleteView(LoginRequiredMixin, AdminRequiredMixin, View):
+class DisciplineDeleteView(LoginRequiredMixin, DisciplinePermissionMixin, View):
     def post(self, request, project_id, pk):
         project = get_object_or_404(Project, pk=project_id)
         discipline = get_object_or_404(Discipline, pk=pk, project=project)
@@ -420,9 +438,9 @@ class FileUploadViewBase(LoginRequiredMixin, FormView):
         overall_budget = project.budget_files.filter(budget_type='OVERALL', is_latest=True).first()
         context['overall_budget'] = overall_budget
         
-        # 簡單權限檢查（可改為更複雜的邏輯）
-        user = self.request.user
-        context['can_edit'] = user.is_superuser or user.groups.filter(name='Admin').exists()
+        # 權限檢查：標案管理員可編輯
+        from .permissions import has_project_admin_permission
+        context['can_edit'] = has_project_admin_permission(user, project)
         
         context['project'] = project
         context['upload_type'] = self.kwargs.get('upload_type', '')
