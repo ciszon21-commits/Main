@@ -14,6 +14,8 @@ urlpatterns = [
     path('team/<int:pk>/remove-member/<int:user_id>/', views.remove_member, name='remove_member'),
     path('team/<int:pk>/add-db-server/', views.add_db_server, name='add_db_server'),
     path('team/<int:pk>/delete-db-server/<int:server_id>/', views.delete_db_server, name='delete_db_server'),
+    path('team/<int:pk>/add-platform-api/', views.add_platform_api, name='add_platform_api'),
+    path('team/<int:pk>/delete-platform-api/<int:api_id>/', views.delete_platform_api, name='delete_platform_api'),
     
     # Program URLs
     path('team/<int:team_pk>/program/create/', views.program_create, name='program_create'),
@@ -34,4 +36,6 @@ urlpatterns = [
     # API URLs
     path('api/search-users/', views.search_users, name='search_users'),
     path('api/team/<int:pk>/server/<int:server_id>/programs/', views.get_server_programs, name='get_server_programs'),
+    path('api/team/<int:pk>/platform-api/<int:api_id>/programs/', views.get_api_programs, name='get_api_programs'),
 ]
+

@@ -1,0 +1,389 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>簽章記錄 - EV Code Signing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'EVCodeSigning/css/ev_code_signing.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    <style>
+        .records-page {
+            padding: 2rem 0;
+        }
+
+        .search-bar {
+            background: var(--card-background);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .search-form {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .search-field {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-field label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .search-field input,
+        .search-field select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+        }
+
+        .search-field input:focus,
+        .search-field select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .records-table-wrapper {
+            background: var(--card-background);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+        }
+
+        .records-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .records-table th,
+        .records-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .records-table th {
+            background: var(--background-color);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .records-table tbody tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .records-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .record-title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .record-title a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .record-title a:hover {
+            text-decoration: underline;
+        }
+
+        .record-user {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .user-name {
+            font-weight: 500;
+        }
+
+        .record-date {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .no-link {
+            color: var(--text-primary);
+        }
+
+        .pagination-wrapper {
+            padding: 1.5rem;
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .pagination-wrapper a,
+        .pagination-wrapper span {
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-sm);
+            text-decoration: none;
+        }
+
+        .pagination-wrapper a {
+            background: var(--background-color);
+            color: var(--text-primary);
+        }
+
+        .pagination-wrapper a:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .pagination-wrapper .current {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .pagination-wrapper .disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .records-summary {
+            padding: 1rem 1.5rem;
+            background: var(--background-color);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .empty-records {
+            padding: 4rem 2rem;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-records svg {
+            margin-bottom: 1rem;
+        }
+
+        /* Responsive table */
+        @media (max-width: 768px) {
+            .records-table thead {
+                display: none;
+            }
+
+            .records-table tbody tr {
+                display: block;
+                padding: 1rem;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .records-table td {
+                display: flex;
+                justify-content: space-between;
+                padding: 0.5rem 0;
+                border: none;
+            }
+
+            .records-table td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: var(--text-secondary);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="breadcrumb-nav">
+        <div class="container">
+            <a href="{% url 'evcodesigning:info' %}">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd"
+                        d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5z" />
+                </svg>
+                返回 EV Code Signing
+            </a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="records-page">
+            <header class="page-header">
+                <h1 class="page-title">
+                    <svg width="28" height="28" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M5 0h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2 2 2 0 0 1-2 2H3a2 2 0 0 1-2-2h1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1H1a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v9a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1H3a2 2 0 0 1 2-2z" />
+                        <path
+                            d="M1 6v-.5a.5.5 0 0 1 1 0V6h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0V9h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 2.5v.5H.5a.5.5 0 0 0 0 1h2a.5.5 0 0 0 0-1H2v-.5a.5.5 0 0 0-1 0z" />
+                    </svg>
+                    簽章記錄
+                </h1>
+            </header>
+
+            <!-- Search Bar -->
+            <section class="search-bar">
+                <form method="get" class="search-form">
+                    <div class="search-field" style="flex: 2;">
+                        <label for="search-input">搜尋</label>
+                        <input type="text" id="search-input" name="q" value="{{ search_query }}"
+                            placeholder="搜尋標題、申請人或簽核人...">
+                    </div>
+                    <div class="search-field" style="flex: 1; max-width: 200px;">
+                        <label for="status-select">狀態</label>
+                        <select id="status-select" name="status">
+                            <option value="">全部狀態</option>
+                            {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-primary">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path
+                                    d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+                            </svg>
+                            搜尋
+                        </button>
+                    </div>
+                    {% if search_query or status_filter %}
+                    <div>
+                        <a href="{% url 'evcodesigning:public_records' %}" class="btn btn-secondary">清除</a>
+                    </div>
+                    {% endif %}
+                </form>
+            </section>
+
+            <!-- Records Table -->
+            <div class="records-table-wrapper">
+                {% if records %}
+                <div class="records-summary">
+                    共 {{ page_obj.paginator.count }} 筆記錄
+                    {% if search_query %}，搜尋「{{ search_query }}」{% endif %}
+                    {% if status_filter %}，狀態：{{ status_filter }}{% endif %}
+                </div>
+                <table class="records-table">
+                    <thead>
+                        <tr>
+                            <th>標題</th>
+                            <th>申請人</th>
+                            <th>簽核人</th>
+                            <th>申請時間</th>
+                            <th>狀態</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr>
+                            <td data-label="標題">
+                                <div class="record-title">
+                                    {% if is_superuser or record.applicant_id == user_id or record.id in admin_handled_ids or is_admin %}
+                                    <a href="{% url 'evcodesigning:request_detail' pk=record.pk %}">{{ record.title }}</a>
+                                    {% else %}
+                                    <span class="no-link">{{ record.title }}</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td data-label="申請人">
+                                <div class="record-user">
+                                    <div class="user-avatar">{{ record.applicant.username|first|upper }}</div>
+                                    <span class="user-name">{{ record.applicant.get_full_name|default:record.applicant.username }}</span>
+                                </div>
+                            </td>
+                            <td data-label="簽核人">
+                                {% if record.assigned_admin %}
+                                <div class="record-user">
+                                    <div class="user-avatar">{{ record.assigned_admin.user.username|first|upper }}</div>
+                                    <span class="user-name">
+                                        {{ record.assigned_admin.user.get_full_name|default:record.assigned_admin.user.username }}</span>
+                                </div>
+                                {% else %}
+                                <span class="record-date">尚未指派</span>
+                                {% endif %}
+                            </td>
+                            <td data-label="申請時間">
+                                <span class="record-date">{{ record.created_at|date:"Y-m-d H:i" }}</span>
+                            </td>
+                            <td data-label="狀態">
+                                <span class="status-badge status-{{ record.status }}">
+                                    {{ record.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <!-- Pagination -->
+                {% if is_paginated %}
+                <div class="pagination-wrapper">
+                    {% if page_obj.has_previous %}
+                    <a
+                        href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">«
+                        首頁</a>
+                    <a
+                        href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">‹
+                        上一頁</a>
+                    {% endif %}
+
+                    <span class="current">第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 頁</span>
+
+                    {% if page_obj.has_next %}
+                    <a
+                        href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">下一頁
+                        ›</a>
+                    <a
+                        href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">末頁
+                        »</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="empty-records">
+                    <svg width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M5 0h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2 2 2 0 0 1-2 2H3a2 2 0 0 1-2-2h1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1H1a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v9a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1H3a2 2 0 0 1 2-2z" />
+                    </svg>
+                    <h3>沒有找到簽章記錄</h3>
+                    {% if search_query or status_filter %}
+                    <p>嘗試調整搜尋條件</p>
+                    <a href="{% url 'evcodesigning:public_records' %}" class="btn btn-secondary">清除篩選</a>
+                    {% else %}
+                    <p>目前沒有任何簽章申請記錄</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

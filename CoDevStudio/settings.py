@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     "ProgramDbRegistry",
     "BudgetReview",
     'ERModelGenerator',
+    'EVCodeSigning',
 ] + local.STAGE_INSTALLED_APPS
 
 GEMINI_API_KEY = local.GEMINI_API_KEY

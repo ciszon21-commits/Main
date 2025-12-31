@@ -430,3 +430,76 @@ class DesignField(models.Model):
 
     def __str__(self):
         return f"{self.table.table_name}.{self.field_name}"
+
+
+class PlatformApi(models.Model):
+    """平台 API 模型 - 類似資料庫伺服器，作為可介接的資料來源"""
+    AUTH_TYPE_CHOICES = [
+        ('none', '無需驗證'),
+        ('api_key', 'API Key'),
+        ('oauth', 'OAuth'),
+        ('token', 'Token'),
+        ('basic', 'Basic Auth'),
+    ]
+
+    name = models.CharField(max_length=200, verbose_name="平台名稱")
+    api_endpoint = models.URLField(verbose_name="API 端點", blank=True)
+    description = models.TextField(blank=True, verbose_name="說明")
+    auth_type = models.CharField(
+        max_length=20,
+        choices=AUTH_TYPE_CHOICES,
+        default='none',
+        verbose_name="驗證方式"
+    )
+    documentation_url = models.URLField(blank=True, verbose_name="文件連結")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
+
+    class Meta:
+        verbose_name = "平台 API"
+        verbose_name_plural = "平台 API"
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class ProgramApiUsage(models.Model):
+    """程式使用平台 API 模型 - 類似 ProgramDatabase"""
+    ACCESS_TYPE_CHOICES = [
+        ('consume', '呼叫使用'),
+        ('provide', '提供服務'),
+    ]
+
+    program = models.ForeignKey(
+        Program,
+        on_delete=models.CASCADE,
+        related_name='api_usages',
+        verbose_name="程式"
+    )
+    platform_api = models.ForeignKey(
+        PlatformApi,
+        on_delete=models.PROTECT,
+        related_name='usages',
+        verbose_name="平台 API"
+    )
+    api_path = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name="API 路徑",
+        help_text="例如：/api/v1/users"
+    )
+    access_type = models.CharField(
+        max_length=20,
+        choices=ACCESS_TYPE_CHOICES,
+        default='consume',
+        verbose_name="存取類型"
+    )
+    description = models.CharField(max_length=500, blank=True, verbose_name="說明")
+
+    class Meta:
+        verbose_name = "使用平台 API"
+        verbose_name_plural = "使用平台 API"
+        ordering = ['platform_api__name', 'api_path']
+
+    def __str__(self):
+        return f"{self.platform_api.name} - {self.api_path or '(全部)'}"
