@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from .models import (
     DevTeam, Program, ProgramDatabase, FileLocation,
     DatabaseDesignDoc, DesignTable, DesignField, DatabaseServer,
-    PlatformApi, ProgramApiUsage
+    PlatformApi, ProgramApiUsage, VirtualEmployee
 )
 
 
@@ -297,3 +297,47 @@ ProgramApiUsageFormSet = forms.inlineformset_factory(
     Program, ProgramApiUsage, form=ProgramApiUsageForm,
     extra=1, can_delete=True
 )
+
+
+class VirtualEmployeeForm(forms.ModelForm):
+    """虛擬員工表單"""
+    class Meta:
+        model = VirtualEmployee
+        fields = ['category', 'code', 'name', 'device', 'frequency', 'frequency_note', 'purpose']
+        widgets = {
+            'category': forms.Select(attrs={'class': 'ui dropdown'}),
+            'code': forms.TextInput(attrs={
+                'class': 'ui input',
+                'placeholder': '例如：VE-001'
+            }),
+            'name': forms.TextInput(attrs={
+                'class': 'ui input',
+                'placeholder': '請輸入虛擬員工名稱'
+            }),
+            'device': forms.TextInput(attrs={
+                'class': 'ui input',
+                'placeholder': '例如：SCHEDULER-01'
+            }),
+            'frequency': forms.Select(attrs={'class': 'ui dropdown'}),
+            'frequency_note': forms.TextInput(attrs={
+                'class': 'ui input',
+                'placeholder': '例如：每天晚上3點'
+            }),
+            'purpose': forms.Textarea(attrs={
+                'class': 'ui textarea',
+                'rows': 3,
+                'placeholder': '請描述此虛擬員工的作用'
+            }),
+        }
+
+
+class VirtualEmployeeRetireForm(forms.Form):
+    """虛擬員工退休表單"""
+    retirement_reason = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'ui textarea',
+            'rows': 3,
+            'placeholder': '請輸入退休原因'
+        }),
+        label='退休原因'
+    )
