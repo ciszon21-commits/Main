@@ -1,0 +1,323 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EV Code Signing 簽章管理</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'EVCodeSigning/css/ev_code_signing.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-icon">
+                <svg width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
+                    <path
+                        d="M5.338 1.59a61.44 61.44 0 0 0-2.837.856.481.481 0 0 0-.328.39c-.554 4.157.726 7.19 2.253 9.188a10.725 10.725 0 0 0 2.287 2.233c.346.244.652.42.893.533.12.057.218.095.293.118a.55.55 0 0 0 .101.025.615.615 0 0 0 .1-.025c.076-.023.174-.061.294-.118.24-.113.547-.29.893-.533a10.726 10.726 0 0 0 2.287-2.233c1.527-1.997 2.807-5.031 2.253-9.188a.48.48 0 0 0-.328-.39c-.651-.213-1.75-.56-2.837-.855C9.552 1.29 8.531 1.067 8 1.067c-.53 0-1.552.223-2.662.524zM5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887.87a1.54 1.54 0 0 1 1.044 1.262c.596 4.477-.787 7.795-2.465 9.99a11.775 11.775 0 0 1-2.517 2.453 7.159 7.159 0 0 1-1.048.625c-.28.132-.581.24-.829.24s-.548-.108-.829-.24a7.158 7.158 0 0 1-1.048-.625 11.777 11.777 0 0 1-2.517-2.453C1.928 10.487.545 7.169 1.141 2.692A1.54 1.54 0 0 1 2.185 1.43 62.456 62.456 0 0 1 5.072.56z" />
+                    <path
+                        d="M10.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 7.793l2.646-2.647a.5.5 0 0 1 .708 0z" />
+                </svg>
+            </div>
+            <h1 class="hero-title">EV Code Signing 簽章管理</h1>
+            <p class="hero-subtitle">企業級程式碼簽章申請與管理平台</p>
+
+            {% if user.is_authenticated %}
+            <div class="hero-actions">
+                <a href="{% url 'evcodesigning:request_create' %}" class="btn btn-primary">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                    </svg>
+                    提出簽章申請
+                </a>
+                <a href="{% url 'evcodesigning:request_list' %}" class="btn btn-secondary">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z" />
+                    </svg>
+                    查看我的申請
+                </a>
+                <a href="{% url 'evcodesigning:public_records' %}" class="btn btn-secondary">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M5 0h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2 2 2 0 0 1-2 2H3a2 2 0 0 1-2-2h1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1H1a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v9a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1H3a2 2 0 0 1 2-2z" />
+                    </svg>
+                    簽章記錄
+                </a>
+                {% if user.is_superuser %}
+                <a href="{% url 'evcodesigning:admin_manage' %}" class="btn btn-secondary"
+                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M6.5 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3zM11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+                        <path
+                            d="M4.5 0A2.5 2.5 0 0 0 2 2.5V14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2.5A2.5 2.5 0 0 0 11.5 0h-7zM3 2.5A1.5 1.5 0 0 1 4.5 1h7A1.5 1.5 0 0 1 13 2.5v10.795a4.2 4.2 0 0 0-.776-.492C11.392 12.387 10.063 12 8 12s-3.392.387-4.224.803a4.2 4.2 0 0 0-.776.492V2.5z" />
+                    </svg>
+                    管理簽章管理員
+                </a>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="hero-actions">
+                <a href="{% url 'home:login' %}" class="btn btn-primary">
+                    登入以使用簽章服務
+                </a>
+                <a href="{% url 'evcodesigning:public_records' %}" class="btn btn-secondary">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M5 0h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2 2 2 0 0 1-2 2H3a2 2 0 0 1-2-2h1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1H1a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v9a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1H3a2 2 0 0 1 2-2z" />
+                    </svg>
+                    查看簽章記錄
+                </a>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- Info Cards -->
+        <section class="info-section">
+            <h2 class="section-title">什麼是 EV Code Signing？</h2>
+
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-card-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M5.338 1.59a61.44 61.44 0 0 0-2.837.856.481.481 0 0 0-.328.39c-.554 4.157.726 7.19 2.253 9.188a10.725 10.725 0 0 0 2.287 2.233c.346.244.652.42.893.533.12.057.218.095.293.118a.55.55 0 0 0 .101.025.615.615 0 0 0 .1-.025c.076-.023.174-.061.294-.118.24-.113.547-.29.893-.533a10.726 10.726 0 0 0 2.287-2.233c1.527-1.997 2.807-5.031 2.253-9.188a.48.48 0 0 0-.328-.39c-.651-.213-1.75-.56-2.837-.855C9.552 1.29 8.531 1.067 8 1.067c-.53 0-1.552.223-2.662.524z" />
+                        </svg>
+                    </div>
+                    <h3 class="info-card-title">數位簽章憑證</h3>
+                    <p class="info-card-text">
+                        EV Code Signing（Extended Validation Code Signing）是一種高級別的數位簽章憑證，
+                        用於對軟體程式進行數位簽署，證明軟體的來源和完整性。
+                    </p>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-card-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
+                        </svg>
+                    </div>
+                    <h3 class="info-card-title">硬體金鑰保護</h3>
+                    <p class="info-card-text">
+                        EV 憑證的私鑰存放在專用的硬體安全模組（HSB Token）中，
+                        無法被複製或匯出，確保簽章的最高安全性。
+                    </p>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-card-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                        <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z" />
+                            <path
+                                d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z" />
+                            <path
+                                d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z" />
+                        </svg>
+                    </div>
+                    <h3 class="info-card-title">即時信任建立</h3>
+                    <p class="info-card-text">
+                        使用 EV 憑證簽章的程式可以立即獲得 Windows SmartScreen 的信任，
+                        而不需要累積足夠的下載量才能消除警告。
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Why Section -->
+        <section class="why-section">
+            <h2 class="section-title">為什麼公司需要 EV Code Signing？</h2>
+
+            <div class="why-grid">
+                <div class="why-item">
+                    <div class="why-number">1</div>
+                    <div class="why-content">
+                        <h3>消除安全警告</h3>
+                        <p>
+                            未簽章的程式在執行時會觸發 Windows SmartScreen 警告，顯示「Windows 已保護您的電腦」，
+                            這會讓用戶感到不安，降低軟體的專業形象。EV 簽章可以立即消除這些警告。
+                        </p>
+                    </div>
+                </div>
+
+                <div class="why-item">
+                    <div class="why-number">2</div>
+                    <div class="why-content">
+                        <h3>證明軟體來源</h3>
+                        <p>
+                            數位簽章可以證明軟體確實來自我們公司，未經任何篡改。
+                            用戶可以在檔案屬性中查看簽章資訊，確認軟體的真實性。
+                        </p>
+                    </div>
+                </div>
+
+                <div class="why-item">
+                    <div class="why-number">3</div>
+                    <div class="why-content">
+                        <h3>客戶信任與合規</h3>
+                        <p>
+                            許多企業客戶和政府機關要求供應商提供已簽章的軟體，
+                            這是資訊安全合規的基本要求。沒有簽章的軟體可能無法通過客戶的安全審查。
+                        </p>
+                    </div>
+                </div>
+
+                <div class="why-item">
+                    <div class="why-number">4</div>
+                    <div class="why-content">
+                        <h3>防止惡意軟體偽裝</h3>
+                        <p>
+                            簽章可以防止駭客偽裝成我們公司發布惡意軟體，
+                            保護公司品牌聲譽，也保護用戶免受假冒軟體的危害。
+                        </p>
+                    </div>
+                </div>
+
+                <div class="why-item">
+                    <div class="why-number">5</div>
+                    <div class="why-content">
+                        <h3>核心驅動程式要求</h3>
+                        <p>
+                            Windows 10/11 要求所有核心模式驅動程式必須使用 EV 憑證簽章，
+                            否則無法在 64 位元系統上載入。這是開發驅動程式的必要條件。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Process Section -->
+        <section class="process-section">
+            <h2 class="section-title">簽章申請流程</h2>
+
+            <div class="process-steps">
+                <div class="process-step">
+                    <div class="step-icon">
+                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+                            <path
+                                d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z" />
+                        </svg>
+                    </div>
+                    <h4>上傳檔案</h4>
+                    <p>上傳需要簽章的檔案並填寫說明</p>
+                </div>
+
+                <div class="process-arrow">→</div>
+
+                <div class="process-step">
+                    <div class="step-icon">
+                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z" />
+                        </svg>
+                    </div>
+                    <h4>通知管理員</h4>
+                    <p>系統自動發送郵件通知簽章管理員</p>
+                </div>
+
+                <div class="process-arrow">→</div>
+
+                <div class="process-step">
+                    <div class="step-icon">
+                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M5.338 1.59a61.44 61.44 0 0 0-2.837.856.481.481 0 0 0-.328.39c-.554 4.157.726 7.19 2.253 9.188a10.725 10.725 0 0 0 2.287 2.233c.346.244.652.42.893.533.12.057.218.095.293.118a.55.55 0 0 0 .101.025.615.615 0 0 0 .1-.025c.076-.023.174-.061.294-.118.24-.113.547-.29.893-.533a10.726 10.726 0 0 0 2.287-2.233c1.527-1.997 2.807-5.031 2.253-9.188a.48.48 0 0 0-.328-.39c-.651-.213-1.75-.56-2.837-.855C9.552 1.29 8.531 1.067 8 1.067c-.53 0-1.552.223-2.662.524zM5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887.87a1.54 1.54 0 0 1 1.044 1.262c.596 4.477-.787 7.795-2.465 9.99a11.775 11.775 0 0 1-2.517 2.453 7.159 7.159 0 0 1-1.048.625c-.28.132-.581.24-.829.24s-.548-.108-.829-.24a7.158 7.158 0 0 1-1.048-.625 11.777 11.777 0 0 1-2.517-2.453C1.928 10.487.545 7.169 1.141 2.692A1.54 1.54 0 0 1 2.185 1.43 62.456 62.456 0 0 1 5.072.56z" />
+                            <path
+                                d="M10.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 7.793l2.646-2.647a.5.5 0 0 1 .708 0z" />
+                        </svg>
+                    </div>
+                    <h4>進行簽章</h4>
+                    <p>管理員下載檔案並使用 EV 憑證簽章</p>
+                </div>
+
+                <div class="process-arrow">→</div>
+
+                <div class="process-step">
+                    <div class="step-icon">
+                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+                            <path
+                                d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z" />
+                        </svg>
+                    </div>
+                    <h4>下載成果</h4>
+                    <p>收到通知後下載已簽章的檔案</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Supported Files Section -->
+        <section class="files-section">
+            <h2 class="section-title">支援的檔案格式</h2>
+
+            <div class="file-types">
+                <div class="file-type">
+                    <span class="file-ext">.exe</span>
+                    <span class="file-desc">Windows 執行檔</span>
+                </div>
+                <div class="file-type">
+                    <span class="file-ext">.msi</span>
+                    <span class="file-desc">Windows 安裝程式</span>
+                </div>
+                <div class="file-type">
+                    <span class="file-ext">.dll</span>
+                    <span class="file-desc">動態連結程式庫</span>
+                </div>
+                <div class="file-type">
+                    <span class="file-ext">.cab</span>
+                    <span class="file-desc">Cabinet 壓縮檔</span>
+                </div>
+                <div class="file-type">
+                    <span class="file-ext">.ocx</span>
+                    <span class="file-desc">ActiveX 控制項</span>
+                </div>
+                <div class="file-type">
+                    <span class="file-ext">.xpi</span>
+                    <span class="file-desc">Firefox 擴充套件</span>
+                </div>
+                <div class="file-type">
+                    <span class="file-ext">.axp</span>
+                    <span class="file-desc">ActiveX 套件</span>
+                </div>
+                <div class="file-type">
+                    <span class="file-ext">.jar</span>
+                    <span class="file-desc">Java Archive</span>
+                </div>
+                <div class="file-type">
+                    <span class="file-ext">.air</span>
+                    <span class="file-desc">Adobe AIR 應用程式</span>
+                </div>
+                <div class="file-type">
+                    <span class="file-ext">.airi</span>
+                    <span class="file-desc">Adobe AIR 中繼檔</span>
+                </div>
+            </div>
+        </section>
+
+        {% if user.is_authenticated %}
+        <!-- CTA Section -->
+        <section class="cta-section">
+            <h2>準備好開始了嗎？</h2>
+            <p>立即提交您的簽章申請，保護您的軟體安全。</p>
+            <a href="{% url 'evcodesigning:request_create' %}" class="btn btn-primary btn-lg">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path
+                        d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                </svg>
+                提出簽章申請
+            </a>
+        </section>
+        {% endif %}
+    </div>
+</body>
+
+</html>
