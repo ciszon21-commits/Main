@@ -1,0 +1,122 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>待處理申請 - EV Code Signing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'EVCodeSigning/css/ev_code_signing.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <nav class="breadcrumb-nav">
+        <div class="container">
+            <a href="{% url 'evcodesigning:request_list' %}">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd"
+                        d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5z" />
+                </svg>
+                返回申請列表
+            </a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header class="page-header">
+            <div class="page-header-content">
+                <h1 class="page-title">
+                    <svg width="28" height="28" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z" />
+                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z" />
+                    </svg>
+                    待處理申請
+                </h1>
+                <p class="page-subtitle">需要您處理的簽章申請（按申請時間排序）</p>
+            </div>
+            <div class="page-header-actions">
+                <a href="{% url 'evcodesigning:request_list' %}" class="btn btn-secondary">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z" />
+                    </svg>
+                    查看全部申請
+                </a>
+            </div>
+        </header>
+
+        {% if requests %}
+        <div class="pending-stats">
+            <div class="stat-card">
+                <div class="stat-value">{{ requests|length }}</div>
+                <div class="stat-label">待處理申請</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">
+                    {% with pending=requests|dictsort:"status"|first %}
+                    {{ requests|length }}
+                    {% endwith %}
+                </div>
+                <div class="stat-label">總檔案數</div>
+            </div>
+        </div>
+
+        <div class="request-list pending-list">
+            {% for req in requests %}
+            <a href="{% url 'evcodesigning:request_detail' pk=req.pk %}" class="request-card priority-card">
+                <div class="request-card-header">
+                    <span class="status-badge status-{{ req.status }}">
+                        {{ req.get_status_display }}
+                    </span>
+                    <span class="request-date">{{ req.created_at|date:"Y-m-d H:i" }}</span>
+                </div>
+                <h3 class="request-title">{{ req.title }}</h3>
+                <p class="request-description">{{ req.description|truncatechars:150 }}</p>
+                <div class="request-card-footer">
+                    <span class="request-info">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z" />
+                        </svg>
+                        {{ req.applicant.get_full_name|default:req.applicant.username }}
+                    </span>
+                    <span class="request-info">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2z" />
+                            <path
+                                d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1z" />
+                        </svg>
+                        {{ req.signed_file_count }}/{{ req.file_count }} 已簽章
+                    </span>
+                    <span class="request-info action-hint">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd"
+                                d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z" />
+                        </svg>
+                        點擊處理
+                    </span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state success-state">
+            <svg width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
+                <path
+                    d="M10.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 7.793l2.646-2.647a.5.5 0 0 1 .708 0z" />
+                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+            </svg>
+            <h3>太棒了！沒有待處理的申請</h3>
+            <p>目前沒有需要處理的簽章申請</p>
+            <a href="{% url 'evcodesigning:request_list' %}" class="btn btn-primary">
+                查看全部申請
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</body>
+
+</html>

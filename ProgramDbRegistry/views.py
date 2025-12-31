@@ -10,11 +10,13 @@ import json
 
 from .models import (
     DevTeam, DevTeamMember, Program, ProgramDatabase,
-    FileLocation, DatabaseDesignDoc, DesignTable, DesignField, DatabaseServer
+    FileLocation, DatabaseDesignDoc, DesignTable, DesignField, DatabaseServer,
+    PlatformApi, ProgramApiUsage
 )
 from .forms import (
     DevTeamForm, ProgramForm, ProgramDatabaseFormSet, FileLocationFormSet,
-    DatabaseDesignDocForm, DesignTableFormSet, DesignFieldFormSet, DatabaseServerForm
+    DatabaseDesignDocForm, DesignTableFormSet, DesignFieldFormSet, DatabaseServerForm,
+    PlatformApiForm, ProgramApiUsageFormSet
 )
 
 
@@ -50,12 +52,26 @@ def team_detail(request, pk):
     programs = team.programs.all()
     members = team.members.select_related('user').all()
     db_servers = DatabaseServer.objects.all()
+    platform_apis = PlatformApi.objects.all()
+    
+    # Group programs by type for categorized display
+    programs_by_type = {
+        'web': {'label': '網頁平台', 'programs': [], 'icon': 'globe'},
+        'desktop': {'label': '單機程式', 'programs': [], 'icon': 'desktop'},
+        'plugin': {'label': '外掛程式', 'programs': [], 'icon': 'puzzle'},
+    }
+    
+    for program in programs:
+        if program.program_type in programs_by_type:
+            programs_by_type[program.program_type]['programs'].append(program)
     
     return render(request, 'ProgramDbRegistry/team_detail.html', {
         'team': team,
         'programs': programs,
+        'programs_by_type': programs_by_type,
         'members': members,
         'db_servers': db_servers,
+        'platform_apis': platform_apis,
         'is_creator': check_team_creator(request.user, team)
     })
 
@@ -337,6 +353,7 @@ def program_create(request, team_pk):
         form = ProgramForm(request.POST)
         db_formset = ProgramDatabaseFormSet(request.POST, prefix='databases')
         file_formset = FileLocationFormSet(request.POST, prefix='files')
+        api_formset = ProgramApiUsageFormSet(request.POST, prefix='apis')
         
         if form.is_valid():
             program = form.save(commit=False)
@@ -353,19 +370,27 @@ def program_create(request, team_pk):
             if file_formset.is_valid():
                 file_formset.save()
             
+            # 處理平台 API formset
+            api_formset = ProgramApiUsageFormSet(request.POST, instance=program, prefix='apis')
+            if api_formset.is_valid():
+                api_formset.save()
+            
             messages.success(request, f'程式「{program.name}」已成功建立！')
             return redirect('programdb:program_detail', pk=program.pk)
     else:
         form = ProgramForm()
         db_formset = ProgramDatabaseFormSet(prefix='databases')
         file_formset = FileLocationFormSet(prefix='files')
+        api_formset = ProgramApiUsageFormSet(prefix='apis')
     
     return render(request, 'ProgramDbRegistry/program_form.html', {
         'form': form,
         'db_formset': db_formset,
         'file_formset': file_formset,
+        'api_formset': api_formset,
         'team': team,
         'db_servers': DatabaseServer.objects.all(),
+        'platform_apis': PlatformApi.objects.all(),
         'title': '建立新程式',
         'is_edit': False
     })
@@ -384,11 +409,13 @@ def program_update(request, pk):
         form = ProgramForm(request.POST, instance=program)
         db_formset = ProgramDatabaseFormSet(request.POST, instance=program, prefix='databases')
         file_formset = FileLocationFormSet(request.POST, instance=program, prefix='files')
+        api_formset = ProgramApiUsageFormSet(request.POST, instance=program, prefix='apis')
         
-        if form.is_valid() and db_formset.is_valid() and file_formset.is_valid():
+        if form.is_valid() and db_formset.is_valid() and file_formset.is_valid() and api_formset.is_valid():
             form.save()
             db_formset.save()
             file_formset.save()
+            api_formset.save()
             
             messages.success(request, f'程式「{program.name}」已更新！')
             return redirect('programdb:program_detail', pk=program.pk)
@@ -396,14 +423,17 @@ def program_update(request, pk):
         form = ProgramForm(instance=program)
         db_formset = ProgramDatabaseFormSet(instance=program, prefix='databases')
         file_formset = FileLocationFormSet(instance=program, prefix='files')
+        api_formset = ProgramApiUsageFormSet(instance=program, prefix='apis')
     
     return render(request, 'ProgramDbRegistry/program_form.html', {
         'form': form,
         'db_formset': db_formset,
         'file_formset': file_formset,
+        'api_formset': api_formset,
         'team': team,
         'program': program,
         'db_servers': DatabaseServer.objects.all(),
+        'platform_apis': PlatformApi.objects.all(),
         'title': f'編輯程式：{program.name}',
         'is_edit': True
     })
@@ -685,3 +715,95 @@ def design_field_edit(request, table_pk):
         'field_formset': field_formset,
         'title': f'編輯欄位：{table.table_name}'
     })
+
+
+# ===== Platform API Management Views =====
+
+@login_required
+@require_POST
+def add_platform_api(request, pk):
+    """新增平台 API"""
+    team = get_object_or_404(DevTeam, pk=pk)
+    
+    if not check_team_member(request.user, team):
+        return JsonResponse({'success': False, 'error': '只有團隊成員可以新增平台 API'}, status=403)
+    
+    form = PlatformApiForm(request.POST)
+    if form.is_valid():
+        api = form.save()
+        return JsonResponse({
+            'success': True,
+            'api': {
+                'id': api.id,
+                'name': api.name,
+                'api_endpoint': api.api_endpoint,
+                'auth_type': api.get_auth_type_display(),
+                'description': api.description
+            }
+        })
+    else:
+        errors = ', '.join([f'{k}: {v[0]}' for k, v in form.errors.items()])
+        return JsonResponse({'success': False, 'error': errors}, status=400)
+
+
+@login_required
+@require_POST
+def delete_platform_api(request, pk, api_id):
+    """刪除平台 API"""
+    team = get_object_or_404(DevTeam, pk=pk)
+    
+    if not check_team_member(request.user, team):
+        return JsonResponse({'success': False, 'error': '只有團隊成員可以刪除平台 API'}, status=403)
+    
+    try:
+        api = PlatformApi.objects.get(pk=api_id)
+        # 檢查是否有程式使用此 API
+        if api.usages.exists():
+            return JsonResponse({
+                'success': False, 
+                'error': f'此平台 API 正被 {api.usages.count()} 個程式使用，無法刪除'
+            }, status=400)
+        api.delete()
+        return JsonResponse({'success': True})
+    except PlatformApi.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '找不到該平台 API'}, status=404)
+
+
+@login_required
+@require_GET
+def get_api_programs(request, pk, api_id):
+    """取得使用指定平台 API 的程式列表"""
+    team = get_object_or_404(DevTeam, pk=pk)
+    
+    if not check_team_member(request.user, team):
+        return JsonResponse({'success': False, 'error': '無權限'}, status=403)
+    
+    try:
+        api = PlatformApi.objects.get(pk=api_id)
+        usages = api.usages.select_related('program', 'program__team').all()
+        
+        programs_data = {}
+        for usage in usages:
+            prog = usage.program
+            if prog.id not in programs_data:
+                programs_data[prog.id] = {
+                    'id': prog.id,
+                    'name': prog.name,
+                    'team_name': prog.team.name,
+                    'url': f'/program-db/program/{prog.id}/',
+                    'api_paths': []
+                }
+            programs_data[prog.id]['api_paths'].append({
+                'path': usage.api_path or '(全部)',
+                'access_type': usage.get_access_type_display(),
+                'description': usage.description
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'api_name': api.name,
+            'programs': list(programs_data.values())
+        })
+    except PlatformApi.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '找不到該平台 API'}, status=404)
+
