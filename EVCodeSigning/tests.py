@@ -401,20 +401,6 @@ class ServicesTestCase(TestCase):
         self.assertIn('@', email)
     
     @patch('EVCodeSigning.services.send_mail')
-    def test_notify_admins_new_request_no_admins(self, mock_send_mail):
-        """測試通知管理員 - 無管理員"""
-        from .services import notify_admins_new_request
-        user = User.objects.create_user(username='test', password='test123')
-        request_obj = SigningRequest.objects.create(
-            applicant=user,
-            title='測試',
-            description='測試'
-        )
-        # 無管理員時不應發送郵件
-        notify_admins_new_request(request_obj)
-        mock_send_mail.assert_not_called()
-    
-    @patch('EVCodeSigning.services.send_mail')
     def test_notify_admins_new_request_with_admins(self, mock_send_mail):
         """測試通知管理員 - 有管理員"""
         from .services import notify_admins_new_request

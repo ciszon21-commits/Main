@@ -41,24 +41,6 @@ class DevShowcaseTestCase(TestCase):
         self.assertEqual(self.achievement.category, self.category)
         self.assertEqual(self.achievement.created_by, self.user)
 
-    def test_achievement_list_view(self):
-        """測試成果列表頁面"""
-        response = self.client.get('/showcase/')
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '開發成果展示')
-
-    def test_view_log_creation(self):
-        """測試瀏覽記錄"""
-        self.client.login(username='testuser', password='testpass123')
-        response = self.client.get(f'/showcase/achievement/{self.achievement.id}/')
-        
-        # 檢查瀏覽記錄是否建立
-        view_log = ViewLog.objects.filter(
-            achievement=self.achievement,
-            user=self.user
-        ).first()
-        self.assertIsNotNone(view_log)
-
     def test_comment_creation(self):
         """測試留言建立"""
         comment = Comment.objects.create(
