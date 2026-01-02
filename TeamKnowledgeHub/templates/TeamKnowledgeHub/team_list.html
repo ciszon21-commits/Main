@@ -1,0 +1,143 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>團隊知識管理</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'TeamKnowledgeHub/css/styles.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <!-- Banner Section -->
+    <div class="banner">
+        <div class="banner-content">
+            <div class="banner-info">
+                <h1 class="banner-title">團隊知識管理</h1>
+                <p class="banner-subtitle">管理團隊知識，分享經驗與技術</p>
+            </div>
+            <div class="banner-actions">
+                {% if user.is_authenticated %}
+                <a href="{% url 'knowledge:team_create' %}" class="btn btn-primary">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                    </svg>
+                    建立團隊
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Messages -->
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="message message-{{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Search Section -->
+        <div class="search-section">
+            <div class="search-box">
+                <svg viewBox="0 0 16 16" fill="currentColor">
+                    <path
+                        d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+                </svg>
+                <input type="text" id="searchInput" placeholder="搜尋團隊名稱...">
+            </div>
+            <div class="results-count">
+                共 <span id="totalCount">{{ teams|length }}</span> 個團隊
+            </div>
+        </div>
+
+        <!-- Teams Grid -->
+        <div class="team-grid" id="teamGrid">
+            {% for team in teams %}
+            <div class="team-card" data-name="{{ team.name }}">
+                <div class="team-icon">
+                    <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                        <path fill-rule="evenodd"
+                            d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z" />
+                        <path d="M4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z" />
+                    </svg>
+                </div>
+                <div class="team-content">
+                    <h3 class="team-name">{{ team.name }}</h3>
+                    <div class="team-meta">
+                        <span class="meta-item">
+                            <svg fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                            </svg>
+                            {{ team.get_member_count }} 位成員
+                        </span>
+                        <span class="meta-item">
+                            <svg fill="currentColor" viewBox="0 0 16 16">
+                                <path
+                                    d="M4.5 11H4v1h.5a.5.5 0 0 0 0-1zm0-3H4v1h.5a.5.5 0 0 0 0-1zm5 0H8v1h1.5a.5.5 0 0 0 0-1z" />
+                                <path
+                                    d="M2 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H2zm.5 3a.5.5 0 0 0 0 1h11a.5.5 0 0 0 0-1h-11zM4 8.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-2zm5 0a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-2z" />
+                            </svg>
+                            {{ team.topics.count }} 個主題
+                        </span>
+                    </div>
+                    <div class="team-creator">
+                        建立者：{{ team.created_by.get_full_name|default:team.created_by.username }}
+                    </div>
+                </div>
+                <a href="{% url 'knowledge:team_detail' team.pk %}" class="team-link">
+                    查看
+                    <svg fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd"
+                            d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z" />
+                    </svg>
+                </a>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <svg width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                    <path fill-rule="evenodd"
+                        d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z" />
+                    <path d="M4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z" />
+                </svg>
+                <h3>尚無團隊</h3>
+                <p>點擊「建立團隊」開始新增您的第一個知識團隊</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        // 搜尋功能
+        document.getElementById('searchInput').addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase();
+            const cards = document.querySelectorAll('.team-card');
+            let visibleCount = 0;
+
+            cards.forEach(card => {
+                const name = card.dataset.name.toLowerCase();
+                if (name.includes(query)) {
+                    card.style.display = 'flex';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            document.getElementById('totalCount').textContent = visibleCount;
+        });
+    </script>
+</body>
+
+</html>
