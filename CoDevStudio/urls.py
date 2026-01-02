@@ -25,6 +25,7 @@ urlpatterns = [
     path('budget/', include('BudgetReview.urls')),
     path('er-model/', include('ERModelGenerator.urls')),  # ER Model 圖表產生器
     path('ev-signing/', include('EVCodeSigning.urls')),  # EV Code Signing 簽章管理
+    path('knowledge/', include('TeamKnowledgeHub.urls')),  # 團隊知識管理
 ]
 
 # 開發環境下提供 media 檔案服務
