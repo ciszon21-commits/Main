@@ -283,7 +283,7 @@ def add_comment(request, pk):
             'message': '留言發布成功！',
             'comment': {
                 'id': comment.id,
-                'user': comment.user.get_full_name,
+                'user': comment.user.get_full_name(),
                 'content': comment.content,
                 'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M')
             }
