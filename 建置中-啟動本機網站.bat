@@ -1,4 +1,7 @@
+
 @echo off
+:: [關鍵修正] 強制切換為 UTF-8 編碼，解決亂碼問題
+chcp 65001 >nul
 title Django Server Launcher
 :: 切換到 batch 檔所在的目錄，確保路徑正確
 cd /d "%~dp0"
@@ -8,7 +11,6 @@ echo       正在準備啟動網站環境...
 echo ==========================================
 
 :: 1. 檢查並啟動虛擬環境
-:: Windows 標準 venv 資料夾通常是 "Scripts" (有 s)，但我幫你做了雙重檢查
 if exist "venv\Scripts\activate.bat" (
     call venv\Scripts\activate.bat
 ) else (
