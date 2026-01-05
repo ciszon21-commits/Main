@@ -1,0 +1,78 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - {{ team.name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'TeamKnowledgeHub/css/styles.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <!-- Banner Section -->
+    <div class="banner banner-sm">
+        <div class="banner-content">
+            <div class="banner-info">
+                <a href="{% url 'knowledge:team_detail' team.pk %}" class="back-link">← 返回 {{ team.name }}</a>
+                <h1 class="banner-title">{{ title }}</h1>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Messages -->
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="message message-{{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="form-container">
+            <form method="post" class="form">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="id_name">主題名稱 <span class="required">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                    <div class="error-text">{{ form.name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="id_description">主題說明</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                    <div class="error-text">{{ form.description.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="id_order">排序</label>
+                    {{ form.order }}
+                    <small class="help-text">數字越小排越前面</small>
+                    {% if form.order.errors %}
+                    <div class="error-text">{{ form.order.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-actions">
+                    <a href="{% url 'knowledge:team_detail' team.pk %}" class="btn btn-secondary">取消</a>
+                    <button type="submit" class="btn btn-primary">
+                        {% if topic %}更新{% else %}建立{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

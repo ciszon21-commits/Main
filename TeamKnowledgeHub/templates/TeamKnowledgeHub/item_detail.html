@@ -1,0 +1,238 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ item.title }} - {{ team.name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'TeamKnowledgeHub/css/styles.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body class="with-sidebar">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="{% url 'knowledge:team_list' %}" class="sidebar-back">← 團隊列表</a>
+            <h2 class="sidebar-title">{{ team.name }}</h2>
+        </div>
+
+        <div class="sidebar-content">
+            <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    <span>主題與項目</span>
+                    <a href="{% url 'knowledge:topic_create' team.pk %}" class="sidebar-add-btn" title="新增主題">+</a>
+                </div>
+
+                <nav class="tree-nav">
+                    {% for t in topics %}
+                    <div class="tree-node topic-node {% if t.pk == topic.pk %}expanded{% endif %}"
+                        data-topic-id="{{ t.pk }}">
+                        <div class="tree-node-header" onclick="toggleNode(this)">
+                            <svg class="tree-icon tree-icon-expand" width="12" height="12" fill="currentColor"
+                                viewBox="0 0 16 16">
+                                <path
+                                    d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z" />
+                            </svg>
+                            <svg class="tree-icon tree-icon-folder" width="14" height="14" fill="currentColor"
+                                viewBox="0 0 16 16">
+                                <path
+                                    d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3H14a2 2 0 0 1 2 2v3H0V5a2 2 0 0 1 .54-1.13z" />
+                                <path fill-rule="evenodd" d="M8.5 8H0v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8H8.5z" />
+                            </svg>
+                            <span class="tree-node-label">{{ t.name }}</span>
+                            <span class="tree-node-count">{{ t.items.count }}</span>
+                        </div>
+                        <div class="tree-children">
+                            {% for i in t.items.all %}
+                            <a href="{% url 'knowledge:item_detail' i.pk %}"
+                                class="tree-node item-node {% if i.pk == item.pk %}active{% endif %}">
+                                <svg class="tree-icon tree-icon-file" width="12" height="12" fill="currentColor"
+                                    viewBox="0 0 16 16">
+                                    <path
+                                        d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z" />
+                                </svg>
+                                <span class="tree-node-label">{{ i.title }}</span>
+                            </a>
+                            {% empty %}
+                            <div class="tree-empty">尚無項目</div>
+                            {% endfor %}
+                            <a href="{% url 'knowledge:item_create' t.pk %}" class="tree-add-item">
+                                <svg width="10" height="10" fill="currentColor" viewBox="0 0 16 16">
+                                    <path
+                                        d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                                </svg>
+                                新增項目
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </nav>
+            </div>
+        </div>
+
+        <!-- Sidebar Actions -->
+        <div class="sidebar-footer">
+            {% if is_team_creator %}
+            <a href="{% url 'knowledge:team_update' team.pk %}" class="sidebar-action">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3z" />
+                    <path fill-rule="evenodd" d="M.5 11.5V16h4.5l8.896-8.896-4.5-4.5L.5 11.5z" />
+                </svg>
+                編輯團隊
+            </a>
+            <a href="{% url 'knowledge:team_members' team.pk %}" class="sidebar-action">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                    <path fill-rule="evenodd"
+                        d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z" />
+                    <path d="M4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z" />
+                </svg>
+                管理成員
+            </a>
+            {% endif %}
+        </div>
+    </aside>
+
+    <!-- Toggle Button for Mobile -->
+    <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
+        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+            <path fill-rule="evenodd"
+                d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z" />
+        </svg>
+    </button>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Banner Section -->
+        <div class="banner banner-slim">
+            <div class="banner-content">
+                <div class="banner-info">
+                    <a href="{% url 'knowledge:team_detail' team.pk %}" class="back-link">← {{ topic.name }}</a>
+                    <h1 class="banner-title">{{ item.title }}</h1>
+                    <div class="item-meta-banner">
+                        <span>{{ item.created_by.get_full_name|default:item.created_by.username }}</span>
+                        <span>•</span>
+                        <span>{{ item.updated_at|date:"Y/m/d H:i" }}</span>
+                    </div>
+                </div>
+                <div class="banner-actions">
+                    <a href="{% url 'knowledge:item_update' item.pk %}" class="btn btn-secondary">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z" />
+                        </svg>
+                        編輯
+                    </a>
+                    {% if is_creator %}
+                    <a href="{% url 'knowledge:item_delete' item.pk %}" class="btn btn-danger">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" />
+                            <path fill-rule="evenodd"
+                                d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" />
+                        </svg>
+                        刪除
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Container -->
+        <div class="content-container">
+            <!-- Messages -->
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="message message-{{ message.tags }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Item Content -->
+            <div class="item-content-container">
+                <div class="item-content prose">
+                    {{ item.content|safe }}
+                </div>
+            </div>
+
+            <!-- Comments Section -->
+            <div class="comments-section">
+                <h3 class="comments-title">
+                    留言 ({{ comments|length }})
+                </h3>
+
+                <!-- Add Comment Form -->
+                <div class="add-comment">
+                    <form method="post" action="{% url 'knowledge:add_comment' item.pk %}">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            {{ comment_form.content }}
+                        </div>
+                        <button type="submit" class="btn btn-primary">發表留言</button>
+                    </form>
+                </div>
+
+                <!-- Comments List -->
+                <div class="comments-list">
+                    {% for comment in comments %}
+                    <div class="comment-item">
+                        <div class="comment-header">
+                            <span class="comment-author">{{ comment.author.get_full_name|default:comment.author.username
+                                }}</span>
+                            <span class="comment-date">{{ comment.created_at|date:"Y/m/d H:i" }}</span>
+                            {% if comment.author == request.user or team.created_by == request.user %}
+                            <form method="post" action="{% url 'knowledge:delete_comment' comment.pk %}"
+                                class="delete-comment-form">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-text"
+                                    onclick="return confirm('確定要刪除此留言嗎？')">刪除</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        <div class="comment-content">
+                            {{ comment.content|linebreaks }}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="no-comments">
+                        <p>尚無留言，成為第一個留言的人吧！</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Toggle tree node expand/collapse
+        function toggleNode(header) {
+            const node = header.closest('.topic-node');
+            node.classList.toggle('expanded');
+        }
+
+        // Toggle sidebar on mobile
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function (e) {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.getElementById('sidebarToggle');
+            if (window.innerWidth <= 768 &&
+                !sidebar.contains(e.target) &&
+                !toggleBtn.contains(e.target) &&
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+
+</html>

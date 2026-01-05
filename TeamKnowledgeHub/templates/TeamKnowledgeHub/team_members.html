@@ -1,0 +1,215 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成員管理 - {{ team.name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'TeamKnowledgeHub/css/styles.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <!-- Banner Section -->
+    <div class="banner banner-sm">
+        <div class="banner-content">
+            <div class="banner-info">
+                <a href="{% url 'knowledge:team_detail' team.pk %}" class="back-link">← 返回 {{ team.name }}</a>
+                <h1 class="banner-title">成員管理</h1>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Messages -->
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="message message-{{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Add Member Section -->
+        <div class="card">
+            <h3 class="card-title">新增成員</h3>
+            <div class="search-member">
+                <input type="text" id="searchUserInput" placeholder="搜尋使用者..." class="search-input">
+                <div id="searchResults" class="search-results"></div>
+            </div>
+        </div>
+
+        <!-- Members List -->
+        <div class="card">
+            <h3 class="card-title">目前成員 ({{ members|length }})</h3>
+            <div class="members-list" id="membersList">
+                {% for member in members %}
+                <div class="member-item" data-user-id="{{ member.user.id }}">
+                    <div class="member-info">
+                        <span class="member-name">{{ member.user.get_full_name|default:member.user.username }}</span>
+                        <span class="member-username">@{{ member.user.username }}</span>
+                        {% if member.role == 'creator' %}
+                        <span class="member-badge badge-creator">建立者</span>
+                        {% endif %}
+                    </div>
+                    {% if member.role != 'creator' %}
+                    <button class="btn btn-sm btn-danger remove-member-btn" data-user-id="{{ member.user.id }}">
+                        移除
+                    </button>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const teamId = {{ team.pk }};
+        const searchInput = document.getElementById('searchUserInput');
+        const searchResults = document.getElementById('searchResults');
+        const membersList = document.getElementById('membersList');
+        let searchTimeout;
+
+        // 搜尋使用者
+        searchInput.addEventListener('input', function (e) {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+
+            if (query.length < 2) {
+                searchResults.innerHTML = '';
+                searchResults.style.display = 'none';
+                return;
+            }
+
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(`/knowledge/api/search-users/?q=${encodeURIComponent(query)}&team_id=${teamId}`);
+                    const data = await response.json();
+
+                    if (data.users.length > 0) {
+                        searchResults.innerHTML = data.users.map(user => `
+                            <div class="search-result-item" data-user-id="${user.id}">
+                                <span class="result-name">${user.full_name}</span>
+                                <span class="result-username">@${user.username}</span>
+                            </div>
+                        `).join('');
+                        searchResults.style.display = 'block';
+                    } else {
+                        searchResults.innerHTML = '<div class="no-results">找不到使用者</div>';
+                        searchResults.style.display = 'block';
+                    }
+                } catch (error) {
+                    console.error('搜尋失敗:', error);
+                }
+            }, 300);
+        });
+
+        // 點擊搜尋結果新增成員
+        searchResults.addEventListener('click', async function (e) {
+            const item = e.target.closest('.search-result-item');
+            if (!item) return;
+
+            const userId = item.dataset.userId;
+            const userName = item.querySelector('.result-name').textContent;
+            const userUsername = item.querySelector('.result-username').textContent;
+
+            try {
+                const formData = new FormData();
+                formData.append('user_id', userId);
+
+                const response = await fetch(`/knowledge/team/${teamId}/add-member/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // 新增到列表
+                    const newMember = document.createElement('div');
+                    newMember.className = 'member-item';
+                    newMember.dataset.userId = userId;
+                    newMember.innerHTML = `
+                        <div class="member-info">
+                            <span class="member-name">${userName}</span>
+                            <span class="member-username">${userUsername}</span>
+                        </div>
+                        <button class="btn btn-sm btn-danger remove-member-btn" data-user-id="${userId}">
+                            移除
+                        </button>
+                    `;
+                    membersList.appendChild(newMember);
+
+                    // 清空搜尋
+                    searchInput.value = '';
+                    searchResults.innerHTML = '';
+                    searchResults.style.display = 'none';
+                } else {
+                    alert(data.error || '新增失敗');
+                }
+            } catch (error) {
+                console.error('新增失敗:', error);
+            }
+        });
+
+        // 移除成員
+        membersList.addEventListener('click', async function (e) {
+            const btn = e.target.closest('.remove-member-btn');
+            if (!btn) return;
+
+            if (!confirm('確定要移除此成員嗎？')) return;
+
+            const userId = btn.dataset.userId;
+
+            try {
+                const response = await fetch(`/knowledge/team/${teamId}/remove-member/${userId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    btn.closest('.member-item').remove();
+                } else {
+                    alert(data.error || '移除失敗');
+                }
+            } catch (error) {
+                console.error('移除失敗:', error);
+            }
+        });
+
+        // 取得 CSRF Token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // 點擊外部關閉搜尋結果
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.search-member')) {
+                searchResults.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+
+</html>
