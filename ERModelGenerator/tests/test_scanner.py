@@ -60,20 +60,19 @@ class ScannerUtilsTest(TestCase):
         expected_no_type = 'string testfield "PK"'
         self.assertEqual(_format_field_line(field, show_type=False), expected_no_type)
 
+class ScannerTestModel(models.Model):
+    name = models.CharField(max_length=100, verbose_name='Name')
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, related_name='children')
+    tags = models.ManyToManyField('self', blank=True)
+    
+    class Meta:
+        app_label = 'ERModelGenerator'
+        abstract = False
+
 class ScannerParsingTest(TestCase):
     def setUp(self):
-        # 定義一個真正的測試 Model
-        class TestModel(models.Model):
-            name = models.CharField(max_length=100, verbose_name='Name')
-            parent = models.ForeignKey('self', on_delete=models.CASCADE, related_name='children')
-            tags = models.ManyToManyField('self', blank=True)
-            
-            class Meta:
-                app_label = 'ERModelGenerator'
-                abstract = False
-        
-        self.TestModel = TestModel
-        self.meta = TestModel._meta
+        self.TestModel = ScannerTestModel
+        self.meta = ScannerTestModel._meta
         
     def test_parse_field(self):
         """測試單一欄位解析"""
@@ -100,7 +99,7 @@ class ScannerParsingTest(TestCase):
         model_info = parse_model(self.TestModel)
         
         self.assertIsNotNone(model_info)
-        self.assertEqual(model_info.name, 'TestModel')
+        self.assertEqual(model_info.name, 'ScannerTestModel')
         # self.assertEqual(model_info.app_label, 'ERModelGenerator') # 這裡可能會根據在哪裡定義變動，先略過
         
         # 驗證欄位數量：id, name, parent (FK 也是欄位)
@@ -123,7 +122,7 @@ class ScannerParsingTest(TestCase):
         relation = parse_relation(fk_field, self.meta)
         
         self.assertIsNotNone(relation)
-        self.assertEqual(relation.from_model, 'TestModel')
+        self.assertEqual(relation.from_model, 'ScannerTestModel')
         # self.assertEqual(relation.to_model, 'TestModel') # self ref
         self.assertEqual(relation.relation_type, 'FK')
         

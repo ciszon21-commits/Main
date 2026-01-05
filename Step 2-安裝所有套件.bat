@@ -15,12 +15,10 @@ echo ==========================================
 :: [安全修正] 這裡的 echo 文字移除了小括號 () 改用中括號 []
 if exist "venv\Scripts\activate.bat" (
     call venv\Scripts\activate.bat
-) else if exist "venv\Script\activate.bat" (
-    call venv\Script\activate.bat
 ) else (
     echo.
     echo [錯誤] 找不到虛擬環境 [venv]
-    echo 請確認目錄下是否有 "venv" 資料夾。
+    echo 請確認目錄下是否有 "venv" 資料夾
     echo.
     pause
     exit /b
@@ -30,7 +28,7 @@ if exist "venv\Scripts\activate.bat" (
 if not exist "requirements.txt" (
     echo.
     echo [錯誤] 找不到 requirements.txt
-    echo 請確認檔案是否在同一個目錄下。
+    echo 請確認檔案是否在同一個目錄下
     echo.
     pause
     exit /b
@@ -39,7 +37,7 @@ if not exist "requirements.txt" (
 :: 3. 升級 pip
 echo.
 echo [Step 1/2] 正在檢查 pip 版本...
-python -m pip install --upgrade pip
+py -m pip install --upgrade pip
 
 :: 4. 安裝套件
 echo.

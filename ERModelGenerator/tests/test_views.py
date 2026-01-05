@@ -40,7 +40,7 @@ class ERModelViewTest(TestCase):
     def setUp(self):
         self.client = Client()
         self.admin = User.objects.create_superuser(username='admin', password='password')
-        self.client.force_login(self.admin)
+        self.client.force_login(self.admin, backend='django.contrib.auth.backends.ModelBackend')
         
         self.url_index = reverse('er_model:diagram')
         self.url_api_mermaid = reverse('er_model:api_mermaid')
