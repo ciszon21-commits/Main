@@ -24,39 +24,18 @@ if exist "venv\Scripts\activate.bat" (
     exit /b
 )
 
-:: 2. 檢查 requirements.txt 是否存在
-if not exist "requirements.txt" (
-    echo.
-    echo [錯誤] 找不到 requirements.txt
-    echo 請確認檔案是否在同一個目錄下
-    echo.
-    pause
-    exit /b
-)
-
-:: 3. 升級 pip
-echo.
-echo [Step 1/2] 正在檢查 pip 版本...
-python -m pip install --upgrade pip
-
-:: 4. 安裝套件
-echo.
-echo [Step 2/2] 正在安裝 requirements.txt 中的套件...
-echo 這可能需要一點時間，視網路速度而定...
-echo ------------------------------------------
-pip install -r requirements.txt
+python manage.py migrate
 
 :: 5. 結果判斷
 if %errorlevel% neq 0 (
     echo.
     echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     echo        安裝失敗！請檢查上方紅字錯誤
-    echo        常見原因：網路不通、權限不足
     echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ) else (
     echo.
     echo ==========================================
-    echo        恭喜！所有套件安裝成功。
+    echo        恭喜！所有資料庫建立成功。
     echo ==========================================
 )
 

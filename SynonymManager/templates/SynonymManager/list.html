@@ -1,0 +1,57 @@
+{% extends 'SynonymManager/base.html' %}
+
+{% block title %}詞彙清單{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>詞彙清單</h2>
+    <a href="{% url 'synonyms:create' %}" class="btn btn-primary">+ 新增詞彙</a>
+</div>
+
+<div class="card">
+    <form method="get" action="{% url 'synonyms:list' %}" style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+        <input type="text" name="q" placeholder="關鍵字搜尋..." value="{{ request.GET.q }}">
+        <button type="submit" class="btn btn-outline">搜尋</button>
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                <th>主詞彙</th>
+                <th>同義詞列表</th>
+                <th>更新時間</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in synonyms %}
+            <tr>
+                <td><strong>{{ item.word }}</strong></td>
+                <td>{{ item.synonym_list }}</td>
+                <td>{{ item.updated_at|date:"Y-m-d H:i" }}</td>
+                <td style="display: flex; gap: 0.5rem;">
+                    <a href="{% url 'synonyms:edit' item.pk %}" class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;">編輯</a>
+                    <a href="{% url 'synonyms:delete' item.pk %}" class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.875rem; color: #ef4444; border-color: #fecaca;">刪除</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">找不到相關資料</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if is_paginated %}
+    <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem;">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn btn-outline">&laquo; 上一頁</a>
+        {% endif %}
+        <span style="padding: 0.5rem;">第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 頁</span>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn btn-outline">下一頁 &raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

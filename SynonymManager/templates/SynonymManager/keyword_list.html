@@ -1,0 +1,63 @@
+{% extends 'SynonymManager/base.html' %}
+
+{% block title %}關鍵字清單{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>關鍵字管理</h2>
+    <div>
+        <a href="{% url 'synonyms:export-keywords' %}" class="btn btn-outline" style="margin-right: 1rem;">匯出 ES 格式</a>
+        <a href="{% url 'synonyms:keyword-create' %}" class="btn btn-primary">+ 手動新增關鍵字</a>
+    </div>
+</div>
+
+<div class="card">
+    <form method="get" action="{% url 'synonyms:keyword-list' %}" style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+        <input type="text" name="q" placeholder="關鍵字搜尋..." value="{{ request.GET.q }}">
+        <button type="submit" class="btn btn-outline">搜尋</button>
+    </form>
+
+    <div style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.875rem;">
+        提示：同義詞群組中的每個字都會自動同步至此清單。
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>關鍵字</th>
+                <th>建立方式</th>
+                <th>建立日期</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for k in keywords %}
+            <tr>
+                <td><strong>{{ k.word }}</strong></td>
+                <td>{{ k.creator.username|default:"系統自動同步" }}</td>
+                <td>{{ k.created_at|date:"Y-m-d H:i" }}</td>
+                <td style="display: flex; gap: 0.5rem;">
+                    <a href="{% url 'synonyms:keyword-delete' k.pk %}" class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.875rem; color: #ef4444; border-color: #fecaca;">刪除</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">目前無關鍵字</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if is_paginated %}
+    <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem;">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn btn-outline">&laquo; 上一頁</a>
+        {% endif %}
+        <span style="padding: 0.5rem;">第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 頁</span>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn btn-outline">下一頁 &raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

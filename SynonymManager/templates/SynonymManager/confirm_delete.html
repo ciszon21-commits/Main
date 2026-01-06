@@ -1,0 +1,23 @@
+{% extends 'SynonymManager/base.html' %}
+
+{% block title %}刪除確認{% endblock %}
+
+{% block content %}
+<div style="max-width: 500px; margin: 4rem auto; text-align: center;">
+    <div class="card" style="border-top: 5px solid #ef4444;">
+        <div style="font-size: 3rem; color: #ef4444; margin-bottom: 1rem;">!</div>
+        <h2>確定要刪除嗎？</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">
+            您即將刪除詞彙「<strong>{{ object.word }}</strong>」。此動作無法復原，請確認。
+        </p>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div style="display: flex; gap: 1rem;">
+                <button type="submit" class="btn btn-danger" style="flex: 1;">確認刪除</button>
+                <a href="{% url 'synonyms:list' %}" class="btn btn-outline" style="flex: 1;">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

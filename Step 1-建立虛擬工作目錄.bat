@@ -12,7 +12,7 @@ echo       正在建立 Python 虛擬環境 (venv)
 echo ==========================================
 
 :: 1. 檢查電腦是否有安裝 Python
-py --version
+python --version
 if %errorlevel% neq 0 (
     echo.
     echo [嚴重錯誤] 找不到 'py' 指令！
@@ -41,7 +41,7 @@ echo.
 echo 正在執行建立指令 (py -m venv venv)...
 echo 請稍候...
 
-py -m venv venv
+python -m venv venv
 
 if %errorlevel% neq 0 (
     echo.
