@@ -1,0 +1,150 @@
+{% extends "patent_registry/base.html" %}
+{% load humanize %}
+{% block title %}{{ application.name }} - 專利管理系統{% endblock %}
+{% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'patent_registry:public_list' %}">專利管理</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'patent_registry:application_list' %}">申請管理</a></li>
+                <li class="breadcrumb-item active">{{ application.plan_number }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>專利申請資訊</h5>
+                <div>{% if application.status == 'PENDING' %}<span class="badge bg-warning text-dark fs-6">申請中</span>{%
+                    elif application.status == 'APPROVED' %}<span class="badge bg-success fs-6">通過</span>{% else %}<span
+                        class="badge bg-danger fs-6">不通過</span>{% endif %}</div>
+            </div>
+            <div class="card-body">
+                <h4 class="card-title text-primary mb-4">{{ application.name }}</h4>
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="text-muted small">計畫編號</label>
+                        <p class="mb-0 fw-bold">{{ application.plan_number }}</p>
+                    </div>
+                    <div class="col-md-6"><label class="text-muted small">委外編號</label>
+                        <p class="mb-0">{{ application.outsource_number|default:"-" }}</p>
+                    </div>
+                    <div class="col-md-6"><label class="text-muted small">項次</label>
+                        <p class="mb-0">{{ application.item_number }}</p>
+                    </div>
+                    <div class="col-md-6"><label class="text-muted small">專利類別</label>
+                        <p class="mb-0"><span class="badge bg-secondary">{{ application.get_category_display }}</span>
+                        </p>
+                    </div>
+                    <div class="col-md-6"><label class="text-muted small">專利事務所</label>
+                        <p class="mb-0">{{ application.patent_firm }}</p>
+                    </div>
+                    <div class="col-md-6"><label class="text-muted small">事務所案號</label>
+                        <p class="mb-0">{{ application.firm_case_number|default:"-" }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-white">
+                <div class="d-flex justify-content-between"><a href="{% url 'patent_registry:application_list' %}"
+                        class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>返回列表</a>
+                    <div><a href="{% url 'patent_registry:application_update' application.pk %}"
+                            class="btn btn-warning"><i class="bi bi-pencil me-1"></i>編輯</a><a
+                            href="{% url 'patent_registry:application_delete' application.pk %}"
+                            class="btn btn-outline-danger ms-1"><i class="bi bi-trash me-1"></i>刪除</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="card shadow mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-reply-all me-2"></i>答辯記錄</h5>{% if application.is_pending %}<a
+                    href="{% url 'patent_registry:rebuttal_create' application.pk %}" class="btn btn-sm btn-primary"><i
+                        class="bi bi-plus-lg me-1"></i>新增答辯</a>{% endif %}
+            </div>
+            <div class="card-body">{% if rebuttals %}<div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>答辯類別</th>
+                                <th>單據日期</th>
+                                <th>費用</th>
+                                <th>備註</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>{% for rebuttal in rebuttals %}<tr>
+                                <td><span class="badge bg-warning text-dark">{{ rebuttal.get_rebuttal_type_display
+                                        }}</span></td>
+                                <td>{{ rebuttal.document_date|date:"Y/m/d" }}</td>
+                                <td>NT$ {{ rebuttal.fee|intcomma }}</td>
+                                <td>{{ rebuttal.notes|truncatechars:30|default:"-" }}</td>
+                                <td><a href="{% url 'patent_registry:rebuttal_delete' rebuttal.pk %}"
+                                        class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a></td>
+                            </tr>{% endfor %}</tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="2" class="text-end fw-bold">答辯費用合計:</td>
+                                <td class="fw-bold text-primary">NT$ {{ application.total_rebuttal_fee|intcomma }}</td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>{% else %}<div class="text-center py-4 text-muted"><i
+                        class="bi bi-chat-square-text display-4 d-block mb-2"></i>尚無答辯記錄</div>{% endif %}</div>
+        </div>
+        {% if granted_patent %}<div class="card shadow border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-award me-2"></i>已取得專利資訊</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="text-muted small">專利編號</label>
+                        <p class="mb-0 fw-bold text-success">{{ granted_patent.patent_number }}</p>
+                    </div>
+                    <div class="col-md-6"><label class="text-muted small">專利名稱</label>
+                        <p class="mb-0">{{ granted_patent.patent_name }}</p>
+                    </div>
+                    <div class="col-md-6"><label class="text-muted small">有效期間</label>
+                        <p class="mb-0">{{ granted_patent.start_date|date:"Y/m" }} ~ {{
+                            granted_patent.end_date|date:"Y/m" }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-white"><a href="{% url 'patent_registry:granted_detail' granted_patent.pk %}"
+                    class="btn btn-outline-success"><i class="bi bi-eye me-1"></i>查看詳細資訊</a></div>
+        </div>{% endif %}
+    </div>
+    <div class="col-lg-4">
+        {% if application.is_pending %}<div class="card shadow mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-check2-square me-2"></i>審核操作</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">設定此專利申請的審核結果</p>
+                <div class="d-grid gap-2"><a href="{% url 'patent_registry:application_grant' application.pk %}"
+                        class="btn btn-success"><i class="bi bi-check-lg me-1"></i>設定為通過</a>
+                    <form method="post" action="{% url 'patent_registry:application_reject' application.pk %}"
+                        onsubmit="return confirm('確定要將此申請設定為不通過嗎？');">{% csrf_token %}<button type="submit"
+                            class="btn btn-outline-danger w-100"><i class="bi bi-x-lg me-1"></i>設定為不通過</button></form>
+                </div>
+            </div>
+        </div>{% endif %}
+        <div class="card shadow">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>申請概況</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between"><span>答辯次數</span><span
+                            class="badge bg-info rounded-pill">{{ application.rebuttal_count }}</span></li>
+                    <li class="list-group-item d-flex justify-content-between"><span>答辯費用</span><span
+                            class="fw-bold">NT$ {{ application.total_rebuttal_fee|intcomma }}</span></li>
+                    <li class="list-group-item d-flex justify-content-between"><span>申請天數</span><span>{{
+                            application.created_at|timesince }}</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "patent_registry/base.html" %}
+{% block title %}核准專利 - 專利管理系統{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow border-success">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="bi bi-award me-2"></i>核准專利 - 填寫專利資訊</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-4"><i class="bi bi-info-circle me-2"></i>專利申請：<strong>{{application.name }}</strong><br><small class="text-muted">計畫編號：{{ application.plan_number }}</small></div>
+                <form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}
+                    <div class="row mb-3">
+                        <div class="col-md-6"><label class="form-label">專利編號 <span
+                                    class="text-danger">*</span></label>{{ form.patent_number }}{% if form.patent_number.errors %}<div class="text-danger small">{{ form.patent_number.errors }}</div>{% endif %}</div>
+                        <div class="col-md-6"><label class="form-label">專利期間</label>{{ form.patent_period }}</div>
+                    </div>
+                    <div class="mb-3"><label class="form-label">專利名稱 <span class="text-danger">*</span></label>{{form.patent_name }}{% if form.patent_name.errors %}<div class="text-danger small">{{
+                            form.patent_name.errors }}</div>{% endif %}</div>
+                    <div class="mb-3"><label class="form-label">專利簡述</label>{{ form.description }}</div>
+                    <hr class="my-4">
+                    <h5 class="mb-3"><i class="bi bi-calendar-range me-2"></i>專利期間</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6"><label class="form-label">專利起始年月 <span class="text-danger">*</span></label>{{ form.start_date }}{% if form.start_date.errors %}<div class="text-danger small">{{ form.start_date.errors }}</div>{% endif %}</div>
+                        <div class="col-md-6"><label class="form-label">專利結束年月 <span
+                                    class="text-danger">*</span></label>{{ form.end_date }}{% if form.end_date.errors %}
+                            <div class="text-danger small">{{ form.end_date.errors }}</div>{% endif %}</div>
+                    </div>
+                    <hr class="my-4">
+                    <h5 class="mb-3"><i class="bi bi-file-earmark-pdf me-2"></i>專利證書</h5>
+                    <div class="mb-3"><label class="form-label">上傳證書 (PDF)</label>{{ form.certificate }}<small
+                            class="text-muted d-block mt-1">選填，可於稍後補傳</small></div>
+                    {% if form.errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+                    <hr class="my-4">
+                    <div class="d-flex justify-content-between"><a
+                            href="{% url 'patent_registry:application_detail' application.pk %}"
+                            class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>返回</a><button
+                            type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i>確認核准並儲存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
