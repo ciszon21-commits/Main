@@ -1,0 +1,120 @@
+{% extends "patent_registry/base.html" %}
+{% load humanize %}
+{% block title %}{{ patent.patent_name }} - 專利管理系統{% endblock %}
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'patent_registry:public_list' %}">專利管理</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'patent_registry:application_list' %}">申請管理</a></li>
+                <li class="breadcrumb-item active">{{ patent.patent_number }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4 border-success">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-award me-2"></i>已取得專利資訊</h5>
+                {% if not patent.application.is_public %}<span class="badge bg-dark fs-6"><i class="bi bi-eye-slash me-1"></i>尚未公開</span>{% endif %}
+            </div>
+            <div class="card-body">
+                <h3 class="card-title text-success mb-4">{{ patent.patent_name }}</h3>
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="text-muted small">專利編號</label>
+                        <p class="mb-0 fw-bold">{{ patent.patent_number }}</p>
+                    </div>
+                    <div class="col-md-6"><label class="text-muted small">專利期間</label>
+                        <p class="mb-0">{{ patent.patent_period|default:"-" }}</p>
+                    </div>
+                    <div class="col-md-6"><label class="text-muted small">專利起始日期</label>
+                        <p class="mb-0">{{ patent.start_date|date:"Y 年 m 月" }}</p>
+                    </div>
+                    <div class="col-md-6"><label class="text-muted small">專利結束日期</label>
+                        <p class="mb-0">{{ patent.end_date|date:"Y 年 m 月" }}</p>
+                    </div>
+                    <div class="col-12"><label class="text-muted small">專利簡述</label>
+                        <p class="mb-0">{{ patent.description|default:"無" }}</p>
+                    </div>
+                </div>
+                <hr class="my-4">
+                <h6 class="text-muted mb-3"><i class="bi bi-file-earmark-text me-2"></i>原始申請資訊</h6>
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="text-muted small">計畫編號</label>
+                        <p class="mb-0">{{ patent.application.plan_number }}</p>
+                    </div>
+                    <div class="col-md-6"><label class="text-muted small">專利類別</label>
+                        <p class="mb-0"><span class="badge bg-secondary">{{ patent.application.get_category_display }}</span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-white">
+                <div class="d-flex justify-content-between">{% if patent.certificate %}<a
+                        href="{{ patent.certificate.url }}" class="btn btn-success" target="_blank">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>下載專利證書</a>{% else %}
+                        <span class="text-muted">尚未上傳專利證書</span>{% endif %}<a
+                        href="{% url 'patent_registry:granted_update' patent.pk %}" class="btn btn-warning">
+                        <i class="bi bi-pencil me-1"></i>編輯專利資訊</a></div>
+            </div>
+        </div>
+        <div class="card shadow mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-calendar-check me-2"></i>年費核銷記錄</h5><a
+                    href="{% url 'patent_registry:annuity_create' patent.pk %}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus-lg me-1"></i>新增核銷</a>
+            </div>
+            <div class="card-body">{% if annuities %}<div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>核銷年度</th>
+                                <th>核銷計畫編號</th>
+                                <th>核銷年月</th>
+                                <th>備註</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>{% for annuity in annuities %}<tr>
+                                <td><span class="badge bg-primary">{{ annuity.year }} 年度</span></td>
+                                <td>{{ annuity.write_off_plan_number }}</td>
+                                <td>{{ annuity.write_off_date|date:"Y/m" }}</td>
+                                <td>{{ annuity.notes|truncatechars:20|default:"-" }}</td>
+                                <td><a href="{% url 'patent_registry:annuity_delete' annuity.pk %}"
+                                        class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a></td>
+                            </tr>{% endfor %}</tbody>
+                    </table>
+                </div>{% else %}<div class="text-center py-4 text-muted"><i
+                        class="bi bi-calendar-x display-4 d-block mb-2"></i>尚無年費核銷記錄</div>{% endif %}</div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>專利概況</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between"><span>已核銷年度</span><span
+                            class="badge bg-success rounded-pill">{{ annuities.count }}</span></li>
+                    <li class="list-group-item d-flex justify-content-between"><span>登錄系統日期</span><span>{{patent.granted_at|date:"Y/m/d" }}</span></li>
+                </ul>
+            </div>
+        </div>
+        <div class="card shadow">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>快速操作</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2"><a href="{% url 'patent_registry:annuity_create' patent.pk %}"
+                        class="btn btn-outline-primary"><i class="bi bi-plus-circle me-2"></i>新增年費核銷</a><a
+                        href="{% url 'patent_registry:application_detail' patent.application.pk %}"
+                        class="btn btn-outline-secondary"><i class="bi bi-file-text me-2"></i>查看申請詳情</a><a
+                        href="{% url 'patent_registry:annuity_list' %}" class="btn btn-outline-info"><i
+                            class="bi bi-list-ul me-2"></i>年費核銷總覽</a></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

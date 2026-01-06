@@ -1,0 +1,60 @@
+{% extends "patent_registry/base.html" %}
+{% block title %}{{ title }} - 專利管理系統{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-file-earmark-plus me-2"></i>{{ title }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <div class="row mb-3">
+                        <div class="col-md-6"><label class="form-label">計畫編號 <span
+                                    class="text-danger">*</span></label>{{ form.plan_number }}
+                                    {% if form.plan_number.errors %}<div class="text-danger small">{{ form.plan_number.errors }}</div>
+                            {% endif %}</div>
+                        <div class="col-md-6"><label class="form-label">委外編號</label>{{ form.outsource_number }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4"><label class="form-label">項次 <span class="text-danger">*</span></label>
+                            {{ form.item_number }}{% if form.item_number.errors %}<div class="text-danger small">
+                                {{ form.item_number.errors }}</div>{% endif %}</div>
+                        <div class="col-md-8"><label class="form-label">專利類別 <span
+                                    class="text-danger">*</span></label>{{ form.category }}</div>
+                    </div>
+                    <div class="mb-3"><label class="form-label">專利項目名稱 <span class="text-danger">*</span></label>{{ form.name }}{% if form.name.errors %}<div class="text-danger small">{{ form.name.errors }}</div>
+                        {% endif %}</div>
+                    <hr class="my-4">
+                    <h5 class="mb-3"><i class="bi bi-building me-2"></i>事務所資訊</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-7"><label class="form-label">專利事務所名稱 <span
+                                    class="text-danger">*</span></label>{{ form.patent_firm }}{% if form.patent_firm.errors %}<div class="text-danger small">{{ form.patent_firm.errors }}</div>
+                            {% endif %}</div>
+                        <div class="col-md-5"><label class="form-label">事務所案號</label>{{ form.firm_case_number }}</div>
+                    </div>
+                    <hr class="my-4">
+                    <h5 class="mb-3"><i class="bi bi-eye me-2"></i>公開設定</h5>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            {{ form.is_public }}
+                            <label class="form-check-label" for="{{ form.is_public.id_for_label }}">
+                                <strong>設定為公開</strong>
+                                <small class="text-muted d-block">勾選後，一般使用者可在公開頁面看到此專利</small>
+                            </label>
+                        </div>
+                    </div>
+                    <hr class="my-4">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'patent_registry:application_list' %}" class="btn btn-outline-secondary"><i
+                                class="bi bi-arrow-left me-1"></i>返回列表</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>{{ submit_text }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

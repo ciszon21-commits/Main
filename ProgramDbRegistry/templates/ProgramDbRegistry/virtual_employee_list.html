@@ -1,0 +1,275 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>虛擬員工 - {{ team.name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'ProgramDbRegistry/css/program_db.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <!-- Banner Section -->
+    <div class="banner">
+        <div class="banner-content">
+            <div class="banner-info">
+                <a href="{% url 'programdb:team_detail' team.pk %}" class="back-link">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd"
+                            d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+                    </svg>
+                    返回團隊
+                </a>
+                <h1 class="banner-title">虛擬員工</h1>
+                <p class="banner-subtitle">{{ team.name }}</p>
+            </div>
+            <div class="banner-actions">
+                <a href="{% url 'programdb:virtual_employee_create' team.pk %}" class="btn btn-primary">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                    </svg>
+                    新增虛擬員工
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="section">
+            <div class="ve-list">
+                {% for ve in virtual_employees %}
+                <div class="ve-card {% if ve.status == 'retired' %}ve-retired{% endif %}">
+                    <div class="ve-header">
+                        <div class="ve-title-row">
+                            <span class="ve-code">{{ ve.code }}</span>
+                            <span class="ve-name">{{ ve.name }}</span>
+                            <span class="ve-status ve-status-{{ ve.status }}">{{ ve.get_status_display }}</span>
+                        </div>
+                        <div class="ve-actions">
+                            {% if ve.status == 'active' %}
+                            <a href="{% url 'programdb:virtual_employee_update' ve.pk %}"
+                                class="btn btn-secondary btn-xs" title="編輯">✎</a>
+                            <a href="{% url 'programdb:virtual_employee_retire' ve.pk %}" class="btn btn-warning btn-xs"
+                                title="退休">⏸</a>
+                            {% endif %}
+                            <form action="{% url 'programdb:virtual_employee_delete' ve.pk %}" method="post"
+                                style="display:inline;" onsubmit="return confirm('確定刪除？');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-xs" title="刪除">✕</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="ve-body">
+                        <div class="ve-info-row">
+                            <span class="ve-category ve-category-{{ ve.category }}">{{ ve.get_category_display }}</span>
+                            <span class="ve-device">{{ ve.device }}</span>
+                            <span class="ve-frequency">{{ ve.get_frequency_display }}{% if ve.frequency_note %} 
+                                ({{ ve.frequency_note }}){% endif %}</span>
+                        </div>
+                        <div class="ve-purpose">{{ ve.purpose }}</div>
+                        {% if ve.status == 'retired' %}
+                        <div class="ve-retirement-info">
+                            <strong>退休原因：</strong>{{ ve.retirement_reason }}<br>
+                            <small>退休時間：{{ ve.retired_at|date:"Y/m/d H:i" }}</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="empty-state">
+                    <svg width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z" />
+                    </svg>
+                    <h3>尚無虛擬員工</h3>
+                    <p>點擊「新增虛擬員工」開始建立</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .ve-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .ve-card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .ve-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .ve-card.ve-retired {
+            opacity: 0.7;
+            background: rgba(100, 116, 139, 0.05);
+        }
+
+        .ve-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .ve-title-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .ve-code {
+            font-family: monospace;
+            font-size: 0.75rem;
+            background: var(--background-color);
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: var(--text-secondary);
+        }
+
+        .ve-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .ve-status {
+            font-size: 0.6875rem;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .ve-status-active {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        .ve-status-retired {
+            background: rgba(100, 116, 139, 0.15);
+            color: #64748b;
+        }
+
+        .ve-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-xs {
+            padding: 4px 8px;
+            font-size: 0.75rem;
+        }
+
+        .btn-warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-warning:hover {
+            background: rgba(245, 158, 11, 0.25);
+        }
+
+        .ve-body {
+            padding-top: 8px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .ve-info-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .ve-category {
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .ve-category-data_sync {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .ve-category-report {
+            background: rgba(168, 85, 247, 0.15);
+            color: #a855f7;
+        }
+
+        .ve-category-notification {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+        }
+
+        .ve-category-backup {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        .ve-category-cleanup {
+            background: rgba(236, 72, 153, 0.15);
+            color: #ec4899;
+        }
+
+        .ve-category-monitoring {
+            background: rgba(6, 182, 212, 0.15);
+            color: #06b6d4;
+        }
+
+        .ve-category-other {
+            background: rgba(100, 116, 139, 0.15);
+            color: #64748b;
+        }
+
+        .ve-device,
+        .ve-frequency {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+        }
+
+        .ve-purpose {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .ve-retirement-info {
+            margin-top: 12px;
+            padding: 10px 12px;
+            background: rgba(239, 68, 68, 0.08);
+            border-radius: var(--radius-sm);
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+        }
+
+        .ve-retirement-info strong {
+            color: #ef4444;
+        }
+
+        .ve-retirement-info small {
+            color: var(--text-muted);
+        }
+    </style>
+</body>
+
+</html>

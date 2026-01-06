@@ -1,0 +1,191 @@
+{% extends "patent_registry/base.html" %}
+{% block title %}專利管理員設定{% endblock %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'patent_registry:public_list' %}">專利管理</a></li>
+                <li class="breadcrumb-item active">管理員設定</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-people me-2"></i>專利管理員列表</h5>
+                <span class="badge bg-primary">{{ admins.count }} 人</span>
+            </div>
+            <div class="card-body">
+                {% if admins %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>使用者</th>
+                                <th>帳號</th>
+                                <th>Email</th>
+                                <th>設定時間</th>
+                                <th>設定者</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for admin in admins %}
+                            <tr>
+                                <td>
+                                    <i class="bi bi-person-circle me-1 text-primary"></i>
+                                    {{ admin.user.get_full_name|default:admin.user.username }}
+                                </td>
+                                <td><code>{{ admin.user.username }}</code></td>
+                                <td>{{ admin.user.email|default:"-" }}</td>
+                                <td>{{ admin.created_at|date:"Y/m/d H:i" }}</td>
+                                <td>{{ admin.created_by.username|default:"-" }}</td>
+                                <td>
+                                    <form method="post" action="{% url 'patent_registry:admin_delete' admin.pk %}" 
+                                          class="d-inline" onsubmit="return confirm('確定要移除此管理員權限嗎？');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i> 移除
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-person-x display-4 d-block mb-2"></i>
+                    尚未設定任何專利管理員
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card shadow">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>權限說明</h5>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li><strong>超級使用者</strong>：擁有所有專利管理權限，可設定其他管理員</li>
+                    <li><strong>專利管理員</strong>：可查看所有專利資料（包含非公開）、管理申請案件</li>
+                    <li><strong>一般使用者</strong>：僅能查看公開的已取得專利資料</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card shadow">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-person-plus me-2"></i>新增管理員</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'patent_registry:admin_add' %}" id="addAdminForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="userSearch" class="form-label">搜尋使用者</label>
+                        <input type="text" class="form-control" id="userSearch" 
+                               placeholder="輸入帳號、姓名或 Email..." autocomplete="off">
+                        <input type="hidden" name="user_id" id="selectedUserId">
+                        <div class="form-text">請輸入至少 2 個字元進行搜尋</div>
+                    </div>
+                    <div id="searchResults" class="list-group mb-3" style="display: none;"></div>
+                    <div id="selectedUser" class="alert alert-info d-none mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span id="selectedUserDisplay"></span>
+                            <button type="button" class="btn-close btn-sm" onclick="clearSelection()"></button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100" id="addBtn" disabled>
+                        <i class="bi bi-plus-lg me-1"></i>新增管理員
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('userSearch');
+    const resultsDiv = document.getElementById('searchResults');
+    const selectedUserDiv = document.getElementById('selectedUser');
+    const selectedUserDisplay = document.getElementById('selectedUserDisplay');
+    const selectedUserId = document.getElementById('selectedUserId');
+    const addBtn = document.getElementById('addBtn');
+    let searchTimeout = null;
+    
+    searchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        
+        // Clear previous timeout
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+        
+        if (query.length < 2) {
+            resultsDiv.style.display = 'none';
+            return;
+        }
+        
+        // Debounce search
+        searchTimeout = setTimeout(function() {
+            fetch(`{% url 'patent_registry:api_search_users' %}?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.users && data.users.length > 0) {
+                        resultsDiv.innerHTML = data.users.map(user => `
+                            <button type="button" class="list-group-item list-group-item-action" 
+                                    onclick="selectUser(${user.id}, '${user.display_name}', '${user.username}')">
+                                <div class="d-flex justify-content-between">
+                                    <span><i class="bi bi-person me-2"></i>${user.display_name}</span>
+                                    <small class="text-muted">${user.username}</small>
+                                </div>
+                                <small class="text-muted">${user.email || ''}</small>
+                            </button>
+                        `).join('');
+                        resultsDiv.style.display = 'block';
+                    } else {
+                        resultsDiv.innerHTML = '<div class="list-group-item text-muted">找不到符合的使用者</div>';
+                        resultsDiv.style.display = 'block';
+                    }
+                })
+                .catch(err => {
+                    console.error('Search error:', err);
+                    resultsDiv.style.display = 'none';
+                });
+        }, 300);
+    });
+    
+    // Hide results when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+            resultsDiv.style.display = 'none';
+        }
+    });
+});
+
+function selectUser(id, displayName, username) {
+    document.getElementById('selectedUserId').value = id;
+    document.getElementById('selectedUserDisplay').textContent = `${displayName} (${username})`;
+    document.getElementById('selectedUser').classList.remove('d-none');
+    document.getElementById('searchResults').style.display = 'none';
+    document.getElementById('userSearch').value = '';
+    document.getElementById('addBtn').disabled = false;
+}
+
+function clearSelection() {
+    document.getElementById('selectedUserId').value = '';
+    document.getElementById('selectedUserDisplay').textContent = '';
+    document.getElementById('selectedUser').classList.add('d-none');
+    document.getElementById('addBtn').disabled = true;
+}
+</script>
+{% endblock %}

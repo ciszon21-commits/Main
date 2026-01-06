@@ -33,6 +33,13 @@ urlpatterns = [
     path('design-doc/<int:doc_pk>/tables/edit/', views.design_table_edit, name='design_table_edit'),
     path('design-table/<int:table_pk>/fields/edit/', views.design_field_edit, name='design_field_edit'),
     
+    # Virtual Employee URLs
+    path('team/<int:team_pk>/virtual-employees/', views.virtual_employee_list, name='virtual_employee_list'),
+    path('team/<int:team_pk>/virtual-employee/create/', views.virtual_employee_create, name='virtual_employee_create'),
+    path('virtual-employee/<int:pk>/edit/', views.virtual_employee_update, name='virtual_employee_update'),
+    path('virtual-employee/<int:pk>/delete/', views.virtual_employee_delete, name='virtual_employee_delete'),
+    path('virtual-employee/<int:pk>/retire/', views.virtual_employee_retire, name='virtual_employee_retire'),
+    
     # API URLs
     path('api/search-users/', views.search_users, name='search_users'),
     path('api/team/<int:pk>/server/<int:server_id>/programs/', views.get_server_programs, name='get_server_programs'),

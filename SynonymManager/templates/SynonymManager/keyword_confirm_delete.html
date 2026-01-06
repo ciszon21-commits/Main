@@ -1,0 +1,24 @@
+{% extends 'SynonymManager/base.html' %}
+
+{% block title %}刪除關鍵字確認{% endblock %}
+
+{% block content %}
+<div style="max-width: 500px; margin: 4rem auto; text-align: center;">
+    <div class="card" style="border-top: 5px solid #ef4444;">
+        <div style="font-size: 3rem; color: #ef4444; margin-bottom: 1rem;">!</div>
+        <h2>確定要刪除關鍵字嗎？</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">
+            您即將刪除關鍵字「<strong>{{ object.word }}</strong>」。<br>
+            注意：如果是從同義詞同步過來的詞，之後更新同義詞時可能會被重新建立。
+        </p>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div style="display: flex; gap: 1rem;">
+                <button type="submit" class="btn btn-danger" style="flex: 1;">確認刪除</button>
+                <a href="{% url 'synonyms:keyword-list' %}" class="btn btn-outline" style="flex: 1;">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

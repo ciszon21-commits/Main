@@ -1,0 +1,159 @@
+{% extends 'SynonymManager/base.html' %}
+
+{% block title %}儀表板{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">同義詞群組數</div>
+        <div class="stat-value">{{ total_synonyms }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">關鍵字總數</div>
+        <div class="stat-value">{{ total_keywords }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">最近七天新增 (同義詞)</div>
+        <div class="stat-value">{{ synonym_counts|last }}</div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+    <div class="card" style="margin-bottom: 0;">
+        <h3>新增趨勢 (最近 7 天)</h3>
+        <div style="height: 300px;">
+            <canvas id="growthChart"></canvas>
+        </div>
+    </div>
+    <div class="card" style="margin-bottom: 0;">
+        <h3>部門分布統計 (同義詞)</h3>
+        <div style="height: 300px;">
+            <canvas id="deptChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3>最近更新 (同義詞)</h3>
+            <a href="{% url 'synonyms:list' %}" class="btn btn-outline">全看</a>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>主詞彙</th>
+                    <th>建立者</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in recent_synonyms %}
+                <tr>
+                    <td>{{ item.word }}</td>
+                    <td>{{ item.creator.username }}</td>
+                    <td><a href="{% url 'synonyms:edit' item.pk %}" class="nav-link">編輯</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" style="text-align: center;">尚無資料</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3>最近新增 (關鍵字)</h3>
+            <a href="{% url 'synonyms:keyword-list' %}" class="btn btn-outline">全看</a>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>關鍵字</th>
+                    <th>建立者</th>
+                    <th>建立時間</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for k in recent_keywords %}
+                <tr>
+                    <td>{{ k.word }}</td>
+                    <td>{{ k.creator.username|default:"System" }}</td>
+                    <td>{{ k.created_at|date:"m/d H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" style="text-align: center;">尚無資料</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div style="text-align: center; margin-top: 2rem; display: flex; justify-content: center; gap: 2rem;">
+    <a href="{% url 'synonyms:export-synonyms' %}" class="btn btn-primary">匯出同義詞 (ES 格式)</a>
+    <a href="{% url 'synonyms:export-keywords' %}" class="btn btn-primary" style="background-color: #10b981;">匯出關鍵字 (ES 格式)</a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 1. 新增趨勢圖
+    const growthCtx = document.getElementById('growthChart').getContext('2d');
+    new Chart(growthCtx, {
+        type: 'line',
+        data: {
+            labels: {{ date_labels|safe }},
+            datasets: [{
+                label: '每日新增數量',
+                data: {{ date_counts|safe }},
+                borderColor: '#4f46e5',
+                backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+
+    // 2. 部門分布圖
+    const deptCtx = document.getElementById('deptChart').getContext('2d');
+    new Chart(deptCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ dept_labels|safe }},
+            datasets: [{
+                label: '總詞彙數',
+                data: {{ dept_values|safe }},
+                backgroundColor: 'rgba(79, 70, 229, 0.7)',
+                borderColor: '#4f46e5',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y', // 水平長條圖
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
