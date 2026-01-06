@@ -48,6 +48,9 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "rest_framework_simplejwt.token_blacklist",
+    
+    # CORS
+    "corsheaders",
 
     # CKEditor 5
     "django_ckeditor_5",
@@ -70,12 +73,14 @@ INSTALLED_APPS = [
     "DevShowcase",
     "RndRequest",
     "NewsSubscriber",
+    "ClashClassifier",  # 碰撞報告分類平台
 ] + getattr(local, 'STAGE_INSTALLED_APPS', [])
 
 GEMINI_API_KEY = getattr(local, "GEMINI_API_KEY", None)
 GEMINI_MODEL = getattr(local, "GEMINI_MODEL", None)
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -276,4 +281,22 @@ CKEDITOR_5_FILE_UPLOAD_PERMISSION = "authenticated"
 FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
 DATA_UPLOAD_MAX_NUMBER_FILES = getattr(local, 'DATA_UPLOAD_MAX_NUMBER_FILES', 2000)
+
+# CORS Settings
+CORS_ALLOWED_ORIGINS = getattr(local, 'CORS_ALLOWED_ORIGINS', [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+])
+CORS_TRUSTED_ORIGINS = getattr(local, 'CORS_TRUSTED_ORIGINS', [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+])
+CORS_ALLOW_CREDENTIALS = True
+
+# CSRF Settings
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
 

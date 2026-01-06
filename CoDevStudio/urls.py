@@ -19,6 +19,7 @@ urlpatterns = [
     path('courses/', include('CourseRegistration.urls')),
     path('rnd-request/', include('RndRequest.urls')),
     path('news/', include('NewsSubscriber.urls')),
+    path('api/clash/', include('ClashClassifier.urls')),  # 碰撞報告分類 API
 ]
 
 # 開發環境下提供 media 檔案服務
