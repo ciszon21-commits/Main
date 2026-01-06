@@ -95,8 +95,9 @@
                     <td><a href="{% url 'patent_registry:application_detail' app.pk %}" class="text-decoration-none">{{ app.name }}</a></td>
                     <td><span class="badge bg-secondary">{{ app.get_category_display }}</span></td>
                     <td>{{ app.patent_firm }}</td>
-                    <td>{% if app.status == 'PENDING' %}<span class="badge bg-warning text-dark">申請中</span> 
-                        {% elif app.status == 'APPROVED' %}<span class="badge bg-success">通過</span>{% else %}<span class="badge bg-danger">不通過</span>{% endif %}</td>
+                    <td>{% if app.status == 'PENDING' %}<span class="badge bg-warning text-dark">申請中</span>
+                        {% elif app.status == 'APPROVED' %}<span class="badge bg-success">通過</span>{% else %}<span class="badge bg-danger">不通過</span>{% endif %}
+                        {% if not app.is_public %}<span class="badge bg-dark ms-1"><i class="bi bi-eye-slash"></i> 尚未公開</span>{% endif %}</td>
                     <td>{% if app.rebuttal_count > 0 %}<span class="badge bg-info">{{ app.rebuttal_count }} 次</span>
                         {% else %}<span class="text-muted">-</span>{% endif %}</td>
                     <td>{{ app.created_at|date:"Y/m/d" }}</td>
