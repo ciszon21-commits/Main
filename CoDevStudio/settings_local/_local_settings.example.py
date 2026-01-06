@@ -52,3 +52,24 @@ GEMINI_MODEL = ""
 
 
 ANYTHINGLLM_KEY = ''
+
+
+# CORS Settings
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+CORS_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+CORS_ALLOW_CREDENTIALS = True
+
+# CSRF Settings
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+# Feature Toggles
+ENABLE_CLASH_CLASSIFIER = False  # 設為 True 以啟用碰撞報告分類 API

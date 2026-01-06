@@ -45,6 +45,9 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "rest_framework_simplejwt.token_blacklist",
+    
+    # CORS
+    "corsheaders",
 
     # CKEditor 5
     "django_ckeditor_5",
@@ -77,10 +80,12 @@ INSTALLED_APPS = [
     'PatentRegistry',
 ] + local.STAGE_INSTALLED_APPS
 
+
 GEMINI_API_KEY = local.GEMINI_API_KEY
 GEMINI_MODEL = local.GEMINI_MODEL
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -266,3 +271,13 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
 DATA_UPLOAD_MAX_NUMBER_FILES = local.DATA_UPLOAD_MAX_NUMBER_FILES
 
+# CORS Settings
+CORS_ALLOWED_ORIGINS = local.CORS_ALLOWED_ORIGINS
+CORS_TRUSTED_ORIGINS = local.CORS_TRUSTED_ORIGINS
+CORS_ALLOW_CREDENTIALS = local.CORS_ALLOW_CREDENTIALS
+
+# CSRF Settings
+CSRF_TRUSTED_ORIGINS = local.CSRF_TRUSTED_ORIGINS
+
+# Feature Toggles
+ENABLE_CLASH_CLASSIFIER = local.ENABLE_CLASH_CLASSIFIER

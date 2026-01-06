@@ -92,3 +92,29 @@ class AppSettings:
     )
 
     EMAIL_BACKEND: str = "django.core.mail.backends.console.EmailBackend"
+
+    # CORS Settings
+    CORS_ALLOWED_ORIGINS: list[str] = field(
+        default_factory=lambda: [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ]
+    )
+    CORS_TRUSTED_ORIGINS: list[str] = field(
+        default_factory=lambda: [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ]
+    )
+    CORS_ALLOW_CREDENTIALS: bool = True
+
+    # Feature Toggles
+    ENABLE_CLASH_CLASSIFIER: bool = False  # 碰撞報告分類 API，預設不載入
+
+    # CSRF Settings
+    CSRF_TRUSTED_ORIGINS: list[str] = field(
+        default_factory=lambda: [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ]
+    )

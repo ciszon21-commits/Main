@@ -30,6 +30,10 @@ urlpatterns = [
     path('patent/', include('PatentRegistry.urls')),  # 專利申請管理
 ]
 
+# 條件載入 ClashClassifier API
+if getattr(settings, 'ENABLE_CLASH_CLASSIFIER', False):
+    urlpatterns.append(path('api/clash/', include('ClashClassifier.urls')))  # 碰撞報告分類 API
+
 # 開發環境下提供 media 檔案服務
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
