@@ -7,7 +7,7 @@ class PatentApplicationForm(forms.ModelForm):
     class Meta:
         model = PatentApplication
         fields = ['plan_number', 'outsource_number', 'item_number', 'name', 
-                  'category', 'patent_firm', 'firm_case_number']
+                  'category', 'patent_firm', 'firm_case_number', 'is_public']
         widgets = {
             'plan_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '請輸入計畫編號'}),
             'outsource_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '請輸入委外編號'}),
@@ -16,6 +16,7 @@ class PatentApplicationForm(forms.ModelForm):
             'category': forms.Select(attrs={'class': 'form-select'}),
             'patent_firm': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '請輸入事務所名稱'}),
             'firm_case_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '請輸入事務所案號'}),
+            'is_public': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
 

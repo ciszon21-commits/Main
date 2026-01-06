@@ -1,14 +1,46 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse_lazy, reverse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, View
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import JsonResponse
-from django.db.models import Count
+from django.db.models import Count, Q
+from django.core.exceptions import PermissionDenied
 from datetime import datetime
 
-from .models import PatentApplication, PatentRebuttal, GrantedPatent, PatentAnnuity
+from .models import PatentApplication, PatentRebuttal, GrantedPatent, PatentAnnuity, PatentAdmin, is_patent_admin
 from .forms import PatentApplicationForm, PatentRebuttalForm, GrantedPatentForm, PatentAnnuityForm
+
+
+class PatentAdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """
+    Mixin to require patent admin or superuser permission.
+    """
+    def test_func(self):
+        return is_patent_admin(self.request.user)
+    
+    def handle_no_permission(self):
+        if self.request.user.is_authenticated:
+            messages.error(self.request, '您沒有專利管理權限。')
+            return redirect('patent_registry:public_list')
+        return super().handle_no_permission()
+
+
+class SuperuserRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """
+    Mixin to require superuser permission.
+    """
+    def test_func(self):
+        return self.request.user.is_superuser
+    
+    def handle_no_permission(self):
+        if self.request.user.is_authenticated:
+            messages.error(self.request, '此操作需要超級使用者權限。')
+            return redirect('patent_registry:public_list')
+        return super().handle_no_permission()
+
+
 
 
 # ============================================================
@@ -22,7 +54,15 @@ class PublicPatentListView(ListView):
     context_object_name = 'patents'
     
     def get_queryset(self):
-        queryset = GrantedPatent.objects.select_related('application').order_by('-start_date')
+        # 若為專利管理員則顯示所有資料，否則只顯示公開資料
+        user = self.request.user
+        if user.is_authenticated and is_patent_admin(user):
+            queryset = GrantedPatent.objects.select_related('application').order_by('-start_date')
+        else:
+            queryset = GrantedPatent.objects.select_related('application').filter(
+                application__is_public=True
+            ).order_by('-start_date')
+        
         year = self.request.GET.get('year')
         if year:
             try:
@@ -33,11 +73,20 @@ class PublicPatentListView(ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # 取得所有年度選項
-        years = GrantedPatent.objects.dates('start_date', 'year', order='DESC')
+        user = self.request.user
+        is_admin = user.is_authenticated and is_patent_admin(user)
+        context['is_patent_admin'] = is_admin
+        
+        # 取得所有年度選項 (based on visibility)
+        if is_admin:
+            years = GrantedPatent.objects.dates('start_date', 'year', order='DESC')
+            context['total_count'] = GrantedPatent.objects.count()
+        else:
+            years = GrantedPatent.objects.filter(application__is_public=True).dates('start_date', 'year', order='DESC')
+            context['total_count'] = GrantedPatent.objects.filter(application__is_public=True).count()
+        
         context['years'] = [d.year for d in years]
         context['selected_year'] = self.request.GET.get('year', '')
-        context['total_count'] = GrantedPatent.objects.count()
         return context
 
 
@@ -45,8 +94,8 @@ class PublicPatentListView(ListView):
 # 專利申請管理
 # ============================================================
 
-class ApplicationListView(LoginRequiredMixin, ListView):
-    """專利申請列表"""
+class ApplicationListView(PatentAdminRequiredMixin, ListView):
+    """專利申請列表 - 僅專利管理員可見"""
     model = PatentApplication
     template_name = 'patent_registry/application_list.html'
     context_object_name = 'applications'
@@ -65,10 +114,11 @@ class ApplicationListView(LoginRequiredMixin, ListView):
         context['pending_count'] = PatentApplication.objects.filter(status='PENDING').count()
         context['approved_count'] = PatentApplication.objects.filter(status='APPROVED').count()
         context['rejected_count'] = PatentApplication.objects.filter(status='REJECTED').count()
+        context['is_patent_admin'] = True  # Must be admin to see this view
         return context
 
 
-class ApplicationCreateView(LoginRequiredMixin, CreateView):
+class ApplicationCreateView(PatentAdminRequiredMixin, CreateView):
     """新增專利申請"""
     model = PatentApplication
     form_class = PatentApplicationForm
@@ -87,7 +137,7 @@ class ApplicationCreateView(LoginRequiredMixin, CreateView):
         return context
 
 
-class ApplicationDetailView(LoginRequiredMixin, DetailView):
+class ApplicationDetailView(PatentAdminRequiredMixin, DetailView):
     """專利申請詳情"""
     model = PatentApplication
     template_name = 'patent_registry/application_detail.html'
@@ -106,7 +156,7 @@ class ApplicationDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class ApplicationUpdateView(LoginRequiredMixin, UpdateView):
+class ApplicationUpdateView(PatentAdminRequiredMixin, UpdateView):
     """編輯專利申請"""
     model = PatentApplication
     form_class = PatentApplicationForm
@@ -126,7 +176,7 @@ class ApplicationUpdateView(LoginRequiredMixin, UpdateView):
         return context
 
 
-class ApplicationDeleteView(LoginRequiredMixin, DeleteView):
+class ApplicationDeleteView(PatentAdminRequiredMixin, DeleteView):
     """刪除專利申請"""
     model = PatentApplication
     template_name = 'patent_registry/application_confirm_delete.html'
@@ -141,7 +191,7 @@ class ApplicationDeleteView(LoginRequiredMixin, DeleteView):
 # 答辯管理
 # ============================================================
 
-class RebuttalCreateView(LoginRequiredMixin, CreateView):
+class RebuttalCreateView(PatentAdminRequiredMixin, CreateView):
     """新增答辯記錄"""
     model = PatentRebuttal
     form_class = PatentRebuttalForm
@@ -165,7 +215,7 @@ class RebuttalCreateView(LoginRequiredMixin, CreateView):
         return context
 
 
-class RebuttalDeleteView(LoginRequiredMixin, DeleteView):
+class RebuttalDeleteView(PatentAdminRequiredMixin, DeleteView):
     """刪除答辯記錄"""
     model = PatentRebuttal
     template_name = 'patent_registry/rebuttal_confirm_delete.html'
@@ -182,7 +232,7 @@ class RebuttalDeleteView(LoginRequiredMixin, DeleteView):
 # 審核結果管理
 # ============================================================
 
-class GrantApplicationView(LoginRequiredMixin, CreateView):
+class GrantApplicationView(PatentAdminRequiredMixin, CreateView):
     """將申請設定為通過並填寫專利資訊"""
     model = GrantedPatent
     form_class = GrantedPatentForm
@@ -209,7 +259,7 @@ class GrantApplicationView(LoginRequiredMixin, CreateView):
         return context
 
 
-class RejectApplicationView(LoginRequiredMixin, View):
+class RejectApplicationView(PatentAdminRequiredMixin, View):
     """將申請設定為不通過"""
     def post(self, request, pk):
         application = get_object_or_404(PatentApplication, pk=pk)
@@ -223,7 +273,7 @@ class RejectApplicationView(LoginRequiredMixin, View):
 # 已取得專利管理
 # ============================================================
 
-class GrantedPatentDetailView(LoginRequiredMixin, DetailView):
+class GrantedPatentDetailView(PatentAdminRequiredMixin, DetailView):
     """已取得專利詳情"""
     model = GrantedPatent
     template_name = 'patent_registry/granted_detail.html'
@@ -236,7 +286,7 @@ class GrantedPatentDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class GrantedPatentUpdateView(LoginRequiredMixin, UpdateView):
+class GrantedPatentUpdateView(PatentAdminRequiredMixin, UpdateView):
     """更新已取得專利資訊"""
     model = GrantedPatent
     form_class = GrantedPatentForm
@@ -260,7 +310,7 @@ class GrantedPatentUpdateView(LoginRequiredMixin, UpdateView):
 # 年費核銷管理
 # ============================================================
 
-class AnnuityListView(LoginRequiredMixin, ListView):
+class AnnuityListView(PatentAdminRequiredMixin, ListView):
     """專利年費核銷管理列表"""
     model = GrantedPatent
     template_name = 'patent_registry/annuity_list.html'
@@ -275,7 +325,7 @@ class AnnuityListView(LoginRequiredMixin, ListView):
         return context
 
 
-class AnnuityCreateView(LoginRequiredMixin, CreateView):
+class AnnuityCreateView(PatentAdminRequiredMixin, CreateView):
     """新增年費核銷記錄"""
     model = PatentAnnuity
     form_class = PatentAnnuityForm
@@ -300,7 +350,7 @@ class AnnuityCreateView(LoginRequiredMixin, CreateView):
         return context
 
 
-class AnnuityDeleteView(LoginRequiredMixin, DeleteView):
+class AnnuityDeleteView(PatentAdminRequiredMixin, DeleteView):
     """刪除年費核銷記錄"""
     model = PatentAnnuity
     template_name = 'patent_registry/annuity_confirm_delete.html'
@@ -311,3 +361,84 @@ class AnnuityDeleteView(LoginRequiredMixin, DeleteView):
     def delete(self, request, *args, **kwargs):
         messages.success(request, '年費核銷記錄已刪除！')
         return super().delete(request, *args, **kwargs)
+
+
+# ============================================================
+# 專利管理員設定 (僅超級使用者)
+# ============================================================
+
+class PatentAdminListView(SuperuserRequiredMixin, ListView):
+    """專利管理員列表"""
+    model = PatentAdmin
+    template_name = 'patent_registry/admin_settings.html'
+    context_object_name = 'admins'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = '專利管理員設定'
+        return context
+
+
+class PatentAdminCreateView(SuperuserRequiredMixin, View):
+    """新增專利管理員"""
+    def post(self, request):
+        user_id = request.POST.get('user_id')
+        if not user_id:
+            messages.error(request, '請選擇使用者')
+            return redirect('patent_registry:admin_settings')
+        
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            messages.error(request, '找不到該使用者')
+            return redirect('patent_registry:admin_settings')
+        
+        # Check if already admin
+        if PatentAdmin.objects.filter(user=user).exists():
+            messages.warning(request, f'{user.username} 已是專利管理員')
+            return redirect('patent_registry:admin_settings')
+        
+        PatentAdmin.objects.create(
+            user=user,
+            created_by=request.user
+        )
+        messages.success(request, f'已將 {user.username} 設為專利管理員')
+        return redirect('patent_registry:admin_settings')
+
+
+class PatentAdminDeleteView(SuperuserRequiredMixin, View):
+    """移除專利管理員"""
+    def post(self, request, pk):
+        admin = get_object_or_404(PatentAdmin, pk=pk)
+        username = admin.user.username
+        admin.delete()
+        messages.success(request, f'已移除 {username} 的專利管理員權限')
+        return redirect('patent_registry:admin_settings')
+
+
+def user_search_api(request):
+    """AJAX 搜尋使用者 API"""
+    if not request.user.is_authenticated or not request.user.is_superuser:
+        return JsonResponse({'error': '權限不足'}, status=403)
+    
+    query = request.GET.get('q', '').strip()
+    if len(query) < 2:
+        return JsonResponse({'users': []})
+    
+    # 搜尋使用者，排除已是管理員的使用者
+    existing_admin_user_ids = PatentAdmin.objects.values_list('user_id', flat=True)
+    users = User.objects.filter(
+        Q(username__icontains=query) |
+        Q(first_name__icontains=query) |
+        Q(last_name__icontains=query) |
+        Q(email__icontains=query)
+    ).exclude(id__in=existing_admin_user_ids)[:10]
+    
+    result = [{
+        'id': u.id,
+        'username': u.username,
+        'display_name': u.get_full_name() or u.username,
+        'email': u.email
+    } for u in users]
+    
+    return JsonResponse({'users': result})
