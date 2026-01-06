@@ -1,0 +1,33 @@
+{% extends 'SynonymManager/base.html' %}
+
+{% block title %}新增關鍵字{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    <div style="margin-bottom: 2rem;">
+        <a href="{% url 'synonyms:keyword-list' %}" class="nav-link">&larr; 返回清單</a>
+    </div>
+
+    <div class="card">
+        <h2>手動新增關鍵字</h2>
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">輸入單一關鍵字，這將獨立於同義詞群組。常用於一些需要獨立強調的詞彙。</p>
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="{{ form.word.id_for_label }}">關鍵字名稱</label>
+                {{ form.word }}
+                {% if form.word.errors %}
+                    <div style="color: #ef4444; font-size: 0.875rem;">{{ form.word.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">儲存關鍵字</button>
+                <a href="{% url 'synonyms:keyword-list' %}" class="btn btn-outline" style="flex: 1; text-align: center;">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

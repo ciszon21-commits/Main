@@ -1,0 +1,44 @@
+{% extends 'SynonymManager/base.html' %}
+
+{% block title %}{% if object %}編輯詞彙{% else %}新增詞彙{% endif %}{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    <div style="margin-bottom: 2rem;">
+        <a href="{% url 'synonyms:list' %}" class="nav-link">&larr; 返回清單</a>
+    </div>
+
+    <div class="card">
+        <h2>{% if object %}編輯「{{ object.word }}」{% else %}新增同義詞群組{% endif %}</h2>
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">輸入主詞彙及其相關的同義詞，這將幫助搜尋引擎更精準地找到相關內容。</p>
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="{{ form.word.id_for_label }}">主詞彙</label>
+                {{ form.word }}
+                {% if form.word.errors %}
+                    <div style="color: #ef4444; font-size: 0.875rem;">{{ form.word.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.synonym_list.id_for_label }}">同義詞列表</label>
+                {{ form.synonym_list }}
+                <div style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.5rem;">
+                    請以標點符號「,」(半形逗號) 分隔多個同義詞。
+                </div>
+                {% if form.synonym_list.errors %}
+                    <div style="color: #ef4444; font-size: 0.875rem;">{{ form.synonym_list.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">儲存設定</button>
+                <a href="{% url 'synonyms:list' %}" class="btn btn-outline" style="flex: 1; text-align: center;">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
