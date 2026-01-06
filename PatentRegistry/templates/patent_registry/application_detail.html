@@ -20,7 +20,8 @@
                 <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>專利申請資訊</h5>
                 <div>{% if application.status == 'PENDING' %}<span class="badge bg-warning text-dark fs-6">申請中</span>{%
                     elif application.status == 'APPROVED' %}<span class="badge bg-success fs-6">通過</span>{% else %}<span
-                        class="badge bg-danger fs-6">不通過</span>{% endif %}</div>
+                        class="badge bg-danger fs-6">不通過</span>{% endif %}
+                    {% if not application.is_public %}<span class="badge bg-dark fs-6 ms-1"><i class="bi bi-eye-slash me-1"></i>尚未公開</span>{% endif %}</div>
             </div>
             <div class="card-body">
                 <h4 class="card-title text-primary mb-4">{{ application.name }}</h4>
@@ -108,8 +109,8 @@
                         <p class="mb-0">{{ granted_patent.patent_name }}</p>
                     </div>
                     <div class="col-md-6"><label class="text-muted small">有效期間</label>
-                        <p class="mb-0">{{ granted_patent.start_date|date:"Y/m" }} ~ {{
-                            granted_patent.end_date|date:"Y/m" }}</p>
+                        <p class="mb-0">{{ granted_patent.start_date|date:"Y/m" }} ~ 
+                            {{ granted_patent.end_date|date:"Y/m" }}</p>
                     </div>
                 </div>
             </div>

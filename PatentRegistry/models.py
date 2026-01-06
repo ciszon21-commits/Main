@@ -30,6 +30,7 @@ class PatentApplication(models.Model):
     patent_firm = models.CharField(max_length=200, verbose_name="委託專利事務所名稱")
     firm_case_number = models.CharField(max_length=50, verbose_name="事務所案號", blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', verbose_name="狀態")
+    is_public = models.BooleanField(default=False, verbose_name="是否公開")
     
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, 
                                    verbose_name="建立者", related_name='patent_applications')
@@ -151,3 +152,32 @@ class PatentAnnuity(models.Model):
     
     def __str__(self):
         return f"{self.granted_patent.patent_name} - {self.year}年度核銷"
+
+
+class PatentAdmin(models.Model):
+    """專利管理員"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, 
+                                 related_name='patent_admin', verbose_name="使用者")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="設定時間")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                   verbose_name="設定者", related_name='created_patent_admins')
+    
+    class Meta:
+        verbose_name = "專利管理員"
+        verbose_name_plural = "專利管理員"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"專利管理員: {self.user.username}"
+
+
+def is_patent_admin(user):
+    """
+    檢查使用者是否為專利管理員
+    超級使用者或已設定為專利管理員者返回 True
+    """
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    return PatentAdmin.objects.filter(user=user).exists()

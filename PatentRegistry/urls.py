@@ -30,4 +30,12 @@ urlpatterns = [
     path('annuity/', views.AnnuityListView.as_view(), name='annuity_list'),
     path('granted/<int:patent_id>/annuity/create/', views.AnnuityCreateView.as_view(), name='annuity_create'),
     path('annuity/<int:pk>/delete/', views.AnnuityDeleteView.as_view(), name='annuity_delete'),
+    
+    # 專利管理員設定 (僅超級使用者)
+    path('admin-settings/', views.PatentAdminListView.as_view(), name='admin_settings'),
+    path('admin-settings/add/', views.PatentAdminCreateView.as_view(), name='admin_add'),
+    path('admin-settings/<int:pk>/delete/', views.PatentAdminDeleteView.as_view(), name='admin_delete'),
+    
+    # API
+    path('api/search-users/', views.user_search_api, name='api_search_users'),
 ]
