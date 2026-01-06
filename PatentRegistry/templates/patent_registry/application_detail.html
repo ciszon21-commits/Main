@@ -58,9 +58,11 @@
         </div>
         <div class="card shadow mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-reply-all me-2"></i>答辯記錄</h5>{% if application.is_pending %}<a
-                    href="{% url 'patent_registry:rebuttal_create' application.pk %}" class="btn btn-sm btn-primary"><i
-                        class="bi bi-plus-lg me-1"></i>新增答辯</a>{% endif %}
+                <h5 class="mb-0"><i class="bi bi-reply-all me-2"></i>答辯記錄</h5>
+                {% if application.is_pending %}
+                <a href="{% url 'patent_registry:rebuttal_create' application.pk %}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus-lg me-1"></i>新增答辯</a>
+                    {% endif %}
             </div>
             <div class="card-body">{% if rebuttals %}<div class="table-responsive">
                     <table class="table table-hover mb-0">
@@ -74,8 +76,8 @@
                             </tr>
                         </thead>
                         <tbody>{% for rebuttal in rebuttals %}<tr>
-                                <td><span class="badge bg-warning text-dark">{{ rebuttal.get_rebuttal_type_display
-                                        }}</span></td>
+                                <td><span class="badge bg-warning text-dark">
+                                    {{ rebuttal.get_rebuttal_type_display }}</span></td>
                                 <td>{{ rebuttal.document_date|date:"Y/m/d" }}</td>
                                 <td>NT$ {{ rebuttal.fee|intcomma }}</td>
                                 <td>{{ rebuttal.notes|truncatechars:30|default:"-" }}</td>
@@ -140,8 +142,8 @@
                             class="badge bg-info rounded-pill">{{ application.rebuttal_count }}</span></li>
                     <li class="list-group-item d-flex justify-content-between"><span>答辯費用</span><span
                             class="fw-bold">NT$ {{ application.total_rebuttal_fee|intcomma }}</span></li>
-                    <li class="list-group-item d-flex justify-content-between"><span>申請天數</span><span>{{
-                            application.created_at|timesince }}</span></li>
+                    <li class="list-group-item d-flex justify-content-between"><span>申請天數</span><span>
+                        {{ application.created_at|timesince }}</span></li>
                 </ul>
             </div>
         </div>
