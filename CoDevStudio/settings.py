@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     'EVCodeSigning',
     'TeamKnowledgeHub',
     'SynonymManager',
+    'PatentRegistry',
 ] + local.STAGE_INSTALLED_APPS
 
 GEMINI_API_KEY = local.GEMINI_API_KEY

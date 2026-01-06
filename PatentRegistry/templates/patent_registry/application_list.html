@@ -1,0 +1,121 @@
+{% extends "patent_registry/base.html" %}
+{% load humanize %}
+{% block title %}專利申請管理 - 專利管理系統{% endblock %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>專利申請管理</h2>
+        <p class="text-muted mt-1">管理所有專利申請項目</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{% url 'patent_registry:public_list' %}" class="btn btn-outline-secondary me-2"><i
+                class="bi bi-arrow-left me-1"></i>返回首頁</a>
+        <a href="{% url 'patent_registry:application_create' %}" class="btn btn-primary"><i
+                class="bi bi-plus-lg me-1"></i>新增申請</a>
+    </div>
+</div>
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-bg-warning shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-dark">申請中</h6>
+                        <h2 class="card-title mb-0">{{ pending_count }}</h2>
+                    </div><i class="bi bi-hourglass-split display-4 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-bg-success shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">已通過</h6>
+                        <h2 class="card-title mb-0">{{ approved_count }}</h2>
+                    </div><i class="bi bi-check-circle display-4 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-bg-danger shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">不通過</h6>
+                        <h2 class="card-title mb-0">{{ rejected_count }}</h2>
+                    </div><i class="bi bi-x-circle display-4 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mb-3">
+    <div class="col-md-6">
+        <form method="get" class="d-flex gap-2">
+            <select name="status" class="form-select" style="max-width: 200px;" onchange="this.form.submit()">
+                <option value="">全部狀態</option>
+                {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            {% if selected_status %}
+            <a href="{% url 'patent_registry:application_list' %}" class="btn btn-outline-secondary"><i
+                    class="bi bi-x-circle me-1"></i>清除篩選</a>
+            {% endif %}
+        </form>
+    </div>
+    <div class="col-md-6 text-md-end">
+        <a href="{% url 'patent_registry:annuity_list' %}" class="btn btn-outline-info"><i
+                class="bi bi-calendar-check me-1"></i>年費核銷管理</a>
+    </div>
+</div>
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>計畫編號</th>
+                    <th>項目名稱</th>
+                    <th>類別</th>
+                    <th>事務所</th>
+                    <th>狀態</th>
+                    <th>答辯次數</th>
+                    <th>建立日期</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for app in applications %}
+                <tr>
+                    <td><strong>{{ app.plan_number }}</strong>{% if app.outsource_number %}<br><small
+                            class="text-muted">{{ app.outsource_number }}</small>{% endif %}</td>
+                    <td><a href="{% url 'patent_registry:application_detail' app.pk %}" class="text-decoration-none">{{ app.name }}</a></td>
+                    <td><span class="badge bg-secondary">{{ app.get_category_display }}</span></td>
+                    <td>{{ app.patent_firm }}</td>
+                    <td>{% if app.status == 'PENDING' %}<span class="badge bg-warning text-dark">申請中</span> 
+                        {% elif app.status == 'APPROVED' %}<span class="badge bg-success">通過</span>{% else %}<span class="badge bg-danger">不通過</span>{% endif %}</td>
+                    <td>{% if app.rebuttal_count > 0 %}<span class="badge bg-info">{{ app.rebuttal_count }} 次</span>
+                        {% else %}<span class="text-muted">-</span>{% endif %}</td>
+                    <td>{{ app.created_at|date:"Y/m/d" }}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm"><a
+                                href="{% url 'patent_registry:application_detail' app.pk %}"
+                                class="btn btn-outline-primary" title="檢視"><i class="bi bi-eye"></i></a><a
+                                href="{% url 'patent_registry:application_update' app.pk %}"
+                                class="btn btn-outline-warning" title="編輯"><i class="bi bi-pencil"></i></a></div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-4 text-muted"><i
+                            class="bi bi-inbox display-4 d-block mb-3"></i>目前沒有專利申請案件</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

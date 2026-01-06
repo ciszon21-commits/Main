@@ -1,0 +1,32 @@
+{% extends "patent_registry/base.html" %}
+{% block title %}新增年費核銷 - 專利管理系統{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-calendar-plus me-2"></i>新增年費核銷記錄</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-4"><i class="bi bi-award me-2"></i>專利：<strong>{{ patent.patent_name }}</strong><br><small class="text-muted">專利編號：{{ patent.patent_number }}</small></div>
+                <form method="post" novalidate>{% csrf_token %}
+                    <div class="row mb-3">
+                        <div class="col-md-6"><label class="form-label">核銷年度 <span
+                                    class="text-danger">*</span></label>{{ form.year }}</div>
+                        <div class="col-md-6"><label class="form-label">核銷年月 <span
+                                    class="text-danger">*</span></label>{{ form.write_off_date }}</div>
+                    </div>
+                    <div class="mb-3"><label class="form-label">核銷計畫編號 <span class="text-danger">*</span></label>{{form.write_off_plan_number }}</div>
+                    <div class="mb-3"><label class="form-label">備註</label>{{ form.notes }}</div>
+                    <hr class="my-4">
+                    <div class="d-flex justify-content-between"><a
+                            href="{% url 'patent_registry:granted_detail' patent.pk %}"
+                            class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>返回</a><button
+                            type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>儲存核銷記錄</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

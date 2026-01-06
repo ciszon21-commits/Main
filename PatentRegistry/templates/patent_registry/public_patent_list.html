@@ -1,0 +1,92 @@
+{% extends "patent_registry/base.html" %}
+{% load humanize %}
+{% block title %}已取得專利 - 專利管理系統{% endblock %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-gradient-primary text-white shadow-lg">
+            <div class="card-body py-4">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="display-5 fw-bold mb-2"><i class="bi bi-award me-3"></i>已取得專利</h1>
+                        <p class="lead mb-0 opacity-75">瀏覽本單位取得之專利項目，可依年度篩選查看</p>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <div class="display-3 fw-bold">{{ total_count }}</div>
+                        <span class="text-white-75">專利總數</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mb-4">
+    <div class="col-md-8">
+        <form method="get" class="d-flex gap-2">
+            <select name="year" class="form-select" style="max-width: 200px;" onchange="this.form.submit()">
+                <option value="">全部年度</option>
+                {% for year in years %}
+                <option value="{{ year }}" {% if selected_year == year|stringformat:"s" %}selected{% endif %}>{{ year }} 年
+                </option>
+                {% endfor %}
+            </select>
+            {% if selected_year %}
+            <a href="{% url 'patent_registry:public_list' %}" class="btn btn-outline-secondary"><i
+                    class="bi bi-x-circle me-1"></i>清除篩選</a>
+            {% endif %}
+        </form>
+    </div>
+    <div class="col-md-4 text-md-end">
+        {% if user.is_authenticated %}
+        <a href="{% url 'patent_registry:application_list' %}" class="btn btn-primary"><i
+                class="bi bi-list-task me-1"></i>專利申請管理</a>
+        {% endif %}
+    </div>
+</div>
+<div class="row g-4">
+    {% if patents %}
+    {% for patent in patents %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm hover-card">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <span class="badge bg-primary">{{ patent.start_date|date:"Y" }}年</span>
+                <small class="text-muted">{{ patent.patent_number }}</small>
+            </div>
+            <div class="card-body">
+                <h5 class="card-title fw-bold text-primary mb-3">{{ patent.patent_name }}</h5>
+                <p class="card-text text-muted mb-3">{{ patent.description|truncatechars:100 }}</p>
+                <ul class="list-unstyled small">
+                    <li class="mb-2"><i class="bi bi-calendar3 me-2 text-muted"></i><strong>專利期間:</strong>
+                        {{patent.start_date|date:"Y/m" }} ~ {{ patent.end_date|date:"Y/m" }}</li>
+                    <li class="mb-2"><i class="bi bi-tag me-2 text-muted"></i><strong>類別:</strong> 
+                        {{patent.application.get_category_display }}</li>
+                    <li><i class="bi bi-building me-2 text-muted"></i><strong>事務所:</strong> 
+                        {{patent.application.patent_firm }}</li>
+                </ul>
+            </div>
+            <div class="card-footer bg-white border-top-0">
+                {% if patent.certificate %}
+                <a href="{{ patent.certificate.url }}" class="btn btn-sm btn-outline-success" target="_blank"><i
+                        class="bi bi-file-earmark-pdf me-1"></i>專利證書</a>
+                {% endif %}
+                {% if user.is_authenticated %}
+                <a href="{% url 'patent_registry:granted_detail' patent.pk %}" class="btn btn-sm btn-outline-primary"><i
+                        class="bi bi-eye me-1"></i>詳細資訊</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-inbox display-1 text-muted mb-3"></i>
+                <h4 class="text-muted">目前沒有已取得的專利</h4>
+                {% if selected_year %}<p class="text-muted">{{ selected_year }} 年度無專利資料</p>{% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
