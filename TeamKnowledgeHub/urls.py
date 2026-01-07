@@ -26,6 +26,7 @@ urlpatterns = [
     
     # Item URLs
     path('topic/<int:topic_pk>/item/create/', views.item_create, name='item_create'),
+    path('topic/<int:topic_pk>/category/<int:category_pk>/item/create/', views.item_create, name='item_create_in_category'),
     path('item/<int:pk>/', views.item_detail, name='item_detail'),
     path('item/<int:pk>/edit/', views.item_update, name='item_update'),
     path('item/<int:pk>/delete/', views.item_delete, name='item_delete'),
