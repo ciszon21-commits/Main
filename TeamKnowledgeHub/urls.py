@@ -39,4 +39,14 @@ urlpatterns = [
     # API URLs
     path('api/search-users/', views.search_users, name='search_users'),
     path('api/move-item/', views.move_item, name='move_item'),
+    
+    # Attachment URLs
+    path('item/<int:item_pk>/upload-attachment/', views.upload_item_attachment, name='upload_item_attachment'),
+    path('attachment/<int:pk>/delete/', views.delete_attachment, name='delete_attachment'),
+    path('comment/<int:comment_pk>/upload-attachment/', views.upload_comment_attachment, name='upload_comment_attachment'),
+    path('comment-attachment/<int:pk>/delete/', views.delete_comment_attachment, name='delete_comment_attachment'),
+    
+    # Category Files Browser
+    path('category/<int:pk>/files/', views.category_files, name='category_files'),
 ]
+

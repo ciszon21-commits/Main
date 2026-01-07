@@ -1,0 +1,256 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ category.name }} - 檔案瀏覽</title>
+    <link rel="stylesheet" href="{% static 'TeamKnowledgeHub/css/styles.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    <style>
+        .files-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        
+        .files-header {
+            margin-bottom: 32px;
+        }
+        
+        .files-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .files-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        
+        .files-breadcrumb a {
+            color: var(--primary);
+        }
+        
+        .files-stats {
+            display: flex;
+            gap: 16px;
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+        }
+        
+        .files-stats span {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        
+        .files-stats strong {
+            color: var(--text-primary);
+        }
+        
+        .item-group {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        
+        .item-group-header {
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .item-group-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .item-group-header h3 a {
+            color: var(--text-primary);
+        }
+        
+        .item-group-header h3 a:hover {
+            color: var(--primary);
+        }
+        
+        .file-count {
+            font-size: 13px;
+            color: var(--text-muted);
+            background: var(--bg-tertiary);
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+        
+        .file-list {
+            padding: 12px 20px;
+        }
+        
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .file-icon {
+            font-size: 24px;
+        }
+        
+        .file-details h4 {
+            font-size: 14px;
+            font-weight: 500;
+            margin: 0 0 4px 0;
+        }
+        
+        .file-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 12px;
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .file-actions a {
+            padding: 6px 12px;
+            font-size: 13px;
+            border-radius: 6px;
+            transition: all 0.15s;
+        }
+        
+        .btn-download {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        
+        .btn-download:hover {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+        
+        .empty-state svg {
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 24px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .back-link:hover {
+            color: var(--primary);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="files-container">
+        <a href="{% url 'knowledge:team_detail' team.pk %}" class="back-link">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            返回團隊
+        </a>
+        
+        <div class="files-header">
+            <div class="files-breadcrumb">
+                <a href="{% url 'knowledge:team_detail' team.pk %}">{{ team.name }}</a>
+                <span>›</span>
+                <span>{{ topic.name }}</span>
+                <span>›</span>
+                <span>{{ category.name }}</span>
+            </div>
+            <h1>📁 {{ category.name }} - 檔案瀏覽</h1>
+            
+            <div class="files-stats">
+                <span>共 <strong>{{ total_files }}</strong> 個檔案</span>
+                <span>來自 <strong>{{ items_with_files|length }}</strong> 個項目</span>
+            </div>
+        </div>
+        
+        {% if items_with_files %}
+            {% for group in items_with_files %}
+            <div class="item-group">
+                <div class="item-group-header">
+                    <h3>
+                        <a href="{% url 'knowledge:item_detail' group.item.pk %}">
+                            📄 {{ group.item.title }}
+                        </a>
+                    </h3>
+                    <span class="file-count">{{ group.files|length }} 個檔案</span>
+                </div>
+                <div class="file-list">
+                    {% for file in group.files %}
+                    <div class="file-item">
+                        <div class="file-info">
+                            <span class="file-icon">{{ file.get_file_icon }}</span>
+                            <div class="file-details">
+                                <h4>{{ file.filename }}</h4>
+                                <div class="file-meta">
+                                    <span>{{ file.get_human_size }}</span>
+                                    <span>{{ file.uploaded_by.get_full_name|default:file.uploaded_by.username }}</span>
+                                    <span>{{ file.uploaded_at|date:"Y/m/d H:i" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <a href="{{ file.file.url }}" class="btn-download" download>
+                                下載
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <svg width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                </svg>
+                <h3>此分類尚無檔案</h3>
+                <p>在項目中上傳附件後，檔案將顯示在這裡</p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+
+</html>
