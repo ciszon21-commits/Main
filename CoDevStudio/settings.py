@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     'TeamKnowledgeHub',
     'SynonymManager',
     'PatentRegistry',
+    'ClashClassifier',
 ] + local.STAGE_INSTALLED_APPS
 
 

@@ -24,9 +24,6 @@ SYS_MAP = {
 # 預測閾值
 THRESHOLD = 0.3
 
-# Sentence Transformer 模型名稱
-EMBED_MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-
 # 全域變數儲存載入的模型（避免重複載入）
 _model = None
 _pca = None
@@ -76,9 +73,40 @@ def load_models():
                 "找不到啟用的 Embedding Map。請在 Django admin 中上傳並啟用 Embedding Map。"
             )
     
+    # 載入 Sentence Transformer
     if _embed_model is None:
         print("Loading Sentence Transformer model...")
-        _embed_model = SentenceTransformer(EMBED_MODEL_NAME)
+        try:
+            ml_model = MLModel.objects.get(
+                model_type='sentence_transformer', 
+                is_active=True
+            )
+            
+            # 使用解壓縮後的路徑
+            if ml_model.extracted_path and os.path.exists(ml_model.extracted_path):
+                model_path = ml_model.extracted_path
+                print(f"從解壓縮目錄載入: {model_path}")
+            else:
+                # 備用：如果沒有解壓縮路徑，嘗試手動解壓
+                if ml_model.file.name.endswith('.zip'):
+                    ml_model.extract_zip()
+                    model_path = ml_model.extracted_path
+                else:
+                    # 如果不是 ZIP，假設是目錄
+                    model_path = os.path.dirname(ml_model.file.path)
+            
+            _embed_model = SentenceTransformer(model_path)
+            print(f"✓ Sentence Transformer 載入成功")
+            
+        except MLModel.DoesNotExist:
+            raise ModelNotFoundError(
+                "找不到啟用的 Sentence Transformer 模型。\n"
+                "請在 Django admin 上傳 ZIP 檔並啟用。"
+            )
+        except Exception as e:
+            raise ModelNotFoundError(
+                f"載入 Sentence Transformer 失敗: {str(e)}"
+            )
     
     return _model, _pca, _type_embedding_map, _embed_model
 

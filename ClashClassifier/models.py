@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+import os
+import zipfile
 
 
 class MLModel(models.Model):
@@ -9,6 +11,7 @@ class MLModel(models.Model):
         ('xgboost', 'XGBoost 模型'),
         ('pca', 'PCA 模型'),
         ('embedding_map', 'Embedding Map'),
+        ('sentence_transformer', 'SentenceTransformer 模型 (ZIP)')
     ]
     
     model_type = models.CharField(
@@ -18,7 +21,8 @@ class MLModel(models.Model):
     )
     file = models.FileField(
         upload_to='ml_models/',
-        verbose_name='模型檔案'
+        verbose_name='模型檔案',
+        help_text='sentence_transformer 請上傳 ZIP 檔'
     )
     is_active = models.BooleanField(
         default=False,
@@ -31,6 +35,14 @@ class MLModel(models.Model):
     description = models.TextField(
         blank=True,
         verbose_name='說明'
+    )
+    
+    # 新增：解壓縮後的目錄路徑
+    extracted_path = models.CharField(
+        max_length=500,
+        blank=True,
+        null=True,
+        verbose_name='解壓縮路徑'
     )
     
     class Meta:
@@ -53,7 +65,45 @@ class MLModel(models.Model):
                 model_type=self.model_type,
                 is_active=True
             ).exclude(pk=self.pk).update(is_active=False)
+        
         super().save(*args, **kwargs)
+        
+        # 如果是 sentence_transformer 且是 ZIP 檔，自動解壓縮
+        if self.model_type == 'sentence_transformer' and self.file:
+            if self.file.name.endswith('.zip'):
+                self.extract_zip()
+    
+    def extract_zip(self):
+        """解壓縮 ZIP 檔"""
+        if not self.file or not self.file.name.endswith('.zip'):
+            return
+        
+        # 解壓縮目標目錄
+        extract_dir = os.path.join(
+            os.path.dirname(self.file.path),
+            f'sentence_transformer_{self.pk}'
+        )
+        
+        # 如果目錄已存在，先刪除
+        if os.path.exists(extract_dir):
+            import shutil
+            shutil.rmtree(extract_dir)
+        
+        # 建立目錄
+        os.makedirs(extract_dir, exist_ok=True)
+        
+        # 解壓縮
+        print(f"正在解壓縮: {self.file.path}")
+        print(f"目標目錄: {extract_dir}")
+        
+        with zipfile.ZipFile(self.file.path, 'r') as zip_ref:
+            zip_ref.extractall(extract_dir)
+        
+        # 儲存解壓縮路徑
+        self.extracted_path = extract_dir
+        MLModel.objects.filter(pk=self.pk).update(extracted_path=extract_dir)
+        
+        print(f"✓ 解壓縮完成: {extract_dir}")
 
 
 class ClashReport(models.Model):
