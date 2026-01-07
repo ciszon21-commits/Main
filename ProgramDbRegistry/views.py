@@ -32,8 +32,13 @@ def check_team_creator(user, team):
 
 @login_required
 def team_list(request):
-    """團隊列表頁面 - 所有人都可以看到團隊名稱"""
-    teams = DevTeam.objects.all()
+    """團隊列表頁面 - 只有成員可以看到團隊"""
+    # 只能看到自己建立的團隊，或是自己是成員的團隊
+    teams = DevTeam.objects.filter(
+        Q(created_by=request.user) |
+        Q(members__user=request.user)
+    ).distinct()
+    
     return render(request, 'ProgramDbRegistry/team_list.html', {
         'teams': teams
     })
