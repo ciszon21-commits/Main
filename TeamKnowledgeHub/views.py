@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 import json
 
-from .models import KnowledgeTeam, KnowledgeTeamMember, Topic, Category, KnowledgeItem, ItemComment
+from .models import KnowledgeTeam, KnowledgeTeamMember, Topic, Category, KnowledgeItem, ItemComment, ItemAttachment, CommentAttachment
 from .forms import KnowledgeTeamForm, TopicForm, CategoryForm, KnowledgeItemForm, ItemCommentForm
 
 
@@ -53,40 +53,26 @@ def team_detail(request, pk):
     # ===== Dashboard Statistics =====
     from django.db.models import Count, Q
     
-    # 1. 各分類項目統計
+    # 1. 各主題項目統計 (以主題為單位，避免分類過多導致圖表混亂)
     category_metrics = []
     
-    # 處理具名分類
-    named_categories = Category.objects.filter(topic__team=team).annotate(
-        item_count=Count('items')
-    ).filter(item_count__gt=0).values('name', 'item_count').order_by('-item_count')
-    
-    for cat in named_categories:
-        category_metrics.append({
-            'name': cat['name'],
-            'count': cat['item_count']
-        })
-        
-    # 處理未分類項目
-    uncategorized_count = KnowledgeItem.objects.filter(
-        topic__team=team, 
-        category__isnull=True
-    ).count()
-    
-    if uncategorized_count > 0:
-        category_metrics.append({
-            'name': '未分類',
-            'count': uncategorized_count
-        })
+    for topic in topics:
+        item_count = topic.items.count()
+        if item_count > 0:
+            category_metrics.append({
+                'name': topic.name,
+                'count': item_count
+            })
 
     # 2. 成員貢獻統計 (Top 10)
     member_stats = User.objects.filter(
         Q(knowledge_team_memberships__team=team) | Q(created_knowledge_teams=team)
     ).distinct().annotate(
         post_count=Count('created_knowledge_items', filter=Q(created_knowledge_items__topic__team=team)),
-        comment_count=Count('knowledge_comments', filter=Q(knowledge_comments__item__topic__team=team))
+        comment_count=Count('knowledge_comments', filter=Q(knowledge_comments__item__topic__team=team)),
+        file_count=Count('uploaded_item_attachments', filter=Q(uploaded_item_attachments__item__topic__team=team, uploaded_item_attachments__is_deleted=False))
     ).filter(
-        Q(post_count__gt=0) | Q(comment_count__gt=0)
+        Q(post_count__gt=0) | Q(comment_count__gt=0) | Q(file_count__gt=0)
     ).order_by('-post_count', '-comment_count')[:10]
     
     # 3. 本周活動統計 (Weekly Activity)
@@ -121,7 +107,8 @@ def team_detail(request, pk):
         'member_stats_json': json.dumps([{
             'name': m.get_full_name() or m.username,
             'posts': m.post_count,
-            'comments': m.comment_count
+            'comments': m.comment_count,
+            'files': m.file_count
         } for m in member_stats]),
         'weekly_activity_json': json.dumps(weekly_activity),
     })
@@ -426,7 +413,7 @@ def category_create(request, topic_pk):
             category.topic = topic
             category.save()
             messages.success(request, f'分類「{category.name}」已建立成功！')
-            return redirect('knowledge:team_detail', pk=team.pk)
+            return redirect('knowledge:category_manage', topic_pk=topic.pk)
     else:
         max_order = topic.categories.count()
         form = CategoryForm(initial={'order': max_order})
@@ -624,6 +611,9 @@ def item_detail(request, pk):
             Q(comments__content__icontains=search_query)
         ).distinct().select_related('topic', 'category').order_by('-updated_at')[:20]
     
+    # Get active (non-deleted) attachments
+    attachments = item.attachments.filter(is_deleted=False).select_related('uploaded_by')
+    
     return render(request, 'TeamKnowledgeHub/item_detail.html', {
         'item': item,
         'topic': item.topic,
@@ -635,6 +625,7 @@ def item_detail(request, pk):
         'is_team_creator': team.is_creator(request.user),
         'search_query': search_query,
         'search_results': search_results,
+        'attachments': attachments,
     })
 
 
@@ -734,3 +725,174 @@ def delete_comment(request, pk):
         messages.success(request, '留言已刪除！')
     
     return redirect('knowledge:item_detail', pk=item_pk)
+
+
+# ===== Attachment Views =====
+
+@login_required
+def upload_item_attachment(request, item_pk):
+    """上傳項目附件"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': '無效請求'})
+    
+    item = get_object_or_404(KnowledgeItem, pk=item_pk)
+    team = item.topic.team
+    
+    if not check_team_member(request.user, team):
+        return JsonResponse({'success': False, 'error': '只有團隊成員可以上傳附件'})
+    
+    files = request.FILES.getlist('files')
+    if not files:
+        return JsonResponse({'success': False, 'error': '未選擇檔案'})
+    
+    uploaded = []
+    for f in files:
+        attachment = ItemAttachment.objects.create(
+            item=item,
+            file=f,
+            filename=f.name,
+            file_size=f.size,
+            uploaded_by=request.user
+        )
+        uploaded.append({
+            'id': attachment.pk,
+            'filename': attachment.filename,
+            'size': attachment.get_human_size(),
+            'icon': attachment.get_file_icon(),
+            'url': attachment.file.url
+        })
+    
+    messages.success(request, f'成功上傳 {len(uploaded)} 個檔案！')
+    
+    # Return JSON for AJAX or redirect for normal form
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'success': True, 'files': uploaded})
+    return redirect('knowledge:item_detail', pk=item_pk)
+
+
+@login_required
+def delete_attachment(request, pk):
+    """軟刪除項目附件 (標記為已刪除)"""
+    attachment = get_object_or_404(ItemAttachment, pk=pk)
+    item = attachment.item
+    team = item.topic.team
+    
+    # 只有上傳者或團隊建立者可以刪除
+    if attachment.uploaded_by != request.user and not check_team_creator(request.user, team):
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': '您沒有權限刪除此附件'})
+        messages.error(request, '您沒有權限刪除此附件。')
+        return redirect('knowledge:item_detail', pk=item.pk)
+    
+    if request.method == 'POST':
+        from django.utils import timezone
+        attachment.is_deleted = True
+        attachment.deleted_at = timezone.now()
+        attachment.deleted_by = request.user
+        attachment.save()
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'message': '附件已刪除'})
+        messages.success(request, '附件已刪除！')
+    
+    return redirect('knowledge:item_detail', pk=item.pk)
+
+
+@login_required
+def upload_comment_attachment(request, comment_pk):
+    """上傳留言附件"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': '無效請求'})
+    
+    comment = get_object_or_404(ItemComment, pk=comment_pk)
+    team = comment.item.topic.team
+    
+    if not check_team_member(request.user, team):
+        return JsonResponse({'success': False, 'error': '只有團隊成員可以上傳附件'})
+    
+    files = request.FILES.getlist('files')
+    if not files:
+        return JsonResponse({'success': False, 'error': '未選擇檔案'})
+    
+    uploaded = []
+    for f in files:
+        attachment = CommentAttachment.objects.create(
+            comment=comment,
+            file=f,
+            filename=f.name,
+            file_size=f.size,
+            uploaded_by=request.user
+        )
+        uploaded.append({
+            'id': attachment.pk,
+            'filename': attachment.filename,
+            'size': attachment.get_human_size(),
+            'icon': attachment.get_file_icon(),
+            'url': attachment.file.url
+        })
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'success': True, 'files': uploaded})
+    return redirect('knowledge:item_detail', pk=comment.item.pk)
+
+
+@login_required
+def delete_comment_attachment(request, pk):
+    """軟刪除留言附件"""
+    attachment = get_object_or_404(CommentAttachment, pk=pk)
+    comment = attachment.comment
+    team = comment.item.topic.team
+    
+    if attachment.uploaded_by != request.user and not check_team_creator(request.user, team):
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': '您沒有權限刪除此附件'})
+        messages.error(request, '您沒有權限刪除此附件。')
+        return redirect('knowledge:item_detail', pk=comment.item.pk)
+    
+    if request.method == 'POST':
+        from django.utils import timezone
+        attachment.is_deleted = True
+        attachment.deleted_at = timezone.now()
+        attachment.deleted_by = request.user
+        attachment.save()
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'message': '附件已刪除'})
+        messages.success(request, '附件已刪除！')
+    
+    return redirect('knowledge:item_detail', pk=comment.item.pk)
+
+
+@login_required
+def category_files(request, pk):
+    """分類檔案瀏覽"""
+    category = get_object_or_404(Category, pk=pk)
+    team = category.topic.team
+    
+    if not check_team_member(request.user, team):
+        messages.error(request, '您不是此團隊的成員。')
+        return redirect('knowledge:team_list')
+    
+    # Get all non-deleted attachments from items in this category
+    attachments = ItemAttachment.active.filter(
+        item__category=category
+    ).select_related('item', 'uploaded_by').order_by('item__title', '-uploaded_at')
+    
+    # Group by item
+    items_with_files = {}
+    for att in attachments:
+        if att.item.pk not in items_with_files:
+            items_with_files[att.item.pk] = {
+                'item': att.item,
+                'files': []
+            }
+        items_with_files[att.item.pk]['files'].append(att)
+    
+    return render(request, 'TeamKnowledgeHub/category_files.html', {
+        'category': category,
+        'topic': category.topic,
+        'team': team,
+        'items_with_files': items_with_files.values(),
+        'total_files': attachments.count(),
+    })
+

@@ -199,3 +199,165 @@ class ItemComment(models.Model):
 
     def __str__(self):
         return f"{self.author.username} - {self.content[:30]}"
+
+
+# ===== Attachment Models =====
+
+def item_attachment_path(instance, filename):
+    """項目附件上傳路徑"""
+    return f'knowledge/items/{instance.item.pk}/{filename}'
+
+
+def comment_attachment_path(instance, filename):
+    """留言附件上傳路徑"""
+    return f'knowledge/comments/{instance.comment.pk}/{filename}'
+
+
+class ActiveAttachmentManager(models.Manager):
+    """只返回未刪除附件的 Manager"""
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
+
+
+class ItemAttachment(models.Model):
+    """知識項目附件"""
+    item = models.ForeignKey(
+        KnowledgeItem,
+        on_delete=models.CASCADE,
+        related_name='attachments',
+        verbose_name="所屬項目"
+    )
+    file = models.FileField(
+        upload_to=item_attachment_path,
+        verbose_name="檔案"
+    )
+    filename = models.CharField(max_length=255, verbose_name="原始檔名")
+    file_size = models.PositiveIntegerField(default=0, verbose_name="檔案大小(bytes)")
+    uploaded_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='uploaded_item_attachments',
+        verbose_name="上傳者"
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="上傳時間")
+    is_deleted = models.BooleanField(default=False, verbose_name="已刪除")
+    deleted_at = models.DateTimeField(null=True, blank=True, verbose_name="刪除時間")
+    deleted_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='deleted_item_attachments',
+        verbose_name="刪除者"
+    )
+
+    objects = models.Manager()  # Default manager
+    active = ActiveAttachmentManager()  # Only non-deleted
+
+    class Meta:
+        verbose_name = "項目附件"
+        verbose_name_plural = "項目附件"
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return f"{self.item.title} - {self.filename}"
+
+    def get_file_extension(self):
+        """取得檔案副檔名"""
+        import os
+        _, ext = os.path.splitext(self.filename)
+        return ext.lower().lstrip('.')
+
+    def get_file_icon(self):
+        """根據檔案類型返回圖示"""
+        ext = self.get_file_extension()
+        icons = {
+            'pdf': '📄',
+            'doc': '📝', 'docx': '📝',
+            'xls': '📊', 'xlsx': '📊',
+            'ppt': '📽️', 'pptx': '📽️',
+            'png': '🖼️', 'jpg': '🖼️', 'jpeg': '🖼️', 'gif': '🖼️',
+            'zip': '📦', 'rar': '📦', '7z': '📦',
+            'txt': '📃',
+        }
+        return icons.get(ext, '📎')
+
+    def get_human_size(self):
+        """返回人類可讀的檔案大小"""
+        size = self.file_size
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024:
+                return f"{size:.1f} {unit}"
+            size /= 1024
+        return f"{size:.1f} TB"
+
+
+class CommentAttachment(models.Model):
+    """留言附件"""
+    comment = models.ForeignKey(
+        ItemComment,
+        on_delete=models.CASCADE,
+        related_name='attachments',
+        verbose_name="所屬留言"
+    )
+    file = models.FileField(
+        upload_to=comment_attachment_path,
+        verbose_name="檔案"
+    )
+    filename = models.CharField(max_length=255, verbose_name="原始檔名")
+    file_size = models.PositiveIntegerField(default=0, verbose_name="檔案大小(bytes)")
+    uploaded_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='uploaded_comment_attachments',
+        verbose_name="上傳者"
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="上傳時間")
+    is_deleted = models.BooleanField(default=False, verbose_name="已刪除")
+    deleted_at = models.DateTimeField(null=True, blank=True, verbose_name="刪除時間")
+    deleted_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='deleted_comment_attachments',
+        verbose_name="刪除者"
+    )
+
+    objects = models.Manager()
+    active = ActiveAttachmentManager()
+
+    class Meta:
+        verbose_name = "留言附件"
+        verbose_name_plural = "留言附件"
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return f"Comment #{self.comment.pk} - {self.filename}"
+
+    def get_file_extension(self):
+        import os
+        _, ext = os.path.splitext(self.filename)
+        return ext.lower().lstrip('.')
+
+    def get_file_icon(self):
+        ext = self.get_file_extension()
+        icons = {
+            'pdf': '📄',
+            'doc': '📝', 'docx': '📝',
+            'xls': '📊', 'xlsx': '📊',
+            'ppt': '📽️', 'pptx': '📽️',
+            'png': '🖼️', 'jpg': '🖼️', 'jpeg': '🖼️', 'gif': '🖼️',
+            'zip': '📦', 'rar': '📦', '7z': '📦',
+            'txt': '📃',
+        }
+        return icons.get(ext, '📎')
+
+    def get_human_size(self):
+        size = self.file_size
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024:
+                return f"{size:.1f} {unit}"
+            size /= 1024
+        return f"{size:.1f} TB"
+
