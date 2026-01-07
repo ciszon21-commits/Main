@@ -21,7 +21,7 @@ def get_csrf_token(request):
     return JsonResponse({'csrfToken': token})
 
 def redirect_view(request):
-    return redirect('http://localhost:5173')
+    return redirect('https://codev.sinotech.com.tw/clashclassifier')
 
 class StandardResultsSetPagination(PageNumberPagination):
     """標準分頁設定"""
