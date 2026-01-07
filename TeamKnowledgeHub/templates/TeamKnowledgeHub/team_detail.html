@@ -6,16 +6,162 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ team.name }} - 團隊知識管理</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'TeamKnowledgeHub/css/styles.css' %}">
     <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    <style>
+        /* Category-specific styles */
+        .category-node {
+            margin-left: 8px;
+        }
+        
+        .category-node > .tree-node-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            color: var(--text-secondary);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            font-size: 13px;
+        }
+        
+        .category-node > .tree-node-header:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        
+        .category-node.expanded > .tree-node-header {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        
+        .category-children {
+            display: none;
+            padding-left: 16px;
+        }
+        
+        .category-node.expanded .category-children {
+            display: block;
+        }
+        
+        .tree-icon-category {
+            color: var(--warning);
+        }
+        
+        .uncategorized-section {
+            margin-left: 8px;
+            padding-bottom: 4px;
+        }
+        
+        .uncategorized-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        .tree-manage-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            margin: 4px 12px 8px 12px;
+            color: var(--text-muted);
+            font-size: 11px;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+        }
+        
+        .tree-manage-btn:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        
+        /* Drag and Drop Styles */
+        .item-node[draggable="true"] {
+            cursor: grab;
+        }
+        
+        .item-node[draggable="true"]:active {
+            cursor: grabbing;
+        }
+        
+        .item-node.dragging {
+            opacity: 0.5;
+            background: var(--primary-light);
+        }
+        
+        .drop-zone {
+            transition: all 0.15s ease;
+        }
+        
+        .drop-zone.drag-over {
+            background: var(--primary-light) !important;
+            border-radius: var(--radius-sm);
+            outline: 2px dashed var(--primary);
+            outline-offset: -2px;
+        }
+        
+        .category-node.drag-over > .tree-node-header {
+            background: var(--primary-light) !important;
+            color: var(--primary);
+        }
+        
+        .uncategorized-section.drag-over {
+            background: var(--primary-light) !important;
+            border-radius: var(--radius-sm);
+        }
+        
+        /* Toast for drag feedback */
+        .drag-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease-out;
+            z-index: 2000;
+        }
+        
+        .drag-toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .drag-toast.success {
+            border-left: 4px solid var(--success);
+        }
+        
+        .drag-toast.error {
+            border-left: 4px solid var(--danger);
+        }
+    </style>
 </head>
 
 <body class="with-sidebar">
     <!-- Sidebar Navigation -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <a href="{% url 'knowledge:team_list' %}" class="sidebar-back">← 團隊列表</a>
+            <a href="{% url 'knowledge:team_list' %}" class="sidebar-back">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+                團隊列表
+            </a>
             <h2 class="sidebar-title">{{ team.name }}</h2>
         </div>
 
@@ -29,40 +175,108 @@
                 <nav class="tree-nav">
                     {% for topic in topics %}
                     <div class="tree-node topic-node" data-topic-id="{{ topic.pk }}">
-                        <div class="tree-node-header" onclick="toggleNode(this)">
-                            <svg class="tree-icon tree-icon-expand" width="12" height="12" fill="currentColor"
-                                viewBox="0 0 16 16">
-                                <path
-                                    d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z" />
+                        <div class="tree-node-header" onclick="toggleTopic(this)">
+                            <svg class="tree-icon tree-icon-expand" width="10" height="10" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
                             </svg>
-                            <svg class="tree-icon tree-icon-folder" width="14" height="14" fill="currentColor"
-                                viewBox="0 0 16 16">
-                                <path
-                                    d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3H14a2 2 0 0 1 2 2v3H0V5a2 2 0 0 1 .54-1.13z" />
-                                <path fill-rule="evenodd" d="M8.5 8H0v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8H8.5z" />
+                            <svg class="tree-icon tree-icon-folder" width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
                             </svg>
                             <span class="tree-node-label">{{ topic.name }}</span>
                             <span class="tree-node-count">{{ topic.items.count }}</span>
                         </div>
                         <div class="tree-children">
-                            {% for item in topic.items.all %}
-                            <a href="{% url 'knowledge:item_detail' item.pk %}" class="tree-node item-node">
-                                <svg class="tree-icon tree-icon-file" width="12" height="12" fill="currentColor"
-                                    viewBox="0 0 16 16">
-                                    <path
-                                        d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z" />
+                            <!-- Manage Categories Link -->
+                            <a href="{% url 'knowledge:category_manage' topic.pk %}" class="tree-manage-btn">
+                                <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M12 3v18m-9-9h18"/>
                                 </svg>
-                                <span class="tree-node-label">{{ item.title }}</span>
+                                管理分類
                             </a>
-                            {% empty %}
-                            <div class="tree-empty">尚無項目</div>
+                            
+                            <!-- Uncategorized Items (Drop Zone) -->
+                            {% with uncategorized=topic.get_uncategorized_items %}
+                            <div class="uncategorized-section drop-zone" 
+                                 data-category-id="null" 
+                                 data-topic-id="{{ topic.pk }}"
+                                 ondragover="handleDragOver(event)"
+                                 ondragleave="handleDragLeave(event)"
+                                 ondrop="handleDrop(event)">
+                                <div class="uncategorized-header">未分類項目</div>
+                                {% for item in uncategorized %}
+                                <a href="{% url 'knowledge:item_detail' item.pk %}" 
+                                   class="tree-node item-node" 
+                                   draggable="true"
+                                   data-item-id="{{ item.pk }}"
+                                   data-item-title="{{ item.title }}"
+                                   ondragstart="handleDragStart(event)"
+                                   ondragend="handleDragEnd(event)">
+                                    <svg class="tree-icon tree-icon-file" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14 2 14 8 20 8"/>
+                                    </svg>
+                                    <span class="tree-node-label">{{ item.title }}</span>
+                                </a>
+                                {% empty %}
+                                <div class="tree-empty" style="padding: 8px 12px; color: var(--text-muted); font-size: 12px;">拖放項目至此</div>
+                                {% endfor %}
+                            </div>
+                            {% endwith %}
+                            
+                            <!-- Categories (Drop Zones) -->
+                            {% for category in topic.categories.all %}
+                            <div class="tree-node category-node drop-zone" 
+                                 data-category-id="{{ category.pk }}"
+                                 data-topic-id="{{ topic.pk }}"
+                                 ondragover="handleDragOver(event)"
+                                 ondragleave="handleDragLeave(event)"
+                                 ondrop="handleDrop(event)">
+                                <div class="tree-node-header" onclick="toggleCategory(this)">
+                                    <svg class="tree-icon tree-icon-expand" width="8" height="8" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                                    </svg>
+                                    <svg class="tree-icon tree-icon-category" width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                                    </svg>
+                                    <span class="tree-node-label">{{ category.name }}</span>
+                                    <span class="tree-node-count">{{ category.items.count }}</span>
+                                </div>
+                                <div class="category-children">
+                                    {% for item in category.items.all %}
+                                    <a href="{% url 'knowledge:item_detail' item.pk %}" 
+                                       class="tree-node item-node"
+                                       draggable="true"
+                                       data-item-id="{{ item.pk }}"
+                                       data-item-title="{{ item.title }}"
+                                       ondragstart="handleDragStart(event)"
+                                       ondragend="handleDragEnd(event)">
+                                        <svg class="tree-icon tree-icon-file" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                        </svg>
+                                        <span class="tree-node-label">{{ item.title }}</span>
+                                    </a>
+                                    {% empty %}
+                                    <div class="tree-empty">拖放項目至此</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
                             {% endfor %}
+                            
+                            <!-- Add Item Link -->
                             <a href="{% url 'knowledge:item_create' topic.pk %}" class="tree-add-item">
-                                <svg width="10" height="10" fill="currentColor" viewBox="0 0 16 16">
-                                    <path
-                                        d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                                <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M12 5v14m-7-7h14"/>
                                 </svg>
                                 新增項目
+                            </a>
+                            
+                            <!-- Add Category Link -->
+                            <a href="{% url 'knowledge:category_create' topic.pk %}" class="tree-add-item">
+                                <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M12 5v14m-7-7h14"/>
+                                </svg>
+                                新增分類
                             </a>
                         </div>
                     </div>
@@ -80,18 +294,17 @@
         <div class="sidebar-footer">
             {% if is_creator %}
             <a href="{% url 'knowledge:team_update' team.pk %}" class="sidebar-action">
-                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3z" />
-                    <path fill-rule="evenodd" d="M.5 11.5V16h4.5l8.896-8.896-4.5-4.5L.5 11.5z" />
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                 </svg>
                 編輯團隊
             </a>
             <a href="{% url 'knowledge:team_members' team.pk %}" class="sidebar-action">
-                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
-                    <path fill-rule="evenodd"
-                        d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z" />
-                    <path d="M4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z" />
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
                 管理成員
             </a>
@@ -101,9 +314,8 @@
 
     <!-- Toggle Button for Mobile -->
     <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
-        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-            <path fill-rule="evenodd"
-                d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z" />
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M3 12h18M3 6h18M3 18h18"/>
         </svg>
     </button>
 
@@ -118,9 +330,8 @@
                 </div>
                 <div class="banner-actions">
                     <a href="{% url 'knowledge:topic_create' team.pk %}" class="btn btn-primary">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                            <path
-                                d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M12 5v14m-7-7h14"/>
                         </svg>
                         新增主題
                     </a>
@@ -152,10 +363,15 @@
                         {% endif %}
                     </div>
                     <div class="topic-actions">
+                        <a href="{% url 'knowledge:category_manage' topic.pk %}" class="btn btn-sm btn-secondary">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                            </svg>
+                            管理分類
+                        </a>
                         <a href="{% url 'knowledge:item_create' topic.pk %}" class="btn btn-sm btn-primary">
-                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                <path
-                                    d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M12 5v14m-7-7h14"/>
                             </svg>
                             新增項目
                         </a>
@@ -167,7 +383,9 @@
                 </div>
 
                 <div class="items-grid">
-                    {% for item in topic.items.all %}
+                    <!-- Uncategorized Items First -->
+                    {% with uncategorized=topic.get_uncategorized_items %}
+                    {% for item in uncategorized %}
                     <div class="item-card">
                         <a href="{% url 'knowledge:item_detail' item.pk %}" class="item-link">
                             <h4 class="item-title">{{ item.title }}</h4>
@@ -176,31 +394,59 @@
                                     {{ item.created_by.get_full_name|default:item.created_by.username }}
                                 </span>
                                 <span class="meta-date">
-                                    {{ item.updated_at|date:"Y/m/d H:i" }}
+                                    {{ item.updated_at|date:"Y/m/d" }}
                                 </span>
                                 <span class="meta-comments">
-                                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
-                                        <path
-                                            d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12z" />
+                                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                                     </svg>
                                     {{ item.get_comment_count }}
                                 </span>
                             </div>
                         </a>
                     </div>
-                    {% empty %}
+                    {% endfor %}
+                    {% endwith %}
+                    
+                    <!-- Categorized Items -->
+                    {% for category in topic.categories.all %}
+                    {% for item in category.items.all %}
+                    <div class="item-card" data-category="{{ category.name }}">
+                        <a href="{% url 'knowledge:item_detail' item.pk %}" class="item-link">
+                            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                                <span style="font-size: 10px; color: var(--text-muted); background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px;">{{ category.name }}</span>
+                            </div>
+                            <h4 class="item-title">{{ item.title }}</h4>
+                            <div class="item-meta">
+                                <span class="meta-author">
+                                    {{ item.created_by.get_full_name|default:item.created_by.username }}
+                                </span>
+                                <span class="meta-date">
+                                    {{ item.updated_at|date:"Y/m/d" }}
+                                </span>
+                                <span class="meta-comments">
+                                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                    </svg>
+                                    {{ item.get_comment_count }}
+                                </span>
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                    {% endfor %}
+                    
+                    {% if not topic.items.exists %}
                     <div class="empty-items">
                         <p>此主題尚無項目</p>
                     </div>
-                    {% endfor %}
+                    {% endif %}
                 </div>
             </div>
             {% empty %}
             <div class="empty-state">
-                <svg width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M4.5 11H4v1h.5a.5.5 0 0 0 0-1zm0-3H4v1h.5a.5.5 0 0 0 0-1zm5 0H8v1h1.5a.5.5 0 0 0 0-1z" />
-                    <path
-                        d="M2 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H2zm.5 3a.5.5 0 0 0 0 1h11a.5.5 0 0 0 0-1h-11zM4 8.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-2zm5 0a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-2z" />
+                <svg width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
                 </svg>
                 <h3>尚無主題</h3>
                 <p>點擊「新增主題」開始建立知識分類</p>
@@ -208,12 +454,177 @@
             {% endfor %}
         </div>
     </main>
+    
+    <!-- Toast Notification -->
+    <div id="dragToast" class="drag-toast">
+        <span id="dragToastMessage"></span>
+    </div>
 
     <script>
-        // Toggle tree node expand/collapse
-        function toggleNode(header) {
+        // Drag and Drop State
+        let draggedItem = null;
+        let draggedItemId = null;
+        let draggedItemTitle = null;
+        
+        // Get CSRF Token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        // Show Toast
+        function showDragToast(message, type = 'success') {
+            const toast = document.getElementById('dragToast');
+            const toastMessage = document.getElementById('dragToastMessage');
+            toast.className = `drag-toast ${type}`;
+            toastMessage.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Drag Start
+        function handleDragStart(e) {
+            draggedItem = e.target.closest('.item-node');
+            draggedItemId = draggedItem.dataset.itemId;
+            draggedItemTitle = draggedItem.dataset.itemTitle;
+            
+            draggedItem.classList.add('dragging');
+            
+            // Set drag data
+            e.dataTransfer.setData('text/plain', draggedItemId);
+            e.dataTransfer.effectAllowed = 'move';
+            
+            // Expand all categories in the topic for easier drop
+            const topicNode = draggedItem.closest('.topic-node');
+            if (topicNode) {
+                topicNode.classList.add('expanded');
+            }
+        }
+        
+        // Drag End
+        function handleDragEnd(e) {
+            if (draggedItem) {
+                draggedItem.classList.remove('dragging');
+            }
+            draggedItem = null;
+            draggedItemId = null;
+            draggedItemTitle = null;
+            
+            // Remove all drag-over classes
+            document.querySelectorAll('.drag-over').forEach(el => {
+                el.classList.remove('drag-over');
+            });
+        }
+        
+        // Drag Over (allow drop)
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            
+            const dropZone = e.target.closest('.drop-zone');
+            if (dropZone && !dropZone.classList.contains('drag-over')) {
+                // Remove from other zones
+                document.querySelectorAll('.drag-over').forEach(el => {
+                    el.classList.remove('drag-over');
+                });
+                dropZone.classList.add('drag-over');
+                
+                // Auto-expand category if hovering
+                if (dropZone.classList.contains('category-node')) {
+                    dropZone.classList.add('expanded');
+                }
+            }
+        }
+        
+        // Drag Leave
+        function handleDragLeave(e) {
+            const dropZone = e.target.closest('.drop-zone');
+            // Only remove if we're leaving the drop zone entirely
+            if (dropZone && !dropZone.contains(e.relatedTarget)) {
+                dropZone.classList.remove('drag-over');
+            }
+        }
+        
+        // Drop
+        async function handleDrop(e) {
+            e.preventDefault();
+            
+            const dropZone = e.target.closest('.drop-zone');
+            if (!dropZone || !draggedItemId) return;
+            
+            dropZone.classList.remove('drag-over');
+            
+            const categoryId = dropZone.dataset.categoryId;
+            const targetCategoryId = categoryId === 'null' ? null : parseInt(categoryId);
+            
+            try {
+                const response = await fetch('/knowledge/api/move-item/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        item_id: parseInt(draggedItemId),
+                        category_id: targetCategoryId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showDragToast(data.message || `已移動「${draggedItemTitle}」`);
+                    // Reload page to refresh the tree
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    showDragToast(data.error || '移動失敗', 'error');
+                }
+            } catch (error) {
+                console.error('移動失敗:', error);
+                showDragToast('移動時發生錯誤', 'error');
+            }
+        }
+        
+        // Track currently expanded category
+        let currentExpandedCategory = null;
+        
+        // Toggle topic expand/collapse
+        function toggleTopic(header) {
             const node = header.closest('.topic-node');
             node.classList.toggle('expanded');
+        }
+        
+        // Toggle category with accordion behavior (only one open at a time)
+        function toggleCategory(header) {
+            const node = header.closest('.category-node');
+            const isCurrentlyExpanded = node.classList.contains('expanded');
+            
+            // Close all categories in the same topic first
+            const topicNode = node.closest('.topic-node');
+            const allCategories = topicNode.querySelectorAll('.category-node');
+            allCategories.forEach(cat => {
+                cat.classList.remove('expanded');
+            });
+            
+            // If this one wasn't expanded, expand it
+            if (!isCurrentlyExpanded) {
+                node.classList.add('expanded');
+            }
         }
 
         // Toggle sidebar on mobile
@@ -221,15 +632,15 @@
             document.getElementById('sidebar').classList.toggle('open');
         }
 
-        // Expand all nodes by default
-        document.addEventListener('DOMContentLoaded', function () {
+        // Expand all topics by default
+        document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.topic-node').forEach(node => {
                 node.classList.add('expanded');
             });
         });
 
         // Close sidebar when clicking outside on mobile
-        document.addEventListener('click', function (e) {
+        document.addEventListener('click', function(e) {
             const sidebar = document.getElementById('sidebar');
             const toggleBtn = document.getElementById('sidebarToggle');
             if (window.innerWidth <= 768 &&
