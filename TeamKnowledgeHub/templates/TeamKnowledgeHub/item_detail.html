@@ -18,62 +18,6 @@
             color: var(--primary);
         }
         
-        .category-node {
-            margin-left: 8px;
-        }
-        
-        .category-node > .tree-node-header {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            color: var(--text-secondary);
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            transition: all var(--transition-fast);
-            font-size: 13px;
-        }
-        
-        .category-node > .tree-node-header:hover {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-        
-        .category-node.expanded > .tree-node-header {
-            color: var(--text-primary);
-            font-weight: 500;
-        }
-        
-        .category-children {
-            display: none;
-            padding-left: 16px;
-        }
-        
-        .category-node.expanded .category-children {
-            display: block;
-        }
-        
-        .tree-icon-category {
-            color: var(--warning);
-        }
-        
-        .uncategorized-section {
-            margin-left: 8px;
-            padding-bottom: 4px;
-        }
-        
-        .uncategorized-header {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            color: var(--text-muted);
-            font-size: 11px;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-        
         .item-category-badge {
             display: inline-flex;
             align-items: center;
@@ -86,71 +30,160 @@
             margin-left: 8px;
         }
         
-        /* Drag and Drop Styles */
-        .item-node[draggable="true"] {
-            cursor: grab;
+        /* Drag and Drop */
+        .item-node[draggable="true"] { cursor: grab; }
+        .item-node[draggable="true"]:active { cursor: grabbing; }
+        .item-node.dragging { opacity: 0.5; background: var(--primary-light); }
+        .drop-zone.drag-over { background: var(--primary-light) !important; border-radius: var(--radius-sm); outline: 2px dashed var(--primary); outline-offset: -2px; }
+        
+        .drag-toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px 20px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15); display: flex; align-items: center; gap: 12px; transform: translateY(100px); opacity: 0; transition: all 0.3s ease-out; z-index: 2000; }
+        .drag-toast.show { transform: translateY(0); opacity: 1; }
+        .drag-toast.success { border-left: 4px solid var(--success); }
+        .drag-toast.error { border-left: 4px solid var(--danger); }
+        
+        /* Search Results Panel */
+        .search-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 360px;
+            height: 100vh;
+            background: var(--bg-primary);
+            border-left: 1px solid var(--border-color);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.08);
         }
         
-        .item-node[draggable="true"]:active {
-            cursor: grabbing;
+        .search-panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-secondary);
         }
         
-        .item-node.dragging {
-            opacity: 0.5;
-            background: var(--primary-light);
+        .search-panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
-        .drop-zone.drag-over {
-            background: var(--primary-light) !important;
+        .search-panel-close {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             border-radius: var(--radius-sm);
-            outline: 2px dashed var(--primary);
-            outline-offset: -2px;
+            color: var(--text-muted);
+            transition: all 0.15s;
+            cursor: pointer;
+            background: none;
+            border: none;
         }
         
-        .category-node.drag-over > .tree-node-header {
-            background: var(--primary-light) !important;
+        .search-panel-close:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        
+        .search-panel-query {
+            padding: 12px 20px;
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .search-panel-query span {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .search-panel-query strong {
             color: var(--primary);
         }
         
-        .uncategorized-section.drag-over {
-            background: var(--primary-light) !important;
-            border-radius: var(--radius-sm);
+        .search-panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
         }
         
-        .drag-toast {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        .search-result-item {
+            display: block;
+            padding: 12px 14px;
+            border-radius: var(--radius-md);
+            transition: all 0.15s;
+            margin-bottom: 4px;
+        }
+        
+        .search-result-item:hover {
+            background: var(--bg-tertiary);
+        }
+        
+        .search-result-item.active {
+            background: var(--primary-light);
+            border-left: 3px solid var(--primary);
+        }
+        
+        .search-result-path {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
             display: flex;
             align-items: center;
-            gap: 12px;
-            transform: translateY(100px);
-            opacity: 0;
-            transition: all 0.3s ease-out;
-            z-index: 2000;
+            gap: 4px;
         }
         
-        .drag-toast.show {
-            transform: translateY(0);
-            opacity: 1;
+        .search-result-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            line-height: 1.4;
         }
         
-        .drag-toast.success {
-            border-left: 4px solid var(--success);
+        .search-result-item:hover .search-result-title {
+            color: var(--primary);
         }
         
-        .drag-toast.error {
-            border-left: 4px solid var(--danger);
+        .search-result-item.active .search-result-title {
+            color: var(--primary);
+        }
+        
+        /* Adjust main content when search panel is open */
+        body.with-search-panel .main-content {
+            margin-right: 360px;
+        }
+        
+        @media (max-width: 1200px) {
+            .search-panel {
+                width: 320px;
+            }
+            body.with-search-panel .main-content {
+                margin-right: 320px;
+            }
+        }
+        
+        @media (max-width: 900px) {
+            .search-panel {
+                width: 100%;
+                max-width: 360px;
+            }
+            body.with-search-panel .main-content {
+                margin-right: 0;
+            }
         }
     </style>
 </head>
 
-<body class="with-sidebar">
+<body class="with-sidebar {% if search_query %}with-search-panel{% endif %}">
     <!-- Sidebar Navigation -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
@@ -161,6 +194,13 @@
                 團隊列表
             </a>
             <h2 class="sidebar-title">{{ team.name }}</h2>
+            <a href="{% url 'knowledge:team_search' team.pk %}" class="sidebar-search-btn" title="搜尋知識庫">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="M21 21l-4.35-4.35"/>
+                </svg>
+                搜尋
+            </a>
         </div>
 
         <div class="sidebar-content">
@@ -184,43 +224,23 @@
                             <span class="tree-node-count">{{ t.items.count }}</span>
                         </div>
                         <div class="tree-children">
-                            <!-- Uncategorized Items (Drop Zone) -->
+                            <!-- Uncategorized Items -->
                             {% with uncategorized=t.get_uncategorized_items %}
-                            <div class="uncategorized-section drop-zone" 
-                                 data-category-id="null"
-                                 data-topic-id="{{ t.pk }}"
-                                 ondragover="handleDragOver(event)"
-                                 ondragleave="handleDragLeave(event)"
-                                 ondrop="handleDrop(event)">
-                                <div class="uncategorized-header">未分類項目</div>
+                            <div class="uncategorized-section drop-zone" data-category-id="null" data-topic-id="{{ t.pk }}" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
                                 {% for i in uncategorized %}
-                                <a href="{% url 'knowledge:item_detail' i.pk %}" 
-                                   class="tree-node item-node {% if i.pk == item.pk %}active{% endif %}"
-                                   draggable="true"
-                                   data-item-id="{{ i.pk }}"
-                                   data-item-title="{{ i.title }}"
-                                   ondragstart="handleDragStart(event)"
-                                   ondragend="handleDragEnd(event)">
+                                <a href="{% url 'knowledge:item_detail' i.pk %}{% if search_query %}?q={{ search_query }}{% endif %}" class="tree-node item-node {% if i.pk == item.pk %}active{% endif %}" draggable="true" data-item-id="{{ i.pk }}" data-item-title="{{ i.title }}" ondragstart="handleDragStart(event)" ondragend="handleDragEnd(event)">
                                     <svg class="tree-icon tree-icon-file" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                        <polyline points="14 2 14 8 20 8"/>
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
                                     </svg>
                                     <span class="tree-node-label">{{ i.title }}</span>
                                 </a>
-                                {% empty %}
-                                <div class="tree-empty" style="padding: 8px 12px; color: var(--text-muted); font-size: 12px;">拖放項目至此</div>
                                 {% endfor %}
                             </div>
                             {% endwith %}
                             
-                            <!-- Categories (Drop Zones) -->
+                            <!-- Categories -->
                             {% for cat in t.categories.all %}
-                            <div class="tree-node category-node drop-zone {% if item.category and item.category.pk == cat.pk %}expanded{% endif %}" 
-                                 data-category-id="{{ cat.pk }}"
-                                 data-topic-id="{{ t.pk }}"
-                                 ondragover="handleDragOver(event)"
-                                 ondragleave="handleDragLeave(event)"
-                                 ondrop="handleDrop(event)">
+                            <div class="tree-node category-node drop-zone {% if item.category and item.category.pk == cat.pk %}expanded{% endif %}" data-category-id="{{ cat.pk }}" data-topic-id="{{ t.pk }}" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
                                 <div class="tree-node-header" onclick="toggleCategory(this)">
                                     <svg class="tree-icon tree-icon-expand" width="8" height="8" fill="currentColor" viewBox="0 0 16 16">
                                         <path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
@@ -233,28 +253,15 @@
                                 </div>
                                 <div class="category-children">
                                     {% for i in cat.items.all %}
-                                    <a href="{% url 'knowledge:item_detail' i.pk %}" 
-                                       class="tree-node item-node {% if i.pk == item.pk %}active{% endif %}"
-                                       draggable="true"
-                                       data-item-id="{{ i.pk }}"
-                                       data-item-title="{{ i.title }}"
-                                       ondragstart="handleDragStart(event)"
-                                       ondragend="handleDragEnd(event)">
+                                    <a href="{% url 'knowledge:item_detail' i.pk %}{% if search_query %}?q={{ search_query }}{% endif %}" class="tree-node item-node {% if i.pk == item.pk %}active{% endif %}" draggable="true" data-item-id="{{ i.pk }}" data-item-title="{{ i.title }}" ondragstart="handleDragStart(event)" ondragend="handleDragEnd(event)">
                                         <svg class="tree-icon tree-icon-file" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                            <polyline points="14 2 14 8 20 8"/>
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
                                         </svg>
                                         <span class="tree-node-label">{{ i.title }}</span>
                                     </a>
-                                    {% empty %}
-                                    <div class="tree-empty">拖放項目至此</div>
                                     {% endfor %}
-                                    
-                                    <!-- Add Item to this Category -->
                                     <a href="{% url 'knowledge:item_create_in_category' t.pk cat.pk %}" class="tree-add-item">
-                                        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path d="M12 5v14m-7-7h14"/>
-                                        </svg>
+                                        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>
                                         新增項目
                                     </a>
                                 </div>
@@ -262,9 +269,7 @@
                             {% endfor %}
                             
                             <a href="{% url 'knowledge:item_create' t.pk %}" class="tree-add-item">
-                                <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path d="M12 5v14m-7-7h14"/>
-                                </svg>
+                                <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>
                                 新增項目
                             </a>
                         </div>
@@ -274,12 +279,10 @@
             </div>
         </div>
 
-        <!-- Sidebar Actions -->
         <div class="sidebar-footer">
             <a href="{% url 'knowledge:team_detail' team.pk %}" class="sidebar-action">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                    <polyline points="9 22 9 12 15 12 15 22"/>
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
                 </svg>
                 團隊首頁
             </a>
@@ -295,7 +298,6 @@
 
     <!-- Main Content Area -->
     <main class="main-content">
-        <!-- Banner Section -->
         <div class="banner banner-slim">
             <div class="banner-content">
                 <div class="banner-info">
@@ -307,9 +309,7 @@
                     </a>
                     <h1 class="banner-title">
                         {{ item.title }}
-                        {% if item.category %}
-                        <span class="item-category-badge">{{ item.category.name }}</span>
-                        {% endif %}
+                        {% if item.category %}<span class="item-category-badge">{{ item.category.name }}</span>{% endif %}
                     </h1>
                     <div class="item-meta-banner">
                         <span>{{ item.created_by.get_full_name|default:item.created_by.username }}</span>
@@ -328,8 +328,7 @@
                     {% if is_creator or is_team_creator %}
                     <a href="{% url 'knowledge:item_delete' item.pk %}" class="btn btn-danger">
                         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <polyline points="3 6 5 6 21 6"/>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                         </svg>
                         刪除
                     </a>
@@ -338,27 +337,19 @@
             </div>
         </div>
 
-        <!-- Main Content Container -->
         <div class="content-container">
-            <!-- Messages -->
             {% if messages %}
             <div class="messages">
                 {% for message in messages %}
-                <div class="message message-{{ message.tags }}">
-                    {{ message }}
-                </div>
+                <div class="message message-{{ message.tags }}">{{ message }}</div>
                 {% endfor %}
             </div>
             {% endif %}
 
-            <!-- Item Content -->
             <div class="item-content-container">
-                <div class="item-content prose">
-                    {{ item.content|safe }}
-                </div>
+                <div class="item-content prose">{{ item.content|safe }}</div>
             </div>
 
-            <!-- Comments Section -->
             <div class="comments-section">
                 <h3 class="comments-title">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -367,27 +358,22 @@
                     留言討論 ({{ comments|length }})
                 </h3>
 
-                <!-- Add Comment Form -->
                 <form method="post" action="{% url 'knowledge:add_comment' item.pk %}" class="add-comment">
                     {% csrf_token %}
                     <textarea name="content" placeholder="撰寫留言..." required></textarea>
                     <button type="submit" class="btn btn-primary">
                         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <line x1="22" y1="2" x2="11" y2="13"/>
-                            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                         </svg>
                         發表留言
                     </button>
                 </form>
 
-                <!-- Comments List -->
                 <div class="comments-list">
                     {% for comment in comments %}
                     <div class="comment-item">
                         <div class="comment-header">
-                            <div class="comment-avatar">
-                                {{ comment.author.first_name|slice:":1"|default:comment.author.username|slice:":1"|upper }}
-                            </div>
+                            <div class="comment-avatar">{{ comment.author.first_name|slice:":1"|default:comment.author.username|slice:":1"|upper }}</div>
                             <div style="flex: 1;">
                                 <span class="comment-author">{{ comment.author.get_full_name|default:comment.author.username }}</span>
                                 <span class="comment-date">{{ comment.created_at|date:"Y/m/d H:i" }}</span>
@@ -397,16 +383,13 @@
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-ghost btn-sm" onclick="return confirm('確定要刪除此留言嗎？')">
                                     <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <polyline points="3 6 5 6 21 6"/>
-                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                        <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                                     </svg>
                                 </button>
                             </form>
                             {% endif %}
                         </div>
-                        <div class="comment-content">
-                            {{ comment.content|linebreaks }}
-                        </div>
+                        <div class="comment-content">{{ comment.content|linebreaks }}</div>
                     </div>
                     {% empty %}
                     <div class="no-comments">
@@ -421,18 +404,47 @@
         </div>
     </main>
     
-    <!-- Toast Notification -->
-    <div id="dragToast" class="drag-toast">
-        <span id="dragToastMessage"></span>
-    </div>
+    {% if search_query and search_results %}
+    <!-- Search Results Panel (Right Side) -->
+    <aside class="search-panel" id="searchPanel">
+        <div class="search-panel-header">
+            <span class="search-panel-title">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                </svg>
+                搜尋結果
+            </span>
+            <a href="{% url 'knowledge:item_detail' item.pk %}" class="search-panel-close" title="關閉搜尋結果">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </a>
+        </div>
+        <div class="search-panel-query">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <span>搜尋「<strong>{{ search_query }}</strong>」- {{ search_results|length }} 筆結果</span>
+        </div>
+        <div class="search-panel-content">
+            {% for result in search_results %}
+            <a href="{% url 'knowledge:item_detail' result.pk %}?q={{ search_query }}" class="search-result-item {% if result.pk == item.pk %}active{% endif %}">
+                <div class="search-result-path">
+                    {{ result.topic.name }}
+                    {% if result.category %} › {{ result.category.name }}{% endif %}
+                </div>
+                <div class="search-result-title">{{ result.title }}</div>
+            </a>
+            {% endfor %}
+        </div>
+    </aside>
+    {% endif %}
+    
+    <div id="dragToast" class="drag-toast"><span id="dragToastMessage"></span></div>
 
     <script>
-        // Drag and Drop State
-        let draggedItem = null;
-        let draggedItemId = null;
-        let draggedItemTitle = null;
+        let draggedItem = null, draggedItemId = null, draggedItemTitle = null;
         
-        // Get CSRF Token
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -448,109 +460,65 @@
             return cookieValue;
         }
         
-        // Show Toast
         function showDragToast(message, type = 'success') {
             const toast = document.getElementById('dragToast');
             const toastMessage = document.getElementById('dragToastMessage');
             toast.className = `drag-toast ${type}`;
             toastMessage.textContent = message;
             toast.classList.add('show');
-            
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
+            setTimeout(() => toast.classList.remove('show'), 3000);
         }
         
-        // Drag Start
         function handleDragStart(e) {
             draggedItem = e.target.closest('.item-node');
             draggedItemId = draggedItem.dataset.itemId;
             draggedItemTitle = draggedItem.dataset.itemTitle;
-            
             draggedItem.classList.add('dragging');
-            
             e.dataTransfer.setData('text/plain', draggedItemId);
             e.dataTransfer.effectAllowed = 'move';
-            
-            // Expand all categories in the topic
             const topicNode = draggedItem.closest('.topic-node');
-            if (topicNode) {
-                topicNode.classList.add('expanded');
-            }
+            if (topicNode) topicNode.classList.add('expanded');
         }
         
-        // Drag End
         function handleDragEnd(e) {
-            if (draggedItem) {
-                draggedItem.classList.remove('dragging');
-            }
-            draggedItem = null;
-            draggedItemId = null;
-            draggedItemTitle = null;
-            
-            document.querySelectorAll('.drag-over').forEach(el => {
-                el.classList.remove('drag-over');
-            });
+            if (draggedItem) draggedItem.classList.remove('dragging');
+            draggedItem = null; draggedItemId = null; draggedItemTitle = null;
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
         }
         
-        // Drag Over
         function handleDragOver(e) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
-            
             const dropZone = e.target.closest('.drop-zone');
             if (dropZone && !dropZone.classList.contains('drag-over')) {
-                document.querySelectorAll('.drag-over').forEach(el => {
-                    el.classList.remove('drag-over');
-                });
+                document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
                 dropZone.classList.add('drag-over');
-                
-                if (dropZone.classList.contains('category-node')) {
-                    dropZone.classList.add('expanded');
-                }
+                if (dropZone.classList.contains('category-node')) dropZone.classList.add('expanded');
             }
         }
         
-        // Drag Leave
         function handleDragLeave(e) {
             const dropZone = e.target.closest('.drop-zone');
-            if (dropZone && !dropZone.contains(e.relatedTarget)) {
-                dropZone.classList.remove('drag-over');
-            }
+            if (dropZone && !dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over');
         }
         
-        // Drop
         async function handleDrop(e) {
             e.preventDefault();
-            
             const dropZone = e.target.closest('.drop-zone');
             if (!dropZone || !draggedItemId) return;
-            
             dropZone.classList.remove('drag-over');
-            
             const categoryId = dropZone.dataset.categoryId;
             const targetCategoryId = categoryId === 'null' ? null : parseInt(categoryId);
-            
             try {
                 const response = await fetch('/knowledge/api/move-item/', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken')
-                    },
-                    body: JSON.stringify({
-                        item_id: parseInt(draggedItemId),
-                        category_id: targetCategoryId
-                    })
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                    body: JSON.stringify({ item_id: parseInt(draggedItemId), category_id: targetCategoryId })
                 });
-                
                 const data = await response.json();
-                
                 if (data.success) {
                     showDragToast(data.message || `已移動「${draggedItemTitle}」`);
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 500);
+                    setTimeout(() => window.location.reload(), 500);
                 } else {
                     showDragToast(data.error || '移動失敗', 'error');
                 }
@@ -560,41 +528,22 @@
             }
         }
         
-        // Toggle topic expand/collapse
-        function toggleTopic(header) {
-            const node = header.closest('.topic-node');
-            node.classList.toggle('expanded');
-        }
+        function toggleTopic(header) { header.closest('.topic-node').classList.toggle('expanded'); }
         
-        // Toggle category with accordion behavior
         function toggleCategory(header) {
             const node = header.closest('.category-node');
-            const isCurrentlyExpanded = node.classList.contains('expanded');
-            
+            const isExpanded = node.classList.contains('expanded');
             const topicNode = node.closest('.topic-node');
-            const allCategories = topicNode.querySelectorAll('.category-node');
-            allCategories.forEach(cat => {
-                cat.classList.remove('expanded');
-            });
-            
-            if (!isCurrentlyExpanded) {
-                node.classList.add('expanded');
-            }
+            topicNode.querySelectorAll('.category-node').forEach(cat => cat.classList.remove('expanded'));
+            if (!isExpanded) node.classList.add('expanded');
         }
 
-        // Toggle sidebar on mobile
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-        }
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
-        // Close sidebar when clicking outside on mobile
         document.addEventListener('click', function(e) {
             const sidebar = document.getElementById('sidebar');
             const toggleBtn = document.getElementById('sidebarToggle');
-            if (window.innerWidth <= 768 &&
-                !sidebar.contains(e.target) &&
-                !toggleBtn.contains(e.target) &&
-                sidebar.classList.contains('open')) {
+            if (window.innerWidth <= 768 && !sidebar.contains(e.target) && !toggleBtn.contains(e.target) && sidebar.classList.contains('open')) {
                 sidebar.classList.remove('open');
             }
         });
