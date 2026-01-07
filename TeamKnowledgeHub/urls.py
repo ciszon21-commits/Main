@@ -10,6 +10,7 @@ urlpatterns = [
     path('team/<int:pk>/', views.team_detail, name='team_detail'),
     path('team/<int:pk>/edit/', views.team_update, name='team_update'),
     path('team/<int:pk>/members/', views.team_members, name='team_members'),
+    path('team/<int:pk>/search/', views.team_search, name='team_search'),
     path('team/<int:pk>/add-member/', views.add_member, name='add_member'),
     path('team/<int:pk>/remove-member/<int:user_id>/', views.remove_member, name='remove_member'),
     
