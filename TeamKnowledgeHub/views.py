@@ -58,6 +58,37 @@ def team_detail(request, pk):
 
 
 @login_required
+def team_search(request, pk):
+    """團隊內搜尋功能"""
+    team = get_object_or_404(KnowledgeTeam, pk=pk)
+    
+    # 檢查權限
+    if not check_team_member(request.user, team):
+        messages.error(request, '您不是此團隊的成員，無法查看內容。')
+        return redirect('knowledge:team_list')
+    
+    query = request.GET.get('q', '').strip()
+    results = []
+    
+    if query and len(query) >= 2:
+        # 搜尋標題、內容和留言
+        results = KnowledgeItem.objects.filter(
+            topic__team=team
+        ).filter(
+            Q(title__icontains=query) | 
+            Q(content__icontains=query) |
+            Q(comments__content__icontains=query)
+        ).distinct().select_related('topic', 'category', 'created_by').order_by('-updated_at')[:50]
+    
+    return render(request, 'TeamKnowledgeHub/team_search.html', {
+        'team': team,
+        'query': query,
+        'results': results,
+        'result_count': len(results),
+    })
+
+
+@login_required
 def team_create(request):
     """建立新團隊"""
     if request.method == 'POST':
@@ -510,6 +541,19 @@ def item_detail(request, pk):
     comment_form = ItemCommentForm()
     topics = team.topics.prefetch_related('items', 'categories', 'categories__items').all()
     
+    # 處理搜尋上下文（從搜尋頁面來的）
+    search_query = request.GET.get('q', '').strip()
+    search_results = []
+    
+    if search_query and len(search_query) >= 2:
+        search_results = KnowledgeItem.objects.filter(
+            topic__team=team
+        ).filter(
+            Q(title__icontains=search_query) | 
+            Q(content__icontains=search_query) |
+            Q(comments__content__icontains=search_query)
+        ).distinct().select_related('topic', 'category').order_by('-updated_at')[:20]
+    
     return render(request, 'TeamKnowledgeHub/item_detail.html', {
         'item': item,
         'topic': item.topic,
@@ -519,6 +563,8 @@ def item_detail(request, pk):
         'comment_form': comment_form,
         'is_creator': item.created_by == request.user,
         'is_team_creator': team.is_creator(request.user),
+        'search_query': search_query,
+        'search_results': search_results,
     })
 
 
