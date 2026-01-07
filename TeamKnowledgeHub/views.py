@@ -456,10 +456,19 @@ def category_manage(request, topic_pk):
 # ===== Knowledge Item Views =====
 
 @login_required
-def item_create(request, topic_pk):
+def item_create(request, topic_pk, category_pk=None):
     """建立新知識項目"""
     topic = get_object_or_404(Topic, pk=topic_pk)
     team = topic.team
+    
+    # 取得分類（如果有指定）
+    category = None
+    if category_pk:
+        category = get_object_or_404(Category, pk=category_pk)
+        # 確保分類屬於該主題
+        if category.topic != topic:
+            messages.error(request, '分類不屬於此主題。')
+            return redirect('knowledge:team_detail', pk=team.pk)
     
     if not check_team_member(request.user, team):
         messages.error(request, '只有團隊成員可以建立項目。')
@@ -470,6 +479,7 @@ def item_create(request, topic_pk):
         if form.is_valid():
             item = form.save(commit=False)
             item.topic = topic
+            item.category = category  # 自動歸類
             item.created_by = request.user
             item.save()
             messages.success(request, f'項目「{item.title}」已建立成功！')
@@ -481,6 +491,7 @@ def item_create(request, topic_pk):
         'form': form,
         'topic': topic,
         'team': team,
+        'category': category,
         'title': '建立新項目',
     })
 
