@@ -8,6 +8,7 @@
     <title>{{ team.name }} - 團隊知識管理</title>
     <link rel="stylesheet" href="{% static 'TeamKnowledgeHub/css/styles.css' %}">
     <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Page-specific styles (category styles now in main CSS) */
         .uncategorized-section {
@@ -329,98 +330,55 @@
             </div>
             {% endif %}
 
-            <!-- Topics Section -->
-            {% for topic in topics %}
-            <div class="topic-section" id="topic-{{ topic.pk }}">
-                <div class="topic-header">
-                    <div class="topic-info">
-                        <h2 class="topic-title">{{ topic.name }}</h2>
-                        {% if topic.description %}
-                        <p class="topic-description">{{ topic.description }}</p>
-                        {% endif %}
+
+            <!-- Dashboard Grid -->
+            {% if topics %}
+            <div class="dashboard-grid">
+                <!-- Category Chart -->
+                <div class="chart-card">
+                    <h3>
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+                            <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+                        </svg>
+                        知識分類分布
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="categoryChart"></canvas>
                     </div>
-                    <div class="topic-actions">
-                        <a href="{% url 'knowledge:category_manage' topic.pk %}" class="btn btn-sm btn-secondary">
-                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                            </svg>
-                            管理分類
-                        </a>
-                        <a href="{% url 'knowledge:item_create' topic.pk %}" class="btn btn-sm btn-primary">
-                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path d="M12 5v14m-7-7h14"/>
-                            </svg>
-                            新增項目
-                        </a>
-                        <a href="{% url 'knowledge:topic_update' topic.pk %}" class="btn btn-sm btn-secondary">編輯</a>
-                        {% if is_creator %}
-                        <a href="{% url 'knowledge:topic_delete' topic.pk %}" class="btn btn-sm btn-danger">刪除</a>
-                        {% endif %}
+                </div>
+                
+                <!-- Member Contribution Chart -->
+                <div class="chart-card">
+                    <h3>
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        成員貢獻排行 (Top 10)
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="memberChart"></canvas>
                     </div>
                 </div>
 
-                <div class="items-grid">
-                    <!-- Uncategorized Items First -->
-                    {% with uncategorized=topic.get_uncategorized_items %}
-                    {% for item in uncategorized %}
-                    <div class="item-card">
-                        <a href="{% url 'knowledge:item_detail' item.pk %}" class="item-link">
-                            <h4 class="item-title">{{ item.title }}</h4>
-                            <div class="item-meta">
-                                <span class="meta-author">
-                                    {{ item.created_by.get_full_name|default:item.created_by.username }}
-                                </span>
-                                <span class="meta-date">
-                                    {{ item.updated_at|date:"Y/m/d" }}
-                                </span>
-                                <span class="meta-comments">
-                                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                                    </svg>
-                                    {{ item.get_comment_count }}
-                                </span>
-                            </div>
-                        </a>
+                <!-- Weekly Activity Chart -->
+                <div class="chart-card" style="grid-column: 1 / -1;">
+                    <h3>
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                        本周更新趨勢
+                    </h3>
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="activityChart"></canvas>
                     </div>
-                    {% endfor %}
-                    {% endwith %}
-                    
-                    <!-- Categorized Items -->
-                    {% for category in topic.categories.all %}
-                    {% for item in category.items.all %}
-                    <div class="item-card" data-category="{{ category.name }}">
-                        <a href="{% url 'knowledge:item_detail' item.pk %}" class="item-link">
-                            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
-                                <span style="font-size: 10px; color: var(--text-muted); background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px;">{{ category.name }}</span>
-                            </div>
-                            <h4 class="item-title">{{ item.title }}</h4>
-                            <div class="item-meta">
-                                <span class="meta-author">
-                                    {{ item.created_by.get_full_name|default:item.created_by.username }}
-                                </span>
-                                <span class="meta-date">
-                                    {{ item.updated_at|date:"Y/m/d" }}
-                                </span>
-                                <span class="meta-comments">
-                                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                                    </svg>
-                                    {{ item.get_comment_count }}
-                                </span>
-                            </div>
-                        </a>
-                    </div>
-                    {% endfor %}
-                    {% endfor %}
-                    
-                    {% if not topic.items.exists %}
-                    <div class="empty-items">
-                        <p>此主題尚無項目</p>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
-            {% empty %}
+            {% else %}
+            <!-- Empty State -->
             <div class="empty-state">
                 <svg width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                     <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
@@ -428,7 +386,7 @@
                 <h3>尚無主題</h3>
                 <p>點擊「新增主題」開始建立知識分類</p>
             </div>
-            {% endfor %}
+            {% endif %}
         </div>
     </main>
     
@@ -438,6 +396,172 @@
     </div>
 
     <script>
+        // Initialize Charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Category Chart (Pie)
+            const catCtx = document.getElementById('categoryChart').getContext('2d');
+            const catData = JSON.parse('{{ category_metrics|escapejs }}');
+            
+            if (catData.length > 0) {
+                new Chart(catCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: catData.map(d => d.name),
+                        datasets: [{
+                            data: catData.map(d => d.count),
+                            backgroundColor: [
+                                '#F06A6A', '#FECACA', '#FCA5A5', '#F87171', '#EF4444',
+                                '#B91C1C', '#991B1B', '#7F1D1D', '#450A0A', '#FEE2E2'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    font: { family: "'Inter', sans-serif", size: 12 },
+                                    color: document.body.classList.contains('dark-theme') ? '#E5E7EB' : '#374151',
+                                    padding: 20
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                // Show empty state for chart
+                catCtx.font = "14px Inter";
+                catCtx.fillStyle = "#9CA3AF";
+                catCtx.textAlign = "center";
+                catCtx.fillText("尚無分類數據", 150, 125);
+            }
+
+            // Member Chart (Bar)
+            const memCtx = document.getElementById('memberChart').getContext('2d');
+            const memData = JSON.parse('{{ member_stats_json|escapejs }}');
+            
+            if (memData.length > 0) {
+                new Chart(memCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: memData.map(d => d.name),
+                        datasets: [
+                            {
+                                label: '發布文章',
+                                data: memData.map(d => d.posts),
+                                backgroundColor: '#F06A6A',
+                                borderRadius: 4
+                            },
+                            {
+                                label: '留言互動',
+                                data: memData.map(d => d.comments),
+                                backgroundColor: '#E5E7EB',
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    font: { family: "'Inter', sans-serif", size: 12 },
+                                    color: document.body.classList.contains('dark-theme') ? '#E5E7EB' : '#374151'
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: document.body.classList.contains('dark-theme') ? '#374151' : '#F3F4F6'
+                                },
+                                ticks: {
+                                    color: document.body.classList.contains('dark-theme') ? '#9CA3AF' : '#6B7280',
+                                    precision: 0
+                                }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: {
+                                    color: document.body.classList.contains('dark-theme') ? '#9CA3AF' : '#6B7280'
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                memCtx.font = "14px Inter";
+                memCtx.fillStyle = "#9CA3AF";
+                memCtx.textAlign = "center";
+                memCtx.fillText("尚無成員活動", 150, 125);
+            }
+
+            // Weekly Activity Chart (Line)
+            const actCtx = document.getElementById('activityChart').getContext('2d');
+            const actData = JSON.parse('{{ weekly_activity_json|escapejs }}');
+            
+            // Create gradient
+            let gradient = actCtx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(240, 106, 106, 0.2)');
+            gradient.addColorStop(1, 'rgba(240, 106, 106, 0)');
+
+            new Chart(actCtx, {
+                type: 'line',
+                data: {
+                    labels: actData.map(d => d.date),
+                    datasets: [{
+                        label: '每日新增項目',
+                        data: actData.map(d => d.count),
+                        borderColor: '#F06A6A',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#F06A6A',
+                        pointBorderColor: '#fff',
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: document.body.classList.contains('dark-theme') ? '#374151' : '#F3F4F6',
+                                borderDash: [2, 4]
+                            },
+                            ticks: {
+                                precision: 0,
+                                color: document.body.classList.contains('dark-theme') ? '#9CA3AF' : '#6B7280'
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                color: document.body.classList.contains('dark-theme') ? '#9CA3AF' : '#6B7280'
+                            }
+                        }
+                    }
+                }
+            });
+        });
+
         // Drag and Drop State
         let draggedItem = null;
         let draggedItemId = null;

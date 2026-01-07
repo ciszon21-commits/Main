@@ -50,10 +50,80 @@ def team_detail(request, pk):
     
     topics = team.topics.prefetch_related('items', 'categories', 'categories__items').all()
     
+    # ===== Dashboard Statistics =====
+    from django.db.models import Count, Q
+    
+    # 1. 各分類項目統計
+    category_metrics = []
+    
+    # 處理具名分類
+    named_categories = Category.objects.filter(topic__team=team).annotate(
+        item_count=Count('items')
+    ).filter(item_count__gt=0).values('name', 'item_count').order_by('-item_count')
+    
+    for cat in named_categories:
+        category_metrics.append({
+            'name': cat['name'],
+            'count': cat['item_count']
+        })
+        
+    # 處理未分類項目
+    uncategorized_count = KnowledgeItem.objects.filter(
+        topic__team=team, 
+        category__isnull=True
+    ).count()
+    
+    if uncategorized_count > 0:
+        category_metrics.append({
+            'name': '未分類',
+            'count': uncategorized_count
+        })
+
+    # 2. 成員貢獻統計 (Top 10)
+    member_stats = User.objects.filter(
+        Q(knowledge_team_memberships__team=team) | Q(created_knowledge_teams=team)
+    ).distinct().annotate(
+        post_count=Count('created_knowledge_items', filter=Q(created_knowledge_items__topic__team=team)),
+        comment_count=Count('knowledge_comments', filter=Q(knowledge_comments__item__topic__team=team))
+    ).filter(
+        Q(post_count__gt=0) | Q(comment_count__gt=0)
+    ).order_by('-post_count', '-comment_count')[:10]
+    
+    # 3. 本周活動統計 (Weekly Activity)
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    today = timezone.now().date()
+    seven_days_ago = today - timedelta(days=6)
+    weekly_activity = []
+    
+    # Pre-fetch items created in range to avoid N+1 queries in loop (though simple count is fast)
+    # Better: Aggregate locally in python or use TruncDate (but sqlite/mysql support varies)
+    # Simple loop approach is fine for 7 iterations
+    for i in range(7):
+        date = seven_days_ago + timedelta(days=i)
+        count = KnowledgeItem.objects.filter(
+            topic__team=team,
+            created_at__date=date
+        ).count()
+        weekly_activity.append({
+            'date': date.strftime('%m/%d'),
+            'count': count
+        })
+    
     return render(request, 'TeamKnowledgeHub/team_detail.html', {
         'team': team,
         'topics': topics,
         'is_creator': team.is_creator(request.user),
+        # Statistics Data
+        'category_metrics': json.dumps(category_metrics),
+        'member_stats': member_stats, 
+        'member_stats_json': json.dumps([{
+            'name': m.get_full_name() or m.username,
+            'posts': m.post_count,
+            'comments': m.comment_count
+        } for m in member_stats]),
+        'weekly_activity_json': json.dumps(weekly_activity),
     })
 
 
