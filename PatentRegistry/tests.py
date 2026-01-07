@@ -5,7 +5,8 @@ from decimal import Decimal
 from datetime import date, timedelta
 
 from PatentRegistry.models import (
-    PatentApplication, PatentRebuttal, GrantedPatent, PatentAnnuity
+    PatentApplication, PatentRebuttal, GrantedPatent, PatentAnnuity,
+    PatentAdmin
 )
 
 
@@ -175,6 +176,8 @@ class PatentViewsTest(TestCase):
             patent_firm='測試事務所',
             created_by=self.user
         )
+        # 賦予專利管理員權限
+        PatentAdmin.objects.create(user=self.user, created_by=self.user)
     
     def test_public_list_view(self):
         """測試公開首頁"""
@@ -185,7 +188,7 @@ class PatentViewsTest(TestCase):
     def test_application_list_requires_login(self):
         """測試申請列表需要登入"""
         response = self.client.get(reverse('patent_registry:application_list'))
-        self.assertRedirects(response, f'/single_auth/login/?next={reverse("patent_registry:application_list")}', fetch_redirect_response=False)
+        self.assertRedirects(response, f'/accounts/login/?next={reverse("patent_registry:application_list")}', fetch_redirect_response=False)
     
     def test_application_list_logged_in(self):
         """測試登入後可訪問申請列表"""

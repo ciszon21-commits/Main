@@ -924,6 +924,24 @@ class TeamViewTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '無權限')
     
+    def test_team_list_visibility_restriction(self):
+        """測試團隊列表 - 只能看到自己相關的團隊"""
+        # 建立另一個使用者的團隊
+        other_team = DevTeam.objects.create(
+            name='其他團隊',
+            created_by=self.other_user
+        )
+        # 登入為 testuser (只屬於 self.team)
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('programdb:team_list'))
+        self.assertEqual(response.status_code, 200)
+        
+        # 應該看到自己的團隊
+        self.assertContains(response, '測試團隊')
+        # 不應該看到別人的團隊
+        self.assertNotContains(response, '其他團隊')
+
+    
     def test_team_create_get(self):
         """測試建立團隊頁面 - GET"""
         self.client.login(username='testuser', password='testpass123')

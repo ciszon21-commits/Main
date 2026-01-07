@@ -5,7 +5,7 @@ TeamKnowledgeHub 單元測試
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from .models import KnowledgeTeam, KnowledgeTeamMember, Topic, KnowledgeItem, ItemComment
+from .models import KnowledgeTeam, KnowledgeTeamMember, Topic, Category, KnowledgeItem, ItemComment
 from .forms import KnowledgeTeamForm, TopicForm, KnowledgeItemForm, ItemCommentForm
 
 
@@ -460,6 +460,15 @@ class TeamViewTestCase(TestCase):
         # 應該重定向到團隊列表
         self.assertEqual(response.status_code, 302)
     
+    def test_team_search_non_member_denied(self):
+        """測試團隊搜尋 - 非成員被拒絕"""
+        self.client.login(username='otheruser', password='testpass123')
+        response = self.client.get(
+            reverse('knowledge:team_search', kwargs={'pk': self.team.pk}) + '?q=test'
+        )
+        # 非成員應被重定向
+        self.assertEqual(response.status_code, 302)
+    
     def test_team_create_get(self):
         """測試建立團隊頁面 - GET"""
         self.client.login(username='testuser', password='testpass123')
@@ -697,6 +706,15 @@ class TopicViewTestCase(TestCase):
         )
         self.assertEqual(response.status_code, 200)
     
+    def test_topic_update_non_member_denied(self):
+        """測試編輯主題 - 非成員被拒絕"""
+        self.client.login(username='otheruser', password='testpass123')
+        response = self.client.get(
+            reverse('knowledge:topic_update', kwargs={'pk': self.topic.pk})
+        )
+        # 非成員應被重定向
+        self.assertEqual(response.status_code, 302)
+    
     def test_topic_delete_creator_only(self):
         """測試刪除主題 - 只有建立者"""
         # 新增一個成員
@@ -729,6 +747,84 @@ class TopicViewTestCase(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Topic.objects.filter(pk=topic_pk).exists())
+
+class CategoryViewTestCase(TestCase):
+    """分類視圖測試"""
+    
+    def setUp(self):
+        """建立測試資料"""
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass123'
+        )
+        self.other_user = User.objects.create_user(
+            username='otheruser',
+            password='testpass123'
+        )
+        self.team = KnowledgeTeam.objects.create(
+            name='測試團隊',
+            created_by=self.user
+        )
+        KnowledgeTeamMember.objects.create(
+            team=self.team,
+            user=self.user,
+            role='creator'
+        )
+        self.topic = Topic.objects.create(
+            team=self.team,
+            name='測試主題'
+        )
+        self.category = Category.objects.create(
+            topic=self.topic,
+            name='測試分類',
+            order=0
+        )
+        self.item = KnowledgeItem.objects.create(
+            topic=self.topic,
+            category=self.category,
+            title='測試項目',
+            created_by=self.user
+        )
+    
+    def test_category_create_non_member_denied(self):
+        """測試建立分類 - 非成員被拒絕"""
+        self.client.login(username='otheruser', password='testpass123')
+        response = self.client.get(
+            reverse('knowledge:category_create', kwargs={'topic_pk': self.topic.pk})
+        )
+        # 非成員應被重定向
+        self.assertEqual(response.status_code, 302)
+    
+    def test_category_update_non_member_denied(self):
+        """測試編輯分類 - 非成員被拒絕"""
+        self.client.login(username='otheruser', password='testpass123')
+        response = self.client.get(
+            reverse('knowledge:category_update', kwargs={'pk': self.category.pk})
+        )
+        # 非成員應被重定向
+        self.assertEqual(response.status_code, 302)
+    
+    def test_category_manage_non_member_denied(self):
+        """測試分類管理 - 非成員被拒絕"""
+        self.client.login(username='otheruser', password='testpass123')
+        response = self.client.get(
+            reverse('knowledge:category_manage', kwargs={'topic_pk': self.topic.pk})
+        )
+        # 非成員應被重定向
+        self.assertEqual(response.status_code, 302)
+    
+    def test_move_item_non_member_denied(self):
+        """測試移動項目 - 非成員被拒絕"""
+        import json
+        self.client.login(username='otheruser', password='testpass123')
+        response = self.client.post(
+            reverse('knowledge:move_item'),
+            data=json.dumps({'item_id': self.item.pk, 'category_id': None}),
+            content_type='application/json'
+        )
+        # 非成員應被拒絕
+        self.assertEqual(response.status_code, 403)
 
 
 class KnowledgeItemViewTestCase(TestCase):
@@ -805,6 +901,15 @@ class KnowledgeItemViewTestCase(TestCase):
             reverse('knowledge:item_update', kwargs={'pk': self.item.pk})
         )
         self.assertEqual(response.status_code, 200)
+    
+    def test_item_update_non_member_denied(self):
+        """測試編輯項目 - 非成員被拒絕"""
+        self.client.login(username='otheruser', password='testpass123')
+        response = self.client.get(
+            reverse('knowledge:item_update', kwargs={'pk': self.item.pk})
+        )
+        # 非成員應被重定向
+        self.assertEqual(response.status_code, 302)
     
     def test_item_delete_by_creator(self):
         """測試刪除項目 - 項目建立者"""
