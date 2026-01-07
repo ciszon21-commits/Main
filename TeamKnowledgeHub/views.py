@@ -5,9 +5,10 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.contrib import messages
 from django.db.models import Q
 from django.core.paginator import Paginator
+import json
 
-from .models import KnowledgeTeam, KnowledgeTeamMember, Topic, KnowledgeItem, ItemComment
-from .forms import KnowledgeTeamForm, TopicForm, KnowledgeItemForm, ItemCommentForm
+from .models import KnowledgeTeam, KnowledgeTeamMember, Topic, Category, KnowledgeItem, ItemComment
+from .forms import KnowledgeTeamForm, TopicForm, CategoryForm, KnowledgeItemForm, ItemCommentForm
 
 
 # ===== Helper Functions =====
@@ -47,7 +48,7 @@ def team_detail(request, pk):
         messages.error(request, '您不是此團隊的成員，無法查看內容。')
         return redirect('knowledge:team_list')
     
-    topics = team.topics.prefetch_related('items').all()
+    topics = team.topics.prefetch_related('items', 'categories', 'categories__items').all()
     
     return render(request, 'TeamKnowledgeHub/team_detail.html', {
         'team': team,
@@ -139,7 +140,7 @@ def search_users(request):
         Q(username__icontains=query) |
         Q(first_name__icontains=query) |
         Q(last_name__icontains=query)
-    )[:10]
+    )
     
     # 如果有指定團隊，排除已是成員的使用者
     if team_id:
@@ -149,6 +150,9 @@ def search_users(request):
             users = users.exclude(id__in=existing_member_ids)
         except KnowledgeTeam.DoesNotExist:
             pass
+    
+    # 在所有篩選完成後才進行切片
+    users = users[:10]
     
     users_data = [{
         'id': user.id,
@@ -302,6 +306,153 @@ def topic_delete(request, pk):
     })
 
 
+# ===== Category Views =====
+
+@login_required
+def category_create(request, topic_pk):
+    """建立新分類"""
+    topic = get_object_or_404(Topic, pk=topic_pk)
+    team = topic.team
+    
+    if not check_team_member(request.user, team):
+        messages.error(request, '只有團隊成員可以建立分類。')
+        return redirect('knowledge:team_list')
+    
+    if request.method == 'POST':
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            category = form.save(commit=False)
+            category.topic = topic
+            category.save()
+            messages.success(request, f'分類「{category.name}」已建立成功！')
+            return redirect('knowledge:team_detail', pk=team.pk)
+    else:
+        max_order = topic.categories.count()
+        form = CategoryForm(initial={'order': max_order})
+    
+    return render(request, 'TeamKnowledgeHub/category_form.html', {
+        'form': form,
+        'team': team,
+        'topic': topic,
+        'title': '建立新分類',
+    })
+
+
+@login_required
+def category_update(request, pk):
+    """編輯分類"""
+    category = get_object_or_404(Category, pk=pk)
+    topic = category.topic
+    team = topic.team
+    
+    if not check_team_member(request.user, team):
+        messages.error(request, '只有團隊成員可以編輯分類。')
+        return redirect('knowledge:team_list')
+    
+    if request.method == 'POST':
+        form = CategoryForm(request.POST, instance=category)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '分類已更新！')
+            return redirect('knowledge:team_detail', pk=team.pk)
+    else:
+        form = CategoryForm(instance=category)
+    
+    return render(request, 'TeamKnowledgeHub/category_form.html', {
+        'form': form,
+        'team': team,
+        'topic': topic,
+        'category': category,
+        'title': '編輯分類',
+    })
+
+
+@login_required
+def category_delete(request, pk):
+    """刪除分類"""
+    category = get_object_or_404(Category, pk=pk)
+    topic = category.topic
+    team = topic.team
+    
+    if not check_team_creator(request.user, team):
+        messages.error(request, '只有團隊建立者可以刪除分類。')
+        return redirect('knowledge:team_detail', pk=team.pk)
+    
+    if request.method == 'POST':
+        category_name = category.name
+        # 將分類下的項目移到未分類
+        category.items.update(category=None)
+        category.delete()
+        messages.success(request, f'分類「{category_name}」已刪除！項目已移至未分類。')
+        return redirect('knowledge:team_detail', pk=team.pk)
+    
+    return render(request, 'TeamKnowledgeHub/confirm_delete.html', {
+        'object': category,
+        'object_type': '分類',
+        'back_url': f"/knowledge/team/{team.pk}/",
+    })
+
+
+@login_required
+def move_item(request):
+    """移動項目到不同分類 (AJAX API)"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': '請使用 POST 方法'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        item_id = data.get('item_id')
+        category_id = data.get('category_id')  # None means uncategorized
+    except (json.JSONDecodeError, KeyError):
+        return JsonResponse({'success': False, 'error': '請求格式錯誤'}, status=400)
+    
+    if not item_id:
+        return JsonResponse({'success': False, 'error': '請指定項目'}, status=400)
+    
+    item = get_object_or_404(KnowledgeItem, pk=item_id)
+    team = item.topic.team
+    
+    if not check_team_member(request.user, team):
+        return JsonResponse({'success': False, 'error': '只有團隊成員可以移動項目'}, status=403)
+    
+    if category_id:
+        category = get_object_or_404(Category, pk=category_id)
+        # 確保分類屬於同一主題
+        if category.topic != item.topic:
+            return JsonResponse({'success': False, 'error': '分類必須屬於同一主題'}, status=400)
+        item.category = category
+    else:
+        item.category = None
+    
+    item.save()
+    
+    return JsonResponse({
+        'success': True,
+        'message': f'項目已移動至「{item.category.name if item.category else "未分類"}」'
+    })
+
+
+@login_required
+def category_manage(request, topic_pk):
+    """分類管理頁面"""
+    topic = get_object_or_404(Topic, pk=topic_pk)
+    team = topic.team
+    
+    if not check_team_member(request.user, team):
+        messages.error(request, '只有團隊成員可以管理分類。')
+        return redirect('knowledge:team_list')
+    
+    categories = topic.categories.prefetch_related('items').all()
+    uncategorized_items = topic.get_uncategorized_items()
+    
+    return render(request, 'TeamKnowledgeHub/category_manage.html', {
+        'team': team,
+        'topic': topic,
+        'categories': categories,
+        'uncategorized_items': uncategorized_items,
+    })
+
+
 # ===== Knowledge Item Views =====
 
 @login_required
@@ -346,7 +497,7 @@ def item_detail(request, pk):
     
     comments = item.comments.select_related('author').all()
     comment_form = ItemCommentForm()
-    topics = team.topics.prefetch_related('items').all()
+    topics = team.topics.prefetch_related('items', 'categories', 'categories__items').all()
     
     return render(request, 'TeamKnowledgeHub/item_detail.html', {
         'item': item,

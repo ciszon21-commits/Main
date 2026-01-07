@@ -1,6 +1,6 @@
 from django import forms
 from django_ckeditor_5.widgets import CKEditor5Widget
-from .models import KnowledgeTeam, Topic, KnowledgeItem, ItemComment
+from .models import KnowledgeTeam, Topic, Category, KnowledgeItem, ItemComment
 
 
 class KnowledgeTeamForm(forms.ModelForm):
@@ -41,6 +41,24 @@ class TopicForm(forms.ModelForm):
                 'placeholder': '排序序號'
             }),
         }
+
+
+class CategoryForm(forms.ModelForm):
+    """分類表單"""
+    class Meta:
+        model = Category
+        fields = ['name', 'order']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'ui input',
+                'placeholder': '請輸入分類名稱'
+            }),
+            'order': forms.NumberInput(attrs={
+                'class': 'ui input',
+                'placeholder': '排序序號'
+            }),
+        }
+
 
 
 class KnowledgeItemForm(forms.ModelForm):
