@@ -18,6 +18,12 @@ urlpatterns = [
     path('topic/<int:pk>/edit/', views.topic_update, name='topic_update'),
     path('topic/<int:pk>/delete/', views.topic_delete, name='topic_delete'),
     
+    # Category URLs
+    path('topic/<int:topic_pk>/category/create/', views.category_create, name='category_create'),
+    path('topic/<int:topic_pk>/category/manage/', views.category_manage, name='category_manage'),
+    path('category/<int:pk>/edit/', views.category_update, name='category_update'),
+    path('category/<int:pk>/delete/', views.category_delete, name='category_delete'),
+    
     # Item URLs
     path('topic/<int:topic_pk>/item/create/', views.item_create, name='item_create'),
     path('item/<int:pk>/', views.item_detail, name='item_detail'),
@@ -30,4 +36,5 @@ urlpatterns = [
     
     # API URLs
     path('api/search-users/', views.search_users, name='search_users'),
+    path('api/move-item/', views.move_item, name='move_item'),
 ]
