@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     'TeamKnowledgeHub',
     'SynonymManager',
     'PatentRegistry',
+    'SinoFile',
 ] + local.STAGE_INSTALLED_APPS
 
 
@@ -281,3 +282,9 @@ CSRF_TRUSTED_ORIGINS = local.CSRF_TRUSTED_ORIGINS
 
 # Feature Toggles
 ENABLE_CLASH_CLASSIFIER = local.ENABLE_CLASH_CLASSIFIER
+
+# Tiered Storage Settings (Hot/Cold Data Separation)
+ARCHIVE_ROOT = local.ARCHIVE_ROOT
+ARCHIVE_URL = local.ARCHIVE_URL
+TMP_ROOT = local.TMP_ROOT
+ARCHIVE_MAX_FOLDER_SIZE = local.ARCHIVE_MAX_FOLDER_SIZE

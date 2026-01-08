@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from django.utils import timezone
 from django.urls import reverse
+from SinoFile.fields import SinoFileField
 
 
 class Course(models.Model):
@@ -16,7 +17,7 @@ class Course(models.Model):
     registration_end = models.DateTimeField(verbose_name='報名截止時間')
     
     # PDF 附件
-    pdf_file = models.FileField(
+    pdf_file = SinoFileField(
         upload_to='courses/pdfs/%Y/%m/',
         blank=True,
         null=True,
