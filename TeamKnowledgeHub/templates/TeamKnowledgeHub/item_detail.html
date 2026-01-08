@@ -425,15 +425,27 @@
                     留言討論 ({{ comments|length }})
                 </h3>
 
-                <form method="post" action="{% url 'knowledge:add_comment' item.pk %}" class="add-comment">
+                <form method="post" action="{% url 'knowledge:add_comment' item.pk %}" class="add-comment" enctype="multipart/form-data">
                     {% csrf_token %}
                     <textarea name="content" placeholder="撰寫留言..." required></textarea>
-                    <button type="submit" class="btn btn-primary">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                        </svg>
-                        發表留言
-                    </button>
+                    
+                    <div class="comment-form-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                        <label class="btn btn-sm btn-ghost" style="color: var(--text-secondary); font-weight: normal;">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right: 4px;">
+                                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                            </svg>
+                            添加附件
+                            <input type="file" name="comment_files" multiple style="display: none;" onchange="updateCommentFileCount(this)">
+                            <span class="file-count-text" style="font-size: 0.85em; margin-left: 4px;"></span>
+                        </label>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                            </svg>
+                            發表留言
+                        </button>
+                    </div>
                 </form>
 
                 <div class="comments-list">
@@ -457,6 +469,18 @@
                             {% endif %}
                         </div>
                         <div class="comment-content">{{ comment.content|linebreaks }}</div>
+                        
+                        {% if comment.attachments.all %}
+                        <div class="comment-attachments" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">
+                            {% for attachment in comment.attachments.all %}
+                            <div class="attachment-item compact" style="display: inline-flex; align-items: center; background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px; margin-right: 8px; margin-bottom: 4px; font-size: 0.9em;">
+                                <span class="attachment-icon" style="margin-right: 4px;">{{ attachment.get_file_icon }}</span>
+                                <a href="{{ attachment.file.url }}" class="attachment-name" style="color: var(--text-primary); text-decoration: none; margin-right: 8px;" download>{{ attachment.filename }}</a>
+                                <span class="attachment-size" style="color: var(--text-muted); font-size: 0.85em;">{{ attachment.get_human_size }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
                     {% empty %}
                     <div class="no-comments">
@@ -614,6 +638,15 @@
                 sidebar.classList.remove('open');
             }
         });
+        
+        function updateCommentFileCount(input) {
+            const countText = input.parentNode.querySelector('.file-count-text');
+            if (input.files && input.files.length > 0) {
+                countText.textContent = `(${input.files.length} 個檔案)`;
+            } else {
+                countText.textContent = '';
+            }
+        }
     </script>
 </body>
 
