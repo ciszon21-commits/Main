@@ -361,3 +361,31 @@ class CommentAttachment(models.Model):
             size /= 1024
         return f"{size:.1f} TB"
 
+
+# ===== Quick Note Model =====
+
+class QuickNote(models.Model):
+    """個人快速筆記模型 - 用於快速記錄，後續可移入團隊"""
+    owner = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='quick_notes',
+        verbose_name="擁有者"
+    )
+    title = models.CharField(max_length=300, verbose_name="標題")
+    content = CKEditor5Field(
+        verbose_name="內容",
+        config_name='extends',
+        blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新時間")
+    is_archived = models.BooleanField(default=False, verbose_name="已歸檔")
+
+    class Meta:
+        verbose_name = "快速筆記"
+        verbose_name_plural = "快速筆記"
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"{self.owner.username} - {self.title}"

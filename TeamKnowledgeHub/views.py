@@ -7,8 +7,8 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 import json
 
-from .models import KnowledgeTeam, KnowledgeTeamMember, Topic, Category, KnowledgeItem, ItemComment, ItemAttachment, CommentAttachment
-from .forms import KnowledgeTeamForm, TopicForm, CategoryForm, KnowledgeItemForm, ItemCommentForm
+from .models import KnowledgeTeam, KnowledgeTeamMember, Topic, Category, KnowledgeItem, ItemComment, ItemAttachment, CommentAttachment, QuickNote
+from .forms import KnowledgeTeamForm, TopicForm, CategoryForm, KnowledgeItemForm, ItemCommentForm, QuickNoteForm
 
 
 # ===== Helper Functions =====
@@ -896,3 +896,201 @@ def category_files(request, pk):
         'total_files': attachments.count(),
     })
 
+
+# ===== Quick Note Views =====
+
+@login_required
+def quick_note_list(request):
+    """個人快速筆記列表"""
+    show_archived = request.GET.get('archived', '') == '1'
+    
+    if show_archived:
+        notes = QuickNote.objects.filter(owner=request.user).order_by('-updated_at')
+    else:
+        notes = QuickNote.objects.filter(owner=request.user, is_archived=False).order_by('-updated_at')
+    
+    return render(request, 'TeamKnowledgeHub/quick_note_list.html', {
+        'notes': notes,
+        'show_archived': show_archived,
+    })
+
+
+@login_required
+def quick_note_create(request):
+    """建立新筆記"""
+    if request.method == 'POST':
+        form = QuickNoteForm(request.POST)
+        if form.is_valid():
+            note = form.save(commit=False)
+            note.owner = request.user
+            note.save()
+            messages.success(request, f'筆記「{note.title}」已建立！')
+            return redirect('knowledge:quick_note_edit', pk=note.pk)
+    else:
+        form = QuickNoteForm()
+    
+    return render(request, 'TeamKnowledgeHub/quick_note_edit.html', {
+        'form': form,
+        'title': '新增筆記',
+        'is_new': True,
+    })
+
+
+@login_required
+def quick_note_edit(request, pk):
+    """編輯筆記"""
+    note = get_object_or_404(QuickNote, pk=pk, owner=request.user)
+    
+    if request.method == 'POST':
+        form = QuickNoteForm(request.POST, instance=note)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '筆記已儲存！')
+            return redirect('knowledge:quick_note_edit', pk=pk)
+    else:
+        form = QuickNoteForm(instance=note)
+    
+    # 取得使用者所屬的團隊（用於移入團隊功能）
+    user_teams = KnowledgeTeam.objects.filter(
+        Q(members__user=request.user) | Q(created_by=request.user)
+    ).distinct().order_by('name')
+    
+    return render(request, 'TeamKnowledgeHub/quick_note_edit.html', {
+        'form': form,
+        'note': note,
+        'title': '編輯筆記',
+        'is_new': False,
+        'user_teams': user_teams,
+    })
+
+
+@login_required
+def quick_note_autosave(request, pk):
+    """自動儲存筆記 (AJAX API)"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': '請使用 POST 方法'}, status=405)
+    
+    note = get_object_or_404(QuickNote, pk=pk, owner=request.user)
+    
+    try:
+        data = json.loads(request.body)
+        title = data.get('title', '').strip()
+        content = data.get('content', '')
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': '無效的 JSON'}, status=400)
+    
+    if not title:
+        return JsonResponse({'success': False, 'error': '標題不可為空'}, status=400)
+    
+    note.title = title
+    note.content = content
+    note.save()
+    
+    # 使用本地時間顯示
+    from django.utils import timezone
+    local_time = timezone.localtime(note.updated_at)
+    
+    return JsonResponse({
+        'success': True,
+        'message': '已自動儲存',
+        'updated_at': local_time.strftime('%Y-%m-%d %H:%M:%S')
+    })
+
+
+@login_required
+def quick_note_delete(request, pk):
+    """刪除筆記"""
+    note = get_object_or_404(QuickNote, pk=pk, owner=request.user)
+    
+    if request.method == 'POST':
+        note_title = note.title
+        note.delete()
+        messages.success(request, f'筆記「{note_title}」已刪除！')
+        return redirect('knowledge:quick_note_list')
+    
+    return render(request, 'TeamKnowledgeHub/confirm_delete.html', {
+        'object': note,
+        'object_type': '筆記',
+        'back_url': f"/knowledge/notes/{pk}/edit/",
+    })
+
+
+@login_required
+def quick_note_move_to_team(request, pk):
+    """將筆記移動到團隊 (建立 KnowledgeItem 並歸檔筆記)"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': '請使用 POST 方法'}, status=405)
+    
+    note = get_object_or_404(QuickNote, pk=pk, owner=request.user)
+    
+    try:
+        data = json.loads(request.body)
+        topic_id = data.get('topic_id')
+        category_id = data.get('category_id')  # 可為空
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': '無效的 JSON'}, status=400)
+    
+    if not topic_id:
+        return JsonResponse({'success': False, 'error': '請選擇主題'}, status=400)
+    
+    # 驗證主題存在且使用者有權限
+    topic = get_object_or_404(Topic, pk=topic_id)
+    team = topic.team
+    
+    if not check_team_member(request.user, team):
+        return JsonResponse({'success': False, 'error': '您不是此團隊的成員'}, status=403)
+    
+    # 驗證分類（如果有選擇）
+    category = None
+    if category_id:
+        category = get_object_or_404(Category, pk=category_id)
+        if category.topic != topic:
+            return JsonResponse({'success': False, 'error': '分類不屬於此主題'}, status=400)
+    
+    # 建立 KnowledgeItem
+    item = KnowledgeItem.objects.create(
+        topic=topic,
+        category=category,
+        title=note.title,
+        content=note.content,
+        created_by=request.user
+    )
+    
+    # 歸檔筆記
+    note.is_archived = True
+    note.save()
+    
+    return JsonResponse({
+        'success': True,
+        'message': f'筆記已移入「{team.name} / {topic.name}」',
+        'item_url': f'/knowledge/item/{item.pk}/'
+    })
+
+
+@login_required
+def quick_note_get_topics(request, team_pk):
+    """取得團隊的主題列表 (AJAX API)"""
+    team = get_object_or_404(KnowledgeTeam, pk=team_pk)
+    
+    if not check_team_member(request.user, team):
+        return JsonResponse({'success': False, 'error': '您不是此團隊的成員'}, status=403)
+    
+    topics = team.topics.all().order_by('order', 'name')
+    topics_data = [{'id': t.pk, 'name': t.name} for t in topics]
+    
+    return JsonResponse({'success': True, 'topics': topics_data})
+
+
+@login_required
+def quick_note_get_categories(request, topic_pk):
+    """取得主題的分類列表 (AJAX API)"""
+    topic = get_object_or_404(Topic, pk=topic_pk)
+    team = topic.team
+    
+    if not check_team_member(request.user, team):
+        return JsonResponse({'success': False, 'error': '您不是此團隊的成員'}, status=403)
+    
+    categories = topic.categories.all().order_by('order', 'name')
+    categories_data = [{'id': c.pk, 'name': c.name} for c in categories]
+    
+    return JsonResponse({'success': True, 'categories': categories_data})

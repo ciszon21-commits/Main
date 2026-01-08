@@ -1,0 +1,132 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的快速筆記</title>
+    <link rel="stylesheet" href="{% static 'TeamKnowledgeHub/css/styles.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <!-- Page Header -->
+    <header class="page-header">
+        <div class="page-header-content">
+            <div class="page-header-left">
+                <a href="{% url 'knowledge:team_list' %}" class="back-link">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    返回團隊列表
+                </a>
+                <div>
+                    <h1 class="page-title">📝 我的快速筆記</h1>
+                    <p class="page-subtitle">邊開會邊記錄，自動儲存，隨時整理歸類到團隊中</p>
+                </div>
+            </div>
+            <a href="{% url 'knowledge:quick_note_create' %}" class="btn btn-primary">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M12 5v14m-7-7h14"/>
+                </svg>
+                新增筆記
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Messages -->
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="message message-{{ message.tags }}">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    {% if message.tags == 'success' %}
+                    <path d="M20 6L9 17l-5-5"/>
+                    {% else %}
+                    <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
+                    {% endif %}
+                </svg>
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Archive Toggle -->
+        <div class="search-section">
+            <div class="filter-group">
+                <a href="{% url 'knowledge:quick_note_list' %}" 
+                   class="btn btn-small {% if not show_archived %}btn-primary{% else %}btn-secondary{% endif %}">
+                    📋 進行中
+                </a>
+                <a href="{% url 'knowledge:quick_note_list' %}?archived=1" 
+                   class="btn btn-small {% if show_archived %}btn-primary{% else %}btn-secondary{% endif %}">
+                    📁 已歸檔
+                </a>
+            </div>
+            <span class="results-count">共 {{ notes|length }} 則筆記</span>
+        </div>
+
+        <!-- Notes Grid -->
+        <div class="team-grid" id="noteGrid">
+            {% for note in notes %}
+            <a href="{% url 'knowledge:quick_note_edit' note.pk %}" class="team-card">
+                <div class="team-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                </div>
+                <div class="team-content">
+                    <h3 class="team-name">{{ note.title }}</h3>
+                    <div class="team-meta">
+                        <span class="meta-item">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            {{ note.updated_at|date:"Y/m/d H:i" }}
+                        </span>
+                        {% if note.is_archived %}
+                        <span class="badge badge-secondary">已歸檔</span>
+                        {% endif %}
+                    </div>
+                    <span class="team-link">
+                        編輯筆記
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M5 12h14m-7-7l7 7-7 7"/>
+                        </svg>
+                    </span>
+                </div>
+            </a>
+            {% empty %}
+            <div class="empty-state" style="grid-column: 1 / -1;">
+                <svg width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="12" y1="18" x2="12" y2="12"/>
+                    <line x1="9" y1="15" x2="15" y2="15"/>
+                </svg>
+                <h3>{% if show_archived %}尚無已歸檔的筆記{% else %}尚無筆記{% endif %}</h3>
+                <p>{% if show_archived %}移入團隊的筆記會顯示在這裡{% else %}建立您的第一則筆記來開始記錄{% endif %}</p>
+                {% if not show_archived %}
+                <a href="{% url 'knowledge:quick_note_create' %}" class="btn btn-primary btn-lg" style="margin-top: 8px;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M12 5v14m-7-7h14"/>
+                    </svg>
+                    新增筆記
+                </a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+
+</html>
