@@ -7,7 +7,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ClashClassifier', '0002_mlmodel'),
+        ('ClashClassifier', '0004_mlmodel_extracted_path_alter_mlmodel_file_and_more'),
     ]
 
     operations = [
