@@ -68,9 +68,9 @@ def team_detail(request, pk):
     member_stats = User.objects.filter(
         Q(knowledge_team_memberships__team=team) | Q(created_knowledge_teams=team)
     ).distinct().annotate(
-        post_count=Count('created_knowledge_items', filter=Q(created_knowledge_items__topic__team=team)),
-        comment_count=Count('knowledge_comments', filter=Q(knowledge_comments__item__topic__team=team)),
-        file_count=Count('uploaded_item_attachments', filter=Q(uploaded_item_attachments__item__topic__team=team, uploaded_item_attachments__is_deleted=False))
+        post_count=Count('created_knowledge_items', filter=Q(created_knowledge_items__topic__team=team), distinct=True),
+        comment_count=Count('knowledge_comments', filter=Q(knowledge_comments__item__topic__team=team), distinct=True),
+        file_count=Count('uploaded_item_attachments', filter=Q(uploaded_item_attachments__item__topic__team=team, uploaded_item_attachments__is_deleted=False), distinct=True)
     ).filter(
         Q(post_count__gt=0) | Q(comment_count__gt=0) | Q(file_count__gt=0)
     ).order_by('-post_count', '-comment_count')[:10]
@@ -703,7 +703,26 @@ def add_comment(request, item_pk):
         comment.item = item
         comment.author = request.user
         comment.save()
-        messages.success(request, '留言已發表！')
+        
+        # 處理留言附件
+        files = request.FILES.getlist('comment_files')
+        from .models import CommentAttachment
+        
+        count = 0
+        for f in files:
+            CommentAttachment.objects.create(
+                comment=comment,
+                file=f,
+                filename=f.name,
+                file_size=f.size,
+                uploaded_by=request.user
+            )
+            count += 1
+            
+        if count > 0:
+            messages.success(request, f'留言已發表，並上傳了 {count} 個附件！')
+        else:
+            messages.success(request, '留言已發表！')
     
     return redirect('knowledge:item_detail', pk=item_pk)
 

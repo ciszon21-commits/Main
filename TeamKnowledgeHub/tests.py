@@ -5,7 +5,7 @@ TeamKnowledgeHub 單元測試
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from .models import KnowledgeTeam, KnowledgeTeamMember, Topic, Category, KnowledgeItem, ItemComment
+from .models import KnowledgeTeam, KnowledgeTeamMember, Topic, Category, KnowledgeItem, ItemComment, ItemAttachment
 from .forms import KnowledgeTeamForm, TopicForm, KnowledgeItemForm, ItemCommentForm
 
 
@@ -1141,3 +1141,65 @@ class QuickNoteViewTestCase(TestCase):
         self.note.refresh_from_db()
         self.assertTrue(self.note.is_archived)
         self.assertTrue(KnowledgeItem.objects.filter(title='測試筆記').exists())
+
+
+class MemberStatsTestCase(TestCase):
+    """成員貢獻統計測試 - 驗證 distinct 計算"""
+    
+    def setUp(self):
+        self.user = User.objects.create_user(username='statsuser', password='testpass123')
+        self.team = KnowledgeTeam.objects.create(name='統計測試團隊', created_by=self.user)
+        KnowledgeTeamMember.objects.create(team=self.team, user=self.user, role='creator')
+        self.topic = Topic.objects.create(team=self.team, name='測試主題')
+        self.client = Client()
+        self.client.login(username='statsuser', password='testpass123')
+
+    def test_stats_aggregation(self):
+        """測試統計聚合是否正確（避免 Join 乘積效應）"""
+        # 1. 建立一個項目
+        item = KnowledgeItem.objects.create(
+            topic=self.topic,
+            title='項目1',
+            content='內容',
+            created_by=self.user
+        )
+        
+        # 2. 為該項目建立 2 則留言
+        ItemComment.objects.create(item=item, author=self.user, content='留言1')
+        ItemComment.objects.create(item=item, author=self.user, content='留言2')
+        
+        # 3. 為該項目上傳 2 個附件
+        ItemAttachment.objects.create(
+            item=item, 
+            uploaded_by=self.user, 
+            filename='file1.txt',
+            file='path/to/file1.txt'
+        )
+        ItemAttachment.objects.create(
+            item=item, 
+            uploaded_by=self.user, 
+            filename='file2.txt',
+            file='path/to/file2.txt'
+        )
+        
+        # 4. 存取團隊詳情頁面，觸發統計計算
+        response = self.client.get(reverse('knowledge:team_detail', kwargs={'pk': self.team.pk}))
+        self.assertEqual(response.status_code, 200)
+        
+        # 5. 驗證統計數據
+        stats_list = response.context['member_stats']
+        self.assertEqual(len(stats_list), 1)
+        user_stat = stats_list[0]
+        
+        # 如果沒有 distinct=True:
+        # post_count 可能變成 1 * 2 * 2 = 4 (或 2, 取決於 join 順序)
+        # comment_count 可能變成 2 * 2 = 4 (若 join attachment) 或 2 (正確)
+        
+        # 預期正確值：
+        # post_count = 1
+        # comment_count = 2
+        # file_count = 2
+        
+        self.assertEqual(user_stat.post_count, 1, f"文章數錯誤: 預期 1, 實際 {user_stat.post_count}")
+        self.assertEqual(user_stat.comment_count, 2, f"留言數錯誤: 預期 2, 實際 {user_stat.comment_count}")
+        self.assertEqual(user_stat.file_count, 2, f"檔案數錯誤: 預期 2, 實際 {user_stat.file_count}")

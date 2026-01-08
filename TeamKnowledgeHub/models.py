@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django_ckeditor_5.fields import CKEditor5Field
+from SinoFile.fields import SinoFileField
 
 
 class KnowledgeTeam(models.Model):
@@ -227,7 +228,7 @@ class ItemAttachment(models.Model):
         related_name='attachments',
         verbose_name="所屬項目"
     )
-    file = models.FileField(
+    file = SinoFileField(
         upload_to=item_attachment_path,
         verbose_name="檔案"
     )
@@ -300,7 +301,7 @@ class CommentAttachment(models.Model):
         related_name='attachments',
         verbose_name="所屬留言"
     )
-    file = models.FileField(
+    file = SinoFileField(
         upload_to=comment_attachment_path,
         verbose_name="檔案"
     )

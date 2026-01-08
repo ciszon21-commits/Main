@@ -5,6 +5,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from .validators import validate_signing_file
+from SinoFile.fields import SinoFileField
 import uuid
 import os
 
@@ -182,12 +183,12 @@ class SigningFile(models.Model):
         related_name='files',
         verbose_name="所屬申請"
     )
-    original_file = models.FileField(
+    original_file = SinoFileField(
         upload_to=signing_file_upload_path,
         validators=[validate_signing_file],
         verbose_name="原始檔案"
     )
-    signed_file = models.FileField(
+    signed_file = SinoFileField(
         upload_to=signed_file_upload_path,
         blank=True,
         null=True,

@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from SinoFile.fields import SinoFileField
 import os
 
 class Project(models.Model):
@@ -111,7 +112,7 @@ class BaseFile(models.Model):
     discipline = models.ForeignKey(Discipline, on_delete=models.CASCADE, null=True, blank=True, verbose_name="專業分組")
     # 新增階段關聯
     stage = models.ForeignKey(Stage, on_delete=models.CASCADE, null=True, blank=True, verbose_name="標案階段")
-    file = models.FileField(upload_to='budget_review/%Y/%m/%d/', verbose_name="檔案")
+    file = SinoFileField(upload_to='budget_review/%Y/%m/%d/', verbose_name="檔案")
     file_name = models.CharField(max_length=255, verbose_name="原始檔名")
     version = models.IntegerField(default=1, verbose_name="版本號")
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="上傳者")

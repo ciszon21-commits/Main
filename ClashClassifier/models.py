@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from SinoFile.fields import SinoFileField
 
 
 class MLModel(models.Model):
@@ -16,7 +17,7 @@ class MLModel(models.Model):
         choices=MODEL_TYPE_CHOICES,
         verbose_name='模型類型'
     )
-    file = models.FileField(
+    file = SinoFileField(
         upload_to='ml_models/',
         verbose_name='模型檔案'
     )
@@ -68,11 +69,11 @@ class ClashReport(models.Model):
         max_length=255,
         verbose_name='報告標題'
     )
-    html_file = models.FileField(
+    html_file = SinoFileField(
         upload_to='clash_reports/html/%Y/%m/%d/',
         verbose_name='HTML 檔案'
     )
-    csv_file = models.FileField(
+    csv_file = SinoFileField(
         upload_to='clash_reports/csv/%Y/%m/%d/',
         blank=True,
         null=True,

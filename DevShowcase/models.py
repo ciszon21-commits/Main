@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import FileExtensionValidator
 from django_ckeditor_5.fields import CKEditor5Field
+from SinoFile.fields import SinoFileField
 
 
 class Category(models.Model):
@@ -31,7 +32,7 @@ class Achievement(models.Model):
         verbose_name="分類"
     )
     summary = models.CharField(max_length=200, verbose_name="簡介")
-    video = models.FileField(
+    video = SinoFileField(
         upload_to='achievements/videos/%Y/%m/',
         validators=[FileExtensionValidator(allowed_extensions=['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm'])],
         verbose_name="展示影片",
