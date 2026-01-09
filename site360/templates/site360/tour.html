@@ -101,6 +101,22 @@
         body.modal-open #panorama {
             pointer-events: none;
         }
+
+        #instruction-overlay {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 1.1rem;
+            z-index: 20;
+            display: none;
+            pointer-events: none;
+            white-space: nowrap;
+        }
     </style>
 </head>
 
@@ -119,6 +135,10 @@
             <button id="toggle-edit-btn" class="btn btn-outline-warning btn-sm" onclick="toggleEditMode()">
                 <i class="fas fa-edit"></i> 編輯模式
             </button>
+        </div>
+
+        <div id="instruction-overlay">
+            <i class="fas fa-mouse-pointer"></i> 雙擊畫面任意處以新增熱點
         </div>
     </div>
 
@@ -212,9 +232,11 @@
             if (isEditMode) {
                 document.body.classList.add('edit-mode');
                 $('#toggle-edit-btn').removeClass('btn-outline-warning').addClass('btn-warning').html('<i class="fas fa-check"></i> 結束編輯');
+                $('#instruction-overlay').fadeIn();
             } else {
                 document.body.classList.remove('edit-mode');
                 $('#toggle-edit-btn').removeClass('btn-warning').addClass('btn-outline-warning').html('<i class="fas fa-edit"></i> 編輯模式');
+                $('#instruction-overlay').fadeOut();
             }
         }
 
@@ -293,6 +315,10 @@
                         }
                     }
 
+                    // Disable double click zoom to allow our custom double click handler
+                    if (!data.default) data.default = {};
+                    data.default.doubleClickZoom = false;
+
                     if (viewer) {
                         viewer.destroy();
                     }
@@ -306,13 +332,13 @@
                         }
                     });
 
-                    // Mouse event for adding hotspot
-                    viewer.on('mouseup', function (event) {
+                    // Double click event for adding hotspot (Native DOM event)
+                    document.getElementById('panorama').addEventListener('dblclick', function (event) {
                         if (!isEditMode) return;
-                        // Check if it was a drag (coords change) - simple check: if mouse moves significantly, it's a drag
-                        // Pannellum 'mouseup' event gives mouseEvent.
 
+                        // Pannellum's mouseEventToCoords works with standard events
                         const coords = viewer.mouseEventToCoords(event);
+
                         // Open Add Modal
                         $('#sceneIdInput').val(viewer.getScene());
                         $('#pitchInput').val(coords[0]);
