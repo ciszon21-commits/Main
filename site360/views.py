@@ -1,20 +1,51 @@
 from django.shortcuts import render, get_object_or_404
-from django.views.generic import ListView, DetailView
+from django.views.generic import ListView, DetailView, CreateView
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-from django.views.decorators.http import require_POST
+from django.urls import reverse_lazy, reverse
+from django.db.models import Max
+from .forms import ProjectForm, SceneForm
 from .models import Project, Scene, Hotspot
+from django.views.decorators.csrf import csrf_exempt
 
 class ProjectListView(ListView):
     model = Project
     template_name = 'site360/project_list.html'
     context_object_name = 'projects'
 
+class ProjectCreateView(CreateView):
+    model = Project
+    form_class = ProjectForm
+    template_name = 'site360/project_form.html'
+    success_url = reverse_lazy('site360:project_list')
+
 class ProjectDetailView(DetailView):
     model = Project
     template_name = 'site360/project_detail.html'
     context_object_name = 'project'
+
+class SceneCreateView(CreateView):
+    model = Scene
+    form_class = SceneForm
+    template_name = 'site360/scene_form.html'
+
+    def form_valid(self, form):
+        project = get_object_or_404(Project, pk=self.kwargs['pk'])
+        form.instance.project = project
+        
+        # Auto-calculate order
+        max_order = project.scenes.aggregate(Max('order'))['order__max']
+        form.instance.order = (max_order or 0) + 1
+        
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['project'] = get_object_or_404(Project, pk=self.kwargs['pk'])
+        return context
+
+    def get_success_url(self):
+        return reverse('site360:project_detail', kwargs={'pk': self.kwargs['pk']})
+
 
 @csrf_exempt
 def save_hotspot(request):
@@ -122,6 +153,8 @@ def project_tour_data(request, pk):
     if target_scene_id and scenes.filter(id=target_scene_id).exists():
         first_scene_id = target_scene_id
     else:
+        # Fallback to the first scene in the order
+        first_scene = scenes.first()
         first_scene_id = str(first_scene.id)
     
     tour_config = {

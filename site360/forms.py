@@ -1,0 +1,24 @@
+from django import forms
+from .models import Project, Scene
+
+class ProjectForm(forms.ModelForm):
+    class Meta:
+        model = Project
+        fields = ['name', 'description', 'cover_image']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'cover_image': forms.FileInput(attrs={'class': 'form-control'}),
+        }
+
+class SceneForm(forms.ModelForm):
+    class Meta:
+        model = Scene
+        fields = ['title', 'image', 'pitch', 'yaw', 'hfov']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'image': forms.FileInput(attrs={'class': 'form-control'}),
+            'pitch': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
+            'yaw': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
+            'hfov': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
+        }
