@@ -1,0 +1,104 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公告管理 - 園路無人機預約</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'DroneReservation/css/drone.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <div class="banner banner-sm">
+        <div class="banner-content">
+            <div class="banner-info">
+                <h1 class="banner-title">
+                    <a href="{% url 'drone:dashboard' %}" class="back-link">
+                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd"
+                                d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+                        </svg>
+                    </a>
+                    公告管理
+                </h1>
+            </div>
+            <div class="banner-actions">
+                <a href="{% url 'drone:announcement_create' %}" class="btn btn-primary">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                    </svg>
+                    新增公告
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if announcements %}
+        <div class="reservation-list">
+            {% for announcement in announcements %}
+            <div class="reservation-card">
+                <div class="reservation-header">
+                    {% if announcement.is_pinned %}<span class="status-badge status-approved">📌 置頂</span>{% endif %}
+                    {% if not announcement.is_active %}<span class="status-badge status-cancelled">已停用</span>{% endif %}
+                    <span class="reservation-date">{{ announcement.updated_at|naturaltime }}</span>
+                </div>
+                <div class="reservation-body">
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">{{ announcement.title }}</h3>
+                    <p style="color: var(--text-secondary); font-size: 14px;">{{ announcement.content|striptags|truncatewords:30 }}</p>
+                    <div class="reviewer-info" style="margin-top: 10px;"><strong>建立者：</strong>{{ announcement.created_by.get_full_name|default:announcement.created_by.username }}</div>
+                </div>
+                <div class="reservation-actions">
+                    <a href="{% url 'drone:announcement_update' announcement.pk %}"
+                        class="btn btn-sm btn-primary">編輯</a>
+                    <form method="post" action="{% url 'drone:announcement_delete' announcement.pk %}"
+                        style="display: inline;" onsubmit="return confirm('確定要刪除此公告嗎？');">{% csrf_token %}<button
+                            type="submit" class="btn btn-sm btn-danger">刪除</button></form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}" class="page-link">&laquo; 上一頁</a>
+            {% endif %}
+            <span class="page-info">第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 頁</span>
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="page-link">下一頁 &raquo;</a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="empty-state">
+            <svg width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                <path
+                    d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z" />
+            </svg>
+            <h3>尚無公告</h3>
+            <p>點擊「新增公告」開始發佈</p>
+            <a href="{% url 'drone:announcement_create' %}" class="btn btn-primary">新增公告</a>
+        </div>
+        {% endif %}
+    </div>
+</body>
+
+</html>

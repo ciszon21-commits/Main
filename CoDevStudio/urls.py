@@ -29,6 +29,7 @@ urlpatterns = [
     path('synonyms/', include('SynonymManager.urls')),  # 同義詞建置工具
     path('patent/', include('PatentRegistry.urls')),  # 專利申請管理
     path('Diversion-Tunnel/', include('Inlet_Design.urls')),  # 水利工程隧道水理設計模組
+    path('drone/', include('DroneReservation.urls')),  # 園路無人機預約
 ]
 
 # 條件載入 ClashClassifier API

@@ -1,0 +1,124 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ announcement.title }} - 園路無人機預約</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'DroneReservation/css/drone.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    <style>
+        .announcement-content {
+            line-height: 1.8;
+            font-size: 15px;
+        }
+
+        .announcement-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 16px 0;
+        }
+
+        .announcement-content a {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
+
+        .announcement-content ul,
+        .announcement-content ol {
+            margin-left: 20px;
+            margin-bottom: 16px;
+        }
+
+        .announcement-content p {
+            margin-bottom: 16px;
+        }
+
+        .announcement-meta {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .announcement-meta span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="banner banner-sm">
+        <div class="banner-content">
+            <div class="banner-info">
+                <h1 class="banner-title">
+                    <a href="{% url 'drone:dashboard' %}" class="back-link">
+                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd"
+                                d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+                        </svg>
+                    </a>
+                    公告詳情
+                </h1>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="detail-container">
+            <div class="detail-card">
+                <div class="detail-header">
+                    {% if announcement.is_pinned %}
+                    <span class="status-badge status-approved">📌 置頂</span>
+                    {% endif %}
+                </div>
+                <div class="detail-section">
+                    <h1 style="font-size: 24px; font-weight: 700; margin-bottom: 16px;">{{ announcement.title }}</h1>
+                    <div class="announcement-meta">
+                        <span>
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path
+                                    d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z" />
+                            </svg>
+                            {{ announcement.created_by.get_full_name|default:announcement.created_by.username }}
+                        </span>
+                        <span>
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path
+                                    d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1z" />
+                                <path
+                                    d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z" />
+                            </svg>
+                            發佈於 {{ announcement.created_at|date:"Y年m月d日 H:i" }}
+                        </span>
+                        {% if announcement.updated_at != announcement.created_at %}
+                        <span>
+                            更新於 {{ announcement.updated_at|naturaltime }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="announcement-content">
+                        {{ announcement.content|safe }}
+                    </div>
+                </div>
+                <div class="detail-actions">
+                    <a href="{% url 'drone:dashboard' %}" class="btn btn-secondary">返回首頁</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

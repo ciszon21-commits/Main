@@ -1,0 +1,213 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>待簽核預約 - 園路無人機預約</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'DroneReservation/css/drone.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <div class="banner banner-sm">
+        <div class="banner-content">
+            <div class="banner-info">
+                <h1 class="banner-title">
+                    <a href="{% url 'drone:dashboard' %}" class="back-link">
+                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd"
+                                d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+                        </svg>
+                    </a>
+                    待簽核預約
+                    {% if pending_count > 0 %}<span class="badge badge-warning">{{ pending_count }}</span>{% endif %}
+                </h1>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="filter-section">
+            <div class="filter-tags">
+                {% for value, label in status_choices %}
+                <a href="{% url 'drone:pending_approvals' %}?status={{ value }}"
+                    class="filter-tag {% if current_status == value %}active{% endif %}">{{ label }}{% if value == 'pending' and pending_count > 0 %} ({{ pending_count }}){% endif %}</a>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if reservations %}
+        <div class="reservation-list">
+            {% for reservation in reservations %}
+            <div class="reservation-card">
+                <div class="reservation-header">
+                    <span class="status-badge {{ reservation.get_status_display_class }}">{{ reservation.get_status_display }}</span>
+                    <span class="reservation-date">{{ reservation.created_at|naturaltime }}</span>
+                </div>
+                <div class="reservation-body">
+                    <div class="reservation-applicant">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z" />
+                        </svg>
+                        <span><strong>申請人：</strong>{{ reservation.applicant.get_full_name|default:reservation.applicant.username }}</span>
+                    </div>
+                    <div class="reservation-time">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z" />
+                            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z" />
+                        </svg>
+                        <span>{{ reservation.usage_start_datetime|date:"Y/m/d H:i" }} ~ {{ reservation.usage_end_datetime|date:"Y/m/d H:i" }}</span>
+                    </div>
+                    <div class="reservation-location">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" />
+                        </svg>
+                        <span>{{ reservation.location }}</span>
+                    </div>
+                    <div class="reservation-project">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M4 0h5.293A1 1 0 0 1 10 .293L13.707 4a1 1 0 0 1 .293.707V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm5.5 1.5v2a1 1 0 0 0 1 1h2l-3-3z" />
+                        </svg>
+                        <span>計畫：{{ reservation.project_number }}</span>
+                    </div>
+                    <div class="reservation-reason"><strong>申請理由：</strong>{{ reservation.reason|truncatewords:30 }}
+                    </div>
+                    {% if reservation.status == 'rejected' and reservation.rejection_reason %}
+                    <div class="rejection-reason"><strong>拒絕理由：</strong>{{ reservation.rejection_reason }}</div>
+                    {% endif %}
+                    {% if reservation.reviewer and reservation.status != 'pending' %}
+                    <div class="reviewer-info">
+                        <strong>簽核人：</strong>{{ reservation.reviewer.get_full_name|default:reservation.reviewer.username }}
+                        {% if reservation.review_datetime %}<span class="review-time">（{{ reservation.review_datetime|naturaltime }}）</span>{% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="reservation-actions">
+                    <a href="{% url 'drone:reservation_detail' reservation.pk %}" class="btn btn-sm btn-secondary">查看詳情</a>
+                    {% if reservation.status == 'pending' %}
+                    <button type="button" class="btn btn-sm btn-success" onclick="showReviewModal({{ reservation.pk }}, 'approve')">核准</button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="showReviewModal({{ reservation.pk }}, 'reject')">拒絕</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}"
+            class="page-link">&laquo; 上一頁</a>
+        {% endif %}
+        <span class="page-info">第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 頁</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}"
+            class="page-link">下一頁 &raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <svg width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
+            <path
+                d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z" />
+            <path
+                d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z" />
+            <path
+                d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z" />
+        </svg>
+        <h3>{% if current_status == 'pending' %}目前沒有待簽核的預約{% else %}沒有符合條件的預約{% endif %}</h3>
+        <p>請稍後再查看</p>
+    </div>
+    {% endif %}
+    </div>
+
+    <div id="reviewModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">簽核預約</h3>
+                <button type="button" class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="reviewForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <input type="hidden" name="action" id="reviewAction">
+                    <div id="rejectReasonContainer" style="display: none;">
+                        <label for="rejection_reason">拒絕理由 <span class="required">*</span></label>
+                        <textarea name="rejection_reason" id="rejection_reason" class="form-control" rows="3"
+                            placeholder="請說明拒絕理由"></textarea>
+                    </div>
+                    <p id="approveConfirmText" style="display: none;">確定要核准此預約嗎？</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">確認</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showReviewModal(pk, action) {
+            var modal = document.getElementById('reviewModal');
+            var form = document.getElementById('reviewForm');
+            var actionInput = document.getElementById('reviewAction');
+            var rejectContainer = document.getElementById('rejectReasonContainer');
+            var approveText = document.getElementById('approveConfirmText');
+            var modalTitle = document.getElementById('modalTitle');
+            var submitBtn = document.getElementById('submitBtn');
+
+            form.action = '/drone/' + pk + '/review/';
+            actionInput.value = action;
+
+            if (action === 'approve') {
+                modalTitle.textContent = '核准預約';
+                rejectContainer.style.display = 'none';
+                approveText.style.display = 'block';
+                submitBtn.textContent = '確認核准';
+                submitBtn.className = 'btn btn-success';
+            } else {
+                modalTitle.textContent = '拒絕預約';
+                rejectContainer.style.display = 'block';
+                approveText.style.display = 'none';
+                submitBtn.textContent = '確認拒絕';
+                submitBtn.className = 'btn btn-danger';
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('reviewModal').style.display = 'none';
+            document.getElementById('rejection_reason').value = '';
+        }
+
+        document.getElementById('reviewModal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+
+</html>
