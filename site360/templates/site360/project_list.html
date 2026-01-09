@@ -1,0 +1,40 @@
+{% extends 'site360/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">360 專案瀏覽</h1>
+    <div class="row">
+        {% for project in projects %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                {% if project.cover_image %}
+                <img src="{{ project.cover_image.url }}" class="card-img-top" alt="{{ project.name }}"
+                    style="height: 200px; object-fit: cover;">
+                {% else %}
+                <div class="bg-secondary text-white d-flex justify-content-center align-items-center"
+                    style="height: 200px;">
+                    <span>無封面圖片</span>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ project.name }}</h5>
+                    <p class="card-text text-muted">{{ project.description|truncatechars:100 }}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">{{ project.scene_count }} 個場景</small>
+                        <a href="{% url 'site360:project_detail' project.pk %}" class="btn btn-primary">進入專案</a>
+                    </div>
+                </div>
+                <div class="card-footer text-muted">
+                    建立於: {{ project.created_at|date:"Y-m-d" }}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">目前沒有任何專案。</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

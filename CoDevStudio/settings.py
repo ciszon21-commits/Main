@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     'TeamKnowledgeHub',
     'SynonymManager',
     'PatentRegistry',
+    'site360',
 ] + local.STAGE_INSTALLED_APPS
 
 
