@@ -61,6 +61,27 @@ def delete_hotspot(request, pk):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=405)
 
+@csrf_exempt
+def reorder_scenes(request):
+    if request.method == 'POST':
+        try:
+            # Expecting scene_ids[] in POST data
+            scene_ids = request.POST.getlist('scene_ids[]')
+            if not scene_ids:
+                return JsonResponse({'status': 'error', 'message': 'No IDs provided'}, status=400)
+            
+            # Loop through IDs and update order
+            for index, scene_id in enumerate(scene_ids):
+                # Update each scene's order. 
+                # Note: This executes one query per scene. For large lists, bulk_update is better.
+                # Given < 100 scenes typically, this is acceptable for now.
+                Scene.objects.filter(id=scene_id).update(order=index)
+                
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=405)
+
 def project_tour_data(request, pk):
     """
     Returns the JSON configuration for Pannellum tour.

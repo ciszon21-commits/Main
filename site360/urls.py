@@ -10,4 +10,5 @@ urlpatterns = [
     path('project/<int:pk>/tour-data/', views.project_tour_data, name='project_tour_data'),
     path('api/hotspot/save/', views.save_hotspot, name='save_hotspot'),
     path('api/hotspot/delete/<int:pk>/', views.delete_hotspot, name='delete_hotspot'),
+    path('api/scene/reorder/', views.reorder_scenes, name='reorder_scenes'),
 ]

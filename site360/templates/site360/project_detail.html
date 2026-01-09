@@ -14,20 +14,23 @@
         <div class="card-body">
             <p class="card-text">{{ project.description }}</p>
             <p class="text-muted">建立時間: {{ project.created_at }} | 場景數量: {{ project.scenes.count }}</p>
+            <div class="alert alert-info mt-2">
+                <i class="fas fa-info-circle"></i> 您可以拖曳下方的照片卡片來調整瀏覽順序。
+            </div>
         </div>
     </div>
 
-    <div class="row">
+    <div class="row" id="scene-list">
         {% for scene in project.scenes.all %}
-        <div class="col-md-3 mb-4">
-            <div class="card h-100">
-                <a href="{% url 'site360:project_tour' project.pk %}?scene_id={{ scene.id }}">
+        <div class="col-md-3 mb-4 scene-item" data-id="{{ scene.id }}">
+            <div class="card h-100" style="cursor: move;">
+                <a href="{% url 'site360:project_tour' project.pk %}?scene_id={{ scene.id }}" class="no-drag">
                     <img src="{{ scene.image.url }}" class="card-img-top" alt="{{ scene.title }}"
-                        style="height: 150px; object-fit: cover;">
+                        style="height: 150px; object-fit: cover; pointer-events: none;">
                 </a>
                 <div class="card-body">
                     <h6 class="card-title">{{ scene.title }}</h6>
-                    <small class="text-muted">順序: {{ scene.order }}</small>
+                    <small class="text-muted">順序: <span class="order-badge">{{ scene.order }}</span></small>
                 </div>
             </div>
         </div>
@@ -42,4 +45,50 @@
         <a href="{% url 'site360:project_list' %}" class="btn btn-secondary">返回列表</a>
     </div>
 </div>
+
+<!-- SortableJS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var el = document.getElementById('scene-list');
+        var sortable = Sortable.create(el, {
+            animation: 150,
+            ghostClass: 'bg-light',
+            handle: '.card', // Drag handle
+            filter: '.no-drag', // Links are not draggable
+            preventOnFilter: false, // Allow link clicks
+            onEnd: function (evt) {
+                var order = sortable.toArray(); // This uses data-id by default if configured, but let's manual
+
+                // Collect IDs in new order
+                var sceneIds = [];
+                document.querySelectorAll('.scene-item').forEach(function (item) {
+                    sceneIds.push(item.getAttribute('data-id'));
+                });
+
+                // Send new order to backend
+                fetch("{% url 'site360:reorder_scenes' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: 'scene_ids[]=' + sceneIds.join('&scene_ids[]=')
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Optional: Update visual order numbers
+                            document.querySelectorAll('.scene-item').forEach(function (item, index) {
+                                item.querySelector('.order-badge').innerText = index;
+                            });
+                            console.log('Order saved');
+                        } else {
+                            alert('Error saving order');
+                        }
+                    });
+            }
+        });
+    });
+</script>
 {% endblock %}
