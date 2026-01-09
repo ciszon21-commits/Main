@@ -79,6 +79,7 @@ INSTALLED_APPS = [
     'SynonymManager',
     'PatentRegistry',
     'SinoFile',
+    'Inlet_Design',
 ] + local.STAGE_INSTALLED_APPS
 
 
@@ -288,3 +289,4 @@ ARCHIVE_ROOT = local.ARCHIVE_ROOT
 ARCHIVE_URL = local.ARCHIVE_URL
 TMP_ROOT = local.TMP_ROOT
 ARCHIVE_MAX_FOLDER_SIZE = local.ARCHIVE_MAX_FOLDER_SIZE
+DEBUG = True

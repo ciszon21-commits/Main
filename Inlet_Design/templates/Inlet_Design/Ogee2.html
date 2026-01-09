@@ -1,0 +1,448 @@
+{% load static %}
+<div class="d-none" id="spillway">
+    <div class="d-flex justify-content-between align-items-center">
+      <p class="mb-0 ps-5"></p>
+      <button class="btn btn-dark" onclick="showMenu()" >回到主頁</button>
+    </div>
+    <!--title-->
+    <div class="container mt-1">
+    <div><h3><b>水利工程隧道水理設計模組</b></h3>
+    <div class="gray-box "></div></div>
+    </div>
+    <!--分頁標籤-->
+    <div class='d-flex justify-content-center ps-5'>
+        <div class='nav nav-tabs pt-3 ' style="width:1350px">
+            <button class="nav-link disabled text-white "  data-bs-toggle="tab" data-bs-target="#tunnel">
+            ① 隧道段
+            </button>
+            <button class="nav-link active text-white "  data-bs-toggle="tab" data-bs-target="#ogee" style="background-color: rgba(235,90,60, 1)">
+            ② Ogee溢流堰
+            </button>
+
+            <button class="nav-link disabled text-white"  data-bs-toggle="tab" data-bs-target="#transition" >
+            ③ 進水口漸變段
+            </button>
+            <button class="nav-link disabled text-white"  data-bs-toggle="tab" data-bs-target="#transition-tunnel"  >
+            ④ 隧道漸變段
+            </button>
+            <button class="nav-link disabled text-white"  data-bs-toggle="tab" data-bs-target="#calculation"  >
+            進水口至隧道<br>
+            水面線計算
+            </button>
+            <button class="nav-link disabled text-white"  data-bs-toggle="tab" data-bs-target="#tunnel-exit"  >
+            ⑤隧道出口段
+            </button>
+        </div>
+    </div>
+    <div class="d-flex justify-content-center ps-5">
+      <div class="tab-content" style="width: 1350px;">
+          <div class="tab-pane fadee show active border border-dark p-2" id="ogee">
+              <div class="row">
+                <div class="col-7">
+                    <!-- Left side content goes here -->
+                    <div>
+                        <h5><strong><span style="color: rgba(235, 90, 60, 1);">[第一步驟]</span> 決定下游超臨界流之<u>水深d</u>及<u>堰高H</u></strong></h5>
+                    </div>
+                    <div class="card text-dark mb-3" style="max-width: 700px;background-color: rgba(245,239,231, 0.8); border: none;">
+                        <div class="card-body">
+                          <h5 class="card-title"><strong>&#10003;數據輸入：</strong></h5>
+                          <form id="calculationForm">
+                            {% csrf_token %}
+                            <label for="He">(1)設計水頭 He:</label>
+                            <input type="number" id="He" name="He" step="any" oninput="updateHe()" required> m<br><br>
+                        
+                            <label for="P">(2)上游側堰高 P:</label>
+                            <input type="number" id="P" name="P" step="any" required> m<br><br>
+                        
+                            <label for="L">(3)堰長 L:</label>
+                            <input type="number" id="L" name="L" step="any" required> m<br><br>
+                        
+                            <label for="X">(4)下游側堰高 X:</label>
+                            <input type="number" id="X" name="X" step="any" required> m (初始假設值)<br><br>
+                        
+                            <label for="C-assump">(5)堰流係數 C-assump :</label>
+                            <input type="number" id="C-assump" name="C-assump" value="2.15" step="any" required>(初始假設值，建議值：2.15)<br><br>
+                        
+                            <label for="n">(6)曼寧係數 n:</label>
+                            <input type="number" id="n" name="n" value="0.015" step="any" required> (建議值：0.015)
+                            <button type="button" id="submit_data" class="btn" style="float: right;color:white;background-color: #FF9900;width: 100px;height:70px;font-size: 25px;">
+                                <b>計算</b>
+                            </button>
+                        </form>
+                    </div>
+                    <div class="position-relative">
+                      <img class="z-0 position-absolute" src="{% static 'Inlet_Design/images/input.png' %}" alt="input_img" style="width: 700px;"/>
+                      <div class="z-1 position-absolute "id="fig1">
+                        <button type="button" class="btn-close" aria-label="Close" id="closeButton" ></button>
+                        <div id='fig_9_26'></div>
+                      </div>
+                      </div>                    
+                      </div>
+                </div>
+                <div class="col-5">
+                    <div class="card text-dark mb-3 " style=" border: none;" >
+                        <h5><strong>&#10003;計算過程(1/2)</strong></h5>
+                        <table class="table table-bordered">
+                            <thead>
+                              <tr>
+                                <th scope="col">項目</th>
+                                <th scope="col">參數(及公式)</th>
+                                <th scope="col">數值</th>
+                                <th scope="col">單位</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <th scope="row">單寬流量</th>
+                                <td>q</td>
+                                <td id='q'></td>
+                                <td>m</td>
+                              </tr>
+                              <tr>
+                                <th scope="row">堰前流速</th>
+                                <td >va</td>
+                                <td id='va'></td>
+                                <td>m/s</td>
+                              </tr>
+                              <tr>
+                                <th scope="row">堰前速度水頭</th>
+                                <td>ha</td>
+                                <td id='ha'></td>
+                                <td>m</td>
+                              </tr>
+                              <tr>
+                                <th scope="row">-</th>
+                                <td>He+P</td>
+                                <td id='he_add_p'></td>
+                                <td>m</td>
+                              </tr>
+                              <tr>
+                                <th scope="row">摩擦損失</th>
+                                <td>Sn</td>
+                                <td id='sn'></td>
+                                <td>-</td>
+                              </tr>
+                              <tr>
+                                <th scope="row">摩擦損失水頭</th>
+                                <td>Hf=Sn*L</td>
+                                <td id='hf'></td>
+                                <td>m</td>
+                              </tr>
+                              <tr>
+                                <th scope="row">束縮損失水頭</th>
+                                <td >0.1*ha</td>
+                                <td id='ha_01'></td>
+                                <td>m</td>
+                              </tr>
+                              <tr>
+                                <th scope="row">總損失水頭<br>Head loss</th>
+                                <td>Hf+0.1*ha</td>
+                                <td id='head_loss'></td>
+                                <td>m</td>
+                              </tr>
+                              <tr>
+                                <th scope="row">有效水頭</th>
+                                <td>Heff</td>
+                                <td id='heff'></td>
+                                <td>m</td>
+                              </tr>
+                              <tr>
+                                <th scope="row">-</th>
+                                <td>P/Heff</td>
+                                <td id='P_over_heff'></td>
+                                <td>-</td>
+                              </tr>
+                              <tr>
+                                <th scope="row">-</th>
+                                <td >hd+x</td>
+                                <td id='hd_add_d'></td>
+                                <td>m</td>
+                              </tr>
+                              <tr>
+                                <th scope="row">-</th>
+                                <td>(hd+d)/Heff</td>
+                                <td id="hd_add_d_over_heff"></td>
+                                <td>-</td>
+                              </tr>
+                              <tr class="table-primary">
+                                <th scope="row">-</th>
+                                <td >hd/Heff</td>
+                                <td id="hd_over_heff"></td>
+                                <td id="fig_btn">-</td>
+                              </tr>
+                              <tr>
+                                <th scope="row">上下游水位差值</th>
+                                <td>hd</td>
+                                <td id="hd"></td>
+                                <td>m</td>
+                              </tr>
+                              <tr class="table-warning">
+                                <th scope="row">下游水深</th>
+                                <td>d</td>
+                                <td id="d"></td>
+                                <td>m</td>
+                              </tr>
+                              <tr>
+                                <th scope="row">下游流速</th>
+                                <td>v=d/s</td>
+                                <td id='v'></td>
+                                <td>m/s</td>
+                              </tr>
+                              <tr>
+                                <th scope="row">下游速度水頭</th>
+                                <td>hv=v^2/2g</td>
+                                <td id='hv'></td>
+                                <td>m</td>
+                              </tr>
+                              <tr>
+                                <th scope="row">-</th>
+                                <td>hd-hv</td>
+                                <td id="hv_minus_hv"></td>
+                                <td>m</td>
+                              </tr>
+                              <tr>
+                                <th id='check' scope="row">(判斷式)</th>
+                                <td >(hd-hv)/hv</td>
+                                <td id='error'></td>
+                                <td><10%</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                    </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-7">
+                  <h5><strong>&#10003;計算過程(2/2)</strong></h5>
+                  <table class="table table-bordered">
+                    <thead>
+                      <tr>
+                        <th scope="col">項目</th>
+                        <th scope="col">參數(及公式)</th>
+                        <th scope="col">數值</th>
+                        <th scope="col">單位</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr class="table-primary">
+                        <th scope="row">堰流係數</th>
+                        <td>Co</td>
+                        <td id='co_ip'></td>
+                        <td>(英制)</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">堰流係數</th>
+                        <td>Co</td>
+                        <td id='co_si'></td>
+                        <td>(公制)</td>
+                      </tr>
+                      <tr class="table-primary">
+                        <th scope="row">堰流修正係數</th>
+                        <td>Cs/Co</td>
+                        <td id='cs_over_co'></td>
+                        <td>(公制)</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">堰流係數(採用值)</th>
+                        <td>Cs=(Cs/Co)*Co</td>
+                        <td id='cs'></td>
+                        <td>(公制)</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">堰高</th>
+                        <td>Ogee H=hd+d-Heff</td>
+                        <td id='ogee_h'></td>
+                        <td>m</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="col-4 pt-4">
+                  <h5 class="pt-5" id='text_one' style="color:blue">由P/Heff查 Fig. 9-23 得Co</h5>
+                  <h5 class="pt-5" id='text_two'style="color:blue">由(hd+d)/Heff查 Fig. 9-27得Cs/Co</h5>
+                </div>
+                <div class="col-6" id='fig_9_23'></div>
+                <div class="col-6" id='fig_9_27'></div>
+              </div>
+              <div class='row'>
+                <div class="col-4">
+                  <div>
+                    <h5><strong><span style="color: rgba(235, 90, 60, 1);">[第二步驟]</span> 決定Ogee堰型</strong></h5>
+                    <h5 class="card-title  mb-3"><strong>&#10003;第一步驟數據摘錄</strong></h5>
+                    <div class="ps-3">
+                      <table class="table table-bordered">
+                        <thead>
+                          <tr>
+                            <th scope="col">項目</th>
+                            <th scope="col">參數(及公式)</th>
+                            <th scope="col">數值</th>
+                            <th scope="col">單位</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <th scope="row">設計水頭</th>
+                            <td>Ho=He</td>
+                            <td id='Ho=He'></td>
+                            <td>m</td>
+                          </tr>
+                          <tr>
+                            <th scope="row">堰前深度</th>
+                            <td >P</td>
+                            <td id='P1'></td>
+                            <td>m</td>
+                          </tr>
+                          <tr>
+                            <th scope="row">堰流係數(採用值)</th>
+                            <td>C=Cs</td>
+                            <td id='C=Cs'></td>
+                            <td>(公制)</td>
+                          </tr>
+                          
+                        </tbody>
+                      </table>
+                    </div>
+                    <h5 class="card-title  mb-3"><strong>&#10003;各項參數</strong></h5>
+                    <div class="ps-3">
+                      <table class="table table-bordered">
+                        <thead>
+                          <tr>
+                            <th scope="col">項目</th>
+                            <th scope="col">參數(及公式)</th>
+                            <th scope="col">數值</th>
+                            <th scope="col">單位</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <th scope="row">單寬流量</th>
+                            <td>q</td>
+                            <td id='q2'></td>
+                            <td>m</td>
+                          </tr>
+                          <tr>
+                            <th scope="row">堰前流速</th>
+                            <td >va</td>
+                            <td id='va2'></td>
+                            <td>m/s</td>
+                          </tr>
+                          <tr>
+                            <th scope="row">堰前速度水頭</th>
+                            <td>ha</td>
+                            <td id='ha2'></td>
+                            <td>m</td>
+                          </tr>
+                          <tr>
+                            <th scope="row">-</th>
+                            <td>ha/Ho</td>
+                            <td id='ha/Ho'></td>
+                            <td>-</td>
+                          </tr>
+                          <tr class="table-primary">
+                            <th scope="row">-</th>
+                            <td>K</td>
+                            <td id='K'></td>
+                            <td>-</td>
+                          </tr>
+                          <tr class="table-primary">
+                            <th scope="row">-</th>
+                            <td>n</td>
+                            <td id='n2'></td>
+                            <td>-</td>
+                          </tr>
+                          <tr class="table-primary">
+                            <th scope="row">-</th>
+                            <td>Xc/Ho</td>
+                            <td id='Xc/Ho'></td>
+                            <td>-</td>
+                          </tr>
+                          <tr>
+                            <th scope="row">-</th>
+                            <td>Xc</td>
+                            <td id='Xc'></td>
+                            <td>m</td>
+                          </tr>
+                          <tr class="table-primary">
+                            <th scope="row">-</th>
+                            <td>Yc/Ho</td>
+                            <td id='Yc/Ho'></td>
+                            <td>-</td>
+                          </tr>
+                          <tr>
+                            <th scope="row">-</th>
+                            <td>Yc</td>
+                            <td id='Yc'></td>
+                            <td>m</td>
+                          </tr>
+                          <tr class="table-primary">
+                            <th scope="row">-</th>
+                            <td>R1/Ho</td>
+                            <td id='R1/Ho'></td>
+                            <td>-</td>
+                          </tr>
+                          <tr>
+                            <th scope="row">-</th>
+                            <td>R1</td>
+                            <td id='R1'></td>
+                            <td>m</td>
+                          </tr>
+                          <tr class="table-primary">
+                            <th scope="row">-</th>
+                            <td>R2/Ho</td>
+                            <td id='R2/Ho'></td>
+                            <td>-</td>
+                          </tr>
+                          <tr>
+                            <th scope="row">-</th>
+                            <td>R2</td>
+                            <td id='R2'></td>
+                            <td>m</td>
+                          </tr>
+                          <tr>
+                            <th scope="row">-</th>
+                            <td>R1-R2</td>
+                            <td id='R1-R2'></td>
+                            <td>m</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-2">
+                  <h6 class="pt-4"  style="color:blue; margin-top: 485px;">由ha/Ho查圖4得K</h6>
+                  <h6 class="pt-3" style="color:blue">由ha/Ho查圖5得n</h6>
+                  <h6 class="pt-3" style="color:blue">由ha/Ho查圖6得Xc/Ho</h6>
+                  <h6 class="pt-3" style="color:blue;margin-top: 45px;">由ha/Ho查圖7得Yc/Ho</h6>
+                  <h6 class="pt-3" style="color:blue;margin-top: 50px;">由ha/Ho查圖8得R1/Ho</h6>
+                  <h6 class="pt-3" style="color:blue;margin-top: 48px;">由ha/Ho查圖8得R2/Ho</h6>
+
+                </div>
+                <div class="col-6">
+                  <div id='fig_ogee' style="width: 600px; height: 400px;"></div>
+                  <button onclick="downloadOgeeAsCSV()" style="float: right;color:white;background-color: #FF9900;width: 65px;height:45px;font-size: 18px;"><b>下載</b></button>
+                </div>
+              </div>                  
+              <div class='row'>
+                <div class="col-6">
+                  <div id='fig_9_21_a'></div>
+                </div>
+                <div class="col-6">
+                  <div id='fig_9_21_b'></div>
+                </div>
+                <div class="col-6">
+                  <div id='fig_9_21_c'></div>
+                </div>
+                <div class="col-6">
+                  <div id='fig_9_21_d'></div>
+                </div>
+                <div class="col-6">
+                  <div id='fig_9_21_e'></div>
+                </div>
+              </div>
+              
+          
+      </div>
+    </div>
+    </div>
+  </div>
