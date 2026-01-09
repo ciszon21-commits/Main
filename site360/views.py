@@ -57,6 +57,7 @@ def save_hotspot(request):
             yaw = request.POST.get('yaw')
             title = request.POST.get('title')
             description = request.POST.get('description')
+            icon = request.POST.get('icon', 'fas fa-info-circle')
             
             scene = get_object_or_404(Scene, id=scene_id)
             
@@ -66,7 +67,8 @@ def save_hotspot(request):
                 pitch=float(pitch),
                 yaw=float(yaw),
                 title=title,
-                description=description
+                description=description,
+                icon=icon
             )
             
             if 'image' in request.FILES:
@@ -77,6 +79,19 @@ def save_hotspot(request):
             hotspot.save()
             
             return JsonResponse({'status': 'success', 'id': hotspot.id})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=405)
+
+@csrf_exempt
+def move_hotspot(request, pk):
+    if request.method == 'POST':
+        try:
+            hotspot = get_object_or_404(Hotspot, pk=pk)
+            hotspot.pitch = float(request.POST.get('pitch'))
+            hotspot.yaw = float(request.POST.get('yaw'))
+            hotspot.save()
+            return JsonResponse({'status': 'success'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=405)
@@ -208,6 +223,7 @@ def project_tour_data(request, pk):
                     "type": hs.hotspot_type,
                     "title": hs.title,
                     "description": hs.description,
+                    "icon": hs.icon, 
                     "image": hs.image.url if hs.image else "",
                     "video": hs.video.url if hs.video else ""
                 }

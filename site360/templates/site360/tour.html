@@ -102,6 +102,28 @@
             pointer-events: none;
         }
 
+        /* Hover Text Styles */
+        .hotspot-hover-text {
+            color: #ffc107;
+            /* Warning Yellow */
+        }
+
+        .hover-text-label {
+            position: absolute;
+            left: 35px;
+            /* Offset from icon */
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+            font-size: 14px;
+            pointer-events: auto;
+            /* Allow selecting text */
+        }
+
         #instruction-overlay {
             position: absolute;
             bottom: 50px;
@@ -161,10 +183,49 @@
                         <div class="mb-3">
                             <label class="form-label">類型</label>
                             <select class="form-select" name="type" id="typeSelect" onchange="updateFormFields()">
-                                <option value="text">文字公告</option>
+                                <option value="text">文字公告 (點擊顯示)</option>
+                                <option value="text_hover">懸浮文字 (直接顯示)</option>
                                 <option value="image">照片說明</option>
                                 <option value="video">影片說明</option>
                             </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">選擇圖示 (Icon)</label>
+                            <div class="d-flex gap-2 flex-wrap" id="iconSelector">
+                                <!-- Icons will be selected via radio buttons styling -->
+                                <input type="radio" class="btn-check" name="icon" id="icon1" value="fas fa-info-circle"
+                                    checked>
+                                <label class="btn btn-outline-secondary" for="icon1"><i
+                                        class="fas fa-info-circle"></i></label>
+
+                                <input type="radio" class="btn-check" name="icon" id="icon2"
+                                    value="fas fa-exclamation-triangle">
+                                <label class="btn btn-outline-secondary" for="icon2"><i
+                                        class="fas fa-exclamation-triangle"></i></label>
+
+                                <input type="radio" class="btn-check" name="icon" id="icon3" value="fas fa-camera">
+                                <label class="btn btn-outline-secondary" for="icon3"><i
+                                        class="fas fa-camera"></i></label>
+
+                                <input type="radio" class="btn-check" name="icon" id="icon4" value="fas fa-video">
+                                <label class="btn btn-outline-secondary" for="icon4"><i
+                                        class="fas fa-video"></i></label>
+
+                                <input type="radio" class="btn-check" name="icon" id="icon5"
+                                    value="fas fa-map-marker-alt">
+                                <label class="btn btn-outline-secondary" for="icon5"><i
+                                        class="fas fa-map-marker-alt"></i></label>
+
+                                <input type="radio" class="btn-check" name="icon" id="icon6"
+                                    value="fas fa-question-circle">
+                                <label class="btn btn-outline-secondary" for="icon6"><i
+                                        class="fas fa-question-circle"></i></label>
+
+                                <input type="radio" class="btn-check" name="icon" id="icon7" value="fas fa-hard-hat">
+                                <label class="btn btn-outline-secondary" for="icon7"><i
+                                        class="fas fa-hard-hat"></i></label>
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -227,7 +288,16 @@
         let currentHotspotId = null;
         let tourData = {};
 
+        // Dragging State
+        let isDraggingHotspot = false;
+        let draggedHotspotId = null;
+        let clickSuppressed = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let wasDragged = false;
+
         function toggleEditMode() {
+            // ... (keep existing)
             isEditMode = !isEditMode;
             if (isEditMode) {
                 document.body.classList.add('edit-mode');
@@ -240,28 +310,51 @@
             }
         }
 
-        function updateFormFields() {
-            const type = $('#typeSelect').val();
-            $('#imageField').addClass('d-none');
-            $('#videoField').addClass('d-none');
-            if (type === 'image') $('#imageField').removeClass('d-none');
-            if (type === 'video') $('#videoField').removeClass('d-none');
-        }
+        // ... updateFormFields ...
 
         // Custom tooltip renderer for hotspots
         window.hotspotTooltip = function (hotSpotDiv, args) {
             hotSpotDiv.classList.add('custom-hotspot');
-            let iconClass = 'fa-info-circle';
+            let iconClass = args.icon || 'fas fa-info-circle';
             let colorClass = 'hotspot-text';
 
-            if (args.type === 'image') { iconClass = 'fa-camera'; colorClass = 'hotspot-image'; }
-            if (args.type === 'video') { iconClass = 'fa-video'; colorClass = 'hotspot-video'; }
+            if (args.type === 'text_hover') {
+                colorClass = 'hotspot-hover-text';
+            }
+            if (args.type === 'image') { colorClass = 'hotspot-image'; }
+            if (args.type === 'video') { colorClass = 'hotspot-video'; }
 
             hotSpotDiv.classList.add(colorClass);
-            hotSpotDiv.innerHTML = `<i class="fas ${iconClass}"></i>`;
+            hotSpotDiv.innerHTML = `<i class="${iconClass}"></i>`;
+
+            if (args.type === 'text_hover') {
+                const label = document.createElement('div');
+                label.className = 'hover-text-label';
+                label.innerText = args.title;
+                hotSpotDiv.appendChild(label);
+            }
+
+            // Handle Dragging (Edit Mode Only)
+            hotSpotDiv.onmousedown = function (e) {
+                if (isEditMode) {
+                    e.preventDefault(); // crucial for preventing default drag behaviors
+                    e.stopPropagation(); // Stop propagation to prevent viewer drag
+
+                    isDraggingHotspot = true;
+                    draggedHotspotId = args.id;
+                    hotSpotDiv.style.cursor = 'grabbing';
+
+                    dragStartX = e.clientX;
+                    dragStartY = e.clientY;
+                    wasDragged = false;
+
+                    return false;
+                }
+            };
 
             // Handle click
             hotSpotDiv.onclick = function (e) {
+                if (clickSuppressed) return; // Don't trigger click if just finished dragging
                 e.stopPropagation(); // Prevent viewer click
                 showHotspotModal(args);
             };
@@ -291,8 +384,7 @@
             new bootstrap.Modal(document.getElementById('viewHotspotModal')).show();
         }
 
-        function loadTour() {
-            // Append current URL query parameters (like ?scene_id=123) to the API call
+        function loadTour(keepView = false) {
             const apiUrl = "{% url 'site360:project_tour_data' project.pk %}" + window.location.search;
 
             fetch(apiUrl)
@@ -300,13 +392,12 @@
                 .then(data => {
                     tourData = data;
 
-                    // Pre-process data to convert string function names to actual functions
+                    // Pre-process data
                     for (const sceneId in data.scenes) {
                         const scene = data.scenes[sceneId];
                         if (scene.hotSpots) {
                             scene.hotSpots.forEach(hs => {
                                 if (hs.createTooltipFunc && typeof hs.createTooltipFunc === 'string') {
-                                    // Pannellum expects a function reference
                                     if (window[hs.createTooltipFunc]) {
                                         hs.createTooltipFunc = window[hs.createTooltipFunc];
                                     }
@@ -315,9 +406,17 @@
                         }
                     }
 
-                    // Disable double click zoom to allow our custom double click handler
                     if (!data.default) data.default = {};
                     data.default.doubleClickZoom = false;
+
+                    // Preserve view if requested
+                    if (keepView && viewer) {
+                        data.default.pitch = viewer.getPitch();
+                        data.default.yaw = viewer.getYaw();
+                        data.default.hfov = viewer.getHfov();
+                        // Also preserve the current scene if it's different (though we reload whole tour usually)
+                        data.default.firstScene = viewer.getScene();
+                    }
 
                     if (viewer) {
                         viewer.destroy();
@@ -332,34 +431,64 @@
                         }
                     });
 
-                    // Double click event for adding hotspot (Native DOM event)
+                    // Double click event
                     document.getElementById('panorama').addEventListener('dblclick', function (event) {
                         if (!isEditMode) return;
-
-                        // Pannellum's mouseEventToCoords works with standard events
                         const coords = viewer.mouseEventToCoords(event);
-
-                        // Open Add Modal
                         $('#sceneIdInput').val(viewer.getScene());
                         $('#pitchInput').val(coords[0]);
                         $('#yawInput').val(coords[1]);
-
-                        // Reset form
                         $('#addHotspotForm')[0].reset();
+                        $('input[name="icon"][value="fas fa-info-circle"]').prop('checked', true);
                         updateFormFields();
-
                         new bootstrap.Modal(document.getElementById('addHotspotModal')).show();
                     });
+
+                    // Global Mouse Moves for Dragging
+                    // remove previous listeners to avoid duplicates if loadTour is called multiple times?
+                    // actually loadTour adds listeners to document, so they pile up! 
+                    // We should add these listeners ONLY ONCE outside loadTour or manage them.
+                    // For now, let's just not re-add them if they exist? Difficult to check anonymous.
+                    // Better: Move global listeners OUTSIDE loadTour.
                 })
                 .catch(error => {
                     console.error('Error:', error);
                 });
         }
 
-        function submitHotspot() {
-            const formData = new FormData(document.getElementById('addHotspotForm'));
-            // sceneIdInput value is actually the Pannellum scene ID (string), which happens to be our Scene database ID.
+        // MOVED GLOBAL LISTENERS OUTSIDE loadTour
+        document.addEventListener('mousemove', function (e) {
+            if (isDraggingHotspot && isEditMode) {
+                // Check for significant movement
+                if (Math.abs(e.clientX - dragStartX) > 5 || Math.abs(e.clientY - dragStartY) > 5) {
+                    wasDragged = true;
+                }
+            }
+        });
 
+        document.addEventListener('mouseup', function (e) {
+            if (isDraggingHotspot && isEditMode) {
+                if (wasDragged) {
+                    const coords = viewer.mouseEventToCoords(e);
+                    moveHotspot(draggedHotspotId, coords[0], coords[1]);
+
+                    // Suppress click for a short moment
+                    clickSuppressed = true;
+                    setTimeout(() => { clickSuppressed = false; }, 100);
+                }
+
+                // Reset states
+                isDraggingHotspot = false;
+                draggedHotspotId = null;
+                wasDragged = false;
+            } else {
+                isDraggingHotspot = false;
+            }
+        });
+
+        function submitHotspot() {
+            // ... keep existing ...
+            const formData = new FormData(document.getElementById('addHotspotForm'));
             fetch("{% url 'site360:save_hotspot' %}", {
                 method: 'POST',
                 body: formData
@@ -368,21 +497,59 @@
                 .then(data => {
                     if (data.status === 'success') {
                         bootstrap.Modal.getInstance(document.getElementById('addHotspotModal')).hide();
-                        // Reload viewer to show new hotspot (keeping current scene)
-                        const currentScene = viewer.getScene();
-                        const currentPitch = viewer.getPitch();
-                        const currentYaw = viewer.getYaw();
-
-                        loadTour(); // Reload all data
-                        // Ideally we should wait for load and then restore position, but simple reload puts us at start of scene usually.
-                        // Or we can manipulate the viewer configuration directly but reloading data is safer for data consistency.
+                        loadTour(true); // Keep View!
                     } else {
                         alert('Save failed: ' + data.message);
                     }
                 });
         }
 
+        function moveHotspot(hotspotId, pitch, yaw) {
+            const formData = new FormData();
+            formData.append('pitch', pitch);
+            formData.append('yaw', yaw);
+
+            fetch(`/site360/api/hotspot/move/${hotspotId}/`, {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Client-side update to avoid full reload
+                        const currentSceneId = viewer.getScene();
+                        // Find hotspot in tourData to get full config and update it
+                        if (tourData.scenes && tourData.scenes[currentSceneId] && tourData.scenes[currentSceneId].hotSpots) {
+                            const sceneHotSpots = tourData.scenes[currentSceneId].hotSpots;
+                            const hsIndex = sceneHotSpots.findIndex(h => h.id == hotspotId);
+
+                            if (hsIndex !== -1) {
+                                const hsConfig = sceneHotSpots[hsIndex];
+                                // Update local config
+                                hsConfig.pitch = parseFloat(pitch);
+                                hsConfig.yaw = parseFloat(yaw);
+
+                                // Pannellum remove/add
+                                // Note: Pannellum requires exact ID match. Our ID is int/string from DB.
+                                // In project_tour_data, passed as 'id': hs.id (int).
+                                viewer.removeHotSpot(hotspotId);
+                                viewer.addHotSpot(hsConfig, currentSceneId);
+                            } else {
+                                // Fallback
+                                loadTour(true);
+                            }
+                        } else {
+                            loadTour(true);
+                        }
+                    } else {
+                        alert('Move failed: ' + data.message);
+                        loadTour(true); // Revert position
+                    }
+                });
+        }
+
         function deleteCurrentHotspot() {
+            // ... keep existing ...
             if (!currentHotspotId) return;
             if (!confirm('確定要刪除此熱點嗎？')) return;
 
@@ -393,7 +560,7 @@
                 .then(data => {
                     if (data.status === 'success') {
                         bootstrap.Modal.getInstance(document.getElementById('viewHotspotModal')).hide();
-                        loadTour();
+                        loadTour(true); // Keep View!
                     } else {
                         alert('Delete failed: ' + data.message);
                     }
@@ -404,8 +571,6 @@
         loadTour();
 
         // Aggressively stop propagation for video controls
-        // This prevents clicks on the video timeline from bubbling up to Pannellum or Bootstrap handlers
-        // which might cause weird behavior (like resetting focus or reloading).
         $(document).on('mousedown mouseup click touchstart touchend pointerdown pointerup mousemove', '.video-wrapper video', function (e) {
             e.stopPropagation();
         });

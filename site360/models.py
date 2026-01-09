@@ -37,6 +37,7 @@ class Scene(models.Model):
 class Hotspot(models.Model):
     TYPE_CHOICES = (
         ('text', '文字公告 (Text)'),
+        ('text_hover', '懸浮文字 (Hover Text)'),
         ('image', '照片 (Image)'),
         ('video', '影片 (Video)'),
     )
@@ -49,6 +50,7 @@ class Hotspot(models.Model):
     description = models.TextField(_("詳細說明"), blank=True)
     image = models.ImageField(_("圖片內容"), upload_to='site360/hotspots/images/', blank=True, null=True)
     video = models.FileField(_("影片內容"), upload_to='site360/hotspots/videos/', blank=True, null=True)
+    icon = models.CharField(_("圖示"), max_length=50, default='fas fa-info-circle')
     created_at = models.DateTimeField(_("建立時間"), auto_now_add=True)
 
     class Meta:
