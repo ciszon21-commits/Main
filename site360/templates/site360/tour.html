@@ -270,7 +270,10 @@
         }
 
         function loadTour() {
-            fetch("{% url 'site360:project_tour_data' project.pk %}")
+            // Append current URL query parameters (like ?scene_id=123) to the API call
+            const apiUrl = "{% url 'site360:project_tour_data' project.pk %}" + window.location.search;
+
+            fetch(apiUrl)
                 .then(response => response.json())
                 .then(data => {
                     tourData = data;

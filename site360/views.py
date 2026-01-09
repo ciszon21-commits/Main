@@ -71,11 +71,15 @@ def project_tour_data(request, pk):
     if not scenes.exists():
         return JsonResponse({"error": "No scenes found"}, status=404)
 
-    first_scene = scenes.first()
+    target_scene_id = request.GET.get('scene_id')
+    if target_scene_id and scenes.filter(id=target_scene_id).exists():
+        first_scene_id = target_scene_id
+    else:
+        first_scene_id = str(first_scene.id)
     
     tour_config = {
         "default": {
-            "firstScene": str(first_scene.id),
+            "firstScene": first_scene_id,
             "sceneFadeDuration": 1000,
             "autoLoad": True,
             "compass": True,
