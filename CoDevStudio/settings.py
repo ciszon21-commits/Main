@@ -79,6 +79,7 @@ INSTALLED_APPS = [
     'SynonymManager',
     'PatentRegistry',
     'SinoFile',
+    'Inlet_Design',
 ] + local.STAGE_INSTALLED_APPS
 
 

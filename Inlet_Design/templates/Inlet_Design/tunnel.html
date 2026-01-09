@@ -1,0 +1,618 @@
+{% load static %}
+<div class="d-none" id="tunnel">
+    <div class="d-flex justify-content-between align-items-center">
+      <p class="mb-0 ps-5"></p>
+      <button class="btn btn-dark" onclick="showMenu()" >回到主頁</button>
+    </div>
+    <!--title-->
+    <div class="container mt-1">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+            <h3><b>水利工程隧道水理設計模組</b></h3>
+            <div class="gray-box"></div></div>
+            <div>
+                <button class="text-white" style="background-color:rgba(68,114,196,1);border-radius: 5px"><img src="{% static 'Inlet_Design/images/circle_icon.png' %}" alt="icon"style="max-width:30px"/>標準步推法公式</button>
+                <button class="text-white" style="background-color:rgba(68,114,196,1);border-radius: 5px"><img src="{% static 'Inlet_Design/images/circle_icon.png' %}" alt="icon"style="max-width:30px"/>程式架構</button>
+            </div>
+        </div>
+        
+    </div>
+    <!--分頁標籤-->
+    <div class='d-flex justify-content-center ps-5'>
+        <div class='nav nav-tabs pt-3 ' style="width:1350px">
+            <button class="nav-link active  text-white "  data-bs-toggle="tab" data-bs-target="#tunnel" style="background-color: rgba(84,130,53, 1)">
+            ① 隧道段
+            </button>
+            <button class="nav-link disabled text-white "  data-bs-toggle="tab" data-bs-target="#ogee" >
+            ② Ogee溢流堰
+            </button>
+
+            <button class="nav-link disabled text-white"  data-bs-toggle="tab" data-bs-target="#transition" >
+            ③ 進水口漸變段
+            </button>
+            <button class="nav-link disabled text-white"  data-bs-toggle="tab" data-bs-target="#transition-tunnel"  >
+            ④ 隧道漸變段
+            </button>
+            <button class="nav-link disabled text-white"  data-bs-toggle="tab" data-bs-target="#calculation"  >
+            進水口至隧道<br>
+            水面線計算
+            </button>
+            <button class="nav-link disabled text-white"  data-bs-toggle="tab" data-bs-target="#tunnel-exit"  >
+            ⑤隧道出口段
+            </button>
+        </div>
+    </div>
+    <div class="d-flex justify-content-center ps-5">
+
+        <div class="tab-content" style="width: 1350px;">
+            <div class="tab-pane fadee show active border border-dark p-2" id="tunnel">
+                <div id='choosing-btn'>
+                    <div class='d-flex justify-content-center ps-5'>
+                    <h5>請選擇 <span style="color: #BF9000;">隧道型式(二擇一)</span></h5>
+                    </div>
+                    <div class="row justify-content-center" style=" max-width:1350px">
+                        <div class='col-3 d-flex flex-column align-items-center'>
+                            <img src="{% static 'Inlet_Design/images/tunnel_horseshoe.png' %}" alt="馬蹄"  style="height:200px"/>
+                            <button onclick="choose_horseshoe()"class='text-white'style='border-radius: 5px;background-color:rgba(84,130,53, 1)' ><img src="{% static 'Inlet_Design/images/circle_icon.png' %}" alt="icon"style="max-width:30px"/>馬蹄型隧道</button>
+                        </div>
+                        <div class='col-3 d-flex flex-column align-items-center'>
+                            <img src="{% static 'Inlet_Design/images/tunnel_round.png' %}" alt="圓形"  style="height:200px"/>
+                            <button onclick="choose_round()" class='text-white'style='border-radius: 5px;background-color:rgba(84,130,53, 1)'><img src="{% static 'Inlet_Design/images/circle_icon.png' %}" alt="icon"style="max-width:30px"/>圓型隧道</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="row" id='horseshoe' style="display: none;">
+                    <div class="col-8" >
+                        <!-- Left side content goes here -->
+                        <div>
+                            <h5><strong><span style="color: rgba(235, 90, 60, 1);">[第一步驟]</span> 輸入<span style="color: rgba(0, 154, 92, 1);">綠色框</span>數值，獲得<span style="color: rgba(191, 144, 0, 1);">臨界流況</span>及相關參數</strong></h5>
+                        </div>
+                        <div class="card text-dark mb-3" style="width: 100%;background-color: rgba(245,239,231, 0.8); border: none;">
+                            <div class="card-body">
+                                <div class="row justify-content-center" style="max-width:950px">
+                                    <div class="col-5 d-flex flex-column align-items-start">
+                                        <h5 class="card-title"><strong>&#10003;隧道尺寸</strong></h5>
+                                        <div class="container">
+                                            <table id="clean-table" class="table tunnel-table" style="width: auto;">
+                                                <th></th><th></th><th></th><th></th>
+                                                <colgroup>
+                                                    <col style="width: 60%;">
+                                                    <col style="width: 10%;">
+                                                    <col style="width: 20%;">
+                                                    <col style="width: 10%;">
+                                                </colgroup>
+                                                <tr>
+                                                    <td>R(=R1,R2,B)</td>
+                                                    <td>=</td>
+                                                    <td><input class='green_iput' style="text-align:right" type="number" id="R_tunnel" name="R" step="any" oninput="updateR3()" required></td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>R3</td>
+                                                    <td>=</td>
+                                                    <td id="R3_value">--</td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>&beta;1</td>
+                                                    <td>=</td>
+                                                    <td><input class='green_iput' style="text-align:right"value="48.59038"  type="number" id="beta1_tunnel" name="beta1" step="any" oninput="updateB1()" required></td>
+                                                    <td>&deg;</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>&beta;2</td>
+                                                    <td>=</td>
+                                                    <td><input class='green_iput' style="text-align:right" value="24.29519"type="number" id="beta2_tunnel" name="beta2" step="any" oninput="updateB2()" required></td>
+                                                    <td>&deg;</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>90-&beta;2</td>
+                                                    <td>=</td>
+                                                    <td id="ninety_minus_beta2_value">--</td>
+                                                    <td>&deg;</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Yt<sub>1Max</sub></td>
+                                                    <td>=</td>
+                                                    <td id="yt1max_value">--</td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>T<sub>1Max</sub></td>
+                                                    <td>=</td>
+                                                    <td id="t1max_value">--</td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>P<sub>1Max</sub></td>
+                                                    <td>=</td>
+                                                    <td id="p1max_value">--</td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>A<sub>1Max</sub></td>
+                                                    <td>=</td>
+                                                    <td id="a1max_value">--</td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Yt<sub>2Max</sub></td>
+                                                    <td>=</td>
+                                                    <td id="yt2max_value">--</td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>T<sub>2Max</sub></td>
+                                                    <td>=</td>
+                                                    <td id="t2max_value">--</td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>P<sub>2Max</sub></td>
+                                                    <td>=</td>
+                                                    <td id="p2max_value">--</td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>A<sub>2Max</sub></td>
+                                                    <td>=</td>
+                                                    <td id="a2max_value">--</td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Y<sub>2Max</sub></td>
+                                                    <td>=</td>
+                                                    <td id="y2max_value">--</td>
+                                                    <td>m</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="col-5 d-flex flex-column align-items-start">
+                                        <h5 class="card-title"><strong>&#10003;計畫流量&臨界條件</strong></h5>
+                                        <div class="container">
+                                            <table  id="clean-table" class="table tunnel-table" style="width: auto;">
+                                                <th></th><th></th><th></th><th></th>
+                                                <colgroup>
+                                                    <col style="width: 60%;">
+                                                    <col style="width: 10%;">
+                                                    <col style="width: 20%;">
+                                                    <col style="width: 10%;">
+                                                </colgroup>
+                                                <tr>
+                                                    <td>Q</td>
+                                                    <td>=</td>
+                                                    <td><input class='green_iput' style="text-align:right" type="number" id="Q_tunnel" name="Q" step="any" oninput="updateQ()" required></td>
+                                                    <td>cms</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>y</td>
+                                                    <td>=</td>
+                                                    <td id="y_value">--</td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>B/r</td>
+                                                    <td>=</td>
+                                                    <td id='b_over_r_value'>--</td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Ac</td>
+                                                    <td >=</td>
+                                                    <td id='ac_value'>--</td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Tc</td>
+                                                    <td>=</td>
+                                                    <td id="tc_value">--</td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Pc</td>
+                                                    <td>=</td>
+                                                    <td id="pc_value">--</td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>V<sub>c</sub></td>
+                                                    <td>=</td>
+                                                    <td id="vc_value">--</td>
+                                                    <td>m/s</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Fr</td>
+                                                    <td>=</td>
+                                                    <td id="fr_value">--</td>
+                                                    <td> </td>
+                                                </tr>
+                                                <tr class="highlight-row">
+                                                    <td><h5><strong>A<sub>Total</sub></strong></h5></td>
+                                                    <td><h5><strong>=</strong></h5></td>
+                                                    <td id="atotal_value"><h5><strong>--</strong></h5></td>
+                                                    <td><h5><strong>m </strong></h5></td>
+                                                </tr>
+                                                <tr class="highlight-row">
+                                                    <td ><h5><strong>y<sub>max</sub></strong></h5></td>
+                                                    <td><h5><strong>=</td>
+                                                    <td id="ymax_value"><h5><strong>--</strong></h5></td>
+                                                    <td> <h5><strong>m </strong></h5></td>
+                                                </tr>
+                                                <tr class="highlight-row">
+                                                    <td><h5><strong>yc</strong></h5></td>
+                                                    <td><h5><strong>=</strong></h5></td>
+                                                    <td id="yc_value"><h5><strong>--</strong></h5></td>
+                                                    <td><h5><strong>m </strong></h5> </td>
+                                                </tr>
+                                                <div class="highlight-label">臨界流況</div> 
+                                            </table>
+                                        </div>
+
+                                    </div>
+                                    <div class="col-2 d-flex flex-column align-items-start">
+                                        <span style="margin-left: 68px;">*備註1</span>
+                                        <div class="container">
+                                            <table id="small-table" class="table tunnel-table3" style="width: auto;">
+                                                <th>n</th><th>Sc</th>
+                                                <tr>
+                                                    <td>0.014</td>
+                                                    <td>0.40%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>0.015</td>
+
+                                                    <td>0.46%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>0.016</td>
+                                                    <td>0.52%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>0.017</td>
+                                                    <td>0.59%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>0.018</td>
+                                                    <td>0.66%</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>               
+                        </div>
+                        <div class="card text-dark mb-3" style="width: 100%;background-color: rgba(245,239,231, 0.8); border: none;">
+                            <div class="card-body">
+                                <div class="row justify-content-center" style="max-width:950px">
+                                    <div class="col-6 d-flex flex-column align-items-start">
+                                        <h5 class="card-title"><strong>&#10003;起算條件</strong></h5>
+                                        <table  id="blue-table" class="table tunnel-table" style="max-width:300px">
+                                            <th>n</th><th>Z</th><th>S</th>
+                                            <tr>
+                                                <td><input class='green_iput' style="text-align:right;max-width:80px" value="0.018" type="number" id="n_tunnel" name="n" step="0.001"  required/></td>
+                                                <td><input  class='green_iput' style="text-align:right;max-width:80px" value="50" type="number" id="Z_tunnel" name="Z" step="any"  required/></td>
+                                                <td >
+                                                <input class='green_iput' style="text-align:right;max-width:70px" value="1.00" type="number" id="S_tunnel" name="S" step="any"  required/>
+                                                <span class="unit">%</span>
+                                                </td>
+                                                
+                                            </tr>
+                                            <tr>
+                                                <td><input class='green_iput' style="text-align:right;max-width:60px;min-height:60px" value="70" type="number" id="Critical_depth" name="Critical_depth" step="any"  required/><span class="unit">%</span></td>
+                                                <td colspan="2">of Critical depth<br>
+                                                    隧道口起算水位為多少倍的超臨界水位起算
+                                                    </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    <div class="col-6 d-flex flex-column align-items-start">
+                                        <h5 class="card-title"><strong>&#10003;隧道相關參數</strong></h5>
+                                        <table  id="clean-table2" class="table tunnel-table" >
+                                            <th></th><th></th><th></th>
+                                            <tr>
+                                                <td><span style='color:#FF0057'>Tunnel length</span></td>
+                                                <td style="text-align:right;max-width:5px">=</td>
+                                                <td style="text-align: left;"><input class='green_iput' style="text-align:right;max-width:60px;"  type="number" id="Tunnel_length" name="Tunnel_length" step="any"  required/> m</td>
+                                                
+                                            </tr>
+                                            <tr>
+                                                <td><span style='color:#FF0057'>Interval</span></td>
+                                                <td style="text-align:right;max-width:5px">=</td>
+                                                <td style="text-align: left;"><input class='green_iput' style="text-align:right;max-width:60px;"  type="number" id="Interval" name="Interval" step="any"  required/> m</td>
+                                                
+                                            </tr>
+                                            <tr>
+                                                <td><span style='color:#FF0057'>Exspansion Coeff.</span></td>
+                                                <td style="text-align:right;max-width:5px">=</td>
+                                                <td style="text-align: left;"><input class='green_iput' style="text-align:right;max-width:60px;" value="0.3" type="number" id="Exspansion" name="Exspansion" step="0.01"  required/></td>
+                                                
+                                            </tr>
+                                            <tr>
+                                                <td><span style='color:#FF0057'>Contraction Coeff.</span></td>
+                                                <td style="text-align:right;max-width:5px">=</td>
+                                                <td style="text-align: left;"><input class='green_iput' style="text-align:right;max-width:60px;" value="0.1" type="number" id="Contraction" name="Contraction" step="0.01"  required/> *備註2</td>
+                                                
+                                            </tr>
+                                        </table>
+                                        <button class="calc-button" onclick="supercritical_cal()">Supercritical 計算</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <img src="{% static 'Inlet_Design/images/tunnel_intro.JPG' %}" alt="介紹"  />
+                    </div>
+                    <div>
+                        <h5><strong><span style="color: rgba(235, 90, 60, 1);">[第二步驟]</span>當某一段面水深發散時，於另外個流況(<span style="color:#00B050">Subcritical</span> )，接續計算。 </strong></h5>
+                    </div>
+                    <div class="row justify-content-center">
+                        <div class="col-5"  style="display: flex; justify-content: flex-end;">
+                            <table  id="small-table" class="table tunnel-table" style="max-width:150px">
+                                <th style="background-color: #99CC00;">Start</th><th style="background-color: #99CC00;">End</th>
+                                <tr>
+                                    <td style="text-align:center ;width:10px;height:5px" id="start_one"></td>
+                                    <td style="text-align:center ;width:10px;height:5px" id="end_one">1</td>                       
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-5">
+                            <button class="cal-button" onclick='subcritical_cal()'style="background-color: #79B94F;color: white;">SUBCRITICAL</button>
+                        </div>
+                        <div class="col-2">
+                            <button class="output-button" onclick='tunnel_to_csv()' style="background-color: #2F5597;color: white;">輸出數據 </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="row" id='round' style="display: none;">
+                    <div class="col-8" >
+                        <!-- Left side content goes here -->
+                        <div>
+                            <h5><strong><span style="color: rgba(235, 90, 60, 1);">[第一步驟]</span> 輸入<span style="color: rgba(0, 154, 92, 1);">綠色框</span>數值，獲得<span style="color: rgba(191, 144, 0, 1);">臨界流況</span>及相關參數</strong></h5>
+                        </div>
+                        <div class="card text-dark mb-3" style="width: 100%;background-color: rgba(245,239,231, 0.8); border: none;">
+                            <div class="card-body">
+                                <div class="row justify-content-center" style="max-width:800px">
+                                    <div class="col-7 d-flex flex-column align-items-start">
+                                        <h5 class="card-title"><strong>&#10003;隧道斷面尺寸、計畫流量、臨界條件</strong></h5>
+                                        <div class="container">
+                                            <table  id="clean-table" class="table tunnel-table" style="width: auto;">
+                                                <th></th><th></th><th></th><th></th>
+                                                <colgroup>
+                                                    <col style="width: 20%;">
+                                                    <col style="width: 10%;">
+                                                    <col style="width: 20%;">
+                                                    <col style="width: 10%;">
+                                                </colgroup>
+                                                <tr>
+                                                    <td>Q</td>
+                                                    <td>=</td>
+                                                    <td><input class='green_iput' style="text-align:right" type="number" id="Q_round_tunnel" name="Q" step="any" oninput="updateRoundQ()" required></td>
+                                                    <td>cms</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>R</td>
+                                                    <td>=</td>
+                                                    <td><input class='green_iput' style="text-align:right" type="number" id="R_round_tunnel" name="R" step="any" oninput="updateRoundQ()" required></td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>B/r</td>
+                                                    <td>=</td>
+                                                    <td id='b_over_r_round_value'>--</td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Ac</td>
+                                                    <td >=</td>
+                                                    <td id='ac_round_value'>--</td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Tc</td>
+                                                    <td>=</td>
+                                                    <td id="tc_round_value">--</td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Pc</td>
+                                                    <td>=</td>
+                                                    <td id="pc_round_value">--</td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Vc</sub></td>
+                                                    <td>=</td>
+                                                    <td id="vc_round_value">--</td>
+                                                    <td>m/s</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Fr</td>
+                                                    <td>=</td>
+                                                    <td id="fr_round_value">--</td>
+                                                    <td> </td>
+                                                </tr>
+                                                <tr class="highlight-row">
+                                                    <td><h5><strong>A<sub>Total</sub></strong></h5></td>
+                                                    <td><h5><strong>=</strong></h5></td>
+                                                    <td id="atotal_round_value"><h5><strong>--</strong></h5></td>
+                                                    <td><h5><strong>m </strong></h5></td>
+                                                </tr>
+                                                <tr class="highlight-row">
+                                                    <td ><h5><strong>y<sub>max</sub></strong></h5></td>
+                                                    <td><h5><strong>=</td>
+                                                    <td id="ymax_round_value"><h5><strong>--</strong></h5></td>
+                                                    <td> <h5><strong>m </strong></h5></td>
+                                                </tr>
+                                                <tr class="highlight-row">
+                                                    <td><h5><strong>yc</strong></h5></td>
+                                                    <td><h5><strong>=</strong></h5></td>
+                                                    <td id="yc_round_value"><h5><strong>--</strong></h5></td>
+                                                    <td><h5><strong>m </strong></h5> </td>
+                                                </tr>
+                                                <div class="highlight-label">臨界流況</div> 
+                                            </table>
+                                        </div>
+
+                                    </div>
+                                    <div class="col-4 d-flex flex-column align-items-start">
+                                        <span style="margin-left: 68px;">*備註1</span>
+                                        <div class="container">
+                                            <table id="small-table" class="table tunnel-table3" style="width: auto;">
+                                                <th>n</th><th>Sc</th>
+                                                <tr>
+                                                    <td>0.014</td>
+                                                    <td>0.26%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>0.015</td>
+
+                                                    <td>0.30%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>0.016</td>
+                                                    <td>0.34%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>0.017</td>
+                                                    <td>0.39%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>0.018</td>
+                                                    <td>0.43%</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>               
+                        </div>
+                        <div class="card text-dark mb-3" style="width: 100%;background-color: rgba(245,239,231, 0.8); border: none;">
+                            <div class="card-body">
+                                <div class="row justify-content-center" style="max-width:950px">
+                                    <div class="col-6 d-flex flex-column align-items-start">
+                                        <h5 class="card-title"><strong>&#10003;起算條件</strong></h5>
+                                        <table  id="blue-table" class="table tunnel-table" style="max-width:300px">
+                                            <th>n</th><th>Z</th><th>S</th>
+                                            <tr>
+                                                <td><input class='green_iput' style="text-align:right;max-width:80px" value="0.018" type="number" id="n_round_tunnel" name="n" step="0.001"  required/></td>
+                                                <td><input  class='green_iput' style="text-align:right;max-width:80px" value="50" type="number" id="Z_round_tunnel" name="Z" step="any"  required/></td>
+                                                <td >
+                                                <input class='green_iput' style="text-align:right;max-width:70px" value="1.00" type="number" id="S_round_tunnel" name="S" step="any"  required/>
+                                                <span class="unit">%</span>
+                                                </td>
+                                                
+                                            </tr>
+                                            <tr>
+                                                <td><input class='green_iput' style="text-align:right;max-width:60px;min-height:60px" value="70" type="number" id="Critical_depth_round" name="Critical_depth" step="any"  required/><span class="unit">%</span></td>
+                                                <td colspan="2">of Critical depth<br>
+                                                    隧道口起算水位為多少倍的超臨界水位起算
+                                                    </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    <div class="col-6 d-flex flex-column align-items-start">
+                                        <h5 class="card-title"><strong>&#10003;隧道相關參數</strong></h5>
+                                        <table  id="clean-table2" class="table tunnel-table" >
+                                            <th></th><th></th><th></th>
+                                            <tr>
+                                                <td><span style='color:#FF0057'>Tunnel length</span></td>
+                                                <td style="text-align:right;max-width:5px">=</td>
+                                                <td style="text-align: left;"><input class='green_iput' style="text-align:right;max-width:60px;"  type="number" id="Tunnel_length_round" name="Tunnel_length" step="any"  required/> m</td>
+                                                
+                                            </tr>
+                                            <tr>
+                                                <td><span style='color:#FF0057'>Interval</span></td>
+                                                <td style="text-align:right;max-width:5px">=</td>
+                                                <td style="text-align: left;"><input class='green_iput' style="text-align:right;max-width:60px;"  type="number" id="Interval_round" name="Interval" step="any"  required/> m</td>
+                                                
+                                            </tr>
+                                            <tr>
+                                                <td><span style='color:#FF0057'>Exspansion Coeff.</span></td>
+                                                <td style="text-align:right;max-width:5px">=</td>
+                                                <td style="text-align: left;"><input class='green_iput' style="text-align:right;max-width:60px;" value="0.3" type="number" id="Exspansion_round" name="Exspansion" step="0.01"  required/></td>
+                                                
+                                            </tr>
+                                            <tr>
+                                                <td><span style='color:#FF0057'>Contraction Coeff.</span></td>
+                                                <td style="text-align:right;max-width:5px">=</td>
+                                                <td style="text-align: left;"><input class='green_iput' style="text-align:right;max-width:60px;" value="0.1" type="number" id="Contraction_round" name="Contraction" step="0.01"  required/> *備註2</td>
+                                                
+                                            </tr>
+                                        </table>
+                                        <button class="calc-button" onclick="supercritical_cal_round()">Supercritical 計算</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-2">
+                        <img src="{% static 'Inlet_Design/images/tunnel_intro_circle.JPG' %}" alt="介紹"  />
+                    </div>
+                    <div>
+                        <h5><strong><span style="color: rgba(235, 90, 60, 1);">[第二步驟]</span>當某一段面水深發散時，於另一個流況(<span style="color:#00B050">Subcritical</span> )，接續計算。 </strong></h5>
+                    </div>
+                    <div class="row justify-content-center">
+                        <div class="col-5"  style="display: flex; justify-content: flex-end;">
+                            <table  id="small-table" class="table tunnel-table" style="max-width:150px">
+                                <th style="background-color: #99CC00;">Start</th><th style="background-color: #99CC00;">End</th>
+                                <tr>
+                                    <td style="text-align:center ;width:10px;height:5px" id="start_one_round"></td>
+                                    <td style="text-align:center ;width:10px;height:5px" id="end_one_round">1</td>                       
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-5">
+                            <button class="cal-button" onclick='subcritical_round_cal()'style="background-color: #79B94F;color: white;">SUBCRITICAL</button>
+                        </div>
+                        <div class="col-2">
+                            <button class="output-button" onclick='tunnel_to_csv()' style="background-color: #2F5597;color: white;">輸出數據 </button>
+                        </div>
+                    </div>
+                </div>   
+                <div id='calculation-table-main' style="display: none;">
+                    <table id='calculation-table' style="width:100%">
+                        <thead>
+                            <tr>
+                            <th style="background-color: yellow;">No</th>
+                            <th>Sta</th>
+                            <th style="background-color: #aef;">Q</th>
+                            <th style="background-color: #aef;">b</th>
+                            <th style="background-color: #aef;">L</th>
+                            <th style="background-color: #aef;">n</th>
+                            <th style="background-color: #aef;">Z</th>
+                            <th style="background-color: #aef;">S (%)</th>
+                            <th style="background-color: #aef;">yc</th>
+                            <th style="background-color: #aef;">A</th>
+                            <th style="background-color: #aef;">T</th>
+                            <th style="background-color: #aef;">P</th>
+                            <th style="background-color: #aef;">R</th>
+                            <th style="background-color: #aef;">v</th>
+                            <th style="background-color: #aef;">Sf</th>
+                            <th style="background-color: #aef;">V²/2g</th>
+                            <th style="background-color: #8899aa;">hf</th>
+                            <th style="background-color: #8899aa;">hce</th>
+                            <th style="background-color: #8899aa;">he</th>
+                            <th style="background-color: #f7d469;">E</th>
+                            <th style="background-color: #f7d469;"> </th>
+                            <th style="background-color: #f7d469;">Control</th>
+                            <th style="background-color: #aef;">y (depth)</th>
+                            <th style="background-color: #f7d469;">Fr</th>
+                            <th style="background-color: #f7d469;">Water <br>level</th>
+                            <th style="background-color: #f7d469;">% Full</th>
+                            </tr>
+                            <tbody>
+                            <!-- JavaScript 會 append 的資料列進來這裡 -->
+                            </tbody>
+
+                        </thead>
+                        </table>
+                </div>          
+            </div>
+        </div>
+    </div>
+</div>

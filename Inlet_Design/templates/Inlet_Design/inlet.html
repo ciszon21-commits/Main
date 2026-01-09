@@ -1,0 +1,523 @@
+{% load static %}
+<div class="d-none" id="inlet">
+    <div class="d-flex justify-content-between align-items-center">
+        <p class="mb-0 ps-5"></p>
+        <button class="btn btn-dark" onclick="showMenu()" >回到主頁</button>
+    </div>
+    <!--title-->
+    <div class="container mt-1">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+            <h3><b>水利工程隧道水理設計模組</b></h3>
+            <div class="gray-box"></div></div>
+            <div>
+                <button class="text-white" style="background-color:rgba(68,114,196,1);border-radius: 5px"><img src="{% static 'Inlet_Design/images/circle_icon.png' %}" alt="icon"style="max-width:30px"/>程式架構</button>
+            </div>
+        </div>
+        
+    </div>
+    <!--分頁標籤-->
+    <div class='d-flex justify-content-center ps-5'>
+        <div class='nav nav-tabs pt-3 ' style="width:1500px">
+            <button class="nav-link disabled  text-white "  data-bs-toggle="tab" data-bs-target="#tunnel">
+            ① 隧道段
+            </button>
+            <button class="nav-link disabled text-white "  data-bs-toggle="tab" data-bs-target="#ogee" >
+            ② Ogee溢流堰
+            </button>
+
+            <button class="nav-link active text-white"  data-bs-toggle="tab" data-bs-target="#inlet_transition"  style="background-color: rgba(0,112,192, 1)">
+            ③ 進水口漸變段
+            </button>
+            <button class="nav-link disabled text-white"  data-bs-toggle="tab" data-bs-target="#transition-tunnel"  >
+            ④ 隧道漸變段
+            </button>
+            <button class="nav-link disabled text-white"  data-bs-toggle="tab" data-bs-target="#calculation"  >
+            進水口至隧道<br>
+            水面線計算
+            </button>
+            <button class="nav-link disabled text-white"  data-bs-toggle="tab" data-bs-target="#tunnel-exit"  >
+            ⑤隧道出口段
+            </button>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-center ps-5">
+        <div class="tab-content" style="width: 1500px;">
+            <div class="tab-pane fadee show active border border-dark p-2" id="inlet_transition">
+                <div class="row">
+                    <div class="col-7">
+                        <div>
+                            <h5>
+                                <strong><span style="color: rgba(235, 90, 60, 1);">[第一步驟]</span> 輸入<span style="color: #009A5C;">綠色框</span>數值，獲得喇趴口漸變段相關參數</strong>
+                            </h5>
+                        </div>
+                        <div class="card text-dark mb-3" style="width: 100%;background-color: rgba(245,239,231, 0.8); border: none;">
+                            <div class="card-body">
+                                <h5 class="card-title"><strong>&#10003;漸變段參數輸入</strong></h5>
+                                <div class="row justify-content-center" style="max-width:950px">
+                                    <div class="col-7 d-flex flex-column align-items-start">
+                                        <div class="container">
+                                            <table id="clean-table3" class="table tunnel-table" >
+                                                <thead>
+                                                    <tr><th></th><th></th><th></th><th></th><th></th></tr>
+                                                </thead>
+                                                <tr>
+                                                    <td>Dsg. Water Lvl</td>
+                                                    <td></td>
+                                                    <td><input class='green_iput' style="text-align:right" type="number" id="Dsg_Water" name="Dsg_Water" step="any" oninput="updateDsg_Water()"></td>
+                                                    <td>m</td>
+                                                    <td></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Starting station</td>
+                                                    <td></td>
+                                                    <td><input class='green_iput' style="text-align:right" type="number" id="Starting_station" name="Starting_station" step="any" ></td>
+                                                    <td>m</td>
+                                                    <td></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Contraction coef.</td>
+                                                    <td></td>
+                                                    <td><input class='green_iput' style="text-align:right" type="number" id="Contraction_coef" name="Contraction_coef" step="0.01" ></td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    
+                                                </tr>
+                                                <tr>
+                                                    <td>B2, trial</td>
+                                                    <td></td>
+                                                    <td><input class='green_iput' style="text-align:right" type="number" id="B2_trial" name="B2_trial" step="any"  ></td>
+                                                    <td>m</td>
+                                                    <td></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>D/S BC</td>
+                                                    <td></td>
+                                                    <td><input class='green_iput' style="text-align:right" type="number" id="D_over_S_BC" name="D_over_S_BC" step="any" ></td>
+                                                    <td>%</td>
+                                                    <td></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>n-Manning
+                                                    </td>
+                                                    <td></td>
+                                                    <td><input class='green_iput' style="text-align:right" type="number" id="n_Manning" name="n_Manning" step="0.001" ></td>
+                                                    <td></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>L-weir</td>
+                                                    <td></td>
+                                                    <td id="L_weir" style="color:green">--</td>
+                                                    <td>m</td>
+                                                    <td></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>R<sub>center</sub>
+                                                    </td>
+                                                    <td id='checked_R_center'></td>
+                                                    <td><input class='green_iput' style="text-align:right" type="number" id="R_center" name="R_center" oninput="updateAlpha()"step="1" ></td>
+                                                    <td>m</td>
+                                                    <td id='condition_R_center'></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>R<sub>wall</sub>
+                                                    </td>
+                                                    <td id='checked_R_wall'></td>
+                                                    <td><input class='green_iput' style="text-align:right" type="number" id="R_wall" name="R_wall" step="1" ></td>
+                                                    <td>m</td>
+                                                    <td id='condition_R_wall'></td>
+                                                </tr>
+                                                
+                                            </table>
+                                            <div>
+                                                <button class="calc-button2" onclick="inlet_table()"> 計算</button>
+                                            </div>
+                                            <t5>每次更改數值後，請按下「計算」<br>
+                                                *備註1：of Critical depth<br>
+                                                隧道口起算水位為多少倍的超臨界水位起算
+
+                                            </t5>
+                                        </div>
+                                    </div>
+                                    <div class="col-5 d-flex flex-column align-items-start">
+                                        <div class="container">
+                                            <table  id="clean-table3" class="table tunnel-table" >
+                                                <colgroup>
+                                                    <col style="width: 40%;">
+                                                    <col style="width: 50%;">
+                                                    <col style="width: 10%;">
+                                                </colgroup>
+                                                <thead>
+                                                    <tr><th></th><th></th><th></th></tr>
+                                                </thead>
+                                                <tr>
+                                                    <td>Q</td>
+                                                    <td id="Q_inlet" style="text-align: right;">(隧道段輸入值)</td>
+                                                    <td>cms</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Ho</td>
+                                                    <td id="He_inlet" style="text-align: right;">(Ogee堰輸入值)</td>
+                                                    <td>m</td>
+
+                                                </tr>
+                                                <tr>
+                                                    <td>Cd</td>
+                                                    <td id="Cd_inlet" style="text-align: right;">(Ogee堰輸入值)</td>
+                                                    <td>m</td>
+
+                                                </tr>
+                                                <tr>
+                                                    <td>Ogee length</td>
+                                                    <td id="Ogee_length"style="text-align: right;">(Ogee堰輸入值)</td>
+                                                    <td>m</td>
+
+                                                </tr>
+                                                <tr>
+                                                    <td>Ogee height</td>
+                                                    <td id="Ogee_height"style="text-align: right;">(Ogee堰輸入值)</td>
+                                                    <td>m</td>
+
+                                                </tr>
+                                                <tr>
+                                                    <td>L-min</td>
+                                                    <td id="L_min" style="text-align: right;">--</td>
+                                                    <td>m</td>
+
+                                                </tr>
+                                                <tr>
+                                                    <td>α
+                                                    </td>
+                                                    <td id="inlet_alpha"style="text-align: right;"></td>
+                                                    <td>°</td>
+
+                                                </tr>
+                                                <tr>
+                                                    <td>α/2</td>
+                                                    <td id="inlet_alpha_half" style="text-align: right;"></td>
+                                                    <td>°</td>
+
+                                                </tr>
+                                                <tr>
+                                                    <td>y<sub>og</sub>
+                                                    </td>
+                                                    <td id="y_og"style="text-align: right;"></td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>R<sub>ds</sub>
+                                                    </td>
+                                                    <td id="R_ds"style="text-align: right;"></td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>X<sub>og</sub>
+                                                    </td>
+                                                    <td id="X_og"style="text-align: right;"></td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>B<sub>1</sub>
+                                                    </td>
+                                                    <td id="B1_inlet" style="text-align: right;"></td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Ogee crest elv
+                                                    </td>
+                                                    <td id="Ogee_crest_elv" style="text-align: right;"></td>
+                                                    <td>m</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Toe Elevation
+                                                    </td>
+                                                    <td id="Toe_Elevation"style="text-align: right;"></td>
+                                                    <td>m</td>
+                                                </tr>
+                                                
+                                            </table>
+                                            
+                                        </div>
+                                        
+                                    </div>
+                                    <div class="col-8 card text-dark mb-3" style="width: 85%;background-color: rgba(146,208,80, 0.8); border: none;">
+                                        <ol>
+                                            <li>Automatic: y1  is estimated by using energy equation from known depth at the weir crest (y0 = critical depth). By applying higher contraction value, aims to get conservative depth due to the influence of flat surface and contraction shape (from weir length to B1). </li>
+                                        </ol>
+                                        <ol>
+                                            <li>User Input y1: if the user has another method or preference, can be input manually to the table.</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-5">
+                        <img src="{% static 'Inlet_Design/images/inlet_transition_sample.png' %}"  alt="inlet_transition_sample"style="max-width: 80%; height: auto; display: block;"/>
+                    </div>
+                </div>
+                <div>
+                    <h5>
+                        <strong><span style="color: rgba(235, 90, 60, 1);">[Initial condition for B1]</span> </strong>
+                    </h5>
+                    
+                </div>
+                <div id='calculation-inlet-initial-table-main' >
+                    <table id='calculation-inlet-initial-table' style="width:100%">
+                        <thead>
+                            <tr style="background-color: #E7E6E6;">
+                            <th >Q</th>
+                            <th >Z1</th>
+                            <th >Z2</th>
+                            <th >∆Z</th>
+                            <th >b0</th>
+                            <th >b1</th>
+                            <th >L</th>
+                            <th >n</th>
+                            <th >y0</th>
+                            <th >yc0</th>
+                            <th >A0</th>
+                            <th >P0</th>
+                            <th >R0</th>
+                            <th >V0</th>
+                            <th >Sf0</th>
+                            <th >V<sub>0</sub><sup>2</sup>/2g</th>
+                            <th >E1</th>
+                            <th >y1 </th>
+                            <th >yc1</th>
+                            <th >A1</th>
+                            <th >P</th>
+                            <th >R1</th>
+                            <th >V1</th>
+                            <th >Sf1</th>
+                            <th >V<sub>1</sub><sup>2</sup>/2g</th>
+                            <th >E1</th>
+                            <th >hf</th>
+                            <th >hce</th>
+                            <th >he</th>
+                            <th >E</th>
+                            <th >Control</th>
+                            <th >Fr1</th>
+                            <th >Fr2</th>
+                            </tr>
+                            <tbody>
+                            <!-- JavaScript 會 append 的資料列進來這裡 -->
+                            </tbody>
+
+                        </thead>
+                        </table>
+                </div>
+                <div>
+                    <h5>
+                        <strong><span style="color: rgba(235, 90, 60, 1);">[計算結果]</span> </strong>
+                    </h5>  
+                </div>
+                <div id='calculation-inlet-table-main' >
+                    <table id='calculation-inlet-table' style="width:100%">
+                        <thead>
+                            <tr>
+                            <th style="background-color: #FCE4D6;">No</th>
+                            <th style="background-color: #FCE4D6;">Q</th>
+                            <th style="background-color: #FCE4D6;">S1</th>
+                            <th style="background-color: #FCE4D6;">Z1</th>
+                            <th style="background-color: #FCE4D6;">Z2</th>
+                            <th style="background-color: #FCE4D6;">∆Z</th>
+                            <th style="background-color: #FCE4D6;">b1</th>
+                            <th style="background-color: #FCE4D6;">b2</th>
+                            <th style="background-color: #FCE4D6;">L</th>
+                            <th style="background-color: #FCE4D6;">n</th>
+                            <th style="background-color: #FFC000;">y1</th>
+                            <th style="background-color: #FFC000;">yc1</th>
+                            <th style="background-color: #FFC000;">A1</th>
+                            <th style="background-color: #FFC000;">p</th>
+                            <th style="background-color: #FFC000;">R1</th>
+                            <th style="background-color: #FFC000;">V1</th>
+                            <th style="background-color: #FFC000;">Sf1</th>
+                            <th style="background-color: #FFC000;">V<sub>1</sub><sup>2</sup>/2g</th>
+                            <th style="background-color: #FFC000;">E1</th>
+                            <th style="background-color: #83FFFC;">y2 </th>
+                            <th style="background-color: #83FFFC;">yc2</th>
+                            <th style="background-color: #83FFFC;">A2</th>
+                            <th style="background-color: #83FFFC;">P</th>
+                            <th style="background-color: #83FFFC;">R2</th>
+                            <th style="background-color: #83FFFC;">V2</th>
+                            <th style="background-color: #83FFFC;">Sf2</th>
+                            <th style="background-color: #83FFFC;">V<sub>2</sub><sup>2</sup>/2g</th>
+                            <th style="background-color: #83FFFC;">E1</th>
+                            <th style="background-color: #8497B0;">hf</th>
+                            <th style="background-color: #8497B0;">hce</th>
+                            <th style="background-color: #8497B0;">he</th>
+                            <th style="background-color: #FFD966;">E</th>
+                            <th style="background-color: #FFD966;">Control</th>
+                            <th style="background-color: #FFD966;">Fr1</th>
+                            <th style="background-color: #FFD966;">Fr2</th>
+                            </tr>
+                            <tbody>
+                            <!-- JavaScript 會 append 的資料列進來這裡 -->
+                            </tbody>
+
+                        </thead>
+                        </table>
+                </div>
+                <div class="row">
+                    <div class="col-6">
+                        <h5>
+                            <strong><span style="color: rgba(235, 90, 60, 1);">[第二步驟]</span> 依據步驟一計算之不同設計條件下的成果，選擇合適於計畫之喇叭口尺寸，於<span style="color:green">綠色框</span>輸入欄位(NO.)編號，獲得喇趴口漸變段參數</strong>
+                        </h5>
+                        <div class="card text-dark mb-3" style="width: 100%;background-color: rgba(245,239,231, 0.8);">
+                            <div class="container">
+                                <div style="width:500px">
+                                <t5>No
+                                    <select class="green_iput" style="text-align:center;width:150px; margin-left: 15px;" id="selection" name="selection" onchange="update_selection()">
+                                        <option value="" disabled selected>請選擇</option>
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+                                        <option value="6">6</option>
+                                        <option value="7">7</option>
+                                        <option value="8">8</option>
+                                        <option value="9">9</option>
+                                        <option value="10">10</option>
+                                        <option value="11">11</option>
+                                        <option value="12">12</option>
+                                        <option value="13">13</option>
+                                        <option value="14">14</option>
+                                        <option value="15">15</option>
+                                        <option value="16">16</option>
+                                        <option value="17">17</option>
+                                        <option value="18">18</option>
+                                        <option value="19">19</option>
+                                        <option value="20">20</option>
+                                      </select>
+                                <span id='user_selection'><u>*user selection</u></span>
+                                </t5><br>
+                                <t5 style="color:green">Recap table for graph</t5>
+                            </div>
+                                <table id="selection-table">
+                                    <colgroup>
+                                        <col style="width: 10%;">
+                                        <col style="width: 45%;">
+                                        <col style="width: 45%;">
+                                    </colgroup>
+                                    <thead>
+                                        <tr><th></th><th></th><th></tr>
+                                    </thead>
+                                    <tr>
+                                        <td>1</td>
+                                        <td >X<sub>og</sub></td>
+                                        <td id="selection_xog"></td>
+                                        
+                                    </tr>
+                                    <tr>
+                                        <td>2</td>
+                                        <td >Y<sub>og</sub></td>
+                                        <td id="selection_yog"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>3</td>
+                                        <td>Lr</td>
+                                        <td id="selection_Lr"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>4
+                                        </td>
+                                        <td >R<sub>ds</sub></td>
+                                        <td id="selection_Rds"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>5</td>
+                                        <td>R<sub>center</sub></td>
+                                        <td id="selection_Rcenter"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>6</sub>
+                                        </td>
+                                        <td>R<sub>wall</sub></td>
+                                        <td id="selection_Rwall"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>7
+                                        </td>
+                                        <td>α</td>
+                                        <td id="selection_alpha"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>8
+                                        </td>
+                                        <td>B1</td>
+                                        <td id="selection_b1"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>9
+                                        </td>
+                                        <td>B2</td>
+                                        <td id="selection_b2"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>10
+                                        </td>
+                                        <td>L1</td>
+                                        <td id="selection_L1"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>11
+                                        </td>
+                                        <td>Ltotal</td>
+                                        <td id="selection_Ltotal"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>12
+                                        </td>
+                                        <td>Z1</td>
+                                        <td id="selection_Z1"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>13
+                                        </td>
+                                        <td>Z2</td>
+                                        <td id="selection_Z2"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>14
+                                        </td>
+                                        <td>S1</td>
+                                        <td id="selection_S1"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>15
+                                        </td>
+                                        <td>y2</td>
+                                        <td id="selection_y2"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>16
+                                        </td>
+                                        <td>y1</td>
+                                        <td id="selection_y1"></td>
+                                    </tr>
+                                    
+                                </table>
+                                <div>
+                                    <button class="calc-button2" onclick="inlet_draw()" > 繪圖
+                                    </button>
+                                </div>
+                                <t5>按下「計算」後須檢核【第一步驟】R<sub>center</sub>、R<sub>wall</sub> 這兩筆數據是否在建議的範圍內，若不OK，則須修改此兩值，或重新選擇合適的NO.，
+                                    選擇完成後分別別都需要再按下「計算」
+                                </t5>
+                            </div> 
+
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div id='fig_inlet' style="width:100%;"></div>
+                        <div id='fig_inlet_side_view' style="width:100%;"></div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
