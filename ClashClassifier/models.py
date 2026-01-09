@@ -21,7 +21,7 @@ class MLModel(models.Model):
         choices=MODEL_TYPE_CHOICES,
         verbose_name='模型類型'
     )
-    file = SinoFileField(
+    file = models.FileField(
         upload_to='ml_models/',
         verbose_name='模型檔案',
         help_text='sentence_transformer 請上傳 ZIP 檔'
