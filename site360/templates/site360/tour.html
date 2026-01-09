@@ -175,6 +175,42 @@
             opacity: 0.9;
         }
 
+        .hover-video-label {
+            position: absolute;
+            left: 35px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px;
+            border-radius: 8px;
+            pointer-events: auto;
+            min-width: 150px;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        .hover-video-label video {
+            width: 100%;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .hover-video-label strong {
+            display: block;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 2px;
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+
+        .hover-video-label small {
+            display: block;
+            opacity: 0.9;
+        }
+
         #instruction-overlay {
             position: absolute;
             bottom: 50px;
@@ -263,7 +299,8 @@
                                 <option value="text_hover">懸浮文字 (直接顯示)</option>
                                 <option value="image">照片說明 (點擊顯示)</option>
                                 <option value="image_hover">懸浮照片 (直接顯示)</option>
-                                <option value="video">影片說明</option>
+                                <option value="video">影片說明 (點擊播放)</option>
+                                <option value="video_hover">懸浮影片 (直接顯示)</option>
                             </select>
                         </div>
 
@@ -407,7 +444,7 @@
             if (type === 'image' || type === 'image_hover') {
                 $('#imageField').removeClass('d-none');
                 $('#videoField').addClass('d-none');
-            } else if (type === 'video') {
+            } else if (type === 'video' || type === 'video_hover') {
                 $('#videoField').removeClass('d-none');
                 $('#imageField').addClass('d-none');
             } else {
@@ -428,6 +465,7 @@
             if (args.type === 'image') { colorClass = 'hotspot-image'; }
             if (args.type === 'image_hover') { colorClass = 'hotspot-image'; }
             if (args.type === 'video') { colorClass = 'hotspot-video'; }
+            if (args.type === 'video_hover') { colorClass = 'hotspot-video'; }
 
             hotSpotDiv.classList.add(colorClass);
             hotSpotDiv.innerHTML = `<i class="${iconClass}" style="pointer-events: none;"></i>`;
@@ -444,6 +482,22 @@
                 let content = '';
                 if (args.image) {
                     content += `<img src="${args.image}">`;
+                }
+                content += `<strong>${args.title}</strong>`;
+                if (args.description) {
+                    content += `<small>${args.description}</small>`;
+                }
+                label.innerHTML = content;
+                hotSpotDiv.appendChild(label);
+            }
+
+            if (args.type === 'video_hover') {
+                const label = document.createElement('div');
+                label.className = 'hover-video-label';
+
+                let content = '';
+                if (args.video) {
+                    content += `<video muted loop playsinline autoplay><source src="${args.video}" type="video/mp4"></video>`;
                 }
                 content += `<strong>${args.title}</strong>`;
                 if (args.description) {
@@ -495,7 +549,7 @@
             let mediaHtml = '';
             if ((data.type === 'image' || data.type === 'image_hover') && data.image) {
                 mediaHtml = `<img src="${data.image}" class="img-fluid" style="max-height: 400px; display: block; margin: 0 auto;">`;
-            } else if (data.type === 'video' && data.video) {
+            } else if ((data.type === 'video' || data.type === 'video_hover') && data.video) {
                 mediaHtml = `<div class="video-wrapper ratio ratio-16x9"><video controls class="w-100" style="max-height: 400px; object-fit: contain;"><source src="${data.video}" type="video/mp4"></video></div>`;
             }
             $('#viewMedia').html(mediaHtml);

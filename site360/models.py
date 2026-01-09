@@ -41,6 +41,7 @@ class Hotspot(models.Model):
         ('image', '照片 (Image)'),
         ('image_hover', '懸浮照片 (Hover Image)'),
         ('video', '影片 (Video)'),
+        ('video_hover', '懸浮影片 (Hover Video)'),
     )
 
     scene = models.ForeignKey(Scene, on_delete=models.CASCADE, related_name='hotspots', verbose_name=_("所屬場景"))
