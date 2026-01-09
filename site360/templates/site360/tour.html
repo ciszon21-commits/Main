@@ -11,6 +11,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Plyr.js CSS -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <!-- Plyr.js JS -->
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
 
     <style>
         body,
@@ -194,7 +198,6 @@
         .hover-video-label video {
             width: 100%;
             border-radius: 4px;
-            margin-bottom: 8px;
             display: block;
         }
 
@@ -206,9 +209,17 @@
             font-size: 15px;
         }
 
-        .hover-video-label small {
-            display: block;
-            opacity: 0.9;
+        /* Plyr consistency in hover label */
+        .hover-video-label .plyr {
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        /* Adjust Plyr font size for small labels */
+        .hover-video-label .plyr--video {
+            --plyr-font-size-small: 10px;
+            --plyr-control-spacing: 6px;
         }
 
         #instruction-overlay {
@@ -250,6 +261,34 @@
         .pnlm-panorama-info {
             display: none !important;
         }
+
+        /* Modal Responsiveness Improvements */
+        .modal-dialog-centered {
+            display: flex;
+            align-items: center;
+            min-height: calc(100% - 3.5rem);
+        }
+
+        .modal-content {
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-body {
+            overflow-y: auto;
+            max-height: 80vh;
+        }
+
+        /* Ensure images and videos in modal are constrained */
+        #viewMedia img,
+        #viewMedia video,
+        #viewMedia .plyr-container {
+            max-width: 100%;
+            max-height: 60vh;
+            object-fit: contain;
+            border-radius: 4px;
+        }
     </style>
 </head>
 
@@ -279,7 +318,7 @@
 
     <!-- Add Hotspot Modal -->
     <div class="modal fade" id="addHotspotModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">新增/編輯熱點</h5>
@@ -385,7 +424,7 @@
 
     <!-- View/Delete Hotspot Modal -->
     <div class="modal fade" id="viewHotspotModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="viewTitle">熱點詳情</h5>
@@ -497,7 +536,7 @@
 
                 let content = '';
                 if (args.video) {
-                    content += `<video muted loop playsinline autoplay><source src="${args.video}" type="video/mp4"></video>`;
+                    content += `<div class="video-container"><video playsinline muted loop autoplay><source src="${args.video}" type="video/mp4"></video></div>`;
                 }
                 content += `<strong>${args.title}</strong>`;
                 if (args.description) {
@@ -505,6 +544,30 @@
                 }
                 label.innerHTML = content;
                 hotSpotDiv.appendChild(label);
+
+                // Initialize Plyr
+                if (args.video) {
+                    const videoEl = label.querySelector('video');
+                    const player = new Plyr(videoEl, {
+                        controls: ['play', 'progress', 'current-time', 'mute'],
+                        autoplay: true,
+                        muted: true,
+                        loop: { active: true },
+                        hideControls: false
+                    });
+
+                    // Block interactions from reaching Pannellum background
+                    const plyrDiv = label.querySelector('.plyr');
+                    if (plyrDiv) {
+                        ['mousedown', 'mouseup', 'mousemove', 'click', 'dblclick', 'touchstart', 'touchend', 'wheel'].forEach(evtType => {
+                            plyrDiv.addEventListener(evtType, (e) => {
+                                e.stopPropagation();
+                                // Do NOT use stopImmediatePropagation or capture:true here 
+                                // to allow Plyr's internal buttons to function.
+                            });
+                        });
+                    }
+                }
             }
 
             if (args.type === 'text_hover') {
@@ -550,9 +613,14 @@
             if ((data.type === 'image' || data.type === 'image_hover') && data.image) {
                 mediaHtml = `<img src="${data.image}" class="img-fluid" style="max-height: 400px; display: block; margin: 0 auto;">`;
             } else if ((data.type === 'video' || data.type === 'video_hover') && data.video) {
-                mediaHtml = `<div class="video-wrapper ratio ratio-16x9"><video controls class="w-100" style="max-height: 400px; object-fit: contain;"><source src="${data.video}" type="video/mp4"></video></div>`;
+                mediaHtml = `<div class="plyr-container"><video id="plyr-player" playsinline controls><source src="${data.video}" type="video/mp4"></video></div>`;
             }
             $('#viewMedia').html(mediaHtml);
+
+            // Initialize Plyr in Modal
+            if ((data.type === 'video' || data.type === 'video_hover') && data.video) {
+                new Plyr('#plyr-player');
+            }
 
             if (isEditMode) {
                 $('#deleteBtn').removeClass('d-none');

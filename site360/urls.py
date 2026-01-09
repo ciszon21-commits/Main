@@ -15,4 +15,5 @@ urlpatterns = [
     path('api/hotspot/move/<int:pk>/', views.move_hotspot, name='move_hotspot'),
     path('api/scene/reorder/', views.reorder_scenes, name='reorder_scenes'),
     path('api/scene/set-cover/<int:pk>/', views.set_cover_image, name='set_cover_image'),
+    path('api/video/<int:pk>/', views.serve_hotspot_video, name='serve_hotspot_video'),
 ]

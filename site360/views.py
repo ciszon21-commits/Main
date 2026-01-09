@@ -6,6 +6,9 @@ from django.db.models import Max
 from .forms import ProjectForm, SceneForm
 from .models import Project, Scene, Hotspot
 from django.views.decorators.csrf import csrf_exempt
+from django.http import StreamingHttpResponse
+import os
+import re
 
 class ProjectListView(ListView):
     model = Project
@@ -169,6 +172,63 @@ def set_cover_image(request, pk):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=405)
 
+def serve_hotspot_video(request, pk):
+    """
+    Serves hotspot video with HTTP Range support for seeking (critical for Dev Server).
+    """
+    hotspot = get_object_or_404(Hotspot, pk=pk)
+    if not hotspot.video:
+        return JsonResponse({"error": "No video for this hotspot"}, status=404)
+    
+    file_path = hotspot.video.path
+    if not os.path.exists(file_path):
+        return JsonResponse({"error": "Video file not found"}, status=404)
+        
+    file_size = os.path.getsize(file_path)
+    
+    range_header = request.META.get('HTTP_RANGE', '').strip()
+    range_match = re.match(r'bytes=(\d+)-(\d*)', range_header)
+    
+    if range_match:
+        first_byte, last_byte = range_match.groups()
+        first_byte = int(first_byte) if first_byte else 0
+        last_byte = int(last_byte) if last_byte else file_size - 1
+        if last_byte >= file_size:
+            last_byte = file_size - 1
+        length = last_byte - first_byte + 1
+        
+        def file_iterator(path, offset, length, chunk_size=8192):
+            with open(path, 'rb') as f:
+                f.seek(offset)
+                remaining = length
+                while remaining > 0:
+                    read_size = min(chunk_size, remaining)
+                    data = f.read(read_size)
+                    if not data:
+                        break
+                    yield data
+                    remaining -= len(data)
+
+        response = StreamingHttpResponse(file_iterator(file_path, first_byte, length), status=206, content_type='video/mp4')
+        response['Content-Range'] = f'bytes {first_byte}-{last_byte}/{file_size}'
+        response['Accept-Ranges'] = 'bytes'
+        response['Content-Length'] = str(length)
+    else:
+        # Full content
+        def file_iterator(path, chunk_size=8192):
+            with open(path, 'rb') as f:
+                while True:
+                    data = f.read(chunk_size)
+                    if not data:
+                        break
+                    yield data
+
+        response = StreamingHttpResponse(file_iterator(file_path), content_type='video/mp4')
+        response['Content-Length'] = str(file_size)
+        response['Accept-Ranges'] = 'bytes'
+    
+    return response
+
 def project_tour_data(request, pk):
     """
     Returns the JSON configuration for Pannellum tour.
@@ -241,7 +301,7 @@ def project_tour_data(request, pk):
                     "icon": hs.icon, 
                     "icon_color": hs.icon_color,
                     "image": hs.image.url if hs.image else "",
-                    "video": hs.video.url if hs.video else ""
+                    "video": reverse('site360:serve_hotspot_video', kwargs={'pk': hs.id}) if hs.video else ""
                 }
             }
             hotspots.append(hs_data)
