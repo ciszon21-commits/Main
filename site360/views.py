@@ -51,6 +51,7 @@ class SceneCreateView(CreateView):
 def save_hotspot(request):
     if request.method == 'POST':
         try:
+            hotspot_id = request.POST.get('hotspot_id')
             scene_id = request.POST.get('scene_id')
             hotspot_type = request.POST.get('type')
             pitch = request.POST.get('pitch')
@@ -59,17 +60,28 @@ def save_hotspot(request):
             description = request.POST.get('description')
             icon = request.POST.get('icon', 'fas fa-info-circle')
             
-            scene = get_object_or_404(Scene, id=scene_id)
-            
-            hotspot = Hotspot(
-                scene=scene,
-                hotspot_type=hotspot_type,
-                pitch=float(pitch),
-                yaw=float(yaw),
-                title=title,
-                description=description,
-                icon=icon
-            )
+            if hotspot_id:
+                # Update existing
+                hotspot = get_object_or_404(Hotspot, id=hotspot_id)
+                hotspot.hotspot_type = hotspot_type
+                hotspot.title = title
+                hotspot.description = description
+                hotspot.icon = icon
+                # Only update pitch/yaw if provided (though usually they are hidden fields)
+                if pitch: hotspot.pitch = float(pitch)
+                if yaw: hotspot.yaw = float(yaw)
+            else:
+                # Create new
+                scene = get_object_or_404(Scene, id=scene_id)
+                hotspot = Hotspot(
+                    scene=scene,
+                    hotspot_type=hotspot_type,
+                    pitch=float(pitch),
+                    yaw=float(yaw),
+                    title=title,
+                    description=description,
+                    icon=icon
+                )
             
             if 'image' in request.FILES:
                 hotspot.image = request.FILES['image']

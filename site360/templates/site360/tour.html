@@ -45,7 +45,7 @@
         #title-overlay {
             position: absolute;
             top: 10px;
-            left: 10px;
+            left: 55px;
             color: white;
             text-shadow: 1px 1px 3px black;
         }
@@ -116,12 +116,64 @@
             transform: translateY(-50%);
             background: rgba(0, 0, 0, 0.7);
             color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            white-space: nowrap;
+            padding: 6px 12px;
+            border-radius: 6px;
             font-size: 14px;
             pointer-events: auto;
+            min-width: 120px;
+            max-width: 250px;
+            line-height: 1.4;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
             /* Allow selecting text */
+        }
+
+        .hover-text-label strong {
+            display: block;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 2px;
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+
+        .hover-text-label small {
+            display: block;
+            opacity: 0.9;
+        }
+
+        .hover-image-label {
+            position: absolute;
+            left: 35px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px;
+            border-radius: 8px;
+            pointer-events: auto;
+            min-width: 150px;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        .hover-image-label img {
+            width: 100%;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .hover-image-label strong {
+            display: block;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 2px;
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+
+        .hover-image-label small {
+            display: block;
+            opacity: 0.9;
         }
 
         #instruction-overlay {
@@ -176,20 +228,24 @@
                 </div>
                 <div class="modal-body">
                     <form id="addHotspotForm">
+                        <input type="hidden" name="hotspot_id" id="hotspotIdInput">
                         <input type="hidden" name="scene_id" id="sceneIdInput">
                         <input type="hidden" name="pitch" id="pitchInput">
                         <input type="hidden" name="yaw" id="yawInput">
 
                         <div class="mb-3">
                             <label class="form-label">類型</label>
+                            <!-- ... select content ... -->
                             <select class="form-select" name="type" id="typeSelect" onchange="updateFormFields()">
                                 <option value="text">文字公告 (點擊顯示)</option>
                                 <option value="text_hover">懸浮文字 (直接顯示)</option>
-                                <option value="image">照片說明</option>
+                                <option value="image">照片說明 (點擊顯示)</option>
+                                <option value="image_hover">懸浮照片 (直接顯示)</option>
                                 <option value="video">影片說明</option>
                             </select>
                         </div>
 
+                        <!-- ... rest of form ... -->
                         <div class="mb-3">
                             <label class="form-label">選擇圖示 (Icon)</label>
                             <div class="d-flex gap-2 flex-wrap" id="iconSelector">
@@ -269,6 +325,8 @@
                     <p id="viewDescription"></p>
                 </div>
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-warning d-none" id="editBtn"
+                        onclick="editHotspot()">編輯</button>
                     <button type="button" class="btn btn-danger d-none" id="deleteBtn"
                         onclick="deleteCurrentHotspot()">刪除熱點</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
@@ -310,7 +368,19 @@
             }
         }
 
-        // ... updateFormFields ...
+        function updateFormFields() {
+            const type = $('#typeSelect').val();
+            if (type === 'image' || type === 'image_hover') {
+                $('#imageField').removeClass('d-none');
+                $('#videoField').addClass('d-none');
+            } else if (type === 'video') {
+                $('#videoField').removeClass('d-none');
+                $('#imageField').addClass('d-none');
+            } else {
+                $('#imageField').addClass('d-none');
+                $('#videoField').addClass('d-none');
+            }
+        }
 
         // Custom tooltip renderer for hotspots
         window.hotspotTooltip = function (hotSpotDiv, args) {
@@ -322,15 +392,37 @@
                 colorClass = 'hotspot-hover-text';
             }
             if (args.type === 'image') { colorClass = 'hotspot-image'; }
+            if (args.type === 'image_hover') { colorClass = 'hotspot-image'; }
             if (args.type === 'video') { colorClass = 'hotspot-video'; }
 
             hotSpotDiv.classList.add(colorClass);
             hotSpotDiv.innerHTML = `<i class="${iconClass}"></i>`;
 
+            if (args.type === 'image_hover') {
+                const label = document.createElement('div');
+                label.className = 'hover-image-label';
+
+                let content = '';
+                if (args.image) {
+                    content += `<img src="${args.image}">`;
+                }
+                content += `<strong>${args.title}</strong>`;
+                if (args.description) {
+                    content += `<small>${args.description}</small>`;
+                }
+                label.innerHTML = content;
+                hotSpotDiv.appendChild(label);
+            }
+
             if (args.type === 'text_hover') {
                 const label = document.createElement('div');
                 label.className = 'hover-text-label';
-                label.innerText = args.title;
+
+                let content = `<strong>${args.title}</strong>`;
+                if (args.description) {
+                    content += `<small>${args.description}</small>`;
+                }
+                label.innerHTML = content;
                 hotSpotDiv.appendChild(label);
             }
 
@@ -366,7 +458,7 @@
             $('#viewDescription').text(data.description);
 
             let mediaHtml = '';
-            if (data.type === 'image' && data.image) {
+            if ((data.type === 'image' || data.type === 'image_hover') && data.image) {
                 mediaHtml = `<img src="${data.image}" class="img-fluid" style="max-height: 400px;">`;
             } else if (data.type === 'video' && data.video) {
                 // Use a wrapper and handle events in JS to be cleaner and more robust
@@ -374,14 +466,51 @@
             }
             $('#viewMedia').html(mediaHtml);
 
-            // Show delete button only in edit mode
+            // Show delete and edit buttons only in edit mode
             if (isEditMode) {
                 $('#deleteBtn').removeClass('d-none');
+                $('#editBtn').removeClass('d-none');
             } else {
                 $('#deleteBtn').addClass('d-none');
+                $('#editBtn').addClass('d-none');
             }
 
             new bootstrap.Modal(document.getElementById('viewHotspotModal')).show();
+        }
+
+        function editHotspot() {
+            if (!currentHotspotId) return;
+
+            // Find current hotspot data
+            const currentSceneId = viewer.getScene();
+            const sceneHotSpots = tourData.scenes[currentSceneId].hotSpots;
+            const hsData = sceneHotSpots.find(h => h.id == currentHotspotId);
+
+            if (!hsData) return;
+
+            // Close View Modal
+            bootstrap.Modal.getInstance(document.getElementById('viewHotspotModal')).hide();
+
+            // Open Add Modal with data
+            $('#hotspotIdInput').val(hsData.createTooltipArgs.id);
+            $('#sceneIdInput').val(currentSceneId); // Though not strictly needed for update if ID exists
+            $('#pitchInput').val(hsData.pitch);
+            $('#yawInput').val(hsData.yaw);
+
+            $('#typeSelect').val(hsData.createTooltipArgs.type);
+            updateFormFields(); // Trigger visibility update for media fields
+
+            // Icon selection
+            const icon = hsData.createTooltipArgs.icon || 'fas fa-info-circle';
+            $(`input[name="icon"][value="${icon}"]`).prop('checked', true);
+
+            $('input[name="title"]').val(hsData.createTooltipArgs.title);
+            $('textarea[name="description"]').val(hsData.createTooltipArgs.description);
+
+            // Change Modal Title and Button text
+            $('#addHotspotModal .modal-title').text('編輯熱點');
+
+            new bootstrap.Modal(document.getElementById('addHotspotModal')).show();
         }
 
         function loadTour(keepView = false) {
@@ -438,7 +567,11 @@
                         $('#sceneIdInput').val(viewer.getScene());
                         $('#pitchInput').val(coords[0]);
                         $('#yawInput').val(coords[1]);
+
+                        // Clear Hotspot ID for new creation
+                        $('#hotspotIdInput').val('');
                         $('#addHotspotForm')[0].reset();
+                        $('#addHotspotModal .modal-title').text('新增熱點');
                         $('input[name="icon"][value="fas fa-info-circle"]').prop('checked', true);
                         updateFormFields();
                         new bootstrap.Modal(document.getElementById('addHotspotModal')).show();

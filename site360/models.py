@@ -39,11 +39,12 @@ class Hotspot(models.Model):
         ('text', '文字公告 (Text)'),
         ('text_hover', '懸浮文字 (Hover Text)'),
         ('image', '照片 (Image)'),
+        ('image_hover', '懸浮照片 (Hover Image)'),
         ('video', '影片 (Video)'),
     )
 
     scene = models.ForeignKey(Scene, on_delete=models.CASCADE, related_name='hotspots', verbose_name=_("所屬場景"))
-    hotspot_type = models.CharField(_("類型"), max_length=10, choices=TYPE_CHOICES, default='text')
+    hotspot_type = models.CharField(_("類型"), max_length=20, choices=TYPE_CHOICES, default='text')
     pitch = models.FloatField(_("俯仰角 (Pitch)"))
     yaw = models.FloatField(_("偏航角 (Yaw)"))
     title = models.CharField(_("標題"), max_length=200)
