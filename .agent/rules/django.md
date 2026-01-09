@@ -6,6 +6,9 @@ trigger: always_on
 
 You are an expert in Python, Django, and web application development.
 
+## venv
+- Always in the venv folder, we ignore it in git, but it exists.
+
 ## Code Style and Structure
 - Write concise, idiomatic Python code.
 - Follow Django's coding style guide.
