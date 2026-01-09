@@ -26,6 +26,8 @@ urlpatterns = [
     path('er-model/', include('ERModelGenerator.urls')),  # ER Model 圖表產生器
     path('ev-signing/', include('EVCodeSigning.urls')),  # EV Code Signing 簽章管理
     path('knowledge/', include('TeamKnowledgeHub.urls')),  # 團隊知識管理
+    path('ai-tools/', include('AIToolsHub.urls')),  # AI 工具分享
+    path('drone/', include('DroneReservation.urls')),  # 園路無人機預約
 ]
 
 # 開發環境下提供 media 檔案服務

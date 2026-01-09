@@ -1,0 +1,147 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的預約申請 - 園路無人機預約</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'DroneReservation/css/drone.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <div class="banner banner-sm">
+        <div class="banner-content">
+            <div class="banner-info">
+                <h1 class="banner-title">
+                    <a href="{% url 'drone:dashboard' %}" class="back-link">
+                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd"
+                                d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+                        </svg>
+                    </a>
+                    我的預約申請
+                </h1>
+            </div>
+            <div class="banner-actions">
+                <a href="{% url 'drone:reservation_create' %}" class="btn btn-primary">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                    </svg>
+                    新增預約
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="filter-section">
+            <div class="filter-tags">
+                <a href="{% url 'drone:my_reservations' %}"
+                    class="filter-tag {% if not current_status %}active{% endif %}">全部</a>
+                {% for value, label in status_choices %}
+                <a href="{% url 'drone:my_reservations' %}?status={{ value }}"
+                    class="filter-tag {% if current_status == value %}active{% endif %}">{{ label }}</a>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if reservations %}
+        <div class="reservation-list">
+            {% for reservation in reservations %}
+            <div class="reservation-card">
+                <div class="reservation-header">
+                    <span class="status-badge {{ reservation.get_status_display_class }}">{{ reservation.get_status_display }}</span>
+                    <span class="reservation-date">{{ reservation.created_at|naturaltime }}</span>
+                </div>
+                <div class="reservation-body">
+                    <div class="reservation-time">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z" />
+                            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z" />
+                        </svg>
+                        <span>{{ reservation.usage_start_datetime|date:"Y/m/d H:i" }} ~ {{ reservation.usage_end_datetime|date:"Y/m/d H:i" }}</span>
+                    </div>
+                    <div class="reservation-location">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" />
+                        </svg>
+                        <span>{{ reservation.location }}</span>
+                    </div>
+                    <div class="reservation-project">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M4 0h5.293A1 1 0 0 1 10 .293L13.707 4a1 1 0 0 1 .293.707V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm5.5 1.5v2a1 1 0 0 0 1 1h2l-3-3z" />
+                        </svg>
+                        <span>計畫：{{ reservation.project_number }}</span>
+                    </div>
+                    {% if reservation.status == 'rejected' and reservation.rejection_reason %}
+                    <div class="rejection-reason"><strong>拒絕理由：</strong>{{ reservation.rejection_reason }}</div>
+                    {% endif %}
+                    {% if reservation.reviewer %}
+                    <div class="reviewer-info"><strong>簽核人：</strong>{{ reservation.reviewer.get_full_name|default:reservation.reviewer.username }}{% if reservation.review_datetime %}<span class="review-time">（{{ reservation.review_datetime|naturaltime }}）</span>{% endif %}</div>
+                    {% endif %}
+                </div>
+                <div class="reservation-actions">
+                    <a href="{% url 'drone:reservation_detail' reservation.pk %}"
+                        class="btn btn-sm btn-secondary">查看詳情</a>
+                    {% if reservation.can_edit %}
+                    <a href="{% url 'drone:reservation_update' reservation.pk %}" class="btn btn-sm btn-primary">編輯</a>
+                    {% endif %}
+                    {% if reservation.can_cancel %}
+                    <form method="post" action="{% url 'drone:reservation_cancel' reservation.pk %}"
+                        style="display: inline;" onsubmit="return confirm('確定要取消此預約嗎？');">{% csrf_token %}<button
+                            type="submit" class="btn btn-sm btn-danger">取消預約</button></form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}"
+                class="page-link">&laquo; 上一頁</a>
+            {% endif %}
+            <span class="page-info">第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 頁</span>
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}"
+                class="page-link">下一頁 &raquo;</a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="empty-state">
+            <svg width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
+                <path
+                    d="M4 0h5.293A1 1 0 0 1 10 .293L13.707 4a1 1 0 0 1 .293.707V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm5.5 1.5v2a1 1 0 0 0 1 1h2l-3-3zM6.5 7a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3zM6 9.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5zm.5 1.5a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3z" />
+            </svg>
+            <h3>{% if current_status %}沒有符合條件的預約{% else %}尚無預約申請{% endif %}</h3>
+            <p>{% if current_status %}請嘗試其他篩選條件{% else %}點擊「新增預約」開始申請{% endif %}</p>
+            {% if not current_status %}
+            <a href="{% url 'drone:reservation_create' %}" class="btn btn-primary">新增預約</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,51 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>刪除工具 - AI 工具分享</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'AIToolsHub/css/aitoolshub.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="detail-nav">
+        <a href="{% url 'aitoolshub:tool_detail' object.pk %}" class="back-link">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                <path fill-rule="evenodd"
+                    d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+            </svg>
+            返回
+        </a>
+    </nav>
+
+    <div class="form-container">
+        <div class="form-card confirm-delete">
+            <div class="confirm-icon">
+                <svg width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                    <path
+                        d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z" />
+                </svg>
+            </div>
+            <h1 class="confirm-title">確定要刪除嗎？</h1>
+            <p class="confirm-message">您確定要刪除「<strong>{{ object.name }}</strong>」嗎？此操作無法復原。</p>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-actions">
+                    <a href="{% url 'aitoolshub:tool_detail' object.pk %}" class="btn btn-secondary">取消</a>
+                    <button type="submit" class="btn btn-danger">確定刪除</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>
