@@ -1,0 +1,182 @@
+{% load static %}
+<div class="d-none" id="waterlevel_main">
+    <div class="d-flex justify-content-between align-items-center">
+      <p class="mb-0 ps-5"></p>
+      <button class="btn btn-dark" onclick="showMenu()" >回到主頁</button>
+    </div>
+    <!--title-->
+    <div class="container mt-1">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+            <h3><b>水利工程隧道水理設計模組</b></h3>
+            <div class="gray-box"></div></div>
+            <div>
+                <button class="text-white" style="background-color:rgba(68,114,196,1);border-radius: 5px"><img src="{% static 'Inlet_Design/images/circle_icon.png' %}" alt="icon"style="max-width:30px"/>標準步推法公式</button>
+                <button class="text-white" style="background-color:rgba(68,114,196,1);border-radius: 5px"><img src="{% static 'Inlet_Design/images/circle_icon.png' %}" alt="icon"style="max-width:30px"/>程式架構</button>
+            </div>
+        </div>
+        
+    </div>
+    <!--分頁標籤-->
+    <div class='d-flex justify-content-center ps-5'>
+        <div class='nav nav-tabs pt-3 ' style="width:1350px">
+            <button class="nav-link disabled  text-white "  data-bs-toggle="tab" data-bs-target="#tunnel" >
+            ① 隧道段
+            </button>
+            <button class="nav-link disabled text-white "  data-bs-toggle="tab" data-bs-target="#ogee" >
+            ② Ogee溢流堰
+            </button>
+
+            <button class="nav-link disabled text-white"  data-bs-toggle="tab" data-bs-target="#transition" >
+            ③ 進水口漸變段
+            </button>
+            <button class="nav-link disabled text-white"  data-bs-toggle="tab" data-bs-target="#transition-tunnel"  >
+            ④ 隧道漸變段
+            </button>
+            <button class="nav-link active text-white"  data-bs-toggle="tab" data-bs-target="#calculation" style="background-color: rgba(0,176,240, 1)" >
+            進水口至隧道<br>
+            水面線計算
+            </button>
+            <button class="nav-link disabled text-white"  data-bs-toggle="tab" data-bs-target="#tunnel-exit"  >
+            ⑤隧道出口段
+            </button>
+        </div>
+    </div>
+    <div class="d-flex justify-content-center ps-5">
+        <div class="tab-content" style="width: 1500px;">
+            <div class="tab-pane fadee show active border border-dark p-2" id='transition-tunnel'>
+                <div class= id="waterlevel_horseshoe_or_circle">
+                    <div class="row">
+                        <div class="col-3">
+                            <div>
+                                <h5>
+                                    <strong><span style="color: rgba(235, 90, 60, 1);">[第一步驟]</span> 輸入起算條件</strong>
+                                </h5>
+                            </div>
+                            <div class="card text-dark mb-3" style="width: 100%;background-color: rgba(245,239,231, 0.8); border: none;">
+                                <div class="card-body">
+                                    <div class="row justify-content-center" >
+                                        <div class="d-flex flex-column align-items-start">
+                                            <div class='container'>
+                                                <table id="waterlevel-input-table"style="width: 100%;" >
+                                                    <thead>
+                                                        <tr><th></th><th></th><th></th><th></th></tr>
+                                                    </thead>
+                                                    <colgroup>
+                                                        <col style="width: 40%;">
+                                                        <col style="width: 20%;">
+                                                        <col style="width: 20%;">
+                                                        <col style="width: 20%;">
+                                                      </colgroup>
+                                                    <tr>
+                                                        <td>Expand. Coef.</td>
+                                                        <td>=</td>
+                                                        <td ><input class='green_iput' style="text-align:right" value="0.3" type="number" id='EC_Waterlevel' name="EC_Waterlevel" step="0.01"  required/></td>
+                                                        <td></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Contr. Coef.</td>
+                                                        <td>=</td>
+                                                        <td ><input class='green_iput' style="text-align:right" value="0.1" type="number" id='CC_Waterlevel' name="CC_Waterlevel" step="0.01"  required/></td>
+                                                        <td></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Area redc.</td>
+                                                        <td>=</td>
+                                                        <td ><input class='green_iput' style="text-align:right" value="0.9" type="number" id='Area_Waterlevel' name='Area_Waterlevel' step="0.01"  required/></td>
+                                                        <td>*備註1</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>N manning</td>
+                                                        <td>=</td>
+                                                        <td ><input class='green_iput' style="text-align:right" value="0.015" type="number" id='n_Waterlevel' name='n_Waterlevel' step="0.001"  required/></td>
+                                                        <td></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Tunnel length</td>
+                                                        <td>=</td>
+                                                        <td id='Tunnel_length_Waterlevel'></td>
+                                                        <td>m</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Interval</td>
+                                                        <td>=</td>
+                                                        <td id='Interval_Waterlevel'></td>
+                                                        <td>m</td>
+                                                    </tr>
+                                                </table>
+                                                <div>*備註1：隧道漸變段矩形與圓型漸變的比例</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; justify-content: center;">
+                                    <button type="button" id="submit_waterlevel_data" class="btn" onclick='submit_waterlevel_data()'
+                                      style="color:white; background-color: #FF9900; width: 100px; height:50px; font-size: 16px;">
+                                      <b>計算</b>
+                                    </button>
+                                  </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+                </div>
+                <div  id="waterlevel_step2">
+                    <div>
+                        <h5>
+                            <strong><span style="color: rgba(235, 90, 60, 1);">[計算結果]</span> </strong>
+                        </h5>
+                    </div>
+                    
+                    <div class='row'>
+                        <div class='col-12'>
+                            <div id='waterlevel_layout'></div>
+                        </div>
+                        <div class='col-12'>
+                            <div id='waterlevel_profile'></div>
+                        </div>
+                    </div>
+                    <div id='waterlevel-table-main' >
+                        <table id='waterlevel-table' style="width:100%">
+                            <thead>
+                                <tr>
+                                <th style="background-color: #FCE4D6;">No</th>
+                                <th style="background-color: #FCE4D6;">Sta</th>
+                                <th style="background-color: #FCE4D6;"></th>
+                                <th style="background-color: #FCE4D6;">Q</th>
+                                <th style="background-color: #FCE4D6;">b</th>
+                                <th style="background-color: #FCE4D6;">L</th>
+                                <th style="background-color: #FCE4D6;">n</th>
+                                <th style="background-color: #FCE4D6;">Z</th>
+                                <th style="background-color: #FCE4D6;">S</th>
+                                <th style="background-color: #FCE4D6;">yc</th>
+                                <th style="background-color: #FCE4D6;">A</th>
+                                <th style="background-color: #FCE4D6;">T</th>
+                                <th style="background-color: #FFC000;">P</th>
+                                <th style="background-color: #FFC000;">R</th>
+                                <th style="background-color: #FFC000;">v</th>
+                                <th style="background-color: #FFC000;">Sf</th>
+                                <th style="background-color: #FFC000;">V<sub>2</sub>/2g</th>
+                                <th style="background-color: #8497B0;">hf</th>
+                                <th style="background-color: #8497B0;">hce</th>
+                                <th style="background-color: #8497B0;">he</th>
+                                <th style="background-color: #FFD966;">E</th>
+                                <th style="background-color: #FFD966;">Control</th>
+                                <th style="background-color: #FFD966;">Water depth (y)</th>
+                                <th style="background-color: #FFD966;">Fr</th>
+                                <th style="background-color: #FFD966;">Water level</th>
+                                <th style="background-color: #FFD966;">Tunnel Height</th>
+                                <th style="background-color: #FFD966;">% Full%</th>
+                                </tr>
+                                <tbody>
+                                <!-- JavaScript 會 append 的資料列進來這裡 -->
+                                </tbody>
+    
+                            </thead>
+                            </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
