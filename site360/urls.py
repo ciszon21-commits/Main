@@ -11,4 +11,5 @@ urlpatterns = [
     path('api/hotspot/save/', views.save_hotspot, name='save_hotspot'),
     path('api/hotspot/delete/<int:pk>/', views.delete_hotspot, name='delete_hotspot'),
     path('api/scene/reorder/', views.reorder_scenes, name='reorder_scenes'),
+    path('api/scene/set-cover/<int:pk>/', views.set_cover_image, name='set_cover_image'),
 ]

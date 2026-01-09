@@ -82,6 +82,32 @@ def reorder_scenes(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=405)
 
+@csrf_exempt
+def set_cover_image(request, pk):
+    if request.method == 'POST':
+        try:
+            scene = get_object_or_404(Scene, pk=pk)
+            project = scene.project
+            
+            # We need to copy the scene image to the project cover_image
+            # Or simplified: just reference it if fields were compatible, but they are different ImageFields
+            # Actually, we can just open the scene image and save it to cover_image
+            from django.core.files import File
+            
+            if scene.image:
+                # Create a copy/reference. Since they are both ImageFields, we can assign the file.
+                # But to avoid moving the file, we should probably just re-save it or use the same path if media storage allows.
+                # Simplest way: set the file directly.
+                project.cover_image = scene.image
+                project.save()
+                return JsonResponse({'status': 'success'})
+            else:
+                return JsonResponse({'status': 'error', 'message': 'Scene has no image'}, status=400)
+                
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=405)
+
 def project_tour_data(request, pk):
     """
     Returns the JSON configuration for Pannellum tour.
