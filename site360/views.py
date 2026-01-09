@@ -59,6 +59,7 @@ def save_hotspot(request):
             title = request.POST.get('title')
             description = request.POST.get('description')
             icon = request.POST.get('icon', 'fas fa-info-circle')
+            icon_color = request.POST.get('icon_color', '#ffffff')
             
             if hotspot_id:
                 # Update existing
@@ -67,6 +68,7 @@ def save_hotspot(request):
                 hotspot.title = title
                 hotspot.description = description
                 hotspot.icon = icon
+                hotspot.icon_color = icon_color
                 # Only update pitch/yaw if provided (though usually they are hidden fields)
                 if pitch: hotspot.pitch = float(pitch)
                 if yaw: hotspot.yaw = float(yaw)
@@ -80,7 +82,8 @@ def save_hotspot(request):
                     yaw=float(yaw),
                     title=title,
                     description=description,
-                    icon=icon
+                    icon=icon,
+                    icon_color=icon_color
                 )
             
             if 'image' in request.FILES:
@@ -236,6 +239,7 @@ def project_tour_data(request, pk):
                     "title": hs.title,
                     "description": hs.description,
                     "icon": hs.icon, 
+                    "icon_color": hs.icon_color,
                     "image": hs.image.url if hs.image else "",
                     "video": hs.video.url if hs.video else ""
                 }

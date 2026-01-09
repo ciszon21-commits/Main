@@ -124,7 +124,6 @@
             max-width: 250px;
             line-height: 1.4;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-            /* Allow selecting text */
         }
 
         .hover-text-label strong {
@@ -191,6 +190,25 @@
             pointer-events: none;
             white-space: nowrap;
         }
+
+        /* Color Selector Styles */
+        .color-option {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s;
+        }
+
+        .color-option:hover {
+            transform: scale(1.2);
+        }
+
+        .color-option.selected {
+            border-color: #000;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
     </style>
 </head>
 
@@ -223,7 +241,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">新增熱點</h5>
+                    <h5 class="modal-title">新增/編輯熱點</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -235,7 +253,6 @@
 
                         <div class="mb-3">
                             <label class="form-label">類型</label>
-                            <!-- ... select content ... -->
                             <select class="form-select" name="type" id="typeSelect" onchange="updateFormFields()">
                                 <option value="text">文字公告 (點擊顯示)</option>
                                 <option value="text_hover">懸浮文字 (直接顯示)</option>
@@ -245,11 +262,9 @@
                             </select>
                         </div>
 
-                        <!-- ... rest of form ... -->
                         <div class="mb-3">
                             <label class="form-label">選擇圖示 (Icon)</label>
                             <div class="d-flex gap-2 flex-wrap" id="iconSelector">
-                                <!-- Icons will be selected via radio buttons styling -->
                                 <input type="radio" class="btn-check" name="icon" id="icon1" value="fas fa-info-circle"
                                     checked>
                                 <label class="btn btn-outline-secondary" for="icon1"><i
@@ -281,6 +296,20 @@
                                 <input type="radio" class="btn-check" name="icon" id="icon7" value="fas fa-hard-hat">
                                 <label class="btn btn-outline-secondary" for="icon7"><i
                                         class="fas fa-hard-hat"></i></label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">選擇圖示顏色</label>
+                            <div class="d-flex gap-2" id="colorSelector">
+                                <input type="hidden" name="icon_color" id="iconColorInput" value="#ffffff">
+                                <div class="color-option selected" style="background: #ffffff;" data-color="#ffffff">
+                                </div>
+                                <div class="color-option" style="background: #d9534f;" data-color="#d9534f"></div>
+                                <div class="color-option" style="background: #0d6efd;" data-color="#0d6efd"></div>
+                                <div class="color-option" style="background: #198754;" data-color="#198754"></div>
+                                <div class="color-option" style="background: #ffc107;" data-color="#ffc107"></div>
+                                <div class="color-option" style="background: #000000;" data-color="#000000"></div>
                             </div>
                         </div>
 
@@ -317,7 +346,7 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="viewTitle">熱點標題</h5>
+                    <h5 class="modal-title" id="viewTitle">熱點詳情</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -328,7 +357,7 @@
                     <button type="button" class="btn btn-warning d-none" id="editBtn"
                         onclick="editHotspot()">編輯</button>
                     <button type="button" class="btn btn-danger d-none" id="deleteBtn"
-                        onclick="deleteCurrentHotspot()">刪除熱點</button>
+                        onclick="deleteCurrentHotspot()">刪除</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
                 </div>
             </div>
@@ -355,7 +384,7 @@
         let wasDragged = false;
 
         function toggleEditMode() {
-            // ... (keep existing)
+            if (!viewer) return;
             isEditMode = !isEditMode;
             if (isEditMode) {
                 document.body.classList.add('edit-mode');
@@ -396,7 +425,12 @@
             if (args.type === 'video') { colorClass = 'hotspot-video'; }
 
             hotSpotDiv.classList.add(colorClass);
-            hotSpotDiv.innerHTML = `<i class="${iconClass}"></i>`;
+            hotSpotDiv.innerHTML = `<i class="${iconClass}" style="pointer-events: none;"></i>`;
+
+            // Apply custom color if provided
+            if (args.icon_color) {
+                hotSpotDiv.style.color = args.icon_color;
+            }
 
             if (args.type === 'image_hover') {
                 const label = document.createElement('div');
@@ -429,44 +463,38 @@
             // Handle Dragging (Edit Mode Only)
             hotSpotDiv.onmousedown = function (e) {
                 if (isEditMode) {
-                    e.preventDefault(); // crucial for preventing default drag behaviors
                     e.stopPropagation(); // Stop propagation to prevent viewer drag
-
                     isDraggingHotspot = true;
                     draggedHotspotId = args.id;
                     hotSpotDiv.style.cursor = 'grabbing';
-
                     dragStartX = e.clientX;
                     dragStartY = e.clientY;
                     wasDragged = false;
-
-                    return false;
                 }
             };
 
             // Handle click
             hotSpotDiv.onclick = function (e) {
-                if (clickSuppressed) return; // Don't trigger click if just finished dragging
+                if (clickSuppressed) return;
                 e.stopPropagation(); // Prevent viewer click
                 showHotspotModal(args);
             };
         };
 
         function showHotspotModal(data) {
+            if (!data) return;
             currentHotspotId = data.id;
-            $('#viewTitle').text(data.title);
-            $('#viewDescription').text(data.description);
+            $('#viewTitle').text(data.title || '無標題');
+            $('#viewDescription').text(data.description || '');
 
             let mediaHtml = '';
             if ((data.type === 'image' || data.type === 'image_hover') && data.image) {
-                mediaHtml = `<img src="${data.image}" class="img-fluid" style="max-height: 400px;">`;
+                mediaHtml = `<img src="${data.image}" class="img-fluid" style="max-height: 400px; display: block; margin: 0 auto;">`;
             } else if (data.type === 'video' && data.video) {
-                // Use a wrapper and handle events in JS to be cleaner and more robust
-                mediaHtml = `<div class="video-wrapper ratio ratio-16x9"><video controls class="w-100" style="max-height: 400px; object-fit: contain;"><source src="${data.video}" type="video/mp4">Your browser does not support the video tag.</video></div>`;
+                mediaHtml = `<div class="video-wrapper ratio ratio-16x9"><video controls class="w-100" style="max-height: 400px; object-fit: contain;"><source src="${data.video}" type="video/mp4"></video></div>`;
             }
             $('#viewMedia').html(mediaHtml);
 
-            // Show delete and edit buttons only in edit mode
             if (isEditMode) {
                 $('#deleteBtn').removeClass('d-none');
                 $('#editBtn').removeClass('d-none');
@@ -475,13 +503,14 @@
                 $('#editBtn').addClass('d-none');
             }
 
-            new bootstrap.Modal(document.getElementById('viewHotspotModal')).show();
+            const modalEl = document.getElementById('viewHotspotModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
         }
 
         function editHotspot() {
             if (!currentHotspotId) return;
 
-            // Find current hotspot data
             const currentSceneId = viewer.getScene();
             const sceneHotSpots = tourData.scenes[currentSceneId].hotSpots;
             const hsData = sceneHotSpots.find(h => h.id == currentHotspotId);
@@ -489,28 +518,32 @@
             if (!hsData) return;
 
             // Close View Modal
-            bootstrap.Modal.getInstance(document.getElementById('viewHotspotModal')).hide();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('viewHotspotModal')).hide();
 
             // Open Add Modal with data
             $('#hotspotIdInput').val(hsData.createTooltipArgs.id);
-            $('#sceneIdInput').val(currentSceneId); // Though not strictly needed for update if ID exists
+            $('#sceneIdInput').val(currentSceneId);
             $('#pitchInput').val(hsData.pitch);
             $('#yawInput').val(hsData.yaw);
 
             $('#typeSelect').val(hsData.createTooltipArgs.type);
-            updateFormFields(); // Trigger visibility update for media fields
+            updateFormFields();
 
-            // Icon selection
             const icon = hsData.createTooltipArgs.icon || 'fas fa-info-circle';
             $(`input[name="icon"][value="${icon}"]`).prop('checked', true);
+
+            const color = hsData.createTooltipArgs.icon_color || '#ffffff';
+            $('#iconColorInput').val(color);
+            $('.color-option').removeClass('selected');
+            $(`.color-option[data-color="${color}"]`).addClass('selected');
 
             $('input[name="title"]').val(hsData.createTooltipArgs.title);
             $('textarea[name="description"]').val(hsData.createTooltipArgs.description);
 
-            // Change Modal Title and Button text
             $('#addHotspotModal .modal-title').text('編輯熱點');
-
-            new bootstrap.Modal(document.getElementById('addHotspotModal')).show();
+            const modalEl = document.getElementById('addHotspotModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
         }
 
         function loadTour(keepView = false) {
@@ -521,7 +554,6 @@
                 .then(data => {
                     tourData = data;
 
-                    // Pre-process data
                     for (const sceneId in data.scenes) {
                         const scene = data.scenes[sceneId];
                         if (scene.hotSpots) {
@@ -538,12 +570,10 @@
                     if (!data.default) data.default = {};
                     data.default.doubleClickZoom = false;
 
-                    // Preserve view if requested
                     if (keepView && viewer) {
                         data.default.pitch = viewer.getPitch();
                         data.default.yaw = viewer.getYaw();
                         data.default.hfov = viewer.getHfov();
-                        // Also preserve the current scene if it's different (though we reload whole tour usually)
                         data.default.firstScene = viewer.getScene();
                     }
 
@@ -560,7 +590,7 @@
                         }
                     });
 
-                    // Double click event
+                    // Double click event for adding hotspots
                     document.getElementById('panorama').addEventListener('dblclick', function (event) {
                         if (!isEditMode) return;
                         const coords = viewer.mouseEventToCoords(event);
@@ -568,31 +598,28 @@
                         $('#pitchInput').val(coords[0]);
                         $('#yawInput').val(coords[1]);
 
-                        // Clear Hotspot ID for new creation
                         $('#hotspotIdInput').val('');
                         $('#addHotspotForm')[0].reset();
                         $('#addHotspotModal .modal-title').text('新增熱點');
                         $('input[name="icon"][value="fas fa-info-circle"]').prop('checked', true);
-                        updateFormFields();
-                        new bootstrap.Modal(document.getElementById('addHotspotModal')).show();
-                    });
 
-                    // Global Mouse Moves for Dragging
-                    // remove previous listeners to avoid duplicates if loadTour is called multiple times?
-                    // actually loadTour adds listeners to document, so they pile up! 
-                    // We should add these listeners ONLY ONCE outside loadTour or manage them.
-                    // For now, let's just not re-add them if they exist? Difficult to check anonymous.
-                    // Better: Move global listeners OUTSIDE loadTour.
+                        $('#iconColorInput').val('#ffffff');
+                        $('.color-option').removeClass('selected');
+                        $('.color-option[data-color="#ffffff"]').addClass('selected');
+
+                        updateFormFields();
+                        const modalEl = document.getElementById('addHotspotModal');
+                        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        modal.show();
+                    });
                 })
                 .catch(error => {
                     console.error('Error:', error);
                 });
         }
 
-        // MOVED GLOBAL LISTENERS OUTSIDE loadTour
         document.addEventListener('mousemove', function (e) {
             if (isDraggingHotspot && isEditMode) {
-                // Check for significant movement
                 if (Math.abs(e.clientX - dragStartX) > 5 || Math.abs(e.clientY - dragStartY) > 5) {
                     wasDragged = true;
                 }
@@ -604,13 +631,9 @@
                 if (wasDragged) {
                     const coords = viewer.mouseEventToCoords(e);
                     moveHotspot(draggedHotspotId, coords[0], coords[1]);
-
-                    // Suppress click for a short moment
                     clickSuppressed = true;
                     setTimeout(() => { clickSuppressed = false; }, 100);
                 }
-
-                // Reset states
                 isDraggingHotspot = false;
                 draggedHotspotId = null;
                 wasDragged = false;
@@ -620,7 +643,6 @@
         });
 
         function submitHotspot() {
-            // ... keep existing ...
             const formData = new FormData(document.getElementById('addHotspotForm'));
             fetch("{% url 'site360:save_hotspot' %}", {
                 method: 'POST',
@@ -629,12 +651,13 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        bootstrap.Modal.getInstance(document.getElementById('addHotspotModal')).hide();
-                        loadTour(true); // Keep View!
+                        bootstrap.Modal.getOrCreateInstance(document.getElementById('addHotspotModal')).hide();
+                        loadTour(true);
                     } else {
                         alert('Save failed: ' + data.message);
                     }
-                });
+                })
+                .catch(err => console.error("Submit error:", err));
         }
 
         function moveHotspot(hotspotId, pitch, yaw) {
@@ -649,26 +672,17 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        // Client-side update to avoid full reload
                         const currentSceneId = viewer.getScene();
-                        // Find hotspot in tourData to get full config and update it
                         if (tourData.scenes && tourData.scenes[currentSceneId] && tourData.scenes[currentSceneId].hotSpots) {
                             const sceneHotSpots = tourData.scenes[currentSceneId].hotSpots;
                             const hsIndex = sceneHotSpots.findIndex(h => h.id == hotspotId);
-
                             if (hsIndex !== -1) {
                                 const hsConfig = sceneHotSpots[hsIndex];
-                                // Update local config
                                 hsConfig.pitch = parseFloat(pitch);
                                 hsConfig.yaw = parseFloat(yaw);
-
-                                // Pannellum remove/add
-                                // Note: Pannellum requires exact ID match. Our ID is int/string from DB.
-                                // In project_tour_data, passed as 'id': hs.id (int).
                                 viewer.removeHotSpot(hotspotId);
                                 viewer.addHotSpot(hsConfig, currentSceneId);
                             } else {
-                                // Fallback
                                 loadTour(true);
                             }
                         } else {
@@ -676,13 +690,12 @@
                         }
                     } else {
                         alert('Move failed: ' + data.message);
-                        loadTour(true); // Revert position
+                        loadTour(true);
                     }
                 });
         }
 
         function deleteCurrentHotspot() {
-            // ... keep existing ...
             if (!currentHotspotId) return;
             if (!confirm('確定要刪除此熱點嗎？')) return;
 
@@ -692,24 +705,28 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        bootstrap.Modal.getInstance(document.getElementById('viewHotspotModal')).hide();
-                        loadTour(true); // Keep View!
+                        bootstrap.Modal.getOrCreateInstance(document.getElementById('viewHotspotModal')).hide();
+                        loadTour(true);
                     } else {
                         alert('Delete failed: ' + data.message);
                     }
-                });
+                })
+                .catch(err => console.error("Delete error:", err));
         }
 
-        // Initialize
+        $(document).on('click', '.color-option', function () {
+            $('.color-option').removeClass('selected');
+            $(this).addClass('selected');
+            const color = $(this).data('color');
+            $('#iconColorInput').val(color);
+        });
+
         loadTour();
 
-        // Aggressively stop propagation for video controls
         $(document).on('mousedown mouseup click touchstart touchend pointerdown pointerup mousemove', '.video-wrapper video', function (e) {
             e.stopPropagation();
         });
-
     </script>
-
 </body>
 
 </html>

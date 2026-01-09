@@ -52,6 +52,7 @@ class Hotspot(models.Model):
     image = models.ImageField(_("圖片內容"), upload_to='site360/hotspots/images/', blank=True, null=True)
     video = models.FileField(_("影片內容"), upload_to='site360/hotspots/videos/', blank=True, null=True)
     icon = models.CharField(_("圖示"), max_length=50, default='fas fa-info-circle')
+    icon_color = models.CharField(_("圖示顏色"), max_length=20, default='#ffffff')
     created_at = models.DateTimeField(_("建立時間"), auto_now_add=True)
 
     class Meta:
