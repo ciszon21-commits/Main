@@ -289,6 +289,37 @@
             object-fit: contain;
             border-radius: 4px;
         }
+
+        /* Badge Colors for Resource Library */
+        .badge-text {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .badge-text_hover {
+            background-color: #1d4ed8;
+            color: white;
+        }
+
+        .badge-image {
+            background-color: #22c55e;
+            color: white;
+        }
+
+        .badge-image_hover {
+            background-color: #15803d;
+            color: white;
+        }
+
+        .badge-video {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .badge-video_hover {
+            background-color: #b91c1c;
+            color: white;
+        }
     </style>
 </head>
 
@@ -478,6 +509,10 @@
                         <div class="mb-3 d-none" id="videoField">
                             <label class="form-label">上傳影片</label>
                             <input type="file" class="form-control" name="video" accept="video/*">
+                            <div id="importedVideoPreview" class="mt-2 d-none">
+                                <small class="text-muted d-block mb-1">目前引用的影片：</small>
+                                <video src="" controls class="w-100" style="max-height: 200px;"></video>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -1005,11 +1040,18 @@
                 else if (r.type.includes('image')) badgeClass = 'badge-image';
                 else if (r.type.includes('video')) badgeClass = 'badge-video';
 
+                let typeIcon = '';
+                if (r.type === 'image' || r.type === 'image_hover') typeIcon = '<i class="fas fa-image text-success me-2"></i>';
+                else if (r.type === 'video' || r.type === 'video_hover') typeIcon = '<i class="fas fa-video text-danger me-2"></i>';
+                else typeIcon = '<i class="fas fa-align-left text-primary me-2"></i>';
+
                 let mediaPreview = '';
                 if (r.thumb_url) {
-                    mediaPreview = `<img src="${r.thumb_url}" class="rounded ms-2" style="height: 40px; width: 40px; object-fit: cover;">`;
+                    mediaPreview = `<img src="${r.thumb_url}" class="rounded ms-2" style="height: 60px; width: 60px; object-fit: cover;">`;
+                } else if (r.video_url) {
+                    mediaPreview = `<video src="${r.video_url}" class="rounded ms-2" style="height: 60px; width: 60px; object-fit: cover;" muted onmouseover="this.play()" onmouseout="this.pause()"></video>`;
                 } else if (r.icon) {
-                    mediaPreview = `<div class="rounded ms-2 d-flex align-items-center justify-content-center bg-light" style="height: 40px; width: 40px; color: ${r.icon_color || '#333'}"><i class="${r.icon}"></i></div>`;
+                    mediaPreview = `<div class="rounded ms-2 d-flex align-items-center justify-content-center bg-light" style="height: 60px; width: 60px; color: ${r.icon_color || '#333'}"><i class="${r.icon} fa-lg"></i></div>`;
                 }
 
                 const card = `
@@ -1018,9 +1060,10 @@
                             <div class="card-body p-3">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                     <span class="badge ${badgeClass}">${r.type_display}</span>
-                                    <small class="text-muted"><i class="fas fa-folder"></i> ${r.project_name}</small>
+                                    <small class="text-muted ms-auto text-end"><i class="fas fa-folder"></i> ${r.project_name}</small>
                                 </div>
                                 <div class="d-flex align-items-center mb-2">
+                                    ${typeIcon}
                                     <h6 class="card-title mb-0 text-truncate" style="flex:1;">${r.title}</h6>
                                     ${mediaPreview}
                                 </div>
@@ -1096,6 +1139,17 @@
                 $('input[name="image"]').prop('disabled', false).removeClass('d-none');
             }
 
+            // Handle Video Preview
+            if ((resource.type === 'video' || resource.type === 'video_hover') && resource.video_url) {
+                const videoContainer = $('#importedVideoPreview');
+                videoContainer.removeClass('d-none');
+                videoContainer.find('video').attr('src', resource.video_url);
+                $('input[name="video"]').prop('disabled', true).addClass('d-none');
+            } else {
+                $('#importedVideoPreview').addClass('d-none');
+                $('input[name="video"]').prop('disabled', false).removeClass('d-none');
+            }
+
             // Trigger type change to update UI
             updateFormFields();
 
@@ -1106,8 +1160,14 @@
         window.clearImport = function () {
             $('#copyFromIdInput').val('');
             $('#importNotice').addClass('d-none');
+
             $('#importedImagePreview').addClass('d-none');
-            $('input[name="image"]').prop('disabled', false).removeClass('d-none'); // Restore input
+            $('input[name="image"]').prop('disabled', false).removeClass('d-none');
+
+            $('#importedVideoPreview').addClass('d-none');
+            $('#importedVideoPreview video').attr('src', ''); // Stop playback
+            $('input[name="video"]').prop('disabled', false).removeClass('d-none');
+
             $('#addHotspotForm')[0].reset();
         };
     </script>

@@ -222,7 +222,8 @@ def list_resources(request):
                 'type_display': h.get_hotspot_type_display(),
                 'project_name': h.scene.project.name,
                 'scene_title': h.scene.title,
-                'thumb_url': h.image.url if h.image else None,
+                'thumb_url': h.image.url if h.image and h.hotspot_type in ['image', 'image_hover'] else None,
+                'video_url': h.video.url if h.video else None,
                 'has_video': bool(h.video),
                 'icon': h.icon,
                 'icon_color': h.icon_color
