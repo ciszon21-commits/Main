@@ -10,6 +10,7 @@ urlpatterns = [
     path('project/<int:pk>/upload/', views.SceneCreateView.as_view(), name='scene_create'),
     path('project/<int:pk>/tour/', views.tour_view, name='project_tour'),
     path('project/<int:pk>/resources/', views.project_resource_list, name='project_resources'),
+    path('resources/', views.all_resource_list, name='all_resources'),
     path('project/<int:pk>/tour-data/', views.project_tour_data, name='project_tour_data'),
     path('api/hotspot/save/', views.save_hotspot, name='save_hotspot'),
     path('api/hotspot/delete/<int:pk>/', views.delete_hotspot, name='delete_hotspot'),

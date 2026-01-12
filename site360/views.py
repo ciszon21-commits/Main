@@ -253,6 +253,25 @@ def project_resource_list(request, pk):
     }
     return render(request, 'site360/resource_list.html', context)
 
+def all_resource_list(request):
+    """
+    Displays a list of all resources (hotspots) across all projects.
+    """
+    from django.db.models import Prefetch
+
+    scenes = Scene.objects.all().order_by('project', 'order').prefetch_related(
+        'project',
+        Prefetch('hotspots', queryset=Hotspot.objects.order_by('created_at'))
+    )
+    
+    projects = Project.objects.all().order_by('name')
+
+    context = {
+        'scenes': scenes,
+        'all_projects': projects,
+    }
+    return render(request, 'site360/resource_list.html', context)
+
 def project_tour_data(request, pk):
     """
     Returns the JSON configuration for Pannellum tour.

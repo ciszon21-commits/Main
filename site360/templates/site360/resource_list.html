@@ -3,18 +3,36 @@
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
+        {% if project %}
         <h2>{{ project.name }} - 資源列表</h2>
         <a href="{% url 'site360:project_tour' project.pk %}" class="btn btn-outline-secondary">
             <i class="fas fa-cube"></i> 返回全景導覽
         </a>
+        {% else %}
+        <h2>所有專案資源列表</h2>
+        <a href="{% url 'site360:project_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-home"></i> 返回首頁
+        </a>
+        {% endif %}
     </div>
 
-    <div class="card shadow-sm mb-4">
+    <div class="card shadow-sm mb-4" style="overflow: visible; z-index: 10; position: relative;">
         <div class="card-header bg-light">
             <h5 class="mb-0"><i class="fas fa-filter"></i> 資源篩選</h5>
         </div>
         <div class="card-body">
             <div class="row g-3">
+                {% if all_projects %}
+                <div class="col-md-3">
+                    <label class="form-label">專案篩選</label>
+                    <select class="form-select" id="projectSelect">
+                        <option value="">全部專案</option>
+                        {% for proj in all_projects %}
+                        <option value="{{ proj.name }}">{{ proj.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
                 <div class="col-md-3">
                     <label class="form-label">關鍵字搜尋</label>
                     <input type="text" class="form-control" id="keywordInput" placeholder="搜尋標題或說明...">
@@ -24,29 +42,44 @@
                     <select class="form-select" id="sceneSelect">
                         <option value="">全部場景</option>
                         {% for scene in scenes %}
-                        <option value="{{ scene.title }}">{{ scene.title }}</option>
+                        <option value="{{ scene.title }}" {% if scene.project %}data-project="{{ scene.project.name }}"
+                            {% endif %}>
+                            {{ scene.title }}
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">類型篩選</label>
-                    <select class="form-select" id="typeSelect">
-                        <option value="">全部類型</option>
-                        <option value="text">文字</option>
-                        <option value="text_hover">懸浮文字</option>
-                        <option value="image">圖片</option>
-                        <option value="image_hover">懸浮圖片</option>
-                        <option value="video">影片</option>
-                        <option value="video_hover">懸浮影片</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">媒體類型</label>
-                    <select class="form-select" id="mediaSelect">
-                        <option value="">全部</option>
-                        <option value="has_image">有照片</option>
-                        <option value="has_video">有影片</option>
-                    </select>
+                    <div class="dropdown" id="typeSelect">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button"
+                            data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                            選擇類型
+                        </button>
+                        <form class="dropdown-menu p-3">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input type-filter-checkbox" type="checkbox" value="text"
+                                    id="checkText" checked>
+                                <label class="form-check-label" for="checkText">
+                                    文字類 (Text)
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input type-filter-checkbox" type="checkbox" value="image"
+                                    id="checkImage" checked>
+                                <label class="form-check-label" for="checkImage">
+                                    圖片類 (Image)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input type-filter-checkbox" type="checkbox" value="video"
+                                    id="checkVideo" checked>
+                                <label class="form-check-label" for="checkVideo">
+                                    影片類 (Video)
+                                </label>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -63,20 +96,24 @@
                     <table class="table table-bordered table-hover align-middle resource-table">
                         <thead class="table-light">
                             <tr>
+                                {% if all_projects %}<th style="width: 15%;">專案</th>{% endif %}
                                 <th style="width: 10%;">類型</th>
-                                <th style="width: 20%;">標題</th>
-                                <th style="width: 35%;">說明內容</th>
-                                <th style="width: 20%;">媒體預覽</th>
+                                <th style="width: {% if all_projects %}15%{% else %}20%{% endif %};">標題</th>
+                                <th style="width: 30%;">說明內容</th>
+                                <th style="width: 15%;">媒體預覽</th>
                                 <th style="width: 15%;">操作</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for hotspot in scene.hotspots.all %}
                             <tr class="resource-row" data-scene="{{ scene.title }}"
-                                data-type="{{ hotspot.hotspot_type }}"
+                                data-project="{{ scene.project.name }}" data-type="{{ hotspot.hotspot_type }}"
                                 data-has-image="{% if hotspot.image %}true{% else %}false{% endif %}"
                                 data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
                                 data-title="{{ hotspot.title }}" data-desc="{{ hotspot.description }}">
+                                {% if all_projects %}
+                                <td><span class="badge bg-info text-dark">{{ scene.project.name }}</span></td>
+                                {% endif %}
                                 <td>
                                     <span class="badge bg-secondary">{{ hotspot.get_hotspot_type_display }}</span>
                                 </td>
@@ -168,21 +205,31 @@
         });
 
         // Filter Logic
+        // Filter Logic
         const keywordInput = document.getElementById('keywordInput');
         const sceneSelect = document.getElementById('sceneSelect');
-        const typeSelect = document.getElementById('typeSelect');
-        const mediaSelect = document.getElementById('mediaSelect');
+        // Type filter is now checkboxes
+        const typeCheckboxes = document.querySelectorAll('.type-filter-checkbox');
+
         const rows = document.querySelectorAll('.resource-row');
         const sceneSections = document.querySelectorAll('.scene-section');
 
         function filterResources() {
             const keyword = keywordInput.value.toLowerCase();
             const scene = sceneSelect.value;
-            const type = typeSelect.value;
-            const media = mediaSelect.value;
+            const project = document.getElementById('projectSelect') ? document.getElementById('projectSelect').value : '';
+
+            // Get allowed type categories from checkboxes
+            const allowedCategories = new Set();
+            typeCheckboxes.forEach(cb => {
+                if (cb.checked) {
+                    allowedCategories.add(cb.value);
+                }
+            });
 
             rows.forEach(row => {
                 const rowScene = row.dataset.scene;
+                const rowProject = row.dataset.project;
                 const rowType = row.dataset.type; // raw type code e.g., 'text'
                 const hasImage = row.dataset.hasImage === 'true';
                 const hasVideo = row.dataset.hasVideo === 'true';
@@ -201,17 +248,23 @@
                     isMatch = false;
                 }
 
-                // Type check (Use simplified logic for dropdown values vs raw db values if needed, 
-                // but here input values match choices key prefix roughly)
-                if (type && rowType !== type) {
+                // Project check
+                if (project && rowProject !== project) {
                     isMatch = false;
                 }
 
-                // Media check
-                if (media) {
-                    if (media === 'has_image' && !hasImage) isMatch = false;
-                    if (media === 'has_video' && !hasVideo) isMatch = false;
+                // Multi-select Type check
+                // Map rowType to category
+                let category = '';
+                if (rowType === 'text' || rowType === 'text_hover') category = 'text';
+                else if (rowType === 'image' || rowType === 'image_hover') category = 'image';
+                else if (rowType === 'video' || rowType === 'video_hover') category = 'video';
+
+                if (!allowedCategories.has(category)) {
+                    isMatch = false;
                 }
+
+
 
                 if (isMatch) {
                     row.style.display = '';
@@ -233,8 +286,53 @@
 
         keywordInput.addEventListener('input', filterResources);
         sceneSelect.addEventListener('change', filterResources);
-        typeSelect.addEventListener('change', filterResources);
-        mediaSelect.addEventListener('change', filterResources);
+        // typeSelect removed, add listeners to checkboxes
+        typeCheckboxes.forEach(cb => {
+            cb.addEventListener('change', filterResources);
+        });
+
+        if (document.getElementById('projectSelect')) {
+            const projectSelect = document.getElementById('projectSelect');
+            const sceneSelect = document.getElementById('sceneSelect');
+
+            // Store original options to restore them later
+            const originalOptions = Array.from(sceneSelect.options);
+
+            projectSelect.addEventListener('change', function () {
+                const selectedProject = this.value;
+                const currentScene = sceneSelect.value;
+
+                // Clear existing options
+                sceneSelect.innerHTML = '';
+
+                // Always add the "All Scenes" option
+                sceneSelect.appendChild(originalOptions[0]);
+
+                let isCurrentSceneValid = false;
+
+                // Add filtered options
+                for (let i = 1; i < originalOptions.length; i++) {
+                    const option = originalOptions[i];
+                    const optionProject = option.getAttribute('data-project');
+
+                    if (!selectedProject || optionProject === selectedProject) {
+                        sceneSelect.appendChild(option);
+                        if (option.value === currentScene) {
+                            isCurrentSceneValid = true;
+                        }
+                    }
+                }
+
+                // Restore selection if valid, otherwise reset
+                if (isCurrentSceneValid) {
+                    sceneSelect.value = currentScene;
+                } else {
+                    sceneSelect.value = "";
+                }
+
+                filterResources();
+            });
+        }
 
         // Auto-filter based on URL parameter
         const urlParams = new URLSearchParams(window.location.search);
