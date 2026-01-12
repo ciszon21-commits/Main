@@ -305,7 +305,7 @@
                 <i class="fas fa-arrow-left"></i> 返回
             </a>
             <a href="{% url 'site360:project_resources' project.pk %}" class="btn btn-info btn-sm text-white"
-                target="_blank">
+                id="resourceListLink" target="_blank">
                 <i class="fas fa-list"></i> 資源總表
             </a>
             <button id="toggle-edit-btn" class="btn btn-outline-warning btn-sm" onclick="toggleEditMode()">
@@ -856,6 +856,21 @@
 
         $(document).on('mousedown mouseup click touchstart touchend pointerdown pointerup mousemove', '.video-wrapper video', function (e) {
             e.stopPropagation();
+        });
+    </script>
+    <script>
+        // Update Resource List Link with Current Scene
+        document.getElementById('resourceListLink').addEventListener('click', function (e) {
+            if (viewer) {
+                const currentSceneId = viewer.getScene();
+                // tourData is defined in the script below/above (need to ensure scope)
+                // Actually tourData is global as per previous reading
+                if (tourData && tourData.scenes && tourData.scenes[currentSceneId]) {
+                    const sceneTitle = tourData.scenes[currentSceneId].title;
+                    const baseUrl = "{% url 'site360:project_resources' project.pk %}";
+                    this.href = `${baseUrl}?scene=${encodeURIComponent(sceneTitle)}`;
+                }
+            }
         });
     </script>
 </body>

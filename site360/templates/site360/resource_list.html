@@ -235,6 +235,18 @@
         sceneSelect.addEventListener('change', filterResources);
         typeSelect.addEventListener('change', filterResources);
         mediaSelect.addEventListener('change', filterResources);
+
+        // Auto-filter based on URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const sceneParam = urlParams.get('scene');
+        if (sceneParam) {
+            // Check if the scene option exists before selecting
+            const options = Array.from(sceneSelect.options).map(opt => opt.value);
+            if (options.includes(sceneParam)) {
+                sceneSelect.value = sceneParam;
+                filterResources();
+            }
+        }
     });
 </script>
 {% endblock %}
