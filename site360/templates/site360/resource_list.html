@@ -112,10 +112,10 @@
                                 data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
                                 data-title="{{ hotspot.title }}" data-desc="{{ hotspot.description }}">
                                 {% if all_projects %}
-                                <td><span class="badge bg-info text-dark">{{ scene.project.name }}</span></td>
+                                <td><span class="badge bg-secondary">{{ scene.project.name }}</span></td>
                                 {% endif %}
                                 <td>
-                                    <span class="badge bg-secondary">{{ hotspot.get_hotspot_type_display }}</span>
+                                    <span class="badge badge-{{ hotspot.hotspot_type }}">{{ hotspot.get_hotspot_type_display }}</span>
                                 </td>
                                 <td class="fw-bold">{{ hotspot.title }}</td>
                                 <td>
@@ -347,4 +347,49 @@
         }
     });
 </script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Hotspot Type Badge Colors */
+
+    /* Text - Blue */
+    .badge-text {
+        background-color: #3b82f6;
+        /* Blue 500 */
+        color: white;
+    }
+
+    .badge-text_hover {
+        background-color: #1d4ed8;
+        /* Blue 700 */
+        color: white;
+    }
+
+    /* Image - Green */
+    .badge-image {
+        background-color: #22c55e;
+        /* Green 500 */
+        color: white;
+    }
+
+    .badge-image_hover {
+        background-color: #15803d;
+        /* Green 700 */
+        color: white;
+    }
+
+    /* Video - Red (using Red/Purple family per plan, but simple Red is clear) */
+    .badge-video {
+        background-color: #ef4444;
+        /* Red 500 */
+        color: white;
+    }
+
+    .badge-video_hover {
+        background-color: #b91c1c;
+        /* Red 700 */
+        color: white;
+    }
+</style>
 {% endblock %}
