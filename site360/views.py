@@ -229,6 +229,30 @@ def serve_hotspot_video(request, pk):
     
     return response
 
+    return response
+
+def project_resource_list(request, pk):
+    """
+    Displays a list of all resources (hotspots) in a project defined by pk.
+    """
+    project = get_object_or_404(Project, pk=pk)
+    # Get all scenes ordered by 'order'
+    scenes = project.scenes.all().order_by('order')
+    
+    # We want to display resources grouped by scene.
+    # The template can iterate over scenes and then their hotspots.
+    # Hotspots should be pre-fetched to avoid N+1 queries.
+    from django.db.models import Prefetch
+    scenes = scenes.prefetch_related(
+        Prefetch('hotspots', queryset=Hotspot.objects.order_by('created_at'))
+    )
+    
+    context = {
+        'project': project,
+        'scenes': scenes,
+    }
+    return render(request, 'site360/resource_list.html', context)
+
 def project_tour_data(request, pk):
     """
     Returns the JSON configuration for Pannellum tour.

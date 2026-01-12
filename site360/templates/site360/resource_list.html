@@ -1,0 +1,119 @@
+{% extends 'site360/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ project.name }} - 資源列表</h2>
+        <a href="{% url 'site360:project_tour' project.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-cube"></i> 返回全景導覽
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            {% if scenes %}
+            {% for scene in scenes %}
+            <h4 class="mt-4 mb-3 border-bottom pb-2">{{ scene.title }}</h4>
+            {% if scene.hotspots.all %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 10%;">類型</th>
+                            <th style="width: 20%;">標題</th>
+                            <th style="width: 35%;">說明內容</th>
+                            <th style="width: 20%;">媒體預覽</th>
+                            <th style="width: 15%;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for hotspot in scene.hotspots.all %}
+                        <tr>
+                            <td>
+                                <span class="badge bg-secondary">{{ hotspot.get_hotspot_type_display }}</span>
+                            </td>
+                            <td class="fw-bold">{{ hotspot.title }}</td>
+                            <td>
+                                <div class="description-text">{{ hotspot.description|default:"-"|linebreaksbr }}</div>
+                            </td>
+                            <td class="text-center">
+                                {% if hotspot.image %}
+                                <a href="{{ hotspot.image.url }}" target="_blank">
+                                    <img src="{{ hotspot.image.url }}" alt="預覽" class="img-thumbnail"
+                                        style="max-height: 100px;">
+                                </a>
+                                {% elif hotspot.video %}
+                                <video src="{{ hotspot.video.url }}" class="img-thumbnail" style="max-height: 100px;"
+                                    controls muted></video>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-grid gap-2">
+                                    {% if hotspot.title or hotspot.description %}
+                                    <button class="btn btn-sm btn-outline-primary copy-btn"
+                                        data-title="{{ hotspot.title }}" data-desc="{{ hotspot.description }}">
+                                        <i class="fas fa-copy"></i> 複製文字
+                                    </button>
+                                    {% endif %}
+
+                                    {% if hotspot.image %}
+                                    <a href="{{ hotspot.image.url }}" download class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-download"></i> 下載圖片
+                                    </a>
+                                    {% endif %}
+
+                                    {% if hotspot.video %}
+                                    <a href="{{ hotspot.video.url }}" download class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-download"></i> 下載影片
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted fst-italic ms-3">此場景尚無熱點資料。</p>
+            {% endif %}
+            {% endfor %}
+            {% else %}
+            <div class="alert alert-info">此專案尚未建立任何場景。</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const copyBtns = document.querySelectorAll('.copy-btn');
+
+        copyBtns.forEach(btn => {
+            btn.addEventListener('click', function () {
+                const title = this.dataset.title;
+                const desc = this.dataset.desc;
+                const textToCopy = `標題：${title}\n說明：${desc}`;
+
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    const originalHtml = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-check"></i> 已複製';
+                    this.classList.remove('btn-outline-primary');
+                    this.classList.add('btn-success');
+
+                    setTimeout(() => {
+                        this.innerHTML = originalHtml;
+                        this.classList.remove('btn-success');
+                        this.classList.add('btn-outline-primary');
+                    }, 2000);
+                }).catch(err => {
+                    console.error('複製失敗:', err);
+                    alert('複製失敗，請手動複製。');
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}
