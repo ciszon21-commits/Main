@@ -320,12 +320,59 @@
 
     <div id="panorama"></div>
 
+    <!-- Resource Library Modal -->
+    <div class="modal fade" id="resourceLibraryModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title"><i class="fas fa-book"></i> 引用資源庫</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Filters -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" id="libSearchInput" placeholder="搜尋標題、說明...">
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="libTypeSelect">
+                                <option value="">所有類型</option>
+                                <option value="text">文字類</option>
+                                <option value="image">圖片類</option>
+                                <option value="video">影片類</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="libProjectSelect">
+                                <option value="">所有專案</option>
+                                <!-- Populated by JS -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Resource List -->
+                    <div id="resourceLibraryList" class="row g-3">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="mt-2">載入中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Hotspot Modal -->
     <div class="modal fade" id="addHotspotModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">新增/編輯熱點</h5>
+                    <div class="ms-auto">
+                        <button type="button" class="btn btn-outline-primary btn-sm me-2" id="openLibraryBtn">
+                            <i class="fas fa-book"></i> 引用資源
+                        </button>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -334,6 +381,17 @@
                         <input type="hidden" name="scene_id" id="sceneIdInput">
                         <input type="hidden" name="pitch" id="pitchInput">
                         <input type="hidden" name="yaw" id="yawInput">
+                        <input type="hidden" name="copy_from_id" id="copyFromIdInput">
+
+                        <!-- Import Notice -->
+                        <div id="importNotice" class="alert alert-info d-flex align-items-center mb-3 d-none">
+                            <i class="fas fa-link me-2"></i>
+                            <div>
+                                已引用資源：<strong id="importTitle"></strong>
+                                <button type="button" class="btn-close ms-2" aria-label="Cancel Import"
+                                    onclick="clearImport()"></button>
+                            </div>
+                        </div>
 
                         <div class="mb-3">
                             <label class="form-label">類型</label>
@@ -400,17 +458,21 @@
 
                         <div class="mb-3">
                             <label class="form-label">標題</label>
-                            <input type="text" class="form-control" name="title" required>
+                            <input type="text" class="form-control" name="title" id="hotspotTitleInput" required>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">詳細說明</label>
-                            <textarea class="form-control" name="description" rows="3"></textarea>
+                            <textarea class="form-control" name="description" id="hotspotDescInput" rows="3"></textarea>
                         </div>
 
                         <div class="mb-3 d-none" id="imageField">
                             <label class="form-label">上傳圖片</label>
                             <input type="file" class="form-control" name="image" accept="image/*">
+                            <div id="importedImagePreview" class="mt-2 d-none">
+                                <small class="text-muted d-block mb-1">目前引用的圖片：</small>
+                                <img src="" class="img-thumbnail" style="max-height: 150px;">
+                            </div>
                         </div>
 
                         <div class="mb-3 d-none" id="videoField">
@@ -638,6 +700,8 @@
             const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
         }
+
+
 
         function editHotspot() {
             if (!currentHotspotId) return;
@@ -872,6 +936,180 @@
                 }
             }
         });
+    </script>
+    <script>
+        // Resource Library Logic
+        let libraryResources = [];
+
+        $('#openLibraryBtn').click(function () {
+            const libraryModal = new bootstrap.Modal(document.getElementById('resourceLibraryModal'));
+            libraryModal.show();
+            loadLibraryResources();
+        });
+
+        function loadLibraryResources() {
+            const listContainer = document.getElementById('resourceLibraryList');
+            // listContainer.innerHTML = '<div class="text-center py-5">...</div>'; // Keep spinner
+
+            fetch('/site360/api/resources/')
+                .then(response => response.json())
+                .then(data => {
+                    libraryResources = data.resources || [];
+                    renderLibrary();
+
+                    // Populate Project Filter
+                    const projects = new Set(libraryResources.map(r => r.project_name));
+                    const projectSelect = document.getElementById('libProjectSelect');
+                    projectSelect.innerHTML = '<option value="">所有專案</option>';
+                    projects.forEach(p => {
+                        projectSelect.innerHTML += `<option value="${p}">${p}</option>`;
+                    });
+                })
+                .catch(err => {
+                    console.error('Error loading resources:', err);
+                    listContainer.innerHTML = '<div class="alert alert-danger">載入失敗，請稍後再試。</div>';
+                });
+        }
+
+        function renderLibrary() {
+            const listContainer = document.getElementById('resourceLibraryList');
+            const search = document.getElementById('libSearchInput').value.toLowerCase();
+            const typeFilter = document.getElementById('libTypeSelect').value;
+            const projectFilter = document.getElementById('libProjectSelect').value;
+
+            listContainer.innerHTML = '';
+
+            const filtered = libraryResources.filter(r => {
+                const matchSearch = r.title.toLowerCase().includes(search) || r.description.toLowerCase().includes(search);
+
+                let matchType = true;
+                if (typeFilter) {
+                    if (typeFilter === 'text') matchType = r.type === 'text' || r.type === 'text_hover';
+                    else if (typeFilter === 'image') matchType = r.type === 'image' || r.type === 'image_hover';
+                    else if (typeFilter === 'video') matchType = r.type === 'video' || r.type === 'video_hover';
+                }
+
+                const matchProject = !projectFilter || r.project_name === projectFilter;
+
+                return matchSearch && matchType && matchProject;
+            });
+
+            if (filtered.length === 0) {
+                listContainer.innerHTML = '<div class="col-12 text-center text-muted">沒有符合的資源</div>';
+                return;
+            }
+
+            filtered.forEach(r => {
+                let badgeClass = 'bg-secondary';
+                if (r.type.includes('text')) badgeClass = 'badge-text';
+                else if (r.type.includes('image')) badgeClass = 'badge-image';
+                else if (r.type.includes('video')) badgeClass = 'badge-video';
+
+                let mediaPreview = '';
+                if (r.thumb_url) {
+                    mediaPreview = `<img src="${r.thumb_url}" class="rounded ms-2" style="height: 40px; width: 40px; object-fit: cover;">`;
+                } else if (r.icon) {
+                    mediaPreview = `<div class="rounded ms-2 d-flex align-items-center justify-content-center bg-light" style="height: 40px; width: 40px; color: ${r.icon_color || '#333'}"><i class="${r.icon}"></i></div>`;
+                }
+
+                const card = `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100 shadow-sm resource-card" style="cursor: pointer;" onclick="importResource(${r.id})">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="badge ${badgeClass}">${r.type_display}</span>
+                                    <small class="text-muted"><i class="fas fa-folder"></i> ${r.project_name}</small>
+                                </div>
+                                <div class="d-flex align-items-center mb-2">
+                                    <h6 class="card-title mb-0 text-truncate" style="flex:1;">${r.title}</h6>
+                                    ${mediaPreview}
+                                </div>
+                                <p class="card-text small text-muted text-truncate">${r.description || '無描述'}</p>
+                            </div>
+                            <div class="card-footer p-2 bg-light border-top-0 text-end">
+                                <button class="btn btn-sm btn-primary">引用</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                listContainer.innerHTML += card;
+            });
+        }
+
+        // Event Listeners for Filters
+        document.getElementById('libSearchInput').addEventListener('input', renderLibrary);
+        document.getElementById('libTypeSelect').addEventListener('change', renderLibrary);
+        document.getElementById('libProjectSelect').addEventListener('change', renderLibrary);
+
+        // Make importResource global
+        window.importResource = function (id) {
+            const resource = libraryResources.find(r => r.id === id);
+            if (!resource) return;
+
+            // Fill Form
+            $('#hotspotTitleInput').val(resource.title);
+            $('#hotspotDescInput').val(resource.description);
+            $('#typeSelect').val(resource.type);
+
+            // Important: Do NOT clear hotspotIdInput if we are editing an existing hotspot (currentHotspotId is set)
+            // If we are adding a new hotspot (currentHotspotId is null), then clear it to ensure creation.
+            // Check if form has an ID already? NO, check currentHotspotId variable or the input value itself BEFORE clearing?
+            // Actually, if we are in Add Modal, we might have clicked "Add" (id empty) or "Edit" (id set).
+            // We should respect the current state of hotspotIdInput UNLESS we want to force something.
+            // But here, the user wants to Import *into* the current form.
+            // So we should NOT touch hotspotIdInput at all. Let it stay as is.
+            if (!currentHotspotId) {
+                $('#hotspotIdInput').val(''); // Only ensure empty if we are adding new
+            } else {
+                $('#hotspotIdInput').val(currentHotspotId); // Ensure it keeps the current ID
+            }
+
+            $('#copyFromIdInput').val(resource.id);
+
+            // Set Icon
+            if (resource.icon) {
+                // Try to find icon radio or just select Custom if not in list (simplification: assume standard icons or just keep what it is if hidden)
+                // For now, let's try to match standard icons.
+                const iconRadio = $(`input[name="icon"][value="${resource.icon}"]`);
+                if (iconRadio.length) {
+                    iconRadio.prop('checked', true);
+                }
+            }
+            if (resource.icon_color) {
+                $('#iconColorInput').val(resource.icon_color);
+                $('.color-option').removeClass('selected');
+                $(`.color-option[data-color="${resource.icon_color}"]`).addClass('selected');
+            }
+
+            // Show Notice
+            $('#importNotice').removeClass('d-none');
+            $('#importTitle').text(resource.title);
+
+            // Handle Image Preview
+            if ((resource.type === 'image' || resource.type === 'image_hover') && resource.thumb_url) {
+                const previewContainer = $('#importedImagePreview');
+                previewContainer.removeClass('d-none');
+                previewContainer.find('img').attr('src', resource.thumb_url);
+                $('input[name="image"]').prop('disabled', true).addClass('d-none'); // Hide input
+            } else {
+                $('#importedImagePreview').addClass('d-none');
+                $('input[name="image"]').prop('disabled', false).removeClass('d-none');
+            }
+
+            // Trigger type change to update UI
+            updateFormFields();
+
+            // Close Library Modal
+            bootstrap.Modal.getInstance(document.getElementById('resourceLibraryModal')).hide();
+        };
+
+        window.clearImport = function () {
+            $('#copyFromIdInput').val('');
+            $('#importNotice').addClass('d-none');
+            $('#importedImagePreview').addClass('d-none');
+            $('input[name="image"]').prop('disabled', false).removeClass('d-none'); // Restore input
+            $('#addHotspotForm')[0].reset();
+        };
     </script>
 </body>
 

@@ -118,12 +118,119 @@ def move_hotspot(request, pk):
 def delete_hotspot(request, pk):
     if request.method == 'POST':
         try:
-            hotspot = get_object_or_404(Hotspot, pk=pk)
+            hotspot = Hotspot.objects.get(pk=pk)
             hotspot.delete()
             return JsonResponse({'status': 'success'})
+        except Hotspot.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Hotspot not found'}, status=404)
         except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=405)
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+@csrf_exempt
+def save_hotspot(request):
+    if request.method == 'POST':
+        try:
+            scene_id = request.POST.get('scene_id')
+            hotspot_id = request.POST.get('hotspot_id')
+            hotspot_type = request.POST.get('type')
+            pitch = request.POST.get('pitch')
+            yaw = request.POST.get('yaw')
+            title = request.POST.get('title')
+            description = request.POST.get('description')
+            icon = request.POST.get('icon')
+            icon_color = request.POST.get('icon_color')
+            
+            # Import Logic
+            copy_from_id = request.POST.get('copy_from_id')
+            source_hotspot = None
+
+            if copy_from_id:
+                try:
+                    source_hotspot = Hotspot.objects.get(pk=copy_from_id)
+                except Hotspot.DoesNotExist:
+                    source_hotspot = None # Gracefully handle missing source
+
+            scene = Scene.objects.get(pk=scene_id)
+            
+            if hotspot_id:
+                # Update existing
+                try:
+                    hotspot = Hotspot.objects.get(pk=hotspot_id)
+                except Hotspot.DoesNotExist:
+                     return JsonResponse({'status': 'error', 'message': f'Target hotspot {hotspot_id} not found.'}, status=404)
+
+                hotspot.hotspot_type = hotspot_type
+                hotspot.pitch = float(pitch)
+                hotspot.yaw = float(yaw)
+                hotspot.title = title
+                hotspot.description = description
+                hotspot.icon = icon
+                hotspot.icon_color = icon_color
+            else:
+                # Create new
+                hotspot = Hotspot(
+                    scene=scene,
+                    hotspot_type=hotspot_type,
+                    pitch=float(pitch),
+                    yaw=float(yaw),
+                    title=title,
+                    description=description,
+                    icon=icon,
+                    icon_color=icon_color
+                )
+
+            # Handle Import (Copy/Reference fields)
+            if source_hotspot:
+                hotspot.source_hotspot = source_hotspot
+                
+                # Copy Image if no new file provided
+                if source_hotspot.image and not request.FILES.get('image'):
+                    hotspot.image = source_hotspot.image
+                
+                # Copy Video if no new file provided
+                if source_hotspot.video and not request.FILES.get('video'):
+                    hotspot.video = source_hotspot.video
+            
+            # Handle File Uploads (Overrides imported files)
+            if 'image' in request.FILES:
+                hotspot.image = request.FILES['image']
+            
+            if 'video' in request.FILES:
+                hotspot.video = request.FILES['video']
+                
+            hotspot.save()
+            
+            return JsonResponse({'status': 'success', 'id': hotspot.id})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+def list_resources(request):
+    """
+    API to list all available resources (hotspots) for the library.
+    """
+    try:
+        hotspots = Hotspot.objects.select_related('scene', 'scene__project').all().order_by('-created_at')
+        data = []
+        for h in hotspots:
+            item = {
+                'id': h.id,
+                'title': h.title,
+                'description': h.description,
+                'type': h.hotspot_type,
+                'type_display': h.get_hotspot_type_display(),
+                'project_name': h.scene.project.name,
+                'scene_title': h.scene.title,
+                'thumb_url': h.image.url if h.image else None,
+                'has_video': bool(h.video),
+                'icon': h.icon,
+                'icon_color': h.icon_color
+            }
+            data.append(item)
+        return JsonResponse({'status': 'success', 'resources': data})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 @csrf_exempt
 def reorder_scenes(request):

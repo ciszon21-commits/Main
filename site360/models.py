@@ -54,6 +54,10 @@ class Hotspot(models.Model):
     video = models.FileField(_("影片內容"), upload_to='site360/hotspots/videos/', blank=True, null=True)
     icon = models.CharField(_("圖示"), max_length=50, default='fas fa-info-circle')
     icon_color = models.CharField(_("圖示顏色"), max_length=20, default='#ffffff')
+    
+    # Data Provenance
+    source_hotspot = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='copied_by', help_text="The original hotspot this was imported from")
+
     created_at = models.DateTimeField(_("建立時間"), auto_now_add=True)
 
     class Meta:
