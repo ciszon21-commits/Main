@@ -9,76 +9,128 @@
         </a>
     </div>
 
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-filter"></i> 資源篩選</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">關鍵字搜尋</label>
+                    <input type="text" class="form-control" id="keywordInput" placeholder="搜尋標題或說明...">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">場景篩選</label>
+                    <select class="form-select" id="sceneSelect">
+                        <option value="">全部場景</option>
+                        {% for scene in scenes %}
+                        <option value="{{ scene.title }}">{{ scene.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">類型篩選</label>
+                    <select class="form-select" id="typeSelect">
+                        <option value="">全部類型</option>
+                        <option value="text">文字</option>
+                        <option value="text_hover">懸浮文字</option>
+                        <option value="image">圖片</option>
+                        <option value="image_hover">懸浮圖片</option>
+                        <option value="video">影片</option>
+                        <option value="video_hover">懸浮影片</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">媒體類型</label>
+                    <select class="form-select" id="mediaSelect">
+                        <option value="">全部</option>
+                        <option value="has_image">有照片</option>
+                        <option value="has_video">有影片</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card shadow-sm">
         <div class="card-body">
             {% if scenes %}
             {% for scene in scenes %}
-            <h4 class="mt-4 mb-3 border-bottom pb-2">{{ scene.title }}</h4>
-            {% if scene.hotspots.all %}
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width: 10%;">類型</th>
-                            <th style="width: 20%;">標題</th>
-                            <th style="width: 35%;">說明內容</th>
-                            <th style="width: 20%;">媒體預覽</th>
-                            <th style="width: 15%;">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for hotspot in scene.hotspots.all %}
-                        <tr>
-                            <td>
-                                <span class="badge bg-secondary">{{ hotspot.get_hotspot_type_display }}</span>
-                            </td>
-                            <td class="fw-bold">{{ hotspot.title }}</td>
-                            <td>
-                                <div class="description-text">{{ hotspot.description|default:"-"|linebreaksbr }}</div>
-                            </td>
-                            <td class="text-center">
-                                {% if hotspot.image %}
-                                <a href="{{ hotspot.image.url }}" target="_blank">
-                                    <img src="{{ hotspot.image.url }}" alt="預覽" class="img-thumbnail"
-                                        style="max-height: 100px;">
-                                </a>
-                                {% elif hotspot.video %}
-                                <video src="{{ hotspot.video.url }}" class="img-thumbnail" style="max-height: 100px;"
-                                    controls muted></video>
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="d-grid gap-2">
-                                    {% if hotspot.title or hotspot.description %}
-                                    <button class="btn btn-sm btn-outline-primary copy-btn"
-                                        data-title="{{ hotspot.title }}" data-desc="{{ hotspot.description }}">
-                                        <i class="fas fa-copy"></i> 複製文字
-                                    </button>
-                                    {% endif %}
-
+            <div class="scene-section" data-scene-title="{{ scene.title }}">
+                <h4 class="mt-4 mb-3 border-bottom pb-2">{{ scene.title }}</h4>
+                {% if scene.hotspots.all %}
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover align-middle resource-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 10%;">類型</th>
+                                <th style="width: 20%;">標題</th>
+                                <th style="width: 35%;">說明內容</th>
+                                <th style="width: 20%;">媒體預覽</th>
+                                <th style="width: 15%;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for hotspot in scene.hotspots.all %}
+                            <tr class="resource-row" data-scene="{{ scene.title }}"
+                                data-type="{{ hotspot.hotspot_type }}"
+                                data-has-image="{% if hotspot.image %}true{% else %}false{% endif %}"
+                                data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
+                                data-title="{{ hotspot.title }}" data-desc="{{ hotspot.description }}">
+                                <td>
+                                    <span class="badge bg-secondary">{{ hotspot.get_hotspot_type_display }}</span>
+                                </td>
+                                <td class="fw-bold">{{ hotspot.title }}</td>
+                                <td>
+                                    <div class="description-text">{{ hotspot.description|default:"-"|linebreaksbr }}
+                                    </div>
+                                </td>
+                                <td class="text-center">
                                     {% if hotspot.image %}
-                                    <a href="{{ hotspot.image.url }}" download class="btn btn-sm btn-outline-success">
-                                        <i class="fas fa-download"></i> 下載圖片
+                                    <a href="{{ hotspot.image.url }}" target="_blank">
+                                        <img src="{{ hotspot.image.url }}" alt="預覽" class="img-thumbnail"
+                                            style="max-height: 100px;">
                                     </a>
+                                    {% elif hotspot.video %}
+                                    <video src="{{ hotspot.video.url }}" class="img-thumbnail"
+                                        style="max-height: 100px;" controls muted></video>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
                                     {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-grid gap-2">
+                                        {% if hotspot.title or hotspot.description %}
+                                        <button class="btn btn-sm btn-outline-primary copy-btn"
+                                            data-title="{{ hotspot.title }}" data-desc="{{ hotspot.description }}">
+                                            <i class="fas fa-copy"></i> 複製文字
+                                        </button>
+                                        {% endif %}
 
-                                    {% if hotspot.video %}
-                                    <a href="{{ hotspot.video.url }}" download class="btn btn-sm btn-outline-success">
-                                        <i class="fas fa-download"></i> 下載影片
-                                    </a>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                                        {% if hotspot.image %}
+                                        <a href="{{ hotspot.image.url }}" download
+                                            class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-download"></i> 下載圖片
+                                        </a>
+                                        {% endif %}
+
+                                        {% if hotspot.video %}
+                                        <a href="{{ hotspot.video.url }}" download
+                                            class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-download"></i> 下載影片
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted fst-italic ms-3">此場景尚無熱點資料。</p>
+                {% endif %}
             </div>
-            {% else %}
-            <p class="text-muted fst-italic ms-3">此場景尚無熱點資料。</p>
-            {% endif %}
             {% endfor %}
             {% else %}
             <div class="alert alert-info">此專案尚未建立任何場景。</div>
@@ -89,8 +141,8 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // Copy Button Logic
         const copyBtns = document.querySelectorAll('.copy-btn');
-
         copyBtns.forEach(btn => {
             btn.addEventListener('click', function () {
                 const title = this.dataset.title;
@@ -114,6 +166,75 @@
                 });
             });
         });
+
+        // Filter Logic
+        const keywordInput = document.getElementById('keywordInput');
+        const sceneSelect = document.getElementById('sceneSelect');
+        const typeSelect = document.getElementById('typeSelect');
+        const mediaSelect = document.getElementById('mediaSelect');
+        const rows = document.querySelectorAll('.resource-row');
+        const sceneSections = document.querySelectorAll('.scene-section');
+
+        function filterResources() {
+            const keyword = keywordInput.value.toLowerCase();
+            const scene = sceneSelect.value;
+            const type = typeSelect.value;
+            const media = mediaSelect.value;
+
+            rows.forEach(row => {
+                const rowScene = row.dataset.scene;
+                const rowType = row.dataset.type; // raw type code e.g., 'text'
+                const hasImage = row.dataset.hasImage === 'true';
+                const hasVideo = row.dataset.hasVideo === 'true';
+                const title = row.dataset.title.toLowerCase();
+                const desc = row.dataset.desc.toLowerCase();
+
+                let isMatch = true;
+
+                // Keyword check
+                if (keyword && !title.includes(keyword) && !desc.includes(keyword)) {
+                    isMatch = false;
+                }
+
+                // Scene check
+                if (scene && rowScene !== scene) {
+                    isMatch = false;
+                }
+
+                // Type check (Use simplified logic for dropdown values vs raw db values if needed, 
+                // but here input values match choices key prefix roughly)
+                if (type && rowType !== type) {
+                    isMatch = false;
+                }
+
+                // Media check
+                if (media) {
+                    if (media === 'has_image' && !hasImage) isMatch = false;
+                    if (media === 'has_video' && !hasVideo) isMatch = false;
+                }
+
+                if (isMatch) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Hide empty scene sections
+            sceneSections.forEach(section => {
+                const visibleRows = section.querySelectorAll('.resource-row:not([style*="display: none"])');
+                if (visibleRows.length === 0) {
+                    section.style.display = 'none';
+                } else {
+                    section.style.display = '';
+                }
+            });
+        }
+
+        keywordInput.addEventListener('input', filterResources);
+        sceneSelect.addEventListener('change', filterResources);
+        typeSelect.addEventListener('change', filterResources);
+        mediaSelect.addEventListener('change', filterResources);
     });
 </script>
 {% endblock %}

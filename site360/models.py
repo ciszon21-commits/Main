@@ -36,12 +36,12 @@ class Scene(models.Model):
 
 class Hotspot(models.Model):
     TYPE_CHOICES = (
-        ('text', '文字公告 (Text)'),
-        ('text_hover', '懸浮文字 (Hover Text)'),
-        ('image', '照片 (Image)'),
-        ('image_hover', '懸浮照片 (Hover Image)'),
-        ('video', '影片 (Video)'),
-        ('video_hover', '懸浮影片 (Hover Video)'),
+        ('text', '文字'),
+        ('text_hover', '懸浮文字'),
+        ('image', '圖片'),
+        ('image_hover', '懸浮圖片'),
+        ('video', '影片'),
+        ('video_hover', '懸浮影片'),
     )
 
     scene = models.ForeignKey(Scene, on_delete=models.CASCADE, related_name='hotspots', verbose_name=_("所屬場景"))
