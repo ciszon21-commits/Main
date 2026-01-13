@@ -2,7 +2,8 @@ from django.shortcuts import render, get_object_or_404
 from django.views.generic import ListView, DetailView, CreateView
 from django.http import JsonResponse
 from django.urls import reverse_lazy, reverse
-from django.db.models import Max
+from django.db.models import Max, Count
+from django.db import models
 from .forms import ProjectForm, SceneForm
 from .models import Project, Scene, Hotspot
 from django.views.decorators.csrf import csrf_exempt
@@ -270,7 +271,8 @@ def list_resources(request):
                 'video_url': f"{h.video.url}?v={int(h.updated_at.timestamp())}" if h.video else None,
                 'has_video': bool(h.video),
                 'icon': h.icon,
-                'icon_color': h.icon_color
+                'icon_color': h.icon_color,
+                'usage_count': h.copied_by.count()
             }
             data.append(item)
         return JsonResponse({'status': 'success', 'resources': data})
@@ -396,7 +398,7 @@ def project_resource_list(request, pk):
     # Hotspots should be pre-fetched to avoid N+1 queries.
     from django.db.models import Prefetch
     scenes = scenes.prefetch_related(
-        Prefetch('hotspots', queryset=Hotspot.objects.order_by('created_at'))
+        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).order_by('created_at'))
     )
     
     context = {
@@ -413,7 +415,7 @@ def all_resource_list(request):
 
     scenes = Scene.objects.all().order_by('project', 'order').prefetch_related(
         'project',
-        Prefetch('hotspots', queryset=Hotspot.objects.order_by('created_at'))
+        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).order_by('created_at'))
     )
     
     projects = Project.objects.all().order_by('name')
