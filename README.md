@@ -1,12 +1,13 @@
-# CoDev Studio
+# CoDev Studio - 監造冒險者公會
 
 <div align="center">
 
 ![CoDev Studio](https://img.shields.io/badge/CoDev-Studio-blueviolet?style=for-the-badge)
-![Version](https://img.shields.io/badge/version-1.1.0-blue?style=for-the-badge)
-![License](https://img.shields.io/badge/license-Internal-green?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.3.0-blue?style=for-the-badge)
+![Django](https://img.shields.io/badge/Django-5.2-green?style=for-the-badge)
+![Python](https://img.shields.io/badge/Python-3.11-blue?style=for-the-badge)
 
-**中興工程協作開發平台**
+**中興工程協作開發平台 · 監造工程師 RPG 訓練系統**
 
 *Co-Development · Code Vibe · AI-Powered Innovation*
 
@@ -14,273 +15,201 @@
 
 ---
 
-## 📖 關於 CoDev Studio
+## 📖 關於專案
 
+### CoDev Studio
 CoDev Studio 是中興工程顧問股份有限公司專為全體同仁打造的協作開發平台。平台名稱蘊含多重意義:
 
 - **Co-Development** - 協作開發，促進團隊合作
 - **Code Vibe** - 程式碼的節奏與氛圍，創造良好的開發體驗
 - **AI Copilot** - 整合 AI 輔助工具，提升開發效率
 
-我們致力於打造一個安全、高效、創新的開發環境，讓每位同仁都能發揮創意，共同推動公司的數位轉型。
+### 監造冒險者公會 (EngineerRPG)
+一個創新的監造工程師培訓系統，將專業知識學習遊戲化，透過 RPG 機制提升學習動機與成效。
+
+#### 核心特色
+- 🎮 **RPG 遊戲化學習** - 將枯燥的法規知識轉化為有趣的冒險任務
+- 📚 **技能樹系統** - 系統化的知識架構，循序漸進學習
+- ⚔️ **試煉挑戰** - 即時反饋的考試系統，HP/MP 機制增加挑戰性
+- 🛡️ **裝備系統** - 透過學習解鎖裝備，提升角色能力
+- 👥 **團隊協作** - 支援團隊管理，促進知識分享
+- 💬 **公會交流區** - 論壇式交流平台，分享攻略與經驗
+- 🏆 **成就系統** - 多元化的成就獎勵，激勵持續學習
 
 ---
 
-## ✨ 平台特色
+## ✨ 系統功能
 
-### 👥 協作開發
-- 統一的程式碼儲存庫管理
-- 版本控制與分支管理
-- 程式碼審查（Code Review）機制
-- 知識分享與技術交流平台
+### 角色系統
+- **三大職業**：土木技師、結構技師、大地技師
+- **等級系統**：透過完成試煉獲得經驗值升級
+- **屬性系統**：HP（生命值）、MP（技能值）
+- **角色自訂**：頭像、職業選擇
 
-### 🔒 資安審查
-- 研發及資訊部提供專業資安審查服務
-- 自動化安全掃描工具
-- 符合公司資安政策與規範
-- 定期安全更新與漏洞修補
+### 裝備系統 (v1.2 全新設計)
+- **主要裝備槽**：頭盔、護甲、靴子
+- **工具槽**：5 個獨立工具欄位
+- **裝備效果**：HP/MP 加成、技能效果
+- **強化系統**：裝備強化提升屬性
+- **解鎖機制**：達到等級要求解鎖新裝備
 
-### 🚀 上線支援
-- 通過審查後協助部署至正式環境
-- CI/CD 部署流程
-- 監控與維護支援
-- 技術諮詢與問題排解
+### 技能樹系統
+- **職業專屬技能**：每個職業有獨特的技能樹
+- **核心技能**：必修技能，影響晉升資格
+- **選修技能**：擴展知識面，獲得額外能力
+- **前置技能**：學習順序限制，確保知識連貫性
+
+### 試煉系統
+- **每日副本**：每日更新的練習題目
+- **即時反饋**：答題後立即顯示正確答案與解析
+- **HP 機制**：答錯扣血，增加挑戰性
+- **動態難度**：根據角色等級調整題目難度
+- **詳細記錄**：完整的答題歷史與統計
+
+### 團隊管理
+- **團隊創建**：建立專案團隊
+- **成員管理**：隊長可管理團隊成員
+- **角色權限**：OFFICER、MANAGER、ADMIN 三級權限
+- **團隊統計**：團隊成員能力總覽
+
+### 公會交流區 (v1.3 新增)
+- **公會大廳**：全員可見的公會中心，展示成員名錄與隊伍分組
+- **論壇系統**：多看板分類（綜合討論、攻略心得、組隊招募、問題請教）
+- **文章發布**：支援 Markdown 語法的文章編輯
+- **留言互動**：即時留言回應，促進知識交流
+- **公告功能**：管理員專屬公告發布權限
+- **權限控制**：細緻的權限管理，確保內容品質
+
+### 後台管理
+- **題庫管理**：新增、編輯、刪除題目
+- **裝備管理**：設定裝備屬性與解鎖條件
+- **使用者管理**：查看與編輯使用者資料
+- **系統設定**：調整遊戲參數
 
 ---
 
 ## 🛠️ 技術架構
 
-### 支援的開發語言與框架
-- **底層**: Python 3.12
-- **全端**: Django 5.2
+### 核心技術
+- **後端框架**: Django 5.2
+- **程式語言**: Python 3.11
+- **資料庫**: SQLite (開發) / PostgreSQL (生產)
+- **前端**: HTML5, CSS3, JavaScript (Vanilla)
+- **樣式設計**: 自訂 RPG 風格 CSS
 
-### 開發工具整合
-- Git 版本控制
-- SonarQube 程式碼品質分析
+### 專案結構
+```
+CoDevStudio-07729/
+├── EngineerRPG/          # 主應用程式
+│   ├── models.py         # 資料模型
+│   ├── views.py          # 視圖邏輯
+│   ├── forms.py          # 表單定義
+│   ├── admin.py          # 後台管理
+│   └── urls.py           # URL 路由
+├── templates/            # 模板文件
+│   └── EngineerRPG/
+│       ├── base.html     # 基礎模板
+│       ├── dashboard.html # 儀表板
+│       ├── equipment.html # 裝備頁面
+│       ├── trial_exam.html # 試煉頁面
+│       └── ...
+├── static/               # 靜態資源
+│   └── EngineerRPG/
+│       ├── css/          # 樣式表
+│       └── images/       # 圖片資源
+└── manage.py             # Django 管理腳本
+```
+
+### 資料模型
+- `UserProfile` - 使用者檔案與角色資料
+- `CharacterClass` - 職業定義
+- `Equipment` - 裝備資料
+- `UserEquipment` - 使用者擁有的裝備
+- `SkillNode` - 技能節點
+- `UserSkill` - 使用者技能學習狀態
+- `Trial` - 試煉定義
+- `Question` - 題目資料
+- `TrialRecord` - 試煉記錄
+- `Team` - 團隊資料
+- `TeamMembership` - 團隊成員關係
+- `GuildPost` - 公會文章 (v1.3)
+- `GuildComment` - 文章留言 (v1.3)
 
 ---
 
 ## 🚀 快速開始
 
-### 1️⃣ Clone Repository
+### 環境需求
+- Python 3.11+
+- pip (Python 套件管理工具)
+- Git
 
+### 安裝步驟
+
+#### 1. Clone Repository
 ```bash
-# 使用 HTTPS
 git clone https://50-129.sinotech.com.tw:6981/public/CoDevStudio.git
-
-# 或使用 SSH
-git clone git@50-129.sinotech.com.tw:6981:public/CoDevStudio.git
-
-# 進入專案目錄
 cd CoDevStudio
 ```
 
-### 2️⃣ 設定開發環境
-
+#### 2. 建立虛擬環境
 ```bash
-# 建立venv
+# Windows
 py -m venv venv
 venv\Scripts\activate
-# 安裝套件
-pip install -r requirements.txt
 
+# Linux/Mac
+python3 -m venv venv
+source venv/bin/activate
 ```
 
-### 3️⃣ 開始開發
-
+#### 3. 安裝相依套件
 ```bash
-# 啟動開發伺服器
+pip install -r requirements.txt
+```
+
+#### 4. 資料庫遷移
+```bash
+python manage.py migrate
+```
+
+#### 5. 建立超級使用者
+```bash
+python manage.py createsuperuser
+```
+
+#### 6. 啟動開發伺服器
+```bash
 python manage.py runserver
 ```
 
-### 4️⃣ 使用 Git Flow 建立分支
+訪問 `http://localhost:8000/rpg/` 開始使用！
 
-我們採用 **Git Flow** 工作流程來管理程式碼版本：
+---
+
+## 📋 開發指南
+
+### Git Flow 工作流程
+
+我們採用 **Git Flow** 進行版本控制：
 
 ```bash
-# 初始化 Git Flow（首次使用）
-git flow init
+# 初始化 Git Flow
+git flow init -d
 
 # 開始新功能開發
-git flow feature start your-feature-name
+git flow feature start feature-name
 
-# 進行開發...
+# 完成功能開發
+git flow feature finish feature-name
 
-# 提交變更
-git add .
-git commit -m "feat: add your feature description"
-
-# 完成功能開發（會自動合併到 develop 並刪除 feature 分支）
-git flow feature finish your-feature-name
-
-# 推送 develop 分支到遠端
+# 推送到遠端
 git push origin develop
 ```
 
-**Git Flow 分支說明：**
-- `main` - 正式環境程式碼，只接受來自 release 或 hotfix 的合併
-- `develop` - 開發環境程式碼，整合所有功能分支
-- `feature/*` - 功能開發分支，從 develop 分出
-- `release/*` - 發布準備分支，從 develop 分出
-- `hotfix/*` - 緊急修復分支，從 main 分出
+### Commit Message 規範
 
----
-
-## 📋 開發流程
-
-### Git Flow 完整開發週期
-
-```mermaid
-graph TB
-    A[Clone Repository] --> B[git flow init]
-    B --> C[git flow feature start]
-    C --> D[本地開發與測試]
-    D --> E[git commit]
-    E --> F[git flow feature finish]
-    F --> G[推送 develop 到遠端]
-    G --> H[建立 Merge Request]
-    H --> I[程式碼審查]
-    I --> J{審查通過?}
-    J -->|否| D
-    J -->|是| K[合併至 develop]
-    K --> L[聯繫資訊部]
-    L --> M[資安審查]
-    M --> N{審查通過?}
-    N -->|否| O[修正問題]
-    O --> D
-    N -->|是| P[git flow release start]
-    P --> Q[部署至測試環境]
-    Q --> R[驗收測試]
-    R --> S{測試通過?}
-    S -->|否| O
-    S -->|是| T[git flow release finish]
-    T --> U[部署至正式環境]
-    U --> V[上線完成]
-```
-
-### 詳細步驟說明
-
-#### 階段一：開發階段（使用 Git Flow）
-1. **Clone Repository** - 從 CoDev Studio 複製專案
-2. **初始化 Git Flow** - 執行 `git flow init -d` 設定分支結構
-3. **開始功能開發** - 使用 `git flow feature start <name>` 建立功能分支
-4. **本地開發** - 使用 AI 工具輔助開發
-5. **單元測試** - 撰寫並執行測試確保程式碼品質
-6. **完成功能** - 使用 `git flow feature finish <name>` 合併回 develop
-
-#### 階段二：審查階段
-7. **建立 Merge Request** - 在 GitLab 上建立 MR 從 develop 到 main
-8. **程式碼審查** - 團隊成員進行 Code Review
-9. **修正建議** - 根據審查意見調整程式碼
-10. **合併至 develop** - 審查通過後合併
-
-#### 階段三：資安審查階段
-11. **聯繫資訊部** - 寄信通知資安審查 (rexshiu@mail.sinotech.com.tw)
-12. **資安掃描** - 自動化工具進行安全性檢測
-13. **人工審查** - 資安專家進行深度審查
-14. **修正漏洞** - 根據審查報告修正安全問題
-
-#### 階段四：發布階段（使用 Git Flow Release）
-15. **建立 Release** - 使用 `git flow release start <version>` 建立發布分支
-16. **測試環境部署** - 部署至測試環境進行驗證
-17. **整合測試** - 執行完整的系統測試
-18. **完成 Release** - 使用 `git flow release finish <version>` 合併到 main 和 develop
-19. **正式環境部署** - 部署至正式環境
-20. **監控與維護** - 持續監控系統運作狀態
-
-#### 緊急修復（使用 Git Flow Hotfix）
-當正式環境發現緊急問題時：
-1. **建立 Hotfix** - `git flow hotfix start <version>`
-2. **修復問題** - 快速修復並測試
-3. **完成 Hotfix** - `git flow hotfix finish <version>` 同時合併到 main 和 develop
-4. **緊急部署** - 立即部署到正式環境
-
----
-
-## 🌿 Git Flow 工作流程
-
-### 分支策略
-
-```mermaid
-gitGraph
-    commit id: "Initial"
-    branch develop
-    checkout develop
-    commit id: "Setup"
-    
-    branch feature/login
-    checkout feature/login
-    commit id: "Add login"
-    commit id: "Add tests"
-    checkout develop
-    merge feature/login
-    
-    branch release/1.0.0
-    checkout release/1.0.0
-    commit id: "Bump version"
-    commit id: "Fix bugs"
-    checkout main
-    merge release/1.0.0 tag: "v1.0.0"
-    checkout develop
-    merge release/1.0.0
-    
-    checkout main
-    branch hotfix/1.0.1
-    commit id: "Critical fix"
-    checkout main
-    merge hotfix/1.0.1 tag: "v1.0.1"
-    checkout develop
-    merge hotfix/1.0.1
-```
-
-### Git Flow 指令速查
-
-#### 功能開發
-```bash
-# 開始新功能
-git flow feature start <feature-name>
-
-# 發布功能（合併到 develop）
-git flow feature finish <feature-name>
-
-# 推送功能分支到遠端（協作開發）
-git flow feature publish <feature-name>
-
-# 拉取其他人的功能分支
-git flow feature pull origin <feature-name>
-```
-
-#### 版本發布
-```bash
-# 開始發布準備
-git flow release start <version>
-
-# 完成發布（合併到 main 和 develop，建立 tag）
-git flow release finish <version>
-
-# 推送所有變更和標籤
-git push origin main develop --tags
-```
-
-#### 緊急修復
-```bash
-# 開始緊急修復
-git flow hotfix start <version>
-
-# 完成緊急修復（合併到 main 和 develop）
-git flow hotfix finish <version>
-
-# 推送所有變更和標籤
-git push origin main develop --tags
-```
-
----
-
-## 📝 提交規範
-
-### Commit Message 格式
-
-我們採用 [Conventional Commits](https://www.conventionalcommits.org/) 規範：
+遵循 [Conventional Commits](https://www.conventionalcommits.org/)：
 
 ```
 <type>(<scope>): <subject>
@@ -290,31 +219,179 @@ git push origin main develop --tags
 <footer>
 ```
 
-### Type 類型
-
+**Type 類型：**
 - `feat`: 新功能
 - `fix`: 錯誤修復
 - `docs`: 文件更新
-- `style`: 程式碼格式調整（不影響功能）
-- `refactor`: 重構（既非新增功能也非修復錯誤）
+- `style`: 程式碼格式調整
+- `refactor`: 重構
 - `perf`: 效能優化
 - `test`: 測試相關
 - `chore`: 建置流程或輔助工具變動
 
-### 範例
-
+**範例：**
 ```bash
-feat(auth): add user login functionality
+feat(equipment): add 5 tool slots and boots equipment
 
-- Implement JWT authentication
-- Add login API endpoint
-- Create login form component
+- Replace single tool slot with boots
+- Add 5 independent tool slots
+- Update equipment UI layout
+- Implement auto HP/MP sync mechanism
 
 Closes #123
 ```
 
-### 審查項目
+### 程式碼風格
+- 遵循 PEP 8 (Python)
+- 使用有意義的變數名稱
+- 適當的註解與文件字串
+- 保持函式簡潔（單一職責原則）
 
+---
+
+## 📚 最新更新
+
+### v1.3.1 (2026-01-11) - 個人檔案與技能樹增強
+#### 個人檔案系統
+- ✅ **個人檔案編輯優化**
+  - 新增密碼變更功能（需驗證舊密碼）
+  - 實作防誤觸機制（舊密碼欄位預設空白）
+  - 隱私保護：上傳的個人頭像不公開顯示
+
+- ✅ **頭像系統升級**
+  - **預設頭像選擇器**：提供 20 款 RPG 風格預設頭像（人類、精靈、矮人、獸人等）
+  - **Modal 介面**：採用浮動視窗選擇預設頭像，支援即時預覽
+  - **自訂上傳**：保留使用者上傳專屬頭像功能
+
+#### 技能樹系統 (編輯器與核心)
+- ✅ **列表式編輯介面**：簡化技能維護流程
+- ✅ **自動佈局演算法**：根據依賴關係自動排列節點
+- ✅ **多對多課程關聯**：單一技能可對應多門課程
+
+### v1.3.0 (2026-01-07) - 公會交流區系統
+#### 新功能
+- ✅ **公會大廳重新設計**
+  - 全員可見的公會中心
+  - 成員名錄按隊伍分組顯示
+  - 隊長標示與角色權限視覺化
+  - 自由冒險者獨立區塊
+  
+- ✅ **公會交流區（論壇系統）**
+  - 多看板分類系統（綜合討論、攻略心得、組隊招募、問題請教）
+  - 文章發布與編輯功能
+  - 留言互動系統
+  - 文章瀏覽數統計
+  - 置頂與鎖定功能
+  
+- ✅ **公告系統**
+  - 管理員專屬公告發布入口
+  - 自動分類預選功能
+  - 公告優先顯示機制
+
+#### 每日試煉系統優化
+- ✅ 實作靈活的每日試煉生成機制
+- ✅ 隨機題目選擇系統（每日 30 題不重複）
+- ✅ 試煉模板重複使用機制
+- ✅ 題目不足時的 Failsafe 處理
+- ✅ 獨立 HP/MP 系統（不影響主角色）
+
+#### Bug 修復
+- ✅ 修正 Django Admin User 管理頁面密碼欄位顯示
+- ✅ 修正每日試煉日期標題重複問題
+- ✅ 修正模板語法錯誤（Guild Post Create）
+- ✅ 修正 Team 模型關聯名稱錯誤
+
+#### UI/UX 改進
+- ✅ 統一金色主題配色
+- ✅ 提升圖示與文字可見度
+- ✅ 優化公會大廳版面配置
+
+### v1.2.0 (2026-01-06) - 裝備系統重新設計
+#### 裝備系統
+- ✅ 新增靴子裝備槽
+- ✅ 擴充為 5 個工具槽位
+- ✅ 重新設計裝備頁面 UI（2 欄式布局）
+- ✅ 實作全部裝備列表（顯示解鎖狀態）
+- ✅ HP/MP 自動同步機制
+
+#### HP/MP 計算優化
+- ✅ 固定基礎值（HP: 3, MP: 100）
+- ✅ 自動計算裝備加成
+- ✅ 資料庫數值即時同步
+- ✅ 儀表板正確顯示總值
+
+#### 試煉系統增強
+- ✅ 支援動態 HP 顯示（超過 5 點生命值）
+- ✅ 修復模板語法錯誤
+- ✅ 優化愛心顯示邏輯
+
+---
+
+## 🎮 遊戲機制說明
+
+### HP/MP 系統
+- **基礎 HP**: 3 點
+- **基礎 MP**: 100 點
+- **裝備加成**: 透過裝備提升 HP/MP 上限
+- **試煉消耗**: 答錯題目扣 1 HP，HP 歸零則失敗
+
+### 經驗值與升級
+- 完成試煉獲得經驗值
+- 升級公式：`下一等級所需經驗 = 當前等級 × 100`
+- 升級後解鎖新裝備與技能
+
+### 裝備機制
+- **解鎖條件**: 達到指定等級
+- **裝備效果**: HP/MP 加成、特殊技能
+- **強化系統**: 使用強化卷軸提升裝備等級
+- **稀有度**: 普通、稀有、史詩、傳說
+
+### 技能學習
+- **學習條件**: 完成前置技能
+- **學習方式**: 閱讀課程內容
+- **完成驗證**: 通過相關試煉
+
+### 🌳 技能樹詳細機制 (Skill Tree Mechanics)
+技能樹是 EngineerRPG 中知識結構的核心，採用 **DAG (有向無環圖)** 結構設計：
+
+#### 1. 技能節點類型 (Node Types)
+系統將技能分為三種層級，確保學習路徑的連貫性：
+- **ROOT (共同必修)**：
+  - **定義**：所有工程師的基礎知識（如：職安衛、監造計畫撰寫）。
+  - **特性**：無視職業限制，所有人都必須優先學習。
+  - **顯示**：位於技能樹最頂層。
+
+- **CORE (職業核心)**：
+  - **定義**：特定職業（土木/結構/大地）的專業必修技能。
+  - **特性**：僅對應職業可見，決定了職業發展方向。
+  - **依賴**：通常需要 ROOT 技能作為前置。
+
+- **ADVANCED (進階選修)**：
+  - **定義**：深入的專業知識或跨領域技能。
+  - **特性**：提供額外能力加成，屬於自我精進項目。
+  - **依賴**：通常需要 CORE 技能作為前置。
+
+#### 2. 依賴與解鎖 (Dependencies & Unlocking)
+- **前置技能限制**：每個技能可以設定多個「前置技能 (Parent Skills)」。
+- **解鎖規則**：**所有**前置技能都必須標記為「已學習」，該技能才會解鎖（從灰色變為可點擊）。
+- **循環防護**：系統內建防護機制，防止建立循環依賴（A->B->A），確保技能樹邏輯正確。
+
+#### 3. 課程關聯 (Course Integration)
+- **多對多對應**：
+  - 一個技能 (Skill) 可以包含多堂課程 (Course)。
+  - 一堂課程 (Course) 可以被多個技能引用。
+- **完成判定**：當技能下屬的所有課程都完成閱讀/測驗後，該技能才算「完全掌握」。
+
+#### 4. 自動佈局系統 (Auto-Layout)
+- 為了視覺化複雜的依賴關係，系統採用**拓撲排序 (Topological Sort)** 演算法。
+- **Y 軸 (層級)**：根據前置技能的深度自動計算層級。
+- **X 軸 (位置)**：同一層級的節點會自動平均分佈，減少連線交叉，確保視覺清晰。
+
+---
+
+## 🔒 資安審查
+
+### 審查項目
 - ✅ 程式碼安全性檢查
 - ✅ 相依套件漏洞掃描
 - ✅ 資料加密與傳輸安全
@@ -322,131 +399,25 @@ Closes #123
 - ✅ 輸入驗證與防範注入攻擊
 - ✅ 敏感資料保護
 - ✅ 日誌記錄與監控
-- ✅ 錯誤處理與異常管理
 
-### 審查時程
-
-- **一般專案**: 5-7 個工作天
-- **緊急專案**: 2-3 個工作天（需主管核准）
-- **大型專案**: 10-14 個工作天
+### 聯絡資訊
+- **Email**: rexshiu@mail.sinotech.com.tw
+- **負責單位**: 研發及資訊部
+- **分機**: 06843
 
 ---
 
-## 📚 開發指南
+## 📞 技術支援
 
-### 程式碼風格
-
-- 遵循各語言的官方風格指南
-- 使用 Linter 工具自動檢查
-- 保持程式碼簡潔易讀
-- 適當的註解與文件
-
-### 測試要求
-
-- 單元測試覆蓋率 > 80%
-- 關鍵功能必須有整合測試
-- 提交前執行所有測試
-- 新功能必須包含測試
-
-### 文件撰寫
-
-- README.md 說明專案概述
-- API 文件使用 Swagger/OpenAPI
-- 重要功能需有使用說明
-- 更新 CHANGELOG.md
-
----
-
-## 🤝 貢獻指南
-
-我們歡迎所有同仁參與 CoDev Studio 的建設！我們使用自建的 Gitea 伺服器進行協作。
-
-### 1️⃣ 註冊帳號
-
-請前往我們的 Gitea 伺服器註冊帳號：
-[https://50-129.sinotech.com.tw:6981/](https://50-129.sinotech.com.tw:6981/)
-
-### 2️⃣ Fork 專案
-
-1. 登入 Gitea。
-2. 前往 [CoDev Studio 專案頁面](https://50-129.sinotech.com.tw:6981/public/CoDevStudio)。
-3. 點擊右上角的 **Fork** 按鈕，將專案複製到您的個人帳號下。
-
-### 3️⃣ Clone 您的 Fork
-
-```bash
-# 將 <username> 替換為您的 Gitea 帳號
-git clone https://50-129.sinotech.com.tw:6981/<username>/CoDevStudio.git
-cd CoDevStudio
-```
-
-### 4️⃣ 設定 Upstream (保持同步)
-
-為了讓您的 Fork 能跟上主專案的更新，請設定 upstream：
-
-```bash
-git remote add upstream https://50-129.sinotech.com.tw:6981/public/CoDevStudio.git
-```
-
-當主專案有更新時，您可以這樣同步：
-
-```bash
-git fetch upstream
-git checkout develop
-git merge upstream/develop
-```
-
-### 5️⃣ 開發流程 (Git Flow)
-
-我們嚴格遵守 Git Flow 流程：
-
-1. **建立功能分支**：
-   ```bash
-   git flow feature start my-awesome-feature
-   ```
-2. **進行開發與提交**：
-   ```bash
-   git add .
-   git commit -m "feat: add amazing feature"
-   ```
-3. **完成功能 (僅限本地)**：
-   如果您想保留分支以便發送 Pull Request，**請不要**直接使用 `git flow feature finish`，而是直接推送分支：
-   ```bash
-   git push origin feature/my-awesome-feature
-   ```
-   *(或者，如果您已經 finish 了，請確保推送到您的 fork 的 develop 分支)*
-
-### 6️⃣ 提交 Pull Request (PR)
-
-1. 回到 Gitea 您的專案頁面。
-2. 切換到您剛推送的分支 (例如 `feature/my-awesome-feature`)。
-3. 點擊 **New Pull Request** (或 **New Merge Request**)。
-4. 確保目標是 `public/CoDevStudio` 的 `develop` 分支。
-5. 填寫標題與說明，描述您的變更。
-6. 點擊 **Create Pull Request**。
-
-等待團隊成員進行 Code Review，通過後將會合併至主專案。
-
----
-
-## 📞 聯絡資訊
-
-### 技術支援
-
+### 開發團隊
 - **Email**: rexshiu@mail.sinotech.com.tw
 - **分機**: 06843, 07502, 07361
 
-### 資安審查
-
-- **Email**: rexshiu@mail.sinotech.com.tw
-- **負責單位**: 研發及資訊部
-- **分機**: 06843
-
-### 上線支援
-
-- **Email**: rexshiu@mail.sinotech.com.tw
-- **負責單位**: 研發及資訊部
-- **分機**: 06843
+### 問題回報
+請透過以下方式回報問題：
+1. 在 Gitea 建立 Issue
+2. 寄信至技術支援信箱
+3. 直接聯繫開發團隊
 
 ---
 
@@ -459,7 +430,6 @@ git merge upstream/develop
 - 敏感資訊不得外洩
 - 遵守公司資安政策
 - 尊重智慧財產權
-
 
 ---
 
@@ -478,6 +448,8 @@ git merge upstream/develop
 
 **讓我們一起打造更好的開發體驗！**
 
-Made by 中興工程研發及資訊部
+Made with ❤️ by 中興工程研發及資訊部
+
+Version 1.3.0 | Last Updated: 2026-01-07
 
 </div>
