@@ -475,7 +475,7 @@ def project_tour_data(request, pk):
                     "id": f"nav_next_{scene.id}", 
                     "sceneId": str(next_scene.id),
                     "icon": "fas fa-arrow-circle-right",
-                    "icon_color": "#ffffff",
+                    "icon_color": "#000000",
                     "title": f"下一個場景：{next_scene.title}"
                 }
             })
@@ -493,7 +493,7 @@ def project_tour_data(request, pk):
                     "id": f"nav_prev_{scene.id}", 
                     "sceneId": str(prev_scene.id),
                     "icon": "fas fa-arrow-circle-left",
-                    "icon_color": "#ffffff",
+                    "icon_color": "#000000",
                     "title": f"上一個場景：{prev_scene.title}"
                 }
             })
