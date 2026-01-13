@@ -188,6 +188,7 @@ def save_hotspot(request):
             
             # Import Logic
             copy_from_id = request.POST.get('copy_from_id')
+            clear_source = request.POST.get('clear_source')  # 檢查是否明確要求清除引用
             source_hotspot = None
 
             if copy_from_id:
@@ -212,6 +213,10 @@ def save_hotspot(request):
                 hotspot.description = description
                 hotspot.icon = icon
                 hotspot.icon_color = icon_color
+                
+                # 處理清除引用的請求
+                if clear_source == 'true':
+                    hotspot.source_hotspot = None
             else:
                 # Create new
                 hotspot = Hotspot(
@@ -230,19 +235,40 @@ def save_hotspot(request):
                 hotspot.source_hotspot = source_hotspot
                 
                 # Copy Image if no new file provided
-                if source_hotspot.image and not request.FILES.get('image'):
+                if source_hotspot.image and not request.FILES.get('image') and not request.FILES.get('video'):
                     hotspot.image = source_hotspot.image
+                    # 引用圖片資源時，清除影片字段以確保互斥
+                    hotspot.video = None
                 
                 # Copy Video if no new file provided
-                if source_hotspot.video and not request.FILES.get('video'):
+                if source_hotspot.video and not request.FILES.get('video') and not request.FILES.get('image'):
                     hotspot.video = source_hotspot.video
+                    # 引用影片資源時，清除圖片字段以確保互斥
+                    hotspot.image = None
             
             # Handle File Uploads (Overrides imported files)
+            # 圖片和影片互斥：上傳圖片時清除影片，上傳影片時清除圖片
             if 'image' in request.FILES:
                 hotspot.image = request.FILES['image']
+                # 清除影片字段，確保不併存
+                hotspot.video = None
             
             if 'video' in request.FILES:
                 hotspot.video = request.FILES['video']
+                # 清除圖片字段，確保不併存
+                hotspot.image = None
+            
+            # 根據熱點類型清理不需要的媒體文件
+            if hotspot_type in ['text', 'text_hover']:
+                # 文字類型不需要圖片和影片
+                hotspot.image = None
+                hotspot.video = None
+            elif hotspot_type in ['image', 'image_hover']:
+                # 圖片類型不需要影片
+                hotspot.video = None
+            elif hotspot_type in ['video', 'video_hover']:
+                # 影片類型不需要圖片
+                hotspot.image = None
                 
             hotspot.save()
             
