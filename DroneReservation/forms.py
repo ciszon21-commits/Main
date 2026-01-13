@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django_ckeditor_5.widgets import CKEditor5Widget
-from .models import DroneReservation, Announcement
+from .models import DroneReservation, Announcement, SiteSettings, DroneReviewer
 
 
 class ReservationForm(forms.ModelForm):
@@ -37,7 +37,7 @@ class ReservationForm(forms.ModelForm):
                 attrs={
                     'type': 'datetime-local',
                     'class': 'form-control',
-                    'step': '3600'
+                    'step': '60'
                 },
                 format='%Y-%m-%dT%H:%M'
             ),
@@ -45,7 +45,7 @@ class ReservationForm(forms.ModelForm):
                 attrs={
                     'type': 'datetime-local',
                     'class': 'form-control',
-                    'step': '3600'
+                    'step': '60'
                 },
                 format='%Y-%m-%dT%H:%M'
             ),
@@ -139,3 +139,30 @@ class AnnouncementForm(forms.ModelForm):
             'is_active': '啟用',
         }
 
+
+class SiteSettingsForm(forms.ModelForm):
+    """網站設定表單"""
+
+    class Meta:
+        model = SiteSettings
+        fields = ['banner_subtitle']
+        widgets = {
+            'banner_subtitle': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': '請輸入 Banner 副標題',
+                'rows': 3
+            }),
+        }
+
+
+class ReviewerCancelForm(forms.Form):
+    """簽核人取消核准表單"""
+    cancellation_reason = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': '請說明取消核准的理由'
+        }),
+        required=True,
+        label="取消理由"
+    )

@@ -29,5 +29,11 @@ urlpatterns = [
     
     # API
     path('api/events/', views.calendar_events_api, name='calendar_events'),
+    
+    # 系統設定（僅限管理簽核人）
+    path('settings/', views.SettingsView.as_view(), name='settings'),
+    
+    # 簽核人取消已核准預約
+    path('<int:pk>/reviewer-cancel/', views.reviewer_cancel_reservation, name='reviewer_cancel_reservation'),
 ]
 
