@@ -399,12 +399,12 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">新增/編輯熱點</h5>
-                    <div class="ms-auto">
+                    <div class="ms-3">
                         <button type="button" class="btn btn-outline-primary btn-sm me-2" id="openLibraryBtn">
                             <i class="fas fa-book"></i> 引用資源
                         </button>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="addHotspotForm">
@@ -770,6 +770,30 @@
             $('input[name="title"]').val(hsData.createTooltipArgs.title);
             $('textarea[name="description"]').val(hsData.createTooltipArgs.description);
 
+            // Show Current Media Preview (Even if not imported)
+            // Reset inputs first
+            $('input[name="image"]').prop('disabled', false).removeClass('d-none');
+            $('input[name="video"]').prop('disabled', false).removeClass('d-none');
+            $('#importNotice').addClass('d-none');
+
+            // Image Preview
+            if (hsData.createTooltipArgs.image) {
+                $('#importedImagePreview img').attr('src', hsData.createTooltipArgs.image);
+                $('#importedImagePreview small').text('目前圖片：');
+                $('#importedImagePreview').removeClass('d-none');
+            } else {
+                $('#importedImagePreview').addClass('d-none');
+            }
+
+            // Video Preview
+            if (hsData.createTooltipArgs.video) {
+                $('#importedVideoPreview video').attr('src', hsData.createTooltipArgs.video);
+                $('#importedVideoPreview small').text('目前影片：');
+                $('#importedVideoPreview').removeClass('d-none');
+            } else {
+                $('#importedVideoPreview').addClass('d-none');
+            }
+
             $('#addHotspotModal .modal-title').text('編輯熱點');
             const modalEl = document.getElementById('addHotspotModal');
             const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
@@ -777,7 +801,7 @@
         }
 
         function loadTour(keepView = false) {
-            const apiUrl = "{% url 'site360:project_tour_data' project.pk %}" + window.location.search;
+            const apiUrl = "{% url 'site360:project_tour_data' project.pk %}" + window.location.search + (window.location.search ? '&' : '?') + "_t=" + Date.now();
 
             fetch(apiUrl)
                 .then(response => response.json())
@@ -1083,6 +1107,27 @@
         document.getElementById('libSearchInput').addEventListener('input', renderLibrary);
         document.getElementById('libTypeSelect').addEventListener('change', renderLibrary);
         document.getElementById('libProjectSelect').addEventListener('change', renderLibrary);
+
+        // Instant Preview for Uploads
+        $('input[name="image"]').on('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                $('#importedImagePreview img').attr('src', url);
+                $('#importedImagePreview small').text('預覽新圖片 (待儲存)：');
+                $('#importedImagePreview').removeClass('d-none');
+            }
+        });
+
+        $('input[name="video"]').on('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                $('#importedVideoPreview video').attr('src', url);
+                $('#importedVideoPreview small').text('預覽新影片 (待儲存)：');
+                $('#importedVideoPreview').removeClass('d-none');
+            }
+        });
 
         // Make importResource global
         window.importResource = function (id) {

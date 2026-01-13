@@ -222,8 +222,8 @@ def list_resources(request):
                 'type_display': h.get_hotspot_type_display(),
                 'project_name': h.scene.project.name,
                 'scene_title': h.scene.title,
-                'thumb_url': h.image.url if h.image and h.hotspot_type in ['image', 'image_hover'] else None,
-                'video_url': h.video.url if h.video else None,
+                'thumb_url': f"{h.image.url}?v={int(h.updated_at.timestamp())}" if h.image and h.hotspot_type in ['image', 'image_hover'] else None,
+                'video_url': f"{h.video.url}?v={int(h.updated_at.timestamp())}" if h.video else None,
                 'has_video': bool(h.video),
                 'icon': h.icon,
                 'icon_color': h.icon_color
@@ -451,8 +451,8 @@ def project_tour_data(request, pk):
                     "description": hs.description,
                     "icon": hs.icon, 
                     "icon_color": hs.icon_color,
-                    "image": hs.image.url if hs.image else "",
-                    "video": reverse('site360:serve_hotspot_video', kwargs={'pk': hs.id}) if hs.video else ""
+                    "image": f"{hs.image.url}?v={int(hs.updated_at.timestamp())}" if hs.image else "",
+                    "video": f"{reverse('site360:serve_hotspot_video', kwargs={'pk': hs.id})}?v={int(hs.updated_at.timestamp())}" if hs.video else ""
                 }
             }
             hotspots.append(hs_data)

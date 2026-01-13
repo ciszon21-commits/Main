@@ -59,6 +59,7 @@ class Hotspot(models.Model):
     source_hotspot = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='copied_by', help_text="The original hotspot this was imported from")
 
     created_at = models.DateTimeField(_("建立時間"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("更新時間"), auto_now=True)
 
     class Meta:
         verbose_name = _("熱點內容")
