@@ -518,7 +518,9 @@ def project_tour_data(request, pk):
                     "icon": hs.icon, 
                     "icon_color": hs.icon_color,
                     "image": f"{hs.image.url}?v={int(hs.updated_at.timestamp())}" if hs.image else "",
-                    "video": f"{reverse('site360:serve_hotspot_video', kwargs={'pk': hs.id})}?v={int(hs.updated_at.timestamp())}" if hs.video else ""
+                    "video": f"{reverse('site360:serve_hotspot_video', kwargs={'pk': hs.id})}?v={int(hs.updated_at.timestamp())}" if hs.video else "",
+                    "source_hotspot_id": hs.source_hotspot.id if hs.source_hotspot else None,
+                    "source_hotspot_title": hs.source_hotspot.title if hs.source_hotspot else None
                 }
             }
             hotspots.append(hs_data)

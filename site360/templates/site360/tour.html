@@ -790,7 +790,17 @@
             // Reset inputs first
             $('input[name="image"]').prop('disabled', false).removeClass('d-none');
             $('input[name="video"]').prop('disabled', false).removeClass('d-none');
+
+            // 檢查熱點是否有引用來源
             $('#importNotice').addClass('d-none');
+            $('#copyFromIdInput').val('');
+
+            if (hsData.createTooltipArgs.source_hotspot_id) {
+                // 如果有引用來源，顯示引用信息
+                $('#copyFromIdInput').val(hsData.createTooltipArgs.source_hotspot_id);
+                $('#importTitle').text(hsData.createTooltipArgs.source_hotspot_title);
+                $('#importNotice').removeClass('d-none');
+            }
 
             // Image Preview
             if (hsData.createTooltipArgs.image) {
