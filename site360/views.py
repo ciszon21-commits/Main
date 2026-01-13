@@ -26,6 +26,21 @@ class ProjectDetailView(DetailView):
     template_name = 'site360/project_detail.html'
     context_object_name = 'project'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        project = self.get_object()
+        
+        # Aggregate hotspot counts per scene
+        from django.db.models import Count, Q
+        scenes = project.scenes.annotate(
+            text_count=Count('hotspots', filter=Q(hotspots__hotspot_type__in=['text', 'text_hover'])),
+            image_count=Count('hotspots', filter=Q(hotspots__hotspot_type__in=['image', 'image_hover'])),
+            video_count=Count('hotspots', filter=Q(hotspots__hotspot_type__in=['video', 'video_hover']))
+        ).order_by('order')
+        
+        context['scenes'] = scenes
+        return context
+
 class SceneCreateView(CreateView):
     model = Scene
     form_class = SceneForm
