@@ -143,6 +143,35 @@ def delete_hotspot(request, pk):
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
 
 @csrf_exempt
+def update_scene_nav(request, pk):
+    """
+    Updates the position of the Next or Prev navigation hotspot for a scene.
+    pk: Scene ID
+    POST data: nav_type ('next' or 'prev'), pitch, yaw
+    """
+    if request.method == 'POST':
+        try:
+            scene = get_object_or_404(Scene, pk=pk)
+            nav_type = request.POST.get('nav_type') # 'next' or 'prev'
+            pitch = float(request.POST.get('pitch'))
+            yaw = float(request.POST.get('yaw'))
+            
+            if nav_type == 'next':
+                scene.next_pitch = pitch
+                scene.next_yaw = yaw
+            elif nav_type == 'prev':
+                scene.prev_pitch = pitch
+                scene.prev_yaw = yaw
+            else:
+                 return JsonResponse({'status': 'error', 'message': 'Invalid nav_type'}, status=400)
+            
+            scene.save()
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+@csrf_exempt
 def save_hotspot(request):
     if request.method == 'POST':
         try:
@@ -434,19 +463,39 @@ def project_tour_data(request, pk):
         # Navigation Hotspots
         if next_scene:
             hotspots.append({
-                "pitch": -5,
-                "yaw": 0,
+                "pitch": scene.next_pitch,
+                "yaw": scene.next_yaw,
                 "type": "scene",
                 "text": f"Next: {next_scene.title}",
-                "sceneId": str(next_scene.id)
+                "sceneId": str(next_scene.id),
+                "id": f"nav_next_{scene.id}",
+                "createTooltipFunc": "hotspotTooltip",
+                "createTooltipArgs": { 
+                    "type": "scene", 
+                    "id": f"nav_next_{scene.id}", 
+                    "sceneId": str(next_scene.id),
+                    "icon": "fas fa-arrow-circle-right",
+                    "icon_color": "#ffffff",
+                    "title": f"下一個場景：{next_scene.title}"
+                }
             })
         if prev_scene:
             hotspots.append({
-                "pitch": -5,
-                "yaw": 180,
+                "pitch": scene.prev_pitch,
+                "yaw": scene.prev_yaw,
                 "type": "scene",
                 "text": f"Prev: {prev_scene.title}",
-                "sceneId": str(prev_scene.id)
+                "sceneId": str(prev_scene.id),
+                "id": f"nav_prev_{scene.id}",
+                "createTooltipFunc": "hotspotTooltip",
+                "createTooltipArgs": { 
+                    "type": "scene", 
+                    "id": f"nav_prev_{scene.id}", 
+                    "sceneId": str(prev_scene.id),
+                    "icon": "fas fa-arrow-circle-left",
+                    "icon_color": "#ffffff",
+                    "title": f"上一個場景：{prev_scene.title}"
+                }
             })
 
         # Rich Media Hotspots

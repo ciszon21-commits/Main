@@ -615,6 +615,12 @@
                 hotSpotDiv.style.color = args.icon_color;
             }
 
+            // For navigation hotspots, add hover tooltip
+            const isNavHotspot = args.type === 'scene' && args.id && String(args.id).startsWith('nav_');
+            if (isNavHotspot && args.title) {
+                hotSpotDiv.title = args.title;
+            }
+
             if (args.type === 'image_hover') {
                 const label = document.createElement('div');
                 label.className = 'hover-image-label';
@@ -686,6 +692,9 @@
             // Handle Dragging (Edit Mode Only)
             hotSpotDiv.onmousedown = function (e) {
                 if (isEditMode) {
+                    // Check if this is a navigation hotspot
+                    const isNavHotspot = args.id && String(args.id).startsWith('nav_');
+
                     e.stopPropagation(); // Stop propagation to prevent viewer drag
                     isDraggingHotspot = true;
                     draggedHotspotId = args.id;
@@ -700,7 +709,14 @@
             hotSpotDiv.onclick = function (e) {
                 if (clickSuppressed) return;
                 e.stopPropagation(); // Prevent viewer click
-                showHotspotModal(args);
+
+                // For navigation hotspots, switch scene instead of showing modal
+                const isNavHotspot = args.id && String(args.id).startsWith('nav_');
+                if (isNavHotspot && args.sceneId) {
+                    viewer.loadScene(args.sceneId);
+                } else {
+                    showHotspotModal(args);
+                }
             };
         };
 
@@ -919,7 +935,23 @@
             formData.append('pitch', pitch);
             formData.append('yaw', yaw);
 
-            fetch(`/site360/api/hotspot/move/${hotspotId}/`, {
+            let apiUrl = '';
+            let isNav = false;
+
+            if (String(hotspotId).startsWith('nav_')) {
+                // Handle Navigation Hotspot
+                const parts = String(hotspotId).split('_'); // nav_next_12 or nav_prev_12
+                const navType = parts[1]; // 'next' or 'prev'
+                const sceneId = parts[2];
+                apiUrl = `/site360/api/scene/nav-update/${sceneId}/`;
+                formData.append('nav_type', navType);
+                isNav = true;
+            } else {
+                // Handle Standard Hotspot
+                apiUrl = `/site360/api/hotspot/move/${hotspotId}/`;
+            }
+
+            fetch(apiUrl, {
                 method: 'POST',
                 body: formData
             })

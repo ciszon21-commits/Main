@@ -26,6 +26,12 @@ class Scene(models.Model):
     yaw = models.FloatField(_("初始偏航角 (Yaw)"), default=0, help_text="Starting yaw in degrees")
     hfov = models.FloatField(_("視場角 (HFOV)"), default=110, help_text="Horizontal field of view in degrees")
 
+    # Navigation Hotspot Positions (Customizable)
+    next_pitch = models.FloatField(_("下一張熱點 Pitch"), default=-5)
+    next_yaw = models.FloatField(_("下一張熱點 Yaw"), default=0)
+    prev_pitch = models.FloatField(_("上一張熱點 Pitch"), default=-5)
+    prev_yaw = models.FloatField(_("上一張熱點 Yaw"), default=180)
+
     class Meta:
         verbose_name = _("場景")
         verbose_name_plural = _("場景")
