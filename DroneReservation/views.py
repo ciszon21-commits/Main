@@ -9,9 +9,10 @@ from django.contrib import messages
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
+from django.contrib.auth.models import User
 
-from .models import Announcement, DroneReservation, DroneReviewer
-from .forms import ReservationForm, ReviewForm, AnnouncementForm
+from .models import Announcement, DroneReservation, DroneReviewer, SiteSettings
+from .forms import ReservationForm, ReviewForm, AnnouncementForm, SiteSettingsForm, ReviewerCancelForm
 
 
 class ReviewerRequiredMixin(UserPassesTestMixin):
@@ -35,6 +36,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
+        # 取得網站設定
+        context['site_settings'] = SiteSettings.get_settings()
+        
         # 取得啟用的公告
         context['announcements'] = Announcement.objects.filter(is_active=True)[:5]
         
@@ -42,11 +46,13 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         try:
             reviewer_profile = self.request.user.drone_reviewer_profile
             context['is_reviewer'] = reviewer_profile.is_active
+            context['is_admin'] = reviewer_profile.is_active and reviewer_profile.can_manage_reviewers
             context['pending_count'] = DroneReservation.objects.filter(
                 status='pending'
             ).count()
         except DroneReviewer.DoesNotExist:
             context['is_reviewer'] = False
+            context['is_admin'] = False
             context['pending_count'] = 0
         
         # 使用者的申請數量
@@ -84,8 +90,8 @@ class ReservationCreateView(LoginRequiredMixin, CreateView):
         return response
 
     def send_notification_to_reviewers(self, reservation):
-        """發送通知給所有啟用的簽核人"""
-        reviewers = DroneReviewer.objects.filter(is_active=True).select_related('user')
+        """發送通知給所有啟用且接收郵件的簽核人"""
+        reviewers = DroneReviewer.objects.filter(is_active=True, receive_email=True).select_related('user')
         reviewer_emails = [r.user.email for r in reviewers if r.user.email]
         
         if reviewer_emails:
@@ -106,7 +112,7 @@ class ReservationCreateView(LoginRequiredMixin, CreateView):
 
 此為系統自動發送郵件，請勿直接回覆。
 """,
-                    from_email=settings.SYSTEM_EMAIL,
+                    from_email=settings.EMAIL_HOST_USER,
                     recipient_list=reviewer_emails,
                     fail_silently=True,
                 )
@@ -138,8 +144,41 @@ class ReservationUpdateView(LoginRequiredMixin, UpdateView):
         return context
 
     def form_valid(self, form):
+        response = super().form_valid(form)
+        # 發送編輯通知給簽核人
+        self.send_edit_notification_to_reviewers(form.instance)
         messages.success(self.request, '預約申請已更新。')
-        return super().form_valid(form)
+        return response
+
+    def send_edit_notification_to_reviewers(self, reservation):
+        """發送編輯通知給所有啟用且接收郵件的簽核人"""
+        reviewers = DroneReviewer.objects.filter(is_active=True, receive_email=True).select_related('user')
+        reviewer_emails = [r.user.email for r in reviewers if r.user.email]
+        
+        if reviewer_emails:
+            try:
+                send_mail(
+                    subject=f'[無人機預約] 申請已修改 - {reservation.applicant.get_full_name() or reservation.applicant.username}',
+                    message=f"""您好，
+
+以下無人機預約申請已被修改：
+
+申請人：{reservation.applicant.get_full_name() or reservation.applicant.username}
+使用時間：{reservation.usage_start_datetime.strftime('%Y/%m/%d %H:%M')} ~ {reservation.usage_end_datetime.strftime('%Y/%m/%d %H:%M')}
+地點：{reservation.location}
+計畫編號：{reservation.project_number}
+申請理由：{reservation.reason}
+
+請登入系統進行審核。
+
+此為系統自動發送郵件，請勿直接回覆。
+""",
+                    from_email=settings.EMAIL_HOST_USER,
+                    recipient_list=reviewer_emails,
+                    fail_silently=True,
+                )
+            except Exception as e:
+                print(f"Failed to send email: {e}")
 
 
 class MyReservationsView(LoginRequiredMixin, ListView):
@@ -222,9 +261,13 @@ class ReservationDetailView(LoginRequiredMixin, DetailView):
         context['can_edit'] = reservation.can_edit(user)
         context['can_cancel'] = reservation.can_cancel(user)
         context['can_review'] = reservation.can_review(user)
+        context['can_reviewer_cancel'] = reservation.can_reviewer_cancel(user)
         
         if context['can_review']:
             context['review_form'] = ReviewForm()
+        
+        if context['can_reviewer_cancel']:
+            context['reviewer_cancel_form'] = ReviewerCancelForm()
         
         return context
 
@@ -304,7 +347,7 @@ def send_review_notification(reservation):
 地點：{reservation.location}
 簽核人：{reservation.reviewer.get_full_name() or reservation.reviewer.username}
 
-請依照核准時間使用無人機。
+請依照流程，聯繫簽核人(#07130)，確認行程安排。
 
 此為系統自動發送郵件，請勿直接回覆。
 """
@@ -319,7 +362,7 @@ def send_review_notification(reservation):
 簽核人：{reservation.reviewer.get_full_name() or reservation.reviewer.username}
 拒絕理由：{reservation.rejection_reason}
 
-如有疑問，請聯繫簽核人。
+如有疑問，請聯繫簽核人(#07130)。
 
 此為系統自動發送郵件，請勿直接回覆。
 """
@@ -328,7 +371,7 @@ def send_review_notification(reservation):
         send_mail(
             subject=subject,
             message=message,
-            from_email=settings.SYSTEM_EMAIL,
+            from_email=settings.EMAIL_HOST_USER,
             recipient_list=[reservation.applicant.email],
             fail_silently=True,
         )
@@ -354,7 +397,7 @@ def send_cancel_notification(reservation):
 
 此為系統自動發送郵件，請勿直接回覆。
 """,
-            from_email=settings.SYSTEM_EMAIL,
+            from_email=settings.EMAIL_HOST_USER,
             recipient_list=[reservation.reviewer.email],
             fail_silently=True,
         )
@@ -484,3 +527,137 @@ class AnnouncementDetailView(LoginRequiredMixin, DetailView):
 
     def get_queryset(self):
         return Announcement.objects.filter(is_active=True)
+
+
+# ========================================
+# 管理員相關視圖
+# ========================================
+
+class AdminRequiredMixin(UserPassesTestMixin):
+    """只允許管理簽核人的人訪問"""
+    def test_func(self):
+        try:
+            reviewer_profile = self.request.user.drone_reviewer_profile
+            return reviewer_profile.is_active and reviewer_profile.can_manage_reviewers
+        except DroneReviewer.DoesNotExist:
+            return False
+    
+    def handle_no_permission(self):
+        messages.error(self.request, '您沒有權限訪問此頁面。')
+        return redirect('drone:dashboard')
+
+
+class SettingsView(LoginRequiredMixin, AdminRequiredMixin, TemplateView):
+    """系統設定頁面"""
+    template_name = 'DroneReservation/settings.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['site_settings'] = SiteSettings.get_settings()
+        context['site_settings_form'] = SiteSettingsForm(instance=context['site_settings'])
+        context['reviewers'] = DroneReviewer.objects.select_related('user').order_by('-can_manage_reviewers', '-is_active', 'user__last_name')
+        context['all_users'] = User.objects.filter(is_active=True).order_by('last_name', 'username')
+        return context
+
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get('action')
+        
+        if action == 'update_settings':
+            site_settings = SiteSettings.get_settings()
+            form = SiteSettingsForm(request.POST, instance=site_settings)
+            if form.is_valid():
+                settings_obj = form.save(commit=False)
+                settings_obj.updated_by = request.user
+                settings_obj.save()
+                messages.success(request, '設定已更新。')
+            else:
+                messages.error(request, '設定更新失敗。')
+        
+        elif action == 'add_reviewer':
+            user_id = request.POST.get('user_id')
+            if user_id:
+                user = get_object_or_404(User, pk=user_id)
+                reviewer, created = DroneReviewer.objects.get_or_create(user=user)
+                if not created:
+                    reviewer.is_active = True
+                    reviewer.save()
+                    messages.success(request, f'已重新啟用簽核人：{user.get_full_name() or user.username}')
+                else:
+                    messages.success(request, f'已新增簽核人：{user.get_full_name() or user.username}')
+        
+        elif action == 'update_reviewer':
+            reviewer_id = request.POST.get('reviewer_id')
+            if reviewer_id:
+                reviewer = get_object_or_404(DroneReviewer, pk=reviewer_id)
+                reviewer.is_active = request.POST.get('is_active') == 'on'
+                reviewer.receive_email = request.POST.get('receive_email') == 'on'
+                reviewer.can_manage_reviewers = request.POST.get('can_manage_reviewers') == 'on'
+                reviewer.save()
+                messages.success(request, f'已更新簽核人設定：{reviewer.user.get_full_name() or reviewer.user.username}')
+        
+        elif action == 'remove_reviewer':
+            reviewer_id = request.POST.get('reviewer_id')
+            if reviewer_id:
+                reviewer = get_object_or_404(DroneReviewer, pk=reviewer_id)
+                reviewer.is_active = False
+                reviewer.save()
+                messages.success(request, f'已停用簽核人：{reviewer.user.get_full_name() or reviewer.user.username}')
+        
+        return redirect('drone:settings')
+
+
+@login_required
+def reviewer_cancel_reservation(request, pk):
+    """簽核人取消已核准的預約"""
+    reservation = get_object_or_404(DroneReservation, pk=pk)
+    
+    # 檢查權限
+    if not reservation.can_reviewer_cancel(request.user):
+        messages.error(request, '您沒有權限取消此預約。')
+        return redirect('drone:pending_approvals')
+    
+    if request.method == 'POST':
+        form = ReviewerCancelForm(request.POST)
+        if form.is_valid():
+            reservation.status = 'cancelled'
+            reservation.cancellation_reason = form.cleaned_data['cancellation_reason']
+            reservation.save()
+            messages.success(request, '預約已取消。')
+            
+            # 發送通知給申請人
+            send_reviewer_cancel_notification(reservation, request.user)
+            
+            return redirect('drone:pending_approvals')
+        else:
+            messages.error(request, '請填寫取消理由。')
+    
+    return redirect('drone:reservation_detail', pk=pk)
+
+
+def send_reviewer_cancel_notification(reservation, reviewer):
+    """發送簽核人取消通知給申請人"""
+    if not reservation.applicant.email:
+        return
+    
+    try:
+        send_mail(
+            subject=f'[無人機預約] 您的核准預約已被取消',
+            message=f"""您好，
+
+您的無人機預約已被簽核人取消：
+
+使用時間：{reservation.usage_start_datetime.strftime('%Y/%m/%d %H:%M')} ~ {reservation.usage_end_datetime.strftime('%Y/%m/%d %H:%M')}
+地點：{reservation.location}
+取消人：{reviewer.get_full_name() or reviewer.username}
+取消理由：{reservation.cancellation_reason}
+
+如有疑問，請聯繫簽核人(#07130)。
+
+此為系統自動發送郵件，請勿直接回覆。
+""",
+            from_email=settings.EMAIL_HOST_USER,
+            recipient_list=[reservation.applicant.email],
+            fail_silently=True,
+        )
+    except Exception as e:
+        print(f"Failed to send email: {e}")
