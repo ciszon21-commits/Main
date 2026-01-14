@@ -37,7 +37,7 @@
                     <label class="form-label">關鍵字搜尋</label>
                     <input type="text" class="form-control" id="keywordInput" placeholder="搜尋標題或說明...">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label">場景篩選</label>
                     <select class="form-select" id="sceneSelect">
                         <option value="">全部場景</option>
@@ -49,7 +49,16 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
+                    <label class="form-label">狀態/引用</label>
+                    <select class="form-select" id="statusSelect">
+                        <option value="">全部狀態</option>
+                        <option value="referencing">引用中 (Referencing)</option>
+                        <option value="source">來源 (Source)</option>
+                        <option value="independent">獨立 (Independent)</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <label class="form-label">類型篩選</label>
                     <div class="dropdown" id="typeSelect">
                         <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button"
@@ -111,7 +120,8 @@
                                 data-project="{{ scene.project.name }}" data-type="{{ hotspot.hotspot_type }}"
                                 data-has-image="{% if hotspot.image %}true{% else %}false{% endif %}"
                                 data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
-                                data-title="{{ hotspot.title }}" data-desc="{{ hotspot.description }}">
+                                data-title="{{ hotspot.title }}" data-desc="{{ hotspot.description }}"
+                                data-status="{% if hotspot.source_hotspot %}referencing{% elif hotspot.usage_count > 0 %}source{% else %}independent{% endif %}">
                                 {% if all_projects %}
                                 <td><span class="badge bg-secondary">{{ scene.project.name }}</span></td>
                                 {% endif %}
@@ -402,6 +412,7 @@
         function filterResources() {
             const keyword = keywordInput.value.toLowerCase();
             const scene = sceneSelect.value;
+            const status = document.getElementById('statusSelect').value;
             const project = document.getElementById('projectSelect') ? document.getElementById('projectSelect').value : '';
 
             // Get allowed type categories from checkboxes
@@ -416,6 +427,7 @@
                 const rowScene = row.dataset.scene;
                 const rowProject = row.dataset.project;
                 const rowType = row.dataset.type; // raw type code e.g., 'text'
+                const rowStatus = row.dataset.status;
                 const hasImage = row.dataset.hasImage === 'true';
                 const hasVideo = row.dataset.hasVideo === 'true';
                 const title = row.dataset.title.toLowerCase();
@@ -435,6 +447,11 @@
 
                 // Project check
                 if (project && rowProject !== project) {
+                    isMatch = false;
+                }
+
+                // Status check
+                if (status && rowStatus !== status) {
                     isMatch = false;
                 }
 
@@ -471,6 +488,7 @@
 
         keywordInput.addEventListener('input', filterResources);
         sceneSelect.addEventListener('change', filterResources);
+        document.getElementById('statusSelect').addEventListener('change', filterResources);
         // typeSelect removed, add listeners to checkboxes
         typeCheckboxes.forEach(cb => {
             cb.addEventListener('change', filterResources);
