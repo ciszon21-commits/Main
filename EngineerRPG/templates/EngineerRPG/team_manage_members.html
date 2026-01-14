@@ -1,0 +1,125 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}管理隊員 - {{ team.name }} - 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <div class="mb-lg">
+        <h1 class="text-center">
+            <i class="fas fa-users-cog"></i>
+            管理隊員 - {{ team.name }}
+        </h1>
+        <p class="text-center" style="color: var(--color-stone);">
+            <a href="{% url 'engineer_rpg:team_detail' team.id %}" style="color: var(--color-secondary);">
+                <i class="fas fa-arrow-left"></i> 返回隊伍詳情
+            </a>
+        </p>
+    </div>
+
+    <div class="grid grid-2 gap-lg">
+        <!-- 當前隊員列表 -->
+        <div class="rpg-card">
+            <h2><i class="fas fa-users"></i> 當前隊員 ({{ current_members.count }})</h2>
+
+            {% if current_members %}
+            <div style="margin-top: var(--spacing-lg);">
+                {% for member in current_members %}
+                <div class="member-item">
+                    <div class="flex flex-between" style="align-items: center;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 1.1rem;">
+                                {{ member.user.username }}
+                            </div>
+                            <div style="color: var(--color-stone); font-size: 0.9rem;">
+                                {{ member.character_class.name }} - Lv.{{ member.level }}
+                            </div>
+                        </div>
+                        {% if member.user != team.leader %}
+                        <form method="post" action="{% url 'engineer_rpg:team_remove_member' team.id member.id %}"
+                            onsubmit="return confirm('確定要移除 {{ member.user.username }} 嗎？');">
+                            {% csrf_token %}
+                            <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-danger">
+                                <i class="fas fa-user-minus"></i> 移除
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="badge badge-ACTIVE">隊長</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="color: var(--color-stone); text-align: center; padding: var(--spacing-xl);">
+                目前沒有隊員
+            </p>
+            {% endif %}
+        </div>
+
+        <!-- 新增隊員 -->
+        <div class="rpg-card">
+            <h2><i class="fas fa-user-plus"></i> 新增隊員</h2>
+
+            {% if available_users %}
+            <form method="post" action="{% url 'engineer_rpg:team_add_member' team.id %}"
+                style="margin-top: var(--spacing-lg);">
+                {% csrf_token %}
+
+                <div style="margin-bottom: var(--spacing-md);">
+                    <label style="display: block; font-weight: 600; margin-bottom: var(--spacing-sm);">
+                        選擇冒險者
+                    </label>
+                    <select name="member_id" class="rpg-input" required>
+                        <option value="">-- 請選擇 --</option>
+                        {% for user in available_users %}
+                        <option value="{{ user.id }}">
+                            {{ user.user.username }} ({{ user.character_class.name }} - Lv.{{ user.level }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button type="submit" class="rpg-btn rpg-btn-success" style="width: 100%;">
+                    <i class="fas fa-plus"></i> 加入隊伍
+                </button>
+            </form>
+
+            <div
+                style="margin-top: var(--spacing-lg); padding: var(--spacing-md); background: rgba(0,0,0,0.2); border-radius: var(--border-radius);">
+                <p style="color: var(--color-stone); font-size: 0.9rem; margin: 0;">
+                    <i class="fas fa-info-circle"></i>
+                    只顯示尚未加入任何隊伍的冒險者
+                </p>
+            </div>
+            {% else %}
+            <p style="color: var(--color-stone); text-align: center; padding: var(--spacing-xl);">
+                目前沒有可加入的冒險者<br>
+                <small>（所有冒險者都已加入隊伍）</small>
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .member-item {
+        padding: var(--spacing-md);
+        border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+        transition: background 0.2s ease;
+    }
+
+    .member-item:hover {
+        background: rgba(212, 175, 55, 0.05);
+    }
+
+    .member-item:last-child {
+        border-bottom: none;
+    }
+
+    .rpg-btn-sm {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        font-size: 0.85rem;
+    }
+</style>
+{% endblock %}

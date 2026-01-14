@@ -1,0 +1,129 @@
+{% extends 'EngineerRPG/management/base_management.html' %}
+
+{% block management_content %}
+<div class="rpg-card">
+    <div class="rpg-card-header">
+        <h3 class="rpg-card-title">
+            <i class="fas fa-dungeon"></i> {% if dungeon %}編輯地下城{% else %}建立新地下城{% endif %}
+        </h3>
+        <a href="{% url 'engineer_rpg:dungeon_management' %}" class="text-stone text-sm hover:text-white">
+            <i class="fas fa-arrow-left"></i> 返回列表
+        </a>
+    </div>
+
+    {% if is_locked %}
+    <div class="bg-warning/20 border border-warning text-warning p-md mb-md rounded">
+        <i class="fas fa-lock"></i> 此地下城已有冒險者通關記錄，為確保公平性，無法修改內容或刪除。
+        <br>若需關閉此副本，請將狀態設為停用。
+    </div>
+    {% endif %}
+
+    <form method="post" class="mt-md">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-2 gap-md mb-md">
+            <div class="form-group">
+                <label class="form-label">地下城名稱</label>
+                <input type="text" name="title" value="{{ dungeon.title }}" class="rpg-input w-full" required {% if
+                    is_locked %}readonly{% endif %}>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">分類</label>
+                <select name="category" class="rpg-input w-full" {% if is_locked %}disabled{% endif %}>
+                    <option value="">-- 無分類 --</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if dungeon.category_id==cat.id %}selected{% endif %}>
+                        {{ cat.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% if is_locked %}<input type="hidden" name="category" value="{{ dungeon.category_id }}">{% endif %}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-md mb-md">
+            <div class="form-group">
+                <label class="form-label">需求等級</label>
+                <input type="number" name="required_level" value="{{ dungeon.required_level|default:1 }}" min="1"
+                    class="rpg-input w-full" {% if is_locked %}readonly{% endif %}>
+            </div>
+            <div class="form-group">
+                <label class="form-label flex items-center gap-sm">
+                    <input type="checkbox" name="is_active" value="1" {% if not dungeon or dungeon.is_active %}checked{%
+                        endif %} class="w-5 h-5">
+                    <span>啟用此地下城（冒險者可見）</span>
+                </label>
+                <p class="text-xs text-stone mt-xs">停用後，冒險者將無法看到此地下城</p>
+            </div>
+        </div>
+
+        <div class="form-group mb-md">
+            <label class="form-label">描述</label>
+            <textarea name="description" class="rpg-input w-full" rows="3" {% if is_locked %}readonly{% endif
+                %}>{{ dungeon.description }}</textarea>
+        </div>
+
+        <div class="form-group mb-md">
+            <label class="form-label">經驗值獎勵</label>
+            <input type="number" name="exp_reward" value="{{ dungeon.exp_reward|default:200 }}" min="0"
+                class="rpg-input w-full" {% if is_locked %}readonly{% endif %}>
+            <p class="text-xs text-stone mt-xs">重複通關僅獲得 1% 經驗值</p>
+        </div>
+
+        <div class="form-group mb-md">
+            <label class="form-label">限時（分鐘）</label>
+            <input type="number" name="time_limit" value="{{ dungeon.time_limit_minutes|default:60 }}" min="0"
+                class="rpg-input w-full" {% if is_locked %}readonly{% endif %}>
+            <p class="text-xs text-stone mt-xs">設為 0 表示不限時</p>
+        </div>
+
+        <div class="form-group mb-md">
+            <label class="form-label">道具獎勵（可選）</label>
+            <select name="equipment_reward" class="rpg-input w-full" {% if is_locked %}disabled{% endif %}>
+                <option value="">-- 無道具獎勵 --</option>
+                {% for item in equipments %}
+                <option value="{{ item.id }}" {% if dungeon.item_reward_id==item.id %}selected{% endif %}>
+                    {{ item.name }} ({{ item.get_item_type_display }})
+                </option>
+                {% endfor %}
+            </select>
+            <p class="text-xs text-stone mt-xs">首次通關獲得此道具，重複通關無法再獲得</p>
+        </div>
+
+        <div class="rpg-card bg-black/20 mb-lg border border-white/10">
+            <h4 class="text-primary mb-md font-bold">選擇挑戰題目</h4>
+            <div class="h-64 overflow-y-auto pr-sm custom-scrollbar">
+                {% for q in questions %}
+                <label
+                    class="flex items-start gap-sm p-sm hover:bg-white/5 rounded cursor-pointer border-b border-white/5">
+                    <input type="checkbox" name="questions" value="{{ q.id }}" class="mt-1" {% if dungeon and q in
+                        dungeon.questions.all %}checked{% endif %} {% if is_locked %}disabled{% endif %}>
+                    <div>
+                        <div class="font-bold">{{ q.content|truncatechars:50 }}</div>
+                        <div class="text-xs text-stone mt-xs">
+                            <span class="badge badge-xs text-xs">{{ q.get_difficulty_display }}</span>
+                            {% if q.category %}| {{ q.category.name }}{% endif %}
+                            | {{ q.get_question_type_display }}
+                        </div>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+            {% if is_locked %}
+            <!-- Keep existing questions if locked -->
+            {% for q in dungeon.questions.all %}
+            <input type="hidden" name="questions" value="{{ q.id }}">
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="flex justify-end gap-md">
+            <button type="button" onclick="history.back()" class="rpg-btn rpg-btn-secondary">取消</button>
+            {% if not is_locked %}
+            <button type="submit" class="rpg-btn rpg-btn-primary">儲存地下城</button>
+            {% endif %}
+        </div>
+    </form>
+</div>
+{% endblock %}

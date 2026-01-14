@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     'ERModelGenerator',
     'EVCodeSigning',
     'TeamKnowledgeHub',
+    'EngineerRPG',  # 現場監造工程師職涯冒險培訓系統
 ] + local.STAGE_INSTALLED_APPS
 
 GEMINI_API_KEY = local.GEMINI_API_KEY

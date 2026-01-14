@@ -1,0 +1,307 @@
+<!-- 裝備卡片組件 -->
+<div
+    class="equipment-card {% if user_equipment.is_equipped %}equipped{% endif %} {% if user_equipment.is_virtual %}unowned{% endif %}">
+    {% if user_equipment.equipment.icon %}
+    <img src="{{ user_equipment.equipment.icon.url }}" alt="{{ user_equipment.equipment.name }}" class="equipment-icon">
+    {% else %}
+    <div class="equipment-icon-placeholder">
+        <i class="fas fa-shield-alt"></i>
+    </div>
+    {% endif %}
+
+    <div class="equipment-info">
+        <h4 class="equipment-name">
+            {{ user_equipment.equipment.name }}
+            <span class="enhancement-badge">+{{ user_equipment.enhancement_level }}</span>
+        </h4>
+
+        <div class="equipment-rarity rarity-{{ user_equipment.equipment.rarity|lower }}">
+            {{ user_equipment.equipment.get_rarity_display }}
+        </div>
+
+        <p class="equipment-desc">{{ user_equipment.equipment.description|truncatewords:15 }}</p>
+
+        <div class="equipment-stats">
+            {% if user_equipment.equipment.hp_bonus > 0 %}
+            <span class="stat-item">
+                <i class="fas fa-heart"></i> HP +{{ user_equipment.get_total_hp_bonus }}
+            </span>
+            {% endif %}
+            {% if user_equipment.equipment.mp_bonus > 0 %}
+            <span class="stat-item">
+                <i class="fas fa-bolt"></i> MP +{{ user_equipment.get_total_mp_bonus }}
+            </span>
+            {% endif %}
+            {% if user_equipment.equipment.skill_effect %}
+            <span class="stat-item skill-effect">
+                <i class="fas fa-magic"></i> {{ user_equipment.equipment.skill_effect }}
+            </span>
+            {% endif %}
+        </div>
+
+        <div class="equipment-actions">
+            {% if user_equipment.is_virtual %}
+            <span class="unowned-label">
+                <i class="fas fa-lock"></i> 未獲得
+            </span>
+            {% else %}
+            {% if user_equipment.is_equipped %}
+            <form method="post" action="{% url 'engineer_rpg:unequip_item' user_equipment.id %}"
+                style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-danger">
+                    <i class="fas fa-times"></i> 卸下
+                </button>
+            </form>
+            {% else %}
+            {% if user_equipment.equipment.equipment_type == 'TOOL' %}
+            <!-- 工具需要選擇欄位 -->
+            <div class="tool-equip-dropdown">
+                <button class="rpg-btn rpg-btn-sm rpg-btn-primary dropdown-toggle" type="button"
+                    onclick="toggleToolSlots({{ user_equipment.id }})">
+                    <i class="fas fa-check"></i> 裝備
+                </button>
+                <div class="tool-slots" id="tool-slots-{{ user_equipment.id }}" style="display: none;">
+                    {% for i in "12345" %}
+                    <form method="post" action="{% url 'engineer_rpg:equip_item' user_equipment.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="slot" value="{{ i }}">
+                        <button type="submit" class="rpg-btn rpg-btn-sm">工具欄 {{ i }}</button>
+                    </form>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <form method="post" action="{% url 'engineer_rpg:equip_item' user_equipment.id %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-primary">
+                    <i class="fas fa-check"></i> 裝備
+                </button>
+            </form>
+            {% endif %}
+            {% endif %}
+
+            {% if user_equipment.enhancement_level < user_equipment.equipment.max_enhancement %} <form method="post"
+                action="{% url 'engineer_rpg:enhance_equipment' user_equipment.id %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-success">
+                    <i class="fas fa-arrow-up"></i> 強化
+                </button>
+                </form>
+                {% else %}
+                <span class="max-enhancement">MAX</span>
+                {% endif %}
+                {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .equipment-card {
+        background: rgba(0, 0, 0, 0.4);
+        border: 2px solid var(--color-primary);
+        border-radius: var(--border-radius);
+        padding: var(--spacing-md);
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .equipment-card.equipped {
+        border-color: var(--color-secondary);
+        background: rgba(255, 215, 0, 0.1);
+    }
+
+    .equipment-card.equipped::before {
+        content: "已裝備";
+        position: absolute;
+        top: var(--spacing-sm);
+        right: var(--spacing-sm);
+        background: var(--color-secondary);
+        color: var(--color-bg);
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-size: 0.7rem;
+        font-weight: 700;
+    }
+
+    .equipment-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .equipment-icon {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        border-radius: var(--border-radius);
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .equipment-icon-placeholder {
+        width: 100%;
+        height: 120px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: var(--border-radius);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .equipment-icon-placeholder i {
+        font-size: 3rem;
+        color: var(--color-stone);
+    }
+
+    .equipment-name {
+        font-size: 1.1rem;
+        margin-bottom: var(--spacing-xs);
+        color: var(--color-text);
+    }
+
+    .enhancement-badge {
+        color: var(--color-secondary);
+        font-weight: 700;
+        margin-left: var(--spacing-xs);
+    }
+
+    .equipment-rarity {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .rarity-common {
+        background: #9e9e9e;
+        color: white;
+    }
+
+    .rarity-rare {
+        background: #2196f3;
+        color: white;
+    }
+
+    .rarity-epic {
+        background: #9c27b0;
+        color: white;
+    }
+
+    .rarity-legendary {
+        background: #ff9800;
+        color: white;
+    }
+
+    .equipment-desc {
+        font-size: 0.85rem;
+        color: var(--color-stone);
+        margin-bottom: var(--spacing-sm);
+        min-height: 40px;
+    }
+
+    .equipment-stats {
+        margin-bottom: var(--spacing-md);
+        padding: var(--spacing-sm);
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: var(--border-radius);
+    }
+
+    .stat-item {
+        display: inline-block;
+        margin-right: var(--spacing-sm);
+        font-size: 0.85rem;
+        color: var(--color-secondary);
+    }
+
+    .stat-item i {
+        margin-right: 4px;
+    }
+
+    .skill-effect {
+        display: block;
+        margin-top: var(--spacing-xs);
+        color: var(--color-primary);
+    }
+
+    .equipment-actions {
+        display: flex;
+        gap: var(--spacing-sm);
+        flex-wrap: wrap;
+    }
+
+    .tool-equip-dropdown {
+        position: relative;
+    }
+
+    .tool-slots {
+        position: absolute;
+        bottom: 100%;
+        left: 0;
+        background: var(--color-bg);
+        border: 2px solid var(--color-primary);
+        border-radius: var(--border-radius);
+        padding: var(--spacing-sm);
+        margin-bottom: var(--spacing-xs);
+        z-index: 10;
+    }
+
+    .tool-slots form {
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .tool-slots form:last-child {
+        margin-bottom: 0;
+    }
+
+    .max-enhancement {
+        display: inline-block;
+        padding: 4px 12px;
+        background: var(--color-secondary);
+        color: var(--color-bg);
+        border-radius: var(--border-radius);
+        font-weight: 700;
+        font-size: 0.85rem;
+    }
+
+    .equipment-card.unowned {
+        opacity: 0.7;
+        filter: grayscale(0.8);
+        border-style: dashed;
+        border-color: var(--color-stone);
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    .unowned-label {
+        display: inline-block;
+        padding: 6px 12px;
+        background: var(--color-stone);
+        color: var(--color-bg);
+        border-radius: var(--border-radius);
+        font-weight: 700;
+        width: 100%;
+        text-align: center;
+        font-size: 0.85rem;
+    }
+</style>
+
+<script>
+    function toggleToolSlots(equipmentId) {
+        const slots = document.getElementById('tool-slots-' + equipmentId);
+        if (slots.style.display === 'none') {
+            // 隱藏所有其他的
+            document.querySelectorAll('.tool-slots').forEach(s => s.style.display = 'none');
+            slots.style.display = 'block';
+        } else {
+            slots.style.display = 'none';
+        }
+    }
+
+    // 點擊外部關閉
+    document.addEventListener('click', function (event) {
+        if (!event.target.closest('.tool-equip-dropdown')) {
+            document.querySelectorAll('.tool-slots').forEach(s => s.style.display = 'none');
+        }
+    });
+</script>

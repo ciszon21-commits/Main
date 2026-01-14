@@ -1,0 +1,134 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}新增題目 - 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <div class="mb-lg">
+        <h1 class="text-center">
+            <i class="fas fa-plus-circle"></i>
+            新增題目
+        </h1>
+    </div>
+
+    <div class="rpg-card">
+        <form method="post" style="max-width: 800px; margin: 0 auto;">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="alert alert-danger mb-lg">
+                <strong>錯誤：</strong>
+                <ul>
+                    {% for field in form %}
+                    {% for error in field.errors %}
+                    <li>{{ field.label }}: {{ error }}</li>
+                    {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <div class="form-group mb-md">
+                <label>{{ form.content.label }}</label>
+                {{ form.content }}
+            </div>
+
+            <div class="grid grid-2 gap-md mb-md">
+                <div class="form-group">
+                    <label>{{ form.question_type.label }}</label>
+                    {{ form.question_type }}
+                </div>
+                <div class="form-group">
+                    <label>{{ form.difficulty.label }}</label>
+                    {{ form.difficulty }}
+                </div>
+            </div>
+
+            <div class="form-group mb-md">
+                <label>選項設定</label>
+                <div class="grid grid-2 gap-sm">
+                    <div>
+                        <label style="font-size: 0.9rem;">{{ form.option_a.label }}</label>
+                        {{ form.option_a }}
+                    </div>
+                    <div>
+                        <label style="font-size: 0.9rem;">{{ form.option_b.label }}</label>
+                        {{ form.option_b }}
+                    </div>
+                    <div>
+                        <label style="font-size: 0.9rem;">{{ form.option_c.label }}</label>
+                        {{ form.option_c }}
+                    </div>
+                    <div>
+                        <label style="font-size: 0.9rem;">{{ form.option_d.label }}</label>
+                        {{ form.option_d }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group mb-md">
+                <label>{{ form.answer.label }}</label>
+                {{ form.answer }}
+                <small style="color: var(--color-stone); display: block; margin-top: var(--spacing-xs);">
+                    {{ form.answer.help_text }}
+                </small>
+            </div>
+
+            <div class="form-group mb-md">
+                <label>{{ form.explanation.label }}</label>
+                {{ form.explanation }}
+            </div>
+
+            <div class="form-group mb-md">
+                <label>{{ form.tags.label }}</label>
+                {{ form.tags }}
+                <small style="color: var(--color-stone); display: block; margin-top: var(--spacing-xs);">
+                    多個標籤用逗號分隔，例如：鋼筋,法規,職安
+                </small>
+            </div>
+
+            <div class="form-group mb-lg">
+                <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                    {{ form.is_active }}
+                    <span>{{ form.is_active.label }}</span>
+                </label>
+            </div>
+
+            <div class="flex gap-md justify-center">
+                <a href="{% url 'engineer_rpg:question_management' %}" class="rpg-btn">
+                    <i class="fas fa-times"></i> 取消
+                </a>
+                <button type="submit" class="rpg-btn rpg-btn-success">
+                    <i class="fas fa-save"></i> 儲存題目
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .form-group {
+        margin-bottom: var(--spacing-md);
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: var(--spacing-xs);
+        font-weight: 600;
+        color: var(--color-secondary);
+    }
+
+    .alert-danger {
+        background: rgba(231, 76, 60, 0.2);
+        border: 2px solid #e74c3c;
+        padding: var(--spacing-md);
+        border-radius: var(--border-radius);
+        color: #e74c3c;
+    }
+
+    .alert-danger ul {
+        margin: var(--spacing-sm) 0 0 var(--spacing-lg);
+    }
+</style>
+{% endblock %}

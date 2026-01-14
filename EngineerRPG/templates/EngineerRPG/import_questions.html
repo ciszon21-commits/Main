@@ -1,0 +1,125 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}批次匯入題目 - 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <div class="mb-lg">
+        <h1 class="text-center">
+            <i class="fas fa-file-import"></i>
+            批次匯入題目
+        </h1>
+        <p class="text-center" style="color: var(--color-secondary); font-size: 1.1rem;">
+            支援 CSV 和 Excel (.xlsx) 格式
+        </p>
+    </div>
+
+    <div class="grid grid-2 gap-xl">
+        <!-- 左側：匯入表單 -->
+        <div class="rpg-card">
+            <h2 class="mb-md">
+                <i class="fas fa-upload"></i>
+                上傳檔案
+            </h2>
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <div class="form-group mb-lg">
+                    <label>{{ form.file.label }}</label>
+                    {{ form.file }}
+                    <small style="color: var(--color-stone); display: block; margin-top: var(--spacing-sm);">
+                        {{ form.file.help_text }}
+                    </small>
+                    {% if form.file.errors %}
+                    <div style="color: var(--color-me); margin-top: var(--spacing-sm);">
+                        {% for error in form.file.errors %}
+                        <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="flex gap-md">
+                    <a href="{% url 'engineer_rpg:question_management' %}" class="rpg-btn flex-1 text-center">
+                        <i class="fas fa-times"></i> 取消
+                    </a>
+                    <button type="submit" class="rpg-btn rpg-btn-success flex-1">
+                        <i class="fas fa-file-import"></i> 開始匯入
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 右側：說明與範本下載 -->
+        <div>
+            <!-- 匯入格式說明 -->
+            <div class="rpg-card mb-lg">
+                <h2 class="mb-md">
+                    <i class="fas fa-info-circle"></i>
+                    匯入格式說明
+                </h2>
+
+                <div style="color: var(--color-stone); line-height: 1.8;">
+                    <p><strong>必填欄位：</strong></p>
+                    <ul style="margin-left: var(--spacing-lg);">
+                        <li>題目內容</li>
+                        <li>題目類型（單選/多選/是非）</li>
+                        <li>正確答案</li>
+                        <li>難度（S/A/B/C）</li>
+                    </ul>
+
+                    <p class="mt-md"><strong>選填欄位：</strong></p>
+                    <ul style="margin-left: var(--spacing-lg);">
+                        <li>選項A、選項B、選項C、選項D</li>
+                        <li>答案解析</li>
+                        <li>標籤（多個用逗號分隔）</li>
+                        <li>相關技能</li>
+                        <li>啟用（Y/N，預設 Y）</li>
+                    </ul>
+
+                    <p class="mt-md"><strong>答案格式：</strong></p>
+                    <ul style="margin-left: var(--spacing-lg);">
+                        <li>單選：A 或 B 或 C 或 D</li>
+                        <li>多選：A,B,C 或 A;B;C</li>
+                        <li>是非：TRUE 或 FALSE</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 範本下載 -->
+            <div class="rpg-card">
+                <h2 class="mb-md">
+                    <i class="fas fa-download"></i>
+                    下載範本
+                </h2>
+
+                <p style="color: var(--color-stone); margin-bottom: var(--spacing-md);">
+                    下載範本檔案，填寫後上傳即可批次匯入題目
+                </p>
+
+                <div class="flex gap-md">
+                    <a href="{% url 'engineer_rpg:download_template' 'csv' %}"
+                        class="rpg-btn rpg-btn-primary flex-1 text-center">
+                        <i class="fas fa-file-csv"></i> CSV 範本
+                    </a>
+                    <a href="{% url 'engineer_rpg:download_template' 'excel' %}"
+                        class="rpg-btn rpg-btn-success flex-1 text-center">
+                        <i class="fas fa-file-excel"></i> Excel 範本
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-group label {
+        display: block;
+        margin-bottom: var(--spacing-xs);
+        font-weight: 600;
+        color: var(--color-secondary);
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,37 @@
+
+# ==================== Team System Models ====================
+
+class Team(models.Model):
+    name = models.CharField(max_length=200)
+    description = models.TextField()
+    
+    class Meta:
+        managed = False
+        db_table = 'TeamKnowledgeHub_knowledgeteam'
+        verbose_name = '隊伍'
+        verbose_name_plural = '隊伍列表'
+
+    def __str__(self):
+        return self.name
+
+class TeamMembership(models.Model):
+    ROLE_CHOICES = [
+        ('MEMBER', '成員'),
+        ('LEADER', '隊長'),
+        ('VICE_LEADER', '副隊長'),
+    ]
+    
+    team = models.ForeignKey(Team, on_delete=models.DO_NOTHING)
+    user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
+    role = models.CharField(max_length=20)
+    joined_at = models.DateTimeField()
+
+    class Meta:
+        managed = False
+        db_table = 'TeamKnowledgeHub_knowledgeteammember'
+        unique_together = (('team', 'user'),)
+        verbose_name = '隊伍成員'
+        verbose_name_plural = '隊伍成員列表'
+        
+    def __str__(self):
+        return f"{self.user.username} - {self.team.name}"

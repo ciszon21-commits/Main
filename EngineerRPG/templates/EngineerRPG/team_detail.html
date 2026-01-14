@@ -1,0 +1,228 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}{{ team.name }} - 隊伍管理{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <div class="page-header mb-xl">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1>{{ team.name }}</h1>
+                <p class="text-stone">計畫代碼：{{ team.project_code }}</p>
+            </div>
+            <div>
+                <span class="badge badge-{{ team.status }}">{{ team.get_status_display }}</span>
+            </div>
+        </div>
+        {% if team.description %}
+        <p class="mt-md">{{ team.description }}</p>
+        {% endif %}
+
+        <!-- 隊長管理按鈕 -->
+        {% if team.leader == request.user %}
+        <div class="mt-md">
+            <a href="{% url 'engineer_rpg:team_manage_members' team.id %}" class="rpg-btn rpg-btn-primary">
+                <i class="fas fa-users-cog"></i> 管理隊員
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 隊伍統計 -->
+    <div class="stats-grid mb-xl">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <div class="stat-content">
+                <div class="stat-value">{{ member_stats|length }}</div>
+                <div class="stat-label">隊員人數</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="stat-content">
+                <div class="stat-value">Lv.{{ team.get_average_level }}</div>
+                <div class="stat-label">平均等級</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 隊員列表 -->
+    <div class="rpg-card">
+
+        {% if member_stats %}
+        <div class="member-list">
+            {% for stat in member_stats %}
+            <div class="member-item">
+                <div class="member-info">
+                    <div class="member-avatar">
+                        <img src="{{ stat.member.get_avatar_url }}" alt="{{ stat.member.user.username }}">
+                    </div>
+                    <div class="member-details">
+                        <h3>
+                            {{ stat.member.user.username }}
+                            {% if stat.member.user == team.leader %}
+                            <i class="fas fa-star" style="color: #FFD700; margin-left: 8px; font-size: 0.9rem;"
+                                title="隊長"></i>
+                            {% endif %}
+                        </h3>
+                        <p class="text-stone">{{ stat.member.character_class.name }} Lv.{{ stat.member.level }}</p>
+                    </div>
+                </div>
+
+                <div class="member-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">技能完成度</span>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" style="width: {{ stat.skill_completion }}%"></div>
+                        </div>
+                        <span class="stat-value">{{ stat.skill_completion }}% ({{ stat.completed_skills }}/{{
+                            stat.total_skills }})</span>
+                    </div>
+
+                    <div class="stat-item">
+                        <span class="stat-label">試煉統計</span>
+                        <span class="stat-value">
+                            總計：{{ stat.trial_stats.total_trials }} 次 |
+                            通過：{{ stat.trial_stats.passed_trials }} 次 |
+                            平均分數：{{ stat.trial_stats.avg_score|default:"--"|floatformat:1 }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="member-actions">
+                    <a href="{% url 'engineer_rpg:team_member_detail' team.id stat.member.id %}"
+                        class="rpg-btn rpg-btn-secondary">
+                        <i class="fas fa-chart-bar"></i> 詳細資料
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-center text-stone">目前沒有隊員</p>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: var(--spacing-lg);
+    }
+
+    .stat-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--color-stone);
+        border-radius: 12px;
+        padding: var(--spacing-lg);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+    }
+
+    .stat-icon {
+        font-size: 2.5rem;
+        color: var(--color-primary);
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: var(--color-secondary);
+    }
+
+    .stat-label {
+        color: var(--color-stone);
+        font-size: 0.9rem;
+    }
+
+    .member-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-lg);
+    }
+
+    .member-item {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: var(--spacing-lg);
+        display: grid;
+        grid-template-columns: 250px 1fr auto;
+        gap: var(--spacing-lg);
+        align-items: center;
+    }
+
+    .member-info {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+    }
+
+    .member-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--color-stone);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .member-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .member-avatar i {
+        font-size: 1.5rem;
+        color: var(--color-bg);
+    }
+
+    .member-details h3 {
+        margin: 0;
+        font-size: 1.2rem;
+    }
+
+    .member-stats {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+
+    .stat-item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .progress-bar-container {
+        height: 8px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+        transition: width 0.3s ease;
+    }
+
+    .badge-ACTIVE {
+        background: var(--color-success);
+    }
+
+    .badge-COMPLETED {
+        background: var(--color-blue);
+    }
+
+    .badge-DISBANDED {
+        background: var(--color-stone);
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,196 @@
+{% extends 'EngineerRPG/management/base_management.html' %}
+
+{% block management_content %}
+<div class="rpg-card">
+    <div class="rpg-card-header">
+        <h3 class="rpg-card-title">
+            <i class="fas fa-pen"></i> {% if question %}編輯題目{% else %}建立新題目{% endif %}
+        </h3>
+        <a href="{% url 'engineer_rpg:question_management' %}" class="text-stone text-sm hover:text-white">
+            <i class="fas fa-arrow-left"></i> 返回列表
+        </a>
+    </div>
+
+    <form method="post" class="mt-md" id="questionForm">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-2 gap-md mb-md">
+            <!-- 分類 -->
+            <div class="form-group">
+                <label class="form-label">所屬分類</label>
+                <select name="category" class="rpg-input w-full">
+                    <option value="">-- 無分類 --</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if question.category_id==cat.id %}selected{% endif %}>
+                        {{ cat.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- 難度 -->
+            <div class="form-group">
+                <label class="form-label">難度</label>
+                <select name="difficulty" class="rpg-input w-full">
+                    <option value="C" {% if question.difficulty=='C' %}selected{% endif %}>C級（簡單）</option>
+                    <option value="B" {% if question.difficulty=='B' or not question %}selected{% endif %}>B級（中等）
+                    </option>
+                    <option value="A" {% if question.difficulty=='A' %}selected{% endif %}>A級（困難）</option>
+                    <option value="S" {% if question.difficulty=='S' %}selected{% endif %}>S級（最難）</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 類型 -->
+        <div class="form-group mb-md">
+            <label class="form-label">題目類型</label>
+            <select name="question_type" id="questionType" class="rpg-input w-full" onchange="updateOptionsUI()">
+                <option value="SINGLE" {% if question.question_type=='SINGLE' %}selected{% endif %}>單選題</option>
+                <option value="MULTIPLE" {% if question.question_type=='MULTIPLE' %}selected{% endif %}>多選題</option>
+                <option value="TRUEFALSE" {% if question.question_type=='TRUEFALSE' %}selected{% endif %}>是非題</option>
+            </select>
+        </div>
+
+        <!-- 內容 -->
+        <div class="form-group mb-lg">
+            <label class="form-label">題目內容</label>
+            <textarea name="content" class="rpg-input w-full" rows="4" required>{{ question.content }}</textarea>
+        </div>
+
+        <!-- 選項編輯器 -->
+        <div class="rpg-card bg-black/20 mb-lg border border-white/10">
+            <h4 class="text-primary mb-md font-bold">選項與答案設定</h4>
+
+            <!-- 是非題 UI -->
+            <div id="tfEditor" style="display: none;">
+                <div class="flex gap-lg">
+                    <label class="flex items-center gap-sm cursor-pointer">
+                        <input type="radio" name="tf_answer" value="T" class="accent-primary">
+                        <span class="text-success font-bold">O (正確)</span>
+                    </label>
+                    <label class="flex items-center gap-sm cursor-pointer">
+                        <input type="radio" name="tf_answer" value="F" class="accent-primary">
+                        <span class="text-danger font-bold">X (錯誤)</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 單/多選 UI -->
+            <div id="choiceEditor">
+                <div id="optionsContainer" class="flex flex-col gap-sm mb-md">
+                    <!-- JS 生成選項 -->
+                </div>
+                <button type="button" onclick="addOption()" class="rpg-btn rpg-btn-xs rpg-btn-secondary">
+                    <i class="fas fa-plus"></i> 新增選項
+                </button>
+            </div>
+        </div>
+
+        <input type="hidden" name="options" id="optionsInput">
+        <input type="hidden" name="correct_answer" id="answerInput">
+
+        <div class="flex justify-end gap-md">
+            <button type="button" onclick="history.back()" class="rpg-btn rpg-btn-secondary">取消</button>
+            <button type="submit" onclick="prepareSubmission()" class="rpg-btn rpg-btn-primary">儲存題目</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    let options = {{ options_json|default: '{"A":"", "B":"", "C":"", "D":""}' | safe }};
+    let answer = {{ answer_json|default: '"A"' | safe }};
+
+    function init() {
+        const type = document.getElementById('questionType').value;
+        if (type === 'TRUEFALSE') {
+            document.getElementById('tfEditor').style.display = 'block';
+            document.getElementById('choiceEditor').style.display = 'none';
+            if (answer === 'T' || answer === 'F') {
+                document.querySelector(`input[name="tf_answer"][value="${answer}"]`).checked = true;
+            }
+        } else {
+            document.getElementById('tfEditor').style.display = 'none';
+            document.getElementById('choiceEditor').style.display = 'block';
+            renderOptions();
+        }
+    }
+
+    function renderOptions() {
+        const container = document.getElementById('optionsContainer');
+        const type = document.getElementById('questionType').value;
+        container.innerHTML = '';
+
+        Object.keys(options).sort().forEach(key => {
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-sm';
+
+            // Answer selector
+            let inputType = type === 'SINGLE' ? 'radio' : 'checkbox';
+            let isChecked = false;
+            if (type === 'SINGLE') isChecked = (answer === key);
+            if (type === 'MULTIPLE') isChecked = (Array.isArray(answer) && answer.includes(key));
+
+            div.innerHTML = `
+                <div class="w-8 font-bold text-center text-primary">${key}</div>
+                <input type="${inputType}" name="choice_answer" value="${key}" ${isChecked ? 'checked' : ''} class="w-4 h-4 cursor-pointer accent-primary">
+                <input type="text" value="${options[key]}" onchange="updateOption('${key}', this.value)" class="rpg-input flex-1" placeholder="選項內容">
+                <button type="button" onclick="removeOption('${key}')" class="text-stone hover:text-danger p-xs">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function addOption() {
+        const keys = Object.keys(options);
+        const lastKey = keys.length > 0 ? keys.sort()[keys.length - 1] : '@'; // @ next is A
+        const nextKey = String.fromCharCode(lastKey.charCodeAt(0) + 1);
+        if (nextKey > 'Z') { alert('選項過多'); return; }
+
+        options[nextKey] = "";
+        renderOptions();
+    }
+
+    function removeOption(key) {
+        delete options[key];
+        renderOptions();
+    }
+
+    function updateOption(key, value) {
+        options[key] = value;
+    }
+
+    function updateOptionsUI() {
+        // 切換類型時重置答案格式
+        const type = document.getElementById('questionType').value;
+        if (type === 'SINGLE') answer = "A";
+        if (type === 'MULTIPLE') answer = ["A"];
+        if (type === 'TRUEFALSE') answer = "T";
+        init();
+    }
+
+    function prepareSubmission() {
+        const type = document.getElementById('questionType').value;
+
+        if (type === 'TRUEFALSE') {
+            const selected = document.querySelector('input[name="tf_answer"]:checked');
+            document.getElementById('answerInput').value = JSON.stringify(selected ? selected.value : "T");
+            document.getElementById('optionsInput').value = JSON.stringify({});
+        } else {
+            // Collect answers
+            const checked = document.querySelectorAll('input[name="choice_answer"]:checked');
+            if (type === 'SINGLE') {
+                const val = checked.length > 0 ? checked[0].value : null;
+                document.getElementById('answerInput').value = JSON.stringify(val);
+            } else {
+                const vals = Array.from(checked).map(cb => cb.value).sort();
+                document.getElementById('answerInput').value = JSON.stringify(vals);
+            }
+            document.getElementById('optionsInput').value = JSON.stringify(options);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+</script>
+{% endblock %}

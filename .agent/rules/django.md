@@ -65,3 +65,4 @@ You are an expert in Python, Django, and web application development.
 - Optimize database queries.
 - Use database connection pooling.
 - Implement pagination.
+- Always respond in 繁體中文

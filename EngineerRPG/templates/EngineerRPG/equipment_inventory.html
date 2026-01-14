@@ -1,0 +1,363 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}裝備背包 - 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <div class="mb-lg">
+        <h1 class="text-center">
+            <i class="fas fa-shield-alt"></i>
+            裝備背包
+        </h1>
+        <p class="text-center" style="color: var(--color-secondary); font-size: 1.1rem;">
+            管理你的裝備，提升角色屬性
+        </p>
+    </div>
+
+    <!-- 當前裝備狀態 -->
+    <div class="rpg-card mb-xl">
+        <h2 class="mb-md">
+            <i class="fas fa-user-shield"></i> 當前裝備
+        </h2>
+
+        <div class="grid grid-2 gap-lg mb-lg">
+            <!-- 左側：防具 -->
+            <div>
+                <h3 class="mb-md" style="color: var(--color-secondary);">防具欄</h3>
+
+                <!-- 頭盔 -->
+                <div class="equipment-slot mb-md">
+                    <div class="slot-label">
+                        <i class="fas fa-hard-hat"></i> 頭盔
+                    </div>
+                    {% if equipped.helmet %}
+                    <div class="equipped-item">
+                        <strong>{{ equipped.helmet.equipment.name }}</strong>
+                        <span class="enhancement-level">+{{ equipped.helmet.enhancement_level }}</span>
+                        <div class="item-stats">
+                            HP +{{ equipped.helmet.get_total_hp_bonus }} |
+                            MP +{{ equipped.helmet.get_total_mp_bonus }}
+                        </div>
+                        <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.helmet.id %}"
+                            style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-danger">卸下</button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="empty-slot">未裝備</div>
+                    {% endif %}
+                </div>
+
+                <!-- 盔甲 -->
+                <div class="equipment-slot mb-md">
+                    <div class="slot-label">
+                        <i class="fas fa-vest"></i> 盔甲
+                    </div>
+                    {% if equipped.armor %}
+                    <div class="equipped-item">
+                        <strong>{{ equipped.armor.equipment.name }}</strong>
+                        <span class="enhancement-level">+{{ equipped.armor.enhancement_level }}</span>
+                        <div class="item-stats">
+                            HP +{{ equipped.armor.get_total_hp_bonus }} |
+                            MP +{{ equipped.armor.get_total_mp_bonus }}
+                        </div>
+                        <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.armor.id %}"
+                            style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-danger">卸下</button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="empty-slot">未裝備</div>
+                    {% endif %}
+                </div>
+
+                <!-- 靴子 -->
+                <div class="equipment-slot">
+                    <div class="slot-label">
+                        <i class="fas fa-boot"></i> 靴子
+                    </div>
+                    {% if equipped.boots %}
+                    <div class="equipped-item">
+                        <strong>{{ equipped.boots.equipment.name }}</strong>
+                        <span class="enhancement-level">+{{ equipped.boots.enhancement_level }}</span>
+                        <div class="item-stats">
+                            HP +{{ equipped.boots.get_total_hp_bonus }} |
+                            MP +{{ equipped.boots.get_total_mp_bonus }}
+                        </div>
+                        <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.boots.id %}"
+                            style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-danger">卸下</button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="empty-slot">未裝備</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 右側：工具欄 -->
+            <div>
+                <h3 class="mb-md" style="color: var(--color-secondary);">工具欄</h3>
+
+                {% for i in "12345" %}
+                <div class="equipment-slot mb-md">
+                    <div class="slot-label">
+                        <i class="fas fa-wrench"></i> 工具欄 {{ i }}
+                    </div>
+                    {% if i == "1" %}
+                    {% if equipped.tool_1 %}
+                    <div class="equipped-item">
+                        <strong>{{ equipped.tool_1.equipment.name }}</strong>
+                        <span class="enhancement-level">+{{ equipped.tool_1.enhancement_level }}</span>
+                        <div class="item-stats">
+                            {% if equipped.tool_1.equipment.skill_effect %}
+                            技能：{{ equipped.tool_1.equipment.skill_effect }}
+                            (MP {{ equipped.tool_1.equipment.mp_cost }})
+                            {% endif %}
+                        </div>
+                        <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.tool_1.id %}"
+                            style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-danger">卸下</button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="empty-slot">未裝備</div>
+                    {% endif %}
+                    {% elif i == "2" %}
+                    {% if equipped.tool_2 %}
+                    <div class="equipped-item">
+                        <strong>{{ equipped.tool_2.equipment.name }}</strong>
+                        <span class="enhancement-level">+{{ equipped.tool_2.enhancement_level }}</span>
+                        <div class="item-stats">
+                            {% if equipped.tool_2.equipment.skill_effect %}
+                            技能：{{ equipped.tool_2.equipment.skill_effect }}
+                            (MP {{ equipped.tool_2.equipment.mp_cost }})
+                            {% endif %}
+                        </div>
+                        <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.tool_2.id %}"
+                            style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-danger">卸下</button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="empty-slot">未裝備</div>
+                    {% endif %}
+                    {% elif i == "3" %}
+                    {% if equipped.tool_3 %}
+                    <div class="equipped-item">
+                        <strong>{{ equipped.tool_3.equipment.name }}</strong>
+                        <span class="enhancement-level">+{{ equipped.tool_3.enhancement_level }}</span>
+                        <div class="item-stats">
+                            {% if equipped.tool_3.equipment.skill_effect %}
+                            技能：{{ equipped.tool_3.equipment.skill_effect }}
+                            (MP {{ equipped.tool_3.equipment.mp_cost }})
+                            {% endif %}
+                        </div>
+                        <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.tool_3.id %}"
+                            style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-danger">卸下</button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="empty-slot">未裝備</div>
+                    {% endif %}
+                    {% elif i == "4" %}
+                    {% if equipped.tool_4 %}
+                    <div class="equipped-item">
+                        <strong>{{ equipped.tool_4.equipment.name }}</strong>
+                        <span class="enhancement-level">+{{ equipped.tool_4.enhancement_level }}</span>
+                        <div class="item-stats">
+                            {% if equipped.tool_4.equipment.skill_effect %}
+                            技能：{{ equipped.tool_4.equipment.skill_effect }}
+                            (MP {{ equipped.tool_4.equipment.mp_cost }})
+                            {% endif %}
+                        </div>
+                        <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.tool_4.id %}"
+                            style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-danger">卸下</button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="empty-slot">未裝備</div>
+                    {% endif %}
+                    {% elif i == "5" %}
+                    {% if equipped.tool_5 %}
+                    <div class="equipped-item">
+                        <strong>{{ equipped.tool_5.equipment.name }}</strong>
+                        <span class="enhancement-level">+{{ equipped.tool_5.enhancement_level }}</span>
+                        <div class="item-stats">
+                            {% if equipped.tool_5.equipment.skill_effect %}
+                            技能：{{ equipped.tool_5.equipment.skill_effect }}
+                            (MP {{ equipped.tool_5.equipment.mp_cost }})
+                            {% endif %}
+                        </div>
+                        <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.tool_5.id %}"
+                            style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-danger">卸下</button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="empty-slot">未裝備</div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 屬性總覽 -->
+        <div class="stats-summary">
+            <h3 class="mb-md">屬性總覽</h3>
+            <div class="grid grid-3 gap-md">
+                <div class="stat-box">
+                    <i class="fas fa-heart"></i>
+                    <strong>總 HP：{{ profile.get_total_hp }}</strong>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-bolt"></i>
+                    <strong>總 MP：{{ profile.get_total_mp }}</strong>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-ticket-alt"></i>
+                    <strong>強化券：{{ enhancement_tickets }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 裝備列表 -->
+    <div class="rpg-card">
+        <h2 class="mb-md">
+            <i class="fas fa-box"></i> 裝備倉庫
+        </h2>
+
+        <!-- 頭盔 -->
+        {% if helmets %}
+        <h3 class="mb-md" style="color: var(--color-secondary);">
+            <i class="fas fa-hard-hat"></i> 頭盔
+        </h3>
+        <div class="grid grid-3 gap-md mb-lg">
+            {% for user_eq in helmets %}
+            {% include 'EngineerRPG/partials/equipment_card.html' with user_equipment=user_eq %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- 盔甲 -->
+        {% if armors %}
+        <h3 class="mb-md" style="color: var(--color-secondary);">
+            <i class="fas fa-vest"></i> 盔甲
+        </h3>
+        <div class="grid grid-3 gap-md mb-lg">
+            {% for user_eq in armors %}
+            {% include 'EngineerRPG/partials/equipment_card.html' with user_equipment=user_eq %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- 靴子 -->
+        {% if boots %}
+        <h3 class="mb-md" style="color: var(--color-secondary);">
+            <i class="fas fa-boot"></i> 靴子
+        </h3>
+        <div class="grid grid-3 gap-md mb-lg">
+            {% for user_eq in boots %}
+            {% include 'EngineerRPG/partials/equipment_card.html' with user_equipment=user_eq %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- 工具 -->
+        {% if tools %}
+        <h3 class="mb-md" style="color: var(--color-secondary);">
+            <i class="fas fa-wrench"></i> 工具
+        </h3>
+        <div class="grid grid-3 gap-md">
+            {% for user_eq in tools %}
+            {% include 'EngineerRPG/partials/equipment_card.html' with user_equipment=user_eq %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if not helmets and not armors and not boots and not tools %}
+        <p class="text-center" style="color: var(--color-stone); padding: var(--spacing-xl);">
+            <i class="fas fa-inbox" style="font-size: 3rem; display: block; margin-bottom: var(--spacing-md);"></i>
+            目前沒有任何裝備<br>
+            完成試煉獲得裝備獎勵！
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .equipment-slot {
+        background: rgba(0, 0, 0, 0.3);
+        padding: var(--spacing-md);
+        border-radius: var(--border-radius);
+        border: 2px solid var(--color-primary);
+    }
+
+    .slot-label {
+        font-weight: 700;
+        color: var(--color-secondary);
+        margin-bottom: var(--spacing-sm);
+        font-size: 0.9rem;
+    }
+
+    .equipped-item {
+        background: rgba(255, 215, 0, 0.1);
+        padding: var(--spacing-sm);
+        border-radius: var(--border-radius);
+        border-left: 3px solid var(--color-secondary);
+    }
+
+    .enhancement-level {
+        color: var(--color-secondary);
+        font-weight: 700;
+        margin-left: var(--spacing-sm);
+    }
+
+    .item-stats {
+        font-size: 0.85rem;
+        color: var(--color-stone);
+        margin: var(--spacing-xs) 0;
+    }
+
+    .empty-slot {
+        color: var(--color-stone);
+        font-style: italic;
+        text-align: center;
+        padding: var(--spacing-sm);
+    }
+
+    .stats-summary {
+        background: rgba(255, 215, 0, 0.05);
+        padding: var(--spacing-lg);
+        border-radius: var(--border-radius);
+        border: 2px dashed var(--color-secondary);
+    }
+
+    .stat-box {
+        text-align: center;
+        padding: var(--spacing-md);
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: var(--border-radius);
+    }
+
+    .stat-box i {
+        display: block;
+        font-size: 2rem;
+        color: var(--color-secondary);
+        margin-bottom: var(--spacing-sm);
+    }
+</style>
+{% endblock %}

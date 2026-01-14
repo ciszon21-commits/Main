@@ -1,0 +1,290 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}{{ member.user.username }} - 隊員詳細資料{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <!-- 返回按鈕 -->
+    <div class="mb-lg">
+        <a href="{% url 'engineer_rpg:team_detail' team.id %}" class="rpg-btn rpg-btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回隊伍
+        </a>
+    </div>
+
+    <!-- 隊員基本資訊 -->
+    <div class="rpg-card mb-xl">
+        <div class="member-header">
+            <div class="member-avatar">
+                <img src="{{ member.get_avatar_url }}" alt="{{ member.user.username }}">
+            </div>
+            <div class="member-info-large">
+                <h1>{{ member.user.username }}</h1>
+                <p class="text-lg">{{ member.character_class.name }} Lv.{{ member.level }}</p>
+                <p class="text-stone">員工編號：{{ member.employee_id }}</p>
+                <div class="exp-bar mt-md">
+                    <div class="exp-fill" style="width: {{ member.experience|floatformat:0 }}%"></div>
+                    <span class="exp-text">EXP: {{ member.experience }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 技能樹進度 -->
+    <div class="rpg-card mb-xl">
+        <h2 class="mb-lg"><i class="fas fa-sitemap"></i> 技能樹進度</h2>
+
+        {% if skills %}
+        <div class="skills-grid">
+            {% for user_skill in skills %}
+            <div class="skill-card skill-{{ user_skill.status|lower }}">
+                <div class="skill-icon">
+                    {% if user_skill.status == 'COMPLETED' %}
+                    <i class="fas fa-check-circle"></i>
+                    {% elif user_skill.status == 'IN_PROGRESS' %}
+                    <i class="fas fa-spinner"></i>
+                    {% else %}
+                    <i class="fas fa-lock"></i>
+                    {% endif %}
+                </div>
+                <div class="skill-info">
+                    <h4>{{ user_skill.skill_node.name }}</h4>
+                    <p class="text-sm text-stone">{{ user_skill.get_status_display }}</p>
+                    {% if user_skill.status == 'IN_PROGRESS' %}
+                    <div class="progress-bar-container mt-sm">
+                        <div class="progress-bar" style="width: {{ user_skill.progress }}%"></div>
+                    </div>
+                    <p class="text-xs">進度：{{ user_skill.progress }}%</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-center text-stone">尚未開始任何技能學習</p>
+        {% endif %}
+    </div>
+
+    <!-- 試煉記錄 -->
+    <div class="rpg-card">
+        <h2 class="mb-lg"><i class="fas fa-scroll"></i> 試煉記錄</h2>
+
+        {% if page_obj %}
+        <div class="trial-records">
+            {% for record in page_obj %}
+            <div class="trial-record-item">
+                <div class="trial-info">
+                    <h4>{{ record.trial.title }}</h4>
+                    <p class="text-stone text-sm">{{ record.completed_at|date:"Y-m-d H:i" }}</p>
+                </div>
+                <div class="trial-stats">
+                    <div class="stat-badge">
+                        <span class="stat-label">分數</span>
+                        <span class="stat-value">{{ record.score }}</span>
+                    </div>
+                    <div class="stat-badge">
+                        <span class="stat-label">正確率</span>
+                        <span class="stat-value">{{ record.correct_answers }}/{{ record.total_questions }}</span>
+                    </div>
+                    <div class="stat-badge">
+                        <span class="stat-label">結果</span>
+                        <span class="stat-value {% if record.is_passed %}text-success{% else %}text-danger{% endif %}">
+                            {% if record.is_passed %}通過{% else %}未通過{% endif %}
+                        </span>
+                    </div>
+                </div>
+                <div class="trial-actions">
+                    <a href="{% url 'engineer_rpg:trial_record_detail' record.id %}"
+                        class="rpg-btn rpg-btn-sm rpg-btn-secondary">
+                        查看詳情
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 分頁 -->
+        {% if page_obj.has_other_pages %}
+        <div class="pagination mt-xl">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}" class="rpg-btn rpg-btn-secondary">上一頁</a>
+            {% endif %}
+            <span class="page-info">第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 頁</span>
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="rpg-btn rpg-btn-secondary">下一頁</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% else %}
+        <p class="text-center text-stone">尚無試煉記錄</p>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .member-header {
+        display: flex;
+        gap: var(--spacing-xl);
+        align-items: center;
+    }
+
+    .member-avatar-large {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: var(--color-stone);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border: 3px solid var(--color-primary);
+    }
+
+    .member-avatar-large img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .member-avatar-large i {
+        font-size: 3rem;
+        color: var(--color-bg);
+    }
+
+    .member-info-large h1 {
+        margin: 0 0 var(--spacing-sm) 0;
+    }
+
+    .exp-bar {
+        width: 300px;
+        height: 24px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .exp-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+        transition: width 0.3s ease;
+    }
+
+    .exp-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 0.8rem;
+        font-weight: bold;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    .skills-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: var(--spacing-md);
+    }
+
+    .skill-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: var(--spacing-md);
+        display: flex;
+        gap: var(--spacing-md);
+        align-items: center;
+    }
+
+    .skill-completed {
+        border-color: var(--color-success);
+    }
+
+    .skill-in_progress {
+        border-color: var(--color-warning);
+    }
+
+    .skill-locked {
+        opacity: 0.5;
+    }
+
+    .skill-icon {
+        font-size: 2rem;
+    }
+
+    .skill-completed .skill-icon {
+        color: var(--color-success);
+    }
+
+    .skill-in_progress .skill-icon {
+        color: var(--color-warning);
+    }
+
+    .skill-locked .skill-icon {
+        color: var(--color-stone);
+    }
+
+    .skill-info h4 {
+        margin: 0 0 5px 0;
+        font-size: 1rem;
+    }
+
+    .trial-records {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+
+    .trial-record-item {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: var(--spacing-lg);
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: var(--spacing-lg);
+        align-items: center;
+    }
+
+    .trial-info h4 {
+        margin: 0 0 5px 0;
+    }
+
+    .trial-stats {
+        display: flex;
+        gap: var(--spacing-md);
+    }
+
+    .stat-badge {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: var(--spacing-sm) var(--spacing-md);
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 6px;
+    }
+
+    .stat-badge .stat-label {
+        font-size: 0.75rem;
+        color: var(--color-stone);
+    }
+
+    .stat-badge .stat-value {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: var(--color-secondary);
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: var(--spacing-md);
+    }
+
+    .page-info {
+        color: var(--color-stone);
+    }
+</style>
+{% endblock %}

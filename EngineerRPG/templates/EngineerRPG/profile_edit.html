@@ -1,0 +1,269 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}編輯個人檔案 - 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <div class="mb-lg">
+        <a href="{% url 'engineer_rpg:dashboard' %}" class="rpg-btn">
+            <i class="fas fa-arrow-left"></i> 返回儀表板
+        </a>
+    </div>
+
+    <div class="rpg-card" style="max-width: 800px; margin: 0 auto;">
+        <h2 class="text-center mb-lg">
+            <i class="fas fa-user-edit"></i>
+            編輯個人資料
+        </h2>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <!-- Tab 切換與 Modal 觸發 -->
+            <div class="mb-lg" style="border-bottom: 2px solid var(--color-primary); padding-bottom: 15px;">
+                <div class="grid grid-2 gap-md">
+                    <div class="rpg-btn rpg-btn-primary" onclick="triggerFileUpload()"
+                        style="cursor: pointer; text-align: center;">
+                        <i class="fas fa-upload"></i> 上傳專屬頭像
+                    </div>
+                    <div class="rpg-btn rpg-btn-secondary" onclick="openAvatarModal()"
+                        style="cursor: pointer; text-align: center;">
+                        <i class="fas fa-user-circle"></i> 選擇預設頭像
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-2 gap-lg">
+                <!-- 左側：頭像預覽 -->
+                <div>
+                    <div class="text-center mb-md">
+                        <div class="mb-sm">目前頭像</div>
+                        <div class="character-avatar preview-avatar"
+                            style="width: 150px; height: 150px; margin: 0 auto; background-image: url('{{ profile.get_avatar_url }}'); border: 4px solid var(--color-primary); border-radius: 50%;">
+                        </div>
+                    </div>
+
+                    <!-- 隱藏的上傳欄位 -->
+                    <div style="display: none;">
+                        {{ form.avatar_image }}
+                        <input type="hidden" name="avatar_index" id="id_avatar_index"
+                            value="{{ form.avatar_index.value|default:0 }}">
+                    </div>
+
+                    <p class="text-center mt-sm" style="font-size: 0.8rem; color: var(--color-stone);">
+                        上傳的照片僅供自己查看
+                    </p>
+                </div>
+
+                <!-- 右側：表單欄位 -->
+                <div>
+                    <div class="mb-md">
+                        <label class="form-label">{{ form.username.label }}</label>
+                        {{ form.username }}
+                        {% if form.username.errors %}
+                        <div class="text-danger">{{ form.username.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-md">
+                        <label class="form-label">{{ form.employee_id.label }}</label>
+                        {{ form.employee_id }}
+                        {% if form.employee_id.errors %}
+                        <div class="text-danger">{{ form.employee_id.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-md">
+                        <label class="form-label">{{ form.email.label }}</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                        <div class="text-danger">{{ form.email.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <hr class="rpg-divider my-lg">
+
+            <div class="mb-lg">
+                <h3 class="mb-md"><i class="fas fa-key"></i> 變更密碼</h3>
+
+                <div class="mb-md">
+                    <label class="form-label">{{ form.old_password.label }}</label>
+                    {{ form.old_password }}
+                    {% if form.old_password.errors %}
+                    <div class="text-danger">{{ form.old_password.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-2 gap-md">
+                    <div>
+                        <label class="form-label">{{ form.new_password.label }}</label>
+                        {{ form.new_password }}
+                        {% if form.new_password.help_text %}
+                        <small style="color: var(--color-stone);">{{ form.new_password.help_text }}</small>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="form-label">{{ form.confirm_password.label }}</label>
+                        {{ form.confirm_password }}
+                    </div>
+                </div>
+                {% if form.new_password.errors %}
+                <div class="text-danger">{{ form.new_password.errors }}</div>
+                {% endif %}
+            </div>
+
+            {% if form.non_field_errors %}
+            <div class="rpg-alert rpg-alert-danger mb-md">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <div class="text-center mt-xl">
+                <button type="submit" class="rpg-btn rpg-btn-success" style="padding: 1rem 3rem; font-size: 1.2rem;">
+                    <i class="fas fa-save"></i> 儲存變更
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Avatar Selection Modal -->
+<div id="avatarModal" class="modal-overlay"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center;">
+    <div class="rpg-card"
+        style="width: 90%; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column; position: relative;">
+        <div
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--color-primary); padding-bottom: 10px;">
+            <h3 style="margin: 0;"><i class="fas fa-images"></i> 選擇預設頭像</h3>
+            <button type="button" onclick="closeAvatarModal()"
+                style="background: none; border: none; color: var(--color-text); font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+
+        <div class="avatar-grid-container" style="overflow-y: auto; flex: 1; padding: 10px;">
+            <div class="avatar-grid"
+                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 15px;">
+                {% get_static_prefix as STATIC_PREFIX %}
+                {% for i in default_avatars %}
+                <div class="default-avatar-option text-center" onclick="selectDefaultAvatar({{ i }})"
+                    style="cursor: pointer; border: 3px solid transparent; border-radius: 10px; padding: 5px; transition: all 0.3s;">
+                    <img src="{{ STATIC_PREFIX }}EngineerRPG/img/avatars/default_avatar_{{ i }}.png"
+                        style="width: 80px; height: 80px; object-fit: cover; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"
+                        alt="Avatar {{ i }}">
+                    <div style="font-size: 0.8rem; margin-top: 5px;">#{{ i }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="text-center mt-md pt-md" style="border-top: 1px solid var(--color-border);">
+            <button type="button" class="rpg-btn" onclick="closeAvatarModal()">關閉</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .character-avatar {
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--color-secondary);
+        font-weight: bold;
+    }
+
+    .text-danger {
+        color: #ff4d4d;
+        font-size: 0.9rem;
+        margin-top: 0.25rem;
+    }
+
+    .default-avatar-option:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: var(--color-primary) !important;
+        transform: translateY(-5px);
+    }
+
+    .default-avatar-option.selected {
+        border-color: var(--color-safety) !important;
+        background: rgba(46, 204, 113, 0.2);
+        box-shadow: 0 0 15px var(--color-safety);
+    }
+
+    .rpg-btn-secondary {
+        background: transparent;
+        border: 2px solid var(--color-primary);
+        color: var(--color-primary);
+    }
+
+    .rpg-btn-secondary:hover {
+        background: var(--color-primary);
+        color: var(--color-background);
+    }
+</style>
+
+<script>
+    function triggerFileUpload() {
+        document.getElementById('{{ form.avatar_image.id_for_label }}').click();
+    }
+
+    function openAvatarModal() {
+        document.getElementById('avatarModal').style.display = 'flex';
+    }
+
+    function closeAvatarModal() {
+        document.getElementById('avatarModal').style.display = 'none';
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('avatarModal').addEventListener('click', function (e) {
+        if (e.target === this) {
+            closeAvatarModal();
+        }
+    });
+
+    // 上傳預覽
+    document.getElementById('{{ form.avatar_image.id_for_label }}').addEventListener('change', function (e) {
+        if (e.target.files && e.target.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                document.querySelector('.preview-avatar').style.backgroundImage = 'url("' + e.target.result + '")';
+            }
+            reader.readAsDataURL(e.target.files[0]);
+
+            // 清除預設選擇
+            document.getElementById('id_avatar_index').value = "0";
+            document.querySelectorAll('.default-avatar-option').forEach(el => el.classList.remove('selected'));
+        }
+    });
+
+    // 選擇預設頭像
+    function selectDefaultAvatar(index) {
+        document.getElementById('id_avatar_index').value = index;
+
+        // 更新樣式
+        document.querySelectorAll('.default-avatar-option').forEach(el => el.classList.remove('selected'));
+        event.currentTarget.classList.add('selected');
+
+        // 更新預覽
+        // Use the static prefix defined in template if possible, or assume standard /static/
+        // Better to use a data attribute or global variable for prefix, but here hardcoding based on standard Django setup or using the same trick
+        var staticPrefix = "{% get_static_prefix %}";
+        var url = staticPrefix + "EngineerRPG/img/avatars/default_avatar_" + index + ".png";
+        document.querySelector('.preview-avatar').style.backgroundImage = 'url("' + url + '")';
+
+        // 清除上傳檔案
+        document.getElementById('{{ form.avatar_image.id_for_label }}').value = '';
+
+        // 關閉 Modal
+        closeAvatarModal();
+    }
+</script>
+{% endblock %}

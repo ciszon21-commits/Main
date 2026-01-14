@@ -1,0 +1,177 @@
+
+
+# ==================== Equipment System Views ====================
+
+@login_required
+def equipment_inventory(request):
+    """Equipment inventory page"""
+    profile = get_or_create_user_profile(request.user)
+    
+    # Get all user equipment
+    user_equipments = UserEquipment.objects.filter(
+        user_profile=profile
+    ).select_related('equipment').order_by('-obtained_at')
+    
+    # Categorize by type
+    helmets = user_equipments.filter(equipment__equipment_type='HELMET')
+    armors = user_equipments.filter(equipment__equipment_type='ARMOR')
+    boots = user_equipments.filter(equipment__equipment_type='BOOTS')
+    tools = user_equipments.filter(equipment__equipment_type='TOOL')
+    
+    # Get currently equipped items
+    equipped = {
+        'helmet': profile.equipped_helmet,
+        'armor': profile.equipped_armor,
+        'boots': profile.equipped_boots,
+        'tool_1': profile.equipped_tool_1,
+        'tool_2': profile.equipped_tool_2,
+        'tool_3': profile.equipped_tool_3,
+        'tool_4': profile.equipped_tool_4,
+        'tool_5': profile.equipped_tool_5,
+    }
+    
+    context = {
+        'profile': profile,
+        'helmets': helmets,
+        'armors': armors,
+        'boots': boots,
+        'tools': tools,
+        'equipped': equipped,
+        'enhancement_tickets': profile.enhancement_tickets,
+    }
+    
+    return render(request, 'EngineerRPG/equipment.html', context)
+
+
+@login_required
+def equip_item(request, user_equipment_id):
+    """Equip an item"""
+    profile = get_or_create_user_profile(request.user)
+    
+    try:
+        user_equipment = UserEquipment.objects.get(
+            id=user_equipment_id,
+            user_profile=profile
+        )
+        
+        equipment_type = user_equipment.equipment.equipment_type
+        
+        # Equip to appropriate slot
+        if equipment_type == 'HELMET':
+            if profile.equipped_helmet:
+                profile.equipped_helmet.is_equipped = False
+                profile.equipped_helmet.save()
+            profile.equipped_helmet = user_equipment
+            
+        elif equipment_type == 'ARMOR':
+            if profile.equipped_armor:
+                profile.equipped_armor.is_equipped = False
+                profile.equipped_armor.save()
+            profile.equipped_armor = user_equipment
+            
+        elif equipment_type == 'BOOTS':
+            if profile.equipped_boots:
+                profile.equipped_boots.is_equipped = False
+                profile.equipped_boots.save()
+            profile.equipped_boots = user_equipment
+            
+        elif equipment_type == 'TOOL':
+            slot = request.POST.get('slot', '1')
+            slot_field = f'equipped_tool_{slot}'
+            
+            old_tool = getattr(profile, slot_field)
+            if old_tool:
+                old_tool.is_equipped = False
+                old_tool.save()
+            
+            setattr(profile, slot_field, user_equipment)
+        
+        user_equipment.is_equipped = True
+        user_equipment.save()
+        
+        profile.update_stats()
+        
+        messages.success(request, f'Successfully equipped {user_equipment.equipment.name}!')
+        
+    except UserEquipment.DoesNotExist:
+        messages.error(request, 'Equipment not found!')
+    
+    return redirect('engineer_rpg:equipment_inventory')
+
+
+@login_required
+def unequip_item(request, user_equipment_id):
+    """Unequip an item"""
+    profile = get_or_create_user_profile(request.user)
+    
+    try:
+        user_equipment = UserEquipment.objects.get(
+            id=user_equipment_id,
+            user_profile=profile,
+            is_equipped=True
+        )
+        
+        equipment_type = user_equipment.equipment.equipment_type
+        
+        if equipment_type == 'HELMET':
+            profile.equipped_helmet = None
+        elif equipment_type == 'ARMOR':
+            profile.equipped_armor = None
+        elif equipment_type == 'BOOTS':
+            profile.equipped_boots = None
+        elif equipment_type == 'TOOL':
+            for i in range(1, 6):
+                slot_field = f'equipped_tool_{i}'
+                if getattr(profile, slot_field) == user_equipment:
+                    setattr(profile, slot_field, None)
+                    break
+        
+        user_equipment.is_equipped = False
+        user_equipment.save()
+        
+        profile.update_stats()
+        
+        messages.success(request, f'Successfully unequipped {user_equipment.equipment.name}!')
+        
+    except UserEquipment.DoesNotExist:
+        messages.error(request, 'Equipment not found or not equipped!')
+    
+    return redirect('engineer_rpg:equipment_inventory')
+
+
+@login_required
+def enhance_equipment(request, user_equipment_id):
+    """Enhance equipment"""
+    profile = get_or_create_user_profile(request.user)
+    
+    try:
+        user_equipment = UserEquipment.objects.get(
+            id=user_equipment_id,
+            user_profile=profile
+        )
+        
+        if user_equipment.enhancement_level >= user_equipment.equipment.max_enhancement:
+            messages.error(request, 'Equipment is at maximum enhancement level!')
+            return redirect('engineer_rpg:equipment_inventory')
+        
+        if profile.enhancement_tickets < 1:
+            messages.error(request, 'Not enough enhancement tickets!')
+            return redirect('engineer_rpg:equipment_inventory')
+        
+        profile.enhancement_tickets -= 1
+        
+        user_equipment.enhancement_level += 1
+        user_equipment.save()
+        
+        if user_equipment.is_equipped:
+            profile.update_stats()
+        
+        profile.save()
+        
+        messages.success(request, 
+            f'Successfully enhanced {user_equipment.equipment.name} to +{user_equipment.enhancement_level}!')
+        
+    except UserEquipment.DoesNotExist:
+        messages.error(request, 'Equipment not found!')
+    
+    return redirect('engineer_rpg:equipment_inventory')
