@@ -28,6 +28,36 @@ class Announcement(models.Model):
         return self.title
 
 
+class SiteSettings(models.Model):
+    """網站設定（單例模式）"""
+    banner_subtitle = models.CharField(
+        max_length=200, 
+        default="園區無人機使用預約系統",
+        verbose_name="Banner 副標題"
+    )
+    updated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="最後更新者"
+    )
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新時間")
+
+    class Meta:
+        verbose_name = "網站設定"
+        verbose_name_plural = "網站設定"
+
+    def __str__(self):
+        return "網站設定"
+
+    @classmethod
+    def get_settings(cls):
+        """取得或建立設定（單例）"""
+        settings, created = cls.objects.get_or_create(pk=1)
+        return settings
+
+
 class DroneReviewer(models.Model):
     """無人機簽核人（飛手）設定"""
     user = models.OneToOneField(
@@ -37,6 +67,8 @@ class DroneReviewer(models.Model):
         verbose_name="使用者"
     )
     is_active = models.BooleanField(default=True, verbose_name="啟用")
+    receive_email = models.BooleanField(default=True, verbose_name="接收郵件通知")
+    can_manage_reviewers = models.BooleanField(default=False, verbose_name="可管理簽核人")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
 
     class Meta:
@@ -94,6 +126,7 @@ class DroneReservation(models.Model):
         verbose_name="簽核時間"
     )
     rejection_reason = models.TextField(blank=True, verbose_name="拒絕理由")
+    cancellation_reason = models.TextField(blank=True, verbose_name="取消理由")
 
     # 時間戳
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
@@ -126,6 +159,16 @@ class DroneReservation(models.Model):
         """檢查使用者是否可以取消此預約"""
         # 只有申請人且狀態為申請中或已核准時可以取消
         return user == self.applicant and self.status in ['pending', 'approved']
+
+    def can_reviewer_cancel(self, user):
+        """檢查簽核人是否可以取消已核准的預約"""
+        if self.status != 'approved':
+            return False
+        try:
+            reviewer_profile = user.drone_reviewer_profile
+            return reviewer_profile.is_active
+        except DroneReviewer.DoesNotExist:
+            return False
 
     def can_review(self, user):
         """檢查使用者是否可以簽核此預約"""

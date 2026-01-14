@@ -159,6 +159,12 @@
                             <p class="rejection-text">{{ reservation.rejection_reason }}</p>
                         </div>
                         {% endif %}
+                        {% if reservation.status == 'cancelled' and reservation.cancellation_reason %}
+                        <div class="detail-item detail-item-full">
+                            <label>取消理由</label>
+                            <p class="rejection-text">{{ reservation.cancellation_reason }}</p>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
                 {% endif %}
@@ -207,6 +213,15 @@
                                 d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
                         </svg>
                         拒絕
+                    </button>
+                    {% endif %}
+                    {% if can_reviewer_cancel %}
+                    <button type="button" class="btn btn-warning" onclick="showReviewerCancelModal()">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+                        </svg>
+                        取消核准
                     </button>
                     {% endif %}
                 </div>
@@ -277,6 +292,50 @@
         document.getElementById('reviewModal').addEventListener('click', function (e) {
             if (e.target === this) {
                 closeModal();
+            }
+        });
+    </script>
+    {% endif %}
+
+    {% if can_reviewer_cancel %}
+    <!-- 簽核人取消核准 Modal -->
+    <div id="reviewerCancelModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>取消核准</h3>
+                <button type="button" class="close-btn" onclick="closeReviewerCancelModal()">&times;</button>
+            </div>
+            <form method="post" action="{% url 'drone:reviewer_cancel_reservation' reservation.pk %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p style="margin-bottom: 16px; color: var(--text-secondary);">
+                        確定要取消這筆已核准的預約嗎？請說明取消理由：
+                    </p>
+                    <label for="cancellation_reason">取消理由 <span class="required">*</span></label>
+                    <textarea name="cancellation_reason" id="cancellation_reason" class="form-control" rows="3"
+                        placeholder="請說明取消核准的理由" required></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeReviewerCancelModal()">返回</button>
+                    <button type="submit" class="btn btn-warning">確認取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showReviewerCancelModal() {
+            document.getElementById('reviewerCancelModal').style.display = 'flex';
+        }
+
+        function closeReviewerCancelModal() {
+            document.getElementById('reviewerCancelModal').style.display = 'none';
+            document.getElementById('cancellation_reason').value = '';
+        }
+
+        document.getElementById('reviewerCancelModal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeReviewerCancelModal();
             }
         });
     </script>
