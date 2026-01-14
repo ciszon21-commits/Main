@@ -94,6 +94,9 @@ def save_hotspot(request):
             else:
                 # Create new
                 scene = get_object_or_404(Scene, id=scene_id)
+
+                if not icon_color: icon_color = '#ffffff'
+                
                 hotspot = Hotspot(
                     scene=scene,
                     hotspot_type=hotspot_type,
@@ -105,12 +108,33 @@ def save_hotspot(request):
                     icon_color=icon_color
                 )
             
+            # Handle source reference (copy_from_id from frontend)
+            copy_from_id = request.POST.get('copy_from_id')
+            clear_source = request.POST.get('clear_source')
+            
+            if clear_source == 'true':
+                # Explicitly clear the relationship
+                hotspot.source_hotspot = None
+                hotspot.original_resource = None
+            elif copy_from_id:
+                try:
+                    source_hotspot = Hotspot.objects.get(id=copy_from_id)
+                    hotspot.source_hotspot = source_hotspot
+                    # Inherit original_resource if source has one, otherwise source IS the original
+                    hotspot.original_resource = source_hotspot.original_resource if source_hotspot.original_resource else source_hotspot
+                except Hotspot.DoesNotExist:
+                     # If source not found, we return error as this shouldn't happen in normal flow
+                    return JsonResponse({'status': 'error', 'message': f'Target hotspot {copy_from_id} not found'})
+            
             if 'image' in request.FILES:
                 hotspot.image = request.FILES['image']
             if 'video' in request.FILES:
                 hotspot.video = request.FILES['video']
                 
             hotspot.save()
+            
+            return JsonResponse({'status': 'success', 'id': hotspot.id})
+
             
             return JsonResponse({'status': 'success', 'id': hotspot.id})
         except Exception as e:
@@ -545,6 +569,7 @@ def project_tour_data(request, pk):
                     "icon_color": hs.icon_color,
                     "image": f"{hs.image.url}?v={int(hs.updated_at.timestamp())}" if hs.image else "",
                     "video": f"{reverse('site360:serve_hotspot_video', kwargs={'pk': hs.id})}?v={int(hs.updated_at.timestamp())}" if hs.video else "",
+                    "video_raw": hs.video.url if hs.video else "", # Raw URL for comparison checks
                     "source_hotspot_id": hs.source_hotspot.id if hs.source_hotspot else None,
                     "source_hotspot_title": hs.source_hotspot.title if hs.source_hotspot else None
                 }
@@ -583,91 +608,37 @@ def edit_resource(request, pk):
             description = request.POST.get('description')
             hotspot_type = request.POST.get('type')
             
-            if usage_count > 0:
-                # Resource is referenced - create new version
-                # Mark current version as not latest
-                hotspot.is_latest_version = False
-                hotspot.save()
-                
-                # Create new version
-                new_version = Hotspot(
-                    scene=hotspot.scene,
-                    hotspot_type=hotspot_type,
-                    pitch=hotspot.pitch,
-                    yaw=hotspot.yaw,
-                    title=title,
-                    description=description,
-                    icon=hotspot.icon,
-                    icon_color=hotspot.icon_color,
-                    version_number=hotspot.version_number + 1,
-                    is_latest_version=True,
-                    original_resource=hotspot.original_resource if hotspot.original_resource else hotspot,
-                    source_hotspot=None  # New version is independent
-                )
-                
-                # Handle media files
-                if 'image' in request.FILES:
-                    new_version.image = request.FILES['image']
-                    new_version.video = None
-                elif 'video' in request.FILES:
-                    new_version.video = request.FILES['video']
-                    new_version.image = None
-                else:
-                    # Copy existing media if no new upload
-                    if hotspot.image:
-                        new_version.image = hotspot.image
-                    if hotspot.video:
-                        new_version.video = hotspot.video
-                
-                # Clean up media based on type
-                if hotspot_type in ['text', 'text_hover']:
-                    new_version.image = None
-                    new_version.video = None
-                elif hotspot_type in ['image', 'image_hover']:
-                    new_version.video = None
-                elif hotspot_type in ['video', 'video_hover']:
-                    new_version.image = None
-                
-                new_version.save()
-                
-                return JsonResponse({
-                    'status': 'success',
-                    'message': '資源已被引用，已創建新版本',
-                    'new_version': True,
-                    'id': new_version.id,
-                    'version_number': new_version.version_number
-                })
-            else:
-                # No references - update directly
-                hotspot.title = title
-                hotspot.description = description
-                hotspot.hotspot_type = hotspot_type
-                
-                # Handle media files
-                if 'image' in request.FILES:
-                    hotspot.image = request.FILES['image']
-                    hotspot.video = None
-                elif 'video' in request.FILES:
-                    hotspot.video = request.FILES['video']
-                    hotspot.image = None
-                
-                # Clean up media based on type
-                if hotspot_type in ['text', 'text_hover']:
-                    hotspot.image = None
-                    hotspot.video = None
-                elif hotspot_type in ['image', 'image_hover']:
-                    hotspot.video = None
-                elif hotspot_type in ['video', 'video_hover']:
-                    hotspot.image = None
-                
-                hotspot.save()
-                
-                return JsonResponse({
-                    'status': 'success',
-                    'message': '資源已更新',
-                    'new_version': False,
-                    'id': hotspot.id
-                })
+            # Always update directly - no version creation in basic edit
+            # Version control is for resource library references, not direct edits
+            hotspot.title = title
+            hotspot.description = description
+            hotspot.hotspot_type = hotspot_type
+            
+            # Handle media files
+            if 'image' in request.FILES:
+                hotspot.image = request.FILES['image']
+                hotspot.video = None
+            elif 'video' in request.FILES:
+                hotspot.video = request.FILES['video']
+                hotspot.image = None
+            
+            # Clean up media based on type
+            if hotspot_type in ['text', 'text_hover']:
+                hotspot.image = None
+                hotspot.video = None
+            elif hotspot_type in ['image', 'image_hover']:
+                hotspot.video = None
+            elif hotspot_type in ['video', 'video_hover']:
+                hotspot.image = None
+            
+            hotspot.save()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': '資源已更新',
+                'new_version': False,
+                'id': hotspot.id
+            })
                 
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
@@ -736,36 +707,27 @@ def update_resource_reference(request, pk):
             
             source = hotspot.source_hotspot
             
-            # Find the latest version
-            if source.original_resource:
-                latest_version = Hotspot.objects.filter(
-                    original_resource=source.original_resource,
-                    is_latest_version=True
-                ).first()
-            else:
-                latest_version = Hotspot.objects.filter(
-                    original_resource=source,
-                    is_latest_version=True
-                ).first()
-            
-            if not latest_version:
-                return JsonResponse({'status': 'error', 'message': 'No latest version found'}, status=404)
-            
-            # Update the hotspot with latest version data
-            hotspot.source_hotspot = latest_version
-            hotspot.title = latest_version.title
-            hotspot.description = latest_version.description
-            hotspot.hotspot_type = latest_version.hotspot_type
-            hotspot.image = latest_version.image
-            hotspot.video = latest_version.video
-            hotspot.icon = latest_version.icon
-            hotspot.icon_color = latest_version.icon_color
+            # Directly use the source hotspot (no version control needed anymore)
+            # Update the hotspot with source data
+            hotspot.title = source.title
+            hotspot.description = source.description
+            hotspot.hotspot_type = source.hotspot_type
+            try:
+                hotspot.image = source.image
+            except Exception as img_err:
+                print(f"Error copying image for hotspot {pk}: {img_err}")
+                
+            try:
+                hotspot.video = source.video
+            except Exception as vid_err:
+                print(f"Error copying video for hotspot {pk}: {vid_err}")
+            hotspot.icon = source.icon
+            hotspot.icon_color = source.icon_color
             hotspot.save()
             
             return JsonResponse({
                 'status': 'success',
-                'message': f'已更新至版本 {latest_version.version_number}',
-                'updated_to_version': latest_version.version_number
+                'message': f'已更新引用內容',
             })
             
         except Exception as e:
@@ -848,28 +810,18 @@ def get_resource_references(request, pk):
         # Get all hotspots that reference this resource (via source_hotspot)
         references = Hotspot.objects.filter(source_hotspot=resource).select_related('scene', 'scene__project')
         
-        # Check if this resource has a newer version
-        latest_version = None
-        if resource.original_resource:
-            # This is a version, find the latest from the original
-            latest_version = Hotspot.objects.filter(
-                original_resource=resource.original_resource,
-                is_latest_version=True
-            ).first()
-        else:
-            # This is the original, check if there are newer versions
-            latest_version = Hotspot.objects.filter(
-                original_resource=resource,
-                is_latest_version=True
-            ).first()
-        
         # Build reference details
         reference_list = []
         for ref in references:
-            # Check if this reference is outdated
-            is_outdated = False
-            if latest_version and latest_version.id != resource.id:
-                is_outdated = True
+            # Check if this reference is outdated by comparing content
+            # A reference is "outdated" if its content differs from the source
+            is_outdated = (
+                ref.title != resource.title or
+                ref.description != resource.description or
+                ref.hotspot_type != resource.hotspot_type or
+                ref.image != resource.image or
+                ref.video != resource.video
+            )
             
             reference_list.append({
                 'id': ref.id,
@@ -882,8 +834,8 @@ def get_resource_references(request, pk):
                 'description_modified': ref.description != resource.description,  # Flag if descriptions differ
                 'is_outdated': is_outdated,
                 'current_version': resource.version_number,
-                'latest_version': latest_version.version_number if latest_version else resource.version_number,
-                'latest_version_id': latest_version.id if latest_version else resource.id
+                'latest_version': resource.version_number,
+                'latest_version_id': resource.id
             })
         
         return JsonResponse({
@@ -891,11 +843,33 @@ def get_resource_references(request, pk):
             'resource_id': resource.id,
             'resource_title': resource.title,
             'resource_version': resource.version_number,
-            'is_latest': resource.is_latest_version,
+            'is_latest': True,  # Always latest since no version control
             'reference_count': len(reference_list),
             'references': reference_list,
-            'has_newer_version': latest_version and latest_version.id != resource.id,
-            'latest_version_id': latest_version.id if latest_version else None
+            'has_newer_version': False,  # Never has newer version
+            'latest_version_id': resource.id
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+def hotspot_data(request, pk):
+    """
+    Get hotspot data for comparison purposes in tour edit modal.
+    """
+    try:
+        hotspot = get_object_or_404(Hotspot, pk=pk)
+        return JsonResponse({
+            'status': 'success',
+            'hotspot': {
+                'id': hotspot.id,
+                'title': hotspot.title,
+                'description': hotspot.description,
+                'hotspot_type': hotspot.hotspot_type,
+                'image': hotspot.image.url if hotspot.image else None,
+                'video': hotspot.video.url if hotspot.video else None,
+                'icon': hotspot.icon,
+                'icon_color': hotspot.icon_color,
+            }
         })
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
