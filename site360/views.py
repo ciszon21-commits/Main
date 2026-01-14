@@ -448,7 +448,7 @@ def project_resource_list(request, pk):
     # Hotspots should be pre-fetched to avoid N+1 queries.
     from django.db.models import Prefetch
     scenes = scenes.prefetch_related(
-        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).order_by('created_at'))
+        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot').order_by('created_at'))
     )
     
     context = {
@@ -465,7 +465,7 @@ def all_resource_list(request):
 
     scenes = Scene.objects.all().order_by('project', 'order').prefetch_related(
         'project',
-        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).order_by('created_at'))
+        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot').order_by('created_at'))
     )
     
     projects = Project.objects.all().order_by('name')
