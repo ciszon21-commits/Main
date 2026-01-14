@@ -1,0 +1,653 @@
+{% extends "SinoTemplate/base.html" %}
+{% load static %}
+
+{% block title %}風玫瑰圖繪製工具 | Wind Rose Chart{% endblock %}
+
+{% block head_block %}
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        --accent-color: #00d4aa;
+        --surface-dark: #0f1724;
+        --surface-card: rgba(30, 42, 66, 0.95);
+        --text-primary: #ffffff;
+        --text-secondary: rgba(255, 255, 255, 0.7);
+        --border-glow: rgba(0, 212, 170, 0.3);
+    }
+
+    .cwa-container {
+        min-height: 100vh;
+        background: var(--surface-dark);
+        padding: 2rem;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding: 2rem;
+        background: var(--primary-gradient);
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .page-header h1 {
+        color: var(--text-primary);
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .page-header p {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+    }
+
+    .control-panel {
+        background: var(--surface-card);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: 1px solid var(--border-glow);
+    }
+
+    .control-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-end;
+    }
+
+    .control-group {
+        flex: 1;
+        min-width: 150px;
+    }
+
+    .control-group label {
+        display: block;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .control-group select,
+    .control-group input[type="text"] {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: var(--text-primary);
+        font-size: 1rem;
+    }
+
+    .control-group select:focus,
+    .control-group input[type="text"]:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 10px var(--border-glow);
+    }
+
+    .control-group select option {
+        background: var(--surface-dark);
+        color: var(--text-primary);
+    }
+
+    .control-group input[type="text"]::placeholder {
+        color: var(--text-secondary);
+        opacity: 0.7;
+    }
+
+    .btn-primary-custom {
+        background: linear-gradient(135deg, var(--accent-color), #00a88a);
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary-custom:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 212, 170, 0.4);
+    }
+
+    .btn-secondary-custom {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        color: var(--text-primary);
+        cursor: pointer;
+    }
+
+    .station-info {
+        background: linear-gradient(135deg, rgba(30, 60, 114, 0.8), rgba(42, 82, 152, 0.8));
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: 1px solid var(--border-glow);
+    }
+
+    .station-info h3 {
+        color: var(--accent-color);
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .station-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .station-detail-item .label {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+    }
+
+    .station-detail-item .value {
+        color: var(--text-primary);
+        font-size: 1rem;
+        font-weight: 500;
+    }
+
+    .data-table-container {
+        background: var(--surface-card);
+        border-radius: 16px;
+        padding: 1.5rem;
+        border: 1px solid var(--border-glow);
+        overflow-x: auto;
+    }
+
+    .data-table-container h3 {
+        color: var(--text-primary);
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .data-table thead {
+        background: linear-gradient(135deg, #1e3c72, #2a5298);
+    }
+
+    .data-table th {
+        padding: 1rem 0.75rem;
+        text-align: center;
+        color: var(--text-primary);
+        font-weight: 600;
+        border-bottom: 2px solid var(--accent-color);
+    }
+
+    .data-table tbody tr {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .data-table tbody tr:hover {
+        background: rgba(0, 212, 170, 0.1);
+    }
+
+    .data-table td {
+        padding: 0.875rem 0.75rem;
+        text-align: center;
+        color: var(--text-secondary);
+    }
+
+    .data-table td:first-child {
+        color: var(--accent-color);
+        font-weight: 600;
+    }
+
+    .temp-high {
+        color: #ff6b6b !important;
+    }
+
+    .temp-low {
+        color: #4ecdc4 !important;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: var(--text-secondary);
+    }
+
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(15, 23, 36, 0.9);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .loading-overlay.active {
+        display: flex;
+    }
+
+    .spinner {
+        width: 60px;
+        height: 60px;
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        border-top-color: var(--accent-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .loading-text {
+        color: var(--text-primary);
+        font-size: 1.25rem;
+    }
+
+    .toast {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        padding: 1rem 1.5rem;
+        background: var(--surface-card);
+        border-radius: 8px;
+        border-left: 4px solid var(--accent-color);
+        color: var(--text-primary);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        transform: translateX(120%);
+        transition: transform 0.3s ease;
+        z-index: 9999;
+    }
+
+    .toast.show {
+        transform: translateX(0);
+    }
+
+    .toast.error {
+        border-left-color: #ff6b6b;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: var(--surface-card);
+        border-radius: 12px;
+        padding: 1.25rem;
+        border: 1px solid var(--border-glow);
+        text-align: center;
+    }
+
+    .stat-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--accent-color);
+    }
+
+    .stat-label {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    .wind-rose-container {
+        background: var(--surface-card);
+        border-radius: 16px;
+        padding: 1.5rem;
+        border: 1px solid var(--border-glow);
+    }
+
+    .wind-rose-container h3 {
+        color: var(--text-primary);
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+
+    .chart-placeholder {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-secondary);
+    }
+
+    .chart-placeholder p {
+        font-size: 1.1rem;
+    }
+
+    .chart-info {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    .chart-info p {
+        color: var(--text-secondary);
+        margin: 0.25rem 0;
+    }
+
+    .chart-info .highlight {
+        color: var(--accent-color);
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block main_block %}
+<div class="cwa-container">
+    <div class="page-header">
+        <h1>🌬️ 風玫瑰圖繪製工具</h1>
+        <p>擷取 CODiS 月報表逐日風速與風向資料 · 繪製風玫瑰圖視覺化展示</p>
+    </div>
+
+    <div class="control-panel">
+        <div class="control-row">
+            <div class="control-group">
+                <label>測站名稱</label>
+                <input type="text" id="stationInput" value="{{ station_name|default:'' }}" placeholder="例如:臺北">
+            </div>
+
+            <div class="control-group">
+                <label>起始年份</label>
+                <select id="startYearSelect">
+                    {% for y in years %}
+                    <option value="{{ y }}">{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>起始月份</label>
+                <select id="startMonthSelect">
+                    {% for m in months %}
+                    <option value="{{ m }}">{{ m }}月</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="control-group"
+                style="display: flex; align-items: center; justify-content: center; min-width: 50px;">
+                <span style="color: var(--text-secondary); font-size: 1.5rem;">→</span>
+            </div>
+
+            <div class="control-group">
+                <label>結束年份</label>
+                <select id="endYearSelect">
+                    {% for y in years %}
+                    <option value="{{ y }}">{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>結束月份</label>
+                <select id="endMonthSelect">
+                    {% for m in months %}
+                    <option value="{{ m }}">{{ m }}月</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="button" class="btn-primary-custom" id="searchBtn">🎨 進行繪製</button>
+        </div>
+    </div>
+
+    <div class="wind-rose-container" id="windRoseContainer">
+        <h3>🌬️ 風玫瑰圖</h3>
+        <div class="chart-placeholder">
+            <p>請選擇測站與日期範圍後點擊「搜尋資料」</p>
+        </div>
+        <div id="windRoseChart" style="width: 100%; height: 600px;"></div>
+        <div id="chartInfo" class="chart-info" style="display: none;"></div>
+    </div>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text">正在搜尋資料，請稍候...</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var searchBtn = document.getElementById('searchBtn');
+        var loadingOverlay = document.getElementById('loadingOverlay');
+        var toast = document.getElementById('toast');
+        var tableContainer = document.querySelector('.data-table-container');
+
+        function showToast(message, isError) {
+            toast.textContent = message;
+            toast.className = 'toast show' + (isError ? ' error' : '');
+            setTimeout(function () {
+                toast.className = 'toast';
+            }, 3000);
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            // 格式: 2025-12-01 -> 2025/12/01
+            var parts = dateStr.split('-');
+            if (parts.length >= 3) {
+                return parts[0] + '/' + parts[1] + '/' + parts[2];
+            }
+            return dateStr;
+        }
+
+        function renderWindRose(windRoseData, station, startYear, startMonth, endYear, endMonth) {
+            var dateRange = startYear + '/' + startMonth + ' ~ ' + endYear + '/' + endMonth;
+            var container = document.getElementById('windRoseContainer');
+
+            // 更新標題
+            container.querySelector('h3').textContent = '🌬️ ' + station + ' 風玫瑰圖 (' + dateRange + ')';
+
+            // 隱藏 placeholder
+            var placeholder = container.querySelector('.chart-placeholder');
+            if (placeholder) placeholder.style.display = 'none';
+
+            // 顯示圖表資訊
+            var chartInfo = document.getElementById('chartInfo');
+            chartInfo.style.display = 'block';
+            chartInfo.innerHTML = '<p>有效資料筆數: <span class="highlight">' + windRoseData.valid_count + '</span> 筆 / 總資料: ' + windRoseData.total_count + ' 筆</p>';
+
+            // 準備 Plotly 資料
+            var directions = windRoseData.directions;
+            var speedBins = windRoseData.speed_bins;
+            var data = windRoseData.data;
+
+            // 將方位轉換為角度 (北=0度，順時針)
+            var theta = directions.map(function (d, i) {
+                return i * 22.5;  // 每個方位 22.5 度
+            });
+
+            // 建立 Plotly traces (堆疊式)
+            var traces = speedBins.map(function (bin) {
+                return {
+                    type: 'barpolar',
+                    name: bin.name,
+                    r: data[bin.name],
+                    theta: theta,
+                    width: Array(16).fill(20),  // 每個 bar 的寬度
+                    marker: {
+                        color: bin.color,
+                        line: {
+                            color: 'rgba(255, 255, 255, 0.3)',
+                            width: 1
+                        }
+                    },
+                    hovertemplate: '<b>%{text}</b><br>' + bin.name + ': %{r:.1f}%<extra></extra>',
+                    text: directions
+                };
+            });
+
+            // Plotly layout
+            var layout = {
+                polar: {
+                    angularaxis: {
+                        tickmode: 'array',
+                        tickvals: theta,
+                        ticktext: directions,
+                        direction: 'clockwise',
+                        rotation: 90,
+                        showline: true,
+                        linecolor: 'rgba(255, 255, 255, 0.3)',
+                        gridcolor: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    radialaxis: {
+                        ticksuffix: '%',
+                        showline: false,
+                        gridcolor: 'rgba(255, 255, 255, 0.1)',
+                        tickfont: { color: 'rgba(255, 255, 255, 0.7)' }
+                    },
+                    bgcolor: 'rgba(15, 23, 36, 0)'
+                },
+                showlegend: true,
+                legend: {
+                    font: { color: 'rgba(255, 255, 255, 0.9)' },
+                    bgcolor: 'rgba(30, 42, 66, 0.8)',
+                    bordercolor: 'rgba(0, 212, 170, 0.3)',
+                    borderwidth: 1,
+                    x: 1.05,
+                    y: 0.5
+                },
+                paper_bgcolor: 'rgba(15, 23, 36, 0)',
+                plot_bgcolor: 'rgba(15, 23, 36, 0)',
+                font: { color: 'rgba(255, 255, 255, 0.9)' },
+                margin: { l: 80, r: 120, t: 40, b: 40 },
+                barmode: 'stack'
+            };
+
+            var config = {
+                responsive: true,
+                displayModeBar: true,
+                modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+                displaylogo: false
+            };
+
+            Plotly.newPlot('windRoseChart', traces, layout, config);
+        }
+
+        searchBtn.addEventListener('click', function () {
+            var stationName = document.getElementById('stationInput').value;
+            var startYear = document.getElementById('startYearSelect').value;
+            var startMonth = document.getElementById('startMonthSelect').value;
+            var endYear = document.getElementById('endYearSelect').value;
+            var endMonth = document.getElementById('endMonthSelect').value;
+
+            if (!stationName) {
+                showToast('❌ 請輸入測站名稱', true);
+                return;
+            }
+
+            // 驗證日期範圍
+            var startDate = new Date(startYear, startMonth - 1, 1);
+            var endDate = new Date(endYear, endMonth - 1, 1);
+            if (startDate > endDate) {
+                showToast('❌ 起始日期不能晚於結束日期', true);
+                return;
+            }
+
+            // 計算月數
+            var monthCount = (parseInt(endYear) - parseInt(startYear)) * 12 + (parseInt(endMonth) - parseInt(startMonth)) + 1;
+
+            loadingOverlay.classList.add('active');
+            document.querySelector('.loading-text').textContent = '正在連接...';
+            searchBtn.disabled = true;
+
+            // 使用 fetch + SSE 讀取串流
+            fetch('{% url "cwa_data_scraper:search_data" %}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    station_name: stationName,
+                    start_year: parseInt(startYear),
+                    start_month: parseInt(startMonth),
+                    end_year: parseInt(endYear),
+                    end_month: parseInt(endMonth),
+                    headless: true
+                })
+            })
+                .then(function (response) {
+                    var reader = response.body.getReader();
+                    var decoder = new TextDecoder();
+                    var buffer = '';
+
+                    function processStream() {
+                        return reader.read().then(function (result) {
+                            if (result.done) {
+                                loadingOverlay.classList.remove('active');
+                                document.querySelector('.loading-text').textContent = '正在搜尋資料，請稍候...';
+                                searchBtn.disabled = false;
+                                return;
+                            }
+
+                            buffer += decoder.decode(result.value, { stream: true });
+                            var lines = buffer.split('\n');
+                            buffer = lines.pop();
+
+                            lines.forEach(function (line) {
+                                if (line.startsWith('data: ')) {
+                                    try {
+                                        var data = JSON.parse(line.substring(6));
+
+                                        if (data.type === 'progress') {
+                                            // 更新進度顯示
+                                            document.querySelector('.loading-text').textContent =
+                                                '正在搜尋 ' + data.year + '年' + data.month + '月 的資料 (' + data.index + '/' + data.total + ')...';
+                                        } else if (data.type === 'complete') {
+                                            if (data.success) {
+                                                showToast('✅ ' + data.message, false);
+                                                renderWindRose(data.wind_rose_data, stationName, startYear, startMonth, endYear, endMonth);
+                                            } else {
+                                                showToast('❌ ' + data.error, true);
+                                            }
+                                            loadingOverlay.classList.remove('active');
+                                            document.querySelector('.loading-text').textContent = '正在搜尋資料，請稍候...';
+                                            searchBtn.disabled = false;
+                                        }
+                                    } catch (e) {
+                                        console.log('Parse error:', e);
+                                    }
+                                }
+                            });
+
+                            return processStream();
+                        });
+                    }
+
+                    return processStream();
+                })
+                .catch(function (error) {
+                    showToast('❌ 發生錯誤: ' + error.message, true);
+                    loadingOverlay.classList.remove('active');
+                    document.querySelector('.loading-text').textContent = '正在搜尋資料，請稍候...';
+                    searchBtn.disabled = false;
+                });
+        });
+    });
+</script>
+{% endblock %}

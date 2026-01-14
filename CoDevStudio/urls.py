@@ -30,6 +30,7 @@ urlpatterns = [
     path('patent/', include('PatentRegistry.urls')),  # 專利申請管理
     path('Diversion-Tunnel/', include('Inlet_Design.urls')),  # 水利工程隧道水理設計模組
     path('drone/', include('DroneReservation.urls')),  # 園路無人機預約
+    path('cwa-scraper/', include('CWA_Data_Scraper.urls')),  # 中央氣象署資料爬取
 ]
 
 # 條件載入 ClashClassifier API
