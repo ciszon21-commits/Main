@@ -1,0 +1,87 @@
+{% extends 'reservoir_hydro_base.html' %}
+{% load static %}
+{% block title%}水庫水文水理計算平台 - 首頁{% endblock %} 
+
+{% block template %}
+<div class="rh-container py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-12">
+        <!-- 歡迎區塊 -->
+        <div class="text-center mb-5">
+          <h1 class="display-4 text-rh-home-title mb-3">{{ title }}</h1>
+          <p class="lead text-rh-home-description">{{ description }}</p>
+          <hr class="my-4" />
+        </div>
+
+        <!-- 功能卡片區 -->
+        <div class="row">
+          <div class="col-md mb-4">
+            <div class="card rh-card h-100">
+              <div class="card-body text-center p-4">
+                <div class="rh-icon-primary bg-primary text-white">
+                  <i class="bi bi-tsunami fs-4"></i>
+                </div>
+                <h5 class="rh-card-title">排洪演算</h5>
+                {% comment %} <p class="card-text"># 曲線資料匯入<br /># 自訂排洪規則<br /># 多樣輸出格式</p> {% endcomment %}
+                <a
+                  href="{% url 'reservoir_hydro:flood_drainage_app' %}"
+                  class="btn btn-rh-primary"
+                  onclick="setTargetStep(1)"
+                >
+                  進入頁面
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md mb-4">
+            <div class="card rh-card h-100">
+              <div class="card-body text-center p-4">
+                <div class="rh-icon-secondary bg-success text-white">
+                  <i class="bi bi-building-fill fs-4"></i>
+                </div>
+                <h5 class="rh-card-title">結構物水理</h5>
+                <a
+                  href="{% url 'reservoir_hydro:hydro_structure_app' %}"
+                  class="btn btn-rh-secondary"
+                  onclick="setTargetStep(2)"
+                >
+                  進入頁面
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md mb-4">
+            <div class="card rh-card h-100">
+              <div class="card-body text-center p-4">
+                <div class="rh-icon-primary bg-info text-white">
+                  <i class="bi bi-boxes fs-4"></i>
+                </div>
+                <h5 class="rh-card-title">水庫淤積</h5>
+                <a
+                  href="{% url 'reservoir_hydro:siltation_app' %}"
+                  class="btn btn-rh-primary"
+                  onclick="setTargetStep(3)"
+                >
+                  進入頁面
+                </a>
+              </div>
+            </div>
+          </div>
+          <hr class="my-4" />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function setTargetStep(stepNumber) {
+    // 將步驟資訊存儲在 sessionStorage 中
+    sessionStorage.setItem("targetStep", stepNumber);
+  }
+</script>
+
+{% endblock %}
