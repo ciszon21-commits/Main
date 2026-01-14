@@ -41,15 +41,45 @@ def get_or_create_user_profile(user):
 
 # ==================== Authentication Views ====================
 
-@login_required
 def user_register(request):
-    """User registration"""
-    return render(request, 'EngineerRPG/register.html')
+    """使用者註冊"""
+    from .forms import UserRegistrationForm
+    from django.contrib import messages
+    
+    if request.method == 'POST':
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '註冊成功！請登入開始你的冒險之旅。')
+            return redirect('engineer_rpg:login')
+    else:
+        form = UserRegistrationForm()
+    
+    return render(request, 'EngineerRPG/register.html', {'form': form})
 
-@login_required  
 def user_login(request):
-    """User login"""
-    return render(request, 'EngineerRPG/login.html')
+    """使用者登入"""
+    from .forms import UserLoginForm
+    from django.contrib.auth import authenticate, login
+    from django.contrib import messages
+    
+    if request.method == 'POST':
+        form = UserLoginForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['username']
+            password = form.cleaned_data['password']
+            user = authenticate(request, username=username, password=password)
+            
+            if user is not None:
+                login(request, user)
+                messages.success(request, f'歡迎回來，{user.username}！')
+                return redirect('engineer_rpg:dashboard')
+            else:
+                messages.error(request, '帳號或密碼錯誤，請重試。')
+    else:
+        form = UserLoginForm()
+    
+    return render(request, 'EngineerRPG/login.html', {'form': form})
 
 @login_required
 def user_logout(request):
