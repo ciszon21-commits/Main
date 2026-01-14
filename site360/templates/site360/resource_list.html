@@ -124,10 +124,11 @@
                                     </div>
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge bg-info text-white"
-                                        title="被引用 {{ hotspot.usage_count|default:0 }} 次">
+                                    <button class="badge bg-info text-white border-0 view-references-btn"
+                                        style="cursor: pointer;" data-resource-id="{{ hotspot.id }}"
+                                        data-resource-title="{{ hotspot.title }}" title="點擊查看引用細節">
                                         <i class="fas fa-link"></i> {{ hotspot.usage_count|default:0 }}
-                                    </span>
+                                    </button>
                                 </td>
                                 <td class="text-center">
                                     {% if hotspot.image %}
@@ -144,6 +145,17 @@
                                 </td>
                                 <td>
                                     <div class="d-grid gap-2">
+                                        <button class="btn btn-sm btn-primary edit-resource-btn"
+                                            data-id="{{ hotspot.id }}" data-title="{{ hotspot.title }}"
+                                            data-desc="{{ hotspot.description }}" data-type="{{ hotspot.hotspot_type }}"
+                                            data-usage-count="{{ hotspot.usage_count|default:0 }}"
+                                            data-has-image="{% if hotspot.image %}true{% else %}false{% endif %}"
+                                            data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
+                                            data-image-url="{% if hotspot.image %}{{ hotspot.image.url }}{% endif %}"
+                                            data-video-url="{% if hotspot.video %}{{ hotspot.video.url }}{% endif %}">
+                                            <i class="fas fa-edit"></i> 編輯
+                                        </button>
+
                                         {% if hotspot.title or hotspot.description %}
                                         <button class="btn btn-sm btn-outline-primary copy-btn"
                                             data-title="{{ hotspot.title }}" data-desc="{{ hotspot.description }}">
@@ -186,6 +198,151 @@
             {% else %}
             <div class="alert alert-info">此專案尚未建立任何場景。</div>
             {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Edit Resource Modal -->
+<div class="modal fade" id="editResourceModal" tabindex="-1" aria-labelledby="editResourceModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editResourceModalLabel"><i class="fas fa-edit"></i> 編輯資源</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editResourceForm" enctype="multipart/form-data">
+                    <input type="hidden" id="edit_resource_id" name="resource_id">
+
+                    <!-- Reference Warning -->
+                    <div class="alert alert-warning d-none" id="referenceWarning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>注意：</strong>此資源已被引用 <span id="usageCountDisplay">0</span> 次。
+                        編輯後將創建新版本，原有引用不受影響，但可選擇更新到新版本。
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_title" class="form-label">標題 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="edit_title" name="title" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_description" class="form-label">說明內容</label>
+                        <textarea class="form-control" id="edit_description" name="description" rows="4"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_type" class="form-label">類型 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="edit_type" name="type" required>
+                            <option value="text">文字</option>
+                            <option value="text_hover">懸浮文字</option>
+                            <option value="image">圖片</option>
+                            <option value="image_hover">懸浮圖片</option>
+                            <option value="video">影片</option>
+                            <option value="video_hover">懸浮影片</option>
+                        </select>
+                    </div>
+
+                    <!-- Current Media Preview -->
+                    <div class="mb-3" id="currentMediaPreview">
+                        <label class="form-label">目前媒體</label>
+                        <div id="mediaPreviewContainer" class="border rounded p-3 bg-light">
+                            <p class="text-muted mb-0">無媒體</p>
+                        </div>
+                    </div>
+
+                    <!-- Media Upload -->
+                    <div class="mb-3" id="imageUploadSection">
+                        <label for="edit_image" class="form-label">上傳新圖片</label>
+                        <input type="file" class="form-control" id="edit_image" name="image" accept="image/*">
+                        <small class="form-text text-muted">支援 JPG, PNG, GIF 等格式</small>
+                    </div>
+
+                    <div class="mb-3 d-none" id="videoUploadSection">
+                        <label for="edit_video" class="form-label">上傳新影片</label>
+                        <input type="file" class="form-control" id="edit_video" name="video" accept="video/*">
+                        <small class="form-text text-muted">支援 MP4, WebM 等格式</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveResourceBtn">
+                    <i class="fas fa-save"></i> 儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reference Details Modal -->
+<div class="modal fade" id="referenceDetailsModal" tabindex="-1" aria-labelledby="referenceDetailsModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="referenceDetailsModalLabel">
+                    <i class="fas fa-link"></i> 引用詳情
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Resource Info -->
+                <div class="alert alert-info">
+                    <h6 class="mb-1"><i class="fas fa-info-circle"></i> 資源資訊</h6>
+                    <p class="mb-0">
+                        <strong>標題：</strong><span id="ref_resource_title"></span><br>
+                        <strong>版本號：</strong><span id="ref_resource_version"></span>
+                        <span id="ref_is_latest" class="badge bg-success ms-2 d-none">最新版本</span>
+                        <span id="ref_has_newer" class="badge bg-warning text-dark ms-2 d-none">有新版本可用</span>
+                    </p>
+                </div>
+
+                <!-- Loading State -->
+                <div id="ref_loading" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">載入中...</span>
+                    </div>
+                    <p class="mt-2">載入引用資料中...</p>
+                </div>
+
+                <!-- No References -->
+                <div id="ref_no_references" class="alert alert-secondary d-none">
+                    <i class="fas fa-info-circle"></i> 此資源目前沒有被任何場景引用。
+                </div>
+
+                <!-- References Table -->
+                <div id="ref_references_container" class="d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">被引用清單 (<span id="ref_count">0</span> 個)</h6>
+                        <button id="updateAllBtn" class="btn btn-sm btn-warning d-none">
+                            <i class="fas fa-sync-alt"></i> 全部更新到最新版本
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 15%;">專案</th>
+                                    <th style="width: 20%;">場景</th>
+                                    <th style="width: 20%;">熱點標題</th>
+                                    <th style="width: 10%;">說明比對</th>
+                                    <th style="width: 15%;">版本狀態</th>
+                                    <th style="width: 10%;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ref_references_tbody">
+                                <!-- Will be populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+            </div>
         </div>
     </div>
 </div>
@@ -358,6 +515,380 @@
                 sceneSelect.value = sceneParam;
                 filterResources();
             }
+        }
+
+        // Edit Resource Functionality
+        const editModal = new bootstrap.Modal(document.getElementById('editResourceModal'));
+        const editForm = document.getElementById('editResourceForm');
+        const saveBtn = document.getElementById('saveResourceBtn');
+
+        // Handle Edit Button Clicks
+        document.querySelectorAll('.edit-resource-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const id = this.dataset.id;
+                const title = this.dataset.title;
+                const desc = this.dataset.desc;
+                const type = this.dataset.type;
+                const usageCount = parseInt(this.dataset.usageCount || '0');
+                const hasImage = this.dataset.hasImage === 'true';
+                const hasVideo = this.dataset.hasVideo === 'true';
+                const imageUrl = this.dataset.imageUrl;
+                const videoUrl = this.dataset.videoUrl;
+
+                // Populate form
+                document.getElementById('edit_resource_id').value = id;
+                document.getElementById('edit_title').value = title;
+                document.getElementById('edit_description').value = desc;
+                document.getElementById('edit_type').value = type;
+
+                // Show/hide reference warning
+                const warningDiv = document.getElementById('referenceWarning');
+                if (usageCount > 0) {
+                    document.getElementById('usageCountDisplay').textContent = usageCount;
+                    warningDiv.classList.remove('d-none');
+                } else {
+                    warningDiv.classList.add('d-none');
+                }
+
+                // Update media preview
+                const previewContainer = document.getElementById('mediaPreviewContainer');
+                if (hasImage && imageUrl) {
+                    previewContainer.innerHTML = `<img src="${imageUrl}" class="img-fluid" style="max-height: 200px;" alt="預覽">`;
+                } else if (hasVideo && videoUrl) {
+                    previewContainer.innerHTML = `<video src="${videoUrl}" class="img-fluid" style="max-height: 200px;" controls></video>`;
+                } else {
+                    previewContainer.innerHTML = '<p class="text-muted mb-0">無媒體</p>';
+                }
+
+                // Update upload sections based on type
+                updateMediaSections(type);
+
+                editModal.show();
+            });
+        });
+
+        // Handle Type Change
+        document.getElementById('edit_type').addEventListener('change', function () {
+            updateMediaSections(this.value);
+        });
+
+        function updateMediaSections(type) {
+            const imageSection = document.getElementById('imageUploadSection');
+            const videoSection = document.getElementById('videoUploadSection');
+            const previewSection = document.getElementById('currentMediaPreview');
+
+            if (type === 'text' || type === 'text_hover') {
+                imageSection.classList.add('d-none');
+                videoSection.classList.add('d-none');
+                previewSection.classList.add('d-none');
+            } else if (type === 'image' || type === 'image_hover') {
+                imageSection.classList.remove('d-none');
+                videoSection.classList.add('d-none');
+                previewSection.classList.remove('d-none');
+            } else if (type === 'video' || type === 'video_hover') {
+                imageSection.classList.add('d-none');
+                videoSection.classList.remove('d-none');
+                previewSection.classList.remove('d-none');
+            }
+        }
+
+        // Handle Save Button
+        saveBtn.addEventListener('click', function () {
+            const resourceId = document.getElementById('edit_resource_id').value;
+            const formData = new FormData(editForm);
+
+            // Disable button to prevent double-submit
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 儲存中...';
+
+            fetch(`/site360/api/resource/edit/${resourceId}/`, {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        editModal.hide();
+
+                        // Show success message
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                        alertDiv.innerHTML = `
+                        <i class="fas fa-check-circle"></i> ${data.message}
+                        ${data.new_version ? `<br><small>新版本號：v${data.version_number}</small>` : ''}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                        document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
+
+                        // Reload page after a short delay
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        alert('錯誤：' + data.message);
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = '<i class="fas fa-save"></i> 儲存';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('儲存失敗：' + error.message);
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-save"></i> 儲存';
+                });
+        });
+
+        // Reset form when modal closes
+        document.getElementById('editResourceModal').addEventListener('hidden.bs.modal', function () {
+            editForm.reset();
+            document.getElementById('edit_image').value = '';
+            document.getElementById('edit_video').value = '';
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> 儲存';
+        });
+
+        // Reference Details Functionality
+        const refModal = new bootstrap.Modal(document.getElementById('referenceDetailsModal'));
+
+        document.querySelectorAll('.view-references-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const resourceId = this.dataset.resourceId;
+                const resourceTitle = this.dataset.resourceTitle;
+
+                // Open modal and show loading
+                document.getElementById('ref_loading').classList.remove('d-none');
+                document.getElementById('ref_no_references').classList.add('d-none');
+                document.getElementById('ref_references_container').classList.add('d-none');
+
+                refModal.show();
+
+                // Fetch reference details
+                fetch(`/site360/api/resource/references/${resourceId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Hide loading
+                        document.getElementById('ref_loading').classList.add('d-none');
+
+                        if (data.status === 'success') {
+                            // Update resource info
+                            document.getElementById('ref_resource_title').textContent = data.resource_title;
+                            document.getElementById('ref_resource_version').textContent = `v${data.resource_version}`;
+
+                            // Show version badges
+                            if (data.is_latest) {
+                                document.getElementById('ref_is_latest').classList.remove('d-none');
+                                document.getElementById('ref_has_newer').classList.add('d-none');
+                            } else if (data.has_newer_version) {
+                                document.getElementById('ref_is_latest').classList.add('d-none');
+                                document.getElementById('ref_has_newer').classList.remove('d-none');
+                            }
+
+                            if (data.reference_count === 0) {
+                                // No references
+                                document.getElementById('ref_no_references').classList.remove('d-none');
+                            } else {
+                                // Show references table
+                                document.getElementById('ref_references_container').classList.remove('d-none');
+                                document.getElementById('ref_count').textContent = data.reference_count;
+
+                                // Build table rows
+                                const tbody = document.getElementById('ref_references_tbody');
+                                tbody.innerHTML = '';
+
+                                let hasOutdated = false;
+                                const outdatedIds = [];
+
+                                data.references.forEach((ref, index) => {
+                                    if (ref.is_outdated) {
+                                        hasOutdated = true;
+                                        outdatedIds.push(ref.id);
+                                    }
+
+                                    const row = document.createElement('tr');
+                                    row.className = 'main-row';
+                                    row.innerHTML = `
+                                        <td><span class="badge bg-secondary">${ref.project_name}</span></td>
+                                        <td>${ref.scene_title}</td>
+                                        <td>${ref.hotspot_title}</td>
+                                        <td class="text-center">
+                                            <button class="btn btn-sm btn-outline-info toggle-desc-btn" data-row-index="${index}">
+                                                <i class="fas fa-eye"></i> 
+                                                ${ref.description_modified ?
+                                            '<span class="badge bg-warning text-dark ms-1">已修改</span>' :
+                                            '<span class="badge bg-success ms-1">相同</span>'
+                                        }
+                                            </button>
+                                        </td>
+                                        <td class="text-center">
+                                            ${ref.is_outdated ?
+                                            `<span class="badge bg-warning text-dark">
+                                                    <i class="fas fa-exclamation-triangle"></i> 
+                                                    v${ref.current_version} (可更新至 v${ref.latest_version})
+                                                </span>` :
+                                            `<span class="badge bg-success">
+                                                    <i class="fas fa-check"></i> 最新
+                                                </span>`
+                                        }
+                                        </td>
+                                        <td class="text-center">
+                                            ${ref.is_outdated ?
+                                            `<button class="btn btn-sm btn-warning update-single-ref-btn" 
+                                                    data-ref-id="${ref.id}"
+                                                    data-latest-version="${ref.latest_version}">
+                                                    <i class="fas fa-sync-alt"></i> 更新
+                                                </button>` :
+                                            `<span class="text-muted">-</span>`
+                                        }
+                                        </td>
+                                    `;
+                                    tbody.appendChild(row);
+
+                                    // Create expandable detail row
+                                    const detailRow = document.createElement('tr');
+                                    detailRow.className = 'detail-row d-none';
+                                    detailRow.setAttribute('data-row-index', index);
+                                    detailRow.innerHTML = `
+                                        <td colspan="6" class="bg-light">
+                                            <div class="p-3">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <h6 class="text-primary"><i class="fas fa-database"></i> 原始資源說明</h6>
+                                                        <div class="border rounded p-2 bg-white">
+                                                            ${ref.source_description || '<span class="text-muted">無說明</span>'}
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <h6 class="text-success"><i class="fas fa-edit"></i> 引用熱點說明</h6>
+                                                        <div class="border rounded p-2 bg-white ${ref.description_modified ? 'border-warning' : ''}">
+                                                            ${ref.hotspot_description || '<span class="text-muted">無說明</span>'}
+                                                        </div>
+                                                        ${ref.description_modified ?
+                                            '<small class="text-warning"><i class="fas fa-exclamation-circle"></i> 此引用的說明已被修改</small>' :
+                                            '<small class="text-success"><i class="fas fa-check-circle"></i> 說明與原始資源相同</small>'
+                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    `;
+                                    tbody.appendChild(detailRow);
+                                });
+
+                                // Show/hide update all button
+                                const updateAllBtn = document.getElementById('updateAllBtn');
+                                if (hasOutdated) {
+                                    updateAllBtn.classList.remove('d-none');
+                                    updateAllBtn.onclick = function () {
+                                        updateMultipleReferences(outdatedIds);
+                                    };
+                                } else {
+                                    updateAllBtn.classList.add('d-none');
+                                }
+
+                                // Attach event listeners to individual update buttons
+                                document.querySelectorAll('.update-single-ref-btn').forEach(updateBtn => {
+                                    updateBtn.addEventListener('click', function () {
+                                        const refId = this.dataset.refId;
+                                        updateSingleReference(refId, this);
+                                    });
+                                });
+
+                                // Attach event listeners to toggle description buttons
+                                document.querySelectorAll('.toggle-desc-btn').forEach(toggleBtn => {
+                                    toggleBtn.addEventListener('click', function () {
+                                        const rowIndex = this.dataset.rowIndex;
+                                        const detailRow = document.querySelector(`.detail-row[data-row-index="${rowIndex}"]`);
+                                        const icon = this.querySelector('i');
+
+                                        if (detailRow.classList.contains('d-none')) {
+                                            detailRow.classList.remove('d-none');
+                                            icon.classList.remove('fa-eye');
+                                            icon.classList.add('fa-eye-slash');
+                                        } else {
+                                            detailRow.classList.add('d-none');
+                                            icon.classList.remove('fa-eye-slash');
+                                            icon.classList.add('fa-eye');
+                                        }
+                                    });
+                                });
+                            }
+                        } else {
+                            alert('錯誤：' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        document.getElementById('ref_loading').classList.add('d-none');
+                        console.error('Error:', error);
+                        alert('載入引用資料失敗：' + error.message);
+                    });
+            });
+        });
+
+        function updateSingleReference(refId, buttonElement) {
+            const originalHtml = buttonElement.innerHTML;
+            buttonElement.disabled = true;
+            buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 更新中...';
+
+            fetch(`/site360/api/resource/update-reference/${refId}/`, {
+                method: 'POST'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Show success and refresh the row
+                        buttonElement.innerHTML = '<i class="fas fa-check"></i> 已更新';
+                        buttonElement.classList.remove('btn-warning');
+                        buttonElement.classList.add('btn-success');
+
+                        setTimeout(() => {
+                            // Refresh the modal
+                            const resourceId = document.querySelector('.view-references-btn[data-resource-id]').dataset.resourceId;
+                            location.reload(); // Reload page to reflect updates
+                        }, 1000);
+                    } else {
+                        alert('更新失敗：' + data.message);
+                        buttonElement.disabled = false;
+                        buttonElement.innerHTML = originalHtml;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('更新失敗：' + error.message);
+                    buttonElement.disabled = false;
+                    buttonElement.innerHTML = originalHtml;
+                });
+        }
+
+        function updateMultipleReferences(refIds) {
+            const updateAllBtn = document.getElementById('updateAllBtn');
+            const originalHtml = updateAllBtn.innerHTML;
+            updateAllBtn.disabled = true;
+            updateAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 更新中...';
+
+            fetch('/site360/api/resource/batch-update/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `hotspot_ids=${JSON.stringify(refIds)}`
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert(`成功更新 ${data.updated_count} 個引用！`);
+                        location.reload();
+                    } else {
+                        alert('批量更新失敗：' + data.message);
+                        updateAllBtn.disabled = false;
+                        updateAllBtn.innerHTML = originalHtml;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('批量更新失敗：' + error.message);
+                    updateAllBtn.disabled = false;
+                    updateAllBtn.innerHTML = originalHtml;
+                });
         }
     });
 </script>

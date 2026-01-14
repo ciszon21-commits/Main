@@ -20,4 +20,9 @@ urlpatterns = [
     path('api/scene/set-cover/<int:pk>/', views.set_cover_image, name='set_cover_image'),
     path('api/video/<int:pk>/', views.serve_hotspot_video, name='serve_hotspot_video'),
     path('api/resources/', views.list_resources, name='list_resources'),
+    path('api/resource/edit/<int:pk>/', views.edit_resource, name='edit_resource'),
+    path('api/resource/check-updates/', views.check_resource_updates, name='check_resource_updates'),
+    path('api/resource/update-reference/<int:pk>/', views.update_resource_reference, name='update_resource_reference'),
+    path('api/resource/batch-update/', views.batch_update_references, name='batch_update_references'),
+    path('api/resource/references/<int:pk>/', views.get_resource_references, name='get_resource_references'),
 ]
