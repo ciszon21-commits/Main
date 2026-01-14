@@ -772,7 +772,6 @@ class GuildPost(models.Model):
     CATEGORY_CHOICES = [
         ('GENERAL', '綜合討論'),
         ('STRATEGY', '攻略心得'),
-        ('TEAM', '組隊招募'),
         ('QA', '問題請教'),
         ('ANNOUNCEMENT', '公會公告'),  # 僅限管理員發布
     ]

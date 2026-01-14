@@ -536,16 +536,84 @@ def guild_dashboard(request):
 
 @login_required
 def guild_exchange_list(request):
-    """Guild exchange list"""
+    """公會交流區文章列表"""
+    from django.core.paginator import Paginator
+    from django.utils import timezone
+    
     profile = get_or_create_user_profile(request.user)
-    context = {'profile': profile}
+    
+    # 獲取分類參數
+    current_category = request.GET.get('category', 'ALL')
+    
+    # 獲取文章查詢集
+    posts = GuildPost.objects.select_related('author__user').prefetch_related('comments')
+    
+    # 分類篩選
+    if current_category != 'ALL':
+        posts = posts.filter(category=current_category)
+    
+    # 分離置頂和一般文章
+    pinned_posts = posts.filter(is_pinned=True)
+    regular_posts = posts.filter(is_pinned=False)
+    
+    # 分頁
+    paginator = Paginator(regular_posts, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'profile': profile,
+        'categories': GuildPost.CATEGORY_CHOICES,
+        'current_category': current_category,
+        'pinned_posts': pinned_posts,
+        'page_obj': page_obj,
+        'now': timezone.now(),
+    }
     return render(request, 'EngineerRPG/guild_exchange_list.html', context)
 
 @login_required
 def guild_post_create(request):
-    """Create guild post"""
+    """創建公會文章"""
+    from django.contrib import messages
+    
     profile = get_or_create_user_profile(request.user)
-    context = {'profile': profile}
+    
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        content = request.POST.get('content', '').strip()
+        category = request.POST.get('category', 'GENERAL')
+        
+        # 驗證
+        if not title or not content:
+            messages.error(request, '標題和內容不能為空')
+            return redirect('engineer_rpg:guild_post_create')
+        
+        # 公告類別僅限管理員
+        if category == 'ANNOUNCEMENT' and profile.role not in ['MANAGER', 'ADMIN']:
+            messages.error(request, '只有管理員可以發布公告')
+            return redirect('engineer_rpg:guild_post_create')
+        
+        # 創建文章
+        post = GuildPost.objects.create(
+            author=profile,
+            title=title,
+            content=content,
+            category=category
+        )
+        
+        messages.success(request, '文章發布成功！')
+        return redirect('engineer_rpg:guild_post_detail', post_id=post.id)
+    
+    # GET 請求 - 根據使用者角色過濾分類選項
+    if profile.role in ['MANAGER', 'ADMIN']:
+        categories = GuildPost.CATEGORY_CHOICES
+    else:
+        categories = [c for c in GuildPost.CATEGORY_CHOICES if c[0] != 'ANNOUNCEMENT']
+    
+    context = {
+        'profile': profile,
+        'categories': categories,
+    }
     return render(request, 'EngineerRPG/guild_post_create.html', context)
 
 @login_required
