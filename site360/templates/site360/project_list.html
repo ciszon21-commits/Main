@@ -30,9 +30,21 @@
                 <div class="card-body">
                     <h5 class="card-title">{{ project.name }}</h5>
                     <p class="card-text text-muted">{{ project.description|truncatechars:100 }}</p>
+                    <p class="card-text text-muted small">
+                        {% if project.city %}
+                        <i class="fas fa-map-marker-alt"></i> {{ project.city }}{{ project.district }} {{ project.address_detail }}
+                        {% else %}
+                        <span class="text-warning"><i class="fas fa-exclamation-circle"></i> 未輸入地址</span>
+                        {% endif %}
+                    </p>
                     <div class="d-flex justify-content-between align-items-center">
                         <small class="text-muted">{{ project.scenes.count }} 個場景</small>
-                        <a href="{% url 'site360:project_detail' project.pk %}" class="btn btn-primary">進入專案</a>
+                        <div class="btn-group">
+                            <a href="{% url 'site360:project_edit' project.pk %}"
+                                class="btn btn-outline-secondary btn-sm">編輯</a>
+                            <a href="{% url 'site360:project_detail' project.pk %}"
+                                class="btn btn-primary btn-sm">進入專案</a>
+                        </div>
                     </div>
                 </div>
                 <div class="card-footer text-muted">

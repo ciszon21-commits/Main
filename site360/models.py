@@ -7,6 +7,11 @@ class Project(models.Model):
     created_at = models.DateTimeField(_("建立時間"), auto_now_add=True)
     cover_image = models.ImageField(_("封面圖片"), upload_to='site360/projects/', blank=True, null=True)
 
+    # Address Fields
+    city = models.CharField(_("縣市"), max_length=50, blank=True)
+    district = models.CharField(_("區域"), max_length=50, blank=True)
+    address_detail = models.CharField(_("詳細地址"), max_length=200, blank=True)
+
     class Meta:
         verbose_name = _("專案")
         verbose_name_plural = _("專案")

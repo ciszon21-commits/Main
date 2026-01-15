@@ -9,8 +9,8 @@ class SceneInline(admin.TabularInline):
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ('name', 'created_at', 'scene_count')
-    search_fields = ('name', 'description')
+    list_display = ('name', 'city', 'district', 'created_at', 'scene_count')
+    search_fields = ('name', 'description', 'city', 'district', 'address_detail')
     inlines = [SceneInline]
 
     def scene_count(self, obj):

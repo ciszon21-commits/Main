@@ -90,12 +90,21 @@
             <a href="{% url 'site360:project_resources' project.pk %}" class="btn btn-outline-info btn-lg">
                 <i class="fas fa-list"></i> 資源總表
             </a>
+            <a href="{% url 'site360:project_edit' project.pk %}" class="btn btn-outline-secondary btn-lg">
+                <i class="fas fa-edit"></i> 編輯資訊
+            </a>
         </div>
     </div>
 
     <div class="card mb-4">
         <div class="card-body">
             <p class="card-text">{{ project.description }}</p>
+            {% if project.city %}
+            <p class="card-text">
+                <i class="fas fa-map-marker-alt text-danger"></i>
+                <strong>專案地點:</strong> {{ project.city }}{{ project.district }} {{ project.address_detail }}
+            </p>
+            {% endif %}
             <p class="text-muted">建立時間: {{ project.created_at }} | 場景數量: {{ project.scenes.count }}</p>
             <div class="alert alert-info mt-2">
                 <i class="fas fa-info-circle"></i> 您可以拖曳下方的照片卡片來調整瀏覽順序。

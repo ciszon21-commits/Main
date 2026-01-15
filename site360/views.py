@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404
-from django.views.generic import ListView, DetailView, CreateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.http import JsonResponse
 from django.urls import reverse_lazy, reverse
 from django.db.models import Max, Count
@@ -10,6 +10,34 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import StreamingHttpResponse
 import os
 import re
+import json
+from django.conf import settings
+
+def get_cities(request):
+    """API: 取得所有台灣縣市列表"""
+    data_path = os.path.join(settings.BASE_DIR, 'site360', 'static', 'site360', 'data', 'taiwan_districts.json')
+    try:
+        with open(data_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            cities = list(data.keys())
+        return JsonResponse({'cities': cities})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def get_districts(request):
+    """API: 根據縣市取得區域列表"""
+    city = request.GET.get('city')
+    if not city:
+        return JsonResponse({'districts': []})
+        
+    data_path = os.path.join(settings.BASE_DIR, 'site360', 'static', 'site360', 'data', 'taiwan_districts.json')
+    try:
+        with open(data_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            districts = data.get(city, [])
+        return JsonResponse({'districts': districts})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 class ProjectListView(ListView):
     model = Project
@@ -21,6 +49,14 @@ class ProjectCreateView(CreateView):
     form_class = ProjectForm
     template_name = 'site360/project_form.html'
     success_url = reverse_lazy('site360:project_list')
+
+class ProjectUpdateView(UpdateView):
+    model = Project
+    form_class = ProjectForm
+    template_name = 'site360/project_form.html'
+    
+    def get_success_url(self):
+        return reverse_lazy('site360:project_detail', kwargs={'pk': self.object.pk})
 
 class ProjectDetailView(DetailView):
     model = Project

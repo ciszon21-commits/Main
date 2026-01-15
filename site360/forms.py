@@ -4,11 +4,17 @@ from .models import Project, Scene
 class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
-        fields = ['name', 'description', 'cover_image']
+        fields = ['name', 'description', 'cover_image', 'city', 'district', 'address_detail']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'cover_image': forms.FileInput(attrs={'class': 'form-control'}),
+            'city': forms.Select(attrs={'class': 'form-control', 'id': 'id_city'}),
+            'district': forms.Select(attrs={'class': 'form-control', 'id': 'id_district'}),
+            'address_detail': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': '例如：信義路五段7號'
+            }),
         }
 
 class SceneForm(forms.ModelForm):
