@@ -80,3 +80,9 @@ ENABLE_CLASH_CLASSIFIER = False  # 設為 True 以啟用碰撞報告分類 API
 # TMP_ROOT = '/mnt/tmp_data'
 # ARCHIVE_MAX_FOLDER_SIZE = 4 * 1024 * 1024 * 1024
 
+# OpenSearch Settings
+OPENSEARCH_HOST = 'https://localhost:19200'
+OPENSEARCH_USERNAME = 'sino'
+OPENSEARCH_PASSWORD = 'sino'
+OPENSEARCH_VERIFY_CERTS = False
+

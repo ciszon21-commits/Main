@@ -31,6 +31,7 @@ urlpatterns = [
     path('Diversion-Tunnel/', include('Inlet_Design.urls')),  # 水利工程隧道水理設計模組
     path('drone/', include('DroneReservation.urls')),  # 園路無人機預約
     path('reservoir-hydro/', include('ReservoirHydro.urls')),  # 水庫水文水理計算平台
+    path('search/', include('OpenSearch.urls')),  # OpenSearch 搜尋引擎
 ]
 
 # 條件載入 ClashClassifier API
