@@ -1,0 +1,155 @@
+{# Universal Result Display Template - Compact Layout #}
+{% load opensearch_tags %}
+
+{% with category=result.category source=result.source highlight=result.highlight index=result.index is_secret=result.is_secret %}
+
+{# ===== SECRET DATA - RESTRICTED DISPLAY ===== #}
+{% if is_secret %}
+<div class="secret-badge">🔒 機敏資料</div>
+<h3 class="result-title">
+    <span class="secret-title">{{ source|extract_title }}</span>
+</h3>
+<div class="result-meta">
+    {% if source.poster %}
+    <span class="result-meta-item">👤 {{ source.poster }}</span>
+    {% endif %}
+    {% if source.dt %}
+    <span class="result-meta-item">📅 {{ source.dt }}</span>
+    {% endif %}
+</div>
+<div class="secret-notice">
+    此資料為機敏資料，無法顯示詳細內容。如需存取，請聯繫資料管理員。
+</div>
+
+{% else %}
+{# ===== NON-SECRET DATA - NORMAL DISPLAY ===== #}
+{% with fsmeta=source|parse_fscrawler_meta %}
+
+{# Check if this is a file-based record #}
+{% if source|is_file_based %}
+
+{# File path toggle - hidden by default, show folder path on click #}
+{% if fsmeta.path %}
+<div class="path-toggle-container" data-path="{{ fsmeta.path|to_windows_path }}" data-index="{{ index }}" data-doc-id="{{ result.id }}" data-title="{{ fsmeta.filename|default:fsmeta.title|default:'未知' }}">
+    <button type="button" class="path-toggle-btn" onclick="togglePath(this)">
+        <span class="icon">📁</span> 查看路徑
+    </button>
+    <div class="path-display" style="display: none;">
+        <span class="path-text"></span>
+        <button type="button" class="path-copy-btn" onclick="copyFolderPath(this)" title="複製資料夾路徑">
+            <span class="icon">📋</span> 複製
+        </button>
+    </div>
+</div>
+{% endif %}
+
+{# File name as title #}
+<h3 class="result-title">
+    <a href="#" class="result-link" data-index="{{ index }}" data-doc-id="{{ result.id }}" data-title="{{ fsmeta.filename|default:fsmeta.title|default:'未知' }}" data-path="{{ fsmeta.path|to_windows_path|default:'' }}">
+        {% if highlight.file %}
+            {{ highlight.file.0|safe }}
+        {% elif fsmeta.title %}
+            {{ fsmeta.title }}{% if fsmeta.filename %} ({{ fsmeta.filename }}){% endif %}
+        {% elif fsmeta.filename %}
+            {{ fsmeta.filename }}
+        {% else %}
+            (無檔案名稱)
+        {% endif %}
+    </a>
+</h3>
+
+{# Compact inline metadata #}
+<div class="result-meta file-meta-inline">
+    {% if fsmeta.modified %}
+    <span class="result-meta-item">📅 {{ fsmeta.modified }}</span>
+    {% endif %}
+    {% if fsmeta.creator %}
+    <span class="result-meta-item">👤 {{ fsmeta.creator }}</span>
+    {% endif %}
+    {% if fsmeta.filesize %}
+    <span class="result-meta-item">💾 {{ fsmeta.filesize }}</span>
+    {% endif %}
+</div>
+
+{# Content preview if available #}
+{% if highlight.content %}
+<div class="result-snippet">
+    {% for frag in highlight.content %}
+        {{ frag|safe }}{% if not forloop.last %} ... {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+
+{% else %}
+{# ===== REGULAR DISPLAY (non-file records) ===== #}
+
+{# URL Display #}
+{% if source.url and not source.url|is_json_like %}
+<div class="result-url">{{ source.url|truncatechars:100 }}</div>
+{% elif source.path and not source.path|is_json_like %}
+<div class="result-url">{{ source.path|truncatechars:100 }}</div>
+{% endif %}
+
+{# Title #}
+<h3 class="result-title">
+    {% if source.url and not source.url|is_json_like %}
+    <a href="{{ source.url }}" target="_blank" rel="noopener">
+    {% elif source.preview_url %}
+    <a href="{{ source.preview_url }}" target="_blank" rel="noopener">
+    {% else %}
+    <a href="#">
+    {% endif %}
+        {% if highlight.title %}
+            {{ highlight.title.0|safe }}
+        {% else %}
+            {{ source|extract_title }}
+        {% endif %}
+    </a>
+</h3>
+
+{# Snippet / Content Preview #}
+<div class="result-snippet">
+    {% if highlight.content %}
+        {% for frag in highlight.content %}
+            {{ frag|safe }}{% if not forloop.last %} ... {% endif %}
+        {% endfor %}
+    {% elif source.content and not source.content|is_json_like %}
+        {{ source.content|truncatechars:200 }}
+    {% elif source.projname or source.constrname or source.client %}
+        {% if source.projname %}{{ source.projname|truncatechars:80 }}{% endif %}
+        {% if source.constrname %} - {{ source.constrname|truncatechars:40 }}{% endif %}
+        {% if source.client %} (業主：{{ source.client|truncatechars:15 }}){% endif %}
+    {% endif %}
+</div>
+
+{# Metadata - Compact inline #}
+<div class="result-meta">
+    {% if source.dt %}
+    <span class="result-meta-item">📅 {{ source.dt }}</span>
+    {% elif source.publishdate %}
+    <span class="result-meta-item">📅 {{ source.publishdate }}</span>
+    {% endif %}
+    {% if source.poster %}
+    <span class="result-meta-item">👤 {{ source.poster }}</span>
+    {% endif %}
+    {% if source.projno %}
+    <span class="result-meta-item">📋 {{ source.projno }}</span>
+    {% endif %}
+    {% if source.projname and not source.projname|is_json_like %}
+    <span class="result-meta-item">{{ source.projname|truncatechars:25 }}</span>
+    {% endif %}
+    {% if source.publisher %}
+    <span class="result-meta-item">📖 {{ source.publisher }}</span>
+    {% endif %}
+    {% if source.client %}
+    <span class="result-meta-item">🏢 {{ source.client|truncatechars:15 }}</span>
+    {% endif %}
+    {% if source.dept_name %}
+    <span class="result-meta-item">🏛️ {{ source.dept_name }}</span>
+    {% endif %}
+</div>
+
+{% endif %}
+{% endwith %}
+{% endif %}
+{% endwith %}
