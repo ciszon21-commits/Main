@@ -12,6 +12,10 @@ class Project(models.Model):
     district = models.CharField(_("區域"), max_length=50, blank=True)
     address_detail = models.CharField(_("詳細地址"), max_length=200, blank=True)
 
+    # Geo Fields
+    latitude = models.FloatField(_("緯度"), blank=True, null=True)
+    longitude = models.FloatField(_("經度"), blank=True, null=True)
+
     class Meta:
         verbose_name = _("專案")
         verbose_name_plural = _("專案")

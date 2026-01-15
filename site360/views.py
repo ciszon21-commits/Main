@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404
-from django.views.generic import ListView, DetailView, CreateView, UpdateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView
 from django.http import JsonResponse
 from django.urls import reverse_lazy, reverse
 from django.db.models import Max, Count
@@ -57,6 +57,25 @@ class ProjectUpdateView(UpdateView):
     
     def get_success_url(self):
         return reverse_lazy('site360:project_detail', kwargs={'pk': self.object.pk})
+
+class ProjectMapView(TemplateView):
+    template_name = 'site360/project_map.html'
+
+def project_map_data(request):
+    """API: 回傳所有專案的地圖資料"""
+    projects = Project.objects.filter(latitude__isnull=False, longitude__isnull=False)
+    data = []
+    for p in projects:
+        data.append({
+             'id': p.id,
+             'name': p.name,
+             'lat': p.latitude,
+             'lng': p.longitude,
+             'cover': p.cover_image.url if p.cover_image else None,
+             'url': reverse('site360:project_detail', kwargs={'pk': p.pk}),
+             'description': p.description[:50] + '...' if p.description else ''
+        })
+    return JsonResponse({'projects': data})
 
 class ProjectDetailView(DetailView):
     model = Project
