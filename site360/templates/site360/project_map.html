@@ -86,9 +86,35 @@
                                     </thead>
                                     <tbody>
                                         {% for stat in city_stats %}
+                                        <tr data-bs-toggle="collapse" data-bs-target="#city-{{ forloop.counter }}"
+                                            role="button" aria-expanded="false" class="accordion-toggle">
+                                            <td><i class="fas fa-chevron-right me-2 text-muted"></i>{{ stat.city }}</td>
+                                            <td class="text-end ps-0 pe-2"><span
+                                                    class="badge bg-secondary rounded-pill">{{ stat.count }}</span></td>
+                                        </tr>
                                         <tr>
-                                            <td>{{ stat.city }}</td>
-                                            <td class="text-end">{{ stat.count }}</td>
+                                            <td colspan="2" class="p-0 border-0">
+                                                <div class="collapse" id="city-{{ forloop.counter }}">
+                                                    <div
+                                                        class="card card-body bg-light border-0 py-2 px-3 list-group list-group-flush rounded-0 mb-2">
+                                                        {% for project in stat.projects %}
+                                                        <div
+                                                            class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0 py-1 border-bottom-0">
+                                                            <span class="text-truncate me-2"
+                                                                style="max-width: 280px; font-size: 0.9em;">
+                                                                <i class="fas fa-cube fa-xs me-1 text-muted"></i>{{ project.name }}
+                                                            </span>
+                                                            <a href="{% url 'site360:project_detail' project.pk %}"
+                                                                target="_blank"
+                                                                class="btn btn-sm btn-outline-primary py-0 px-2"
+                                                                style="font-size: 0.8em;">
+                                                                前往
+                                                            </a>
+                                                        </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            </td>
                                         </tr>
                                         {% endfor %}
                                     </tbody>
@@ -124,11 +150,11 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-    // Chart Initialization
-    {% if city_stats %}
-    const ctx = document.getElementById('cityChart').getContext('2d');
+        // Chart Initialization
+        {% if city_stats %}
+        const ctx = document.getElementById('cityChart').getContext('2d');
 
-    const labels = [{% for stat in city_stats %}"{{ stat.city|escapejs }}", {% endfor %}];
+        const labels = [{% for stat in city_stats %}"{{ stat.city|escapejs }}", {% endfor %}];
     const counts = [{% for stat in city_stats %}{{ stat.count }}, {% endfor %}];
 
     new Chart(ctx, {

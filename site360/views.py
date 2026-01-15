@@ -63,14 +63,27 @@ class ProjectMapView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        from django.db.models import Count
         from .models import Project
         
-        # Aggregate projects by city
-        # Exclude empty city strings if any
-        city_stats = Project.objects.exclude(city='').values('city').annotate(
-            count=Count('id')
-        ).order_by('-count')
+        # Group projects by city in Python to get both count and list
+        projects = Project.objects.exclude(city='').order_by('city', '-created_at')
+        
+        cities_data = {}
+        for p in projects:
+            if p.city not in cities_data:
+                cities_data[p.city] = []
+            cities_data[p.city].append(p)
+            
+        # Convert to list of dicts and sort by count desc
+        city_stats = []
+        for city, proj_list in cities_data.items():
+            city_stats.append({
+                'city': city,
+                'count': len(proj_list),
+                'projects': proj_list
+            })
+        
+        city_stats.sort(key=lambda x: x['count'], reverse=True)
         
         context['city_stats'] = city_stats
         return context
