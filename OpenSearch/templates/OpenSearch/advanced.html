@@ -1,0 +1,428 @@
+{% extends 'OpenSearch/base.html' %}
+
+{% block title %}進階搜尋 - 中興搜尋{% endblock %}
+
+{% block search_header %}{% endblock %}
+
+{% block extra_css %}
+.advanced-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.advanced-header {
+    margin-bottom: 32px;
+}
+
+.advanced-title {
+    font-size: 28px;
+    font-weight: 400;
+    color: #202124;
+    margin-bottom: 8px;
+}
+
+.advanced-subtitle {
+    font-size: 14px;
+    color: #5f6368;
+}
+
+.advanced-form {
+    background: white;
+    border: 1px solid #dfe1e5;
+    border-radius: 8px;
+    padding: 24px;
+}
+
+.form-section {
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #e8eaed;
+}
+
+.form-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.form-section-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: #202124;
+    margin-bottom: 16px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-label {
+    display: block;
+    font-size: 14px;
+    color: #5f6368;
+    margin-bottom: 8px;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #dfe1e5;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+}
+
+.form-input::placeholder {
+    color: #9aa0a6;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.form-select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #dfe1e5;
+    border-radius: 4px;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+}
+
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+}
+
+.category-checkbox {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    border: 1px solid #e8eaed;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.category-checkbox:hover {
+    background: #f8f9fa;
+}
+
+.category-checkbox input {
+    margin-right: 8px;
+}
+
+.category-checkbox .icon {
+    margin-right: 8px;
+}
+
+.category-checkbox .name {
+    flex: 1;
+    font-size: 13px;
+}
+
+.category-checkbox .count {
+    font-size: 11px;
+    color: #70757a;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 24px;
+}
+
+.btn-search {
+    padding: 12px 32px;
+    background: #1a73e8;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-search:hover {
+    background: #1557b0;
+}
+
+.btn-clear {
+    padding: 12px 24px;
+    background: #f8f9fa;
+    color: #3c4043;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-clear:hover {
+    background: #f1f3f4;
+}
+
+.error-message {
+    background: #fce8e6;
+    color: #c5221f;
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 600px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .category-grid {
+        grid-template-columns: 1fr;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<div class="advanced-container">
+    <div class="advanced-header">
+        <h1 class="advanced-title">進階搜尋</h1>
+        <p class="advanced-subtitle">使用更多條件來精確搜尋</p>
+    </div>
+
+    {% if error %}
+    <div class="error-message">{{ error }}</div>
+    {% endif %}
+
+    <form class="advanced-form" id="advanced-form" action="{% url 'opensearch:search' %}" method="get" onsubmit="return buildSearchQuery();">
+        <div class="form-section">
+            <h2 class="form-section-title">🔍 搜尋關鍵字</h2>
+            <div class="form-group">
+                <label class="form-label" for="main-query">一般關鍵字</label>
+                <input type="text" class="form-input" id="main-query" placeholder="輸入關鍵字，以空格分隔">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="title-query">限定標題搜尋 <span style="color:#70757a; font-weight:normal;">(只搜尋標題欄位)</span></label>
+                <input type="text" class="form-input" id="title-query" placeholder="輸入標題關鍵字">
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2 class="form-section-title">📁 檔案篩選</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="ext-filter">副檔名</label>
+                    <select class="form-select" id="ext-filter">
+                        <option value="">全部類型</option>
+                        <option value="pdf">PDF 文件 (.pdf)</option>
+                        <option value="docx">Word 文件 (.docx)</option>
+                        <option value="doc">Word 97-2003 (.doc)</option>
+                        <option value="xlsx">Excel 表格 (.xlsx)</option>
+                        <option value="xls">Excel 97-2003 (.xls)</option>
+                        <option value="pptx">PowerPoint (.pptx)</option>
+                        <option value="ppt">PowerPoint 97-2003 (.ppt)</option>
+                        <option value="dwg">AutoCAD 圖檔 (.dwg)</option>
+                        <option value="txt">純文字 (.txt)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="ext-custom">或輸入自訂副檔名</label>
+                    <input type="text" class="form-input" id="ext-custom" placeholder="例如: rvt, ifc, zip">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2 class="form-section-title">📋 計畫篩選</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="proj-filter">計畫編號 <span style="color:#70757a; font-weight:normal;">(五碼，如 5060Z)</span></label>
+                    <input type="text" class="form-input" id="proj-filter" placeholder="輸入計畫編號" maxlength="10">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="dept-filter">部門</label>
+                    <select class="form-select" id="dept-filter">
+                        <option value="">全部部門</option>
+                        <option value="02">02 - 業務部</option>
+                        <option value="03">03 - 行政部</option>
+                        <option value="04">04 - 考核部</option>
+                        <option value="06">06 - 研資部</option>
+                        <option value="08">08 - 財會部</option>
+                        <option value="11">11 - 水利部</option>
+                        <option value="12">12 - 電力部</option>
+                        <option value="14">14 - 軌一部</option>
+                        <option value="15">15 - 環工部</option>
+                        <option value="18">18 - 建築部</option>
+                        <option value="22">22 - 園路部</option>
+                        <option value="23">23 - 法務部</option>
+                        <option value="24">24 - 軌二部</option>
+                        <option value="25">25 - 職安中心</option>
+                        <option value="31">31 - 結構部</option>
+                        <option value="32">32 - 地工部</option>
+                        <option value="33">33 - 機械部</option>
+                        <option value="34">34 - 系電部</option>
+                        <option value="39">39 - 工管部</option>
+                        <option value="40">40 - 機工部</option>
+                        <option value="59">59 - 中工中心</option>
+                        <option value="92">92 - 南工中心</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2 class="form-section-title">📅 日期範圍</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="date_from">起始日期</label>
+                    <input type="date" class="form-input" id="date_from" name="date_from">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="date_to">結束日期</label>
+                    <input type="date" class="form-input" id="date_to" name="date_to">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2 class="form-section-title">⚙️ 排序方式</h2>
+            <div class="form-group">
+                <select class="form-select" name="sort">
+                    <option value="">相關性排序</option>
+                    <option value="dt:desc">日期（由新到舊）</option>
+                    <option value="dt:asc">日期（由舊到新）</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2 class="form-section-title">📚 資料分類</h2>
+            <div class="form-group">
+                <label class="form-label">選擇要搜尋的分類（可多選，不選則搜尋全部）</label>
+                <div class="category-grid">
+                    {% for key, cat in categories.items %}
+                    {% if cat.total_docs > 0 %}
+                    <label class="category-checkbox">
+                        <input type="checkbox" name="indices" value="{{ cat.pattern }}">
+                        <span class="icon">{{ cat.icon }}</span>
+                        <span class="name">{{ cat.name }}</span>
+                        <span class="count">{{ cat.total_docs|floatformat:0 }}</span>
+                    </label>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Generated query preview -->
+        <div class="form-section" style="background: #f8f9fa; border-radius: 8px; padding: 16px; margin-top: 16px;">
+            <h2 class="form-section-title">🔎 產生的搜尋語法</h2>
+            <div class="form-group" style="margin-bottom: 0;">
+                <input type="text" class="form-input" id="q" name="q" readonly style="background: white; font-family: monospace;">
+                <small style="color: #70757a; display: block; margin-top: 8px;">此語法由上方條件自動產生，您也可以直接在此編輯</small>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="btn-clear" onclick="clearForm();">清除條件</button>
+            <button type="submit" class="btn-search">🔍 進階搜尋</button>
+        </div>
+
+        <!-- Hidden field for final query -->
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Update query preview whenever any field changes
+document.addEventListener('DOMContentLoaded', function() {
+    const fields = ['main-query', 'title-query', 'ext-filter', 'ext-custom', 'proj-filter', 'dept-filter'];
+    fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', updateQueryPreview);
+            el.addEventListener('change', updateQueryPreview);
+        }
+    });
+    
+    // Also make the final query field editable
+    document.getElementById('q').removeAttribute('readonly');
+});
+
+function updateQueryPreview() {
+    let parts = [];
+    
+    // Main query
+    const mainQuery = document.getElementById('main-query').value.trim();
+    if (mainQuery) {
+        parts.push(mainQuery);
+    }
+    
+    // Title filter
+    const titleQuery = document.getElementById('title-query').value.trim();
+    if (titleQuery) {
+        parts.push('title:' + titleQuery.replace(/\s+/g, '_'));
+    }
+    
+    // Extension filter
+    let ext = document.getElementById('ext-filter').value;
+    const extCustom = document.getElementById('ext-custom').value.trim();
+    if (extCustom) {
+        ext = extCustom;
+    }
+    if (ext) {
+        parts.push('ext:' + ext);
+    }
+    
+    // Project filter
+    const proj = document.getElementById('proj-filter').value.trim().toLowerCase();
+    if (proj) {
+        parts.push('proj:' + proj);
+    }
+    
+    // Department filter
+    const dept = document.getElementById('dept-filter').value;
+    if (dept) {
+        parts.push('dept:' + dept);
+    }
+    
+    document.getElementById('q').value = parts.join(' ');
+}
+
+function buildSearchQuery() {
+    updateQueryPreview();
+    const q = document.getElementById('q').value.trim();
+    if (!q) {
+        alert('請至少輸入一個搜尋條件');
+        return false;
+    }
+    return true;
+}
+
+function clearForm() {
+    document.getElementById('main-query').value = '';
+    document.getElementById('title-query').value = '';
+    document.getElementById('ext-filter').value = '';
+    document.getElementById('ext-custom').value = '';
+    document.getElementById('proj-filter').value = '';
+    document.getElementById('dept-filter').value = '';
+    document.getElementById('date_from').value = '';
+    document.getElementById('date_to').value = '';
+    document.querySelectorAll('input[name="indices"]').forEach(cb => cb.checked = false);
+    document.getElementById('q').value = '';
+}
+</script>
+{% endblock %}
+

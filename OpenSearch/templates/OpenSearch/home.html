@@ -1,0 +1,250 @@
+{% extends 'OpenSearch/base.html' %}
+
+{% block title %}中興Single搜尋 - 企業知識搜尋引擎{% endblock %}
+
+{% block header %}{% endblock %}
+
+{% block main_style %}
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+min-height: calc(100vh - 80px);
+padding: 20px;
+{% endblock %}
+
+{% block extra_css %}
+.home-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 600px;
+}
+
+.home-logo {
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.home-logo-text {
+    font-size: 72px;
+    font-weight: 400;
+    letter-spacing: -2px;
+}
+
+.home-logo-text .blue { color: #4285f4; }
+.home-logo-text .red { color: #ea4335; }
+.home-logo-text .yellow { color: #fbbc05; }
+.home-logo-text .green { color: #34a853; }
+
+.home-search-form {
+    width: 100%;
+    margin-bottom: 24px;
+}
+
+.home-search-wrapper {
+    display: flex;
+    align-items: center;
+    border: 1px solid #dfe1e5;
+    border-radius: 24px;
+    padding: 10px 16px;
+    background: white;
+    transition: box-shadow 0.2s;
+}
+
+.home-search-wrapper:hover,
+.home-search-wrapper:focus-within {
+    box-shadow: 0 1px 6px rgba(32, 33, 36, 0.28);
+    border-color: transparent;
+}
+
+.home-search-icon {
+    color: #9aa0a6;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.home-search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    min-width: 0;
+}
+
+.home-search-input::placeholder {
+    color: #9aa0a6;
+}
+
+.home-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 40px;
+}
+
+.home-btn {
+    padding: 10px 16px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: #f8f9fa;
+    color: #3c4043;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.home-btn:hover {
+    border-color: #dadce0;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+}
+
+.home-categories {
+    width: 100%;
+}
+
+.home-categories-title {
+    font-size: 14px;
+    color: #5f6368;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.home-categories-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
+.home-category-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: #f1f3f4;
+    color: #3c4043;
+    font-size: 14px;
+    text-decoration: none;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.home-category-chip:hover {
+    background: #e8eaed;
+}
+
+.home-category-chip .icon {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.home-category-chip .count {
+    margin-left: 8px;
+    font-size: 12px;
+    color: #70757a;
+}
+
+.home-stats {
+    margin-top: 40px;
+    text-align: center;
+    color: #70757a;
+    font-size: 14px;
+}
+
+.home-stats .number {
+    font-size: 24px;
+    font-weight: 500;
+    color: #1a73e8;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.error-message {
+    background: #fce8e6;
+    color: #c5221f;
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.home-nav {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 16px;
+}
+
+.home-nav-link {
+    color: #5f6368;
+    text-decoration: none;
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: 4px;
+}
+
+.home-nav-link:hover {
+    background: #f1f3f4;
+}
+{% endblock %}
+
+{% block content %}
+<nav class="home-nav">
+    <a href="{% url 'opensearch:advanced' %}" class="home-nav-link">進階搜尋</a>
+    <a href="{% url 'home:home' %}" class="home-nav-link">返回主站</a>
+</nav>
+
+<div class="home-container">
+    <div class="home-logo">
+        <span class="home-logo-text">
+            <span class="blue">S</span><span class="red">i</span><span class="yellow">n</span><span class="blue">g</span><span class="green">l</span><span class="red">e</span>
+        </span>
+    </div>
+
+    {% if error %}
+    <div class="error-message">
+        連線錯誤: {{ error }}
+    </div>
+    {% endif %}
+
+    <form id="search-form" class="home-search-form" action="{% url 'opensearch:search' %}" method="get">
+        <div class="home-search-wrapper">
+            <svg class="home-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+            <input type="text" name="q" class="home-search-input" placeholder="搜尋知識庫..." autofocus autocomplete="off">
+        </div>
+    </form>
+
+    <div class="home-buttons">
+        <button type="submit" form="search-form" class="home-btn">Single 搜尋</button>
+        <a href="{% url 'opensearch:advanced' %}" class="home-btn">進階搜尋</a>
+    </div>
+
+    {% if categories %}
+    <div class="home-categories">
+        <div class="home-categories-title">快速搜尋分類</div>
+        <div class="home-categories-grid">
+            {% for key, cat in categories.items %}
+            {% if cat.total_docs > 0 %}
+            <a href="{% url 'opensearch:search' %}?indices={{ cat.pattern }}" class="home-category-chip">
+                <span class="icon">{{ cat.icon }}</span>
+                <span>{{ cat.name }}</span>
+                <span class="count">{{ cat.total_docs|floatformat:0 }}</span>
+            </a>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if total_docs %}
+    <div class="home-stats">
+        <span class="number">{{ total_docs|floatformat:0 }}</span>
+        筆資料可供搜尋
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
