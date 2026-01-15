@@ -681,6 +681,15 @@ def edit_resource(request, pk):
             hotspot.description = description
             hotspot.hotspot_type = hotspot_type
             
+            # Check if this is a referencing hotspot
+            if hotspot.source_hotspot:
+                # If referencing, do NOT allow changing media
+                if 'image' in request.FILES or 'video' in request.FILES:
+                    return JsonResponse({
+                        'status': 'error', 
+                        'message': '此為引用資源，無法修改媒體內容。請編輯原始資源。'
+                    }, status=400)
+            
             # Handle media files
             if 'image' in request.FILES:
                 hotspot.image = request.FILES['image']

@@ -176,7 +176,8 @@
                                             data-has-image="{% if hotspot.image %}true{% else %}false{% endif %}"
                                             data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
                                             data-image-url="{% if hotspot.image %}{{ hotspot.image.url }}{% endif %}"
-                                            data-video-url="{% if hotspot.video %}{{ hotspot.video.url }}{% endif %}">
+                                            data-video-url="{% if hotspot.video %}{{ hotspot.video.url }}{% endif %}"
+                                            data-is-referencing="{% if hotspot.source_hotspot %}true{% else %}false{% endif %}">
                                             <i class="fas fa-edit"></i> 編輯
                                         </button>
 
@@ -561,6 +562,7 @@
                 const title = this.dataset.title;
                 const desc = this.dataset.desc;
                 const type = this.dataset.type;
+                const isReferencing = this.dataset.isReferencing === 'true';
                 const usageCount = parseInt(this.dataset.usageCount || '0');
                 const hasImage = this.dataset.hasImage === 'true';
                 const hasVideo = this.dataset.hasVideo === 'true';
@@ -572,6 +574,9 @@
                 document.getElementById('edit_title').value = title;
                 document.getElementById('edit_description').value = desc;
                 document.getElementById('edit_type').value = type;
+
+                // Store referencing status for updateMediaSections to use
+                document.getElementById('editResourceForm').dataset.isReferencing = isReferencing;
 
                 // Show/hide reference warning
                 const warningDiv = document.getElementById('referenceWarning');
@@ -608,6 +613,16 @@
             const imageSection = document.getElementById('imageUploadSection');
             const videoSection = document.getElementById('videoUploadSection');
             const previewSection = document.getElementById('currentMediaPreview');
+            const isReferencing = document.getElementById('editResourceForm').dataset.isReferencing === 'true';
+
+            // Always hide upload sections if referencing
+            if (isReferencing) {
+                imageSection.classList.add('d-none');
+                videoSection.classList.add('d-none');
+                // We still show the preview section so they can see what it is
+                previewSection.classList.remove('d-none');
+                return;
+            }
 
             if (type === 'text' || type === 'text_hover') {
                 imageSection.classList.add('d-none');
