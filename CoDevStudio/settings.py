@@ -81,7 +81,7 @@ INSTALLED_APPS = [
     'SinoFile',
     'Inlet_Design',
     'DroneReservation',
-    'ReservoirHydro'
+    'ReservoirHydro',
     'OpenSearch',  # OpenSearch 搜尋引擎
 
 ] + local.STAGE_INSTALLED_APPS
