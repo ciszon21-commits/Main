@@ -1,7 +1,7 @@
-# Site360 開發者說明文件
+# Sino360 開發者說明文件
 
 ## 專案架構
-Site360 是一個 Django App，結構如下：
+Sino360 是一個 Django App，結構如下：
 - `models.py`: 定義 `Project` (專案) 與 `Scene` (場景) 模型。
 - `views.py`: 包含列表 (`ProjectListView`)、詳細頁 (`ProjectDetailView`) 與全景瀏覽 (`tour_view`) 的視圖。
 - `urls.py`: 定義 URL 路由。
