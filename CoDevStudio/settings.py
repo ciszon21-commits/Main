@@ -81,7 +81,7 @@ INSTALLED_APPS = [
     'SinoFile',
     'Inlet_Design',
     'DroneReservation',
-    'CWA_Data_Scraper',
+    'CODiS_WindRose_Plotter',
 ] + local.STAGE_INSTALLED_APPS
 
 

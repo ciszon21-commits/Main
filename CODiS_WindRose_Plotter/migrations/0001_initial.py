@@ -60,7 +60,7 @@ class Migration(migrations.Migration):
                 ('raw_data', models.JSONField(blank=True, default=dict, verbose_name='原始資料')),
                 ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='建立時間')),
                 ('updated_at', models.DateTimeField(auto_now=True, verbose_name='更新時間')),
-                ('station', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='monthly_reports', to='CWA_Data_Scraper.weatherstation', verbose_name='氣象站')),
+                ('station', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='monthly_reports', to='CODiS_WindRose_Plotter.weatherstation', verbose_name='氣象站')),
             ],
             options={
                 'verbose_name': '月報表資料',

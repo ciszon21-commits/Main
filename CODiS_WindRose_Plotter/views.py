@@ -117,7 +117,7 @@ def index(request):
         'reports': [],  # 初始無資料
     }
     
-    return render(request, 'CWA_Data_Scraper/index.html', context)
+    return render(request, 'CODiS_WindRose_Plotter/index.html', context)
 
 
 @csrf_exempt
@@ -216,6 +216,18 @@ def search_data(request):
                                 # 處理風玫瑰圖資料
                                 wind_rose_data = process_wind_rose_data(reports)
                                 
+                                # 處理季度資料 (Q1-Q4)
+                                def get_quarter_reports(all_reports, months):
+                                    return [
+                                        r for r in all_reports 
+                                        if r['obs_date'] and int(r['obs_date'].split('-')[1]) in months
+                                    ]
+
+                                q1_reports = get_quarter_reports(reports, [1, 2, 3])
+                                q2_reports = get_quarter_reports(reports, [4, 5, 6])
+                                q3_reports = get_quarter_reports(reports, [7, 8, 9])
+                                q4_reports = get_quarter_reports(reports, [10, 11, 12])
+
                                 final_msg = {
                                     'type': 'complete',
                                     'success': True,
@@ -226,7 +238,11 @@ def search_data(request):
                                     'end_year': end_year,
                                     'end_month': end_month,
                                     'months_collected': result.get('months_collected', []),
-                                    'wind_rose_data': wind_rose_data
+                                    'wind_rose_data': wind_rose_data,
+                                    'q1_data': process_wind_rose_data(q1_reports),
+                                    'q2_data': process_wind_rose_data(q2_reports),
+                                    'q3_data': process_wind_rose_data(q3_reports),
+                                    'q4_data': process_wind_rose_data(q4_reports)
                                 }
                             else:
                                 final_msg = {

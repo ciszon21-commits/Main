@@ -122,31 +122,93 @@ class CODISScraper:
             wait = WebDriverWait(self.driver, self.timeout)
             
             # 等待頁面載入
-            time.sleep(1.5)
-            
-            # 找到站名站號輸入框並輸入 (使用 list 屬性定位)
-            station_input = wait.until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, 'input[list="station_name"]'))
-            )
-            station_input.clear()
-            station_input.send_keys(station_name)
-            time.sleep(0.5)
-            # 按 Enter 確認選擇
-            station_input.send_keys(Keys.ENTER)
             time.sleep(1)
             
-            # 點擊地圖上的測站標記
-            station_marker = wait.until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, ".leaflet-marker-icon"))
-            )
-            station_marker.click()
-            time.sleep(1)
+            # 勾選「署屬有人站」、「自動氣象站」和「農業站」選項
+            checkbox_js = """
+            // 找到所有 checkbox 區域
+            var checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            var labels = document.querySelectorAll('label');
             
-            logger.info(f"已導航到測站: {station_name}")
+            // 輔助函數：勾選包含特定文字的選項
+            function checkLabel(text) {
+                for (var lbl of labels) {
+                    if (lbl.textContent.includes(text)) {
+                        var checkbox = lbl.querySelector('input[type="checkbox"]') || lbl.previousElementSibling;
+                        if (checkbox && !checkbox.checked) {
+                            checkbox.click();
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            checkLabel('署屬有人站');
+            checkLabel('自動氣象站');
+            checkLabel('農業站');
+            
+            return true;
+            """
+            self.driver.execute_script(checkbox_js)
+            time.sleep(1)
+            logger.info("已勾選測站過濾選項")
+            
+            # 切換到「測站清單」頁籤
+            # 尋找文字為 "測站清單" 的按鈕或連結
+            list_btn = wait.until(
+                EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), '測站清單')]"))
+            )
+            list_btn.click()
+            time.sleep(1.0) # 等待列表載入
+            
+            # 在表格中尋找測站
+            # 表格通常在 #list-view 或類似容器中，我們直接找 tr
+            # 遍歷所有 row 尋找站名匹配
+            
+            find_station_js = f"""
+            var rows = document.querySelectorAll('table tbody tr');
+            for (var tr of rows) {{
+                // 假設第一欄是站名，或檢查所有欄位
+                var tds = tr.querySelectorAll('td');
+                if (tds.length === 0) continue;
+                
+                // 檢查是否有包含站名的 cell (通常是第一或第二欄)
+                // 這裡做嚴格匹配
+                var found = false;
+                for (var i = 0; i < Math.min(3, tds.length); i++) {{ // 只看前3欄
+                    if (tds[i].innerText.trim() === '{station_name}') {{
+                        found = true;
+                        break;
+                    }}
+                }}
+                
+                if (found) {{
+                    // 找到了，點擊最後一欄的圖示/按鈕
+                    // 展示欄位通常是最後一欄，裡面可能有 a 標籤或 i 標籤
+                    var lastTd = tds[tds.length - 1];
+                    var btn = lastTd.querySelector('a') || lastTd.querySelector('i') || lastTd.querySelector('button');
+                    if (btn) {{
+                        btn.click();
+                        return true;
+                    }}
+                }}
+            }}
+            return false;
+            """
+            
+            found_and_clicked = self.driver.execute_script(find_station_js)
+            
+            if not found_and_clicked:
+                logger.error(f"在測站清單中找不到名稱為 '{station_name}' 的測站")
+                return False
+            
+            time.sleep(0.1) # 等待跳轉到日報表頁面
+            
+            logger.info(f"已從清單選擇測站: {station_name}")
             return True
             
         except TimeoutException:
-            logger.error(f"導航到測站 {station_name} 超時")
+            logger.error(f"操作超時")
             return False
         except Exception as e:
             logger.error(f"導航到測站 {station_name} 失敗: {e}")
@@ -162,19 +224,38 @@ class CODISScraper:
         try:
             wait = WebDriverWait(self.driver, self.timeout)
             
-            # 點擊「資料圖表展示」按鈕
-            chart_btn = wait.until(
-                EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), '資料圖表展示')]"))
-            )
-            chart_btn.click()
-            time.sleep(1.5)
+            # 優化流程：優先檢查是否已經有「月報表(逐日資料)」按鈕
+            # 因為從清單進入通常直接顯示報表介面
+            try:
+                # 使用短暫超時快速檢查側邊選單
+                quick_wait = WebDriverWait(self.driver, 1)
+                monthly_report_btn = quick_wait.until(
+                    EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), '月報表(逐日資料)')]"))
+                )
+                logger.info("直接找到「月報表(逐日資料)」按鈕")
+                monthly_report_btn.click()
+                time.sleep(1)
+                return True
+            except TimeoutException:
+                # 如果找不到，代表可能需要先點擊「資料圖表展示」
+                logger.info("未直接找到月報表按鈕，嘗試點擊「資料圖表展示」")
             
-            # 點擊左側選單的「月報表(逐日資料)」
+            # 點擊「資料圖表展示」按鈕
+            try:
+                chart_btn = wait.until(
+                    EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), '資料圖表展示')]"))
+                )
+                chart_btn.click()
+                time.sleep(1)
+            except TimeoutException:
+                logger.warning("找不到「資料圖表展示」按鈕")
+
+            # 再次嘗試點擊「月報表(逐日資料)」
             monthly_report_btn = wait.until(
                 EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), '月報表(逐日資料)')]"))
             )
             monthly_report_btn.click()
-            time.sleep(1.5)
+            time.sleep(1)
             
             logger.info("已打開月報表頁面")
             return True
@@ -317,7 +398,7 @@ class CODISScraper:
                     time.sleep(1)
             
             # 最後等待資料載入完成
-            time.sleep(1.5)
+            time.sleep(1)
             
             # 驗證日期是否正確
             new_date = self.driver.execute_script(current_date_js)
@@ -660,7 +741,7 @@ class CODISScraper:
                     clicked = self.driver.execute_script(prev_js)
                     if clicked:
                         # 等待資料載入
-                        time.sleep(1.5)
+                        time.sleep(1)
                         logger.info(f"已點擊 < 按鈕，移動到上一個月")
                     else:
                         logger.error("無法點擊 < 按鈕移動到上一個月")
