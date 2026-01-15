@@ -51,9 +51,7 @@
                             value="{{ form.avatar_index.value|default:0 }}">
                     </div>
 
-                    <p class="text-center mt-sm" style="font-size: 0.8rem; color: var(--color-stone);">
-                        上傳的照片僅供自己查看
-                    </p>
+
                 </div>
 
                 <!-- 右側：表單欄位 -->
@@ -146,13 +144,14 @@
             <div class="avatar-grid"
                 style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 15px;">
                 {% get_static_prefix as STATIC_PREFIX %}
-                {% for i in default_avatars %}
-                <div class="default-avatar-option text-center" onclick="selectDefaultAvatar({{ i }})"
+                {% for avatar_id, avatar_title in avatar_data %}
+                <div class="default-avatar-option text-center" onclick="selectDefaultAvatar({{ avatar_id }})"
                     style="cursor: pointer; border: 3px solid transparent; border-radius: 10px; padding: 5px; transition: all 0.3s;">
-                    <img src="{{ STATIC_PREFIX }}EngineerRPG/img/avatars/default_avatar_{{ i }}.png"
+                    <img src="{{ STATIC_PREFIX }}EngineerRPG/img/avatars/default_avatar_{{ avatar_id }}.png"
                         style="width: 80px; height: 80px; object-fit: cover; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"
-                        alt="Avatar {{ i }}">
-                    <div style="font-size: 0.8rem; margin-top: 5px;">#{{ i }}</div>
+                        alt="Avatar {{ avatar_id }}">
+                    <div style="font-size: 0.75rem; margin-top: 5px; font-weight: bold; color: var(--color-secondary);">
+                        #{{ avatar_id }} - {{ avatar_title }}</div>
                 </div>
                 {% endfor %}
             </div>

@@ -96,16 +96,143 @@ def index(request):
 
 @login_required
 def dashboard(request):
-    """User dashboard"""
+    """\u4f7f\u7528\u8005\u5100\u8868\u677f"""
     profile = get_or_create_user_profile(request.user)
-    context = {'profile': profile}
+    if not profile:
+        return redirect('engineer_rpg:setup_profile')
+    
+    # \u7372\u53d6\u4f7f\u7528\u8005\u6280\u80fd\u8cc7\u8a0a
+    total_skills = UserSkill.objects.filter(user_profile=profile).count()
+    completed_skills = UserSkill.objects.filter(user_profile=profile, status='COMPLETED').count()
+    
+    # \u6700\u8fd1\u8a66\u7149\u8a18\u9304
+    recent_trials = TrialRecord.objects.filter(user_profile=profile).order_by('-completed_at')[:5]
+    
+    # \u6bcf\u65e5\u526f\u672c
+    today = timezone.now().date()
+    daily_trials = Trial.objects.filter(is_daily=True, is_active=True, refresh_date=today)
+    
+    # \u7d93\u9a57\u503c\u8a08\u7b97
+    exp_to_next = profile.experience_to_next_level()
+    exp_progress = (profile.experience / exp_to_next * 100) if exp_to_next > 0 else 0
+    
+    # \u6280\u80fd\u9032\u5ea6\u767e\u5206\u6bd4
+    progress_percent = int((completed_skills / total_skills * 100)) if total_skills > 0 else 0
+    
+    # \u7372\u53d6\u968a\u4f0d\u8cc7\u8a0a
+    try:
+        team_membership = TeamMembership.objects.select_related('team').get(user=request.user)
+    except TeamMembership.DoesNotExist:
+        team_membership = None
+    
+    context = {
+        'profile': profile,
+        'total_skills': total_skills,
+        'completed_skills': completed_skills,
+        'recent_trials': recent_trials,
+        'daily_trials': daily_trials,
+        'exp_progress': exp_progress,
+        'exp_to_next': exp_to_next,
+        'total_hp': profile.get_total_hp(),
+        'total_mp': profile.get_total_mp(),
+        'progress_percent': progress_percent,
+        'team_membership': team_membership,
+    }
+    
     return render(request, 'EngineerRPG/dashboard.html', context)
 
 @login_required
 def profile_edit(request):
-    """Edit user profile"""
+    """\u7de8\u8f2f\u500b\u4eba\u8cc7\u6599"""
+    from .forms import UserProfileEditForm
+    from django.contrib import messages
+    from django.contrib.auth import update_session_auth_hash
+    
     profile = get_or_create_user_profile(request.user)
-    context = {'profile': profile}
+    if not profile:
+        return redirect('engineer_rpg:setup_profile')
+
+    if request.method == 'POST':
+        form = UserProfileEditForm(request.POST, request.FILES)
+        if form.is_valid():
+            # \u66f4\u65b0\u4f7f\u7528\u8005\u8cc7\u6599
+            user = request.user
+            user.username = form.cleaned_data['username']
+            if form.cleaned_data['email']:
+                user.email = form.cleaned_data['email']
+            
+            # \u8655\u7406\u5bc6\u78bc\u8b8a\u66f4
+            new_password = form.cleaned_data.get('new_password')
+            old_password = form.cleaned_data.get('old_password')
+            
+            if new_password:
+                # \u9a57\u8b49\u820a\u5bc6\u78bc
+                if not user.check_password(old_password):
+                    form.add_error('old_password', '\u820a\u5bc6\u78bc\u4e0d\u6b63\u78ba')
+                else:
+                    user.set_password(new_password)
+                    user.save()
+                    update_session_auth_hash(request, user)  # \u4fdd\u6301\u767b\u5165\u72c0\u614b
+            else:
+                user.save()
+
+            if not form.errors:
+                # \u66f4\u65b0\u500b\u4eba\u6a94\u6848
+                profile.employee_id = form.cleaned_data['employee_id']
+                
+                # \u8655\u7406\u982d\u50cf
+                avatar_index = form.cleaned_data.get('avatar_index')
+                if avatar_index and int(avatar_index) > 0:
+                    profile.avatar_index = int(avatar_index)
+                    profile.avatar_image = None  # \u6e05\u9664\u81ea\u8a02\u982d\u50cf
+                    
+                # \u8655\u7406\u4e0a\u50b3\u7684\u81ea\u8a02\u982d\u50cf
+                if form.cleaned_data.get('avatar_image'):
+                    profile.avatar_image = form.cleaned_data['avatar_image']
+                    profile.avatar_index = 0  # \u91cd\u8a2d\u7d22\u5f15
+                
+                profile.save()
+
+                messages.success(request, '\u500b\u4eba\u8cc7\u6599\u5df2\u66f4\u65b0\uff01')
+                return redirect('engineer_rpg:dashboard')
+    else:
+        initial_data = {
+            'username': request.user.username,
+            'email': request.user.email,
+            'employee_id': profile.employee_id,
+            'avatar_index': profile.avatar_index,
+        }
+        form = UserProfileEditForm(initial=initial_data)
+
+    # \u982d\u50cf\u7a31\u865f\u5c0d\u61c9\u8868
+    avatar_data = [
+        (1, '\u73fe\u5834\u76e3\u5de5'),
+        (2, '\u5973\u6027\u5de5\u7a0b\u5e2b'),
+        (3, '\u5b89\u5168\u7763\u5c0e'),
+        (4, '\u6a5f\u96fb\u6cd5\u5e2b'),
+        (5, '\u9435\u5320\u5927\u5e2b'),
+        (6, '\u77ee\u4eba\u5de5\u982d'),
+        (7, '\u77f3\u5de5\u5b97\u5e2b'),
+        (8, '\u77ee\u4eba\u6280\u5e2b'),
+        (9, '\u74b0\u5883\u5b88\u8b77\u8005'),
+        (10, '\u7cbe\u9748\u5efa\u7bc9\u5e2b'),
+        (11, '\u7da0\u80fd\u5c08\u5bb6'),
+        (12, '\u7cbe\u9748\u6e2c\u91cf\u5e2b'),
+        (13, '\u7378\u4eba\u5de5\u982d'),
+        (14, '\u91cd\u88dd\u6230\u58eb'),
+        (15, '\u62c6\u9664\u5c08\u5bb6'),
+        (16, '\u7378\u4eba\u9818\u73ed'),
+        (17, '\u60e1\u9b54\u76e3\u5de5'),
+        (18, '\u5730\u7344\u5de5\u7a0b\u5e2b'),
+        (19, '\u70c8\u7130\u7763\u5c0e'),
+        (20, '\u9b54\u738b\u7e3d\u76e3'),
+    ]
+
+    context = {
+        'form': form,
+        'profile': profile,
+        'avatar_data': avatar_data,
+    }
     return render(request, 'EngineerRPG/profile_edit.html', context)
 
 
