@@ -61,6 +61,20 @@ class ProjectUpdateView(UpdateView):
 class ProjectMapView(TemplateView):
     template_name = 'site360/project_map.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from django.db.models import Count
+        from .models import Project
+        
+        # Aggregate projects by city
+        # Exclude empty city strings if any
+        city_stats = Project.objects.exclude(city='').values('city').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        context['city_stats'] = city_stats
+        return context
+
 def project_map_data(request):
     """API: 回傳所有專案的地圖資料，包含熱點統計"""
     from django.db.models import Count, Q

@@ -4,6 +4,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
     #map {
         height: 80vh;
@@ -65,6 +66,52 @@
                     <i class="fas fa-list"></i> 返回列表
                 </a>
             </div>
+
+            <!-- Stats Section -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-table"></i> 縣市專案統計表</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if city_stats %}
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>縣市</th>
+                                            <th class="text-end">專案數量</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for stat in city_stats %}
+                                        <tr>
+                                            <td>{{ stat.city }}</td>
+                                            <td class="text-end">{{ stat.count }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <p class="text-muted text-center my-4">目前尚無縣市統計資料</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-chart-bar"></i> 區域分佈圖表</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="cityChart" style="max-height: 300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="map"></div>
         </div>
     </div>
@@ -77,79 +124,128 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Initialize map (Default: Taiwan center)
-        const map = L.map('map').setView([23.5, 121.0], 8);
+    // Chart Initialization
+    {% if city_stats %}
+    const ctx = document.getElementById('cityChart').getContext('2d');
 
-        // Add OSM tile layer
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
+    const labels = [{% for stat in city_stats %}"{{ stat.city|escapejs }}", {% endfor %}];
+    const counts = [{% for stat in city_stats %}{{ stat.count }}, {% endfor %}];
 
-        // Define Red Icon
-        const redIcon = new L.Icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        });
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '專案數量',
+                data: counts,
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+    {% else %}
+    // No data handling for chart
+    const canvas = document.getElementById('cityChart');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.font = "16px Arial";
+        ctx.fillStyle = "gray";
+        ctx.textAlign = "center";
+        ctx.fillText("無資料", canvas.width / 2, canvas.height / 2);
+    }
+    {% endif %}
 
-        // Fetch project data
-        fetch('{% url "site360:project_map_data" %}')
-            .then(response => response.json())
-            .then(data => {
-                if (data.projects.length === 0) {
-                    L.popup()
-                        .setLatLng([23.5, 121.0])
-                        .setContent("目前沒有設定座標的專案。")
-                        .openOn(map);
-                    return;
+    // Initialize map (Default: Taiwan center)
+    const map = L.map('map').setView([23.5, 121.0], 8);
+
+    // Add OSM tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // Define Red Icon
+    const redIcon = new L.Icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
+    // Fetch project data
+    fetch('{% url "site360:project_map_data" %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.projects.length === 0) {
+                L.popup()
+                    .setLatLng([23.5, 121.0])
+                    .setContent("目前沒有設定座標的專案。")
+                    .openOn(map);
+                return;
+            }
+
+            const markers = L.featureGroup();
+
+            data.projects.forEach(project => {
+                const marker = L.marker([project.lat, project.lng], { icon: redIcon }).addTo(map);
+
+                let popupHtml = `<div class="popup-content">`;
+                if (project.cover) {
+                    popupHtml += `<img src="${project.cover}" class="popup-cover" alt="${project.name}">`;
                 }
 
-                const markers = L.featureGroup();
-
-                data.projects.forEach(project => {
-                    const marker = L.marker([project.lat, project.lng], { icon: redIcon }).addTo(map);
-
-                    let popupHtml = `<div class="popup-content">`;
-                    if (project.cover) {
-                        popupHtml += `<img src="${project.cover}" class="popup-cover" alt="${project.name}">`;
+                // Stats Badges
+                let statsHtml = '<div class="d-flex gap-1 mb-2">';
+                if (project.stats) {
+                    if (project.stats.text > 0) {
+                        statsHtml += `<span class="badge badge-text" title="文字熱點數"><i class="fas fa-align-left"></i> ${project.stats.text}</span>`;
                     }
-
-                    // Stats Badges
-                    let statsHtml = '<div class="d-flex gap-1 mb-2">';
-                    if (project.stats) {
-                        if (project.stats.text > 0) {
-                            statsHtml += `<span class="badge badge-text" title="文字熱點數"><i class="fas fa-align-left"></i> ${project.stats.text}</span>`;
-                        }
-                        if (project.stats.image > 0) {
-                            statsHtml += `<span class="badge badge-image" title="圖片熱點數"><i class="fas fa-image"></i> ${project.stats.image}</span>`;
-                        }
-                        if (project.stats.video > 0) {
-                            statsHtml += `<span class="badge badge-video" title="影片熱點數"><i class="fas fa-video"></i> ${project.stats.video}</span>`;
-                        }
+                    if (project.stats.image > 0) {
+                        statsHtml += `<span class="badge badge-image" title="圖片熱點數"><i class="fas fa-image"></i> ${project.stats.image}</span>`;
                     }
-                    statsHtml += '</div>';
+                    if (project.stats.video > 0) {
+                        statsHtml += `<span class="badge badge-video" title="影片熱點數"><i class="fas fa-video"></i> ${project.stats.video}</span>`;
+                    }
+                }
+                statsHtml += '</div>';
 
-                    popupHtml += `<h6>${project.name}</h6>
+                popupHtml += `<h6>${project.name}</h6>
                                   ${statsHtml}
                                   <p>${project.description}</p>
                                   <a href="${project.url}" class="btn btn-info text-white btn-sm w-100">查看專案</a>
                                   </div>`;
 
-                    marker.bindPopup(popupHtml);
-                    markers.addLayer(marker);
-                });
-
-                // Fit map bounds to show all markers
-                if (data.projects.length > 0) {
-                    map.fitBounds(markers.getBounds(), { padding: [50, 50] });
-                }
-            })
-            .catch(error => {
-                console.error('Error loading map data:', error);
+                marker.bindPopup(popupHtml);
+                markers.addLayer(marker);
             });
+
+            // Fit map bounds to show all markers
+            if (data.projects.length > 0) {
+                map.fitBounds(markers.getBounds(), { padding: [50, 50] });
+            }
+        })
+        .catch(error => {
+            console.error('Error loading map data:', error);
+        });
     });
 </script>
 {% endblock %}
