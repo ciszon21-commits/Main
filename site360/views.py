@@ -62,8 +62,15 @@ class ProjectMapView(TemplateView):
     template_name = 'site360/project_map.html'
 
 def project_map_data(request):
-    """API: 回傳所有專案的地圖資料"""
-    projects = Project.objects.filter(latitude__isnull=False, longitude__isnull=False)
+    """API: 回傳所有專案的地圖資料，包含熱點統計"""
+    from django.db.models import Count, Q
+    
+    projects = Project.objects.filter(latitude__isnull=False, longitude__isnull=False).annotate(
+        text_count=Count('scenes__hotspots', filter=Q(scenes__hotspots__hotspot_type__in=['text', 'text_hover'])),
+        image_count=Count('scenes__hotspots', filter=Q(scenes__hotspots__hotspot_type__in=['image', 'image_hover'])),
+        video_count=Count('scenes__hotspots', filter=Q(scenes__hotspots__hotspot_type__in=['video', 'video_hover']))
+    )
+    
     data = []
     for p in projects:
         data.append({
@@ -73,7 +80,12 @@ def project_map_data(request):
              'lng': p.longitude,
              'cover': p.cover_image.url if p.cover_image else None,
              'url': reverse('site360:project_detail', kwargs={'pk': p.pk}),
-             'description': p.description[:50] + '...' if p.description else ''
+             'description': p.description[:50] + '...' if p.description else '',
+             'stats': {
+                 'text': p.text_count,
+                 'image': p.image_count,
+                 'video': p.video_count
+             }
         })
     return JsonResponse({'projects': data})
 

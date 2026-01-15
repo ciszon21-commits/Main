@@ -30,6 +30,28 @@
         color: #666;
         margin-bottom: 8px;
     }
+
+    /* Badge Colors */
+    .badge-text {
+        background-color: #3b82f6;
+        color: white;
+    }
+
+    .badge-image {
+        background-color: #22c55e;
+        color: white;
+    }
+
+    .badge-video {
+        background-color: #ef4444;
+        color: white;
+    }
+
+    .badge {
+        padding: 3px 6px;
+        border-radius: 4px;
+        font-size: 0.75em;
+    }
 </style>
 {% endblock %}
 
@@ -94,7 +116,24 @@
                     if (project.cover) {
                         popupHtml += `<img src="${project.cover}" class="popup-cover" alt="${project.name}">`;
                     }
+
+                    // Stats Badges
+                    let statsHtml = '<div class="d-flex gap-1 mb-2">';
+                    if (project.stats) {
+                        if (project.stats.text > 0) {
+                            statsHtml += `<span class="badge badge-text" title="文字熱點數"><i class="fas fa-align-left"></i> ${project.stats.text}</span>`;
+                        }
+                        if (project.stats.image > 0) {
+                            statsHtml += `<span class="badge badge-image" title="圖片熱點數"><i class="fas fa-image"></i> ${project.stats.image}</span>`;
+                        }
+                        if (project.stats.video > 0) {
+                            statsHtml += `<span class="badge badge-video" title="影片熱點數"><i class="fas fa-video"></i> ${project.stats.video}</span>`;
+                        }
+                    }
+                    statsHtml += '</div>';
+
                     popupHtml += `<h6>${project.name}</h6>
+                                  ${statsHtml}
                                   <p>${project.description}</p>
                                   <a href="${project.url}" class="btn btn-info text-white btn-sm w-100">查看專案</a>
                                   </div>`;
