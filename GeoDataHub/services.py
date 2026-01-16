@@ -808,15 +808,12 @@ class OpenSearchMappingService:
         self.geocoder = GeocodingService()
         self.grid_service = MapGridService()
 
-    def sync_sino_maps(self, limit: int = 100, batch_size: int = 100) -> Dict:
+    def sync_sino_maps(self, limit: int = 0, batch_size: int = 1000) -> Dict:
         """
-        從 OpenSearch sino_map 索引同步資料
-        
-        Args:
-            limit: 總共要同步的中心數量 (設為 0 或 None 表示不限)
-            batch_size: 每一批次的數量
+        從 OpenSearch sino_map 索引同步資料 (優化 12萬筆大規模同步)
         """
         from opensearchpy.helpers import scan
+        from decimal import Decimal
         client = self.get_client()
         
         # 確保分類存在
@@ -825,59 +822,80 @@ class OpenSearchMappingService:
             defaults={'icon': '🗺️', 'color': '#2E7D32'}
         )
         
-        # 使用 scan 遍歷索引 (適用於大數據量)
-        query = {'query': {'match_all': {}}}
+        # 1. 預載現有 ID 到記憶體 (O(1) 略過已同步資料)
+        print("正在載入現有資料 ID...")
+        existing_ids = set(self.GeoDataSource.objects.filter(
+            opensearch_index='sino_map'
+        ).values_list('opensearch_doc_id', flat=True))
+        print(f"目前資料庫已有 {len(existing_ids)} 筆資料。")
         
-        # 建立 generator
+        # 2. 開始滾動搜尋
+        query = {'query': {'match_all': {}}}
         scanner = scan(
             client,
             index='sino_map',
             query=query,
             size=batch_size,
-            scroll='5m'
+            scroll='10m'
         )
         
-        synced_count = 0
-        new_count = 0
+        new_items = []
         processed_count = 0
+        skipped_count = 0
+        created_count = 0
+        
+        print("開始從 OpenSearch 同步資料...")
         
         for hit in scanner:
-            # 檢查數量限制
-            if limit and processed_count >= limit:
-                break
-                
             processed_count += 1
-            source = hit['_source']
             doc_id = hit['_id']
             
-            # 檢查是否已存在
-            gs, created = self.GeoDataSource.objects.get_or_create(
-                opensearch_index='sino_map',
-                opensearch_doc_id=doc_id,
-                defaults={
-                    'title': source.get('title', '未命名圖資'),
-                    'description': source.get('content', ''),
-                    'source_type': 'opensearch',
-                    'category': category,
-                    'metadata': source
-                }
-            )
-            
-            if created:
-                new_count += 1
+            # 略過已存在的資料
+            if doc_id in existing_ids:
+                skipped_count += 1
+            else:
+                source = hit['_source']
+                # 準備新資料模型
+                ds = self.GeoDataSource(
+                    opensearch_index='sino_map',
+                    opensearch_doc_id=doc_id,
+                    title=source.get('title', '未命名圖資'),
+                    description=source.get('content', ''),
+                    source_type='opensearch',
+                    category=category,
+                    metadata=source,
+                    is_visible=True
+                )
                 
-            # 嘗試解析位置 (如果尚未有位置)
-            if not gs.location:
+                # 嘗試解析位置
                 location = self._resolve_location(source)
                 if location:
-                    gs.location = location
-                    gs.save()
-                    synced_count += 1
-                    
+                    ds.location = location
+                
+                new_items.append(ds)
+                
+                # 達到批次量則寫入
+                if len(new_items) >= batch_size:
+                    self.GeoDataSource.objects.bulk_create(new_items)
+                    created_count += len(new_items)
+                    new_items = []
+                    print(f"進度: 已掃描 {processed_count} 筆, 新增 {created_count} 筆...")
+
+            # 檢查總量限制 (如果有設)
+            if limit and processed_count >= limit:
+                break
+        
+        # 處理剩餘的資料
+        if new_items:
+            self.GeoDataSource.objects.bulk_create(new_items)
+            created_count += len(new_items)
+            
+        print(f"同步完成! 總計處理: {processed_count}, 新增: {created_count}, 略過: {skipped_count}")
+        
         return {
-            'total_found': processed_count,
-            'new_created': new_count,
-            'location_synced': synced_count
+            'total_processed': processed_count,
+            'new_created': created_count,
+            'skipped': skipped_count
         }
 
     def _resolve_location(self, source: dict):
