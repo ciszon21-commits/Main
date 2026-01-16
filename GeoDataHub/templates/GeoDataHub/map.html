@@ -28,7 +28,7 @@
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
-        <input type="text" id="search-keyword" placeholder="搜尋地點、物業或區域...">
+        <input type="text" id="search-keyword" placeholder="搜尋地點或區域...">
     </div>
     
     <nav style="margin-left: auto; display: flex; gap: 0.75rem;">
@@ -69,8 +69,8 @@
             <div id="category-list">
                 <div class="re-nav-item re-nav-item--active" data-category="">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-                    全部分類
-                    <span id="total-count" style="margin-left: auto; background: rgba(0,0,0,0.1); padding: 2px 8px; border-radius: 99px; font-size: 0.75rem;">0</span>
+                    範圍內資料
+                    <span id="total-count" style="margin-left: auto; background: rgba(0,0,0,0.1); padding: 2px 8px; border-radius: 99px; font-size: 0.75rem;">{{ total_count }}</span>
                 </div>
                 {% for cat in categories %}
                 <div class="re-nav-item" data-category="{{ cat.id }}">
@@ -107,8 +107,13 @@
     </aside>
     
     <!-- Map -->
-    <main style="flex: 1; position: relative;">
-        <div id="map" style="width: 100%; height: 100%;"></div>
+    <main style="flex: 1; position: relative; display: flex; flex-direction: column;">
+        <!-- Data Limit Warning -->
+        <div id="data-limit-warning" style="display: none; background: #FFFBEB; border-bottom: 1px solid #FEF3C7; padding: 0.625rem 1rem; color: #92400E; font-size: 0.8125rem; align-items: center; gap: 0.5rem; z-index: 1000; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>資料量較大，目前僅顯示前 2000 筆。建議放大地圖或縮小搜尋範圍以獲得精細資料。</span>
+        </div>
+        <div id="map" style="width: 100%; flex: 1;"></div>
         
         <!-- Result Panel (Floating) -->
         <div id="result-panel" class="re-result-panel" style="display: none;">
@@ -142,25 +147,26 @@
     let map, markersLayer, drawnItems;
     let currentCategory = '', currentSourceType = '', currentKeyword = '', currentBounds = null;
 
-    // Custom House Icon Generator
-    const createHouseIcon = (color, count, iconText) => {
-        // Simple House Shape SVG
-        const houseSvg = `
+    // Custom Modern Pin Icon Generator
+    const createMarkerIcon = (color, count, iconText) => {
+        // Modern Pin Shape SVG
+        const pinSvg = `
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <filter id="shadow" x="-2" y="-2" width="28" height="28">
-                  <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="${color}" flood-opacity="0.4"/>
+                  <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="${color}" flood-opacity="0.3"/>
                 </filter>
-                <path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z" fill="${color}" stroke="white" stroke-width="2" filter="url(#shadow)"/>
+                <path d="M12 21.7C12 21.7 20 15.8 20 10C20 5.58 16.42 2 12 2C7.58 2 4 5.58 4 10C4 15.8 12 21.7 12 21.7Z" fill="${color}" stroke="white" stroke-width="1.5" filter="url(#shadow)"/>
+                <circle cx="12" cy="10" r="5" fill="white" fill-opacity="0.2"/>
             </svg>
         `;
         
         return L.divIcon({
-            html: `<div style="position: relative; display: flex; justify-content: center; align-items: center;">
-                ${houseSvg}
-                ${iconText ? `<span style="position: absolute; top: 12px; font-size: 14px; pointer-events: none;">${iconText}</span>` : ''}
-                ${count ? `<span style="position: absolute; top: -8px; right: -8px; background: #F59E0B; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; font-weight: bold; border: 2px solid white;">${count}</span>` : ''}
+            html: `<div style="position: relative; display: flex; justify-content: center; align-items: center; width: 40px; height: 40px;">
+                ${pinSvg}
+                <span style="position: absolute; top: 6px; font-size: 14px; pointer-events: none; z-index: 2;">${iconText || ''}</span>
+                ${count ? `<span style="position: absolute; top: -5px; right: -5px; background: #EF4444; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 3;">${count}</span>` : ''}
             </div>`,
-            className: 're-house-icon',
+            className: 're-pin-icon',
             iconSize: [40, 40],
             iconAnchor: [20, 36],
             popupAnchor: [0, -36]
@@ -186,7 +192,7 @@
         markersLayer = L.markerClusterGroup({
             maxClusterRadius: 40,
             iconCreateFunction: function(cluster) {
-                return createHouseIcon('#0F766E', cluster.getChildCount());
+                return createMarkerIcon('#0F766E', cluster.getChildCount());
             }
         });
         map.addLayer(markersLayer);
@@ -251,18 +257,39 @@
 
     function loadMarkers() {
         const b = map.getBounds();
+        const limit = 2000;
         fetch(`${CONFIG.apiBase}?` + new URLSearchParams({
-            category: currentCategory, source_type: currentSourceType, keyword: currentKeyword,
-            north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest()
+            category: currentCategory, 
+            source_type: currentSourceType, 
+            keyword: currentKeyword,
+            north: b.getNorth(), 
+            south: b.getSouth(), 
+            east: b.getEast(), 
+            west: b.getWest(),
+            page_size: limit
         }))
         .then(r => r.json())
         .then(data => {
             if (data.success) {
+                // 更新上限警告
+                const warning = document.getElementById('data-limit-warning');
+                if (data.count >= limit) {
+                    warning.style.display = 'flex';
+                } else {
+                    warning.style.display = 'none';
+                }
+
+                // 更新「範圍內資料」的總數
+                const totalCountEl = document.getElementById('total-count');
+                if (totalCountEl) {
+                    totalCountEl.innerText = data.count;
+                }
+
                 markersLayer.clearLayers();
                 data.items.forEach(item => {
                     const color = item.category?.color || '#0F766E';
                     const marker = L.marker([item.location.lat, item.location.lng], {
-                        icon: createHouseIcon(color, null, item.category?.icon || '📍')
+                        icon: createMarkerIcon(color, null, item.category?.icon || '📍')
                     });
                     
                     const formatUNC = (path) => {
