@@ -144,6 +144,7 @@ class GeoSearchAPI(View):
                     'color': source.category.color
                 } if source.category else None,
                 'view_count': source.view_count,
+                'metadata': source.metadata,
             }
             
             if source.location:

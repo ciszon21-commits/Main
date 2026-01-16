@@ -1,178 +1,270 @@
-{% extends "SinoTemplate/base.html" %}
+{% extends "GeoDataHub/base.html" %}
 {% load static %}
 
 {% block title %}資料列表 - GeoDataHub{% endblock %}
 
-{% block head %}
-<link rel="stylesheet" href="{% static 'GeoDataHub/css/styles.css' %}">
+{% block extra_css %}
 <style>
-    .source-list-page {
-        min-height: 100vh;
-        background-color: var(--pixel-bg-light);
-        padding: var(--pixel-spacing-lg);
+    .list-page {
+        min-height: calc(100vh - 70px);
+        padding: 2rem;
+    }
+    
+    .list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .list-title {
+        font-family: var(--font-heading);
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .filter-bar {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: 1rem 1.25rem;
+        display: flex;
+        gap: 1rem;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1.5rem;
+    }
+    
+    .filter-group {
+        flex: 1;
+        min-width: 180px;
+    }
+    
+    .filter-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: 0.375rem;
+        display: block;
+    }
+    
+    .filter-input, .filter-select {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        border: 2px solid var(--border);
+        border-radius: var(--radius-md);
+        font-size: 0.9375rem;
     }
     
     .source-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: var(--pixel-spacing-lg);
-        margin-top: var(--pixel-spacing-lg);
+        gap: 1.5rem;
     }
     
     .source-card {
-        display: flex;
-        flex-direction: column;
+        background: white;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-md);
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .source-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
     }
     
     .source-card__image {
-        height: 150px;
-        background: var(--pixel-bg-dark);
-        border-bottom: 4px solid #000;
+        height: 160px;
+        background: linear-gradient(135deg, var(--primary-bg), #E0F2F1);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 48px;
+        font-size: 3rem;
     }
     
-    .source-card__content {
-        flex: 1;
-        padding: var(--pixel-spacing-md);
+    .source-card__image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .source-card__body {
+        padding: 1.25rem;
     }
     
     .source-card__title {
-        font-family: var(--font-pixel-heading);
-        font-size: 10px;
-        margin-bottom: var(--pixel-spacing-sm);
+        font-family: var(--font-heading);
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
     }
     
-    .source-card__meta {
-        font-family: var(--font-pixel-body);
-        font-size: 14px;
-        color: var(--pixel-text-muted);
+    .source-card__desc {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        margin-bottom: 0.75rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
     }
     
-    .filter-bar {
+    .source-card__footer {
         display: flex;
-        gap: var(--pixel-spacing-md);
-        align-items: flex-end;
-        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
     }
     
-    .filter-bar .pixel-form-group {
-        margin-bottom: 0;
+    .category-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.25rem 0.625rem;
+        border-radius: var(--radius-full);
+        color: white;
+    }
+    
+    .view-count {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding: 1rem;
+        background: white;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: white;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
     }
 </style>
 {% endblock %}
 
-{% block body %}
-<body class="pixel-art source-list-page">
+{% block content %}
+<div class="list-page">
     <div style="max-width: 1400px; margin: 0 auto;">
-        <!-- 頁首 -->
-        <div class="pixel-card" style="margin-bottom: var(--pixel-spacing-lg);">
-            <div class="pixel-flex" style="justify-content: space-between; align-items: center;">
-                <h1 class="pixel-heading pixel-h1" style="margin: 0;">
-                    <a href="{% url 'geodatahub:map' %}" style="text-decoration: none; color: inherit;">📍 GeoDataHub</a>
-                </h1>
-                <div class="pixel-flex pixel-gap-sm">
-                    <a href="{% url 'geodatahub:map' %}" class="pixel-btn">🗺️ 地圖</a>
-                    {% if user.is_authenticated %}
-                    <a href="{% url 'geodatahub:source_create' %}" class="pixel-btn pixel-btn--success">+ 新增</a>
-                    {% endif %}
-                </div>
+        <!-- Header -->
+        <div class="list-header">
+            <h1 class="list-title">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                資料列表
+            </h1>
+            <div style="display: flex; gap: 0.75rem;">
+                <a href="{% url 'geodatahub:map' %}" class="re-btn re-btn--secondary re-btn--sm">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    地圖
+                </a>
+                {% if user.is_authenticated %}
+                <a href="{% url 'geodatahub:source_create' %}" class="re-btn re-btn--primary re-btn--sm">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    新增
+                </a>
+                {% endif %}
             </div>
         </div>
         
-        <!-- 篩選器 -->
-        <div class="pixel-card" style="margin-bottom: var(--pixel-spacing-lg);">
-            <form method="get" class="filter-bar">
-                <div class="pixel-form-group" style="flex: 1; min-width: 200px;">
-                    <label class="pixel-label">關鍵字</label>
-                    <input type="text" name="keyword" class="pixel-input" 
-                           value="{{ current_keyword }}" 
-                           placeholder="搜尋標題或描述...">
-                </div>
-                
-                <div class="pixel-form-group" style="min-width: 150px;">
-                    <label class="pixel-label">分類</label>
-                    <select name="category" class="pixel-select">
-                        <option value="">全部分類</option>
-                        {% for cat in categories %}
-                        <option value="{{ cat.id }}" {% if current_category == cat.id|stringformat:"s" %}selected{% endif %}>
-                            {{ cat.icon }} {{ cat.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <button type="submit" class="pixel-btn">🔍 搜尋</button>
-            </form>
-        </div>
+        <!-- Filters -->
+        <form method="get" class="filter-bar">
+            <div class="filter-group">
+                <label class="filter-label">關鍵字</label>
+                <input type="text" name="keyword" class="filter-input" value="{{ current_keyword }}" placeholder="搜尋標題或描述...">
+            </div>
+            <div class="filter-group" style="flex: 0; min-width: 160px;">
+                <label class="filter-label">分類</label>
+                <select name="category" class="filter-select">
+                    <option value="">全部分類</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if current_category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.icon }} {{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="re-btn re-btn--primary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                搜尋
+            </button>
+        </form>
         
-        <!-- 資料卡片 -->
+        <!-- Grid -->
         {% if sources %}
         <div class="source-grid">
             {% for source in sources %}
-            <div class="pixel-card pixel-card--hover source-card" 
-                 onclick="location.href='{% url 'geodatahub:source_detail' source.pk %}'">
+            <div class="source-card" onclick="location.href='{% url 'geodatahub:source_detail' source.pk %}'">
                 <div class="source-card__image">
                     {% if source.thumbnail %}
-                    <img src="{{ source.thumbnail.url }}" 
-                         alt="{{ source.title }}"
-                         style="width: 100%; height: 100%; object-fit: cover;">
+                    <img src="{{ source.thumbnail.url }}" alt="{{ source.title }}">
                     {% else %}
                     {{ source.category.icon|default:"📄" }}
                     {% endif %}
                 </div>
-                <div class="source-card__content">
+                <div class="source-card__body">
                     <h3 class="source-card__title">{{ source.title }}</h3>
-                    <p class="pixel-text" style="margin-bottom: var(--pixel-spacing-sm);">
-                        {{ source.description|truncatewords:20 }}
-                    </p>
-                    <div class="source-card__meta">
+                    <p class="source-card__desc">{{ source.description|truncatewords:20 }}</p>
+                    <div class="source-card__footer">
                         {% if source.category %}
-                        <span style="background: {{ source.category.color }}; color: white; padding: 2px 8px; border: 2px solid #000;">
-                            {{ source.category.icon }} {{ source.category.name }}
-                        </span>
+                        <span class="category-tag" style="background: {{ source.category.color }};">{{ source.category.icon }} {{ source.category.name }}</span>
+                        {% else %}
+                        <span></span>
                         {% endif %}
-                        <span style="margin-left: 8px;">👁 {{ source.view_count }}</span>
+                        <span class="view-count">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            {{ source.view_count }}
+                        </span>
                     </div>
                 </div>
             </div>
             {% endfor %}
         </div>
         
-        <!-- 分頁 -->
         {% if page_obj.has_other_pages %}
-        <div class="pixel-card" style="margin-top: var(--pixel-spacing-lg); text-align: center;">
+        <div class="pagination">
             {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}{% if current_keyword %}&keyword={{ current_keyword }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}" 
-               class="pixel-btn pixel-btn--sm">← 上一頁</a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if current_keyword %}&keyword={{ current_keyword }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}" class="re-btn re-btn--secondary re-btn--sm">← 上一頁</a>
             {% endif %}
-            
-            <span class="pixel-text" style="margin: 0 16px;">
-                第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 頁
-            </span>
-            
+            <span style="color: var(--text-secondary);">第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 頁</span>
             {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% if current_keyword %}&keyword={{ current_keyword }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}" 
-               class="pixel-btn pixel-btn--sm">下一頁 →</a>
+            <a href="?page={{ page_obj.next_page_number }}{% if current_keyword %}&keyword={{ current_keyword }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}" class="re-btn re-btn--secondary re-btn--sm">下一頁 →</a>
             {% endif %}
         </div>
         {% endif %}
         
         {% else %}
-        <div class="pixel-card pixel-text-center">
-            <div class="pixel-loading">
-                找不到資料
-            </div>
-            <p class="pixel-text pixel-mt-md">
-                目前沒有符合條件的資料。
-                {% if user.is_authenticated %}
-                <a href="{% url 'geodatahub:source_create' %}">立即新增</a>
-                {% endif %}
-            </p>
+        <div class="empty-state">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5" style="margin-bottom: 1rem;">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <p style="font-size: 1.125rem; color: var(--text-muted); margin-bottom: 1rem;">找不到資料</p>
+            {% if user.is_authenticated %}
+            <a href="{% url 'geodatahub:source_create' %}" class="re-btn re-btn--primary">新增資料</a>
+            {% endif %}
         </div>
         {% endif %}
     </div>
-</body>
+</div>
 {% endblock %}

@@ -15,7 +15,7 @@ class GeoLocationForm(forms.ModelForm):
         required=False,
         label='地址搜尋',
         widget=forms.TextInput(attrs={
-            'class': 'pixel-input',
+            'class': 'form-input',
             'placeholder': '輸入地址搜尋...',
             'id': 'address-search'
         }),
@@ -28,38 +28,38 @@ class GeoLocationForm(forms.ModelForm):
                   'geometry_type', 'geometry_data', 'is_manually_adjusted']
         widgets = {
             'latitude': forms.NumberInput(attrs={
-                'class': 'pixel-input',
+                'class': 'form-input',
                 'step': '0.00000001',
                 'id': 'id_latitude'
             }),
             'longitude': forms.NumberInput(attrs={
-                'class': 'pixel-input',
+                'class': 'form-input',
                 'step': '0.00000001',
                 'id': 'id_longitude'
             }),
             'address': forms.TextInput(attrs={
-                'class': 'pixel-input',
+                'class': 'form-input',
                 'id': 'id_address'
             }),
             'city': forms.TextInput(attrs={
-                'class': 'pixel-input'
+                'class': 'form-input'
             }),
             'district': forms.TextInput(attrs={
-                'class': 'pixel-input'
+                'class': 'form-input'
             }),
             'country': forms.TextInput(attrs={
-                'class': 'pixel-input'
+                'class': 'form-input'
             }),
             'geometry_type': forms.Select(attrs={
-                'class': 'pixel-select'
+                'class': 'form-select'
             }),
             'geometry_data': forms.Textarea(attrs={
-                'class': 'pixel-textarea',
+                'class': 'form-textarea',
                 'rows': 3,
                 'placeholder': 'GeoJSON 格式'
             }),
             'is_manually_adjusted': forms.CheckboxInput(attrs={
-                'class': 'pixel-checkbox'
+                'class': 'form-checkbox'
             }),
         }
 
@@ -72,7 +72,7 @@ class GeoDataSourceForm(forms.ModelForm):
         required=False,
         label='新增標籤',
         widget=forms.TextInput(attrs={
-            'class': 'pixel-input',
+            'class': 'form-input',
             'placeholder': '以逗號分隔多個標籤'
         }),
         help_text='輸入新標籤，以逗號分隔'
@@ -85,55 +85,56 @@ class GeoDataSourceForm(forms.ModelForm):
                   'metadata', 'thumbnail', 'is_visible', 'is_featured']
         widgets = {
             'title': forms.TextInput(attrs={
-                'class': 'pixel-input',
+                'class': 'form-input',
                 'placeholder': '資料標題'
             }),
             'description': forms.Textarea(attrs={
-                'class': 'pixel-textarea',
+                'class': 'form-textarea',
                 'rows': 4,
                 'placeholder': '資料描述...'
             }),
             'source_type': forms.Select(attrs={
-                'class': 'pixel-select',
+                'class': 'form-select',
                 'id': 'id_source_type'
             }),
             'category': forms.Select(attrs={
-                'class': 'pixel-select'
+                'class': 'form-select'
             }),
             'tags': forms.SelectMultiple(attrs={
-                'class': 'pixel-select',
+                'class': 'form-select',
                 'size': 5
             }),
             'file': forms.FileInput(attrs={
-                'class': 'pixel-file-input'
+                'class': 'form-input'
             }),
             'external_url': forms.URLInput(attrs={
-                'class': 'pixel-input',
+                'class': 'form-input',
                 'placeholder': 'https://...'
             }),
             'opensearch_index': forms.TextInput(attrs={
-                'class': 'pixel-input',
+                'class': 'form-input',
                 'placeholder': 'index_name'
             }),
             'opensearch_doc_id': forms.TextInput(attrs={
-                'class': 'pixel-input',
+                'class': 'form-input',
                 'placeholder': 'document_id'
             }),
             'metadata': forms.Textarea(attrs={
-                'class': 'pixel-textarea',
+                'class': 'form-textarea',
                 'rows': 3,
                 'placeholder': '{"key": "value"}'
             }),
             'thumbnail': forms.FileInput(attrs={
-                'class': 'pixel-file-input'
+                'class': 'form-input'
             }),
             'is_visible': forms.CheckboxInput(attrs={
-                'class': 'pixel-checkbox'
+                'class': 'form-checkbox'
             }),
             'is_featured': forms.CheckboxInput(attrs={
-                'class': 'pixel-checkbox'
+                'class': 'form-checkbox'
             }),
         }
+
 
     def clean_new_tags(self):
         """處理新標籤"""
@@ -168,29 +169,29 @@ class GeoCategoryForm(forms.ModelForm):
                   'is_active', 'sort_order']
         widgets = {
             'name': forms.TextInput(attrs={
-                'class': 'pixel-input'
+                'class': 'form-input'
             }),
             'icon': forms.TextInput(attrs={
-                'class': 'pixel-input',
+                'class': 'form-input',
                 'placeholder': '📍'
             }),
             'color': forms.TextInput(attrs={
-                'class': 'pixel-input',
+                'class': 'form-input',
                 'type': 'color'
             }),
             'description': forms.Textarea(attrs={
-                'class': 'pixel-textarea',
+                'class': 'form-textarea',
                 'rows': 3
             }),
             'opensearch_pattern': forms.TextInput(attrs={
-                'class': 'pixel-input',
+                'class': 'form-input',
                 'placeholder': 'sinoproject*'
             }),
             'is_active': forms.CheckboxInput(attrs={
-                'class': 'pixel-checkbox'
+                'class': 'form-checkbox'
             }),
             'sort_order': forms.NumberInput(attrs={
-                'class': 'pixel-input'
+                'class': 'form-input'
             }),
         }
 
@@ -202,7 +203,7 @@ class GeoSearchForm(forms.Form):
         required=False,
         label='關鍵字',
         widget=forms.TextInput(attrs={
-            'class': 'pixel-input pixel-search-input',
+            'class': 'form-input',
             'placeholder': '🔍 輸入關鍵字...',
             'id': 'geo-search-keyword'
         })
@@ -214,7 +215,7 @@ class GeoSearchForm(forms.Form):
         label='分類',
         empty_label='全部分類',
         widget=forms.Select(attrs={
-            'class': 'pixel-select',
+            'class': 'form-select',
             'id': 'geo-search-category'
         })
     )
@@ -224,7 +225,7 @@ class GeoSearchForm(forms.Form):
         choices=[('', '全部類型')] + list(GeoDataSource.SourceType.choices),
         label='來源類型',
         widget=forms.Select(attrs={
-            'class': 'pixel-select',
+            'class': 'form-select',
             'id': 'geo-search-source-type'
         })
     )
@@ -234,3 +235,4 @@ class GeoSearchForm(forms.Form):
     bounds_south = forms.FloatField(required=False, widget=forms.HiddenInput())
     bounds_east = forms.FloatField(required=False, widget=forms.HiddenInput())
     bounds_west = forms.FloatField(required=False, widget=forms.HiddenInput())
+

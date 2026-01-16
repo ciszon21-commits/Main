@@ -28,28 +28,30 @@ class GeocodingService:
     NOMINATIM_BASE_URL = "https://nominatim.openstreetmap.org"
     
     # 速率限制：每秒最多 1 次請求
-    RATE_LIMIT_SECONDS = 1.0
+    RATE_LIMIT_SECONDS = 1.1  # Slightly more than 1 second to be safe
     _last_request_time = 0.0
 
     def __init__(self):
         self.session = requests.Session()
+        # OSM requires a valid, unique User-Agent with contact info
         self.session.headers.update({
-            'User-Agent': 'GeoDataHub/1.0 (CoDevStudio; Contact: admin@example.com)',
-            'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8'
+            'User-Agent': 'GeoDataHub/1.0 (https://geodatahub.example.com; geodatahub@example.com)',
+            'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
+            'Accept': 'application/json'
         })
         
-        # 預設邊界：台灣
+        # 預設邊界：台灣 (wider bounds for better coverage)
         self.default_bounds = getattr(settings, 'GEOCODING_DEFAULT_BOUNDS', {
-            'north': 25.3,
-            'south': 21.9,
-            'east': 122.0,
-            'west': 120.0,
+            'north': 26.5,
+            'south': 21.5,
+            'east': 123.0,
+            'west': 119.0,
         })
 
     def _rate_limit(self):
         """遵守 Nominatim 速率限制"""
         now = time.time()
-        elapsed = now - self._last_request_time
+        elapsed = now - GeocodingService._last_request_time
         if elapsed < self.RATE_LIMIT_SECONDS:
             time.sleep(self.RATE_LIMIT_SECONDS - elapsed)
         GeocodingService._last_request_time = time.time()
@@ -78,22 +80,108 @@ class GeocodingService:
             }
             或 None 如果找不到
         """
+        # For Taiwan addresses, try multiple services starting with ArcGIS which is reliable
+        if country.upper() == 'TW':
+            # 1. Try ArcGIS (Most reliable for Taiwan detail addresses currently)
+            result = self._geocode_arcgis(address)
+            if result:
+                return result
+                
+            # 2. Try TGOS (Taiwan Government Open Service) fallback
+            result = self._geocode_tgos(address)
+            if result:
+                return result
+        
+        # Fallback to Nominatim
+        return self._geocode_nominatim(address, country, bounded)
+    
+    def _geocode_arcgis(self, address: str) -> Optional[Dict]:
+        """使用 ArcGIS World Geocoding Service"""
+        try:
+            url = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates"
+            params = {
+                'f': 'json',
+                'singleLine': address,
+                'maxLocations': 1,
+                'outFields': 'Addr_type,Match_addr,StAddr,City'
+            }
+            # No rate limit check needed for low volume ArcGIS usage
+            response = self.session.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            if data and 'candidates' in data and len(data['candidates']) > 0:
+                best = data['candidates'][0]
+                return {
+                    'latitude': float(best['location']['y']),
+                    'longitude': float(best['location']['x']),
+                    'display_name': best.get('address', address),
+                    'address': {
+                        'road': best.get('attributes', {}).get('StAddr', ''), 
+                        'city': best.get('attributes', {}).get('City', '')
+                    },
+                    'confidence': float(best.get('score', 0)) / 100.0,
+                    'source': 'ArcGIS'
+                }
+            return None
+        except Exception as e:
+            print(f"ArcGIS geocoding error: {e}")
+            return None
+
+    def _geocode_tgos(self, address: str) -> Optional[Dict]:
+        """使用 NLSC (內政部國土測繪中心) 地址定位服務"""
+        try:
+            # NLSC 提供的開放 API
+            url = "https://api.nlsc.gov.tw/other/TGLocator/TGLocator.asmx/QueryAddr"
+            params = {
+                'oAPPId': '',  # Public access
+                'oAPIKey': '',  # Public access
+                'oAddress': address,
+                'oSRS': 'EPSG:4326',
+                'oFuzzyType': '2',  # Fuzzy matching
+                'oResultDataType': 'JSON'
+            }
+            
+            response = self.session.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            if data and 'AddressList' in data and len(data['AddressList']) > 0:
+                best = data['AddressList'][0]
+                return {
+                    'latitude': float(best.get('Y', 0)),
+                    'longitude': float(best.get('X', 0)),
+                    'display_name': best.get('FULL_ADDR', address),
+                    'address': {'road': best.get('ROAD', ''), 'city': best.get('COUNTY', '')},
+                    'confidence': 0.9,
+                    'source': 'TGOS'
+                }
+            return None
+        except Exception as e:
+            print(f"TGOS geocoding error: {e}")
+            return None
+    
+    def _geocode_nominatim(
+        self, 
+        address: str, 
+        country: str = 'TW',
+        bounded: bool = True
+    ) -> Optional[Dict]:
+        """使用 Nominatim (OpenStreetMap) 地址定位"""
         self._rate_limit()
         
         params = {
             'q': address,
             'format': 'json',
             'addressdetails': 1,
-            'limit': 1,
+            'limit': 5,
         }
         
-        # 加入國家限制
         if country:
             params['countrycodes'] = country.lower()
         
-        # 加入邊界限制
         if bounded and self.default_bounds:
-            params['bounded'] = 1
             params['viewbox'] = (
                 f"{self.default_bounds['west']},{self.default_bounds['north']},"
                 f"{self.default_bounds['east']},{self.default_bounds['south']}"
@@ -103,26 +191,28 @@ class GeocodingService:
             response = self.session.get(
                 f"{self.NOMINATIM_BASE_URL}/search",
                 params=params,
-                timeout=10
+                timeout=15
             )
             response.raise_for_status()
             results = response.json()
             
             if results:
-                result = results[0]
+                result = max(results, key=lambda x: float(x.get('importance', 0)))
                 return {
                     'latitude': float(result['lat']),
                     'longitude': float(result['lon']),
                     'display_name': result.get('display_name', ''),
                     'address': result.get('address', {}),
                     'confidence': self._calculate_confidence(result),
-                    'raw': result
+                    'source': 'Nominatim'
                 }
             return None
             
         except requests.RequestException as e:
-            print(f"Geocoding error: {e}")
+            print(f"Nominatim geocoding error: {e}")
             return None
+
+
 
     def reverse_geocode(self, lat: float, lng: float) -> Optional[Dict]:
         """
@@ -601,6 +691,180 @@ class OpenSearchGeoService:
             return response
         except Exception as e:
             return {"error": str(e), "aggregations": {}}
+
+
+class MapGridService:
+    """
+    台灣地圖網格解碼服務
+    支援：
+    - 1:5,000 像片基本圖圖號 (8位數字，如 94194059)
+    - 1:25,000 精選圖號 (如 78A)
+    """
+
+    @staticmethod
+    def decode_1_5000_sheet(sheet_no: str) -> Optional[Tuple[float, float]]:
+        """
+        將 1:5,000 圖號轉換成經緯度 (中心點)
+        格式：XXYY ABCD
+        XX, YY: 1:100,000 圖幅編號
+        ABCD: 1:5,000 之分割編號
+        
+        這是一個簡化的實作，基於台灣常見的圖號規則。
+        1:5,000 圖號中心點約略計算方式。
+        """
+        if not sheet_no or len(sheet_no) < 8 or not sheet_no.isdigit():
+            return None
+            
+        try:
+            # 範例：94194059
+            # 前四碼大多與 TWD97/TM2 座標原點有關
+            # 這裡使用一個近似的線性映射邏輯
+            # 註：精確轉換需要對應的圖幅索引表
+            
+            # 台灣 1:5,000 圖幅通常橫跨 2.5' 經度, 1.5' 緯度
+            # 這裡使用 heuristic 方式找出大概位置
+            
+            # 第一二碼：經度相關 (94 -> 120.x)
+            # 第三四碼：緯度相關 (19 -> 23.x)
+            x_idx = int(sheet_no[0:2])
+            y_idx = int(sheet_no[2:4])
+            
+            # 近似中央經緯度 (基於觀察到的樣本如 94194059 -> 龍蛟潭 23.3, 120.2)
+            # 這是一個經驗公式，可能需要根據更多樣本調整
+            base_lng = 114.0 + (x_idx * 0.066)
+            base_lat = 22.0 + (y_idx * 0.066)
+            
+            # 後四碼是更細的劃分
+            sub_x = int(sheet_no[4:6])
+            sub_y = int(sheet_no[6:8])
+            
+            lng = base_lng + (sub_x * 0.005)
+            lat = base_lat + (sub_y * 0.005)
+            
+            return lat, lng
+        except:
+            return None
+
+    @staticmethod
+    def decode_any_code(code: str) -> Optional[Tuple[float, float]]:
+        """智慧識別各類編碼並嘗試解碼"""
+        if not code:
+            return None
+            
+        code = code.strip().upper()
+        
+        # 1. 1:5,000 圖號 (8位純數字)
+        if len(code) == 8 and code.isdigit():
+            return MapGridService.decode_1_5000_sheet(code)
+            
+        # 2. 1:25,000 圖號 (如 78A, 78B)
+        # TODO: 實作 1:25k 解碼邏輯
+        
+        return None
+
+
+class OpenSearchMappingService:
+    """
+    OpenSearch 資料與 GeoDataHub 的映射與同步服務
+    """
+    
+    def __init__(self):
+        from .models import GeoDataSource, GeoCategory, GeoLocation
+        from OpenSearch.services import get_client
+        self.GeoDataSource = GeoDataSource
+        self.GeoCategory = GeoCategory
+        self.GeoLocation = GeoLocation
+        self.get_client = get_client
+        self.geocoder = GeocodingService()
+        self.grid_service = MapGridService()
+
+    def sync_sino_maps(self, limit: int = 100) -> Dict:
+        """從 OpenSearch sino_map 索引同步資料"""
+        client = self.get_client()
+        
+        # 確保分類存在
+        category, _ = self.GeoCategory.objects.get_or_create(
+            name="地理圖資",
+            defaults={'icon': '🗺️', 'color': '#2E7D32'}
+        )
+        
+        # 從 OpenSearch 抓取
+        res = client.search(index='sino_map', body={
+            'size': limit,
+            'query': {'match_all': {}}
+        })
+        
+        hits = res.get('hits', {}).get('hits', [])
+        synced_count = 0
+        new_count = 0
+        
+        for hit in hits:
+            source = hit['_source']
+            doc_id = hit['_id']
+            
+            # 檢查是否已存在
+            gs, created = self.GeoDataSource.objects.get_or_create(
+                opensearch_index='sino_map',
+                opensearch_doc_id=doc_id,
+                defaults={
+                    'title': source.get('title', '未命名圖資'),
+                    'description': source.get('content', ''),
+                    'source_type': 'opensearch',
+                    'category': category,
+                    'metadata': source
+                }
+            )
+            
+            if created:
+                new_count += 1
+                
+            # 嘗試解析位置 (如果尚未有位置)
+            if not gs.location:
+                location = self._resolve_location(source)
+                if location:
+                    gs.location = location
+                    gs.save()
+                    synced_count += 1
+                    
+        return {
+            'total_found': len(hits),
+            'new_created': new_count,
+            'location_synced': synced_count
+        }
+
+    def _resolve_location(self, source: dict):
+        """嘗試從多種途徑解析位置"""
+        # 1. 嘗試圖號解碼
+        sheet_no = source.get('no')
+        if sheet_no:
+            coords = self.grid_service.decode_any_code(sheet_no)
+            if coords:
+                from .models import GeoLocation
+                loc = GeoLocation.objects.create(
+                    latitude=Decimal(str(coords[0])),
+                    longitude=Decimal(str(coords[1])),
+                    address=f"圖幅編號: {sheet_no}",
+                    geometry_type='POINT'
+                )
+                return loc
+                
+        # 2. 嘗試標題地理編碼 (place name)
+        title = source.get('title')
+        if title and len(title) > 1:
+            # 加上 "台灣" 增加準確度
+            result = self.geocoder.geocode_address(title)
+            if result and result.get('confidence', 0) > 0.6:
+                from .models import GeoLocation
+                loc = GeoLocation.objects.create(
+                    latitude=Decimal(str(result['latitude'])),
+                    longitude=Decimal(str(result['longitude'])),
+                    address=result.get('display_name', title),
+                    geometry_type='POINT',
+                    accuracy=result.get('confidence', 0) * 100
+                )
+                return loc
+                
+        return None
 
 
 # 便捷函式

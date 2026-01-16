@@ -1,16 +1,14 @@
-{% extends "SinoTemplate/base.html" %}
+{% extends "GeoDataHub/base.html" %}
 {% load static %}
 
 {% block title %}{{ source.title }} - GeoDataHub{% endblock %}
 
-{% block head %}
-<link rel="stylesheet" href="{% static 'GeoDataHub/css/styles.css' %}">
+{% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-    .source-detail-page {
-        min-height: 100vh;
-        background-color: var(--pixel-bg-light);
-        padding: var(--pixel-spacing-lg);
+    .detail-page {
+        min-height: calc(100vh - 70px);
+        padding: 2rem;
     }
     
     .detail-container {
@@ -18,80 +16,161 @@
         margin: 0 auto;
     }
     
+    .detail-nav {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .detail-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+    }
+    
+    .detail-header {
+        background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        color: white;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .detail-header .category-tag {
+        background: rgba(255,255,255,0.2);
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-full);
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+    
+    .detail-header h1 {
+        font-family: var(--font-heading);
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    
+    .detail-body {
+        padding: 1.5rem;
+    }
+    
     .detail-grid {
         display: grid;
         grid-template-columns: 2fr 1fr;
-        gap: var(--pixel-spacing-lg);
+        gap: 2rem;
     }
     
     @media (max-width: 768px) {
-        .detail-grid {
-            grid-template-columns: 1fr;
-        }
+        .detail-grid { grid-template-columns: 1fr; }
+    }
+    
+    .detail-section {
+        margin-bottom: 1.5rem;
+    }
+    
+    .detail-section-title {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        letter-spacing: 0.05em;
+        margin-bottom: 0.75rem;
     }
     
     .detail-map {
-        height: 300px;
-        border: 4px solid #000;
-        box-shadow: 8px 8px 0 #000;
+        height: 280px;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        border: 1px solid var(--border);
     }
     
     .tag-list {
         display: flex;
         flex-wrap: wrap;
-        gap: var(--pixel-spacing-sm);
+        gap: 0.5rem;
     }
     
     .tag-item {
-        font-family: var(--font-pixel-heading);
-        font-size: 8px;
-        padding: 4px 12px;
-        background: var(--pixel-primary);
-        color: var(--pixel-text-light);
-        border: 2px solid #000;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        padding: 0.375rem 0.75rem;
+        background: var(--primary-bg);
+        color: var(--primary);
+        border-radius: var(--radius-full);
+    }
+    
+    .stat-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+    
+    .stat-item {
+        background: var(--primary-bg);
+        padding: 0.75rem;
+        border-radius: var(--radius-md);
+        text-align: center;
+    }
+    
+    .stat-item__value {
+        font-family: var(--font-heading);
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--primary);
+    }
+    
+    .stat-item__label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
     }
 </style>
 {% endblock %}
 
-{% block body %}
-<body class="pixel-art source-detail-page">
+{% block content %}
+<div class="detail-page">
     <div class="detail-container">
-        <!-- 返回導覽 -->
-        <div style="margin-bottom: var(--pixel-spacing-md);">
-            <a href="{% url 'geodatahub:map' %}" class="pixel-btn pixel-btn--sm">← 返回地圖</a>
-            <a href="{% url 'geodatahub:source_list' %}" class="pixel-btn pixel-btn--sm">📋 列表</a>
+        <!-- Navigation -->
+        <div class="detail-nav">
+            <a href="{% url 'geodatahub:map' %}" class="re-btn re-btn--secondary re-btn--sm">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                地圖
+            </a>
+            <a href="{% url 'geodatahub:source_list' %}" class="re-btn re-btn--secondary re-btn--sm">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                列表
+            </a>
         </div>
         
-        <!-- 主要內容 -->
-        <div class="pixel-card">
-            <div class="pixel-card__header">
+        <!-- Main Card -->
+        <div class="detail-card">
+            <div class="detail-header">
                 {% if source.category %}
-                <span style="background: {{ source.category.color }}; color: white; padding: 4px 12px; border: 2px solid #000; margin-right: 12px;">
-                    {{ source.category.icon }} {{ source.category.name }}
-                </span>
+                <span class="category-tag">{{ source.category.icon }} {{ source.category.name }}</span>
                 {% endif %}
-                {{ source.title }}
+                <h1>{{ source.title }}</h1>
             </div>
             
-            <div class="pixel-card__body">
+            <div class="detail-body">
                 <div class="detail-grid">
-                    <!-- 左側：內容 -->
+                    <!-- Left: Content -->
                     <div>
                         {% if source.thumbnail %}
-                        <div style="margin-bottom: var(--pixel-spacing-md);">
-                            <img src="{{ source.thumbnail.url }}" 
-                                 alt="{{ source.title }}"
-                                 style="max-width: 100%; border: 4px solid #000;">
+                        <div class="detail-section">
+                            <img src="{{ source.thumbnail.url }}" alt="{{ source.title }}" style="max-width: 100%; border-radius: var(--radius-lg);">
                         </div>
                         {% endif %}
                         
-                        <div class="pixel-text" style="margin-bottom: var(--pixel-spacing-lg);">
-                            {{ source.description|linebreaks }}
+                        <div class="detail-section">
+                            <div class="detail-section-title">描述</div>
+                            <div style="color: var(--text-secondary); line-height: 1.7;">{{ source.description|linebreaks }}</div>
                         </div>
                         
                         {% if source.tags.exists %}
-                        <div style="margin-bottom: var(--pixel-spacing-md);">
-                            <label class="pixel-label">🏷️ 標籤</label>
+                        <div class="detail-section">
+                            <div class="detail-section-title">標籤</div>
                             <div class="tag-list">
                                 {% for tag in source.tags.all %}
                                 <span class="tag-item">{{ tag.name }}</span>
@@ -100,76 +179,102 @@
                         </div>
                         {% endif %}
                         
-                        <!-- 來源連結 -->
+                        <!-- Source Links -->
                         {% if source.source_type == 'upload' and source.file %}
-                        <div class="pixel-form-group">
-                            <label class="pixel-label">📤 下載檔案</label>
-                            <a href="{{ source.file.url }}" class="pixel-btn" download>
-                                💾 {{ source.file.name|truncatechars:30 }}
+                        <div class="detail-section">
+                            <a href="{{ source.file.url }}" class="re-btn re-btn--primary" download>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                下載檔案
                             </a>
                         </div>
                         {% endif %}
                         
                         {% if source.source_type == 'link' and source.external_url %}
-                        <div class="pixel-form-group">
-                            <label class="pixel-label">🔗 外部連結</label>
-                            <a href="{{ source.external_url }}" class="pixel-btn" target="_blank" rel="noopener">
-                                🌐 開啟連結
+                        <div class="detail-section">
+                            <a href="{{ source.external_url }}" class="re-btn re-btn--primary" target="_blank" rel="noopener">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                開啟連結
                             </a>
                         </div>
                         {% endif %}
-                        
-                        {% if source.source_type == 'opensearch' %}
-                        <div class="pixel-form-group">
-                            <label class="pixel-label">🔍 OpenSearch 資料</label>
-                            <div class="pixel-text">
-                                索引：{{ source.opensearch_index }}<br>
-                                文件 ID：{{ source.opensearch_doc_id }}
+
+                        {% if source.source_type == 'opensearch' and source.metadata.url %}
+                        <div class="detail-section">
+                            <div class="detail-section-title">UNC 檔案路徑</div>
+                            <div id="unc-path-display" style="background: var(--primary-bg); padding: 0.75rem; border-radius: var(--radius-md); font-family: monospace; font-size: 0.8125rem; color: var(--primary); margin-bottom: 0.75rem; word-break: break-all; border: 1px solid var(--border);">
+                                {{ source.metadata.url }}
                             </div>
+                            <button onclick="copyUNCPath()" class="re-btn re-btn--primary">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                複製路徑
+                            </button>
                         </div>
+                        <script>
+                            function formatUNC(path) {
+                                if (!path) return '';
+                                // Replace all forward slashes with backslashes
+                                let formatted = path.replace(/\//g, '\\');
+                                // Ensure it starts with \\
+                                if (!formatted.startsWith('\\\\')) {
+                                    if (formatted.startsWith('\\')) {
+                                        formatted = '\\' + formatted;
+                                    } else {
+                                        formatted = '\\\\' + formatted;
+                                    }
+                                }
+                                return formatted;
+                            }
+                            
+                            document.addEventListener('DOMContentLoaded', function() {
+                                const display = document.getElementById('unc-path-display');
+                                display.textContent = formatUNC(display.textContent.trim());
+                            });
+
+                            function copyUNCPath() {
+                                const path = document.getElementById('unc-path-display').textContent;
+                                navigator.clipboard.writeText(path).then(() => {
+                                    const btn = event.currentTarget;
+                                    const originalText = btn.innerHTML;
+                                    btn.innerHTML = '✅ 已複製';
+                                    setTimeout(() => btn.innerHTML = originalText, 2000);
+                                });
+                            }
+                        </script>
                         {% endif %}
                     </div>
                     
-                    <!-- 右側：地圖和中繼資料 -->
+                    <!-- Right: Map & Metadata -->
                     <div>
                         {% if source.location %}
-                        <div class="pixel-form-group">
-                            <label class="pixel-label">📍 位置</label>
+                        <div class="detail-section">
+                            <div class="detail-section-title">位置</div>
                             <div id="detail-map" class="detail-map"></div>
                             {% if source.location.address %}
-                            <div class="pixel-text pixel-mt-sm">
-                                {{ source.location.address }}
-                            </div>
+                            <p style="font-size: 0.9375rem; color: var(--text-secondary); margin-top: 0.75rem;">{{ source.location.address }}</p>
                             {% endif %}
-                            <div class="pixel-text-sm pixel-mt-sm" style="color: var(--pixel-text-muted);">
-                                座標：{{ source.location.latitude }}, {{ source.location.longitude }}
-                            </div>
+                            <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.25rem;">座標: {{ source.location.latitude }}, {{ source.location.longitude }}</p>
                         </div>
                         {% endif %}
                         
-                        <div class="pixel-form-group">
-                            <label class="pixel-label">📊 統計</label>
-                            <div class="pixel-text">
-                                👁 瀏覽次數：{{ source.view_count }}<br>
-                                📅 建立時間：{{ source.created_at|date:"Y/m/d H:i" }}<br>
-                                ✏️ 更新時間：{{ source.updated_at|date:"Y/m/d H:i" }}<br>
-                                {% if source.created_by %}
-                                👤 建立者：{{ source.created_by.get_full_name|default:source.created_by.username }}
-                                {% endif %}
+                        <div class="detail-section">
+                            <div class="detail-section-title">統計</div>
+                            <div class="stat-grid">
+                                <div class="stat-item">
+                                    <div class="stat-item__value">{{ source.view_count }}</div>
+                                    <div class="stat-item__label">瀏覽次數</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-item__value">{{ source.created_at|date:"m/d" }}</div>
+                                    <div class="stat-item__label">建立日期</div>
+                                </div>
                             </div>
                         </div>
-                        
-                        {% if source.metadata %}
-                        <div class="pixel-form-group">
-                            <label class="pixel-label">📋 中繼資料</label>
-                            <pre class="pixel-text" style="font-size: 14px; background: var(--pixel-bg-panel); padding: 8px; border: 2px solid #000; overflow-x: auto;">{{ source.metadata|pprint }}</pre>
-                        </div>
-                        {% endif %}
                         
                         {% if user.is_authenticated and source.created_by == user %}
-                        <div class="pixel-mt-lg">
-                            <a href="{% url 'geodatahub:source_update' source.pk %}" class="pixel-btn pixel-btn--warning">
-                                ✏️ 編輯
+                        <div class="detail-section">
+                            <a href="{% url 'geodatahub:source_update' source.pk %}" class="re-btn re-btn--accent" style="width: 100%;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                編輯
                             </a>
                         </div>
                         {% endif %}
@@ -178,40 +283,29 @@
             </div>
         </div>
     </div>
-    
-    {% if source.location %}
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const lat = {{ source.location.latitude }};
-            const lng = {{ source.location.longitude }};
-            
-            const map = L.map('detail-map').setView([lat, lng], 15);
-            
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
-            
-            const pixelIcon = L.divIcon({
-                html: `<div style="
-                    background: {{ source.category.color|default:'#FF0000' }};
-                    border: 3px solid #000;
-                    box-shadow: 4px 4px 0 #000;
-                    font-size: 16px;
-                    width: 32px;
-                    height: 32px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                ">{{ source.category.icon|default:'📍' }}</div>`,
-                className: 'pixel-marker',
-                iconSize: [32, 32],
-                iconAnchor: [16, 32]
-            });
-            
-            L.marker([lat, lng], {icon: pixelIcon}).addTo(map);
+</div>
+
+{% if source.location %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const lat = {{ source.location.latitude }};
+        const lng = {{ source.location.longitude }};
+        
+        const map = L.map('detail-map').setView([lat, lng], 15);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO'
+        }).addTo(map);
+        
+        const icon = L.divIcon({
+            html: `<svg width="36" height="36" viewBox="0 0 24 24" fill="none"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z" fill="{{ source.category.color|default:'#0F766E' }}" stroke="white" stroke-width="2"/></svg>`,
+            className: '',
+            iconSize: [36, 36],
+            iconAnchor: [18, 32]
         });
-    </script>
-    {% endif %}
-</body>
+        
+        L.marker([lat, lng], {icon: icon}).addTo(map);
+    });
+</script>
+{% endif %}
 {% endblock %}
