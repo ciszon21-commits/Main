@@ -448,7 +448,8 @@ class GeoQueryService:
             else:
                 count = self.GeoDataSource.objects.filter(
                     category=cat,
-                    is_visible=True
+                    is_visible=True,
+                    location__isnull=False
                 ).count()
             
             result.append({
@@ -778,8 +779,15 @@ class OpenSearchMappingService:
         self.geocoder = GeocodingService()
         self.grid_service = MapGridService()
 
-    def sync_sino_maps(self, limit: int = 100) -> Dict:
-        """從 OpenSearch sino_map 索引同步資料"""
+    def sync_sino_maps(self, limit: int = 100, batch_size: int = 100) -> Dict:
+        """
+        從 OpenSearch sino_map 索引同步資料
+        
+        Args:
+            limit: 總共要同步的中心數量 (設為 0 或 None 表示不限)
+            batch_size: 每一批次的數量
+        """
+        from opensearchpy.helpers import scan
         client = self.get_client()
         
         # 確保分類存在
@@ -788,17 +796,28 @@ class OpenSearchMappingService:
             defaults={'icon': '🗺️', 'color': '#2E7D32'}
         )
         
-        # 從 OpenSearch 抓取
-        res = client.search(index='sino_map', body={
-            'size': limit,
-            'query': {'match_all': {}}
-        })
+        # 使用 scan 遍歷索引 (適用於大數據量)
+        query = {'query': {'match_all': {}}}
         
-        hits = res.get('hits', {}).get('hits', [])
+        # 建立 generator
+        scanner = scan(
+            client,
+            index='sino_map',
+            query=query,
+            size=batch_size,
+            scroll='5m'
+        )
+        
         synced_count = 0
         new_count = 0
+        processed_count = 0
         
-        for hit in hits:
+        for hit in scanner:
+            # 檢查數量限制
+            if limit and processed_count >= limit:
+                break
+                
+            processed_count += 1
             source = hit['_source']
             doc_id = hit['_id']
             
@@ -827,7 +846,7 @@ class OpenSearchMappingService:
                     synced_count += 1
                     
         return {
-            'total_found': len(hits),
+            'total_found': processed_count,
             'new_created': new_count,
             'location_synced': synced_count
         }
