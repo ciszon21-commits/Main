@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView
 from django.http import JsonResponse
 from django.urls import reverse_lazy, reverse
@@ -140,13 +140,55 @@ class SceneCreateView(CreateView):
     model = Scene
     form_class = SceneForm
     template_name = 'site360/scene_form.html'
+    
+    def post(self, request, *args, **kwargs):
+        upload_mode = request.POST.get('upload_mode', 'single')
+        
+        # Handle batch upload separately to avoid form validation issues
+        if upload_mode == 'batch':
+            return self.handle_batch_upload(request)
+        
+        # For single upload, use the standard form processing
+        return super().post(request, *args, **kwargs)
+    
+    def handle_batch_upload(self, request):
+        """Handle batch upload with default values"""
+        project = get_object_or_404(Project, pk=self.kwargs['pk'])
+        images = request.FILES.getlist('batch_images')
+        
+        if not images:
+            # Return to form with error
+            form = self.get_form()
+            form.add_error(None, '請至少選擇一張照片進行批量上傳')
+            return self.form_invalid(form)
+        
+        # Auto-calculate starting order
+        max_order = project.scenes.aggregate(Max('order'))['order__max']
+        starting_order = (max_order or 0) + 1
+        
+        # Create scenes with default values
+        for index, image_file in enumerate(images):
+            scene = Scene(
+                project=project,
+                title=f"場景 {index + 1}",
+                image=image_file,
+                pitch=0,
+                yaw=0,
+                hfov=100,
+                order=starting_order + index
+            )
+            scene.save()
+        
+        # Redirect to project detail
+        return redirect(self.get_success_url())
 
     def form_valid(self, form):
+        """Handle single upload with custom values"""
         project = get_object_or_404(Project, pk=self.kwargs['pk'])
-        form.instance.project = project
         
         # Auto-calculate order
         max_order = project.scenes.aggregate(Max('order'))['order__max']
+        form.instance.project = project
         form.instance.order = (max_order or 0) + 1
         
         return super().form_valid(form)
