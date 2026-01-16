@@ -512,6 +512,25 @@ def set_cover_image(request, pk):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=405)
 
+@csrf_exempt
+def delete_scene(request, pk):
+    """Delete a scene and all its associated hotspots"""
+    if request.method == 'POST':
+        try:
+            scene = get_object_or_404(Scene, pk=pk)
+            scene_title = scene.title
+            
+            # Delete the scene (cascade will handle hotspots)
+            scene.delete()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': f'場景「{scene_title}」已成功刪除'
+            })
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
 def serve_hotspot_video(request, pk):
     """
     Serves hotspot video with HTTP Range support for seeking (critical for Dev Server).

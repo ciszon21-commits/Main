@@ -21,6 +21,7 @@ urlpatterns = [
     path('api/scene/reorder/', views.reorder_scenes, name='reorder_scenes'),
     path('api/scene/nav-update/<int:pk>/', views.update_scene_nav, name='update_scene_nav'),
     path('api/scene/set-cover/<int:pk>/', views.set_cover_image, name='set_cover_image'),
+    path('api/scene/delete/<int:pk>/', views.delete_scene, name='delete_scene'),
     path('api/cities/', views.get_cities, name='get_cities'),
     path('api/districts/', views.get_districts, name='get_districts'),
     path('api/video/<int:pk>/', views.serve_hotspot_video, name='serve_hotspot_video'),

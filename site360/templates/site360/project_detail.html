@@ -143,9 +143,16 @@
                         </div>
                     </div>
 
-                    <button class="btn btn-sm btn-outline-primary w-100 set-cover-btn" data-id="{{ scene.id }}">
-                        <i class="fas fa-image"></i> 設為封面
-                    </button>
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-primary flex-fill set-cover-btn" data-id="{{ scene.id }}">
+                            <i class="fas fa-image"></i> 設為封面
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger flex-fill delete-scene-btn"
+                            data-id="{{ scene.id }}" data-title="{{ scene.title }}">
+                            <i class="fas fa-trash"></i> 刪除
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -183,6 +190,48 @@
                         } else {
                             alert('更新失敗: ' + data.message);
                         }
+                    });
+            });
+        });
+
+        // Delete Scene Handler
+        document.querySelectorAll('.delete-scene-btn').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const sceneId = this.getAttribute('data-id');
+                const sceneTitle = this.getAttribute('data-title');
+
+                if (!confirm(`確定要刪除場景「${sceneTitle}」嗎？\n\n此操作無法復原，該場景的所有熱點資料也會一併刪除。`)) return;
+
+                fetch(`/site360/api/scene/delete/${sceneId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Remove the scene card from DOM
+                            const sceneCard = document.querySelector(`.scene-item[data-id="${sceneId}"]`);
+                            if (sceneCard) {
+                                sceneCard.remove();
+                            }
+                            alert('場景已成功刪除！');
+
+                            // Check if there are no more scenes
+                            if (document.querySelectorAll('.scene-item').length === 0) {
+                                location.reload();
+                            }
+                        } else {
+                            alert('刪除失敗: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('刪除失敗：' + error.message);
                     });
             });
         });
