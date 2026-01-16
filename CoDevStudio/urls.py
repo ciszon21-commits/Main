@@ -28,6 +28,7 @@ urlpatterns = [
     path('knowledge/', include('TeamKnowledgeHub.urls')),  # 團隊知識管理
     path('synonyms/', include('SynonymManager.urls')),  # 同義詞建置工具
     path('patent/', include('PatentRegistry.urls')),  # 專利申請管理
+    path('site360/', include('site360.urls')),  # Site360 360照片瀏覽
     path('Diversion-Tunnel/', include('Inlet_Design.urls')),  # 水利工程隧道水理設計模組
     path('drone/', include('DroneReservation.urls')),  # 園路無人機預約
     path('reservoir-hydro/', include('ReservoirHydro.urls')),  # 水庫水文水理計算平台

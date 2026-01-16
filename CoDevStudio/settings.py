@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     'TeamKnowledgeHub',
     'SynonymManager',
     'PatentRegistry',
+    'site360',
     'SinoFile',
     'Inlet_Design',
     'DroneReservation',
@@ -99,6 +100,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.RemoteUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.security.SecurityMiddleware",
+
 ] + local.STAGE_MIDDLEWARES
 
 

@@ -1,0 +1,1635 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>{{ project.name }} - 360 View</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Pannellum CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css" />
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="{% static 'favicon.ico' %}">
+    <!-- Plyr.js CSS -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <!-- Plyr.js JS -->
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #panorama {
+            width: 100%;
+            height: 100vh;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            /* Let clicks pass through to Pannellum */
+            z-index: 10;
+        }
+
+        /* Re-enable pointer events for specific UI elements */
+        .interactive-ui {
+            pointer-events: auto;
+        }
+
+        #title-overlay {
+            position: absolute;
+            top: 10px;
+            left: 55px;
+            color: white;
+            text-shadow: 1px 1px 3px black;
+        }
+
+        #controls-overlay {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Hotspot Tooltips */
+        .custom-hotspot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .custom-hotspot:hover {
+            transform: scale(1.2);
+        }
+
+        .custom-hotspot i {
+            font-size: 16px;
+        }
+
+        .hotspot-text {
+            color: #d9534f;
+        }
+
+        .hotspot-image {
+            color: #0d6efd;
+        }
+
+        .hotspot-video {
+            color: #198754;
+        }
+
+        /* Edit Mode Styles */
+        body.edit-mode #panorama {
+            cursor: crosshair;
+        }
+
+        /* Prevent Pannellum from capturing clicks when modal is open */
+        body.modal-open #panorama {
+            pointer-events: none;
+        }
+
+        /* Hover Text Styles */
+        .hotspot-hover-text {
+            color: #ffc107;
+            /* Warning Yellow */
+        }
+
+        .hover-text-label {
+            position: absolute;
+            left: 35px;
+            /* Offset from icon */
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            pointer-events: auto;
+            min-width: 120px;
+            max-width: 250px;
+            line-height: 1.4;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .hover-text-label strong {
+            display: block;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 2px;
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+
+        .hover-text-label small {
+            display: block;
+            opacity: 0.9;
+        }
+
+        .hover-image-label {
+            position: absolute;
+            left: 35px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px;
+            border-radius: 8px;
+            pointer-events: auto;
+            min-width: 150px;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        .hover-image-label img {
+            width: 100%;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .hover-image-label strong {
+            display: block;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 2px;
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+
+        .hover-image-label small {
+            display: block;
+            opacity: 0.9;
+        }
+
+        .hover-video-label {
+            position: absolute;
+            left: 35px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px;
+            border-radius: 8px;
+            pointer-events: auto;
+            min-width: 150px;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        .hover-video-label video {
+            width: 100%;
+            border-radius: 4px;
+            display: block;
+        }
+
+        .hover-video-label strong {
+            display: block;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 2px;
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+
+        /* Plyr consistency in hover label */
+        .hover-video-label .plyr {
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        /* Adjust Plyr font size for small labels */
+        .hover-video-label .plyr--video {
+            --plyr-font-size-small: 10px;
+            --plyr-control-spacing: 6px;
+        }
+
+        #instruction-overlay {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 1.1rem;
+            z-index: 20;
+            display: none;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        /* Color Selector Styles */
+        .color-option {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s;
+        }
+
+        .color-option:hover {
+            transform: scale(1.2);
+        }
+
+        .color-option.selected {
+            border-color: #000;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Hide Pannellum's default title box since we have a custom overlay */
+        .pnlm-panorama-info {
+            display: none !important;
+        }
+
+        /* Modal Responsiveness Improvements */
+        .modal-dialog-centered {
+            display: flex;
+            align-items: center;
+            min-height: calc(100% - 3.5rem);
+        }
+
+        .modal-content {
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-body {
+            overflow-y: auto;
+            max-height: 80vh;
+        }
+
+        /* Ensure images and videos in modal are constrained */
+        #viewMedia img,
+        #viewMedia video,
+        #viewMedia .plyr-container {
+            max-width: 100%;
+            max-height: 60vh;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+
+        /* Badge Colors for Resource Library */
+        .badge-text {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .badge-text_hover {
+            background-color: #1d4ed8;
+            color: white;
+        }
+
+        .badge-image {
+            background-color: #22c55e;
+            color: white;
+        }
+
+        .badge-image_hover {
+            background-color: #15803d;
+            color: white;
+        }
+
+        .badge-video {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .badge-video_hover {
+            background-color: #b91c1c;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="ui-layer">
+        <div id="title-overlay" class="interactive-ui">
+            <h2>{{ project.name }}</h2>
+            <p id="scene-title">Loading...</p>
+        </div>
+
+        <div id="controls-overlay" class="interactive-ui">
+            <a href="{% url 'site360:project_detail' project.pk %}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> 返回
+            </a>
+            <a href="{% url 'site360:project_resources' project.pk %}" class="btn btn-info btn-sm text-white"
+                id="resourceListLink" target="_blank">
+                <i class="fas fa-list"></i> 資源總表
+            </a>
+            <button id="toggle-edit-btn" class="btn btn-outline-warning btn-sm" onclick="toggleEditMode()">
+                <i class="fas fa-edit"></i> 編輯模式
+            </button>
+        </div>
+
+        <div id="instruction-overlay">
+            <i class="fas fa-mouse-pointer"></i> 雙擊畫面任意處以新增熱點
+        </div>
+    </div>
+
+    <div id="panorama"></div>
+
+    <!-- Resource Library Modal -->
+    <div class="modal fade" id="resourceLibraryModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title"><i class="fas fa-book"></i> 引用資源庫</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Filters -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" id="libSearchInput" placeholder="搜尋標題、說明...">
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="libTypeSelect">
+                                <option value="">所有類型</option>
+                                <option value="text">文字類</option>
+                                <option value="image">圖片類</option>
+                                <option value="video">影片類</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="libProjectSelect">
+                                <option value="">所有專案</option>
+                                <!-- Populated by JS -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Resource List -->
+                    <div id="resourceLibraryList" class="row g-3">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="mt-2">載入中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Hotspot Modal -->
+    <div class="modal fade" id="addHotspotModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">新增/編輯熱點</h5>
+                    <div class="ms-3">
+                        <button type="button" class="btn btn-outline-primary btn-sm me-2" id="openLibraryBtn">
+                            <i class="fas fa-book"></i> 引用資源
+                        </button>
+                    </div>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addHotspotForm">
+                        <input type="hidden" name="hotspot_id" id="hotspotIdInput">
+                        <input type="hidden" name="scene_id" id="sceneIdInput">
+                        <input type="hidden" name="pitch" id="pitchInput">
+                        <input type="hidden" name="yaw" id="yawInput">
+                        <input type="hidden" name="copy_from_id" id="refHotspotId">
+                        <input type="hidden" name="ref_resource_type" id="refResourceType">
+                        <input type="hidden" name="clear_source" id="clearSourceInput" value="">
+
+                        <!-- Import Notice -->
+                        <div id="importNotice" class="alert alert-info d-flex align-items-center mb-3 d-none">
+                            <i class="fas fa-link me-2"></i>
+                            <div>
+                                已引用資源：<strong id="importTitle"></strong>
+                                <button type="button" class="btn-close ms-2" aria-label="Cancel Import"
+                                    onclick="clearImport()"></button>
+                            </div>
+                        </div>
+
+                        <!-- Source Update Alert -->
+                        <div id="sourceUpdateAlert" class="alert alert-warning d-none mb-3">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-sync-alt me-2 mt-1"></i>
+                                <div class="flex-grow-1">
+                                    <strong><i class="fas fa-exclamation-triangle"></i> 來源資源已更新</strong>
+                                    <p class="mb-2 small">此熱點引用的資源內容已被修改，以下欄位有差異：</p>
+                                    <div id="updateDiffList" class="mb-2"></div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-sm btn-warning"
+                                            onclick="syncFromSource(event)">
+                                            <i class="fas fa-download"></i> 更新到最新內容
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                            data-bs-toggle="collapse" data-bs-target="#contentComparison">
+                                            <i class="fas fa-eye"></i> 查看比對
+                                        </button>
+                                    </div>
+
+                                    <!-- Collapsible Content Comparison -->
+                                    <div class="collapse mt-3" id="contentComparison">
+                                        <div class="card card-body bg-light">
+                                            <div id="comparisonContent"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">類型</label>
+                            <select class="form-select" name="type" id="typeSelect" onchange="updateFormFields()">
+                                <option value="text">文字</option>
+                                <option value="text_hover">懸浮文字</option>
+                                <option value="image">圖片</option>
+                                <option value="image_hover">懸浮圖片</option>
+                                <option value="video">影片</option>
+                                <option value="video_hover">懸浮影片</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">選擇圖示 (Icon)</label>
+                            <div class="d-flex gap-2 flex-wrap" id="iconSelector">
+                                <input type="radio" class="btn-check" name="icon" id="icon1" value="fas fa-info-circle"
+                                    checked>
+                                <label class="btn btn-outline-secondary" for="icon1"><i
+                                        class="fas fa-info-circle"></i></label>
+
+                                <input type="radio" class="btn-check" name="icon" id="icon2"
+                                    value="fas fa-exclamation-triangle">
+                                <label class="btn btn-outline-secondary" for="icon2"><i
+                                        class="fas fa-exclamation-triangle"></i></label>
+
+                                <input type="radio" class="btn-check" name="icon" id="icon3" value="fas fa-camera">
+                                <label class="btn btn-outline-secondary" for="icon3"><i
+                                        class="fas fa-camera"></i></label>
+
+                                <input type="radio" class="btn-check" name="icon" id="icon4" value="fas fa-video">
+                                <label class="btn btn-outline-secondary" for="icon4"><i
+                                        class="fas fa-video"></i></label>
+
+                                <input type="radio" class="btn-check" name="icon" id="icon5"
+                                    value="fas fa-map-marker-alt">
+                                <label class="btn btn-outline-secondary" for="icon5"><i
+                                        class="fas fa-map-marker-alt"></i></label>
+
+                                <input type="radio" class="btn-check" name="icon" id="icon6"
+                                    value="fas fa-question-circle">
+                                <label class="btn btn-outline-secondary" for="icon6"><i
+                                        class="fas fa-question-circle"></i></label>
+
+                                <input type="radio" class="btn-check" name="icon" id="icon7" value="fas fa-hard-hat">
+                                <label class="btn btn-outline-secondary" for="icon7"><i
+                                        class="fas fa-hard-hat"></i></label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">選擇圖示顏色</label>
+                            <div class="d-flex gap-2" id="colorSelector">
+                                <input type="hidden" name="icon_color" id="iconColorInput" value="#ffffff">
+                                <div class="color-option selected" style="background: #ffffff;" data-color="#ffffff">
+                                </div>
+                                <div class="color-option" style="background: #d9534f;" data-color="#d9534f"></div>
+                                <div class="color-option" style="background: #0d6efd;" data-color="#0d6efd"></div>
+                                <div class="color-option" style="background: #198754;" data-color="#198754"></div>
+                                <div class="color-option" style="background: #ffc107;" data-color="#ffc107"></div>
+                                <div class="color-option" style="background: #000000;" data-color="#000000"></div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">標題</label>
+                            <input type="text" class="form-control" name="title" id="hotspotTitleInput" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">詳細說明</label>
+                            <textarea class="form-control" name="description" id="hotspotDescInput" rows="3"></textarea>
+                        </div>
+
+                        <div class="mb-3 d-none" id="imageField">
+                            <label class="form-label">上傳圖片</label>
+                            <input type="file" class="form-control" name="image" id="imageUploadInput" accept="image/*">
+                            <div id="importedImagePreview" class="mt-2 d-none">
+                                <small class="text-muted d-block mb-1">目前引用的圖片：</small>
+                                <img src="" class="img-thumbnail" style="max-height: 150px;">
+                            </div>
+                        </div>
+
+                        <div class="mb-3 d-none" id="videoField">
+                            <label class="form-label">上傳影片</label>
+                            <input type="file" class="form-control" name="video" id="videoUploadInput" accept="video/*">
+                            <div id="importedVideoPreview" class="mt-2 d-none">
+                                <small class="text-muted d-block mb-1">目前引用的影片：</small>
+                                <video src="" controls class="w-100" style="max-height: 200px;"></video>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="submitHotspot()">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View/Delete Hotspot Modal -->
+    <div class="modal fade" id="viewHotspotModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewTitle">熱點詳情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="viewMedia" class="mb-3 text-center"></div>
+                    <p id="viewDescription"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-warning d-none" id="editBtn"
+                        onclick="editHotspot()">編輯</button>
+                    <button type="button" class="btn btn-danger d-none" id="deleteBtn"
+                        onclick="deleteCurrentHotspot()">刪除</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+
+    <script>
+        let viewer;
+        let isEditMode = false;
+        let currentHotspotId = null;
+        let tourData = {};
+
+        // Dragging State
+        let isDraggingHotspot = false;
+        let draggedHotspotId = null;
+        let clickSuppressed = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let wasDragged = false;
+
+        function toggleEditMode() {
+            if (!viewer) return;
+            isEditMode = !isEditMode;
+            if (isEditMode) {
+                document.body.classList.add('edit-mode');
+                $('#toggle-edit-btn').removeClass('btn-outline-warning').addClass('btn-warning').html('<i class="fas fa-check"></i> 結束編輯');
+                $('#instruction-overlay').fadeIn();
+            } else {
+                document.body.classList.remove('edit-mode');
+                $('#toggle-edit-btn').removeClass('btn-warning').addClass('btn-outline-warning').html('<i class="fas fa-edit"></i> 編輯模式');
+                $('#instruction-overlay').fadeOut();
+            }
+        }
+
+        // Global helper to strip query parameters for comparison
+        const stripQueryParams = (url) => {
+            if (!url) return '';
+            return url.split('?')[0];
+        };
+
+        // Global helper to normalize hover variants for comparison
+        // Treats image/image_hover as same base type, allowing display mode customization
+        const getBaseType = (type) => {
+            if (!type) return '';
+            return type.replace('_hover', '');
+        };
+
+        function updateFormFields() {
+            const type = $('#typeSelect').val();
+            const isReferencing = $('#refHotspotId').val() !== ''; // Check if referencing a resource
+
+
+
+            // Restrict type options based on reference type if needed
+            restrictTypeOptions();
+
+            if (type === 'image' || type === 'image_hover') {
+                $('#imageField').removeClass('d-none');
+                $('#videoField').addClass('d-none');
+
+                // Hide upload input if referencing an image resource
+                if (isReferencing) {
+                    $('#imageUploadInput').addClass('d-none');
+                    $('#imageField label').addClass('d-none');
+                } else {
+                    $('#imageUploadInput').removeClass('d-none');
+                    $('#imageField label').removeClass('d-none');
+                }
+            } else if (type === 'video' || type === 'video_hover') {
+                $('#videoField').removeClass('d-none');
+                $('#imageField').addClass('d-none');
+
+                // Hide upload input if referencing a video resource
+                if (isReferencing) {
+                    $('#videoUploadInput').addClass('d-none');
+                    $('#videoField label').addClass('d-none');
+                } else {
+                    $('#videoUploadInput').removeClass('d-none');
+                    $('#videoField label').removeClass('d-none');
+                }
+            } else {
+                $('#imageField').addClass('d-none');
+                $('#videoField').addClass('d-none');
+            }
+        }
+
+        // Helper to restrict allowed type options based on the referenced resource type
+        function restrictTypeOptions() {
+            const refType = $('#refResourceType').val();
+            const typeSelect = $('#typeSelect');
+
+            // First, re-enable all options to start fresh
+            typeSelect.find('option').prop('disabled', false);
+
+            // If no reference type is set, stop here (all options enabled)
+            if (!refType) return;
+
+            const baseRefType = getBaseType(refType);
+
+            if (baseRefType === 'image') {
+                // Determine valid types: only image and image_hover allowed
+                typeSelect.find('option').each(function () {
+                    const optVal = $(this).val();
+                    // Disable everything except image variants
+                    if (optVal !== 'image' && optVal !== 'image_hover') {
+                        $(this).prop('disabled', true);
+                    }
+                });
+            } else if (baseRefType === 'video') {
+                // Determine valid types: only video and video_hover allowed
+                typeSelect.find('option').each(function () {
+                    const optVal = $(this).val();
+                    // Disable everything except video variants
+                    if (optVal !== 'video' && optVal !== 'video_hover') {
+                        $(this).prop('disabled', true);
+                    }
+                });
+            } else if (baseRefType === 'text') {
+                // Determine valid types: only text and text_hover allowed
+                typeSelect.find('option').each(function () {
+                    const optVal = $(this).val();
+                    // Disable everything except text variants
+                    if (optVal !== 'text' && optVal !== 'text_hover') {
+                        $(this).prop('disabled', true);
+                    }
+                });
+            }
+        }
+
+        // Custom tooltip renderer for hotspots
+        window.hotspotTooltip = function (hotSpotDiv, args) {
+            hotSpotDiv.classList.add('custom-hotspot');
+            let iconClass = args.icon || 'fas fa-info-circle';
+            let colorClass = 'hotspot-text';
+
+            if (args.type === 'text_hover') {
+                colorClass = 'hotspot-hover-text';
+            }
+            if (args.type === 'image') { colorClass = 'hotspot-image'; }
+            if (args.type === 'image_hover') { colorClass = 'hotspot-image'; }
+            if (args.type === 'video') { colorClass = 'hotspot-video'; }
+            if (args.type === 'video_hover') { colorClass = 'hotspot-video'; }
+
+            hotSpotDiv.classList.add(colorClass);
+            hotSpotDiv.innerHTML = `<i class="${iconClass}" style="pointer-events: none;"></i>`;
+
+            // Apply custom color if provided
+            if (args.icon_color) {
+                hotSpotDiv.style.color = args.icon_color;
+            }
+
+            // For navigation hotspots, add hover tooltip
+            const isNavHotspot = args.type === 'scene' && args.id && String(args.id).startsWith('nav_');
+            if (isNavHotspot && args.title) {
+                hotSpotDiv.title = args.title;
+            }
+
+            if (args.type === 'image_hover') {
+                const label = document.createElement('div');
+                label.className = 'hover-image-label';
+
+                let content = '';
+                if (args.image) {
+                    content += `<img src="${args.image}">`;
+                }
+                content += `<strong>${args.title}</strong>`;
+                if (args.description) {
+                    content += `<small>${args.description}</small>`;
+                }
+                label.innerHTML = content;
+                hotSpotDiv.appendChild(label);
+            }
+
+            if (args.type === 'video_hover') {
+                const label = document.createElement('div');
+                label.className = 'hover-video-label';
+
+                let content = '';
+                if (args.video) {
+                    content += `<div class="video-container"><video playsinline muted loop autoplay><source src="${args.video}" type="video/mp4"></video></div>`;
+                }
+                content += `<strong>${args.title}</strong>`;
+                if (args.description) {
+                    content += `<small>${args.description}</small>`;
+                }
+                label.innerHTML = content;
+                hotSpotDiv.appendChild(label);
+
+                // Initialize Plyr
+                if (args.video) {
+                    const videoEl = label.querySelector('video');
+                    const player = new Plyr(videoEl, {
+                        controls: ['play', 'progress', 'current-time', 'mute'],
+                        autoplay: true,
+                        muted: true,
+                        loop: { active: true },
+                        hideControls: false
+                    });
+
+                    // Block interactions from reaching Pannellum background
+                    const plyrDiv = label.querySelector('.plyr');
+                    if (plyrDiv) {
+                        ['mousedown', 'mouseup', 'mousemove', 'click', 'dblclick', 'touchstart', 'touchend', 'wheel'].forEach(evtType => {
+                            plyrDiv.addEventListener(evtType, (e) => {
+                                e.stopPropagation();
+                                // Do NOT use stopImmediatePropagation or capture:true here 
+                                // to allow Plyr's internal buttons to function.
+                            });
+                        });
+                    }
+                }
+            }
+
+            if (args.type === 'text_hover') {
+                const label = document.createElement('div');
+                label.className = 'hover-text-label';
+
+                let content = `<strong>${args.title}</strong>`;
+                if (args.description) {
+                    content += `<small>${args.description}</small>`;
+                }
+                label.innerHTML = content;
+                hotSpotDiv.appendChild(label);
+            }
+
+            // Handle Dragging (Edit Mode Only)
+            hotSpotDiv.onmousedown = function (e) {
+                if (isEditMode) {
+                    // Check if this is a navigation hotspot
+                    const isNavHotspot = args.id && String(args.id).startsWith('nav_');
+
+                    e.stopPropagation(); // Stop propagation to prevent viewer drag
+                    isDraggingHotspot = true;
+                    draggedHotspotId = args.id;
+                    hotSpotDiv.style.cursor = 'grabbing';
+                    dragStartX = e.clientX;
+                    dragStartY = e.clientY;
+                    wasDragged = false;
+                }
+            };
+
+            // Handle click
+            hotSpotDiv.onclick = function (e) {
+                if (clickSuppressed) return;
+                e.stopPropagation(); // Prevent viewer click
+
+                // For navigation hotspots, switch scene instead of showing modal
+                const isNavHotspot = args.id && String(args.id).startsWith('nav_');
+                if (isNavHotspot && args.sceneId) {
+                    viewer.loadScene(args.sceneId);
+                } else {
+                    showHotspotModal(args);
+                }
+            };
+        };
+
+        function showHotspotModal(data) {
+            if (!data) return;
+            currentHotspotId = data.id;
+            $('#viewTitle').text(data.title || '無標題');
+            $('#viewDescription').text(data.description || '');
+
+            let mediaHtml = '';
+            if ((data.type === 'image' || data.type === 'image_hover') && data.image) {
+                mediaHtml = `<img src="${data.image}" class="img-fluid" style="max-height: 400px; display: block; margin: 0 auto;">`;
+            } else if ((data.type === 'video' || data.type === 'video_hover') && data.video) {
+                mediaHtml = `<div class="plyr-container"><video id="plyr-player" playsinline controls><source src="${data.video}" type="video/mp4"></video></div>`;
+            }
+            $('#viewMedia').html(mediaHtml);
+
+            // Initialize Plyr in Modal
+            if ((data.type === 'video' || data.type === 'video_hover') && data.video) {
+                new Plyr('#plyr-player');
+            }
+
+            if (isEditMode) {
+                $('#deleteBtn').removeClass('d-none');
+                $('#editBtn').removeClass('d-none');
+            } else {
+                $('#deleteBtn').addClass('d-none');
+                $('#editBtn').addClass('d-none');
+            }
+
+            const modalEl = document.getElementById('viewHotspotModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
+
+
+
+        function editHotspot() {
+            if (!currentHotspotId) return;
+
+            const currentSceneId = viewer.getScene();
+            const sceneHotSpots = tourData.scenes[currentSceneId].hotSpots;
+            const hsData = sceneHotSpots.find(h => h.id == currentHotspotId);
+
+            if (!hsData) return;
+
+            // Close View Modal
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('viewHotspotModal')).hide();
+
+            // Open Add Modal with data
+            $('#hotspotIdInput').val(hsData.createTooltipArgs.id);
+            $('#sceneIdInput').val(currentSceneId);
+            $('#pitchInput').val(hsData.pitch);
+            $('#yawInput').val(hsData.yaw);
+
+            $('#typeSelect').val(hsData.createTooltipArgs.type);
+            updateFormFields();
+
+            const icon = hsData.createTooltipArgs.icon || 'fas fa-info-circle';
+            $(`input[name="icon"][value="${icon}"]`).prop('checked', true);
+
+            const color = hsData.createTooltipArgs.icon_color || '#ffffff';
+            $('#iconColorInput').val(color);
+            $('.color-option').removeClass('selected');
+            $(`.color-option[data-color="${color}"]`).addClass('selected');
+
+            $('input[name="title"]').val(hsData.createTooltipArgs.title);
+            $('textarea[name="description"]').val(hsData.createTooltipArgs.description);
+
+            // Show Current Media Preview (Even if not imported)
+            // Reset inputs first
+            $('input[name="image"]').prop('disabled', false).removeClass('d-none');
+            $('input[name="video"]').prop('disabled', false).removeClass('d-none');
+
+            // 檢查熱點是否有引用來源
+            $('#importNotice').addClass('d-none');
+            $('#refHotspotId').val('');
+            $('#clearSourceInput').val(''); // Reset clear flag
+
+            if (hsData.createTooltipArgs.source_hotspot_id) {
+                // 如果有引用來源，顯示引用信息
+                $('#refHotspotId').val(hsData.createTooltipArgs.source_hotspot_id);
+                $('#importTitle').text(hsData.createTooltipArgs.source_hotspot_title);
+                $('#importNotice').removeClass('d-none');
+            }
+
+            // Image Preview
+            if (hsData.createTooltipArgs.image) {
+                $('#importedImagePreview img').attr('src', hsData.createTooltipArgs.image);
+                $('#importedImagePreview small').text('目前圖片：');
+                $('#importedImagePreview').removeClass('d-none');
+            } else {
+                $('#importedImagePreview').addClass('d-none');
+            }
+
+            // Video Preview
+            if (hsData.createTooltipArgs.video) {
+                $('#importedVideoPreview video').attr('src', hsData.createTooltipArgs.video);
+                $('#importedVideoPreview small').text('目前影片：');
+                $('#importedVideoPreview').removeClass('d-none');
+            } else {
+                $('#importedVideoPreview').addClass('d-none');
+            }
+
+            // Check for source updates if this hotspot has a source
+            if (hsData.createTooltipArgs.source_hotspot_id) {
+                checkSourceUpdate(hsData.createTooltipArgs.id, hsData.createTooltipArgs.source_hotspot_id, hsData.createTooltipArgs);
+            } else {
+                $('#sourceUpdateAlert').addClass('d-none');
+            }
+
+            $('#addHotspotModal .modal-title').text('編輯熱點');
+            const modalEl = document.getElementById('addHotspotModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
+
+        function loadTour(keepView = false) {
+            const apiUrl = "{% url 'site360:project_tour_data' project.pk %}" + window.location.search + (window.location.search ? '&' : '?') + "_t=" + Date.now();
+
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    tourData = data;
+
+                    for (const sceneId in data.scenes) {
+                        const scene = data.scenes[sceneId];
+                        if (scene.hotSpots) {
+                            scene.hotSpots.forEach(hs => {
+                                if (hs.createTooltipFunc && typeof hs.createTooltipFunc === 'string') {
+                                    if (window[hs.createTooltipFunc]) {
+                                        hs.createTooltipFunc = window[hs.createTooltipFunc];
+                                    }
+                                }
+                            });
+                        }
+                    }
+
+                    if (!data.default) data.default = {};
+                    data.default.doubleClickZoom = false;
+
+                    if (keepView && viewer) {
+                        data.default.pitch = viewer.getPitch();
+                        data.default.yaw = viewer.getYaw();
+                        data.default.hfov = viewer.getHfov();
+                        data.default.firstScene = viewer.getScene();
+                    }
+
+                    if (viewer) {
+                        viewer.destroy();
+                    }
+
+                    viewer = pannellum.viewer('panorama', data);
+
+                    viewer.on('load', function () {
+                        const currentSceneId = viewer.getScene();
+                        if (data.scenes[currentSceneId]) {
+                            document.getElementById('scene-title').innerText = data.scenes[currentSceneId].title;
+                        }
+                    });
+
+                    // Double click event for adding hotspots
+                    document.getElementById('panorama').addEventListener('dblclick', function (event) {
+                        if (!isEditMode) return;
+                        const coords = viewer.mouseEventToCoords(event);
+                        $('#sceneIdInput').val(viewer.getScene());
+                        $('#pitchInput').val(coords[0]);
+                        $('#yawInput').val(coords[1]);
+
+                        $('#hotspotIdInput').val('');
+                        $('#hotspotIdInput').val('');
+                        $('#addHotspotForm')[0].reset();
+                        $('#clearSourceInput').val(''); // Ensure clear flag is reset on new
+
+
+                        // Clear media previews to prevent persisting from previous uploads
+                        $('#importedImagePreview').addClass('d-none').find('img').attr('src', '');
+                        $('#importedVideoPreview').addClass('d-none').find('video').attr('src', '');
+
+                        // Clear import/reference information from previous edits
+                        $('#importNotice').addClass('d-none');
+                        $('#refHotspotId').val('');
+
+                        // Clear source update alert from previous edits
+                        $('#sourceUpdateAlert').addClass('d-none');
+
+                        $('#addHotspotModal .modal-title').text('新增熱點');
+                        $('input[name="icon"][value="fas fa-info-circle"]').prop('checked', true);
+
+                        $('#iconColorInput').val('#ffffff');
+                        $('.color-option').removeClass('selected');
+                        $('.color-option[data-color="#ffffff"]').addClass('selected');
+
+                        updateFormFields();
+                        const modalEl = document.getElementById('addHotspotModal');
+                        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        modal.show();
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        document.addEventListener('mousemove', function (e) {
+            if (isDraggingHotspot && isEditMode) {
+                if (Math.abs(e.clientX - dragStartX) > 5 || Math.abs(e.clientY - dragStartY) > 5) {
+                    wasDragged = true;
+                }
+            }
+        });
+
+        document.addEventListener('mouseup', function (e) {
+            if (isDraggingHotspot && isEditMode) {
+                if (wasDragged) {
+                    const coords = viewer.mouseEventToCoords(e);
+                    moveHotspot(draggedHotspotId, coords[0], coords[1]);
+                    clickSuppressed = true;
+                    setTimeout(() => { clickSuppressed = false; }, 100);
+                }
+                isDraggingHotspot = false;
+                draggedHotspotId = null;
+                wasDragged = false;
+            } else {
+                isDraggingHotspot = false;
+            }
+        });
+
+        function submitHotspot() {
+            const formData = new FormData(document.getElementById('addHotspotForm'));
+            fetch("{% url 'site360:save_hotspot' %}", {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        bootstrap.Modal.getOrCreateInstance(document.getElementById('addHotspotModal')).hide();
+                        loadTour(true);
+                    } else {
+                        alert('Save failed: ' + data.message);
+                    }
+                })
+                .catch(err => console.error("Submit error:", err));
+        }
+
+        function moveHotspot(hotspotId, pitch, yaw) {
+            const formData = new FormData();
+            formData.append('pitch', pitch);
+            formData.append('yaw', yaw);
+
+            let apiUrl = '';
+            let isNav = false;
+
+            if (String(hotspotId).startsWith('nav_')) {
+                // Handle Navigation Hotspot
+                const parts = String(hotspotId).split('_'); // nav_next_12 or nav_prev_12
+                const navType = parts[1]; // 'next' or 'prev'
+                const sceneId = parts[2];
+                apiUrl = `/site360/api/scene/nav-update/${sceneId}/`;
+                formData.append('nav_type', navType);
+                isNav = true;
+            } else {
+                // Handle Standard Hotspot
+                apiUrl = `/site360/api/hotspot/move/${hotspotId}/`;
+            }
+
+            fetch(apiUrl, {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const currentSceneId = viewer.getScene();
+                        if (tourData.scenes && tourData.scenes[currentSceneId] && tourData.scenes[currentSceneId].hotSpots) {
+                            const sceneHotSpots = tourData.scenes[currentSceneId].hotSpots;
+                            const hsIndex = sceneHotSpots.findIndex(h => h.id == hotspotId);
+                            if (hsIndex !== -1) {
+                                const hsConfig = sceneHotSpots[hsIndex];
+                                hsConfig.pitch = parseFloat(pitch);
+                                hsConfig.yaw = parseFloat(yaw);
+                                viewer.removeHotSpot(hotspotId);
+                                viewer.addHotSpot(hsConfig, currentSceneId);
+                            } else {
+                                loadTour(true);
+                            }
+                        } else {
+                            loadTour(true);
+                        }
+                    } else {
+                        alert('Move failed: ' + data.message);
+                        loadTour(true);
+                    }
+                });
+        }
+
+        // Check if source hotspot has been updated
+        function checkSourceUpdate(hotspotId, sourceHotspotId, currentData) {
+            if (!sourceHotspotId) {
+                console.warn('checkSourceUpdate called without sourceHotspotId');
+                return;
+            }
+
+            // Fetch source hotspot data
+            fetch(`/site360/api/hotspot/data/${sourceHotspotId}/`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(sourceData => {
+                    if (sourceData.status === 'success') {
+                        // Guard: If the reference has been cleared (e.g. by user clicking cancel), do not apply updates
+                        // This prevents a race condition where a slow fetch restores restrictions after clearing
+                        if ($('#refHotspotId').val() === '') {
+                            return;
+                        }
+
+                        const source = sourceData.hotspot;
+
+                        // Compare content
+                        const differences = [];
+
+                        // Set the reference type for UI restriction
+                        $('#refResourceType').val(source.hotspot_type);
+                        // Trigger updateFormFields to apply restrictions
+                        updateFormFields();
+
+                        // Helper function definitions moved to global scope
+
+                        if (currentData.title !== source.title) {
+                            differences.push({
+                                field: '標題',
+                                current: currentData.title,
+                                source: source.title
+                            });
+                        }
+                        if (currentData.description !== source.description) {
+                            differences.push({
+                                field: '說明',
+                                current: currentData.description || '(無)',
+                                source: source.description || '(無)'
+                            });
+                        }
+
+                        // Compare base types only (treat image/image_hover as equivalent, etc.)
+                        // This allows users to customize display mode without triggering update warnings
+                        const currentBaseType = getBaseType(currentData.type);
+                        const sourceBaseType = getBaseType(source.hotspot_type);
+                        if (currentBaseType !== sourceBaseType) {
+                            differences.push({
+                                field: '類型',
+                                current: currentData.type,
+                                source: source.hotspot_type
+                            });
+                        }
+
+                        // Compare image paths (without query params to avoid false positives from timestamps)
+                        const currentImage = stripQueryParams(currentData.image);
+                        const sourceImage = stripQueryParams(source.image);
+                        if (currentImage !== sourceImage) {
+                            differences.push({
+                                field: '圖片',
+                                current: currentData.image ? '已設定' : '未設定',
+                                source: source.image ? '已設定' : '未設定'
+                            });
+                        }
+
+                        // Compare video paths
+                        // Use raw video path if available (to match source format), otherwise fallback to standard video path
+                        const currentVideoPath = currentData.video_raw || currentData.video;
+
+                        const currentVideo = stripQueryParams(currentVideoPath);
+                        const sourceVideo = stripQueryParams(source.video);
+
+                        // Console log removed as issue is identified
+                        // console.log('Video Compare:', { current: currentVideo, source: sourceVideo });
+
+                        if (currentVideo !== sourceVideo) {
+                            differences.push({
+                                field: '影片',
+                                current: currentData.video ? '已設定' : '未設定',
+                                source: source.video ? '已設定' : '未設定'
+                            });
+                        }
+
+                        if (differences.length > 0) {
+                            // Show update alert
+                            $('#sourceUpdateAlert').removeClass('d-none');
+
+                            // Build diff list
+                            let diffHtml = '<ul class="small mb-0">';
+                            differences.forEach(diff => {
+                                diffHtml += `<li><strong>${diff.field}</strong></li>`;
+                            });
+                            diffHtml += '</ul>';
+                            $('#updateDiffList').html(diffHtml);
+
+                            // Build comparison content
+                            let comparisonHtml = '<div class="row">';
+                            comparisonHtml += '<div class="col-md-6"><h6 class="text-muted"><i class="fas fa-cube"></i> 目前內容</h6></div>';
+                            comparisonHtml += '<div class="col-md-6"><h6 class="text-primary"><i class="fas fa-database"></i> 來源最新內容</h6></div>';
+                            comparisonHtml += '</div>';
+
+                            differences.forEach(diff => {
+                                comparisonHtml += '<div class="row mb-2 border-bottom pb-2">';
+                                comparisonHtml += `<div class="col-12"><strong>${diff.field}：</strong></div>`;
+                                comparisonHtml += `<div class="col-md-6"><div class="p-2 bg-white border rounded">${diff.current}</div></div>`;
+                                comparisonHtml += `<div class="col-md-6"><div class="p-2 bg-white border border-primary rounded">${diff.source}</div></div>`;
+                                comparisonHtml += '</div>';
+                            });
+
+                            $('#comparisonContent').html(comparisonHtml);
+
+                            // Store hotspot ID for sync function
+                            $('#sourceUpdateAlert').data('hotspotId', hotspotId);
+                        } else {
+                            $('#sourceUpdateAlert').addClass('d-none');
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Error fetching source hotspot:', err);
+                    $('#sourceUpdateAlert').addClass('d-none');
+                });
+        }
+
+        // Sync hotspot content from source
+        function syncFromSource(event) {
+            const hotspotId = $('#sourceUpdateAlert').data('hotspotId');
+            if (!hotspotId) {
+                alert('無法取得熱點 ID');
+                return;
+            }
+
+            if (!confirm('確定要更新此熱點的內容到來源的最新版本嗎？這將覆蓋當前的修改。')) return;
+
+            // Get button element safely
+            const btn = event ? event.target.closest('button') : null;
+            if (!btn) {
+                alert('無法找到更新按鈕');
+                return;
+            }
+
+            const originalHtml = btn.innerHTML;
+            const originalDisabled = btn.disabled;
+
+            // Set loading state
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 更新中...';
+
+            fetch(`/site360/api/resource/update-reference/${hotspotId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('更新成功！頁面將重新載入。');
+                        // Close modal before reload to prevent state issues
+                        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('addHotspotModal'));
+                        modal.hide();
+                        // Reload tour after a short delay to allow modal to close
+                        setTimeout(() => {
+                            loadTour(true);
+                        }, 300);
+                    } else {
+                        throw new Error(data.message || '未知錯誤');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error syncing from source:', err);
+                    alert('更新失敗：' + (err.message || '未知錯誤'));
+                })
+                .finally(() => {
+                    // Always restore button state in case of error
+                    // Wait longer to avoid race condition with modal closing
+                    setTimeout(() => {
+                        const modal = document.getElementById('addHotspotModal');
+                        const isModalVisible = modal && modal.classList.contains('show');
+
+                        // Only restore button if modal is still visible (error case)
+                        // If modal is closed/closing, it means success - no need to restore
+                        if (btn && isModalVisible) {
+                            btn.disabled = originalDisabled;
+                            btn.innerHTML = originalHtml;
+                        }
+                    }, 400); // Increased timeout to ensure it runs after modal close delay (300ms)
+                });
+        }
+
+        function deleteCurrentHotspot() {
+            if (!currentHotspotId) return;
+            if (!confirm('確定要刪除此熱點嗎？')) return;
+
+            fetch(`/site360/api/hotspot/delete/${currentHotspotId}/`, {
+                method: 'POST'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        bootstrap.Modal.getOrCreateInstance(document.getElementById('viewHotspotModal')).hide();
+                        loadTour(true);
+                    } else {
+                        alert('Delete failed: ' + data.message);
+                    }
+                })
+                .catch(err => console.error("Delete error:", err));
+        }
+
+        // Clear import/reference and restore upload fields
+        function clearImport() {
+            // Clear the reference
+            $('#refHotspotId').val('');
+            $('#clearSourceInput').val('true'); // Signal backend to remove association
+            $('#refResourceType').val(''); // Clear the reference type restriction
+            $('#importNotice').addClass('d-none');
+
+            // Clear imported media previews
+            $('#importedImagePreview').addClass('d-none').find('img').attr('src', '');
+            $('#importedVideoPreview').addClass('d-none').find('video').attr('src', '');
+
+            // Update form fields to restore upload inputs
+            updateFormFields();
+        }
+
+        $(document).on('click', '.color-option', function () {
+            $('.color-option').removeClass('selected');
+            $(this).addClass('selected');
+            const color = $(this).data('color');
+            $('#iconColorInput').val(color);
+        });
+
+        loadTour();
+
+        $(document).on('mousedown mouseup click touchstart touchend pointerdown pointerup mousemove', '.video-wrapper video', function (e) {
+            e.stopPropagation();
+        });
+    </script>
+    <script>
+        // Update Resource List Link with Current Scene
+        document.getElementById('resourceListLink').addEventListener('click', function (e) {
+            if (viewer) {
+                const currentSceneId = viewer.getScene();
+                // tourData is defined in the script below/above (need to ensure scope)
+                // Actually tourData is global as per previous reading
+                if (tourData && tourData.scenes && tourData.scenes[currentSceneId]) {
+                    const sceneTitle = tourData.scenes[currentSceneId].title;
+                    const baseUrl = "{% url 'site360:project_resources' project.pk %}";
+                    this.href = `${baseUrl}?scene=${encodeURIComponent(sceneTitle)}`;
+                }
+            }
+        });
+    </script>
+    <script>
+        // Resource Library Logic
+        let libraryResources = [];
+
+        $('#openLibraryBtn').click(function () {
+            const libraryModal = new bootstrap.Modal(document.getElementById('resourceLibraryModal'));
+            libraryModal.show();
+            loadLibraryResources();
+        });
+
+        function loadLibraryResources() {
+            const listContainer = document.getElementById('resourceLibraryList');
+            // listContainer.innerHTML = '<div class="text-center py-5">...</div>'; // Keep spinner
+
+            fetch('/site360/api/resources/')
+                .then(response => response.json())
+                .then(data => {
+                    libraryResources = data.resources || [];
+                    renderLibrary();
+
+                    // Populate Project Filter
+                    const projects = new Set(libraryResources.map(r => r.project_name));
+                    const projectSelect = document.getElementById('libProjectSelect');
+                    projectSelect.innerHTML = '<option value="">所有專案</option>';
+                    projects.forEach(p => {
+                        projectSelect.innerHTML += `<option value="${p}">${p}</option>`;
+                    });
+                })
+                .catch(err => {
+                    console.error('Error loading resources:', err);
+                    listContainer.innerHTML = '<div class="alert alert-danger">載入失敗，請稍後再試。</div>';
+                });
+        }
+
+        function renderLibrary() {
+            const listContainer = document.getElementById('resourceLibraryList');
+            const search = document.getElementById('libSearchInput').value.toLowerCase();
+            const typeFilter = document.getElementById('libTypeSelect').value;
+            const projectFilter = document.getElementById('libProjectSelect').value;
+
+            listContainer.innerHTML = '';
+
+            const filtered = libraryResources.filter(r => {
+                const matchSearch = r.title.toLowerCase().includes(search) || r.description.toLowerCase().includes(search);
+
+                let matchType = true;
+                if (typeFilter) {
+                    if (typeFilter === 'text') matchType = r.type === 'text' || r.type === 'text_hover';
+                    else if (typeFilter === 'image') matchType = r.type === 'image' || r.type === 'image_hover';
+                    else if (typeFilter === 'video') matchType = r.type === 'video' || r.type === 'video_hover';
+                }
+
+                const matchProject = !projectFilter || r.project_name === projectFilter;
+
+                return matchSearch && matchType && matchProject;
+            });
+
+            if (filtered.length === 0) {
+                listContainer.innerHTML = '<div class="col-12 text-center text-muted">沒有符合的資源</div>';
+                return;
+            }
+
+            filtered.forEach(r => {
+                let badgeClass = 'bg-secondary';
+                if (r.type.includes('text')) badgeClass = 'badge-text';
+                else if (r.type.includes('image')) badgeClass = 'badge-image';
+                else if (r.type.includes('video')) badgeClass = 'badge-video';
+
+                let typeIcon = '';
+                if (r.type === 'image' || r.type === 'image_hover') typeIcon = '<i class="fas fa-image text-success me-2"></i>';
+                else if (r.type === 'video' || r.type === 'video_hover') typeIcon = '<i class="fas fa-video text-danger me-2"></i>';
+                else typeIcon = '<i class="fas fa-align-left text-primary me-2"></i>';
+
+                let mediaPreview = '';
+                if (r.thumb_url) {
+                    mediaPreview = `<img src="${r.thumb_url}" class="rounded ms-2" style="height: 60px; width: 60px; object-fit: cover;">`;
+                } else if (r.video_url) {
+                    mediaPreview = `<video src="${r.video_url}" class="rounded ms-2" style="height: 60px; width: 60px; object-fit: cover;" muted onmouseover="this.play()" onmouseout="this.pause()"></video>`;
+                } else if (r.icon) {
+                    mediaPreview = `<div class="rounded ms-2 d-flex align-items-center justify-content-center bg-light" style="height: 60px; width: 60px; color: ${r.icon_color || '#333'}"><i class="${r.icon} fa-lg"></i></div>`;
+                }
+
+                const card = `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100 shadow-sm resource-card" style="cursor: pointer;" onclick="importResource(${r.id})">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="badge ${badgeClass}">${r.type_display}</span>
+                                    <small class="text-muted ms-auto text-end"><i class="fas fa-folder"></i> ${r.project_name}</small>
+                                </div>
+                                <div class="d-flex align-items-center mb-2">
+                                    ${typeIcon}
+                                    <h6 class="card-title mb-0 text-truncate" style="flex:1;">${r.title}</h6>
+                                    ${mediaPreview}
+                                </div>
+                                <p class="card-text small text-muted text-truncate">${r.description || '無描述'}</p>
+                            </div>
+                            <div class="card-footer p-2 bg-light border-top-0 text-end">
+                                ${r.usage_count > 0 ? `<span class="badge bg-info text-white me-2" title="被引用${r.usage_count}次"><i class="fas fa-link"></i> ${r.usage_count}</span>` : ''}
+                                <button class="btn btn-sm btn-primary">引用</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                listContainer.innerHTML += card;
+            });
+        }
+
+        // Event Listeners for Filters
+        document.getElementById('libSearchInput').addEventListener('input', renderLibrary);
+        document.getElementById('libTypeSelect').addEventListener('change', renderLibrary);
+        document.getElementById('libProjectSelect').addEventListener('change', renderLibrary);
+
+        // Instant Preview for Uploads
+        $('input[name="image"]').on('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                $('#importedImagePreview img').attr('src', url);
+                $('#importedImagePreview small').text('預覽新圖片 (待儲存)：');
+                $('#importedImagePreview').removeClass('d-none');
+            }
+        });
+
+        $('input[name="video"]').on('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                $('#importedVideoPreview video').attr('src', url);
+                $('#importedVideoPreview small').text('預覽新影片 (待儲存)：');
+                $('#importedVideoPreview').removeClass('d-none');
+            }
+        });
+
+        // Make importResource global
+        window.importResource = function (id) {
+            const resource = libraryResources.find(r => r.id === id);
+            if (!resource) return;
+
+            // Fill Form
+            $('#hotspotTitleInput').val(resource.title);
+            $('#hotspotDescInput').val(resource.description);
+            $('#typeSelect').val(resource.type);
+
+            // Set reference type to restrict options
+            $('#refResourceType').val(resource.type);
+
+            // Important: Do NOT clear hotspotIdInput if we are editing an existing hotspot (currentHotspotId is set)
+            // If we are adding a new hotspot (currentHotspotId is null), then clear it to ensure creation.
+            // Check if form has an ID already? NO, check currentHotspotId variable or the input value itself BEFORE clearing?
+            // Actually, if we are in Add Modal, we might have clicked "Add" (id empty) or "Edit" (id set).
+            // We should respect the current state of hotspotIdInput UNLESS we want to force something.
+            // But here, the user wants to Import *into* the current form.
+            // So we should NOT touch hotspotIdInput at all. Let it stay as is.
+            if (!currentHotspotId) {
+                $('#hotspotIdInput').val(''); // Only ensure empty if we are adding new
+            } else {
+                $('#hotspotIdInput').val(currentHotspotId); // Ensure it keeps the current ID
+            }
+
+            $('#refHotspotId').val(resource.id);
+            $('#clearSourceInput').val(''); // Ensure clear flag is reset
+
+
+            // Set Icon
+            if (resource.icon) {
+                // Try to find icon radio or just select Custom if not in list (simplification: assume standard icons or just keep what it is if hidden)
+                // For now, let's try to match standard icons.
+                const iconRadio = $(`input[name="icon"][value="${resource.icon}"]`);
+                if (iconRadio.length) {
+                    iconRadio.prop('checked', true);
+                }
+            }
+            if (resource.icon_color) {
+                $('#iconColorInput').val(resource.icon_color);
+                $('.color-option').removeClass('selected');
+                $(`.color-option[data-color="${resource.icon_color}"]`).addClass('selected');
+            }
+
+            // Show Notice
+            $('#importNotice').removeClass('d-none');
+            $('#sourceUpdateAlert').addClass('d-none'); // Hide update alert as we just imported fresh content
+            $('#importTitle').text(resource.title);
+
+            // Handle Image Preview
+            if ((resource.type === 'image' || resource.type === 'image_hover') && resource.thumb_url) {
+                const previewContainer = $('#importedImagePreview');
+                previewContainer.removeClass('d-none');
+                previewContainer.find('img').attr('src', resource.thumb_url);
+                $('input[name="image"]').prop('disabled', true).addClass('d-none'); // Hide input
+            } else {
+                $('#importedImagePreview').addClass('d-none');
+                $('input[name="image"]').prop('disabled', false).removeClass('d-none');
+            }
+
+            // Handle Video Preview
+            if ((resource.type === 'video' || resource.type === 'video_hover') && resource.video_url) {
+                const videoContainer = $('#importedVideoPreview');
+                videoContainer.removeClass('d-none');
+                videoContainer.find('video').attr('src', resource.video_url);
+                $('input[name="video"]').prop('disabled', true).addClass('d-none');
+            } else {
+                $('#importedVideoPreview').addClass('d-none');
+                $('input[name="video"]').prop('disabled', false).removeClass('d-none');
+            }
+
+            // Trigger type change to update UI
+            updateFormFields();
+
+            // Close Library Modal
+            bootstrap.Modal.getInstance(document.getElementById('resourceLibraryModal')).hide();
+        };
+
+        window.clearImport = function () {
+            // Clear the reference
+            $('#refHotspotId').val('');
+            $('#refResourceType').val(''); // Clear the reference type restriction
+            $('#importNotice').addClass('d-none');
+            $('#sourceUpdateAlert').addClass('d-none'); // Hide source update alert
+
+            $('#importedImagePreview').addClass('d-none');
+            $('input[name="image"]').prop('disabled', false).removeClass('d-none');
+
+            $('#importedVideoPreview').addClass('d-none');
+            $('#importedVideoPreview video').attr('src', ''); // Stop playback
+            $('input[name="video"]').prop('disabled', false).removeClass('d-none');
+
+            // Do NOT reset the form here, as it clears the hotspot_id and other user edits
+            // $('#addHotspotForm')[0].reset();
+
+            // 重新設置 clear_source，因為 reset 會清除它 (雖然現在移除了 reset，但保持這行無害)
+            $('#clearSourceInput').val('true');
+
+            // Trigger type change to update UI (unlock options)
+            updateFormFields();
+        };
+    </script>
+</body>
+
+</html>
