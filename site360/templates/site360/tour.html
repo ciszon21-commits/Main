@@ -994,42 +994,7 @@
                     });
 
                     // Double click event for adding hotspots
-                    document.getElementById('panorama').addEventListener('dblclick', function (event) {
-                        if (!isEditMode) return;
-                        const coords = viewer.mouseEventToCoords(event);
-                        $('#sceneIdInput').val(viewer.getScene());
-                        $('#pitchInput').val(coords[0]);
-                        $('#yawInput').val(coords[1]);
 
-                        $('#hotspotIdInput').val('');
-                        $('#hotspotIdInput').val('');
-                        $('#addHotspotForm')[0].reset();
-                        $('#clearSourceInput').val(''); // Ensure clear flag is reset on new
-
-
-                        // Clear media previews to prevent persisting from previous uploads
-                        $('#importedImagePreview').addClass('d-none').find('img').attr('src', '');
-                        $('#importedVideoPreview').addClass('d-none').find('video').attr('src', '');
-
-                        // Clear import/reference information from previous edits
-                        $('#importNotice').addClass('d-none');
-                        $('#refHotspotId').val('');
-
-                        // Clear source update alert from previous edits
-                        $('#sourceUpdateAlert').addClass('d-none');
-
-                        $('#addHotspotModal .modal-title').text('新增熱點');
-                        $('input[name="icon"][value="fas fa-info-circle"]').prop('checked', true);
-
-                        $('#iconColorInput').val('#ffffff');
-                        $('.color-option').removeClass('selected');
-                        $('.color-option[data-color="#ffffff"]').addClass('selected');
-
-                        updateFormFields();
-                        const modalEl = document.getElementById('addHotspotModal');
-                        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                        modal.show();
-                    });
                 })
                 .catch(error => {
                     console.error('Error:', error);
@@ -1372,6 +1337,51 @@
             $('#iconColorInput').val(color);
         });
 
+        // Global Double Click Handler for Adding Hotspots
+        document.getElementById('panorama').addEventListener('dblclick', function (event) {
+            if (!isEditMode || !viewer) return;
+
+            // Explicitly clear the current hotspot ID to prevent overwriting previous edits
+            currentHotspotId = null;
+
+            const coords = viewer.mouseEventToCoords(event);
+            $('#sceneIdInput').val(viewer.getScene());
+            $('#pitchInput').val(coords[0]);
+            $('#yawInput').val(coords[1]);
+
+            // Clear form inputs
+            $('#hotspotIdInput').val('');
+            $('#addHotspotForm')[0].reset();
+            $('#clearSourceInput').val('');
+
+            // Clear media previews
+            $('#importedImagePreview').addClass('d-none').find('img').attr('src', '');
+            $('#importedVideoPreview').addClass('d-none').find('video').attr('src', '');
+
+            // Clear import/reference information
+            $('#importNotice').addClass('d-none');
+            $('#refHotspotId').val('');
+            $('#refResourceType').val(''); // Reset reference type restriction
+
+            // Clear source update alert
+            $('#sourceUpdateAlert').addClass('d-none');
+
+            $('#addHotspotModal .modal-title').text('新增熱點');
+            $('input[name="icon"][value="fas fa-info-circle"]').prop('checked', true);
+
+            $('#iconColorInput').val('#ffffff');
+            $('.color-option').removeClass('selected');
+            $('.color-option[data-color="#ffffff"]').addClass('selected');
+
+            // Reset type select enable state (in case it was restricted by import)
+            $('#typeSelect option').prop('disabled', false);
+
+            updateFormFields();
+            const modalEl = document.getElementById('addHotspotModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        });
+
         loadTour();
 
         $(document).on('mousedown mouseup click touchstart touchend pointerdown pointerup mousemove', '.video-wrapper video', function (e) {
@@ -1447,7 +1457,10 @@
 
                 const matchProject = !projectFilter || r.project_name === projectFilter;
 
-                return matchSearch && matchType && matchProject;
+                // Exclude current hotspot (self)
+                const isSelf = currentHotspotId && String(r.id) === String(currentHotspotId);
+
+                return matchSearch && matchType && matchProject && !isSelf;
             });
 
             if (filtered.length === 0) {
