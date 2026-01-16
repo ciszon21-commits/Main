@@ -308,3 +308,116 @@ def search_data(request):
         }, status=500)
 
 
+@csrf_exempt
+@require_http_methods(["POST"])
+def upload_csv(request):
+    """
+    處理 CSV 檔案上傳，解析資料並回傳風玫瑰圖資料
+    
+    CSV 格式：Year, Month, Day, WS (m/s), WD (360 degree)
+    """
+    import csv
+    import io
+    
+    try:
+        # 檢查是否有上傳檔案
+        if 'file' not in request.FILES:
+            return JsonResponse({
+                'success': False,
+                'error': '請選擇要上傳的 CSV 檔案'
+            }, status=400)
+        
+        uploaded_file = request.FILES['file']
+        
+        # 檢查檔案類型
+        if not uploaded_file.name.endswith('.csv'):
+            return JsonResponse({
+                'success': False,
+                'error': '請上傳 CSV 格式的檔案'
+            }, status=400)
+        
+        # 讀取檔案內容
+        file_content = uploaded_file.read().decode('utf-8-sig')  # 處理 BOM
+        csv_reader = csv.reader(io.StringIO(file_content))
+        
+        # 跳過表頭
+        header = next(csv_reader, None)
+        if header is None:
+            return JsonResponse({
+                'success': False,
+                'error': 'CSV 檔案為空'
+            }, status=400)
+        
+        # 解析資料
+        all_reports = []
+        for row in csv_reader:
+            if len(row) < 5:
+                continue
+            try:
+                year = int(row[0])
+                month = int(row[1])
+                day = int(row[2])
+                ws = row[3].strip()
+                wd = row[4].strip()
+                
+                # 跳過無效資料
+                if ws in ['', '-', 'N/A'] or wd in ['', '-', 'N/A']:
+                    continue
+                
+                all_reports.append({
+                    'wind_speed': float(ws),
+                    'wind_direction': float(wd),
+                    'year': year,
+                    'month': month,
+                    'day': day
+                })
+            except (ValueError, IndexError):
+                continue
+        
+        if not all_reports:
+            return JsonResponse({
+                'success': False,
+                'error': '無法從 CSV 檔案中解析有效資料'
+            }, status=400)
+        
+        # 計算年份範圍
+        years = [r['year'] for r in all_reports]
+        start_year = min(years)
+        end_year = max(years)
+        
+        # 處理整體風玫瑰資料
+        wind_rose_data = process_wind_rose_data(all_reports)
+        
+        # 處理季度資料
+        def get_quarter_reports(reports, months):
+            return [r for r in reports if r.get('month') in months]
+        
+        q1_reports = get_quarter_reports(all_reports, [1, 2, 3])
+        q2_reports = get_quarter_reports(all_reports, [4, 5, 6])
+        q3_reports = get_quarter_reports(all_reports, [7, 8, 9])
+        q4_reports = get_quarter_reports(all_reports, [10, 11, 12])
+        
+        q1_data = process_wind_rose_data(q1_reports) if q1_reports else None
+        q2_data = process_wind_rose_data(q2_reports) if q2_reports else None
+        q3_data = process_wind_rose_data(q3_reports) if q3_reports else None
+        q4_data = process_wind_rose_data(q4_reports) if q4_reports else None
+        
+        return JsonResponse({
+            'success': True,
+            'type': 'complete',
+            'station': uploaded_file.name.replace('.csv', ''),
+            'start_year': start_year,
+            'end_year': end_year,
+            'wind_rose_data': wind_rose_data,
+            'q1_data': q1_data,
+            'q2_data': q2_data,
+            'q3_data': q3_data,
+            'q4_data': q4_data
+        })
+        
+    except Exception as e:
+        logger.error(f"處理 CSV 上傳時發生錯誤: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': f'處理檔案時發生錯誤: {str(e)}'
+        }, status=500)
