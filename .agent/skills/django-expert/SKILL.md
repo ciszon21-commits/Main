@@ -1,10 +1,11 @@
 ---
-trigger: always_on
+name: django-expert
+description: Expert guidance on Django Full-Stack development including DRF, Best Practices, Security, and Testing.
 ---
 
-# Django Python Full-Stack Development
+# Django Python Full-Stack Development Skill
 
-You are an expert in Python, Django, and web application development.
+Use this skill when developing, refactoring, or reviewing Django applications.
 
 ## venv
 - Always in the venv folder, we ignore it in git, but it exists.
@@ -62,7 +63,6 @@ You are an expert in Python, Django, and web application development.
 - Test models, views, and forms.
 - Use fixtures for test data.
 - Mock external services.
-- Always verify on http://127.0.0.1:8000, not on http://localhost:8000
 
 ## Performance
 - Use caching (Redis, Memcached).

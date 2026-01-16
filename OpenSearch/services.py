@@ -38,15 +38,15 @@ def get_index_categories():
         'sinobook': {'name': '圖書', 'icon': '📚', 'indices': [], 'pattern': 'sinobook*'},
         'sino_map': {'name': '地理圖資', 'icon': '🗺️', 'indices': [], 'pattern': 'sino_map*'},
         'sinoqa': {'name': '工程問題與對策', 'icon': '❓', 'indices': [], 'pattern': 'sinoqa*'},
-        'sino_kmv1': {'name': '技術文件 V1', 'icon': '📄', 'indices': [], 'pattern': 'sino_kmv1*'},
-        'sino_kmv2': {'name': '技術文件 V2', 'icon': '📑', 'indices': [], 'pattern': 'sino_kmv2*'},
+        'sino_kmv1': {'name': '技術文件', 'icon': '📄', 'indices': [], 'pattern': 'sino_kmv1*'},
+        'sino_kmv2': {'name': '組織知識', 'icon': '📑', 'indices': [], 'pattern': 'sino_kmv2*'},
         'sino_budget': {'name': '預算書', 'icon': '💰', 'indices': [], 'pattern': 'sino_budget*'},
         'sino_spec': {'name': '施工規範', 'icon': '📋', 'indices': [], 'pattern': 'sino_spec*'},
         'sino_cns': {'name': 'CNS 標準', 'icon': '📐', 'indices': [], 'pattern': 'sino_cns*'},
-        'sinopmis_meeting': {'name': '會議紀錄', 'icon': '🗣️', 'indices': [], 'pattern': 'sinopmis_meeting*'},
-        'sinopmis_file': {'name': 'PMIS 檔案', 'icon': '📁', 'indices': [], 'pattern': 'sinopmis_file*'},
-        'sinopmis_iobook_in': {'name': '收文', 'icon': '📥', 'indices': [], 'pattern': 'sinopmis_iobook_in*'},
-        'sinopmis_iobook_out': {'name': '發文', 'icon': '📤', 'indices': [], 'pattern': 'sinopmis_iobook_out*'},
+        # 'sinopmis_meeting': {'name': '會議紀錄', 'icon': '🗣️', 'indices': [], 'pattern': 'sinopmis_meeting*'},
+        # 'sinopmis_file': {'name': 'PMIS 檔案', 'icon': '📁', 'indices': [], 'pattern': 'sinopmis_file*'},
+        # 'sinopmis_iobook_in': {'name': '收文', 'icon': '📥', 'indices': [], 'pattern': 'sinopmis_iobook_in*'},
+        # 'sinopmis_iobook_out': {'name': '發文', 'icon': '📤', 'indices': [], 'pattern': 'sinopmis_iobook_out*'},
         'sinoproject-dept': {'name': '部門封存', 'icon': '🏢', 'indices': [], 'pattern': 'sinoproject-dept*'},
         'sinoproject-early': {'name': '結案光碟', 'icon': '💿', 'indices': [], 'pattern': 'sinoproject-early*'},
         'sinoproject': {'name': '計畫封存', 'icon': '📦', 'indices': [], 'pattern': 'sinoproject*'},
@@ -356,7 +356,7 @@ def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, d
             index=search_indices,
             body=body,
             ignore_unavailable=True,
-            request_timeout=120
+            request_timeout=300
         )
         return response
     except Exception as e:
