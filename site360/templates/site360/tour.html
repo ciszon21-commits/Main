@@ -1457,7 +1457,10 @@
 
                 const matchProject = !projectFilter || r.project_name === projectFilter;
 
-                return matchSearch && matchType && matchProject;
+                // Exclude current hotspot (self)
+                const isSelf = currentHotspotId && String(r.id) === String(currentHotspotId);
+
+                return matchSearch && matchType && matchProject && !isSelf;
             });
 
             if (filtered.length === 0) {
