@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 import json
+import math
 
 
 class CharacterClass(models.Model):
@@ -143,9 +144,11 @@ class UserProfile(models.Model):
         return f"{self.user.username} - {self.character_class.name} Lv.{self.level}"
     
     def get_total_hp(self):
-        """計算總 HP（基礎隨等級成長 + 裝備加成）"""
-        # 基礎 HP：3 + 每 10 級多 1 點
-        base_hp = 3 + (self.level // 10)
+        """計算總 HP（基礎隨等級成長 + 裝備加成）
+        公式：50 + floor((Lv - 1) * 0.5)
+        """
+        # 基礎 HP
+        base_hp = 50 + math.floor((self.level - 1) * 0.5)
         
         # 裝備加成
         equipment_bonus = 0
@@ -158,9 +161,11 @@ class UserProfile(models.Model):
         return base_hp + equipment_bonus
 
     def get_total_mp(self):
-        """計算總 MP（基礎隨等級成長 + 裝備加成）"""
-        # 基礎 MP：100 + 每級多 20 點
-        base_mp = 100 + (self.level - 1) * 20
+        """計算總 MP（基礎隨等級成長 + 裝備加成）
+        公式：100 + (Lv - 1) * 2
+        """
+        # 基礎 MP
+        base_mp = 100 + (self.level - 1) * 2
         
         # 裝備加成
         equipment_bonus = 0

@@ -17,18 +17,9 @@
         <div class="status-bars mt-md">
             <div class="hp-container">
                 <span class="status-label"><i class="fas fa-heart text-danger"></i> HP</span>
-                <div class="hp-hearts" id="hpDisplay">
-                    {% for i in heart_range %}
-                    {% if forloop.counter <= base_hp %} {# 基礎 HP - 紅色 #} {% if forloop.counter <=initial_hp %} <i
-                        class="fas fa-heart text-danger heart-icon heart-base" data-heart="{{ forloop.counter }}"></i>
-                        {% else %}
-                        <i class="far fa-heart text-stone heart-icon heart-base" data-heart="{{ forloop.counter }}"></i>
-                        {% endif %}
-                        {% elif forloop.counter <= initial_hp %} {# 裝備加成 HP - 金色 #} <i
-                            class="fas fa-heart text-warning heart-icon heart-bonus" data-heart="{{ forloop.counter }}">
-                            </i>
-                            {% endif %}
-                            {% endfor %}
+                <div class="hp-bar-bg">
+                    <div class="hp-bar-fill" id="hpBar" style="width: {% widthratio initial_hp base_hp 100 %}%;">{{
+                        initial_hp }}/{{ base_hp }}</div>
                 </div>
             </div>
             <div class="mp-container">
@@ -164,6 +155,7 @@
     const trialId = {{ trial.id }};
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
     let currentHP = {{ initial_hp }};
+    const maxHP = {{ base_hp }};
 
     // 倒數計時
     const timeLimitMinutes = {{ trial.time_limit_minutes }};
@@ -259,42 +251,19 @@
 
     // 更新 HP 顯示
     function updateHPDisplay(hp) {
-        console.log('updateHPDisplay called with HP:', hp); // Debug
-        const hpDisplay = document.getElementById('hpDisplay');
-        console.log('hpDisplay element:', hpDisplay); // Debug
+        const hpBar = document.getElementById('hpBar');
+        const percentage = Math.max(0, Math.min(100, (hp / maxHP) * 100));
+        hpBar.style.width = `${percentage}%`;
+        hpBar.textContent = `${hp}/${maxHP}`;
 
-        const hearts = hpDisplay.querySelectorAll('.heart-icon');
-        console.log('Found hearts:', hearts.length); // Debug
-
-        hearts.forEach((heart, index) => {
-            console.log(`Heart ${index + 1}: current HP = ${hp}`); // Debug
-            const isBase = heart.classList.contains('heart-base');
-            const isBonus = heart.classList.contains('heart-bonus');
-            console.log(`Heart ${index + 1}: isBase=${isBase}, isBonus=${isBonus}`); // Debug
-
-            if (index < hp) {
-                // 填滿的心 - 保持原本的顏色
-                if (isBase) {
-                    heart.className = 'fas fa-heart text-danger heart-icon heart-base';
-                    console.log(`Heart ${index + 1}: FILLED RED (BASE)`); // Debug
-                } else if (isBonus) {
-                    heart.className = 'fas fa-heart text-warning heart-icon heart-bonus';
-                    console.log(`Heart ${index + 1}: FILLED GOLD (BONUS)`); // Debug
-                }
-            } else {
-                // 空心 - 保持原本的類型但變空心
-                if (isBase) {
-                    heart.className = 'far fa-heart text-stone heart-icon heart-base heart-lost';
-                    console.log(`Heart ${index + 1}: EMPTY (BASE)`); // Debug
-                } else if (isBonus) {
-                    heart.className = 'far fa-heart text-stone heart-icon heart-bonus heart-lost';
-                    console.log(`Heart ${index + 1}: EMPTY (BONUS)`); // Debug
-                }
-            }
-        });
+        // 顏色變化 (低血量警示)
+        if (percentage <= 20) {
+            hpBar.style.background = 'linear-gradient(90deg, #dc3545, #8b0000)';
+        } else {
+            hpBar.style.background = 'linear-gradient(90deg, #28a745, #1e7e34)';
+        }
 
         currentHP = hp;
-        console.log('HP display updated. Current HP:', currentHP); // Debug
     }
 
     // 下一題按鈕
@@ -633,39 +602,27 @@
         gap: 5px;
     }
 
-    .hp-hearts {
+    .hp-bar-bg {
+        width: 150px;
+        height: 16px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid var(--color-stone);
+        position: relative;
+    }
+
+    .hp-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #28a745, #1e7e34);
+        font-size: 0.7rem;
+        color: #fff;
+        font-weight: bold;
         display: flex;
-        gap: 5px;
-        font-size: 1.2rem;
-    }
-
-    .heart-base {
-        /* 基礎 HP - 紅色 */
-        color: #dc3545 !important;
-    }
-
-    .heart-bonus {
-        /* 裝備加成 HP - 金色 */
-        color: #ffd700 !important;
-        text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
-    }
-
-    .heart-lost {
-        animation: heartBreak 0.5s ease;
-    }
-
-    @keyframes heartBreak {
-        0% {
-            transform: scale(1);
-        }
-
-        50% {
-            transform: scale(1.3) rotate(10deg);
-        }
-
-        100% {
-            transform: scale(1) rotate(0deg);
-        }
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        transition: width 0.3s ease, background 0.3s ease;
     }
 
     .mp-bar-bg {
