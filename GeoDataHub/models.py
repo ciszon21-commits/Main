@@ -375,3 +375,54 @@ class GeoDataView(models.Model):
 
     def __str__(self):
         return f"{self.user or 'Anonymous'} - {self.source.title}"
+class GeoSyncLog(models.Model):
+    """資料同步執行日誌"""
+    
+    class TaskType(models.TextChoices):
+        METADATA_SYNC = 'metadata_sync', '元數據同步 (OpenSearch -> DB)'
+        LOCATION_RESOLVE = 'location_resolve', '地理位置解析 (地址/圖號 -> 座標)'
+        CLEANUP = 'cleanup', '資料清理與維護'
+        
+    class Status(models.TextChoices):
+        PENDING = 'pending', '等待中'
+        RUNNING = 'running', '執行中'
+        SUCCESS = 'success', '已完成'
+        PARTIAL = 'partial', '部分完成'
+        FAILED = 'failed', '失敗'
+        CANCELLED = 'cancelled', '已取消'
+
+    task_type = models.CharField(max_length=50, choices=TaskType.choices, verbose_name='任務類型')
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, verbose_name='狀態')
+    
+    # 指標記錄
+    total_expected = models.IntegerField(default=0, verbose_name='預期總數')
+    processed_count = models.IntegerField(default=0, verbose_name='已處理數')
+    created_count = models.IntegerField(default=0, verbose_name='新增數')
+    updated_count = models.IntegerField(default=0, verbose_name='更新數')
+    error_count = models.IntegerField(default=0, verbose_name='錯誤數')
+    skipped_count = models.IntegerField(default=0, verbose_name='跳過數')
+    
+    # 執行時間
+    start_time = models.DateTimeField(auto_now_add=True, verbose_name='開始時間')
+    end_time = models.DateTimeField(null=True, blank=True, verbose_name='結束時間')
+    
+    # 詳細記錄
+    log_details = models.JSONField(default=dict, blank=True, verbose_name='詳細記錄')
+    error_message = models.TextField(blank=True, verbose_name='錯誤訊息')
+
+    class Meta:
+        verbose_name = '資料同步日誌'
+        verbose_name_plural = '資料同步日誌'
+        ordering = ['-start_time']
+
+    def __str__(self):
+        return f"{self.get_task_type_display()} - {self.get_status_display()} ({self.start_time})"
+
+    def update_progress(self, processed=0, created=0, updated=0, error=0, skipped=0):
+        """同步進度更新"""
+        self.processed_count += processed
+        self.created_count += created
+        self.updated_count += updated
+        self.error_count += error
+        self.skipped_count += skipped
+        self.save()

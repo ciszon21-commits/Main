@@ -138,6 +138,9 @@ class GeocodingService:
                     'source': 'ArcGIS'
                 }
             return None
+        except (requests.ConnectionError, requests.Timeout) as e:
+            # ArcGIS connection issues - silent failure
+            return None
         except requests.RequestException as e:
             # ArcGIS is generally stable, but silence common network issues
             if not (e.response is not None and e.response.status_code in [503, 404]):
@@ -176,6 +179,9 @@ class GeocodingService:
                     'confidence': 0.9,
                     'source': 'TGOS'
                 }
+            return None
+        except (requests.ConnectionError, requests.Timeout) as e:
+            # TGOS connection issues - silent failure
             return None
         except requests.RequestException as e:
             # TGOS is known to have 404/503 issues, silence them
@@ -232,6 +238,9 @@ class GeocodingService:
                 }
             return None
             
+        except (requests.ConnectionError, requests.Timeout) as e:
+            # Nominatim connection issues - silent failure
+            return None
         except requests.RequestException as e:
             # Nominatim often returns 503 when over rate limit, silence it
             if not (e.response is not None and e.response.status_code in [503, 429]):
@@ -799,104 +808,187 @@ class OpenSearchMappingService:
     """
     
     def __init__(self):
-        from .models import GeoDataSource, GeoCategory, GeoLocation
+        from .models import GeoDataSource, GeoCategory, GeoLocation, GeoSyncLog
         from OpenSearch.services import get_client
         self.GeoDataSource = GeoDataSource
         self.GeoCategory = GeoCategory
         self.GeoLocation = GeoLocation
+        self.GeoSyncLog = GeoSyncLog
         self.get_client = get_client
         self.geocoder = GeocodingService()
         self.grid_service = MapGridService()
 
-    def sync_sino_maps(self, limit: int = 0, batch_size: int = 1000) -> Dict:
+    def sync_sino_maps_two_stage(self, mode='full', limit=0, batch_size=100) -> Dict:
         """
-        從 OpenSearch sino_map 索引同步資料 (優化 12萬筆大規模同步)
+        兩階段大規模同步：
+        mode='metadata': 僅擷取 OpenSearch 資料，不進行地理編碼
+        mode='location': 針對資料庫中位置為空的項目進行地理編碼解析
+        mode='full': 循序執行兩階段
         """
-        from opensearchpy.helpers import scan
-        from decimal import Decimal
-        client = self.get_client()
+        results = {}
         
-        # 確保分類存在
-        category, _ = self.GeoCategory.objects.get_or_create(
-            name="地理圖資",
-            defaults={'icon': '🗺️', 'color': '#2E7D32'}
-        )
-        
-        # 1. 預載現有 ID 到記憶體 (O(1) 略過已同步資料)
-        print("正在載入現有資料 ID...")
-        existing_ids = set(self.GeoDataSource.objects.filter(
-            opensearch_index='sino_map'
-        ).values_list('opensearch_doc_id', flat=True))
-        print(f"目前資料庫已有 {len(existing_ids)} 筆資料。")
-        
-        # 2. 開始滾動搜尋
-        query = {'query': {'match_all': {}}}
-        scanner = scan(
-            client,
-            index='sino_map',
-            query=query,
-            size=batch_size,
-            scroll='10m'
-        )
-        
-        new_items = []
-        processed_count = 0
-        skipped_count = 0
-        created_count = 0
-        
-        print("開始從 OpenSearch 同步資料...")
-        
-        for hit in scanner:
-            processed_count += 1
-            doc_id = hit['_id']
+        if mode in ['metadata', 'full']:
+            results['metadata_stage'] = self._stage_metadata_sync(limit, batch_size)
             
-            # 略過已存在的資料
-            if doc_id in existing_ids:
-                skipped_count += 1
-            else:
-                source = hit['_source']
-                # 準備新資料模型
-                ds = self.GeoDataSource(
-                    opensearch_index='sino_map',
-                    opensearch_doc_id=doc_id,
-                    title=source.get('title', '未命名圖資'),
-                    description=source.get('content', ''),
-                    source_type='opensearch',
-                    category=category,
-                    metadata=source,
-                    is_visible=True
-                )
-                
-                # 嘗試解析位置
-                location = self._resolve_location(source)
-                if location:
-                    ds.location = location
-                
-                new_items.append(ds)
-                
-                # 達到批次量則寫入
-                if len(new_items) >= batch_size:
-                    self.GeoDataSource.objects.bulk_create(new_items)
-                    created_count += len(new_items)
-                    new_items = []
-                    print(f"進度: 已掃描 {processed_count} 筆, 新增 {created_count} 筆...")
+        if mode in ['location', 'full']:
+            # 即使第一階段沒跑，也可以單獨跑位置解析
+            results['location_stage'] = self._stage_location_resolve(limit, batch_size)
+            
+        return results
 
-            # 檢查總量限制 (如果有設)
-            if limit and processed_count >= limit:
-                break
-        
-        # 處理剩餘的資料
-        if new_items:
-            self.GeoDataSource.objects.bulk_create(new_items)
-            created_count += len(new_items)
+    def _stage_metadata_sync(self, limit=0, batch_size=100) -> Dict:
+        """第一階段：從 OpenSearch 快速擷取元數據"""
+        from opensearchpy.helpers import scan
+        from django.db import transaction
+        from django.utils import timezone
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # 建立日誌
+        sync_log = self.GeoSyncLog.objects.create(
+            task_type=self.GeoSyncLog.TaskType.METADATA_SYNC,
+            status=self.GeoSyncLog.Status.RUNNING
+        )
+
+        try:
+            client = self.get_client()
+            category, _ = self.GeoCategory.objects.get_or_create(
+                name="地理圖資",
+                defaults={'icon': '🗺️', 'color': '#2E7D32'}
+            )
+
+            # 預載現有 ID
+            existing_ids = set(self.GeoDataSource.objects.filter(
+                opensearch_index='sino_map'
+            ).values_list('opensearch_doc_id', flat=True))
             
-        print(f"同步完成! 總計處理: {processed_count}, 新增: {created_count}, 略過: {skipped_count}")
-        
-        return {
-            'total_processed': processed_count,
-            'new_created': created_count,
-            'skipped': skipped_count
-        }
+            query = {'query': {'match_all': {}}}
+            scanner = scan(
+                client,
+                index='sino_map',
+                query=query,
+                size=batch_size,
+                scroll='15m',
+                clear_scroll=False
+            )
+
+            new_items = []
+            processed = 0
+            created = 0
+            skipped = 0
+            
+            for hit in scanner:
+                processed += 1
+                doc_id = hit['_id']
+                
+                if doc_id in existing_ids:
+                    skipped += 1
+                else:
+                    source = hit['_source']
+                    ds = self.GeoDataSource(
+                        opensearch_index='sino_map',
+                        opensearch_doc_id=doc_id,
+                        title=source.get('title') or source.get('filename', '未命名圖資'),
+                        description=source.get('content', ''),
+                        source_type='opensearch',
+                        category=category,
+                        metadata=source,
+                        is_visible=True
+                    )
+                    new_items.append(ds)
+                    
+                    if len(new_items) >= batch_size:
+                        with transaction.atomic():
+                            self.GeoDataSource.objects.bulk_create(new_items)
+                        created += len(new_items)
+                        new_items = []
+                        sync_log.update_progress(processed=batch_size, created=batch_size)
+
+                if limit and processed >= limit:
+                    break
+
+            if new_items:
+                with transaction.atomic():
+                    self.GeoDataSource.objects.bulk_create(new_items)
+                created += len(new_items)
+                sync_log.update_progress(processed=len(new_items), created=len(new_items))
+
+            sync_log.status = self.GeoSyncLog.Status.SUCCESS
+            sync_log.end_time = timezone.now()
+            sync_log.save()
+            
+            return {'status': 'success', 'created': created, 'processed': processed}
+
+        except Exception as e:
+            sync_log.status = self.GeoSyncLog.Status.FAILED
+            sync_log.error_message = str(e)
+            sync_log.end_time = timezone.now()
+            sync_log.save()
+            logger.error(f"Metadata Sync Failed: {e}")
+            return {'status': 'failed', 'error': str(e)}
+
+    def _stage_location_resolve(self, limit=0, batch_size=100) -> Dict:
+        """第二階段：背景解析位置座標"""
+        from django.db import transaction
+        from django.utils import timezone
+        import logging
+        logger = logging.getLogger(__name__)
+
+        sync_log = self.GeoSyncLog.objects.create(
+            task_type=self.GeoSyncLog.TaskType.LOCATION_RESOLVE,
+            status=self.GeoSyncLog.Status.RUNNING
+        )
+
+        try:
+            # 找出尚未解析位置的資料 (限 OpenSearch 匯入的)
+            pending_sources = self.GeoDataSource.objects.filter(
+                location__isnull=True,
+                opensearch_index='sino_map'
+            )
+            
+            if limit:
+                pending_sources = pending_sources[:limit]
+            
+            sync_log.total_expected = pending_sources.count()
+            sync_log.save()
+
+            processed = 0
+            updated = 0
+            errors = 0
+            
+            # 使用 iterator 減少記憶體消耗
+            for ds in pending_sources.iterator(chunk_size=batch_size):
+                processed += 1
+                try:
+                    location = self._resolve_location(ds.metadata)
+                    if location:
+                        ds.location = location
+                        ds.save(update_fields=['location'])
+                        updated += 1
+                    
+                    if processed % 10 == 0:
+                        sync_log.update_progress(processed=10, updated=updated-sync_log.updated_count)
+                        
+                except Exception as e:
+                    errors += 1
+                    logger.warning(f"Failed to resolve location for {ds.id}: {e}")
+
+            sync_log.status = self.GeoSyncLog.Status.SUCCESS
+            sync_log.end_time = timezone.now()
+            sync_log.save()
+            
+            return {'status': 'success', 'updated': updated, 'processed': processed}
+
+        except Exception as e:
+            sync_log.status = self.GeoSyncLog.Status.FAILED
+            sync_log.error_message = str(e)
+            sync_log.end_time = timezone.now()
+            sync_log.save()
+            return {'status': 'failed', 'error': str(e)}
+
+    def sync_sino_maps(self, limit: int = 0, batch_size: int = 1000) -> Dict:
+        """保留舊有的同步介面，但轉向兩階段實作"""
+        return self.sync_sino_maps_two_stage(mode='full', limit=limit, batch_size=batch_size)
 
     def _resolve_location(self, source: dict):
         """嘗試從多種途徑解析位置"""
