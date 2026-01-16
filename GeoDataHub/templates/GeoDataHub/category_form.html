@@ -1,0 +1,173 @@
+{% extends "SinoTemplate/base.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}編輯{% else %}新增{% endif %}分類 - GeoDataHub{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'GeoDataHub/css/styles.css' %}">
+<style>
+    .category-form-page {
+        min-height: 100vh;
+        background-color: var(--pixel-bg-light);
+        padding: var(--pixel-spacing-lg);
+    }
+    
+    .icon-preview {
+        font-size: 48px;
+        padding: var(--pixel-spacing-md);
+        background: var(--pixel-bg-card);
+        border: 4px solid #000;
+        text-align: center;
+        margin-bottom: var(--pixel-spacing-md);
+    }
+    
+    .color-input-wrapper {
+        display: flex;
+        gap: var(--pixel-spacing-sm);
+        align-items: center;
+    }
+    
+    .color-input-wrapper input[type="color"] {
+        width: 60px;
+        height: 40px;
+        padding: 0;
+        border: 4px solid #000;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<body class="pixel-art category-form-page">
+    <div style="max-width: 600px; margin: 0 auto;">
+        <div class="pixel-card">
+            <div class="pixel-card__header">
+                <a href="{% url 'geodatahub:category_manage' %}" class="pixel-btn pixel-btn--sm" style="margin-right: 12px;">←</a>
+                {% if is_edit %}✏️ 編輯分類{% else %}📂 新增分類{% endif %}
+            </div>
+            
+            <div class="pixel-card__body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <!-- 圖示預覽 -->
+                    <div class="icon-preview" id="icon-preview">
+                        {{ form.instance.icon|default:"📍" }}
+                    </div>
+                    
+                    <div class="pixel-form-group">
+                        <label class="pixel-label">圖示 (Emoji) *</label>
+                        <input type="text" 
+                               name="icon" 
+                               id="icon-input"
+                               class="pixel-input" 
+                               value="{{ form.instance.icon|default:'📍' }}"
+                               placeholder="📍"
+                               maxlength="10"
+                               required>
+                        <small class="pixel-text-sm" style="color: var(--pixel-text-muted);">
+                            輸入 Emoji 或複製貼上 (例如: 📍🗺️📊🏗️)
+                        </small>
+                    </div>
+                    
+                    <div class="pixel-form-group">
+                        <label class="pixel-label">名稱 *</label>
+                        <input type="text" 
+                               name="name" 
+                               class="pixel-input" 
+                               value="{{ form.instance.name|default:'' }}"
+                               placeholder="分類名稱"
+                               required>
+                    </div>
+                    
+                    <div class="pixel-form-group">
+                        <label class="pixel-label">顏色 *</label>
+                        <div class="color-input-wrapper">
+                            <input type="color" 
+                                   name="color" 
+                                   id="color-input"
+                                   value="{{ form.instance.color|default:'#0000FF' }}">
+                            <input type="text" 
+                                   id="color-text"
+                                   class="pixel-input" 
+                                   value="{{ form.instance.color|default:'#0000FF' }}"
+                                   pattern="^#[0-9A-Fa-f]{6}$"
+                                   placeholder="#0000FF"
+                                   style="width: 120px;">
+                        </div>
+                    </div>
+                    
+                    <div class="pixel-form-group">
+                        <label class="pixel-label">說明</label>
+                        <textarea name="description" 
+                                  class="pixel-textarea" 
+                                  rows="3"
+                                  placeholder="分類說明...">{{ form.instance.description|default:'' }}</textarea>
+                    </div>
+                    
+                    <div class="pixel-form-group">
+                        <label class="pixel-label">OpenSearch 索引模式</label>
+                        <input type="text" 
+                               name="opensearch_pattern" 
+                               class="pixel-input" 
+                               value="{{ form.instance.opensearch_pattern|default:'' }}"
+                               placeholder="sinoproject*">
+                        <small class="pixel-text-sm" style="color: var(--pixel-text-muted);">
+                            對應的 OpenSearch 索引，可使用萬用字元 *
+                        </small>
+                    </div>
+                    
+                    <div class="pixel-form-group">
+                        <label class="pixel-label">排序</label>
+                        <input type="number" 
+                               name="sort_order" 
+                               class="pixel-input" 
+                               value="{{ form.instance.sort_order|default:0 }}"
+                               min="0"
+                               style="width: 100px;">
+                    </div>
+                    
+                    <div class="pixel-form-group">
+                        <label>
+                            <input type="checkbox" 
+                                   name="is_active" 
+                                   {% if form.instance.is_active or not is_edit %}checked{% endif %}>
+                            <span class="pixel-text">啟用此分類</span>
+                        </label>
+                    </div>
+                    
+                    <hr style="border: 2px dashed #000; margin: var(--pixel-spacing-lg) 0;">
+                    
+                    <div class="pixel-flex pixel-gap-md" style="justify-content: center;">
+                        <a href="{% url 'geodatahub:category_manage' %}" class="pixel-btn pixel-btn--secondary">取消</a>
+                        <button type="submit" class="pixel-btn pixel-btn--success">
+                            {% if is_edit %}💾 儲存變更{% else %}✅ 建立分類{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 圖示即時預覽
+        document.getElementById('icon-input').addEventListener('input', function(e) {
+            document.getElementById('icon-preview').textContent = e.target.value || '📍';
+        });
+        
+        // 顏色選擇同步
+        const colorInput = document.getElementById('color-input');
+        const colorText = document.getElementById('color-text');
+        
+        colorInput.addEventListener('input', function() {
+            colorText.value = this.value.toUpperCase();
+        });
+        
+        colorText.addEventListener('input', function() {
+            if (/^#[0-9A-Fa-f]{6}$/.test(this.value)) {
+                colorInput.value = this.value;
+            }
+        });
+    </script>
+</body>
+{% endblock %}

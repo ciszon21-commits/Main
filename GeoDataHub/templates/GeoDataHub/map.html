@@ -1,0 +1,490 @@
+{% extends "GeoDataHub/base.html" %}
+{% load static %}
+
+{% block title %}GeoDataHub - 地圖資料平台{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<header class="ls-header">
+    <a href="{% url 'geodatahub:map' %}" class="ls-header__logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+        </svg>
+        GeoDataHub
+    </a>
+    
+    <!-- Search -->
+    <div class="ls-header__search">
+        <input type="text" 
+               id="search-keyword" 
+               class="ls-input" 
+               placeholder="搜尋關鍵字...">
+    </div>
+    
+    <nav class="ls-header__nav">
+        <a href="{% url 'geodatahub:source_list' %}" class="ls-btn ls-btn--ghost ls-btn--sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            列表
+        </a>
+        {% if user.is_authenticated %}
+        <a href="{% url 'geodatahub:source_create' %}" class="ls-btn ls-btn--primary ls-btn--sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            新增
+        </a>
+        {% endif %}
+        {% if user.is_superuser %}
+        <a href="{% url 'geodatahub:category_manage' %}" class="ls-btn ls-btn--ghost ls-btn--sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            管理
+        </a>
+        {% endif %}
+    </nav>
+</header>
+
+<!-- Map Container -->
+<div class="ls-map-container">
+    <!-- Sidebar -->
+    <aside class="ls-sidebar">
+        <div class="ls-sidebar__title">資料分類</div>
+        
+        <ul class="ls-nav-list" id="category-list">
+            <li class="ls-nav-item ls-nav-item--active" data-category="">
+                <span class="ls-nav-item__icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="2" y1="12" x2="22" y2="12"/>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                    </svg>
+                </span>
+                <span>全部資料</span>
+                <span class="ls-nav-item__badge" id="total-count">0</span>
+            </li>
+            {% for cat in categories %}
+            <li class="ls-nav-item" data-category="{{ cat.id }}">
+                <span class="ls-nav-item__icon">{{ cat.icon }}</span>
+                <span>{{ cat.name }}</span>
+                <span class="ls-nav-item__badge" data-count-cat="{{ cat.id }}">{{ cat.source_count }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        
+        <!-- Source Type Filter -->
+        <div class="ls-sidebar__title" style="margin-top: auto;">來源類型</div>
+        <ul class="ls-nav-list" id="source-type-list">
+            <li class="ls-nav-item ls-nav-item--active" data-source-type="">
+                <span class="ls-nav-item__icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                    </svg>
+                </span>
+                全部類型
+            </li>
+            <li class="ls-nav-item" data-source-type="upload">
+                <span class="ls-nav-item__icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                </span>
+                上傳檔案
+            </li>
+            <li class="ls-nav-item" data-source-type="link">
+                <span class="ls-nav-item__icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                    </svg>
+                </span>
+                外部連結
+            </li>
+            <li class="ls-nav-item" data-source-type="opensearch">
+                <span class="ls-nav-item__icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                </span>
+                OpenSearch
+            </li>
+        </ul>
+    </aside>
+    
+    <!-- Main Map Area -->
+    <main class="ls-map-main">
+        <div id="map" class="ls-map-wrapper"></div>
+        
+        <!-- Result Panel -->
+        <div class="ls-result-panel" id="result-panel" style="display: none;">
+            <div class="ls-result-header">
+                <span class="ls-result-header__title">搜尋結果</span>
+                <span class="ls-result-count" id="result-count">0</span>
+                <button class="ls-btn ls-btn--ghost ls-btn--icon" onclick="closeResultPanel()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="ls-result-list" id="result-list"></div>
+        </div>
+    </main>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+<script>
+    // ============================================
+    // GeoDataHub Map Application
+    // ============================================
+    
+    const CONFIG = {
+        defaultCenter: [{{ default_center.lat }}, {{ default_center.lng }}],
+        defaultZoom: {{ default_center.zoom }},
+        apiBase: '{% url "geodatahub:api_search" %}',
+        countApi: '{% url "geodatahub:api_count" %}',
+        geocodeApi: '{% url "geodatahub:api_geocode" %}',
+        detailUrl: '{% url "geodatahub:source_detail" pk=0 %}'.replace('0', '')
+    };
+    
+    // State
+    let map;
+    let markersLayer;
+    let drawnItems;
+    let currentCategory = '';
+    let currentSourceType = '';
+    let currentKeyword = '';
+    let currentBounds = null;
+    
+    // Initialize Map
+    function initMap() {
+        // Light map tiles (CartoDB Positron)
+        const lightTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        });
+        
+        map = L.map('map', {
+            center: CONFIG.defaultCenter,
+            zoom: CONFIG.defaultZoom,
+            zoomControl: true,
+            layers: [lightTiles]
+        });
+        
+        // Marker Cluster Layer
+        markersLayer = L.markerClusterGroup({
+            chunkedLoading: true,
+            maxClusterRadius: 50,
+            iconCreateFunction: function(cluster) {
+                const count = cluster.getChildCount();
+                let size = count >= 100 ? 48 : count >= 10 ? 40 : 32;
+                
+                return L.divIcon({
+                    html: `<div style="
+                        background: linear-gradient(135deg, #2563EB, #3B82F6);
+                        color: white;
+                        border-radius: 50%;
+                        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+                        font-family: 'Inter', sans-serif;
+                        font-size: 12px;
+                        font-weight: 600;
+                        width: ${size}px;
+                        height: ${size}px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    ">${count}</div>`,
+                    className: 'ls-cluster-icon',
+                    iconSize: L.point(size, size)
+                });
+            }
+        });
+        map.addLayer(markersLayer);
+        
+        // Draw Controls
+        drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+        
+        const drawControl = new L.Control.Draw({
+            position: 'topleft',
+            draw: {
+                polyline: false,
+                polygon: false,
+                circle: false,
+                circlemarker: false,
+                marker: false,
+                rectangle: {
+                    shapeOptions: {
+                        color: '#2563EB',
+                        weight: 2,
+                        opacity: 0.8,
+                        fillOpacity: 0.1
+                    }
+                }
+            },
+            edit: {
+                featureGroup: drawnItems,
+                remove: true
+            }
+        });
+        map.addControl(drawControl);
+        
+        // Draw Events
+        map.on(L.Draw.Event.CREATED, function(e) {
+            drawnItems.clearLayers();
+            drawnItems.addLayer(e.layer);
+            
+            const bounds = e.layer.getBounds();
+            currentBounds = {
+                north: bounds.getNorth(),
+                south: bounds.getSouth(),
+                east: bounds.getEast(),
+                west: bounds.getWest()
+            };
+            
+            searchInBounds();
+        });
+        
+        map.on(L.Draw.Event.DELETED, function() {
+            currentBounds = null;
+            document.getElementById('result-panel').style.display = 'none';
+        });
+        
+        // Map Move Event
+        map.on('moveend', function() {
+            updateCategoryCounts();
+        });
+        
+        // Initial Load
+        loadAllMarkers();
+        updateCategoryCounts();
+    }
+    
+    // Load All Markers
+    function loadAllMarkers() {
+        const bounds = map.getBounds();
+        
+        fetch(`${CONFIG.apiBase}?` + new URLSearchParams({
+            north: bounds.getNorth(),
+            south: bounds.getSouth(),
+            east: bounds.getEast(),
+            west: bounds.getWest(),
+            category: currentCategory,
+            source_type: currentSourceType,
+            keyword: currentKeyword,
+            page_size: 500
+        }))
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                displayMarkers(data.items);
+                document.getElementById('total-count').textContent = data.count;
+            }
+        })
+        .catch(err => console.error('Error loading markers:', err));
+    }
+    
+    // Display Markers
+    function displayMarkers(items) {
+        markersLayer.clearLayers();
+        
+        items.forEach(item => {
+            if (!item.location) return;
+            
+            const color = item.category?.color || '#2563EB';
+            
+            // Modern marker style
+            const modernIcon = L.divIcon({
+                html: `<div style="
+                    background: ${color};
+                    width: 14px;
+                    height: 14px;
+                    border-radius: 50%;
+                    border: 2px solid white;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+                "></div>`,
+                className: 'ls-marker',
+                iconSize: [14, 14],
+                iconAnchor: [7, 7],
+                popupAnchor: [0, -10]
+            });
+            
+            const marker = L.marker([item.location.lat, item.location.lng], {icon: modernIcon});
+            
+            // Popup Content
+            const popupContent = `
+                <div class="ls-popup">
+                    <div class="ls-popup__title">${item.title}</div>
+                    ${item.category ? `<div class="ls-popup__category">${item.category.icon} ${item.category.name}</div>` : ''}
+                    ${item.location.address ? `<div class="ls-popup__address">${item.location.address}</div>` : ''}
+                    <div class="ls-popup__actions">
+                        <a href="${CONFIG.detailUrl}${item.id}/" class="ls-btn ls-btn--primary ls-btn--sm">查看詳情</a>
+                    </div>
+                </div>
+            `;
+            
+            marker.bindPopup(popupContent);
+            markersLayer.addLayer(marker);
+        });
+    }
+    
+    // Search In Bounds
+    function searchInBounds() {
+        if (!currentBounds) return;
+        
+        fetch(`${CONFIG.apiBase}?` + new URLSearchParams({
+            north: currentBounds.north,
+            south: currentBounds.south,
+            east: currentBounds.east,
+            west: currentBounds.west,
+            category: currentCategory,
+            source_type: currentSourceType,
+            keyword: currentKeyword,
+            page_size: 100
+        }))
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                displayResults(data);
+            }
+        });
+    }
+    
+    // Display Results
+    function displayResults(data) {
+        const panel = document.getElementById('result-panel');
+        const list = document.getElementById('result-list');
+        const count = document.getElementById('result-count');
+        
+        count.textContent = data.count;
+        
+        if (data.count === 0) {
+            list.innerHTML = '<div class="ls-empty"><div class="ls-empty__icon">🔍</div><div>找不到資料</div></div>';
+        } else {
+            list.innerHTML = data.items.map(item => `
+                <div class="ls-result-item" onclick="flyToItem(${item.location?.lat}, ${item.location?.lng}, ${item.id})">
+                    <div class="ls-result-item__title">
+                        ${item.category?.icon || '📍'} ${item.title}
+                    </div>
+                    <div class="ls-result-item__desc">${item.description || ''}</div>
+                    <div class="ls-result-item__meta">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        ${item.view_count} 次瀏覽
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        panel.style.display = 'flex';
+    }
+    
+    // Update Category Counts
+    function updateCategoryCounts() {
+        const bounds = map.getBounds();
+        
+        fetch(`{% url 'geodatahub:api_categories' %}?` + new URLSearchParams({
+            north: bounds.getNorth(),
+            south: bounds.getSouth(),
+            east: bounds.getEast(),
+            west: bounds.getWest()
+        }))
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                let total = 0;
+                data.categories.forEach(cat => {
+                    const badge = document.querySelector(`[data-count-cat="${cat.id}"]`);
+                    if (badge) {
+                        badge.textContent = cat.count;
+                    }
+                    total += cat.count;
+                });
+                document.getElementById('total-count').textContent = total;
+            }
+        });
+    }
+    
+    // Fly To Item
+    function flyToItem(lat, lng, id) {
+        if (lat && lng) {
+            map.flyTo([lat, lng], 15);
+        }
+    }
+    
+    // Close Result Panel
+    function closeResultPanel() {
+        document.getElementById('result-panel').style.display = 'none';
+        drawnItems.clearLayers();
+        currentBounds = null;
+    }
+    
+    // Category Selection
+    document.getElementById('category-list').addEventListener('click', function(e) {
+        const item = e.target.closest('.ls-nav-item');
+        if (!item) return;
+        
+        this.querySelectorAll('.ls-nav-item').forEach(i => i.classList.remove('ls-nav-item--active'));
+        item.classList.add('ls-nav-item--active');
+        
+        currentCategory = item.dataset.category || '';
+        loadAllMarkers();
+        
+        if (currentBounds) {
+            searchInBounds();
+        }
+    });
+    
+    // Source Type Selection
+    document.getElementById('source-type-list').addEventListener('click', function(e) {
+        const item = e.target.closest('.ls-nav-item');
+        if (!item) return;
+        
+        this.querySelectorAll('.ls-nav-item').forEach(i => i.classList.remove('ls-nav-item--active'));
+        item.classList.add('ls-nav-item--active');
+        
+        currentSourceType = item.dataset.sourceType || '';
+        loadAllMarkers();
+        
+        if (currentBounds) {
+            searchInBounds();
+        }
+    });
+    
+    // Keyword Search
+    let searchTimeout;
+    document.getElementById('search-keyword').addEventListener('input', function(e) {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            currentKeyword = e.target.value.trim();
+            loadAllMarkers();
+            
+            if (currentBounds) {
+                searchInBounds();
+            }
+        }, 500);
+    });
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', initMap);
+</script>
+{% endblock %}

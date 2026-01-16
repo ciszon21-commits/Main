@@ -1,0 +1,403 @@
+{% extends "SinoTemplate/base.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}編輯{% else %}新增{% endif %}資料 - GeoDataHub{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'GeoDataHub/css/styles.css' %}">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    .source-form-page {
+        min-height: 100vh;
+        background-color: var(--pixel-bg-light);
+        padding: var(--pixel-spacing-lg);
+    }
+    
+    .source-form-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--pixel-spacing-lg);
+    }
+    
+    @media (max-width: 900px) {
+        .source-form-container {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .form-section {
+        margin-bottom: var(--pixel-spacing-lg);
+    }
+    
+    .map-picker {
+        height: 400px;
+        border: 4px solid #000;
+        box-shadow: 8px 8px 0 #000;
+    }
+    
+    .coordinate-display {
+        font-family: var(--font-pixel-body);
+        font-size: 16px;
+        padding: var(--pixel-spacing-sm);
+        background: var(--pixel-bg-card);
+        border: 2px solid #000;
+        margin-top: var(--pixel-spacing-sm);
+    }
+    
+    /* 來源類型切換 */
+    .source-type-fields {
+        display: none;
+    }
+    
+    .source-type-fields.active {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<body class="pixel-art source-form-page">
+    <div class="pixel-card" style="max-width: 1200px; margin: 0 auto;">
+        <div class="pixel-card__header">
+            <a href="{% url 'geodatahub:map' %}" class="pixel-btn pixel-btn--sm" style="margin-right: 16px;">← 返回</a>
+            {% if is_edit %}✏️ 編輯資料{% else %}📍 新增地理資料{% endif %}
+        </div>
+        
+        <div class="pixel-card__body">
+            <form method="post" enctype="multipart/form-data" id="source-form">
+                {% csrf_token %}
+                
+                <div class="source-form-container">
+                    <!-- 左側：表單欄位 -->
+                    <div>
+                        <div class="form-section">
+                            <h3 class="pixel-heading pixel-h3">基本資訊</h3>
+                            
+                            <div class="pixel-form-group">
+                                <label class="pixel-label">標題 *</label>
+                                {{ form.title }}
+                            </div>
+                            
+                            <div class="pixel-form-group">
+                                <label class="pixel-label">描述</label>
+                                {{ form.description }}
+                            </div>
+                            
+                            <div class="pixel-form-group">
+                                <label class="pixel-label">來源類型 *</label>
+                                {{ form.source_type }}
+                            </div>
+                            
+                            <div class="pixel-form-group">
+                                <label class="pixel-label">分類</label>
+                                {{ form.category }}
+                            </div>
+                        </div>
+                        
+                        <!-- 上傳檔案 (source_type = upload) -->
+                        <div class="form-section source-type-fields" id="fields-upload">
+                            <h3 class="pixel-heading pixel-h3">📤 上傳檔案</h3>
+                            
+                            <div class="pixel-form-group">
+                                <label class="pixel-label">選擇檔案</label>
+                                {{ form.file }}
+                            </div>
+                            
+                            <div class="pixel-form-group">
+                                <label class="pixel-label">縮圖 (可選)</label>
+                                {{ form.thumbnail }}
+                            </div>
+                        </div>
+                        
+                        <!-- 外部連結 (source_type = link) -->
+                        <div class="form-section source-type-fields" id="fields-link">
+                            <h3 class="pixel-heading pixel-h3">🔗 外部連結</h3>
+                            
+                            <div class="pixel-form-group">
+                                <label class="pixel-label">連結 URL</label>
+                                {{ form.external_url }}
+                            </div>
+                        </div>
+                        
+                        <!-- OpenSearch 參考 (source_type = opensearch) -->
+                        <div class="form-section source-type-fields" id="fields-opensearch">
+                            <h3 class="pixel-heading pixel-h3">🔍 OpenSearch 參考</h3>
+                            
+                            <div class="pixel-form-group">
+                                <label class="pixel-label">索引名稱</label>
+                                {{ form.opensearch_index }}
+                            </div>
+                            
+                            <div class="pixel-form-group">
+                                <label class="pixel-label">文件 ID</label>
+                                {{ form.opensearch_doc_id }}
+                            </div>
+                        </div>
+                        
+                        <!-- 標籤 -->
+                        <div class="form-section">
+                            <h3 class="pixel-heading pixel-h3">🏷️ 標籤</h3>
+                            
+                            <div class="pixel-form-group">
+                                <label class="pixel-label">選擇標籤</label>
+                                {{ form.tags }}
+                            </div>
+                            
+                            <div class="pixel-form-group">
+                                <label class="pixel-label">新增標籤</label>
+                                {{ form.new_tags }}
+                                <small style="font-family: var(--font-pixel-body);">以逗號分隔多個標籤</small>
+                            </div>
+                        </div>
+                        
+                        <!-- 狀態 -->
+                        <div class="form-section">
+                            <h3 class="pixel-heading pixel-h3">📊 狀態</h3>
+                            
+                            <div class="pixel-form-group">
+                                <label>
+                                    {{ form.is_visible }}
+                                    <span class="pixel-text">公開顯示</span>
+                                </label>
+                            </div>
+                            
+                            <div class="pixel-form-group">
+                                <label>
+                                    {{ form.is_featured }}
+                                    <span class="pixel-text">設為精選</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 右側：地圖標記 -->
+                    <div>
+                        <div class="form-section">
+                            <h3 class="pixel-heading pixel-h3">📍 地理位置</h3>
+                            
+                            <!-- 地址搜尋 -->
+                            <div class="pixel-form-group">
+                                <label class="pixel-label">地址搜尋</label>
+                                <div class="pixel-flex pixel-gap-sm">
+                                    <input type="text" 
+                                           id="address-search" 
+                                           class="pixel-input" 
+                                           placeholder="輸入地址...">
+                                    <button type="button" 
+                                            id="search-btn" 
+                                            class="pixel-btn">
+                                        搜尋
+                                    </button>
+                                </div>
+                                <div id="geocode-status" class="pixel-status" style="display: none;"></div>
+                            </div>
+                            
+                            <!-- 地圖 -->
+                            <div id="location-map" class="map-picker"></div>
+                            
+                            <!-- 座標顯示 -->
+                            <div class="coordinate-display">
+                                <strong>座標：</strong>
+                                <span id="coord-display">尚未選取</span>
+                            </div>
+                            
+                            <!-- 隱藏欄位 -->
+                            <input type="hidden" name="latitude" id="latitude" value="{{ location_form.instance.latitude|default:'' }}">
+                            <input type="hidden" name="longitude" id="longitude" value="{{ location_form.instance.longitude|default:'' }}">
+                            
+                            <!-- 地址資訊 -->
+                            <div class="pixel-form-group pixel-mt-md">
+                                <label class="pixel-label">地址</label>
+                                <input type="text" name="address" id="address" class="pixel-input" 
+                                       value="{{ location_form.instance.address|default:'' }}"
+                                       placeholder="詳細地址">
+                            </div>
+                            
+                            <div class="pixel-flex pixel-gap-sm">
+                                <div class="pixel-form-group" style="flex: 1;">
+                                    <label class="pixel-label">城市</label>
+                                    <input type="text" name="city" id="city" class="pixel-input"
+                                           value="{{ location_form.instance.city|default:'' }}">
+                                </div>
+                                <div class="pixel-form-group" style="flex: 1;">
+                                    <label class="pixel-label">區域</label>
+                                    <input type="text" name="district" id="district" class="pixel-input"
+                                           value="{{ location_form.instance.district|default:'' }}">
+                                </div>
+                            </div>
+                            
+                            <div class="pixel-form-group">
+                                <label class="pixel-label">國家</label>
+                                <input type="text" name="country" id="country" class="pixel-input"
+                                       value="{{ location_form.instance.country|default:'台灣' }}">
+                            </div>
+                            
+                            <div class="pixel-form-group">
+                                <label>
+                                    <input type="checkbox" name="is_manually_adjusted" id="is_manually_adjusted"
+                                           {% if location_form.instance.is_manually_adjusted %}checked{% endif %}>
+                                    <span class="pixel-text">已手動調整座標</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 提交按鈕 -->
+                <div class="pixel-flex pixel-gap-md" style="justify-content: center; margin-top: var(--pixel-spacing-lg);">
+                    <a href="{% url 'geodatahub:map' %}" class="pixel-btn pixel-btn--secondary">取消</a>
+                    <button type="submit" class="pixel-btn pixel-btn--success pixel-btn--lg">
+                        {% if is_edit %}💾 儲存變更{% else %}✅ 建立資料{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // ============================================
+        // 地圖標記功能
+        // ============================================
+        
+        let map;
+        let marker;
+        
+        // 初始座標
+        const initialLat = {{ location_form.instance.latitude|default:"23.6978" }};
+        const initialLng = {{ location_form.instance.longitude|default:"120.9605" }};
+        const hasInitial = {{ location_form.instance.pk|yesno:"true,false" }};
+        
+        function initMap() {
+            map = L.map('location-map').setView([initialLat, initialLng], hasInitial ? 15 : 7);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // 如果有初始座標，放置標記
+            if (hasInitial) {
+                placeMarker(initialLat, initialLng);
+            }
+            
+            // 點擊地圖放置標記
+            map.on('click', function(e) {
+                placeMarker(e.latlng.lat, e.latlng.lng);
+                document.getElementById('is_manually_adjusted').checked = true;
+            });
+        }
+        
+        function placeMarker(lat, lng) {
+            // 移除舊標記
+            if (marker) {
+                map.removeLayer(marker);
+            }
+            
+            // 像素風格標記
+            const pixelIcon = L.divIcon({
+                html: `<div style="
+                    background: #FF0000;
+                    border: 3px solid #000;
+                    box-shadow: 4px 4px 0 #000;
+                    width: 24px;
+                    height: 24px;
+                "></div>`,
+                className: 'pixel-marker',
+                iconSize: [24, 24],
+                iconAnchor: [12, 24]
+            });
+            
+            marker = L.marker([lat, lng], {
+                icon: pixelIcon,
+                draggable: true
+            }).addTo(map);
+            
+            // 拖拽標記
+            marker.on('dragend', function(e) {
+                const pos = e.target.getLatLng();
+                updateCoordinates(pos.lat, pos.lng);
+                document.getElementById('is_manually_adjusted').checked = true;
+            });
+            
+            updateCoordinates(lat, lng);
+        }
+        
+        function updateCoordinates(lat, lng) {
+            document.getElementById('latitude').value = lat.toFixed(8);
+            document.getElementById('longitude').value = lng.toFixed(8);
+            document.getElementById('coord-display').textContent = 
+                `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        }
+        
+        // 地址搜尋
+        document.getElementById('search-btn').addEventListener('click', function() {
+            const address = document.getElementById('address-search').value.trim();
+            if (!address) return;
+            
+            const status = document.getElementById('geocode-status');
+            status.style.display = 'block';
+            status.className = 'pixel-status';
+            status.textContent = '搜尋中...';
+            
+            fetch('{% url "geodatahub:api_geocode" %}?' + new URLSearchParams({
+                address: address
+            }))
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const result = data.result;
+                    placeMarker(result.latitude, result.longitude);
+                    map.setView([result.latitude, result.longitude], 16);
+                    
+                    // 填入地址欄位
+                    document.getElementById('address').value = result.display_name || address;
+                    
+                    status.className = 'pixel-status pixel-status--success';
+                    status.textContent = `✓ 找到位置 (信心度: ${Math.round(result.confidence * 100)}%)`;
+                } else {
+                    status.className = 'pixel-status pixel-status--error';
+                    status.textContent = '✗ ' + (data.error || '找不到位置');
+                }
+            })
+            .catch(err => {
+                status.className = 'pixel-status pixel-status--error';
+                status.textContent = '✗ 搜尋失敗';
+            });
+        });
+        
+        // Enter 鍵觸發搜尋
+        document.getElementById('address-search').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('search-btn').click();
+            }
+        });
+        
+        // 來源類型切換
+        function updateSourceTypeFields() {
+            const sourceType = document.getElementById('id_source_type').value;
+            
+            document.querySelectorAll('.source-type-fields').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            const targetFields = document.getElementById('fields-' + sourceType);
+            if (targetFields) {
+                targetFields.classList.add('active');
+            }
+        }
+        
+        document.getElementById('id_source_type').addEventListener('change', updateSourceTypeFields);
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            updateSourceTypeFields();
+        });
+    </script>
+</body>
+{% endblock %}

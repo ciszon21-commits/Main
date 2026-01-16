@@ -1,0 +1,177 @@
+{% extends "SinoTemplate/base.html" %}
+{% load static %}
+
+{% block title %}快速標記 - GeoDataHub{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'GeoDataHub/css/styles.css' %}">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    .map-mark-page {
+        height: 100vh;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        display: flex;
+    }
+    
+    .mark-sidebar {
+        width: 400px;
+        flex-shrink: 0;
+        background: var(--pixel-bg-light);
+        border-right: 4px solid #000;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+    
+    .mark-map {
+        flex: 1;
+        position: relative;
+    }
+    
+    #map {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<body class="pixel-art map-mark-page">
+    <!-- 左側表單 -->
+    <aside class="mark-sidebar">
+        <div class="pixel-panel__title">
+            <a href="{% url 'geodatahub:map' %}" class="pixel-btn pixel-btn--sm" style="margin-right: 8px;">←</a>
+            📍 快速標記
+        </div>
+        
+        <div style="padding: var(--pixel-spacing-md);">
+            <form id="mark-form" method="post" action="{% url 'geodatahub:source_create' %}">
+                {% csrf_token %}
+                
+                <div class="pixel-form-group">
+                    <label class="pixel-label">標題 *</label>
+                    <input type="text" name="title" class="pixel-input" required placeholder="資料標題">
+                </div>
+                
+                <div class="pixel-form-group">
+                    <label class="pixel-label">分類</label>
+                    <select name="category" class="pixel-select">
+                        <option value="">選擇分類</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}">{{ cat.icon }} {{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="pixel-form-group">
+                    <label class="pixel-label">來源類型</label>
+                    <select name="source_type" class="pixel-select">
+                        <option value="upload">📤 使用者上傳</option>
+                        <option value="link">🔗 外部連結</option>
+                        <option value="opensearch">🔍 OpenSearch</option>
+                    </select>
+                </div>
+                
+                <div class="pixel-form-group">
+                    <label class="pixel-label">描述</label>
+                    <textarea name="description" class="pixel-textarea" rows="3" placeholder="資料描述..."></textarea>
+                </div>
+                
+                <hr style="border: 2px dashed #000; margin: var(--pixel-spacing-md) 0;">
+                
+                <div class="pixel-form-group">
+                    <label class="pixel-label">📍 位置 (點擊地圖選取)</label>
+                    <div id="coord-display" class="pixel-text" style="padding: 8px; background: var(--pixel-bg-card); border: 2px solid #000;">
+                        尚未選取
+                    </div>
+                </div>
+                
+                <input type="hidden" name="latitude" id="latitude">
+                <input type="hidden" name="longitude" id="longitude">
+                
+                <div class="pixel-form-group">
+                    <label class="pixel-label">地址</label>
+                    <input type="text" name="address" id="address" class="pixel-input" placeholder="地址">
+                </div>
+                
+                <div class="pixel-form-group">
+                    <input type="hidden" name="country" value="台灣">
+                    <input type="hidden" name="is_visible" value="on">
+                </div>
+                
+                <div class="pixel-flex pixel-gap-sm" style="margin-top: var(--pixel-spacing-lg);">
+                    <button type="submit" class="pixel-btn pixel-btn--success" style="flex: 1;">
+                        ✅ 儲存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </aside>
+    
+    <!-- 右側地圖 -->
+    <main class="mark-map">
+        <div id="map"></div>
+        
+        <div style="position: absolute; top: 16px; left: 16px; z-index: 1000;">
+            <div class="pixel-card" style="padding: var(--pixel-spacing-sm);">
+                <span class="pixel-text">🖱️ 點擊地圖選取位置</span>
+            </div>
+        </div>
+    </main>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map;
+        let marker;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            map = L.map('map').setView([23.6978, 120.9605], 7);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OSM'
+            }).addTo(map);
+            
+            map.on('click', function(e) {
+                placeMarker(e.latlng.lat, e.latlng.lng);
+            });
+        });
+        
+        function placeMarker(lat, lng) {
+            if (marker) map.removeLayer(marker);
+            
+            const icon = L.divIcon({
+                html: `<div style="background:#FF0000;border:3px solid #000;box-shadow:4px 4px 0 #000;width:24px;height:24px;"></div>`,
+                className: 'pixel-marker',
+                iconSize: [24, 24],
+                iconAnchor: [12, 24]
+            });
+            
+            marker = L.marker([lat, lng], {icon: icon, draggable: true}).addTo(map);
+            
+            marker.on('dragend', function(e) {
+                const pos = e.target.getLatLng();
+                updateCoords(pos.lat, pos.lng);
+            });
+            
+            updateCoords(lat, lng);
+            
+            // 反向地理編碼
+            fetch('{% url "geodatahub:api_reverse_geocode" %}?lat=' + lat + '&lng=' + lng)
+                .then(r => r.json())
+                .then(d => {
+                    if (d.success && d.result.display_name) {
+                        document.getElementById('address').value = d.result.display_name.substring(0, 200);
+                    }
+                });
+        }
+        
+        function updateCoords(lat, lng) {
+            document.getElementById('latitude').value = lat.toFixed(8);
+            document.getElementById('longitude').value = lng.toFixed(8);
+            document.getElementById('coord-display').textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        }
+    </script>
+</body>
+{% endblock %}

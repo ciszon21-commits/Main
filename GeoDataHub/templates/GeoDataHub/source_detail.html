@@ -1,0 +1,217 @@
+{% extends "SinoTemplate/base.html" %}
+{% load static %}
+
+{% block title %}{{ source.title }} - GeoDataHub{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'GeoDataHub/css/styles.css' %}">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    .source-detail-page {
+        min-height: 100vh;
+        background-color: var(--pixel-bg-light);
+        padding: var(--pixel-spacing-lg);
+    }
+    
+    .detail-container {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    
+    .detail-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: var(--pixel-spacing-lg);
+    }
+    
+    @media (max-width: 768px) {
+        .detail-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .detail-map {
+        height: 300px;
+        border: 4px solid #000;
+        box-shadow: 8px 8px 0 #000;
+    }
+    
+    .tag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--pixel-spacing-sm);
+    }
+    
+    .tag-item {
+        font-family: var(--font-pixel-heading);
+        font-size: 8px;
+        padding: 4px 12px;
+        background: var(--pixel-primary);
+        color: var(--pixel-text-light);
+        border: 2px solid #000;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<body class="pixel-art source-detail-page">
+    <div class="detail-container">
+        <!-- 返回導覽 -->
+        <div style="margin-bottom: var(--pixel-spacing-md);">
+            <a href="{% url 'geodatahub:map' %}" class="pixel-btn pixel-btn--sm">← 返回地圖</a>
+            <a href="{% url 'geodatahub:source_list' %}" class="pixel-btn pixel-btn--sm">📋 列表</a>
+        </div>
+        
+        <!-- 主要內容 -->
+        <div class="pixel-card">
+            <div class="pixel-card__header">
+                {% if source.category %}
+                <span style="background: {{ source.category.color }}; color: white; padding: 4px 12px; border: 2px solid #000; margin-right: 12px;">
+                    {{ source.category.icon }} {{ source.category.name }}
+                </span>
+                {% endif %}
+                {{ source.title }}
+            </div>
+            
+            <div class="pixel-card__body">
+                <div class="detail-grid">
+                    <!-- 左側：內容 -->
+                    <div>
+                        {% if source.thumbnail %}
+                        <div style="margin-bottom: var(--pixel-spacing-md);">
+                            <img src="{{ source.thumbnail.url }}" 
+                                 alt="{{ source.title }}"
+                                 style="max-width: 100%; border: 4px solid #000;">
+                        </div>
+                        {% endif %}
+                        
+                        <div class="pixel-text" style="margin-bottom: var(--pixel-spacing-lg);">
+                            {{ source.description|linebreaks }}
+                        </div>
+                        
+                        {% if source.tags.exists %}
+                        <div style="margin-bottom: var(--pixel-spacing-md);">
+                            <label class="pixel-label">🏷️ 標籤</label>
+                            <div class="tag-list">
+                                {% for tag in source.tags.all %}
+                                <span class="tag-item">{{ tag.name }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- 來源連結 -->
+                        {% if source.source_type == 'upload' and source.file %}
+                        <div class="pixel-form-group">
+                            <label class="pixel-label">📤 下載檔案</label>
+                            <a href="{{ source.file.url }}" class="pixel-btn" download>
+                                💾 {{ source.file.name|truncatechars:30 }}
+                            </a>
+                        </div>
+                        {% endif %}
+                        
+                        {% if source.source_type == 'link' and source.external_url %}
+                        <div class="pixel-form-group">
+                            <label class="pixel-label">🔗 外部連結</label>
+                            <a href="{{ source.external_url }}" class="pixel-btn" target="_blank" rel="noopener">
+                                🌐 開啟連結
+                            </a>
+                        </div>
+                        {% endif %}
+                        
+                        {% if source.source_type == 'opensearch' %}
+                        <div class="pixel-form-group">
+                            <label class="pixel-label">🔍 OpenSearch 資料</label>
+                            <div class="pixel-text">
+                                索引：{{ source.opensearch_index }}<br>
+                                文件 ID：{{ source.opensearch_doc_id }}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 右側：地圖和中繼資料 -->
+                    <div>
+                        {% if source.location %}
+                        <div class="pixel-form-group">
+                            <label class="pixel-label">📍 位置</label>
+                            <div id="detail-map" class="detail-map"></div>
+                            {% if source.location.address %}
+                            <div class="pixel-text pixel-mt-sm">
+                                {{ source.location.address }}
+                            </div>
+                            {% endif %}
+                            <div class="pixel-text-sm pixel-mt-sm" style="color: var(--pixel-text-muted);">
+                                座標：{{ source.location.latitude }}, {{ source.location.longitude }}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="pixel-form-group">
+                            <label class="pixel-label">📊 統計</label>
+                            <div class="pixel-text">
+                                👁 瀏覽次數：{{ source.view_count }}<br>
+                                📅 建立時間：{{ source.created_at|date:"Y/m/d H:i" }}<br>
+                                ✏️ 更新時間：{{ source.updated_at|date:"Y/m/d H:i" }}<br>
+                                {% if source.created_by %}
+                                👤 建立者：{{ source.created_by.get_full_name|default:source.created_by.username }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        {% if source.metadata %}
+                        <div class="pixel-form-group">
+                            <label class="pixel-label">📋 中繼資料</label>
+                            <pre class="pixel-text" style="font-size: 14px; background: var(--pixel-bg-panel); padding: 8px; border: 2px solid #000; overflow-x: auto;">{{ source.metadata|pprint }}</pre>
+                        </div>
+                        {% endif %}
+                        
+                        {% if user.is_authenticated and source.created_by == user %}
+                        <div class="pixel-mt-lg">
+                            <a href="{% url 'geodatahub:source_update' source.pk %}" class="pixel-btn pixel-btn--warning">
+                                ✏️ 編輯
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if source.location %}
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const lat = {{ source.location.latitude }};
+            const lng = {{ source.location.longitude }};
+            
+            const map = L.map('detail-map').setView([lat, lng], 15);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            const pixelIcon = L.divIcon({
+                html: `<div style="
+                    background: {{ source.category.color|default:'#FF0000' }};
+                    border: 3px solid #000;
+                    box-shadow: 4px 4px 0 #000;
+                    font-size: 16px;
+                    width: 32px;
+                    height: 32px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">{{ source.category.icon|default:'📍' }}</div>`,
+                className: 'pixel-marker',
+                iconSize: [32, 32],
+                iconAnchor: [16, 32]
+            });
+            
+            L.marker([lat, lng], {icon: pixelIcon}).addTo(map);
+        });
+    </script>
+    {% endif %}
+</body>
+{% endblock %}

@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     'Inlet_Design',
     'DroneReservation',
     'OpenSearch',  # OpenSearch 搜尋引擎
+    'GeoDataHub',  # 地圖導向資料管理平台
 ] + local.STAGE_INSTALLED_APPS
 
 

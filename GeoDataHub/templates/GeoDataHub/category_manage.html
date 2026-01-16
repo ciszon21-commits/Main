@@ -1,0 +1,119 @@
+{% extends "SinoTemplate/base.html" %}
+{% load static %}
+
+{% block title %}分類管理 - GeoDataHub{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'GeoDataHub/css/styles.css' %}">
+<style>
+    .category-manage-page {
+        min-height: 100vh;
+        background-color: var(--pixel-bg-light);
+        padding: var(--pixel-spacing-lg);
+    }
+    
+    .category-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: var(--font-pixel-body);
+    }
+    
+    .category-table th {
+        font-family: var(--font-pixel-heading);
+        font-size: 10px;
+        text-align: left;
+        padding: var(--pixel-spacing-sm) var(--pixel-spacing-md);
+        background: var(--pixel-primary);
+        color: white;
+        border: 2px solid #000;
+    }
+    
+    .category-table td {
+        padding: var(--pixel-spacing-sm) var(--pixel-spacing-md);
+        border: 2px solid #000;
+        background: white;
+    }
+    
+    .category-table tr:hover td {
+        background: var(--pixel-accent);
+    }
+    
+    .color-preview {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        border: 2px solid #000;
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<body class="pixel-art category-manage-page">
+    <div style="max-width: 1000px; margin: 0 auto;">
+        <!-- 頁首 -->
+        <div class="pixel-card" style="margin-bottom: var(--pixel-spacing-lg);">
+            <div class="pixel-flex" style="justify-content: space-between; align-items: center;">
+                <h1 class="pixel-heading pixel-h2" style="margin: 0;">
+                    <a href="{% url 'geodatahub:map' %}" style="text-decoration: none; color: inherit;">📍</a>
+                    分類管理
+                </h1>
+                <div class="pixel-flex pixel-gap-sm">
+                    <a href="{% url 'geodatahub:map' %}" class="pixel-btn pixel-btn--sm">← 返回地圖</a>
+                    <a href="{% url 'geodatahub:category_create' %}" class="pixel-btn pixel-btn--success">+ 新增分類</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 分類列表 -->
+        <div class="pixel-card">
+            {% if categories %}
+            <table class="category-table">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">排序</th>
+                        <th style="width: 60px;">圖示</th>
+                        <th>名稱</th>
+                        <th style="width: 80px;">顏色</th>
+                        <th>OpenSearch 模式</th>
+                        <th style="width: 80px;">狀態</th>
+                        <th style="width: 80px;">資料數</th>
+                        <th style="width: 120px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat in categories %}
+                    <tr>
+                        <td style="text-align: center;">{{ cat.sort_order }}</td>
+                        <td style="text-align: center; font-size: 24px;">{{ cat.icon }}</td>
+                        <td><strong>{{ cat.name }}</strong></td>
+                        <td>
+                            <span class="color-preview" style="background: {{ cat.color }};"></span>
+                            <code style="font-size: 12px;">{{ cat.color }}</code>
+                        </td>
+                        <td><code>{{ cat.opensearch_pattern|default:"-" }}</code></td>
+                        <td style="text-align: center;">
+                            {% if cat.is_active %}
+                            <span style="color: var(--pixel-success);">✓ 啟用</span>
+                            {% else %}
+                            <span style="color: var(--pixel-text-muted);">✗ 停用</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">{{ cat.source_count }}</td>
+                        <td>
+                            <a href="{% url 'geodatahub:category_edit' cat.pk %}" class="pixel-btn pixel-btn--sm pixel-btn--warning">編輯</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="pixel-text-center" style="padding: var(--pixel-spacing-xl);">
+                <p class="pixel-text">尚無分類資料</p>
+                <a href="{% url 'geodatahub:category_create' %}" class="pixel-btn pixel-btn--success pixel-mt-md">+ 新增第一個分類</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+{% endblock %}
