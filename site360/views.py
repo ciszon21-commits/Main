@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView, DeleteView
 from django.http import JsonResponse
 from django.urls import reverse_lazy, reverse
 from django.db.models import Max, Count
@@ -57,6 +57,12 @@ class ProjectUpdateView(UpdateView):
     
     def get_success_url(self):
         return reverse_lazy('site360:project_detail', kwargs={'pk': self.object.pk})
+
+class ProjectDeleteView(DeleteView):
+    model = Project
+    template_name = 'site360/project_confirm_delete.html'
+    success_url = reverse_lazy('site360:project_list')
+    context_object_name = 'project'
 
 class ProjectMapView(TemplateView):
     template_name = 'site360/project_map.html'

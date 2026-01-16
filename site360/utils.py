@@ -63,6 +63,9 @@ def get_action_type_from_request(request, view_name=''):
         return 'REFERENCE'
     
     # 標準 CRUD 操作
+    if 'delete' in path and method == 'POST':
+        return 'DELETE'
+        
     if method == 'POST':
         return 'CREATE'
     elif method in ['PUT', 'PATCH']:

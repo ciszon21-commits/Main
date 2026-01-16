@@ -8,6 +8,7 @@ urlpatterns = [
     path('project/create/', views.ProjectCreateView.as_view(), name='project_create'),
     path('project/<int:pk>/', views.ProjectDetailView.as_view(), name='project_detail'),
     path('project/<int:pk>/edit/', views.ProjectUpdateView.as_view(), name='project_edit'),
+    path('project/<int:pk>/delete/', views.ProjectDeleteView.as_view(), name='project_delete'),
     path('map/', views.ProjectMapView.as_view(), name='project_map'),
     path('api/map-data/', views.project_map_data, name='project_map_data'),
     path('project/<int:pk>/upload/', views.SceneCreateView.as_view(), name='scene_create'),
