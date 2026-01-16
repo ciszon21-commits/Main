@@ -301,3 +301,56 @@ def create_action_log(user, action_type, request, content_type=None, object_id=N
     )
     
     return log
+
+
+def log_response_action(request, response):
+    """
+    記錄操作的通用函數
+    供 Mixin 和 Decorator 使用
+    """
+    from .models import UserActionLog
+    
+    # 判斷是否應該記錄此操作
+    if not should_log_action(request):
+        return
+
+    try:
+        # 判斷操作類型
+        # 如果 request 中已經有 action_type (可能由 Mixin/Decorator 注入)，則優先使用
+        action_type = getattr(request, 'action_type', None)
+        if not action_type:
+            action_type = get_action_type_from_request(request)
+        
+        # 如果操作類型為 None，則不記錄
+        if not action_type:
+            return
+        
+        # 提取操作對象資訊
+        obj_info = extract_object_info(request, response)
+        
+        # 提取操作詳情
+        action_detail = get_action_detail(request)
+        
+        # 獲取用戶（如果已登入）
+        user = request.user if hasattr(request, 'user') and request.user.is_authenticated else None
+        
+        # 創建操作記錄
+        UserActionLog.objects.create(
+            user=user,
+            action_type=action_type,
+            content_type=obj_info['content_type'],
+            object_id=obj_info['object_id'],
+            object_repr=obj_info['object_repr'],
+            action_detail=action_detail,
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request),
+            request_path=request.path,
+            request_method=request.method,
+            session_key=request.session.session_key if hasattr(request, 'session') and request.session.session_key else '',
+        )
+        
+    except Exception as e:
+        # 記錄失敗不應該影響正常的請求處理
+        import logging
+        logger = logging.getLogger('site360.logging')
+        logger.error(f"Failed to log user action: {str(e)}")

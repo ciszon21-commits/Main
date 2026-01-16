@@ -12,6 +12,8 @@ import os
 import re
 import json
 from django.conf import settings
+from .mixins import UserActionLoggingMixin
+from .decorators import user_action_logging
 
 def get_cities(request):
     """API: 取得所有台灣縣市列表"""
@@ -39,18 +41,18 @@ def get_districts(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-class ProjectListView(ListView):
+class ProjectListView(UserActionLoggingMixin, ListView):
     model = Project
     template_name = 'site360/project_list.html'
     context_object_name = 'projects'
 
-class ProjectCreateView(CreateView):
+class ProjectCreateView(UserActionLoggingMixin, CreateView):
     model = Project
     form_class = ProjectForm
     template_name = 'site360/project_form.html'
     success_url = reverse_lazy('site360:project_list')
 
-class ProjectUpdateView(UpdateView):
+class ProjectUpdateView(UserActionLoggingMixin, UpdateView):
     model = Project
     form_class = ProjectForm
     template_name = 'site360/project_form.html'
@@ -58,13 +60,13 @@ class ProjectUpdateView(UpdateView):
     def get_success_url(self):
         return reverse_lazy('site360:project_detail', kwargs={'pk': self.object.pk})
 
-class ProjectDeleteView(DeleteView):
+class ProjectDeleteView(UserActionLoggingMixin, DeleteView):
     model = Project
     template_name = 'site360/project_confirm_delete.html'
     success_url = reverse_lazy('site360:project_list')
     context_object_name = 'project'
 
-class ProjectMapView(TemplateView):
+class ProjectMapView(UserActionLoggingMixin, TemplateView):
     template_name = 'site360/project_map.html'
 
     def get_context_data(self, **kwargs):
@@ -122,7 +124,7 @@ def project_map_data(request):
         })
     return JsonResponse({'projects': data})
 
-class ProjectDetailView(DetailView):
+class ProjectDetailView(UserActionLoggingMixin, DetailView):
     model = Project
     template_name = 'site360/project_detail.html'
     context_object_name = 'project'
@@ -142,7 +144,7 @@ class ProjectDetailView(DetailView):
         context['scenes'] = scenes
         return context
 
-class SceneCreateView(CreateView):
+class SceneCreateView(UserActionLoggingMixin, CreateView):
     model = Scene
     form_class = SceneForm
     template_name = 'site360/scene_form.html'
@@ -284,6 +286,7 @@ def save_hotspot(request):
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=405)
 
 @csrf_exempt
+@user_action_logging
 def move_hotspot(request, pk):
     if request.method == 'POST':
         try:
@@ -297,6 +300,7 @@ def move_hotspot(request, pk):
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=405)
 
 @csrf_exempt
+@user_action_logging
 def delete_hotspot(request, pk):
     if request.method == 'POST':
         try:
@@ -310,6 +314,7 @@ def delete_hotspot(request, pk):
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
 
 @csrf_exempt
+@user_action_logging
 def update_scene_nav(request, pk):
     """
     Updates the position of the Next or Prev navigation hotspot for a scene.
@@ -339,6 +344,7 @@ def update_scene_nav(request, pk):
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
 
 @csrf_exempt
+@user_action_logging
 def save_hotspot(request):
     if request.method == 'POST':
         try:
@@ -472,6 +478,7 @@ def list_resources(request):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 @csrf_exempt
+@user_action_logging
 def reorder_scenes(request):
     if request.method == 'POST':
         try:
@@ -493,6 +500,7 @@ def reorder_scenes(request):
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=405)
 
 @csrf_exempt
+@user_action_logging
 def set_cover_image(request, pk):
     if request.method == 'POST':
         try:
@@ -519,6 +527,7 @@ def set_cover_image(request, pk):
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=405)
 
 @csrf_exempt
+@user_action_logging
 def delete_scene(request, pk):
     """Delete a scene and all its associated hotspots"""
     if request.method == 'POST':
@@ -754,6 +763,7 @@ def tour_view(request, pk):
     return render(request, 'site360/tour.html', {'project': projet})
 
 @csrf_exempt
+@user_action_logging
 def edit_resource(request, pk):
     """
     Edit a resource (hotspot). If the resource is referenced (usage_count > 0),
