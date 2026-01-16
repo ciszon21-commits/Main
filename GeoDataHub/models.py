@@ -63,6 +63,25 @@ class GeoCategory(models.Model):
         return f"{self.icon} {self.name}"
 
 
+class GeocodingCache(models.Model):
+    """地理編碼快取模型"""
+    query = models.TextField(unique=True, verbose_name='查詢字串')
+    result = models.JSONField(null=True, blank=True, verbose_name='地理編碼結果')
+    is_success = models.BooleanField(default=False, verbose_name='是否成功')
+    fail_count = models.IntegerField(default=0, verbose_name='失敗次數')
+    last_attempt = models.DateTimeField(auto_now=True, verbose_name='最後嘗試時間')
+
+    class Meta:
+        verbose_name = '地理編碼快取'
+        verbose_name_plural = '地理編碼快取'
+        indexes = [
+            models.Index(fields=['query']),
+        ]
+
+    def __str__(self):
+        return f"{self.query} ({'Success' if self.is_success else f'Failed x{self.fail_count}'})"
+
+
 class GeoLocation(models.Model):
     """地理位置模型 - 支援點、線、面"""
     
