@@ -1,0 +1,280 @@
+{% extends 'site360/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    /* Badge Colors */
+    .badge-text {
+        background-color: #3b82f6;
+        color: white;
+    }
+
+    .badge-image {
+        background-color: #22c55e;
+        color: white;
+    }
+
+    .badge-video {
+        background-color: #ef4444;
+        color: white;
+    }
+
+    /* Floating Action Group */
+    .floating-action-group {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .floating-btn {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        transition: transform 0.2s;
+        border: none;
+        color: white;
+        text-decoration: none;
+    }
+
+    .floating-btn:hover {
+        transform: translateY(-3px);
+        color: white;
+    }
+
+    .btn-return {
+        background-color: #6c757d;
+    }
+
+    .btn-scroll {
+        background-color: #0d6efd;
+        opacity: 0.8;
+    }
+
+    .btn-scroll:hover {
+        opacity: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="floating-action-group">
+    <a href="{% url 'site360:project_list' %}" class="floating-btn btn-return" title="返回列表">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+    <button class="floating-btn btn-scroll" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="回到最上">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+    <button class="floating-btn btn-scroll"
+        onclick="window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})" title="回到最下">
+        <i class="fas fa-arrow-down"></i>
+    </button>
+</div>
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{{ project.name }}</h1>
+        <div class="d-flex gap-2">
+            <a href="{% url 'site360:project_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> 返回列表
+            </a>
+            <a href="{% url 'site360:project_tour' project.pk %}" class="btn btn-success">
+                <i class="fas fa-vr-cardboard"></i> 開始360瀏覽
+            </a>
+            <a href="{% url 'site360:project_resources' project.pk %}" class="btn btn-outline-info">
+                <i class="fas fa-list"></i> 資源總表
+            </a>
+            <a href="{% url 'site360:scene_create' project.pk %}" class="btn btn-outline-primary">
+                <i class="fas fa-upload"></i> 上傳照片
+            </a>
+            <a href="{% url 'site360:project_edit' project.pk %}" class="btn btn-outline-secondary">
+                <i class="fas fa-edit"></i> 編輯資訊
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <p class="card-text">{{ project.description }}</p>
+            {% if project.city %}
+            <p class="card-text">
+                <i class="fas fa-map-marker-alt text-danger"></i>
+                <strong>專案地點:</strong> {{ project.city }}{{ project.district }} {{ project.address_detail }}
+            </p>
+            {% endif %}
+            <p class="text-muted">建立時間: {{ project.created_at }} | 場景數量: {{ project.scenes.count }}</p>
+            <div class="alert alert-info mt-2">
+                <i class="fas fa-info-circle"></i> 您可以拖曳下方的照片卡片來調整瀏覽順序。
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="row" id="scene-list">
+        {% for scene in scenes %}
+        <div class="col-md-3 mb-4 scene-item" data-id="{{ scene.id }}">
+            <div class="card h-100" style="cursor: move;">
+                <a href="{% url 'site360:project_tour' project.pk %}?scene_id={{ scene.id }}" class="no-drag">
+                    <img src="{{ scene.image.url }}" class="card-img-top" alt="{{ scene.title }}"
+                        style="height: 150px; object-fit: cover; pointer-events: none;">
+                </a>
+                <div class="card-body">
+                    <h6 class="card-title">{{ scene.title }}</h6>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-muted">順序: <span class="order-badge">{{ scene.order }}</span></small>
+
+                        <div class="d-flex gap-1">
+                            {% if scene.text_count > 0 %}
+                            <span class="badge badge-text" title="文字熱點數"><i class="fas fa-align-left"></i> {{ scene.text_count }}</span>
+                            {% endif %}
+                            {% if scene.image_count > 0 %}
+                            <span class="badge badge-image" title="圖片熱點數"><i class="fas fa-image"></i> {{ scene.image_count }}</span>
+                            {% endif %}
+                            {% if scene.video_count > 0 %}
+                            <span class="badge badge-video" title="影片熱點數"><i class="fas fa-video"></i> {{ scene.video_count }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-primary flex-fill set-cover-btn" data-id="{{ scene.id }}">
+                            <i class="fas fa-image"></i> 設為封面
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger flex-fill delete-scene-btn"
+                            data-id="{{ scene.id }}" data-title="{{ scene.title }}">
+                            <i class="fas fa-trash"></i> 刪除
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-warning">此專案尚未上傳任何場景照片。</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- SortableJS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Set Cover Image Handler
+        document.querySelectorAll('.set-cover-btn').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const sceneId = this.getAttribute('data-id');
+                if (!confirm('確定要將此場景設為專案封面嗎？')) return;
+
+                fetch(`/site360/api/scene/set-cover/${sceneId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert('已更新封面圖片！');
+                        } else {
+                            alert('更新失敗: ' + data.message);
+                        }
+                    });
+            });
+        });
+
+        // Delete Scene Handler
+        document.querySelectorAll('.delete-scene-btn').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const sceneId = this.getAttribute('data-id');
+                const sceneTitle = this.getAttribute('data-title');
+
+                if (!confirm(`確定要刪除場景「${sceneTitle}」嗎？\n\n此操作無法復原，該場景的所有熱點資料也會一併刪除。`)) return;
+
+                fetch(`/site360/api/scene/delete/${sceneId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Remove the scene card from DOM
+                            const sceneCard = document.querySelector(`.scene-item[data-id="${sceneId}"]`);
+                            if (sceneCard) {
+                                sceneCard.remove();
+                            }
+                            alert('場景已成功刪除！');
+
+                            // Check if there are no more scenes
+                            if (document.querySelectorAll('.scene-item').length === 0) {
+                                location.reload();
+                            }
+                        } else {
+                            alert('刪除失敗: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('刪除失敗：' + error.message);
+                    });
+            });
+        });
+
+        var el = document.getElementById('scene-list');
+        var sortable = Sortable.create(el, {
+            animation: 150,
+            ghostClass: 'bg-light',
+            handle: '.card', // Drag handle
+            filter: '.no-drag', // Links are not draggable
+            preventOnFilter: false, // Allow link clicks
+            onEnd: function (evt) {
+                var order = sortable.toArray(); // This uses data-id by default if configured, but let's manual
+
+                // Collect IDs in new order
+                var sceneIds = [];
+                document.querySelectorAll('.scene-item').forEach(function (item) {
+                    sceneIds.push(item.getAttribute('data-id'));
+                });
+
+                // Send new order to backend
+                fetch("{% url 'site360:reorder_scenes' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: 'scene_ids[]=' + sceneIds.join('&scene_ids[]=')
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Optional: Update visual order numbers
+                            document.querySelectorAll('.scene-item').forEach(function (item, index) {
+                                item.querySelector('.order-badge').innerText = index;
+                            });
+                            console.log('Order saved');
+                        } else {
+                            alert('Error saving order');
+                        }
+                    });
+            }
+        });
+    });
+</script>
+{% endblock %}
