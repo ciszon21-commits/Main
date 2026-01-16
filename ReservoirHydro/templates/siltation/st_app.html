@@ -1,0 +1,1037 @@
+{% extends 'reservoir_hydro_base.html' %}
+{% load static %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Reservoir_Hydro/css/reservoir_hydro.css' %}" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style></style>
+{% endblock %}
+
+<meta name="csrf-token" content="{{ csrf_token }}">
+
+{% block template %}
+<div class="container py-2">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center">
+          <!-- 左側標題 -->
+          <div>
+            <h3><b>{{ title }}</b></h3>
+          </div>
+          <!-- 右側按鈕群組 -->
+          <div>
+            <!-- 清除所有數據按鈕 -->
+            <button
+              class="btn btn-rh-outline-danger me-2"
+              onclick="clearAllData()"
+              title="清除所有步驟的儲存數據"
+            >
+              <i class="bi bi-trash3"></i> 清除所有數據
+            </button>
+            <!-- 返回首頁按鈕 -->
+            <a
+              href="{% url 'reservoir_hydro:reservoir_hydro_home' %}"
+              class="btn btn-rh-outline-primary"
+            >
+              <i class="bi bi-house"></i> 返回首頁
+            </a>
+          </div>
+        </div>
+        <!-- 分隔線 -->
+        <div class="gray-box"></div>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="col-md-12">
+      <!-- 分頁導航 -->
+      <div class="step-tabs d-flex">
+        {% for step in steps %}
+        <button
+          class="step-tab {% if step.id|stringformat:'s' == initial_step %}active{% endif %}"
+          onclick="switchStep({{ step.id }})"
+          id="tab-{{ step.id }}"
+        >
+          <i class="{{ step.icon }} fs-4 me-2 text-rh-primary"></i>
+          <span class="rh-card-title">{{ step.id }}. {{ step.name }}</span>
+          <div class="text-muted">{{ step.desc }}</div>
+        </button>
+        {% endfor %}
+      </div>
+      <!-- 分頁內容 -->
+      <div id="step-contents">
+        <!-- 步驟1: 泥沙淤積演算 -->
+        <div
+          class="step-content {% if initial_step == '1' %}active{% endif %}"
+          id="content-1"
+        >
+          <div class="row">
+            <div class="col-md-6">
+              <div class="rh-big-card mb-3" style="min-height: 500px;">
+                <div class="rh-big-card-header">
+                  基本參數
+                </div>
+                <div class="card-body">
+                  <!-- 上半部：基本參數輸入 -->
+                  <form id="structure-form">
+                    <div class="row my-2 align-items-center">
+                      <div class="col-4 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">初始水庫體積</label>
+                      </div>
+                      <div class="col-4 pe-0 me-0">
+                        <input type="number" step="any" min="0" class="form-control" id="initial-reservoir-volume"/>
+                      </div>
+                      <div class="col-4 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">&times;10<sup>6</sup>(百萬立方公尺)</label>
+                      </div>
+                    </div>
+                    <div class="row my-2 align-items-center">
+                      <div class="col-4 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">平均年入流量</label>
+                      </div>
+                      <div class="col-4 pe-0 me-0">
+                        <input type="number" step="any" min="0" class="form-control" id="average-annual-inflow"/>
+                      </div>
+                      <div class="col-4 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">&times;10<sup>6</sup>(百萬立方公尺)</label>
+                      </div>
+                    </div>
+                    <div class="row my-2 align-items-center">
+                      <div class="col-4 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">平均年懸浮載入流量 </label>
+                      </div>
+                      <div class="col-4 pe-0 me-0">
+                        <input type="number" step="any" min="0" class="form-control" id="average-annual-suspended-sediment-inflow"/>
+                      </div>
+                      <div class="col-4 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">(立方公尺)</label>
+                      </div>
+                    </div>
+                    <div class="row my-2 align-items-center">
+                      <div class="col-4 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">平均年河床載入流量 </label>
+                      </div>
+                      <div class="col-4 pe-0 me-0">
+                        <input type="number" step="any" min="0" class="form-control" id="average-annual-bedload-sediment-inflow"/>
+                      </div>
+                      <div class="col-4 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">(立方公尺)</label>
+                      </div>
+                    </div>
+                    <div class="row my-2 align-items-center">
+                      <div class="col-4 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">容積多少作為淤滿計算</label>
+                      </div>
+                      <div class="col-4 pe-0 me-0">
+                        <input type="number" step="any" min="0" class="form-control" id="percent-volume-for-siltation-calculation"/>
+                      </div>
+                      <div class="col-4 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">(%)</label>
+                      </div>
+                    </div>
+                    <div class="row my-2 align-items-center">
+                      <div class="col-4 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">輸入公式或囚砂率對照</label>
+                      </div>
+                      <div class="col-4 pe-0 me-0">
+                        <select class="form-select" id="formula-or-trapping-rate">
+                          <option value="formula">使用公式</option>
+                          <option value="trapping-rate">使用囚砂率對照</option>
+                        </select>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+              {% comment %} <div class="action-buttons">
+                <button class="btn btn-rh-data me-2" onclick="editStructure()">
+                  <i class="bi bi-pencil"></i> 編輯
+                </button>
+                <button class="btn btn-rh-data" onclick="saveStructure()">
+                  <i class="bi bi-save"></i> 存檔
+                </button>
+              </div> {% endcomment %}
+            </div>
+            <div class="col-md-6">
+              <div class="rh-big-card mb-3" style="min-height: 500px;">  
+                <div class="rh-big-card-header" id="method-card-header">
+                    計算方式：使用公式
+                </div>
+                <div class="card-body" id="method-card-body">
+                  <!-- 預設內容，可留空或顯示提示 -->
+                </div>
+              </div>
+            </div>
+            <div class="action-buttons mt-1">
+              <div class="row my-2 align-items-center justify-content-center">
+                <div class="col-auto d-flex align-items-center">
+                  <div class="form-check form-check-inline mb-0">
+                    <input class="form-check-input" type="radio" name="module-type" id="module1-radio" value="module1" checked>
+                    <label class="form-check-label ms-2" for="module1-radio">模組一</label>
+                  </div>
+                  <div class="form-check form-check-inline mb-0 ms-3">
+                    <input class="form-check-input" type="radio" name="module-type" id="module2-radio" value="module2">
+                    <label class="form-check-label ms-2" for="module2-radio">模組二</label>
+                  </div>
+                  <i class="bi bi-question-circle ms-2" tabindex="0" data-bs-toggle="popover" data-bs-trigger="focus" title="模組說明"
+                    data-bs-content="模組一：依設定多少區間計算淤積所需時間。<br>模組二：依設定年分作為區間計算淤積所需時間。"></i>
+                </div>
+                <div class="col-auto" id="module-option-area">
+                  <label for="module1-interval" class="form-label mb-0">要切成幾個區間進行計算：</label>
+                  <input type="number" min="1" class="form-control d-inline-block w-auto" id="module1-interval" />
+                </div>
+              </div>
+              <button class="btn btn-rh-data mt-3" onclick="calculation()">
+                <i class="bi bi-graph-up"></i> 執行計算
+              </button>
+            </div>
+          </div>
+        </div>
+        <!-- 步驟2: 圖表成果展示 -->
+        <div class="step-content" id="content-2">
+          <div id="module-result-table">
+            <span>請先完成步驟1的計算。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script>
+  let currentStep = {{ initial_step }};
+  let importedXArr = [];
+  let importedYArr = [];
+
+  function switchStep(stepNumber) {
+      document.querySelectorAll('.step-content').forEach(content => {
+          content.classList.remove('active');
+      });
+      document.querySelectorAll('.step-tab').forEach(tab => {
+          tab.classList.remove('active');
+      });
+      document.getElementById(`content-${stepNumber}`).classList.add('active');
+      document.getElementById(`tab-${stepNumber}`).classList.add('active');
+      currentStep = stepNumber;
+      localStorage.setItem('currentStep', stepNumber);
+  }
+
+  function parseFormula(formulaStr) {
+    // LN(x) → Math.log(x)，EXP(x) → Math.exp(x)
+    let jsFormula = formulaStr
+      .replace(/LN\(/g, 'Math.log(')
+      .replace(/EXP\(/g, 'Math.exp(')
+      .replace(/y\s*=\s*/, ''); // 去掉 y=
+
+    // 處理 ^ 運算（支援括號與小數）
+    // 例如 x^2、(x+1)^3、2^x、x^0.3
+    jsFormula = jsFormula.replace(/([a-zA-Z0-9\.\)\(]+)\s*\^\s*([a-zA-Z0-9\.\)\(]+)/g, 'Math.pow($1,$2)');
+
+    return jsFormula;
+  }
+
+  function calcY(x, formulaStr) {
+    const expr = parseFormula(formulaStr);
+    try {
+      // 用 Function 建立安全運算
+      const y = Function('x', `return ${expr};`)(x);
+      return y;
+    } catch (e) {
+      return NaN;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // 取得目前選單值
+    const select = document.getElementById('formula-or-trapping-rate');
+    const cardHeader = document.getElementById('method-card-header');
+    if (select.value === 'formula') {
+      cardHeader.textContent = '計算方式：使用公式';
+      showFormulaCard();
+    } else if (select.value === 'trapping-rate') {
+      cardHeader.textContent = '計算方式：囚砂率對照';
+      document.querySelector('#method-card-body').innerHTML = `
+        <div class="row my-2 align-items-center justify-content-center">
+          <div class="col-12 text-center">
+            <label class="form-label">匯入囚砂率資料：</label>
+            <input type="file" id="trapping-rate-file" accept=".csv,.xlsx" class="form-control w-auto d-inline-block" />
+          </div>
+        </div>
+        <small class="text-muted">
+          請選擇 Excel 或 CSV 檔案，格式範例如右圖。
+          <i class="bi bi-question-circle ms-1" tabindex="0"
+            data-bs-toggle="popover"
+            data-bs-trigger="focus"
+            data-bs-html="true"
+            title="檔案格式說明"
+            data-bs-content='<img src="{% static "Reservoir_Hydro/images/st_data_example.png" %}" style="max-width:300px;">'>
+          </i>
+        </small>
+        <div class="mt-3" style="min-height: 310px;">
+          <canvas id="trappingRateChart" width="590" height="310"></canvas>
+        </div>
+      `;
+    }
+    // 啟用 Bootstrap Popover
+    const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+    popoverTriggerList.map(function (popoverTriggerEl) {
+      return new bootstrap.Popover(popoverTriggerEl, { html: true });
+    });
+    // 初始化 module-option-area 根據 radio 狀態
+    if (document.getElementById('module1-radio').checked) {
+      document.getElementById('module-option-area').innerHTML = `
+        <label for="module1-interval" class="form-label mb-0">要切成幾個區間進行計算：</label>
+        <input type="number" min="1" class="form-control d-inline-block w-auto" id="module1-interval" />
+      `;
+    } else if (document.getElementById('module2-radio').checked) {
+      document.getElementById('module-option-area').innerHTML = `
+        <label for="module2-interval" class="form-label mb-0">要以幾年做為一個區間進行計算：</label>
+        <input type="number" min="1" class="form-control d-inline-block w-auto" id="module2-interval" />
+      `;
+    }
+    if (document.getElementById('default-formula-select')) {
+      drawDefaultFormulaChart();
+    }
+  });
+
+  function showFormulaCard() {
+    const cardBody = document.querySelector('#method-card-body');
+    cardBody.innerHTML = `
+      <div>
+        <div class="row my-2 align-items-center justify-content-center">
+          <div class="col-12 text-center mt-3">
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="formula-type" id="default-formula-radio" value="default" checked>
+              <label class="form-check-label ms-2" for="default-formula-radio">預設公式</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="formula-type" id="custom-formula-radio" value="custom">
+              <label class="form-check-label ms-2" for="custom-formula-radio">自訂公式</label>
+            </div>
+          </div>
+        </div>
+        <div id="formula-option-area" style="min-height: 100px; mb-0">
+          <label>選擇公式 ( y : 囚砂率； x : 蓄水容量/入流量 )</label>
+          <select class="form-select" id="default-formula-select">
+            <option value="1+0.1*Math.log(x)">y = 1 + 0.1LN(x)</option>
+            <option value="1-(1/(1+100*x))">y = 1 - (1/(1+100x))</option>
+          </select>
+        </div>
+        <div style="mt-0; min-height: 250px;">
+          <canvas id="trappingRateChart" width="590" height="250"></canvas>
+        </div>
+      </div>
+    `;
+
+    // 預設畫圖
+    drawDefaultFormulaChart();
+
+    // 監聽下拉選單變更時即時畫圖（這一段是關鍵）
+    document.getElementById('default-formula-select').addEventListener('change', function() {
+      drawDefaultFormulaChart();
+    });
+
+    // 切換公式類型
+    document.getElementById('default-formula-radio').addEventListener('change', function() {
+      showDefaultFormulaSelect();
+    });
+    document.getElementById('custom-formula-radio').addEventListener('change', function() {
+      showCustomFormulaInput();
+    });
+  }
+
+  function showDefaultFormulaSelect() {
+    document.getElementById('formula-option-area').innerHTML = `
+      <label>選擇公式 ( y : 囚砂率； x : 蓄水容量/入流量 )</label>
+      <select class="form-select" id="default-formula-select">
+        <option value="1+0.1*Math.log(x)">y = 1 + 0.1LN(x)</option>
+        <option value="1-(1/(1+100*x))">y = 1 - (1/(1+100x))</option>
+      </select>
+    `;
+    // 畫圖
+    drawDefaultFormulaChart();
+
+    // 監聽下拉選單變更時即時畫圖
+    document.getElementById('default-formula-select').addEventListener('change', function() {
+      drawDefaultFormulaChart();
+    });
+  }
+
+  function drawDefaultFormulaChart() {
+    const formula = document.getElementById('default-formula-select').value;
+    const x = [0, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 
+    0.01, 0.015, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 
+    0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 1.0];
+    const y = [];
+    for (let i of x) {
+      y.push(calcY(i, formula));
+    }
+    drawTrappingRateChart(x, y);
+  }
+
+  function showCustomFormulaInput() {
+    document.getElementById('formula-option-area').innerHTML = `
+      <label>請輸入公式：</label>
+      <input type="text" class="form-control" id="custom-formula" placeholder="例如：y = 1+0.1*LN(x)"/>
+      <small class="text-muted">
+        可自訂簡單公式。
+        <i class="bi bi-question-circle ms-1" tabindex="0"
+          data-bs-toggle="popover"
+          data-bs-trigger="focus"
+          title="自訂公式格式說明"
+          data-bs-content="請輸入以 y, x 為變數的公式，例如：<br>
+          y = 1 - EXP(-3*x) <br>
+          y = 1 / (1 + 5*x) <br>
+          y = 0.8 - 0.5*x + 0.1*x^2 <br>
+          y = 0.7 + 0.2*LN(x) <br>
+          y = 0.9 * x^0.3 <br>
+          y = 1 - (1/(1+50*x)) + 0.05*LN(x) <br>
+          允許運算符號：+、-、*、/、( )、^，LN(x) 代表自然對數，EXP(x) 代表 e 的 x 次方。
+          y 為囚砂率，x 為蓄水容量/入流量。"
+          data-bs-html="true"></i>
+      </small>
+    `;
+    // 畫圖
+    drawCustomFormulaChart();
+
+    document.getElementById('custom-formula').addEventListener('input', function() {
+      drawCustomFormulaChart();
+    });
+
+    // 啟用 popover
+    const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+    popoverTriggerList.map(function (popoverTriggerEl) {
+      return new bootstrap.Popover(popoverTriggerEl, { html: true });
+    });
+  }
+
+  function drawCustomFormulaChart() {
+    const formula = document.getElementById('custom-formula').value;
+    const x = [0, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 
+    0.01, 0.015, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 
+    0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 1.0];
+    const y = [];
+    for (let i of x) {
+      y.push(calcY(i, formula));
+    }
+    drawTrappingRateChart(x, y);
+  }
+
+  // 下拉選單切換時更新 card
+  document.getElementById('formula-or-trapping-rate').addEventListener('change', function() {
+    const value = this.value;
+    const cardHeader = document.getElementById('method-card-header');
+    if (value === 'formula') {
+      cardHeader.textContent = '計算方式：使用公式';
+      showFormulaCard();
+    } else if (value === 'trapping-rate') {
+      cardHeader.textContent = '計算方式：囚砂率對照';
+      document.querySelector('#method-card-body').innerHTML = `
+        <div class="row my-2 align-items-center justify-content-center">
+          <div class="col-12 text-center">
+            <label class="form-label">匯入囚砂率資料：</label>
+            <input type="file" id="trapping-rate-file" accept=".csv,.xlsx" class="form-control w-auto d-inline-block" />
+          </div>
+        </div>
+        <small class="text-muted">
+          請選擇 Excel 或 CSV 檔案，格式範例如右圖。
+          <i class="bi bi-question-circle ms-1" tabindex="0"
+            data-bs-toggle="popover"
+            data-bs-trigger="focus"
+            data-bs-html="true"
+            title="檔案格式說明"
+            data-bs-content='<img src="{% static "Reservoir_Hydro/images/st_data_example.png" %}" style="max-width:300px;">'>
+          </i>
+        </small>
+        <div class="mt-3" style="min-height: 310px;">
+          <canvas id="trappingRateChart" width="590" height="310"></canvas>
+        </div>
+      `;
+    }
+  });
+
+  document.getElementById('method-card-body').addEventListener('change', function(e) {
+    if (e.target && e.target.id === 'trapping-rate-file') {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        let data = evt.target.result;
+        let workbook;
+        if (file.name.endsWith('.csv')) {
+          workbook = XLSX.read(data, {type: 'string'});
+        } else {
+          workbook = XLSX.read(data, {type: 'binary'});
+        }
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, {header:1});
+        // 取得資料
+        importedXArr = [];
+        importedYArr = [];
+        for (let i = 1; i < json.length; i++) { // 跳過標題
+          importedXArr.push(Number(json[i][0]));
+          importedYArr.push(Number(json[i][1]) / 100);
+        }
+        drawTrappingRateChart(importedXArr, importedYArr);
+      };
+      if (file.name.endsWith('.csv')) {
+        reader.readAsText(file);
+      } else {
+        reader.readAsBinaryString(file);
+      }
+    }
+  });
+
+  let trappingRateChart = null; // 宣告全域變數
+
+  function drawTrappingRateChart(x, y) {
+    const ctx = document.getElementById('trappingRateChart').getContext('2d');
+    if (trappingRateChart && typeof trappingRateChart.destroy === 'function') {
+      trappingRateChart.destroy();
+    }
+    // 組合成 [{x:..., y:...}, ...]，y 要乘 100 變成 %
+    const dataPoints = x.map((xi, i) => ({ x: xi, y: y[i] * 100 }));
+    trappingRateChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: [{
+          label: '囚砂率(%)',
+          data: dataPoints,
+          borderColor: '#1976d2',
+          backgroundColor: 'rgba(25,118,210,0.1)',
+          showLine: true,
+          fill: false,
+          tension: 0.3,
+          pointRadius: 5,
+          pointStyle: 'diamond'
+        }]
+      },
+      options: {
+        plugins: {
+          legend: { display: false },
+        },
+        scales: {
+          x: {
+            type: 'linear',
+            title: {
+              display: true,
+              text: '蓄水容量/入流量',
+              font: { size: 16 }
+            }
+          },
+          y: {
+            title: {
+              display: true,
+              text: '囚砂率(%)',
+              font: { size: 16 }
+            },
+            ticks: { stepSize: 20 }
+          }
+        }
+      }
+    });
+  }
+
+  // 計算函式
+  function calculation() {
+    if (document.getElementById('module1-radio').checked) {
+      const result = calculateModule1();
+      renderModule1Table(result.tableData);
+      switchStep(2); // 切換到tab2
+    }
+    else if (document.getElementById('module2-radio').checked) {
+      const result = calculateModule2();
+      renderModule2Table(result.tableData);
+      switchStep(2); // 切換到tab2
+    }
+  }
+
+  function getTrappingRate(xVal, xArr, yArr) {
+    // xArr 必須已排序
+    for (let i = 0; i < xArr.length - 1; i++) {
+      if (xVal >= xArr[i] && xVal <= xArr[i+1]) {
+        // 線性插值
+        const t = (xVal - xArr[i]) / (xArr[i+1] - xArr[i]);
+        return yArr[i] + t * (yArr[i+1] - yArr[i]);
+      }
+    }
+    // 超出範圍時，回傳最近端點
+    if (xVal < xArr[0]) return yArr[0];
+    if (xVal > xArr[xArr.length-1]) return yArr[yArr.length-1];
+  }
+
+  function calculateModule1() {
+    // 1. 取得初始水庫體積與目標百分比
+    const V0 = Number(document.getElementById('initial-reservoir-volume').value); // 單位：10^6 m³
+    const percent = Number(document.getElementById('percent-volume-for-siltation-calculation').value); // %
+    const interval = Number(document.getElementById('module1-interval').value); // 區間數
+    const Q = Number(document.getElementById('average-annual-inflow').value); // 單位：10^6 m³
+    const avgSuspendedSedimentInflow = Number(document.getElementById('average-annual-suspended-sediment-inflow').value); // 立方公尺
+    const avgBedload = Number(document.getElementById('average-annual-bedload-sediment-inflow').value); // 立方公尺
+    let formulaStr = '';
+    if (document.getElementById('default-formula-radio')?.checked) {
+      formulaStr = document.getElementById('default-formula-select')?.value;
+    } else if (document.getElementById('custom-formula-radio')?.checked) {
+      formulaStr = document.getElementById('custom-formula')?.value;
+    }
+
+    // 2. 計算目標水庫體積
+    const V_target = V0 * (percent / 100);
+
+    // 3. 計算每個區間的容量變化量
+    const deltaV = (V0 - V_target) / interval;
+
+    // 4. 產生每個區間的水庫容量（含頭尾）
+    let V_arr = [];
+    for (let i = 0; i <= interval; i++) {
+      V_arr.push(V0 - i * deltaV);
+    }
+
+    // 5. 依序計算每個區間的 x(蓄水容量/入流量)、y(囚砂率)
+    let xArr = [];
+    let yArr = [];
+    for (let V of V_arr) {
+      const x = V / Q;
+      xArr.push(x);
+
+      // 判斷用公式還是匯入資料
+      let y;
+      if (document.getElementById('formula-or-trapping-rate').value === 'formula') {
+        y = calcY(x, formulaStr); // 0~1
+      } else {
+        y = getTrappingRate(x, importedXArr, importedYArr); // 0~1
+      }
+      yArr.push(y);
+    }
+
+    // 6. 計算平均囚砂率(項次1不會有，因為是本項次的囚砂率+前項次的囚砂率除以2)
+    let avgTrappingArr = [];
+    for (let i = 1; i < yArr.length; i++) {
+      avgTrappingArr.push((yArr[i-1] + yArr[i]) / 2);
+    }
+
+    // 7. 計算懸浮載沉降量
+    let suspendedSedimentDepositArr = avgTrappingArr.map(avgTrappingRate => 
+      avgSuspendedSedimentInflow * avgTrappingRate
+    );
+
+    // 8. 計算淤積所需時間
+    const deltaV_m3 = deltaV * 1e6; // 轉成 m³
+    let yearsArr = [];
+    for (let i = 0; i < suspendedSedimentDepositArr.length; i++) {
+      const totalDeposit = suspendedSedimentDepositArr[i] + avgBedload;
+      const years = deltaV_m3 / totalDeposit;
+      yearsArr.push(years);
+    }
+
+    // 9. 組裝表格資料
+    let tableData = [];
+    for (let i = 1; i <= V_arr.length; i++) {
+      if (i === 1) {
+        tableData.push({
+          index: i,
+          initialVolume: V_arr[i-1], // 10^6 m³
+          inflow: Q, // 10^6 m³
+          x: xArr[i-1],
+          trappingRate: yArr[i-1],
+          avgTrappingRate: '',
+          suspendedDeposit: '',
+          bedload: '',
+          deltaC: '', // 10^6 m³
+          years: ''
+        });
+      }
+      else {
+        tableData.push({
+          index: i,
+          initialVolume: V_arr[i-1], // 10^6 m³
+          inflow: Q, // 10^6 m³
+          x: xArr[i-1],
+          trappingRate: yArr[i-1],
+          avgTrappingRate: avgTrappingArr[i-2],
+          suspendedDeposit: suspendedSedimentDepositArr[i-2],
+          bedload: avgBedload,
+          deltaC: deltaV, // 10^6 m³
+          years: yearsArr[i-2]
+        });
+      }
+    }
+
+    // 回傳所有步驟結果與表格資料
+    const totalYears = yearsArr.reduce((a, b) => a + (isNaN(b) ? 0 : b), 0);
+    return {
+      V_arr, Q, xArr, yArr, avgTrappingArr,
+      suspendedSedimentDepositArr, avgBedload, deltaV, yearsArr,
+      totalYears,
+      tableData
+    };
+  }
+
+  function calculateModule2() {
+    // 1. 取得輸入
+    const V0 = Number(document.getElementById('initial-reservoir-volume').value); // 百萬立方公尺
+    const percent = Number(document.getElementById('percent-volume-for-siltation-calculation').value); // %
+    const Q = Number(document.getElementById('average-annual-inflow').value); // 百萬立方公尺
+    const avgSuspendedSedimentInflow = Number(document.getElementById('average-annual-suspended-sediment-inflow').value); // 立方公尺
+    const avgBedload = Number(document.getElementById('average-annual-bedload-sediment-inflow').value); // 立方公尺
+    const yearInterval = Number(document.getElementById('module2-interval').value); // 幾年一區間
+
+    // 公式來源
+    let formulaStr = '';
+    if (document.getElementById('default-formula-radio')?.checked) {
+      formulaStr = document.getElementById('default-formula-select')?.value;
+    } else if (document.getElementById('custom-formula-radio')?.checked) {
+      formulaStr = document.getElementById('custom-formula')?.value;
+    }
+
+    // 目標水庫容量
+    const V_target = V0 * (percent / 100);
+
+    // 2. 迴圈計算
+    let tableData = [];
+    let currentVolume = V0;
+    let yearStart = 1;
+    let index = 1;
+
+    while (currentVolume > V_target) {
+      const x = currentVolume / Q;
+      let y;
+      if (document.getElementById('formula-or-trapping-rate').value === 'formula') {
+        y = calcY(x, formulaStr);
+      } else {
+        y = getTrappingRate(x, importedXArr, importedYArr);
+      }
+      const suspendedDeposit = y * avgSuspendedSedimentInflow;
+      const totalDepositPerYear = suspendedDeposit + avgBedload; // 每年總囚砂量(立方公尺)
+
+      // 預設區間年數
+      let thisYearInterval = yearInterval;
+      let yearEnd = yearStart + thisYearInterval;
+
+      // 預計本區間結束後的期末容量
+      let endVolume = currentVolume - (totalDepositPerYear * thisYearInterval) / 1e6;
+
+      // 如果這次計算會讓期末容量小於目標容量，則反推yearInterval
+      if (endVolume < V_target) {
+        // 反推yearInterval，使得 endVolume = V_target
+        thisYearInterval = ((currentVolume - V_target) * 1e6) / totalDepositPerYear;
+        yearEnd = yearStart + thisYearInterval;
+        endVolume = V_target; // 強制等於目標容量
+      }
+
+      const totalDeposit_MCM = (totalDepositPerYear * thisYearInterval) / 1e6;
+
+      tableData.push({
+        index: index,
+        yearRange: `${yearStart}~${yearEnd}`,
+        initialVolume: currentVolume,
+        inflow: Q,
+        x: x,
+        trappingRate: y,
+        suspendedDeposit: suspendedDeposit,
+        bedload: avgBedload,
+        totalDeposit_MCM: totalDeposit_MCM,
+        endVolume: endVolume
+      });
+
+      // 下一區間
+      currentVolume = endVolume;
+      yearStart = yearEnd;
+      index++;
+
+      // 若已到目標容量，結束
+      if (currentVolume <= V_target + 1e-8) break;
+    }
+
+    return { tableData };
+  }
+
+  // 展示表格1
+  function renderModule1Table(tableData) {
+    const container = document.getElementById('module-result-table');
+    if (!tableData || tableData.length === 0) {
+      container.innerHTML = '<div class="text-danger">無計算結果</div>';
+      return;
+    }
+    // 取得總年數
+    const result = calculateModule1();
+    const totalYears = result.totalYears;
+
+    let html = `
+      <div class="row d-flex justify-content-center">
+        <div class="col-12">
+          <div class="data-table" style="overflow-x: auto;">
+            <table class="table table-bordered table-sm align-middle text-center">
+              <thead>
+                <tr>
+                  <th style="font-weight:bold;">項次</th>
+                  <th style="font-weight:bold;">初始水庫容量<br>(百萬立方公尺)</th>
+                  <th style="font-weight:bold;">平均年入流量<br>(百萬立方公尺)</th>
+                  <th style="font-weight:bold;">蓄水容量/入流量</th>
+                  <th style="font-weight:bold;">囚砂率(小數)</th>
+                  <th style="font-weight:bold;">平均囚砂率(小數)</th>
+                  <th style="font-weight:bold;">懸浮載沉降量<br>(立方公尺)</th>
+                  <th style="font-weight:bold;">河床載入流量<br>(立方公尺)</th>
+                  <th style="font-weight:bold;">區間ΔC<br>(百萬立方公尺)</th>
+                  <th style="font-weight:bold;">淤積所需時間(年)</th>
+                </tr>
+              </thead>
+              <tbody>
+    `;
+    for (const row of tableData) {
+      html += `
+        <tr>
+          <td style="color:rgb(81, 75, 162); font-weight:bold;">${row.index}</td>
+          <td style="color:rgb(75, 127, 162)">${row.initialVolume.toFixed(3)}</td>
+          <td style="color:rgb(81, 75, 162)">${row.inflow.toFixed(3)}</td>
+          <td style="color:rgb(75, 127, 162)">${row.x.toFixed(5)}</td>
+          <td style="color:rgb(81, 75, 162)">${row.trappingRate.toFixed(8)}</td>
+          <td style="color:rgb(75, 127, 162)">${typeof row.avgTrappingRate === 'number' ? row.avgTrappingRate.toFixed(8) : ''}</td>
+          <td style="color:rgb(81, 75, 162)">${typeof row.suspendedDeposit === 'number' ? row.suspendedDeposit.toFixed(2) : ''}</td>
+          <td style="color:rgb(75, 127, 162)">${typeof row.bedload === 'number' ? row.bedload.toFixed(2) : ''}</td>
+          <td style="color:rgb(81, 75, 162)">${typeof row.deltaC === 'number' ? row.deltaC.toFixed(3) : ''}</td>
+          <td style="color:rgb(75, 127, 162); font-weight:bold;">${typeof row.years === 'number' ? row.years.toFixed(8) : ''}</td>
+        </tr>
+      `;
+    }
+    html += `
+          </tbody>
+        </table>
+      </div>
+      <div class="action-buttons mt-3">
+        <div class="row my-2 align-items-center justify-content-center">
+          <div class="col-auto d-flex align-items-center">
+            <span class="me-1" style="font-weight:bold; color:#1e3c72;">
+              總淤積所需時間(年)：
+            </span>
+            <span class="me-5" style="font-weight:bold; color:#1976d2; font-size: 2em;">
+              ${totalYears.toFixed(3)}
+            </span>
+            <button class="btn btn-rh-data" onclick="exportModule1Table()">
+              <i class="bi bi-download"></i> 輸出表格
+            </button>
+          </div>
+        </div>
+    </div>
+    </div>
+    `;
+    container.innerHTML = html;
+  }
+
+  // 展示表格2
+  function renderModule2Table(tableData) {
+    const container = document.getElementById('module-result-table');
+    if (!tableData || tableData.length === 0) {
+      container.innerHTML = '<div class="text-danger">無計算結果</div>';
+      return;
+    }
+    // 取得總年數
+    let totalYears = 0;
+    if (tableData.length > 0) {
+      const lastRange = tableData[tableData.length - 1].yearRange;
+      totalYears = Number(lastRange.split('~')[1]);
+    }
+
+    let html = `
+      <div class="row d-flex justify-content-center">
+        <div class="col-12">
+          <div class="data-table" style="overflow-x: auto;">
+            <table class="table table-bordered table-sm align-middle text-center">
+              <thead>
+                <tr>
+                  <th style="font-weight:bold;">項次</th>
+                  <th style="font-weight:bold;">年分</th>
+                  <th style="font-weight:bold;">初始水庫容量<br>(百萬立方公尺)</th>
+                  <th style="font-weight:bold;">平均年入流量<br>(百萬立方公尺)</th>
+                  <th style="font-weight:bold;">蓄水容量/入流量</th>
+                  <th style="font-weight:bold;">囚砂率(小數)</th>
+                  <th style="font-weight:bold;">懸浮載沉降量<br>(立方公尺)</th>
+                  <th style="font-weight:bold;">河床載入流量<br>(立方公尺)</th>
+                  <th style="font-weight:bold;">總囚砂量<br>(百萬立方公尺)</th>
+                  <th style="font-weight:bold;">期末水庫容量<br>(百萬立方公尺)</th>
+                </tr>
+              </thead>
+              <tbody>
+    `;
+    for (const row of tableData) {
+      html += `
+        <tr>
+          <td style="color:rgb(81, 75, 162); font-weight:bold;">${row.index}</td>
+          <td style="color:rgb(75, 127, 162)">${row.yearRange}</td>
+          <td style="color:rgb(81, 75, 162)">${row.initialVolume.toFixed(8)}</td>
+          <td style="color:rgb(75, 127, 162)">${row.inflow.toFixed(3)}</td>
+          <td style="color:rgb(81, 75, 162)">${row.x.toFixed(8)}</td>
+          <td style="color:rgb(75, 127, 162)">${row.trappingRate.toFixed(8)}</td>
+          <td style="color:rgb(81, 75, 162)">${row.suspendedDeposit.toFixed(2)}</td>
+          <td style="color:rgb(75, 127, 162)">${row.bedload.toFixed(2)}</td>
+          <td style="color:rgb(81, 75, 162)">${row.totalDeposit_MCM.toFixed(8)}</td>
+          <td style="color:rgb(75, 127, 162); font-weight:bold;">${row.endVolume.toFixed(8)}</td>
+        </tr>
+      `;
+    }
+    html += `
+            </tbody>
+          </table>
+        </div>
+        <div class="action-buttons mt-3">
+          <div class="row my-2 align-items-center justify-content-center">
+            <div class="col-auto d-flex align-items-center">
+              <span class="me-1" style="font-weight:bold; color:#1e3c72;">
+                總淤積所需時間(年)：
+              </span>
+              <span class="me-5" style="font-weight:bold; color:#1976d2; font-size: 2em;">
+                ${totalYears.toFixed(3)}
+              </span>
+              <button class="btn btn-rh-data" onclick="exportModule2Table()">
+                <i class="bi bi-download"></i> 輸出表格
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    `;
+    container.innerHTML = html;
+  }
+
+  // 匯出表格1
+  function exportModule1Table() {
+    // 取得目前表格資料
+    const result = calculateModule1();
+    const tableData = result.tableData;
+
+    // 欄位標題
+    const headers = [
+      '項次',
+      '初始水庫容量(百萬立方公尺)',
+      '平均年入流量(百萬立方公尺)',
+      '蓄水容量/入流量',
+      '囚砂率(小數)',
+      '平均囚砂率(小數)',
+      '懸浮載沉降量(立方公尺)',
+      '河床載入流量(立方公尺)',
+      '區間ΔC(百萬立方公尺)',
+      '淤積所需時間(年)'
+    ];
+
+    // 組成二維陣列
+    const rows = tableData.map(row => [
+      row.index,
+      row.initialVolume?.toFixed(3) ?? '',
+      row.inflow?.toFixed(3) ?? '',
+      row.x?.toFixed(5) ?? '',
+      row.trappingRate?.toFixed(8) ?? '',
+      typeof row.avgTrappingRate === 'number' ? row.avgTrappingRate.toFixed(8) : '',
+      typeof row.suspendedDeposit === 'number' ? row.suspendedDeposit.toFixed(2) : '',
+      typeof row.bedload === 'number' ? row.bedload.toFixed(2) : '',
+      typeof row.deltaC === 'number' ? row.deltaC.toFixed(3) : '',
+      typeof row.years === 'number' ? row.years.toFixed(8) : ''
+    ]);
+
+    // 匯出 Excel（用 xlsx.js）
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    XLSX.utils.book_append_sheet(wb, ws, "模組一計算表");
+    XLSX.writeFile(wb, "模組一_淤積計算表.xlsx");
+  }
+
+  // 匯出表格2
+  function exportModule2Table() {
+    // 取得目前表格資料
+    const result = calculateModule2();
+    const tableData = result.tableData;
+
+    // 欄位標題
+    const headers = [
+      '項次',
+      '年分',
+      '初始水庫容量(百萬立方公尺)',
+      '平均年入流量(百萬立方公尺)',
+      '蓄水容量/入流量',
+      '囚砂率(小數)',
+      '懸浮載沉降量(立方公尺)',
+      '河床載入流量(立方公尺)',
+      '總囚砂量(百萬立方公尺)',
+      '期末水庫容量(百萬立方公尺)'
+    ];
+
+    // 組成二維陣列
+    const rows = tableData.map(row => [
+      row.index,
+      row.yearRange,
+      row.initialVolume?.toFixed(8) ?? '',
+      row.inflow?.toFixed(3) ?? '',
+      row.x?.toFixed(8) ?? '',
+      row.trappingRate?.toFixed(8) ?? '',
+      row.suspendedDeposit?.toFixed(2) ?? '',
+      row.bedload?.toFixed(2) ?? '',
+      row.totalDeposit_MCM?.toFixed(8) ?? '',
+      row.endVolume?.toFixed(8) ?? ''
+    ]);
+
+    // 匯出 Excel（用 xlsx.js）
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    XLSX.utils.book_append_sheet(wb, ws, "模組二計算表");
+    XLSX.writeFile(wb, "模組二_淤積計算表.xlsx");
+  }
+
+  function clearAllData() {
+    // 清空所有輸入欄位
+    document.getElementById('initial-reservoir-volume').value = '';
+    document.getElementById('average-annual-inflow').value = '';
+    document.getElementById('average-annual-suspended-sediment-inflow').value = '';
+    document.getElementById('average-annual-bedload-sediment-inflow').value = '';
+    document.getElementById('percent-volume-for-siltation-calculation').value = '';
+    if (document.getElementById('module1-interval')) {
+      document.getElementById('module1-interval').value = '';
+    }
+    if (document.getElementById('module2-interval')) {
+      document.getElementById('module2-interval').value = '';
+    }
+
+    // 重設公式/囚砂率選擇
+    document.getElementById('formula-or-trapping-rate').selectedIndex = 0;
+
+    // 重設公式區塊
+    showFormulaCard();
+
+    // 清空匯入資料
+    importedXArr = [];
+    importedYArr = [];
+
+    // 清空圖表
+    if (typeof trappingRateChart !== 'undefined' && trappingRateChart) {
+      trappingRateChart.destroy();
+      trappingRateChart = null;
+    }
+
+    // 清空成果表格
+    document.getElementById('module-result-table').innerHTML = '<span>請先完成步驟1的計算。</span>';
+
+    // 回到步驟1
+    switchStep(1);
+  }
+
+  document.getElementById('module1-radio').addEventListener('change', function() {
+    document.getElementById('module-option-area').innerHTML = `
+      <label for="module1-interval" class="form-label mb-0">要切成幾個區間進行計算：</label>
+      <input type="number" min="1" class="form-control d-inline-block w-auto" id="module1-interval" />
+    `;
+  });
+  document.getElementById('module2-radio').addEventListener('change', function() {
+    document.getElementById('module-option-area').innerHTML = `
+      <label for="module2-interval" class="form-label mb-0">要以幾年做為一個區間進行計算：</label>
+      <input type="number" min="1" class="form-control d-inline-block w-auto" id="module2-interval" />
+    `;
+  });
+  
+</script>
+{% endblock %}

@@ -118,3 +118,15 @@ class AppSettings:
             "http://127.0.0.1:5173",
         ]
     )
+
+    # Tiered Storage Settings (Hot/Cold Data Separation)
+    ARCHIVE_ROOT: str = "/mnt/cold_storage"  # 冷儲存掛載點
+    ARCHIVE_URL: str = "/archive/"            # 冷儲存 URL 前綴
+    TMP_ROOT: str = "/mnt/tmp_data"           # 暫存區路徑
+    ARCHIVE_MAX_FOLDER_SIZE: int = 4 * 1024 * 1024 * 1024  # 4GB
+
+    # OpenSearch Settings
+    OPENSEARCH_HOST: str = "https://localhost:9200"
+    OPENSEARCH_USERNAME: str = ""
+    OPENSEARCH_PASSWORD: str = ""
+    OPENSEARCH_VERIFY_CERTS: bool = False

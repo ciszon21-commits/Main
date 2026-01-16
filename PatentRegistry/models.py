@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from SinoFile.fields import SinoFileField
 import os
 
 
@@ -104,7 +105,7 @@ class GrantedPatent(models.Model):
     description = models.TextField(verbose_name="專利簡述", blank=True)
     start_date = models.DateField(verbose_name="專利起始年月")
     end_date = models.DateField(verbose_name="專利結束年月")
-    certificate = models.FileField(upload_to=patent_certificate_path, verbose_name="專利證書", 
+    certificate = SinoFileField(upload_to=patent_certificate_path, verbose_name="專利證書", 
                                    blank=True, null=True)
     
     granted_at = models.DateTimeField(auto_now_add=True, verbose_name="取得時間")

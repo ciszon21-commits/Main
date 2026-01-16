@@ -48,5 +48,15 @@ urlpatterns = [
     
     # Category Files Browser
     path('category/<int:pk>/files/', views.category_files, name='category_files'),
+    
+    # Quick Note URLs
+    path('notes/', views.quick_note_list, name='quick_note_list'),
+    path('notes/create/', views.quick_note_create, name='quick_note_create'),
+    path('notes/<int:pk>/edit/', views.quick_note_edit, name='quick_note_edit'),
+    path('notes/<int:pk>/delete/', views.quick_note_delete, name='quick_note_delete'),
+    path('api/notes/<int:pk>/autosave/', views.quick_note_autosave, name='quick_note_autosave'),
+    path('api/notes/<int:pk>/move/', views.quick_note_move_to_team, name='quick_note_move_to_team'),
+    path('api/team/<int:team_pk>/topics/', views.quick_note_get_topics, name='quick_note_get_topics'),
+    path('api/topic/<int:topic_pk>/categories/', views.quick_note_get_categories, name='quick_note_get_categories'),
 ]
 

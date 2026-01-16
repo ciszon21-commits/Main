@@ -1,6 +1,6 @@
 from django import forms
 from django_ckeditor_5.widgets import CKEditor5Widget
-from .models import KnowledgeTeam, Topic, Category, KnowledgeItem, ItemComment
+from .models import KnowledgeTeam, Topic, Category, KnowledgeItem, ItemComment, QuickNote
 
 
 class KnowledgeTeamForm(forms.ModelForm):
@@ -89,4 +89,21 @@ class ItemCommentForm(forms.ModelForm):
                 'rows': 3,
                 'placeholder': '請輸入留言內容...'
             }),
+        }
+
+
+class QuickNoteForm(forms.ModelForm):
+    """快速筆記表單"""
+    class Meta:
+        model = QuickNote
+        fields = ['title', 'content']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'ui input',
+                'placeholder': '請輸入筆記標題'
+            }),
+            'content': CKEditor5Widget(
+                attrs={'class': 'django_ckeditor_5'},
+                config_name='extends'
+            ),
         }

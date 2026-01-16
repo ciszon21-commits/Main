@@ -1,0 +1,369 @@
+{% load static %}
+<div  class="d-none" id="transition_main">
+    <div class="d-flex justify-content-between align-items-center">
+        <p class="mb-0 ps-5"></p>
+        <button class="btn btn-dark" onclick="showMenu()" >回到主頁</button>
+    </div>
+    <!--title-->
+    <div class="container mt-1">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+            <h3><b>水利工程隧道水理設計模組</b></h3>
+            <div class="gray-box"></div></div>
+            <div>
+                <button class="text-white" style="background-color:rgba(68,114,196,1);border-radius: 5px"><img src="{% static 'Inlet_Design/images/circle_icon.png' %}" alt="icon"style="max-width:30px"/>程式架構</button>
+            </div>
+        </div>
+        
+    </div>
+    <!--分頁標籤-->
+    <div class='d-flex justify-content-center ps-5'>
+        <div class='nav nav-tabs pt-3 ' style="width:1500px">
+            <button class="nav-link disabled  text-white "  data-bs-toggle="tab" data-bs-target="#tunnel">
+            ① 隧道段
+            </button>
+            <button class="nav-link disabled text-white "  data-bs-toggle="tab" data-bs-target="#ogee" >
+            ② Ogee溢流堰
+            </button>
+
+            <button class="nav-link disabled text-white"  data-bs-toggle="tab" data-bs-target="#inlet_transition"  >
+            ③ 進水口漸變段
+            </button>
+            <button class="nav-link active text-white"  data-bs-toggle="tab" data-bs-target="#transition-tunnel" style="background-color: rgba(255,102,153, 1)"  >
+            ④ 隧道漸變段
+            </button>
+            <button class="nav-link disabled text-white"  data-bs-toggle="tab" data-bs-target="#calculation"  >
+            進水口至隧道<br>
+            水面線計算
+            </button>
+            <button class="nav-link disabled text-white"  data-bs-toggle="tab" data-bs-target="#tunnel-exit"  >
+            ⑤隧道出口段
+            </button>
+        </div>
+    </div>
+    <div class="d-flex justify-content-center ps-5">
+        <div class="tab-content" style="width: 1500px;">
+            <div class="tab-pane fadee show active border border-dark p-2" id='transition-tunnel'>
+                <div class="d-none" id="transition_circle">
+                    <div class="row">
+                        <div class="col-3">
+                            <div>
+                                <h5>
+                                    <strong><span style="color: rgba(235, 90, 60, 1);">[第一步驟]</span> 輸入起算條件</strong>
+                                </h5>
+                            </div>
+                            <div class="card text-dark mb-3" style="width: 100%;background-color: rgba(245,239,231, 0.8); border: none;">
+                                <div class="card-body">
+                                    <div class="row justify-content-center" >
+                                        <div class="d-flex flex-column align-items-start">
+                                            <div class='container'>
+                                                <table id="transition-shape-table"style="width: 100%;" >
+                                                    <thead>
+                                                        <tr><th></th><th></th><th></th></tr>
+                                                    </thead>
+                                                    <colgroup>
+                                                        <col style="width: 30%;">
+                                                        <col style="width: 30%;">
+                                                        <col style="width: 40%;">
+                                                      </colgroup>
+                                                    <tr>
+                                                        <td>B1</td>
+                                                        <td id='B1_transition'></td>
+                                                        <td>m</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>y2</td>
+                                                        <td id='y2_transition'></td>
+                                                        <td>m</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Z2</td>
+                                                        <td id='Z2_transition'></td>
+                                                        <td>m</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>C</td>
+                                                        <td><input class='green_iput' style="text-align:right" type="number" id="C_transition" name="C_transition" step="0.01" value='0.130'  ></td>
+                                                        <td></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>n</td>
+                                                        <td><input class='green_iput' style="text-align:right" type="number" id="n_transition" name="n_transition" step="0.001" value='0.015' ></td>
+                                                        <td></td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; justify-content: center;">
+                                    <button type="button" id="submit_transition_shape_data" class="btn" onclick='submit_transition_shape_data()'
+                                      style="color:white; background-color: #FF9900; width: 100px; height:50px; font-size: 16px;">
+                                      <b>計算</b>
+                                    </button>
+                                </div>
+                                
+                            </div>
+
+                        </div>
+                        
+                        <div class="col-7">
+                            <img src="{% static 'Inlet_Design/images/shape_transition_circle.png' %}" alt="circle" style="height:300px"/>
+                        </div>
+                    </div>
+                    
+                </div>
+                <div class="d-none" id="transition_horseshoe">
+                    <div class="row">
+                        <div class="col-3">
+                            <div>
+                                <h5>
+                                    <strong><span style="color: rgba(235, 90, 60, 1);">[第一步驟]</span> 輸入起算條件</strong>
+                                </h5>
+                            </div>
+                            <div class="card text-dark mb-3" style="width: 100%;background-color: rgba(245,239,231, 0.8); border: none;">
+                                <div class="card-body">
+                                    <div class="row justify-content-center" >
+                                        <div class="d-flex flex-column align-items-start">
+                                            <div class='container'>
+                                                <table id="transition-shape-table"style="width: 100%;" >
+                                                    <thead>
+                                                        <tr><th></th><th></th><th></th></tr>
+                                                    </thead>
+                                                    <colgroup>
+                                                        <col style="width: 40%;">
+                                                        <col style="width: 30%;">
+                                                        <col style="width: 30%;">
+                                                      </colgroup>
+                                                    <tr>
+                                                        <td>B1</td>
+                                                        <td id='B1_transition_h'></td>
+                                                        <td>m</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>y2</td>
+                                                        <td id='y2_transition_h'></td>
+                                                        <td>m</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Z2</td>
+                                                        <td id='Z2_transition_h'></td>
+                                                        <td>m</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>C</td>
+                                                        <td><input class='green_iput' style="text-align:right" type="number" id="C_transition_h" name="C_transition_h" step="0.01" value='0.130'  ></td>
+                                                        <td></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>n</td>
+                                                        <td><input class='green_iput' style="text-align:right" type="number" id="n_transition_h" name="n_transition_h" step="0.001" value='0.015' ></td>
+                                                        <td></td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; justify-content: center;">
+                                    <button type="button" id="submit_transition_shape_data" class="btn" onclick='submit_transition_shape_data()'
+                                      style="color:white; background-color: #FF9900; width: 100px; height:50px; font-size: 16px;">
+                                      <b>計算</b>
+                                    </button>
+                                </div>
+                                
+                            </div>
+                            
+                        </div>
+                        <div class="col-7">
+                            <img src="{% static 'Inlet_Design/images/shape_transition_horseshoe.png' %}" alt="circle" style="height:300px"/>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-none"  id="transition_step2">
+                    <div>
+                        <h5>
+                            <strong><span style="color: rgba(235, 90, 60, 1);">[計算結果]</span> </strong>
+                        </h5>
+                    </div>
+                    <div id='calculation-transition-shape-table-main' >
+                        <table id='calculation-transition-shape-table' style="width:100%">
+                            <thead>
+                                <tr>
+                                <th style="background-color: #FCE4D6;">Trial</th>
+                                <th style="background-color: #FCE4D6;">Q</th>
+                                <th style="background-color: #FCE4D6;">S</th>
+                                <th style="background-color: #FCE4D6;">Z2</th>
+                                <th style="background-color: #FCE4D6;">Z3</th>
+                                <th style="background-color: #FCE4D6;">∆Z</th>
+                                <th style="background-color: #FCE4D6;">b2</th>
+                                <th style="background-color: #FCE4D6;">b3</th>
+                                <th style="background-color: #FCE4D6;">L-main</th>
+                                <th style="background-color: #FCE4D6;">n</th>
+                                <th style="background-color: #FFC000;">y2</th>
+                                <th style="background-color: #FFC000;">yc2</th>
+                                <th style="background-color: #FFC000;">A2</th>
+                                <th style="background-color: #FFC000;">p</th>
+                                <th style="background-color: #FFC000;">R2</th>
+                                <th style="background-color: #FFC000;">V2</th>
+                                <th style="background-color: #FFC000;">Sf2</th>
+                                <th style="background-color: #FFC000;">V<sub>2</sub><sup>2</sup>/2g</th>
+                                <th style="background-color: #FFC000;">E1</th>
+                                <th style="background-color: #83FFFC;">y3 </th>
+                                <th style="background-color: #83FFFC;">yc3</th>
+                                <th style="background-color: #83FFFC;">A3</th>
+                                <th style="background-color: #83FFFC;">P</th>
+                                <th style="background-color: #83FFFC;">R3</th>
+                                <th style="background-color: #83FFFC;">T</th>
+                                <th style="background-color: #83FFFC;">V3</th>
+                                <th style="background-color: #83FFFC;">Sf3</th>
+                                <th style="background-color: #83FFFC;">V<sub>3</sub><sup>2</sup>/2g</th>
+                                <th style="background-color: #83FFFC;">E3</th>
+                                <th style="background-color: #8497B0;">hf</th>
+                                <th style="background-color: #8497B0;">hce</th>
+                                <th style="background-color: #8497B0;">he</th>
+                                <th style="background-color: #FFD966;">E3'</th>
+                                <th style="background-color: #FFD966;">Control</th>
+                                <th style="background-color: #FFD966;">Fr2</th>
+                                <th style="background-color: #FFD966;">Fr3</th>
+                                </tr>
+                                <tbody>
+                                <!-- JavaScript 會 append 的資料列進來這裡 -->
+                                </tbody>
+    
+                            </thead>
+                            </table>
+                    </div>
+                    <div class='row'>
+                        <div class="d-flex justify-content-left pt-3">
+                            <h5>
+                                <strong><span style="color: rgba(235, 90, 60, 1);">[第二步驟]</span>依據步驟一計算之不同設計條件下的成果，選擇合適於計畫漸變段的尺寸，於<span style="color: #009A5C;">綠色框</span>輸入欄位(NO.)編號，按下計算獲得參數 </strong>
+                            </h5>
+                        </div>
+                        <div class="col-3">
+                            <div class="card text-dark mb-3" style="width: 100%;background-color: rgba(245,239,231, 0.8); border: none;">
+                                <div class="card-body">
+                                    <div class="card text-dark mb-3" style="width: 100%;background-color: rgba(245,239,231, 0.8);">
+                                        <div class="container">
+                                            <div style="width:500px">
+                                            <t5>No
+                                                <select class="green_iput" style="text-align:center;width:150px; margin-left: 15px;" id="selection_transition" name="selection_transition"onchange="update_selection_transition()" >
+                                                    <option value="" disabled selected>請選擇</option>
+                                                    <option value="1">1</option>
+                                                    <option value="2">2</option>
+                                                    <option value="3">3</option>
+                                                    <option value="4">4</option>
+                                                    <option value="5">5</option>
+                                                    <option value="6">6</option>
+                                                    <option value="7">7</option>
+                                                    <option value="8">8</option>
+                                                    <option value="9">9</option>
+                                                    <option value="10">10</option>
+                                                    <option value="11">11</option>
+                                                    <option value="12">12</option>
+                                                    <option value="13">13</option>
+                                                    <option value="14">14</option>
+                                                    <option value="15">15</option>
+                                                    <option value="16">16</option>
+                                                    <option value="17">17</option>
+                                                    <option value="18">18</option>
+                                                    <option value="19">19</option>
+                                                    <option value="20">20</option>
+                                                </select>
+                                            </t5><br>
+                                        </div>
+                                            <table id="selection-table">
+                                                <colgroup>
+                                                    <col style="width: 10%;">
+                                                    <col style="width: 45%;">
+                                                    <col style="width: 45%;">
+                                                </colgroup>
+                                                <thead>
+                                                    <tr><th></th><th></th><th></tr>
+                                                </thead>
+                                                <tr>
+                                                    <td>1</td>
+                                                    <td style="background-color:#ACB9CA" >S2 %</td>
+                                                    <td id="selection_transition_S2"></td>
+                                                    
+                                                </tr>
+                                                <tr>
+                                                    <td>2</td>
+                                                    <td style="background-color:#ACB9CA">B1</td>
+                                                    <td id="selection_transition_B1"></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>3</td>
+                                                    <td style="background-color:#ACB9CA">B3(r)</td>
+                                                    <td id="selection_transition_B3"></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>4
+                                                    </td>
+                                                    <td style="background-color:#ACB9CA">Z2</td>
+                                                    <td id="selection_transition_Z2"></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>5</td>
+                                                    <td style="background-color:#ACB9CA">Z3</sub></td>
+                                                    <td id="selection_transition_Z3"></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>6</sub>
+                                                    </td>
+                                                    <td style="background-color:#ACB9CA">∆Z</sub></td>
+                                                    <td id="selection_transition_deltaZ"></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>7
+                                                    </td>
+                                                    <td style="background-color:#ACB9CA">L2-min</td>
+                                                    <td id="selection_transition_L2min"></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>8
+                                                    </td>
+                                                    <td style="background-color:#92D050">L2-use</td>
+                                                    <td id="selection_transition_L2_use" style="background-color:#FCE4D6"></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>9
+                                                    </td>
+                                                    <td style="background-color:#92D050">Z3-use</td>
+                                                    <td id="selection_transition_Z3_use"></td>
+                                                </tr>
+                                                
+                                                
+                                            </table>
+                                            <div>
+                                                <button class="calc-button2" onclick="draw_transition()"  > 繪圖
+                                                </button>
+                                            </div>
+                                            
+                                        </div> 
+            
+                                    </div>
+                                </div>
+                            </div>
+                            <div id='next-step'class='d-none justify-content-left pt-3'>
+                                <div>進水口至隧道<br>
+                                    水面線計算</div>
+                                <button type="button" onclick="showWaterlevel()" class="border-0 bg-transparent p-0" style="height: 80px;">
+                                    <img src="{% static 'Inlet_Design/images/next_step.png' %}" alt="next step" style="height: 80px;" />
+                                  </button>
+                            </div>
+                        </div>
+                        <div class='col-4'>
+                            <div id='transition_cross_section'></div>
+                        </div>
+                        <div class='col-5'>
+                            <div id='transition_layout'></div>
+                            <div id='transition_profile'></div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

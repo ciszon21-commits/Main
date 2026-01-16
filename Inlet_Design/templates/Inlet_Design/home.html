@@ -1,0 +1,166 @@
+{% extends "../base/base.html" %}
+{% load static %}
+{% block template %}
+
+<div id="menu" class="d-flex justify-content-center align-items-center" >
+
+  <div class="pt-1 text-center">
+    <div>
+        <h2 class="border border-dark p-2"><strong>水利工程隧道水理設計模組</strong></h2>
+    </div>
+      
+      <img src="{% static 'Inlet_Design/images/full_area.png' %}" alt="full_area"  style="height:460px"/>
+      <div class="pt-2">
+        <div class="position-relative d-inline-block">
+            <img 
+                src="{% static 'Inlet_Design/images/spillway.png' %}" 
+                alt="spillway" 
+                class=" spillway-hover-effect" 
+                style="height:200px; cursor: pointer;" 
+                tabindex={0} 
+                onkeydown="handleKeyDown(event)" 
+                onclick="showSpillway()" />
+            <div class="yellow-box text-white justify-content-center align-items-center">Ogee堰<p><span class="circle-number">2</span></p></div>
+          </div>
+        <div class="position-relative d-inline-block">
+          <img src="{% static 'Inlet_Design/images/transition.png' %}" onclick="showtransition()" alt="transition" class="transition-hover-effect" style="height:200px"/>
+          <div class="blue-box text-white justify-content-center align-items-center">進水口漸變段<p><span class="circle-number">3</span></div>
+        </div>
+        <div class="position-relative d-inline-block">
+          <img src="{% static 'Inlet_Design/images/shape_transition.png' %}" alt="shape_transition" onclick="show_shape_transition()" class="shape_transition-hover-effect" style="height:200px"/>
+          <div class="red-box text-white justify-content-center align-items-center">隧道漸變段<p><span class="circle-number">4</span></div>
+        </div>
+        <div class="position-relative d-inline-block">
+          <img src="{% static 'Inlet_Design/images/tunnel.png' %}" alt="tunnel"  onclick="showtunnel()" class=" tunnel-hover-effect" style="height:200px"/>
+          <div class="crayon-box text-white justify-content-center align-items-center">隧道段<p><span class="circle-number">1</span></div>
+        </div>
+        <div class="position-relative d-inline-block">
+          <img src="{% static 'Inlet_Design/images/structure.png' %}" alt="structure" class=" structure-hover-effect" style="height:200px"/>
+          <div class="brown-box text-white justify-content-center align-items-center">隧道出口段<p><span class="circle-number">5</span></div>
+        </div>
+        </div>
+      </div>
+
+  </div>
+
+  <div id="menu1" class="row d-flex pt-2 justify-content-center align-items-center text-center" style="width: 1000px; margin: 0 auto;">
+    <div class="col-7"><b>進水口設施</b></div>
+    <div class="col-3"><b>隧道設施</b></div>
+    <div class="col-2"><b>消能設施</b></div>
+  </div>
+    <div>
+    {% include "Inlet_Design/Ogee2.html" %}
+    {% include "Inlet_Design/tunnel.html"%}
+    {% include "Inlet_Design/inlet.html"%}
+    {% include "Inlet_Design/transition.html"%}
+    {% include "Inlet_Design/waterlevel.html"%}
+    </div>
+</div>
+  <script src="{% static 'Inlet_Design/js/ogee/figures.js' %}"></script>
+  <script src="{% static 'Inlet_Design/js/ogee/submit_data.js' %}"></script>
+  <script src="{% static 'Inlet_Design/js/tunnel/base.js' %}"></script>
+  <script src="{% static 'Inlet_Design/js/tunnel/round.js' %}"></script>
+  <script src="{% static 'Inlet_Design/js/tunnel/submit_data.js' %}"></script>
+  <script src="{% static 'Inlet_Design/js/tunnel/critical_depth.js' %}"></script>
+  <script src="{% static 'Inlet_Design/js/tunnel/subcritical.js' %}"></script>
+  <script src="{% static 'Inlet_Design/js/tunnel/supercritical.js' %}"></script>
+  <script src="{% static 'Inlet_Design/js/tunnel/supercritical_round.js' %}"></script>
+  <script src="{% static 'Inlet_Design/js/tunnel/subcritical_round.js' %}"></script>
+  <script src="{% static 'Inlet_Design/js/inlet/base.js' %}"></script>
+  <script src="{% static 'Inlet_Design/js/inlet/submit_data.js' %}"></script>
+  <script src="{% static 'Inlet_Design/js/inlet/draw_figure.js' %}"></script>
+  <script src="{% static 'Inlet_Design/js/transition/base.js' %}"></script>
+  <script src="{% static 'Inlet_Design/js/transition/submit_data.js' %}"></script>
+  <script src="{% static 'Inlet_Design/js/transition/figures.js' %}"></script>
+  <script src="{% static 'Inlet_Design/js/waterlevel/base.js' %}"></script>
+  <script src="{% static 'Inlet_Design/js/waterlevel/figures.js' %}"></script>
+  <script src="{% static 'Inlet_Design/js/waterlevel/submit_data.js' %}"></script>
+  <script>
+    let all_step=0   
+
+    function hideMenu(){
+      document.getElementById('menu').classList.add('d-none');
+      document.getElementById('menu1').classList.add('d-none');
+    }
+    function showtransition(){
+      if(all_step<2){
+        alert('請完成步驟1：隧道段、 步驟2:Ogee堰 參數設定')
+      }else{
+      hideMenu()
+      document.getElementById('inlet').classList.remove('d-none');}
+      
+    }
+    function showSpillway() {
+      if(all_step<1){
+        alert('請完成步驟1：隧道段參數設定')
+      }else{
+      hideMenu()
+      document.getElementById('spillway').classList.remove('d-none');}
+    }
+    function showtunnel(){
+      hideMenu()
+      document.getElementById('tunnel').classList.remove('d-none');
+    }
+    
+    function show_shape_transition(){
+      if(all_step<3){
+        alert('請完成步驟1：隧道段、 步驟2:Ogee堰、 步驟3:進水口漸變段 參數設定')
+        return
+      }
+      hideMenu()
+      document.getElementById('transition_main').classList.remove('d-none');
+      if (choose_tunnel_type==='circle'){
+        document.getElementById('transition_circle').classList.remove('d-none');
+      }else if(choose_tunnel_type==='horseshoe'){
+        document.getElementById('transition_horseshoe').classList.remove('d-none');
+      }
+        
+
+      
+      
+    }
+    function showMenu() {
+      document.getElementById('spillway').classList.add('d-none');
+      document.getElementById('tunnel').classList.add('d-none');
+      document.getElementById('inlet').classList.add('d-none');
+      document.getElementById('transition_circle').classList.add('d-none');
+      document.getElementById('transition_horseshoe').classList.add('d-none');
+      document.getElementById('transition_main').classList.add('d-none');
+      document.getElementById('waterlevel_main').classList.add('d-none');
+      
+      document.getElementById('menu').classList.remove('d-none');
+      document.getElementById('menu1').classList.remove('d-none');
+    }
+    function handleKeyDown(event) {
+        if (event.key === "Enter" || event.key === " ") { // Handle Enter or Space key
+          showSpillway();
+        }
+      }
+    const fig1 = document.getElementById('fig1');
+    const closeButton = document.getElementById('closeButton');
+    // Add event listener to the close button to hide the div when clicked
+    closeButton.addEventListener('click', function () {
+      fig1.style.display = 'none'; // Hide the div
+  })
+
+  </script>
+  <script>
+    window.djangoUrls = {
+      step_one_input: "{% url 'step_one_input' %}",
+      ogee: "{% url 'ogee' %}",
+      horseshoe: "{% url 'horseshoe' %}",
+      horseshoe_supercritical_table: "{% url 'horseshoe_supercritical_table' %}",
+      horseshoe_subcritical_table: "{% url 'horseshoe_subcritical_table' %}",
+      round: "{% url 'round' %}",
+      round_supercritical_table: "{% url 'round_supercritical_table' %}",
+      round_subcritical_table: "{% url 'round_subcritical_table' %}",
+      inlet_transition_table: "{% url 'inlet_transition_table' %}",
+      inlet_transition_initial_table: "{% url 'inlet_transition_initial_table' %}",
+      inlet_diagram: "{% url 'inlet_diagram' %}",
+      transition_shape: "{% url 'transition_shape' %}",
+      transition_figure: "{% url 'transition_figure' %}",
+      water_level: "{% url 'water_level' %}"
+  };
+</script>
+
+{%endblock%}

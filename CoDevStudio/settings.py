@@ -79,6 +79,12 @@ INSTALLED_APPS = [
     'SynonymManager',
     'PatentRegistry',
     'site360',
+    'SinoFile',
+    'Inlet_Design',
+    'DroneReservation',
+    'ReservoirHydro',
+    'OpenSearch',  # OpenSearch 搜尋引擎
+
 ] + local.STAGE_INSTALLED_APPS
 
 
@@ -227,8 +233,8 @@ MEDIA_URL = "media/"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-EMAIL_PORT = 465
-EMAIL_USE_SSL = True
+EMAIL_PORT = 25
+EMAIL_USE_SSL = False
 EMAIL_HOST = local.EMAIL_HOST
 EMAIL_HOST_USER = local.EMAIL_HOST_USER
 EMAIL_HOST_PASSWORD = local.EMAIL_HOST_PASSWORD
@@ -282,3 +288,15 @@ CSRF_TRUSTED_ORIGINS = local.CSRF_TRUSTED_ORIGINS
 
 # Feature Toggles
 ENABLE_CLASH_CLASSIFIER = local.ENABLE_CLASH_CLASSIFIER
+
+# Tiered Storage Settings (Hot/Cold Data Separation)
+ARCHIVE_ROOT = local.ARCHIVE_ROOT
+ARCHIVE_URL = local.ARCHIVE_URL
+TMP_ROOT = local.TMP_ROOT
+ARCHIVE_MAX_FOLDER_SIZE = local.ARCHIVE_MAX_FOLDER_SIZE
+
+# OpenSearch Settings
+OPENSEARCH_HOST = local.OPENSEARCH_HOST
+OPENSEARCH_USERNAME = local.OPENSEARCH_USERNAME
+OPENSEARCH_PASSWORD = local.OPENSEARCH_PASSWORD
+OPENSEARCH_VERIFY_CERTS = local.OPENSEARCH_VERIFY_CERTS

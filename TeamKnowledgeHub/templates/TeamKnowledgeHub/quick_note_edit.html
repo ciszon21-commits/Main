@@ -1,0 +1,628 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - 快速筆記</title>
+    <link rel="stylesheet" href="{% static 'TeamKnowledgeHub/css/styles.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    {{ form.media }}
+    <style>
+        /* CKEditor adjustments for Light Theme */
+        .ck.ck-editor {
+            --ck-color-base-background: var(--bg-secondary);
+            --ck-color-text: var(--text-primary);
+            --ck-color-base-border: var(--border-color);
+        }
+        
+        .ck.ck-editor__main > .ck-editor__editable {
+            background: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-color) !important;
+            min-height: 300px;
+        }
+        
+        .ck.ck-editor__main > .ck-editor__editable:focus {
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 0 3px rgba(240, 106, 106, 0.1) !important;
+        }
+        
+        .ck.ck-toolbar {
+            background: var(--bg-primary) !important;
+            border-color: var(--border-color) !important;
+        }
+        
+        .ck.ck-button {
+            color: var(--text-secondary) !important;
+        }
+        
+        .ck.ck-button:hover {
+            background: var(--bg-tertiary) !important;
+        }
+        
+        /* CKEditor Content Styles - Lists, Tables, Headings etc. */
+        .ck-editor__editable ul,
+        .ck-editor__editable ol {
+            margin-left: 1em;
+            padding-left: 1.5em;
+            margin-bottom: 1em;
+        }
+        
+        .ck-editor__editable ul {
+            list-style-type: disc !important;
+        }
+        
+        .ck-editor__editable ol {
+            list-style-type: decimal !important;
+        }
+        
+        .ck-editor__editable li {
+            margin-bottom: 0.25em;
+            line-height: 1.6;
+        }
+        
+        .ck-editor__editable ul ul {
+            list-style-type: circle !important;
+            margin-top: 0.25em;
+        }
+        
+        .ck-editor__editable ul ul ul {
+            list-style-type: square !important;
+        }
+        
+        .ck-editor__editable h1 {
+            font-size: 1.8em;
+            font-weight: 600;
+            margin: 0.5em 0;
+            color: var(--text-primary);
+        }
+        
+        .ck-editor__editable h2 {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin: 0.5em 0;
+            color: var(--text-primary);
+        }
+        
+        .ck-editor__editable h3 {
+            font-size: 1.25em;
+            font-weight: 600;
+            margin: 0.5em 0;
+            color: var(--text-primary);
+        }
+        
+        .ck-editor__editable h4 {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin: 0.5em 0;
+            color: var(--text-primary);
+        }
+        
+        .ck-editor__editable p {
+            margin-bottom: 1em;
+            line-height: 1.6;
+        }
+        
+        .ck-editor__editable blockquote {
+            border-left: 4px solid var(--border-color);
+            padding-left: 1em;
+            margin: 1em 0;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        
+        .ck-editor__editable code {
+            background: var(--bg-tertiary);
+            padding: 0.2em 0.4em;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+        }
+        
+        .ck-editor__editable pre {
+            background: var(--bg-tertiary);
+            padding: 1em;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1em 0;
+        }
+        
+        .ck-editor__editable table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1em 0;
+        }
+        
+        .ck-editor__editable th,
+        .ck-editor__editable td {
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            text-align: left;
+        }
+        
+        .ck-editor__editable th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+        }
+        
+        .ck-editor__editable a {
+            color: var(--primary);
+            text-decoration: underline;
+        }
+        
+        .ck-editor__editable img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        /* Auto-save indicator */
+        .autosave-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            color: var(--text-tertiary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            background: var(--bg-tertiary);
+        }
+        
+        .autosave-indicator.saving {
+            color: var(--warning);
+        }
+        
+        .autosave-indicator.saved {
+            color: var(--success);
+        }
+        
+        .autosave-indicator.error {
+            color: var(--danger);
+        }
+        
+        /* Move to team modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            color: var(--text-tertiary);
+        }
+        
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+        
+        .selection-group {
+            margin-bottom: 16px;
+        }
+        
+        .selection-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        
+        .selection-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+        
+        /* Note header with actions */
+        .note-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Page Header -->
+    <header class="page-header">
+        <div class="page-header-content">
+            <div class="page-header-left">
+                <a href="{% url 'knowledge:quick_note_list' %}" class="back-link">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    我的筆記
+                </a>
+                <div>
+                    <h1 class="page-title">{{ title }}</h1>
+                    {% if note %}
+                    <p class="page-subtitle">上次更新：{{ note.updated_at|date:"Y/m/d H:i" }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="note-header-actions">
+                {% if not is_new %}
+                <div class="autosave-indicator" id="autosaveStatus">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span>等待編輯...</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Messages -->
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="message message-{{ message.tags }}">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    {% if message.tags == 'success' %}
+                    <path d="M20 6L9 17l-5-5"/>
+                    {% else %}
+                    <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
+                    {% endif %}
+                </svg>
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="form-container form-container-wide">
+            <form method="post" class="form" id="noteForm">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="id_title">
+                        筆記標題 <span class="required">*</span>
+                    </label>
+                    <input type="text" 
+                           name="title" 
+                           id="id_title" 
+                           value="{{ form.title.value|default:'' }}"
+                           placeholder="輸入筆記標題..."
+                           required>
+                    {% if form.title.errors %}
+                    <span class="error-text">{{ form.title.errors.0 }}</span>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_content">內容</label>
+                    {{ form.content }}
+                    {% if form.content.errors %}
+                    <span class="error-text">{{ form.content.errors.0 }}</span>
+                    {% endif %}
+                </div>
+                
+                <div class="form-actions">
+                    {% if not is_new %}
+                    <button type="button" class="btn btn-secondary" onclick="openMoveModal()">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        移入團隊
+                    </button>
+                    <a href="{% url 'knowledge:quick_note_delete' note.pk %}" class="btn btn-danger">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                        刪除
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'knowledge:quick_note_list' %}" class="btn btn-secondary">取消</a>
+                    <button type="submit" class="btn btn-primary">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                            <polyline points="17 21 17 13 7 13 7 21"/>
+                            <polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                        儲存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if not is_new %}
+    <!-- Move to Team Modal -->
+    <div class="modal-overlay" id="moveModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📁 移入團隊</h2>
+                <button type="button" class="modal-close" onclick="closeMoveModal()">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="selection-group">
+                <label for="selectTeam">選擇團隊 <span class="required">*</span></label>
+                <select id="selectTeam" onchange="loadTopics(this.value)">
+                    <option value="">-- 請選擇團隊 --</option>
+                    {% for team in user_teams %}
+                    <option value="{{ team.pk }}">{{ team.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="selection-group">
+                <label for="selectTopic">選擇主題 <span class="required">*</span></label>
+                <select id="selectTopic" onchange="loadCategories(this.value)" disabled>
+                    <option value="">-- 請先選擇團隊 --</option>
+                </select>
+            </div>
+            
+            <div class="selection-group">
+                <label for="selectCategory">選擇分類（選填）</label>
+                <select id="selectCategory" disabled>
+                    <option value="">-- 未分類 --</option>
+                </select>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeMoveModal()">取消</button>
+                <button type="button" class="btn btn-primary" id="confirmMoveBtn" onclick="confirmMove()" disabled>
+                    確認移入
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <script>
+        const noteId = {{ note.pk|default:"null" }};
+        const csrfToken = '{{ csrf_token }}';
+        let autosaveTimer = null;
+        let lastSavedContent = '';
+        let lastSavedTitle = '';
+        
+        {% if not is_new %}
+        // Initialize last saved values
+        lastSavedTitle = document.getElementById('id_title').value;
+        
+        // Get CKEditor content on load
+        function getCKEditorContent() {
+            const editorElement = document.querySelector('.ck-editor__editable');
+            if (editorElement && editorElement.ckeditorInstance) {
+                return editorElement.ckeditorInstance.getData();
+            }
+            // Fallback to textarea value
+            const textarea = document.querySelector('textarea[name="content"]');
+            return textarea ? textarea.value : '';
+        }
+        
+        function updateAutosaveStatus(status, message) {
+            const indicator = document.getElementById('autosaveStatus');
+            if (!indicator) return;
+            
+            indicator.className = 'autosave-indicator ' + status;
+            indicator.querySelector('span').textContent = message;
+        }
+        
+        function autoSave() {
+            const title = document.getElementById('id_title').value.trim();
+            const content = getCKEditorContent();
+            
+            // Don't save if nothing changed
+            if (title === lastSavedTitle && content === lastSavedContent) {
+                return;
+            }
+            
+            if (!title) {
+                updateAutosaveStatus('error', '標題不可為空');
+                return;
+            }
+            
+            updateAutosaveStatus('saving', '儲存中...');
+            
+            fetch(`/knowledge/api/notes/${noteId}/autosave/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ title, content })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    lastSavedTitle = title;
+                    lastSavedContent = content;
+                    updateAutosaveStatus('saved', '已儲存 ' + data.updated_at.split(' ')[1]);
+                } else {
+                    updateAutosaveStatus('error', data.error || '儲存失敗');
+                }
+            })
+            .catch(err => {
+                updateAutosaveStatus('error', '儲存失敗');
+                console.error(err);
+            });
+        }
+        
+        function scheduleAutosave() {
+            if (autosaveTimer) clearTimeout(autosaveTimer);
+            autosaveTimer = setTimeout(autoSave, 2000);
+            updateAutosaveStatus('', '等待儲存...');
+        }
+        
+        // Watch title input
+        document.getElementById('id_title').addEventListener('input', scheduleAutosave);
+        
+        // Watch CKEditor changes (need to wait for CKEditor to initialize)
+        setTimeout(() => {
+            const editorElement = document.querySelector('.ck-editor__editable');
+            if (editorElement && editorElement.ckeditorInstance) {
+                editorElement.ckeditorInstance.model.document.on('change:data', scheduleAutosave);
+                lastSavedContent = editorElement.ckeditorInstance.getData();
+            }
+        }, 1500);
+        
+        // Modal functions
+        function openMoveModal() {
+            document.getElementById('moveModal').classList.add('active');
+        }
+        
+        function closeMoveModal() {
+            document.getElementById('moveModal').classList.remove('active');
+        }
+        
+        function loadTopics(teamId) {
+            const topicSelect = document.getElementById('selectTopic');
+            const categorySelect = document.getElementById('selectCategory');
+            const confirmBtn = document.getElementById('confirmMoveBtn');
+            
+            topicSelect.innerHTML = '<option value="">-- 載入中... --</option>';
+            topicSelect.disabled = true;
+            categorySelect.innerHTML = '<option value="">-- 未分類 --</option>';
+            categorySelect.disabled = true;
+            confirmBtn.disabled = true;
+            
+            if (!teamId) {
+                topicSelect.innerHTML = '<option value="">-- 請先選擇團隊 --</option>';
+                return;
+            }
+            
+            fetch(`/knowledge/api/team/${teamId}/topics/`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    topicSelect.innerHTML = '<option value="">-- 請選擇主題 --</option>';
+                    data.topics.forEach(t => {
+                        topicSelect.innerHTML += `<option value="${t.id}">${t.name}</option>`;
+                    });
+                    topicSelect.disabled = false;
+                }
+            });
+        }
+        
+        function loadCategories(topicId) {
+            const categorySelect = document.getElementById('selectCategory');
+            const confirmBtn = document.getElementById('confirmMoveBtn');
+            
+            categorySelect.innerHTML = '<option value="">-- 載入中... --</option>';
+            categorySelect.disabled = true;
+            
+            if (!topicId) {
+                categorySelect.innerHTML = '<option value="">-- 未分類 --</option>';
+                confirmBtn.disabled = true;
+                return;
+            }
+            
+            confirmBtn.disabled = false;
+            
+            fetch(`/knowledge/api/topic/${topicId}/categories/`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    categorySelect.innerHTML = '<option value="">-- 未分類 --</option>';
+                    data.categories.forEach(c => {
+                        categorySelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+                    });
+                    categorySelect.disabled = false;
+                }
+            });
+        }
+        
+        function confirmMove() {
+            const topicId = document.getElementById('selectTopic').value;
+            const categoryId = document.getElementById('selectCategory').value;
+            
+            if (!topicId) {
+                alert('請選擇主題');
+                return;
+            }
+            
+            const confirmBtn = document.getElementById('confirmMoveBtn');
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = '移動中...';
+            
+            fetch(`/knowledge/api/notes/${noteId}/move/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ topic_id: topicId, category_id: categoryId || null })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (confirm(data.message + '\n\n是否前往查看？')) {
+                        window.location.href = data.item_url;
+                    } else {
+                        window.location.href = '/knowledge/notes/';
+                    }
+                } else {
+                    alert(data.error || '移動失敗');
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = '確認移入';
+                }
+            })
+            .catch(err => {
+                alert('發生錯誤');
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = '確認移入';
+            });
+        }
+        {% endif %}
+    </script>
+</body>
+
+</html>

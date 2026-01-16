@@ -111,6 +111,39 @@
         .drag-toast.error {
             border-left: 4px solid var(--danger);
         }
+        
+        /* Topic Action Buttons */
+        .topic-actions {
+            display: none;
+            align-items: center;
+            gap: 4px;
+            margin-left: auto;
+        }
+        
+        .tree-node-header:hover .topic-actions {
+            display: flex;
+        }
+        
+        .topic-action-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: var(--radius-sm);
+            color: var(--text-muted);
+            transition: all var(--transition-fast);
+        }
+        
+        .topic-action-btn:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        
+        .topic-action-btn.topic-action-delete:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
     </style>
 </head>
 
@@ -154,6 +187,20 @@
                             </svg>
                             <span class="tree-node-label">{{ topic.name }}</span>
                             <span class="tree-node-count">{{ topic.items.count }}</span>
+                            <div class="topic-actions" onclick="event.stopPropagation()">
+                                <a href="{% url 'knowledge:topic_update' topic.pk %}" class="topic-action-btn" title="編輯主題">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                    </svg>
+                                </a>
+                                <a href="{% url 'knowledge:topic_delete' topic.pk %}" class="topic-action-btn topic-action-delete" title="刪除主題">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <polyline points="3 6 5 6 21 6"/>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    </svg>
+                                </a>
+                            </div>
                         </div>
                         <div class="tree-children">
                             <!-- Manage Categories Link -->
@@ -739,12 +786,7 @@
             document.getElementById('sidebar').classList.toggle('open');
         }
 
-        // Expand all topics by default
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.topic-node').forEach(node => {
-                node.classList.add('expanded');
-            });
-        });
+
 
         // Close sidebar when clicking outside on mobile
         document.addEventListener('click', function(e) {
