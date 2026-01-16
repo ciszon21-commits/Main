@@ -42,11 +42,16 @@ class MapView(TemplateView):
         context = super().get_context_data(**kwargs)
         
         # 取得分類列表
+        # 取得分類列表
         categories = GeoCategory.objects.filter(is_active=True).annotate(
-            source_count=Count('data_sources', filter=Q(data_sources__is_visible=True))
+            source_count=Count('data_sources', filter=Q(data_sources__is_visible=True, data_sources__location__isnull=False))
         ).order_by('sort_order', 'name')
         
+        # 取得總數 (已有座標的項目)
+        total_count = GeoDataSource.objects.filter(is_visible=True, location__isnull=False).count()
+        
         context['categories'] = categories
+        context['total_count'] = total_count
         context['search_form'] = GeoSearchForm()
         
         # 預設中心點：台灣
@@ -104,7 +109,7 @@ class GeoSearchAPI(View):
         keyword = request.GET.get('keyword', '').strip()
         source_type = request.GET.get('source_type', '').strip()
         page = int(request.GET.get('page', 1))
-        page_size = int(request.GET.get('page_size', 50))
+        page_size = int(request.GET.get('page_size', 2000))
         
         if category_id:
             try:
@@ -122,7 +127,7 @@ class GeoSearchAPI(View):
             category_id=category_id,
             keyword=keyword if keyword else None,
             source_type=source_type if source_type else None,
-            limit=page_size * 10  # 取多一些以支援分頁
+            limit=2000  # 提高上限以顯示更多點
         )
         
         # 分頁處理
