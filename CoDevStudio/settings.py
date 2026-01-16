@@ -100,6 +100,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.RemoteUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "site360.middleware.UserActionLoggingMiddleware",  # Site360 使用者操作記錄
 ] + local.STAGE_MIDDLEWARES
 
 

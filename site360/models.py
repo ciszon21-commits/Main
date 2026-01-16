@@ -1,5 +1,8 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
 
 class Project(models.Model):
     name = models.CharField(_("專案名稱"), max_length=200)
@@ -87,3 +90,134 @@ class Hotspot(models.Model):
 
     def __str__(self):
         return f"{self.get_hotspot_type_display()} - {self.title}"
+
+
+class UserActionLog(models.Model):
+    """
+    記錄所有使用者操作的詳細資訊
+    """
+    ACTION_TYPE_CHOICES = (
+        ('CREATE', '建立'),
+        ('UPDATE', '更新'),
+        ('DELETE', '刪除'),
+        ('VIEW', '查看'),
+        ('LOGIN', '登入'),
+        ('LOGOUT', '登出'),
+        ('UPLOAD', '上傳'),
+        ('DOWNLOAD', '下載'),
+        ('REFERENCE', '引用'),
+        ('REORDER', '重新排序'),
+        ('MOVE', '移動'),
+        ('SET_COVER', '設為封面'),
+        ('OTHER', '其他'),
+    )
+
+    # 使用者資訊
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        verbose_name=_("使用者"),
+        help_text="執行操作的使用者，null 表示匿名用戶"
+    )
+    
+    # 操作資訊
+    action_type = models.CharField(
+        _("操作類型"), 
+        max_length=20, 
+        choices=ACTION_TYPE_CHOICES,
+        db_index=True
+    )
+    
+    # 操作對象 (使用 Generic Foreign Key)
+    content_type = models.ForeignKey(
+        ContentType, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        verbose_name=_("對象類型"),
+        db_index=True
+    )
+    object_id = models.PositiveIntegerField(
+        _("對象ID"), 
+        null=True, 
+        blank=True,
+        db_index=True
+    )
+    content_object = GenericForeignKey('content_type', 'object_id')
+    
+    # 對象字串表示（冗餘存儲，避免對象被刪除後無法查看）
+    object_repr = models.CharField(
+        _("對象描述"), 
+        max_length=500, 
+        blank=True,
+        help_text="操作對象的字串表示"
+    )
+    
+    # 操作詳情 (JSON格式存儲具體變更內容)
+    action_detail = models.JSONField(
+        _("操作詳情"), 
+        default=dict, 
+        blank=True,
+        help_text="包含請求參數、變更內容等詳細資訊"
+    )
+    
+    # 請求資訊
+    ip_address = models.GenericIPAddressField(
+        _("IP地址"), 
+        null=True, 
+        blank=True,
+        help_text="客戶端IP地址"
+    )
+    user_agent = models.CharField(
+        _("用戶代理"), 
+        max_length=500, 
+        blank=True,
+        help_text="瀏覽器和操作系統資訊"
+    )
+    request_path = models.CharField(
+        _("請求路徑"), 
+        max_length=500, 
+        blank=True,
+        db_index=True
+    )
+    request_method = models.CharField(
+        _("請求方法"), 
+        max_length=10, 
+        blank=True,
+        help_text="GET, POST, PUT, DELETE 等"
+    )
+    
+    # 會話資訊
+    session_key = models.CharField(
+        _("會話KEY"), 
+        max_length=100, 
+        blank=True,
+        db_index=True,
+        help_text="用於追蹤同一會話的操作"
+    )
+    
+    # 時間戳記
+    created_at = models.DateTimeField(
+        _("操作時間"), 
+        auto_now_add=True,
+        db_index=True
+    )
+
+    class Meta:
+        verbose_name = _("使用者操作記錄")
+        verbose_name_plural = _("使用者操作記錄")
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'action_type']),
+            models.Index(fields=['content_type', 'object_id']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['session_key']),
+        ]
+
+    def __str__(self):
+        user_str = self.user.username if self.user else "匿名用戶"
+        action = self.get_action_type_display()
+        obj_str = self.object_repr or f"{self.content_type} #{self.object_id}" if self.content_type else "系統"
+        return f"{user_str} {action} {obj_str}"
