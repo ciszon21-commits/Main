@@ -1,0 +1,342 @@
+{% extends "GeoDataHub/base.html" %}
+{% load static %}
+
+{% block title %}GeoDataHub - 資料地圖{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<header class="re-header">
+    <a href="{% url 'geodatahub:map' %}" class="re-header__logo">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" class="re-logo-icon">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="#0F766E" stroke-width="2" fill="#E6FFFA"/>
+            <polyline points="9 22 9 12 15 12 15 22" stroke="#0F766E" stroke-width="2" fill="#FFFFFF"/>
+        </svg>
+        GeoDataHub
+    </a>
+    
+    <!-- Search -->
+    <div class="re-search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" style="position: absolute; left: 1rem; top: 0.85rem;">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="search-keyword" placeholder="搜尋地點、物業或區域...">
+    </div>
+    
+    <nav style="margin-left: auto; display: flex; gap: 0.75rem;">
+        <a href="{% url 'geodatahub:source_list' %}" class="re-btn re-btn--secondary re-btn--sm">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            列表模式
+        </a>
+        {% if user.is_authenticated %}
+        <a href="{% url 'geodatahub:source_create' %}" class="re-btn re-btn--primary re-btn--sm">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            新增
+        </a>
+        {% endif %}
+        {% if user.is_superuser %}
+        <a href="{% url 'geodatahub:category_manage' %}" class="re-btn re-btn--accent re-btn--sm">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            管理
+        </a>
+        {% endif %}
+    </nav>
+</header>
+
+<!-- Map Container -->
+<div class="re-map-container">
+    <!-- Sidebar -->
+    <aside class="re-sidebar">
+        <!-- Categories -->
+        <div>
+            <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #94A3B8; margin-bottom: 0.75rem; letter-spacing: 0.05em;">物業類型</div>
+            <div id="category-list">
+                <div class="re-nav-item re-nav-item--active" data-category="">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                    全部分類
+                    <span id="total-count" style="margin-left: auto; background: rgba(0,0,0,0.1); padding: 2px 8px; border-radius: 99px; font-size: 0.75rem;">0</span>
+                </div>
+                {% for cat in categories %}
+                <div class="re-nav-item" data-category="{{ cat.id }}">
+                    <span style="font-size: 1.25rem;">{{ cat.icon }}</span>
+                    {{ cat.name }}
+                    <span data-count-cat="{{ cat.id }}" style="margin-left: auto; background: rgba(0,0,0,0.05); padding: 2px 8px; border-radius: 99px; font-size: 0.75rem;">{{ cat.source_count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Filters -->
+        <div style="margin-top: auto;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #94A3B8; margin-bottom: 0.75rem; letter-spacing: 0.05em;">資料來源</div>
+            <div id="source-type-list">
+                <div class="re-nav-item re-nav-item--active" data-source-type="">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                    所有來源
+                </div>
+                <div class="re-nav-item" data-source-type="upload">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    上傳檔案
+                </div>
+                <div class="re-nav-item" data-source-type="link">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                    外部連結
+                </div>
+                <div class="re-nav-item" data-source-type="opensearch">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    OpenSearch
+                </div>
+            </div>
+        </div>
+    </aside>
+    
+    <!-- Map -->
+    <main style="flex: 1; position: relative;">
+        <div id="map" style="width: 100%; height: 100%;"></div>
+        
+        <!-- Result Panel (Floating) -->
+        <div id="result-panel" class="re-result-panel" style="display: none;">
+            <div style="padding: 1rem; border-bottom: 1px solid #E2E8F0; display: flex; align-items: center; justify-content: space-between;">
+                <div class="re-h3">搜尋結果</div>
+                <button onclick="closeResultPanel()" style="background: none; border: none; cursor: pointer; color: #64748B;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div id="result-list" style="overflow-y: auto; flex: 1;"></div>
+        </div>
+    </main>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+<script>
+    // Config
+    const CONFIG = {
+        defaultCenter: [{{ default_center.lat }}, {{ default_center.lng }}],
+        defaultZoom: {{ default_center.zoom }},
+        apiBase: '{% url "geodatahub:api_search" %}',
+        countApi: '{% url "geodatahub:api_count" %}',
+        detailUrl: '{% url "geodatahub:source_detail" pk=999999 %}'
+    };
+    
+    // State
+    let map, markersLayer, drawnItems;
+    let currentCategory = '', currentSourceType = '', currentKeyword = '', currentBounds = null;
+
+    // Custom House Icon Generator
+    const createHouseIcon = (color, count, iconText) => {
+        // Simple House Shape SVG
+        const houseSvg = `
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <filter id="shadow" x="-2" y="-2" width="28" height="28">
+                  <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="${color}" flood-opacity="0.4"/>
+                </filter>
+                <path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z" fill="${color}" stroke="white" stroke-width="2" filter="url(#shadow)"/>
+            </svg>
+        `;
+        
+        return L.divIcon({
+            html: `<div style="position: relative; display: flex; justify-content: center; align-items: center;">
+                ${houseSvg}
+                ${iconText ? `<span style="position: absolute; top: 12px; font-size: 14px; pointer-events: none;">${iconText}</span>` : ''}
+                ${count ? `<span style="position: absolute; top: -8px; right: -8px; background: #F59E0B; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; font-weight: bold; border: 2px solid white;">${count}</span>` : ''}
+            </div>`,
+            className: 're-house-icon',
+            iconSize: [40, 40],
+            iconAnchor: [20, 36],
+            popupAnchor: [0, -36]
+        });
+    };
+
+    function initMap() {
+        // CartoDB Positron (Warm/Clean)
+        const tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            maxZoom: 20
+        });
+        
+        map = L.map('map', {
+            center: CONFIG.defaultCenter,
+            zoom: CONFIG.defaultZoom,
+            layers: [tiles],
+            zoomControl: false // Custom position
+        });
+        
+        L.control.zoom({ position: 'topleft' }).addTo(map);
+
+        markersLayer = L.markerClusterGroup({
+            maxClusterRadius: 40,
+            iconCreateFunction: function(cluster) {
+                return createHouseIcon('#0F766E', cluster.getChildCount());
+            }
+        });
+        map.addLayer(markersLayer);
+        
+        drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+        
+        // Draw Control
+        const drawControl = new L.Control.Draw({
+            position: 'topleft',
+            draw: {
+                polyline: false, polygon: false, circle: false, circlemarker: false, marker: false,
+                rectangle: { shapeOptions: { color: '#F59E0B', weight: 2 } }
+            },
+            edit: { featureGroup: drawnItems, remove: true }
+        });
+        map.addControl(drawControl);
+        
+        // Events
+        map.on(L.Draw.Event.CREATED, e => {
+            drawnItems.clearLayers();
+            drawnItems.addLayer(e.layer);
+            const b = e.layer.getBounds();
+            currentBounds = { north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest() };
+            searchInBounds();
+        });
+        
+        map.on(L.Draw.Event.DELETED, () => {
+            currentBounds = null;
+            document.getElementById('result-panel').style.display = 'none';
+        });
+
+        // Load
+        loadMarkers();
+        
+        // Category/Filter Events
+        document.querySelectorAll('.re-nav-item').forEach(el => {
+            el.addEventListener('click', function() {
+                const parent = this.parentElement;
+                parent.querySelectorAll('.re-nav-item').forEach(i => i.classList.remove('re-nav-item--active'));
+                this.classList.add('re-nav-item--active');
+                
+                if (parent.id === 'category-list') currentCategory = this.dataset.category;
+                if (parent.id === 'source-type-list') currentSourceType = this.dataset.sourceType;
+                
+                loadMarkers();
+                if (currentBounds) searchInBounds();
+            });
+        });
+
+        // Search
+        let timer;
+        document.getElementById('search-keyword').addEventListener('input', (e) => {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                currentKeyword = e.target.value;
+                loadMarkers();
+                if (currentBounds) searchInBounds();
+            }, 500);
+        });
+    }
+
+    function loadMarkers() {
+        const b = map.getBounds();
+        fetch(`${CONFIG.apiBase}?` + new URLSearchParams({
+            category: currentCategory, source_type: currentSourceType, keyword: currentKeyword,
+            north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest()
+        }))
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                markersLayer.clearLayers();
+                data.items.forEach(item => {
+                    const color = item.category?.color || '#0F766E';
+                    const marker = L.marker([item.location.lat, item.location.lng], {
+                        icon: createHouseIcon(color, null, item.category?.icon || '📍')
+                    });
+                    
+                    const formatUNC = (path) => {
+                        if (!path) return '';
+                        let formatted = path.replace(/\//g, '\\');
+                        if (!formatted.startsWith('\\\\')) {
+                            formatted = formatted.startsWith('\\') ? '\\' + formatted : '\\\\' + formatted;
+                        }
+                        return formatted;
+                    };
+
+                    const uncPath = item.metadata && item.metadata.url ? formatUNC(item.metadata.url) : '';
+                    
+                    marker.bindPopup(`
+                        <div style="font-family: 'Outfit'; min-width: 220px;">
+                            <div style="font-weight: 700; color: #134E4A; margin-bottom: 4px;">${item.title}</div>
+                            ${uncPath ? `
+                                <div style="margin-bottom: 8px;">
+                                    <div style="font-size: 0.75rem; color: #64748B; margin-bottom: 2px;">UNC 路徑:</div>
+                                    <div style="font-size: 0.75rem; color: #0F766E; background: #F1F5F9; padding: 4px; border-radius: 4px; word-break: break-all; font-family: monospace; border: 1px solid #E2E8F0;">
+                                        ${uncPath}
+                                    </div>
+                                    <button onclick="copyToClipboard('${uncPath.replace(/\\/g, '\\\\')}', this)" style="margin-top: 4px; background: none; border: none; color: #0F766E; font-size: 0.75rem; cursor: pointer; text-decoration: underline; padding: 0;">
+                                        📋 複製路徑
+                                    </button>
+                                </div>
+                            ` : ''}
+                            <div style="color: #64748B; font-size: 0.85rem; margin-bottom: 8px;">${item.location.address || '無地址'}</div>
+                            <a href="${CONFIG.detailUrl.replace('999999', item.id)}" class="re-btn re-btn--primary re-btn--sm" style="width: 100%;">查看詳情</a>
+                        </div>
+                    `);
+                    markersLayer.addLayer(marker);
+                });
+                document.getElementById('total-count').textContent = data.count;
+            }
+        });
+    }
+    
+    function searchInBounds() {
+        if (!currentBounds) return;
+        fetch(`${CONFIG.apiBase}?` + new URLSearchParams({
+            category: currentCategory, source_type: currentSourceType, keyword: currentKeyword,
+            north: currentBounds.north, south: currentBounds.south, east: currentBounds.east, west: currentBounds.west
+        }))
+        .then(r => r.json())
+        .then(data => {
+            const list = document.getElementById('result-list');
+            list.innerHTML = data.items.map(item => `
+                <div class="re-result-item" onclick="map.flyTo([${item.location.lat}, ${item.location.lng}], 16)">
+                    <div style="font-weight: 700; color: #134E4A;">${item.title}</div>
+                    <div style="font-size: 0.85rem; color: #64748B;">${item.location.address || ''}</div>
+                    <div class="re-price-tag">查看物件</div>
+                </div>
+            `).join('');
+            document.getElementById('result-panel').style.display = 'flex';
+        });
+    }
+    
+    function closeResultPanel() {
+        document.getElementById('result-panel').style.display = 'none';
+        drawnItems.clearLayers();
+        currentBounds = null;
+    }
+
+    function copyToClipboard(text, btn) {
+        navigator.clipboard.writeText(text).then(() => {
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '✅ 已複製';
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+            }, 2000);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', initMap);
+</script>
+{% endblock %}

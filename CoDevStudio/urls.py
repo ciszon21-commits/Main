@@ -33,6 +33,7 @@ urlpatterns = [
     path('drone/', include('DroneReservation.urls')),  # 園路無人機預約
     path('reservoir-hydro/', include('ReservoirHydro.urls')),  # 水庫水文水理計算平台
     path('search/', include('OpenSearch.urls')),  # OpenSearch 搜尋引擎
+    path('geodatahub/', include('GeoDataHub.urls')),  # 地圖導向資料管理平台
 ]
 
 # 條件載入 ClashClassifier API
