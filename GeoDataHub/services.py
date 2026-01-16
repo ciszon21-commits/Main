@@ -63,37 +63,51 @@ class GeocodingService:
         bounded: bool = True
     ) -> Optional[Dict]:
         """
-        將地址轉換為座標
-        
-        Args:
-            address: 地址字串 (支援中文)
-            country: 國家代碼 (預設 TW)
-            bounded: 是否限制在預設邊界內
-            
-        Returns:
-            {
-                'latitude': float,
-                'longitude': float,
-                'display_name': str,
-                'address': dict,
-                'confidence': float (0-1)
-            }
-            或 None 如果找不到
+        將地址轉換為座標 (優先使用快取且具備失敗保護)
         """
+        from .models import GeocodingCache
+        from django.utils import timezone
+        
+        # 1. 檢查本地快取
+        cache_entry, created = GeocodingCache.objects.get_or_create(query=address)
+        
+        if cache_entry.is_success and cache_entry.result:
+            return cache_entry.result
+            
+        # 2. 失敗保護：如果失敗超過 3 次且最近嘗試過，則跳過
+        if not cache_entry.is_success and cache_entry.fail_count >= 3:
+            # 如果是最近一小時內的嘗試，則直接跳過外部請求
+            if (timezone.now() - cache_entry.last_attempt).total_seconds() < 3600:
+                return None
+        
+        # 3. 執行外部請求
+        result = None
+        
         # For Taiwan addresses, try multiple services starting with ArcGIS which is reliable
         if country.upper() == 'TW':
             # 1. Try ArcGIS (Most reliable for Taiwan detail addresses currently)
             result = self._geocode_arcgis(address)
-            if result:
-                return result
-                
-            # 2. Try TGOS (Taiwan Government Open Service) fallback
-            result = self._geocode_tgos(address)
-            if result:
-                return result
+            
+            # 2. Try TGOS (Taiwan Government Open Service) fallback if ArcGIS failed
+            if not result:
+                result = self._geocode_tgos(address)
         
-        # Fallback to Nominatim
-        return self._geocode_nominatim(address, country, bounded)
+        # Fallback to Nominatim if others failed
+        if not result:
+            result = self._geocode_nominatim(address, country, bounded)
+            
+        # 4. 更新快取狀態
+        if result:
+            cache_entry.result = result
+            cache_entry.is_success = True
+            cache_entry.fail_count = 0
+            cache_entry.save()
+        else:
+            cache_entry.fail_count += 1
+            cache_entry.is_success = False
+            cache_entry.save()
+            
+        return result
     
     def _geocode_arcgis(self, address: str) -> Optional[Dict]:
         """使用 ArcGIS World Geocoding Service"""
@@ -124,8 +138,13 @@ class GeocodingService:
                     'source': 'ArcGIS'
                 }
             return None
+        except requests.RequestException as e:
+            # ArcGIS is generally stable, but silence common network issues
+            if not (e.response is not None and e.response.status_code in [503, 404]):
+                print(f"ArcGIS geocoding error: {e}")
+            return None
         except Exception as e:
-            print(f"ArcGIS geocoding error: {e}")
+            print(f"ArcGIS unexpected error: {e}")
             return None
 
     def _geocode_tgos(self, address: str) -> Optional[Dict]:
@@ -158,8 +177,13 @@ class GeocodingService:
                     'source': 'TGOS'
                 }
             return None
+        except requests.RequestException as e:
+            # TGOS is known to have 404/503 issues, silence them
+            if not (e.response is not None and e.response.status_code in [503, 404]):
+                print(f"TGOS geocoding error: {e}")
+            return None
         except Exception as e:
-            print(f"TGOS geocoding error: {e}")
+            print(f"TGOS unexpected error: {e}")
             return None
     
     def _geocode_nominatim(
@@ -209,7 +233,12 @@ class GeocodingService:
             return None
             
         except requests.RequestException as e:
-            print(f"Nominatim geocoding error: {e}")
+            # Nominatim often returns 503 when over rate limit, silence it
+            if not (e.response is not None and e.response.status_code in [503, 429]):
+                print(f"Nominatim geocoding error: {e}")
+            return None
+        except Exception as e:
+            print(f"Nominatim unexpected error: {e}")
             return None
 
 
