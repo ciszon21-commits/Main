@@ -19,7 +19,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--batch-size',
             type=int,
-            default=100,
+            default=1000,
             help='Number of documents per batch during sync'
         )
         parser.add_argument(
@@ -40,9 +40,9 @@ class Command(BaseCommand):
         service = OpenSearchMappingService()
         result = service.sync_sino_maps(limit=limit, batch_size=batch_size)
         
-        self.stdout.write(f"Total processed: {result['total_found']}")
+        self.stdout.write(f"Total processed: {result['total_processed']}")
         self.stdout.write(f"New created: {result['new_created']}")
-        self.stdout.write(self.style.SUCCESS(f"Location synced: {result['location_synced']}"))
+        self.stdout.write(self.style.SUCCESS(f"Skipped (already exists): {result['skipped']}"))
         
         self.stdout.write(self.style.SUCCESS('Sync completed successfully.'))
         if options['all']:

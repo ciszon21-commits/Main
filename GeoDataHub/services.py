@@ -63,37 +63,51 @@ class GeocodingService:
         bounded: bool = True
     ) -> Optional[Dict]:
         """
-        將地址轉換為座標
-        
-        Args:
-            address: 地址字串 (支援中文)
-            country: 國家代碼 (預設 TW)
-            bounded: 是否限制在預設邊界內
-            
-        Returns:
-            {
-                'latitude': float,
-                'longitude': float,
-                'display_name': str,
-                'address': dict,
-                'confidence': float (0-1)
-            }
-            或 None 如果找不到
+        將地址轉換為座標 (優先使用快取且具備失敗保護)
         """
+        from .models import GeocodingCache
+        from django.utils import timezone
+        
+        # 1. 檢查本地快取
+        cache_entry, created = GeocodingCache.objects.get_or_create(query=address)
+        
+        if cache_entry.is_success and cache_entry.result:
+            return cache_entry.result
+            
+        # 2. 失敗保護：如果失敗超過 3 次且最近嘗試過，則跳過
+        if not cache_entry.is_success and cache_entry.fail_count >= 3:
+            # 如果是最近一小時內的嘗試，則直接跳過外部請求
+            if (timezone.now() - cache_entry.last_attempt).total_seconds() < 3600:
+                return None
+        
+        # 3. 執行外部請求
+        result = None
+        
         # For Taiwan addresses, try multiple services starting with ArcGIS which is reliable
         if country.upper() == 'TW':
             # 1. Try ArcGIS (Most reliable for Taiwan detail addresses currently)
             result = self._geocode_arcgis(address)
-            if result:
-                return result
-                
-            # 2. Try TGOS (Taiwan Government Open Service) fallback
-            result = self._geocode_tgos(address)
-            if result:
-                return result
+            
+            # 2. Try TGOS (Taiwan Government Open Service) fallback if ArcGIS failed
+            if not result:
+                result = self._geocode_tgos(address)
         
-        # Fallback to Nominatim
-        return self._geocode_nominatim(address, country, bounded)
+        # Fallback to Nominatim if others failed
+        if not result:
+            result = self._geocode_nominatim(address, country, bounded)
+            
+        # 4. 更新快取狀態
+        if result:
+            cache_entry.result = result
+            cache_entry.is_success = True
+            cache_entry.fail_count = 0
+            cache_entry.save()
+        else:
+            cache_entry.fail_count += 1
+            cache_entry.is_success = False
+            cache_entry.save()
+            
+        return result
     
     def _geocode_arcgis(self, address: str) -> Optional[Dict]:
         """使用 ArcGIS World Geocoding Service"""
@@ -124,8 +138,13 @@ class GeocodingService:
                     'source': 'ArcGIS'
                 }
             return None
+        except requests.RequestException as e:
+            # ArcGIS is generally stable, but silence common network issues
+            if not (e.response is not None and e.response.status_code in [503, 404]):
+                print(f"ArcGIS geocoding error: {e}")
+            return None
         except Exception as e:
-            print(f"ArcGIS geocoding error: {e}")
+            print(f"ArcGIS unexpected error: {e}")
             return None
 
     def _geocode_tgos(self, address: str) -> Optional[Dict]:
@@ -158,8 +177,13 @@ class GeocodingService:
                     'source': 'TGOS'
                 }
             return None
+        except requests.RequestException as e:
+            # TGOS is known to have 404/503 issues, silence them
+            if not (e.response is not None and e.response.status_code in [503, 404]):
+                print(f"TGOS geocoding error: {e}")
+            return None
         except Exception as e:
-            print(f"TGOS geocoding error: {e}")
+            print(f"TGOS unexpected error: {e}")
             return None
     
     def _geocode_nominatim(
@@ -209,7 +233,12 @@ class GeocodingService:
             return None
             
         except requests.RequestException as e:
-            print(f"Nominatim geocoding error: {e}")
+            # Nominatim often returns 503 when over rate limit, silence it
+            if not (e.response is not None and e.response.status_code in [503, 429]):
+                print(f"Nominatim geocoding error: {e}")
+            return None
+        except Exception as e:
+            print(f"Nominatim unexpected error: {e}")
             return None
 
 
@@ -779,15 +808,12 @@ class OpenSearchMappingService:
         self.geocoder = GeocodingService()
         self.grid_service = MapGridService()
 
-    def sync_sino_maps(self, limit: int = 100, batch_size: int = 100) -> Dict:
+    def sync_sino_maps(self, limit: int = 0, batch_size: int = 1000) -> Dict:
         """
-        從 OpenSearch sino_map 索引同步資料
-        
-        Args:
-            limit: 總共要同步的中心數量 (設為 0 或 None 表示不限)
-            batch_size: 每一批次的數量
+        從 OpenSearch sino_map 索引同步資料 (優化 12萬筆大規模同步)
         """
         from opensearchpy.helpers import scan
+        from decimal import Decimal
         client = self.get_client()
         
         # 確保分類存在
@@ -796,59 +822,80 @@ class OpenSearchMappingService:
             defaults={'icon': '🗺️', 'color': '#2E7D32'}
         )
         
-        # 使用 scan 遍歷索引 (適用於大數據量)
-        query = {'query': {'match_all': {}}}
+        # 1. 預載現有 ID 到記憶體 (O(1) 略過已同步資料)
+        print("正在載入現有資料 ID...")
+        existing_ids = set(self.GeoDataSource.objects.filter(
+            opensearch_index='sino_map'
+        ).values_list('opensearch_doc_id', flat=True))
+        print(f"目前資料庫已有 {len(existing_ids)} 筆資料。")
         
-        # 建立 generator
+        # 2. 開始滾動搜尋
+        query = {'query': {'match_all': {}}}
         scanner = scan(
             client,
             index='sino_map',
             query=query,
             size=batch_size,
-            scroll='5m'
+            scroll='10m'
         )
         
-        synced_count = 0
-        new_count = 0
+        new_items = []
         processed_count = 0
+        skipped_count = 0
+        created_count = 0
+        
+        print("開始從 OpenSearch 同步資料...")
         
         for hit in scanner:
-            # 檢查數量限制
-            if limit and processed_count >= limit:
-                break
-                
             processed_count += 1
-            source = hit['_source']
             doc_id = hit['_id']
             
-            # 檢查是否已存在
-            gs, created = self.GeoDataSource.objects.get_or_create(
-                opensearch_index='sino_map',
-                opensearch_doc_id=doc_id,
-                defaults={
-                    'title': source.get('title', '未命名圖資'),
-                    'description': source.get('content', ''),
-                    'source_type': 'opensearch',
-                    'category': category,
-                    'metadata': source
-                }
-            )
-            
-            if created:
-                new_count += 1
+            # 略過已存在的資料
+            if doc_id in existing_ids:
+                skipped_count += 1
+            else:
+                source = hit['_source']
+                # 準備新資料模型
+                ds = self.GeoDataSource(
+                    opensearch_index='sino_map',
+                    opensearch_doc_id=doc_id,
+                    title=source.get('title', '未命名圖資'),
+                    description=source.get('content', ''),
+                    source_type='opensearch',
+                    category=category,
+                    metadata=source,
+                    is_visible=True
+                )
                 
-            # 嘗試解析位置 (如果尚未有位置)
-            if not gs.location:
+                # 嘗試解析位置
                 location = self._resolve_location(source)
                 if location:
-                    gs.location = location
-                    gs.save()
-                    synced_count += 1
-                    
+                    ds.location = location
+                
+                new_items.append(ds)
+                
+                # 達到批次量則寫入
+                if len(new_items) >= batch_size:
+                    self.GeoDataSource.objects.bulk_create(new_items)
+                    created_count += len(new_items)
+                    new_items = []
+                    print(f"進度: 已掃描 {processed_count} 筆, 新增 {created_count} 筆...")
+
+            # 檢查總量限制 (如果有設)
+            if limit and processed_count >= limit:
+                break
+        
+        # 處理剩餘的資料
+        if new_items:
+            self.GeoDataSource.objects.bulk_create(new_items)
+            created_count += len(new_items)
+            
+        print(f"同步完成! 總計處理: {processed_count}, 新增: {created_count}, 略過: {skipped_count}")
+        
         return {
-            'total_found': processed_count,
-            'new_created': new_count,
-            'location_synced': synced_count
+            'total_processed': processed_count,
+            'new_created': created_count,
+            'skipped': skipped_count
         }
 
     def _resolve_location(self, source: dict):
