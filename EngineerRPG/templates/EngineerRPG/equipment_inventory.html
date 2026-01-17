@@ -189,7 +189,7 @@
 
             <!-- 屬性總覽 -->
             <div class="stats-summary mt-lg">
-                <h3 class="mb-md">屬性總覽</h3>
+                <h3 class="mb-md">角色狀態</h3>
                 <div class="grid grid-2 gap-md">
                     <div class="stat-box">
                         <i class="fas fa-heart"></i>
@@ -198,6 +198,19 @@
                     <div class="stat-box">
                         <i class="fas fa-bolt"></i>
                         <strong>總 MP：{{ profile.get_total_mp }}</strong>
+                    </div>
+                </div>
+
+                <!-- Tier Legend -->
+                <div class="mt-md p-sm" style="background: rgba(0,0,0,0.2); border-radius: var(--border-radius);">
+                    <div class="text-xs text-stone mb-xs font-bold">裝備階級 (Tier)</div>
+                    <div class="flex gap-md flex-wrap">
+                        <div class="flex align-center"><span class="tier-legend-dot t1"></span> <small>T1 標準</small>
+                        </div>
+                        <div class="flex align-center"><span class="tier-legend-dot t2"></span> <small>T2 進階</small>
+                        </div>
+                        <div class="flex align-center"><span class="tier-legend-dot t3"></span> <small>T3 專家</small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -210,52 +223,48 @@
             </h2>
 
             <!-- 頭盔 -->
-            {% if helmets %}
-            <h3 class="mb-md" style="color: var(--color-secondary);">
-                <i class="fas fa-hard-hat"></i> 頭盔
+            <h3 class="mb-md"
+                style="color: var(--color-secondary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+                <i class="fas fa-hard-hat"></i> 頭盔 (Head)
             </h3>
             <div class="grid grid-2 gap-md mb-lg">
-                {% for user_eq in helmets %}
-                {% include 'EngineerRPG/partials/equipment_card.html' with user_equipment=user_eq %}
+                {% for item in helmets %}
+                {% include 'EngineerRPG/partials/equipment_card.html' with user_equipment=item.user_equipment is_unlocked=item.is_unlocked %}
                 {% endfor %}
             </div>
-            {% endif %}
 
             <!-- 盔甲 -->
-            {% if armors %}
-            <h3 class="mb-md" style="color: var(--color-secondary);">
-                <i class="fas fa-vest"></i> 盔甲
+            <h3 class="mb-md"
+                style="color: var(--color-secondary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+                <i class="fas fa-vest"></i> 盔甲 (Chest)
             </h3>
             <div class="grid grid-2 gap-md mb-lg">
-                {% for user_eq in armors %}
-                {% include 'EngineerRPG/partials/equipment_card.html' with user_equipment=user_eq %}
+                {% for item in armors %}
+                {% include 'EngineerRPG/partials/equipment_card.html' with user_equipment=item.user_equipment is_unlocked=item.is_unlocked %}
                 {% endfor %}
             </div>
-            {% endif %}
 
             <!-- 靴子 -->
-            {% if boots %}
-            <h3 class="mb-md" style="color: var(--color-secondary);">
-                <i class="fas fa-boot"></i> 靴子
+            <h3 class="mb-md"
+                style="color: var(--color-secondary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+                <i class="fas fa-boot"></i> 靴子 (Legs)
             </h3>
             <div class="grid grid-2 gap-md mb-lg">
-                {% for user_eq in boots %}
-                {% include 'EngineerRPG/partials/equipment_card.html' with user_equipment=user_eq %}
+                {% for item in boots %}
+                {% include 'EngineerRPG/partials/equipment_card.html' with user_equipment=item.user_equipment is_unlocked=item.is_unlocked %}
                 {% endfor %}
             </div>
-            {% endif %}
 
             <!-- 工具 -->
-            {% if tools %}
-            <h3 class="mb-md" style="color: var(--color-secondary);">
-                <i class="fas fa-wrench"></i> 工具
+            <h3 class="mb-md"
+                style="color: var(--color-secondary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+                <i class="fas fa-wrench"></i> 工具 (Tools)
             </h3>
             <div class="grid grid-2 gap-md">
-                {% for user_eq in tools %}
-                {% include 'EngineerRPG/partials/equipment_card.html' with user_equipment=user_eq %}
+                {% for item in tools %}
+                {% include 'EngineerRPG/partials/equipment_card.html' with user_equipment=item.user_equipment is_unlocked=item.is_unlocked %}
                 {% endfor %}
             </div>
-            {% endif %}
 
             {% if not helmets and not armors and not boots and not tools %}
             <p class="text-center" style="color: var(--color-stone); padding: var(--spacing-xl);">
@@ -269,6 +278,26 @@
 </div>
 
 <style>
+    .tier-legend-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+
+    .tier-legend-dot.t1 {
+        background-color: #555;
+    }
+
+    .tier-legend-dot.t2 {
+        background-color: #2ecc71;
+    }
+
+    .tier-legend-dot.t3 {
+        background-color: #e74c3c;
+    }
+
     .equipment-slot {
         background: rgba(0, 0, 0, 0.3);
         padding: var(--spacing-md);

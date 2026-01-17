@@ -324,22 +324,32 @@ class Equipment(models.Model):
     description = models.TextField('裝備描述')
     equipment_type = models.CharField('裝備類型', max_length=20, choices=EQUIPMENT_TYPE_CHOICES)
     rarity = models.CharField('稀有度', max_length=20, choices=RARITY_CHOICES, default='COMMON')
+    tier = models.IntegerField('階級', default=1, choices=[(1, 'Tier 1'), (2, 'Tier 2'), (3, 'Tier 3')])
     
     # 屬性加成
     hp_bonus = models.IntegerField('HP加成', default=0)
     mp_bonus = models.IntegerField('MP加成', default=0)
+    damage_reduction = models.IntegerField('減傷值 (DR)', default=0, help_text='正值表示減傷，例如 2 表示減傷 2 點')
+    
+    # 強化規則 (JSON)
+    # 格式範例: {"0": {"hp": 10, "mp": 0}, "3": {"hp": 15, "mp": 0}, ...}
+    enhancement_rules = models.JSONField('強化規則', default=dict, blank=True, help_text='定義各強化等級的詳細數值')
     
     # 技能效果（工具類裝備）
     skill_effect = models.CharField('技能效果', max_length=50, blank=True, null=True)
     skill_description = models.TextField('技能描述', blank=True, null=True)
     mp_cost = models.IntegerField('MP消耗', default=0)
     
+    # +9 特殊能力
+    special_ability_name = models.CharField('+9 特殊能力名稱', max_length=50, blank=True, null=True)
+    special_ability_description = models.TextField('+9 特殊能力描述', blank=True, null=True)
+    
     # 解鎖條件
     required_skill = models.ForeignKey('SkillNode', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='需求技能')
     required_level = models.IntegerField('需求等級', default=1)
     
     # 強化
-    max_enhancement = models.IntegerField('最大強化等級', default=5)
+    max_enhancement = models.IntegerField('最大強化等級', default=9)
     
     # 視覺
     icon = models.ImageField('裝備圖示', upload_to='rpg/equipment_icons/', null=True, blank=True)
@@ -351,7 +361,7 @@ class Equipment(models.Model):
         verbose_name_plural = '裝備列表'
         
     def __str__(self):
-        return f"{self.name} ({self.get_equipment_type_display()})"
+        return f"{self.name} (T{self.tier} {self.get_equipment_type_display()})"
 
 
 class UserEquipment(models.Model):
@@ -372,13 +382,42 @@ class UserEquipment(models.Model):
     def __str__(self):
         return f"{self.user_profile.user.username} - {self.equipment.name} (+{self.enhancement_level})"
     
+    def _get_stat_from_rules(self, stat_name, default_value):
+        """從強化規則中獲取數值，如果沒有則使用預設公式"""
+        rules = self.equipment.enhancement_rules
+        if not rules:
+            return default_value
+            
+        level_str = str(self.enhancement_level)
+        if level_str in rules and stat_name in rules[level_str]:
+            return rules[level_str][stat_name]
+            
+        # 搜尋 <= enhancement_level 的最大 key
+        valid_keys = [int(k) for k in rules.keys() if k.isdigit() and int(k) <= self.enhancement_level]
+        if valid_keys:
+            best_key = str(max(valid_keys))
+            return rules[best_key].get(stat_name, 0)
+            
+        return default_value
+
     def get_total_hp_bonus(self):
         """計算總HP加成（含強化）"""
+        if self.equipment.enhancement_rules:
+            return self._get_stat_from_rules('hp', 0)
         return self.equipment.hp_bonus + (self.enhancement_level * 1)
     
     def get_total_mp_bonus(self):
         """計算總MP加成（含強化）"""
+        if self.equipment.enhancement_rules:
+            return self._get_stat_from_rules('mp', 0)
         return self.equipment.mp_bonus + (self.enhancement_level * 5)
+
+    def get_damage_reduction(self):
+        """計算減傷值 (正值為減傷)"""
+        if self.equipment.enhancement_rules:
+            # 假設規則裡的 dr 是正值 (e.g. 1, 2, 4)
+            return self._get_stat_from_rules('dr', 0)
+        return self.equipment.damage_reduction
 
 
 # ==================== 道具系統 ====================

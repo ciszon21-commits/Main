@@ -10151,16 +10151,36 @@ def equipment_inventory(request):
     """個人裝備欄"""
     profile = get_or_create_user_profile(request.user)
     
-    # Get all owned equipment
-    owned_equipments = UserEquipment.objects.filter(
-        user_profile=profile
-    ).select_related('equipment').order_by('-is_equipped', '-equipment__rarity', '-enhancement_level')
+    # Get all equipment items
+    all_equipment = Equipment.objects.all().order_by('equipment_type', 'tier')
+    
+    # Get or create UserEquipment for each item
+    user_equipment_list = []
+    for equipment in all_equipment:
+        user_equipment, created = UserEquipment.objects.get_or_create(
+            user_profile=profile,
+            equipment=equipment,
+            defaults={
+                'enhancement_level': 0,
+                'is_equipped': False,
+            }
+        )
+        
+        # Check unlock status
+        is_unlocked = profile.level >= equipment.required_level
+        if equipment.required_skill:
+            is_unlocked = is_unlocked and equipment.required_skill in profile.unlocked_skills.all()
+        
+        user_equipment_list.append({
+            'user_equipment': user_equipment,
+            'is_unlocked': is_unlocked,
+        })
     
     # Separate by type
-    helmets = [ue for ue in owned_equipments if ue.equipment.equipment_type == 'HELMET']
-    armors = [ue for ue in owned_equipments if ue.equipment.equipment_type == 'ARMOR']
-    boots = [ue for ue in owned_equipments if ue.equipment.equipment_type == 'BOOTS']
-    tools = [ue for ue in owned_equipments if ue.equipment.equipment_type == 'TOOL']
+    helmets = [item for item in user_equipment_list if item['user_equipment'].equipment.equipment_type == 'HELMET']
+    armors = [item for item in user_equipment_list if item['user_equipment'].equipment.equipment_type == 'ARMOR']
+    boots = [item for item in user_equipment_list if item['user_equipment'].equipment.equipment_type == 'BOOTS']
+    tools = [item for item in user_equipment_list if item['user_equipment'].equipment.equipment_type == 'TOOL']
     
     # Get currently equipped
     equipped = {
@@ -10308,7 +10328,17 @@ def equip_item(request, user_equipment_id):
             user_profile=profile
         )
         
-        equipment_type = user_equipment.equipment.equipment_type
+        # Check unlock status
+        equipment = user_equipment.equipment
+        is_unlocked = profile.level >= equipment.required_level
+        if equipment.required_skill:
+            is_unlocked = is_unlocked and equipment.required_skill in profile.unlocked_skills.all()
+            
+        if not is_unlocked:
+            messages.error(request, f'Equipment {equipment.name} is locked! Level {equipment.required_level} required.')
+            return redirect('engineer_rpg:equipment_inventory')
+        
+        equipment_type = equipment.equipment_type
         
         # Equip to appropriate slot
         if equipment_type == 'HELMET':

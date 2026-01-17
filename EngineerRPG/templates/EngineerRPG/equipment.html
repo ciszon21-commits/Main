@@ -216,8 +216,8 @@
 
         <!-- 屬性總覽 -->
         <div class="stats-summary">
-            <h3 class="mb-md">屬性總覽</h3>
-            <div class="grid grid-3 gap-md">
+            <h3 class="mb-md">角色狀態</h3>
+            <div class="grid grid-4 gap-md">
                 <div class="stat-box">
                     <i class="fas fa-heart"></i>
                     <strong>總 HP：{{ profile.get_total_hp }}</strong>
@@ -228,7 +228,12 @@
                 </div>
                 <div class="stat-box">
                     <i class="fas fa-ticket-alt"></i>
-                    <strong>強化券：{{ enhancement_tickets }}</strong>
+                    <strong>強化券：{{ profile.enhancement_tickets }}</strong>
+                </div>
+                <div class="stat-box" style="font-size: 0.8rem; text-align: left; padding: 10px;">
+                    <div style="margin-bottom: 2px;"><span class="tier-legend-dot t1"></span> T1 標準</div>
+                    <div style="margin-bottom: 2px;"><span class="tier-legend-dot t2"></span> T2 進階</div>
+                    <div><span class="tier-legend-dot t3"></span> T3 專家</div>
                 </div>
             </div>
         </div>
@@ -242,8 +247,9 @@
 
         <!-- 頭盔 -->
         {% if helmets %}
-        <h3 class="mb-md" style="color: var(--color-secondary);">
-            <i class="fas fa-hard-hat"></i> 頭盔
+        <h3 class="mb-md"
+            style="color: var(--color-secondary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+            <i class="fas fa-hard-hat"></i> 頭盔 (Head)
         </h3>
         <div class="grid grid-3 gap-md mb-lg">
             {% for user_eq in helmets %}
@@ -254,8 +260,9 @@
 
         <!-- 盔甲 -->
         {% if armors %}
-        <h3 class="mb-md" style="color: var(--color-secondary);">
-            <i class="fas fa-vest"></i> 盔甲
+        <h3 class="mb-md"
+            style="color: var(--color-secondary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+            <i class="fas fa-vest"></i> 盔甲 (Chest)
         </h3>
         <div class="grid grid-3 gap-md mb-lg">
             {% for user_eq in armors %}
@@ -266,8 +273,9 @@
 
         <!-- 靴子 -->
         {% if boots %}
-        <h3 class="mb-md" style="color: var(--color-secondary);">
-            <i class="fas fa-boot"></i> 靴子
+        <h3 class="mb-md"
+            style="color: var(--color-secondary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+            <i class="fas fa-boot"></i> 靴子 (Legs)
         </h3>
         <div class="grid grid-3 gap-md mb-lg">
             {% for user_eq in boots %}
@@ -278,8 +286,9 @@
 
         <!-- 工具 -->
         {% if tools %}
-        <h3 class="mb-md" style="color: var(--color-secondary);">
-            <i class="fas fa-wrench"></i> 工具
+        <h3 class="mb-md"
+            style="color: var(--color-secondary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+            <i class="fas fa-wrench"></i> 工具 (Tools)
         </h3>
         <div class="grid grid-3 gap-md">
             {% for user_eq in tools %}
@@ -299,6 +308,27 @@
 </div>
 
 <style>
+    /* ... existing styles ... */
+    .tier-legend-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+
+    .tier-legend-dot.t1 {
+        background-color: #555;
+    }
+
+    .tier-legend-dot.t2 {
+        background-color: #2ecc71;
+    }
+
+    .tier-legend-dot.t3 {
+        background-color: #e74c3c;
+    }
+
     .equipment-slot {
         background: rgba(0, 0, 0, 0.3);
         padding: var(--spacing-md);
