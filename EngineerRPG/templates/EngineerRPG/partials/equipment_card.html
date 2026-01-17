@@ -2,18 +2,6 @@
 <div
     class="equipment-card {% if user_equipment.is_equipped %}equipped{% endif %} {% if not is_unlocked %}locked{% endif %}">
 
-    {% if not is_unlocked %}
-    <div class="locked-overlay">
-        <i class="fas fa-lock"></i>
-        <div class="lock-reason">
-            需求等級: {{ user_equipment.equipment.required_level }}<br>
-            {% if user_equipment.equipment.required_skill %}
-            需求技能: {{ user_equipment.equipment.required_skill.name }}
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
-
     {% if user_equipment.equipment.icon %}
     <img src="{{ user_equipment.equipment.icon.url }}" alt="{{ user_equipment.equipment.name }}" class="equipment-icon">
     {% else %}
@@ -76,7 +64,7 @@
         <div class="equipment-actions">
             {% if not is_unlocked %}
             <span class="locked-label">
-                <i class="fas fa-lock"></i> 未解鎖
+                <i class="fas fa-lock"></i> 需等級 {{ user_equipment.equipment.required_level }}
             </span>
             {% else %}
             {% if user_equipment.is_equipped %}

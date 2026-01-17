@@ -7975,7 +7975,7 @@ def team_dashboard(request):
 
     # Comment
 
-    led_teams = Team.objects.filter(leader=request.user, status='ACTIVE')
+    led_teams = Team.objects.filter(leader=request.user)
 
 
 
@@ -10246,6 +10246,8 @@ def unequip_item(request, user_equipment_id):
         user_equipment.is_equipped = False
         user_equipment.save()
         
+        # Save profile first to update equipped relation
+        profile.save()
         profile.update_stats()
         
         messages.success(request, f'Successfully unequipped {user_equipment.equipment.name}!')
@@ -10373,6 +10375,8 @@ def equip_item(request, user_equipment_id):
         user_equipment.is_equipped = True
         user_equipment.save()
         
+        # Save profile first to update equipped relation
+        profile.save()
         profile.update_stats()
         
         messages.success(request, f'Successfully equipped {user_equipment.equipment.name}!')
