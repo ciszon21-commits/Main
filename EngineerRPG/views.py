@@ -8223,25 +8223,12 @@ def guild_exchange_list(request):
 
 
 
+    """Function docstring"""
+    profile = get_or_create_user_profile(request.user)
     category = request.GET.get('category', 'ALL')
 
-
-
-    
-
-
-
-    # ?箇??亥岷
-
-
-
-    posts = GuildPost.objects.all()
-
-
-
-    
-
-
+    # 獲取所有文章，但排除公告
+    posts = GuildPost.objects.exclude(category='ANNOUNCEMENT')
 
     # ?蕪??
 
@@ -8319,7 +8306,7 @@ def guild_exchange_list(request):
 
 
 
-        'categories': GuildPost.CATEGORY_CHOICES,
+        'categories': [(code, name) for code, name in GuildPost.CATEGORY_CHOICES if code != 'ANNOUNCEMENT'],
 
 
 
@@ -8472,7 +8459,7 @@ def guild_post_create(request):
 
 
 
-        'categories': GuildPost.CATEGORY_CHOICES,
+        'categories': [(code, name) for code, name in GuildPost.CATEGORY_CHOICES if code != 'ANNOUNCEMENT'],
 
 
 
@@ -8495,6 +8482,129 @@ def guild_post_create(request):
     return render(request, 'EngineerRPG/guild_post_create.html', context)
 
 
+
+
+@login_required
+def guild_announcement_create(request):
+    """發布公告（僅限管理員）"""
+    
+    profile = get_or_create_user_profile(request.user)
+    
+    # 權限檢查：僅限公會幹部或公會長
+    if profile.role not in ['OFFICER', 'MANAGER', 'ADMIN']:
+        messages.error(request, '只有公會幹部或公會長才能發布公告')
+        return redirect('engineer_rpg:guild_dashboard')
+    
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        content = request.POST.get('content')
+        
+        if title and content:
+            post = GuildPost.objects.create(
+                author=profile,
+                title=title,
+                content=content,
+                category='ANNOUNCEMENT'  # 自動設為公告
+            )
+            messages.success(request, '公告發布成功')
+            return redirect('engineer_rpg:guild_dashboard')
+        else:
+            messages.error(request, '請填寫完整資訊')
+    
+    context = {
+        'profile': profile,
+    }
+    
+    return render(request, 'EngineerRPG/guild_announcement_create.html', context)
+
+
+@login_required
+def guild_announcement_edit(request, post_id):
+    """編輯公告（僅限管理員）"""
+    
+    profile = get_or_create_user_profile(request.user)
+    
+    # 權限檢查：僅限公會幹部或公會長
+    if profile.role not in ['OFFICER', 'MANAGER', 'ADMIN']:
+        messages.error(request, '只有公會幹部或公會長才能編輯公告')
+        return redirect('engineer_rpg:guild_dashboard')
+    
+    # 獲取公告
+    try:
+        post = GuildPost.objects.get(id=post_id, category='ANNOUNCEMENT')
+    except GuildPost.DoesNotExist:
+        messages.error(request, '公告不存在')
+        return redirect('engineer_rpg:guild_dashboard')
+    
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        content = request.POST.get('content')
+        
+        if title and content:
+            post.title = title
+            post.content = content
+            post.save()
+            messages.success(request, '公告更新成功')
+            return redirect('engineer_rpg:guild_post_detail', post_id=post.id)
+        else:
+            messages.error(request, '請填寫完整資訊')
+    
+    context = {
+        'profile': profile,
+        'post': post,
+    }
+    
+    return render(request, 'EngineerRPG/guild_announcement_edit.html', context)
+
+
+@login_required
+def guild_announcement_delete(request, post_id):
+    """刪除公告（僅限管理員）"""
+    
+    profile = get_or_create_user_profile(request.user)
+    
+    # 權限檢查：僅限公會幹部或公會長
+    if profile.role not in ['OFFICER', 'MANAGER', 'ADMIN']:
+        messages.error(request, '只有公會幹部或公會長才能刪除公告')
+        return redirect('engineer_rpg:guild_dashboard')
+    
+    # 獲取公告
+    try:
+        post = GuildPost.objects.get(id=post_id, category='ANNOUNCEMENT')
+    except GuildPost.DoesNotExist:
+        messages.error(request, '公告不存在')
+        return redirect('engineer_rpg:guild_dashboard')
+    
+    if request.method == 'POST':
+        post.delete()
+        messages.success(request, '公告已刪除')
+        return redirect('engineer_rpg:guild_dashboard')
+    
+    return redirect('engineer_rpg:guild_post_detail', post_id=post.id)
+
+
+@login_required
+def guild_announcement_list(request):
+    """公告欄列表頁面"""
+    
+    profile = get_or_create_user_profile(request.user)
+    
+    # 獲取所有公告，按創建時間倒序排列
+    announcements = GuildPost.objects.filter(category='ANNOUNCEMENT').order_by('-created_at')
+    
+    # 分頁
+    from django.core.paginator import Paginator
+    paginator = Paginator(announcements, 20)  # 每頁 20 則公告
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'profile': profile,
+        'page_obj': page_obj,
+        'is_manager': profile.role in ['OFFICER', 'MANAGER', 'ADMIN'],
+    }
+    
+    return render(request, 'EngineerRPG/guild_announcement_list.html', context)
 
 
 

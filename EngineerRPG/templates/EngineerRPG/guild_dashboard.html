@@ -29,12 +29,18 @@
         <div class="rpg-card" style="height: 100%;">
             <div class="rpg-card-header flex flex-between" style="align-items: center;">
                 <h4 class="rpg-card-title"><i class="fas fa-bullhorn" style="color: #FFD700;"></i> 公告欄</h4>
-                {% if is_manager %}
-                <a href="{% url 'engineer_rpg:guild_post_create' %}?category=ANNOUNCEMENT" class="hover-brightness"
-                    style="font-size: 0.8rem; text-decoration: none; background: rgba(255, 215, 0, 0.1); color: #FFD700; border: 1px solid #FFD700; padding: 4px 12px; border-radius: 4px; transition: all 0.3s;">
-                    <i class="fas fa-plus"></i> 發布公告
-                </a>
-                {% endif %}
+                <div style="display: flex; gap: 8px;">
+                    <a href="{% url 'engineer_rpg:guild_announcement_list' %}" class="hover-brightness"
+                        style="font-size: 0.8rem; text-decoration: none; background: rgba(255, 215, 0, 0.1); color: #FFD700; border: 1px solid #FFD700; padding: 4px 12px; border-radius: 4px; transition: all 0.3s;">
+                        <i class="fas fa-list"></i> 進入公告欄
+                    </a>
+                    {% if is_manager %}
+                    <a href="{% url 'engineer_rpg:guild_announcement_create' %}" class="hover-brightness"
+                        style="font-size: 0.8rem; text-decoration: none; background: rgba(255, 215, 0, 0.1); color: #FFD700; border: 1px solid #FFD700; padding: 4px 12px; border-radius: 4px; transition: all 0.3s;">
+                        <i class="fas fa-plus"></i> 發布公告
+                    </a>
+                    {% endif %}
+                </div>
             </div>
             <div class="rpg-card-body p-sm">
                 {% if announcements %}
@@ -44,10 +50,8 @@
                         <a href="{% url 'engineer_rpg:guild_post_detail' announcement.id %}"
                             style="text-decoration: none; display: block;">
                             <div
-                                style="color: #FFD700; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                style="color: #FFFFFF; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                 {{ announcement.title }}</div>
-                            <div class="text-stone" style="font-size: 0.75rem;">
-                                {{ announcement.created_at|date:"m/d" }}</div>
                         </a>
                     </li>
                     {% endfor %}

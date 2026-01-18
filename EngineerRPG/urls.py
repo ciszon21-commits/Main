@@ -67,6 +67,10 @@ urlpatterns = [
 
     # 公會系統
     path('guild/', views.guild_dashboard, name='guild_dashboard'),  # 公會大廳
+    path('guild/announcements/', views.guild_announcement_list, name='guild_announcement_list'),  # 公告欄列表
+    path('guild/announcement/create/', views.guild_announcement_create, name='guild_announcement_create'),  # 發布公告（管理員專用）
+    path('guild/announcement/<int:post_id>/edit/', views.guild_announcement_edit, name='guild_announcement_edit'),  # 編輯公告
+    path('guild/announcement/<int:post_id>/delete/', views.guild_announcement_delete, name='guild_announcement_delete'),  # 刪除公告
     path('guild/exchange/', views.guild_exchange_list, name='guild_exchange_list'),  # 交流區列表
     path('guild/exchange/create/', views.guild_post_create, name='guild_post_create'),  # 發文
     path('guild/exchange/<int:post_id>/', views.guild_post_detail, name='guild_post_detail'),  # 文章詳情

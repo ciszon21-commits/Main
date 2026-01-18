@@ -81,15 +81,14 @@
             {% if page_obj %}
             <div class="notification-list">
                 {% for post in page_obj %}
-                <div class="notification-item flex flex-between"
-                    style="align-items: center; padding: var(--spacing-md); border-bottom: 1px solid var(--color-border);">
-                    <div class="flex gap-md" style="flex: 1; align-items: center;">
-                        <span class="badge" style="background: var(--color-bg-dark);">
-                            {{ post.get_category_display }}
-                        </span>
-                        <div>
-                            <a href="{% url 'engineer_rpg:guild_post_detail' post.id %}"
-                                style="text-decoration: none; color: var(--color-text); font-weight: 500; font-size: 1.05rem;">
+                <div class="notification-item"
+                    style="padding: var(--spacing-sm) var(--spacing-md); border-bottom: 1px solid var(--color-border);">
+                    <div class="flex flex-between" style="align-items: center; gap: 16px;">
+                        <!-- 標題 -->
+                        <a href="{% url 'engineer_rpg:guild_post_detail' post.id %}"
+                            style="text-decoration: none; flex: 1; min-width: 0;">
+                            <span
+                                style="color: #FFFFFF; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">
                                 {{ post.title }}
                                 {% if post.is_locked %}
                                 <i class="fas fa-lock text-stone ml-xs" title="已鎖定"></i>
@@ -98,19 +97,21 @@
                                 <span
                                     style="font-size: 0.7rem; color: var(--color-danger); margin-left: 5px;">NEW</span>
                                 {% endif %}
-                            </a>
-                            <div class="text-stone mt-xs" style="font-size: 0.85rem;">
-                                <span class="mr-md"><img
-                                        src="{% if post.author.avatar_image %}{{ post.author.avatar_image.url }}{% else %}{% static 'EngineerRPG/img/default_avatar.png' %}{% endif %}"
-                                        style="width: 20px; height: 20px; border-radius: 50%; vertical-align: middle; margin-right: 5px;">
-                                    {{ post.author.user.username }}</span>
-                                <span>{{ post.created_at|timesince }}前</span>
-                            </div>
+                            </span>
+                        </a>
+                        <!-- 資訊區 -->
+                        <div class="text-stone"
+                            style="font-size: 0.85rem; white-space: nowrap; display: flex; gap: 16px; align-items: center;">
+                            <span class="badge" style="background: var(--color-bg-dark);">
+                                {{ post.get_category_display }}
+                            </span>
+                            <span><img src="{{ post.author.get_avatar_url }}"
+                                    style="width: 20px; height: 20px; border-radius: 50%; vertical-align: middle; margin-right: 5px;">
+                                {{ post.author.user.username }}</span>
+                            <span>{{ post.created_at|timesince }}前</span>
+                            <span title="瀏覽數"><i class="fas fa-eye"></i> {{ post.views }}</span>
+                            <span title="留言數"><i class="fas fa-comment"></i> {{ post.comments.count }}</span>
                         </div>
-                    </div>
-                    <div class="text-stone" style="min-width: 120px; text-align: right;">
-                        <span class="mr-md" title="瀏覽數"><i class="fas fa-eye"></i> {{ post.views }}</span>
-                        <span title="留言數"><i class="fas fa-comment"></i> {{ post.comments.count }}</span>
                     </div>
                 </div>
                 {% endfor %}

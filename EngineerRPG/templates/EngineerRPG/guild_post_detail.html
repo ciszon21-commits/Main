@@ -10,9 +10,18 @@
         <div class="rpg-breadcrumbs">
             <a href="{% url 'engineer_rpg:guild_dashboard' %}" style="color: #FFD700; text-decoration: none;">公會大廳</a>
             <span>>></span>
+            {% if post.category == 'ANNOUNCEMENT' %}
+            <a href="{% url 'engineer_rpg:guild_announcement_list' %}"
+                style="color: #FFD700; text-decoration: none;">公告欄</a>
+            <span>>></span>
+            {% else %}
             <a href="{% url 'engineer_rpg:guild_exchange_list' %}"
                 style="color: #FFD700; text-decoration: none;">交流區</a>
             <span>>></span>
+            <a href="{% url 'engineer_rpg:guild_exchange_list' %}?category={{ post.category }}"
+                style="color: #FFD700; text-decoration: none;">{{ post.get_category_display }}</a>
+            <span>>></span>
+            {% endif %}
             <span style="color: #CCCCCC;">文章詳情</span>
         </div>
     </div>
@@ -35,10 +44,22 @@
                 </div>
             </div>
 
-            {% if user == post.author.user or profile.role in 'OFFICER,MANAGER,ADMIN' %}
+            {% if post.category == 'ANNOUNCEMENT' and profile.role in 'OFFICER,MANAGER,ADMIN' %}
             <div class="flex gap-xs">
-                <!-- 預留編輯/刪除按鈕空間 -->
-                <!-- <button class="rpg-btn rpg-btn-sm rpg-btn-outline" title="編輯"><i class="fas fa-edit"></i></button> -->
+                <a href="{% url 'engineer_rpg:guild_announcement_edit' post.id %}"
+                    class="rpg-btn rpg-btn-sm rpg-btn-outline" title="編輯公告">
+                    <i class="fas fa-edit"></i> 編輯
+                </a>
+                <button
+                    onclick="if(confirm('確定要刪除此公告嗎？')) { document.getElementById('delete-form-{{ post.id }}').submit(); }"
+                    class="rpg-btn rpg-btn-sm rpg-btn-outline"
+                    style="color: var(--color-danger); border-color: var(--color-danger);" title="刪除公告">
+                    <i class="fas fa-trash"></i> 刪除
+                </button>
+                <form id="delete-form-{{ post.id }}" method="post"
+                    action="{% url 'engineer_rpg:guild_announcement_delete' post.id %}" style="display: none;">
+                    {% csrf_token %}
+                </form>
             </div>
             {% endif %}
         </div>
@@ -48,6 +69,7 @@
             {{ post.content|linebreaks }}
         </div>
 
+        {% if post.category != 'ANNOUNCEMENT' %}
         <div class="p-md" style="border-top: 1px solid var(--color-border); background: rgba(0,0,0,0.1);">
             <div class="flex flex-between">
                 <div class="flex gap-md">
@@ -61,8 +83,10 @@
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
 
+    {% if post.category != 'ANNOUNCEMENT' %}
     <!-- 留言區 -->
     <div class="rpg-card">
         <div class="rpg-card-header">
@@ -79,7 +103,7 @@
                     style="padding: var(--spacing-md); border-bottom: 1px solid var(--color-border);">
                     <!-- 頭像 -->
                     <div style="flex-shrink: 0;">
-                        <img src="{% if comment.author.avatar_image %}{{ comment.author.avatar_image.url }}{% else %}{% static 'EngineerRPG/img/default_avatar.png' %}{% endif %}"
+                        <img src="{{ comment.author.get_avatar_url }}"
                             style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--color-border);">
                     </div>
 
@@ -129,5 +153,6 @@
             {% endif %}
         </div>
     </div>
+    {% endif %}
 </div>
 {% endblock %}
