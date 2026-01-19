@@ -6,8 +6,11 @@ from django.test import TestCase
 
 from GeoCoding.models import County, Township
 from GeoCoding.services import get_geocoding_service
-from GeoDataHub.models import GeoDataSource
+from GeoDataHub.models import GeoDataSource, GeoCategory
 from GeoDataHub.services import GeocodingService, OpenSearchMappingService
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 class GeoCodingIntegrationTest(TestCase):
@@ -92,3 +95,66 @@ class GeoCodingIntegrationTest(TestCase):
         self.assertAlmostEqual(float(source.location.latitude), self.township.latitude, places=5)
         self.assertEqual(source.location.city, '臺北市')
         self.assertEqual(source.location.district, '中山區')
+
+
+class GeoClickLogTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='password')
+        self.category = GeoCategory.objects.create(name='Test Category')
+        self.source = GeoDataSource.objects.create(
+            title='Test Source',
+            source_type=GeoDataSource.SourceType.UPLOAD,
+            category=self.category,
+            created_by=self.user
+        )
+
+    def test_api_log_click(self):
+        from django.urls import reverse
+        from GeoDataHub.models import GeoClickLog
+        import json
+        
+        url = reverse('geodatahub:api_log_click')
+        data = {
+            'source_id': self.source.id,
+            'category_id': self.category.id,
+            'click_type': 'view_detail'
+        }
+        
+        # Login
+        self.client.login(username='testuser', password='password')
+        
+        response = self.client.post(url, data, content_type='application/json')
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['success'])
+        
+        self.assertEqual(GeoClickLog.objects.count(), 1)
+        log = GeoClickLog.objects.first()
+        self.assertEqual(log.source.id, self.source.id)
+        self.assertEqual(log.user.id, self.user.id)
+        self.assertEqual(log.category.id, self.category.id)
+
+
+class DashboardTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='password')
+        self.superuser = User.objects.create_superuser(username='admin', password='password', email='admin@example.com')
+
+    def test_dashboard_access(self):
+        from django.urls import reverse
+        url = reverse('geodatahub:dashboard')
+        
+        # Public access
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '使用量儀表板')
+        self.assertNotContains(response, 'superuser-logs')  # Public shouldn't see logs table
+        
+        # Superuser access
+        self.client.force_login(self.superuser, backend='django.contrib.auth.backends.ModelBackend')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'superuser-logs')  # Superuser should see logs table
+        self.assertIn('recent_logs', response.context)
+        self.assertTrue(len(response.context['recent_logs']) >= 0)
+

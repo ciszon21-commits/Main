@@ -264,3 +264,165 @@ class LogClickView(LoginRequiredMixin, View):
             return JsonResponse({'status': 'ok'})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
+
+class AIChatView(LoginRequiredMixin, TemplateView):
+    """AI 聊天頁面"""
+    template_name = 'OpenSearch/ai_chat.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Get user's recent chats
+        from .models import AIChat
+        context['recent_chats'] = AIChat.objects.filter(
+            user=self.request.user
+        ).order_by('-updated_at')[:20]
+        
+        # Get current chat if specified
+        chat_id = self.request.GET.get('chat_id')
+        if chat_id:
+            try:
+                chat = AIChat.objects.get(id=chat_id, user=self.request.user)
+                context['current_chat'] = chat
+                context['messages'] = chat.messages.all()
+            except AIChat.DoesNotExist:
+                pass
+        
+        # Get available categories for filtering
+        try:
+            categories = services.get_index_categories()
+            context['categories'] = {k: v for k, v in categories.items() if v['count'] > 0}
+        except Exception:
+            context['categories'] = {}
+        
+        return context
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class AIChatApiView(LoginRequiredMixin, View):
+    """AI 聊天 API 端點"""
+    
+    def post(self, request):
+        """Handle new chat message"""
+        from .models import AIChat, AIChatMessage
+        from . import ai_services
+        
+        try:
+            data = json.loads(request.body)
+            question = data.get('question', '').strip()
+            chat_id = data.get('chat_id')
+            indices = data.get('indices', '*')
+            
+            if not question:
+                return JsonResponse({'error': '請輸入問題'}, status=400)
+            
+            # Get or create chat session
+            if chat_id:
+                try:
+                    chat = AIChat.objects.get(id=chat_id, user=request.user)
+                except AIChat.DoesNotExist:
+                    return JsonResponse({'error': '找不到對話'}, status=404)
+            else:
+                # Create new chat with title from first question
+                title = question[:100] if len(question) <= 100 else question[:97] + '...'
+                chat = AIChat.objects.create(
+                    user=request.user,
+                    title=title,
+                    indices=indices
+                )
+            
+            # Save user message
+            user_message = AIChatMessage.objects.create(
+                chat=chat,
+                role='user',
+                content=question
+            )
+            
+            # Call AI service
+            result = ai_services.ask_ai(
+                question=question,
+                user=request.user,
+                indices=indices,
+                max_retries=3
+            )
+            
+            # Save assistant message
+            assistant_message = AIChatMessage.objects.create(
+                chat=chat,
+                role='assistant',
+                content=result['answer'],
+                keywords_used=result.get('keywords_used', ''),
+                search_count=result.get('search_count', 0),
+                retry_count=result.get('retry_count', 0),
+                sources=result.get('sources', []),
+                prompt_tokens=result.get('metrics', {}).get('prompt_tokens', 0),
+                completion_tokens=result.get('metrics', {}).get('completion_tokens', 0),
+            )
+            
+            # Update chat timestamp
+            chat.save()  # This triggers auto_now on updated_at
+            
+            return JsonResponse({
+                'success': result['success'],
+                'chat_id': chat.id,
+                'message_id': assistant_message.id,
+                'answer': result['answer'],
+                'keywords_used': result.get('keywords_used', ''),
+                'search_count': result.get('search_count', 0),
+                'retry_count': result.get('retry_count', 0),
+                'sources': result.get('sources', []),
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({'error': '無效的請求格式'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+class AIChatHistoryApiView(LoginRequiredMixin, View):
+    """AI 對話歷史 API"""
+    
+    def get(self, request, chat_id):
+        """Get chat history"""
+        from .models import AIChat
+        
+        try:
+            chat = AIChat.objects.get(id=chat_id, user=request.user)
+            messages = []
+            for msg in chat.messages.all():
+                messages.append({
+                    'id': msg.id,
+                    'role': msg.role,
+                    'content': msg.content,
+                    'keywords_used': msg.keywords_used,
+                    'search_count': msg.search_count,
+                    'retry_count': msg.retry_count,
+                    'sources': msg.sources,
+                    'created_at': msg.created_at.isoformat(),
+                })
+            
+            return JsonResponse({
+                'chat_id': chat.id,
+                'title': chat.title,
+                'indices': chat.indices,
+                'messages': messages,
+            })
+            
+        except AIChat.DoesNotExist:
+            return JsonResponse({'error': '找不到對話'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    def delete(self, request, chat_id):
+        """Delete chat"""
+        from .models import AIChat
+        
+        try:
+            chat = AIChat.objects.get(id=chat_id, user=request.user)
+            chat.delete()
+            return JsonResponse({'success': True})
+        except AIChat.DoesNotExist:
+            return JsonResponse({'error': '找不到對話'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+

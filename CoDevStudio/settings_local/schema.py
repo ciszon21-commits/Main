@@ -130,3 +130,8 @@ class AppSettings:
     OPENSEARCH_USERNAME: str = ""
     OPENSEARCH_PASSWORD: str = ""
     OPENSEARCH_VERIFY_CERTS: bool = False
+    OPENSEARCH_TIMEOUT: int = 30                # 連線逾時（秒）- 標準搜尋需要較長時間
+    OPENSEARCH_MAX_RETRIES: int = 1             # 最大重試次數 - 內網環境不需多次重試
+    OPENSEARCH_RETRY_ON_TIMEOUT: bool = False   # 關閉逾時重試 - 內網環境通常穩定
+    OPENSEARCH_HTTP_COMPRESS: bool = True       # 啟用 gzip 壓縮
+    OPENSEARCH_INDEX_CACHE_TIMEOUT: int = 900   # 索引快取時間（秒）

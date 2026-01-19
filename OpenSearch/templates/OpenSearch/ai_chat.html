@@ -1,0 +1,954 @@
+{% extends "OpenSearch/base.html" %}
+{% load static %}
+
+{% block title %}AI 智慧搜尋 - 中興Single搜尋{% endblock %}
+
+{% block search_header %}{% endblock %}
+
+{% block extra_css %}
+/* AI Chat Layout */
+.ai-chat-container {
+    display: flex;
+    height: calc(100vh - 130px);
+    overflow: hidden;
+}
+
+/* Sidebar */
+.chat-sidebar {
+    width: 280px;
+    background: #f8f9fa;
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.new-chat-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: var(--primary-blue);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.new-chat-btn:hover {
+    background: var(--primary-blue-hover);
+}
+
+.chat-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.chat-list-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-bottom: 4px;
+}
+
+.chat-list-item:hover {
+    background: #e8eaed;
+}
+
+.chat-list-item.active {
+    background: #d2e3fc;
+}
+
+.chat-list-item-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border-radius: 50%;
+    margin-right: 12px;
+    font-size: 16px;
+}
+
+.chat-list-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.chat-list-item-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-list-item-time {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.chat-list-item-delete {
+    opacity: 0;
+    padding: 4px;
+    cursor: pointer;
+    color: #70757a;
+    transition: opacity 0.2s;
+}
+
+.chat-list-item:hover .chat-list-item-delete {
+    opacity: 1;
+}
+
+/* Main Chat Area */
+.chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    background: #fff;
+}
+
+.chat-welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-secondary);
+}
+
+.chat-welcome-icon {
+    font-size: 64px;
+    margin-bottom: 24px;
+}
+
+.chat-welcome-title {
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.chat-welcome-subtitle {
+    font-size: 16px;
+    max-width: 480px;
+    text-align: center;
+}
+
+/* Messages */
+.message {
+    display: flex;
+    margin-bottom: 24px;
+    max-width: 900px;
+}
+
+.message-user {
+    justify-content: flex-end;
+}
+
+.message-assistant {
+    justify-content: flex-start;
+}
+
+.message-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    overflow: hidden; /* Ensure image stays within circle */
+}
+
+.message-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.message-user .message-avatar {
+    background: var(--primary-blue);
+    color: white;
+    margin-left: 12px;
+    order: 2;
+}
+
+.message-assistant .message-avatar {
+    background: white; /* White background for the icon */
+    color: white;
+    margin-right: 12px;
+    border: 1px solid #e8eaed; /* Subtle border */
+}
+
+.message-content {
+    max-width: 75%;
+    padding: 16px 20px;
+    border-radius: 16px;
+    line-height: 1.6;
+}
+
+.message-user .message-content {
+    background: #e8f0fe;
+    color: var(--text-primary);
+    border-bottom-right-radius: 4px;
+}
+
+.message-assistant .message-content {
+    background: #f8f9fa;
+    color: var(--text-primary);
+    border-bottom-left-radius: 4px;
+}
+
+/* Markdown content styling */
+.message-content h1 {
+    font-size: 1.5em;
+    margin: 16px 0 8px 0;
+    color: var(--text-primary);
+}
+
+.message-content h2 {
+    font-size: 1.3em;
+    margin: 14px 0 6px 0;
+    color: var(--text-primary);
+}
+
+.message-content h3 {
+    font-size: 1.1em;
+    margin: 12px 0 4px 0;
+    color: var(--text-primary);
+}
+
+.message-content p {
+    margin: 8px 0;
+}
+
+.message-content ul, .message-content ol {
+    margin: 8px 0;
+    padding-left: 24px;
+}
+
+.message-content li {
+    margin: 4px 0;
+}
+
+.message-content code {
+    background: #e8eaed;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.9em;
+}
+
+.message-content pre {
+    background: #2d2d2d;
+    color: #f8f8f2;
+    padding: 12px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 12px 0;
+}
+
+.message-content pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+}
+
+/* Enhanced table styling for Markdown */
+.message-content table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 16px 0;
+    font-size: 14px;
+    overflow-x: auto;
+    display: block;
+    max-width: 100%;
+}
+
+.message-content thead {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e8eaed 100%);
+}
+
+.message-content th {
+    border: 1px solid #dadce0;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.message-content td {
+    border: 1px solid #dadce0;
+    padding: 10px 16px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.message-content tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.message-content tbody tr:hover {
+    background-color: #e8f0fe;
+}
+
+/* Make tables scrollable on small screens */
+.message-content .table-wrapper {
+    overflow-x: auto;
+    margin: 16px 0;
+}
+
+.message-content blockquote {
+    border-left: 4px solid var(--primary-blue);
+    padding-left: 16px;
+    margin: 12px 0;
+    color: var(--text-secondary);
+    background: #f8f9fa;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+}
+
+.message-content strong {
+    font-weight: 600;
+}
+
+.message-content em {
+    font-style: italic;
+}
+
+.message-content hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 16px 0;
+}
+
+/* Message metadata */
+.message-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.message-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.message-sources {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.message-sources-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.source-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    background: white;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.source-item-title {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-link);
+}
+
+/* Loading indicator */
+.message-loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+}
+
+.loading-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.loading-dots span {
+    width: 8px;
+    height: 8px;
+    background: var(--primary-blue);
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+.loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+}
+
+/* Input Area */
+.chat-input-container {
+    padding: 16px 24px;
+    background: #fff;
+    border-top: 1px solid var(--border-color);
+}
+
+.chat-input-wrapper {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.chat-input {
+    flex: 1;
+    min-height: 48px;
+    max-height: 200px;
+    padding: 12px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    font-size: 16px;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.chat-input:focus {
+    border-color: var(--primary-blue);
+}
+
+.chat-input::placeholder {
+    color: #9aa0a6;
+}
+
+.chat-send-btn {
+    width: 48px;
+    height: 48px;
+    background: var(--primary-blue);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.chat-send-btn:hover {
+    background: var(--primary-blue-hover);
+}
+
+.chat-send-btn:disabled {
+    background: #9aa0a6;
+    cursor: not-allowed;
+}
+
+/* Filter dropdown */
+.filter-dropdown {
+    position: relative;
+}
+
+.filter-btn {
+    padding: 8px 16px;
+    background: #f8f9fa;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.filter-menu {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 8px;
+    min-width: 200px;
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+    margin-bottom: 8px;
+}
+
+.filter-menu.show {
+    display: block;
+}
+
+.filter-option {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.filter-option:hover {
+    background: var(--bg-hover);
+}
+
+.filter-option input {
+    margin-right: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .chat-sidebar {
+        display: none;
+    }
+    
+    .ai-chat-container {
+        height: calc(100vh - 80px);
+    }
+}
+{% endblock %}
+
+{% block header %}
+<header class="header">
+    <a href="{% url 'opensearch:home' %}" class="header-logo">
+        <span class="header-logo-text">Single<span>Search</span></span>
+    </a>
+    
+    <nav class="header-nav">
+        <a href="{% url 'opensearch:search' %}" class="header-link">傳統搜尋</a>
+        <a href="{% url 'opensearch:advanced' %}" class="header-link">進階搜尋</a>
+        <a href="{% url 'home:home' %}" class="header-link">返回主站</a>
+    </nav>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="ai-chat-container">
+    <!-- Sidebar -->
+    <aside class="chat-sidebar">
+        <div class="sidebar-header">
+            <button class="new-chat-btn" onclick="startNewChat()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                新對話
+            </button>
+        </div>
+        <div class="chat-list" id="chatList">
+            {% for chat in recent_chats %}
+            <div class="chat-list-item {% if current_chat.id == chat.id %}active{% endif %}" 
+                 data-chat-id="{{ chat.id }}" onclick="loadChat({{ chat.id }})">
+                <div class="chat-list-item-icon">💬</div>
+                <div class="chat-list-item-content">
+                    <div class="chat-list-item-title">{{ chat.title }}</div>
+                    <div class="chat-list-item-time">{{ chat.updated_at|date:"m/d H:i" }}</div>
+                </div>
+                <div class="chat-list-item-delete" onclick="event.stopPropagation(); deleteChat({{ chat.id }})">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </div>
+            </div>
+            {% empty %}
+            <div style="padding: 16px; text-align: center; color: var(--text-secondary);">
+                開始您的第一個對話
+            </div>
+            {% endfor %}
+        </div>
+    </aside>
+
+    <!-- Main Chat Area -->
+    <div class="chat-main">
+        <div class="chat-messages" id="chatMessages">
+            {% if messages %}
+                {% for message in messages %}
+                <div class="message message-{{ message.role }}">
+                    <div class="message-avatar">
+                        {% if message.role == 'user' %}👤{% else %}<img src="{% static 'OpenSearch/images/single_ai_icon.png' %}" alt="AI">{% endif %}
+                    </div>
+                    <div class="message-content">
+                        <div class="markdown-content"></div>
+                        <textarea class="raw-markdown" style="display:none;">{{ message.content }}</textarea>
+                        {% if message.role == 'assistant' and message.keywords_used %}
+                        <div class="message-meta">
+                            <span class="message-meta-item">🔑 {{ message.keywords_used }}</span>
+                            <span class="message-meta-item">📄 {{ message.search_count }} 筆</span>
+                            {% if message.retry_count > 0 %}
+                            <span class="message-meta-item">🔄 重試 {{ message.retry_count }} 次</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="chat-welcome" id="chatWelcome">
+                <div class="chat-welcome-icon">🔍</div>
+                <div class="chat-welcome-title">AI 智慧搜尋助手</div>
+                <div class="chat-welcome-subtitle">
+                    輸入您的問題，我會從公司內部資料庫中搜尋相關資訊，並為您提供詳細的回答。
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Input Area -->
+        <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+                <div class="filter-dropdown">
+                    <button class="filter-btn" onclick="toggleFilterMenu()">
+                        <span id="filterLabel">全部資料</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="filter-menu" id="filterMenu">
+                        <div class="filter-option" onclick="setFilter('*', '全部資料')">
+                            <input type="radio" name="filter" value="*" checked> 全部資料
+                        </div>
+                        {% for key, cat in categories.items %}
+                        <div class="filter-option" onclick="setFilter('{{ cat.pattern }}', '{{ cat.name }}')">
+                            <input type="radio" name="filter" value="{{ cat.pattern }}"> 
+                            {{ cat.icon }} {{ cat.name }} ({{ cat.total_docs|floatformat:0 }})
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <textarea class="chat-input" id="chatInput" placeholder="輸入您的問題..." rows="1"
+                    onkeydown="handleKeyDown(event)"></textarea>
+                <button class="chat-send-btn" id="sendBtn" onclick="sendMessage()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+// Configure marked.js for GitHub Flavored Markdown
+marked.setOptions({
+    gfm: true,           // Enable GitHub Flavored Markdown
+    breaks: true,        // Convert \n to <br>
+    tables: true,        // Enable GFM tables
+    sanitize: false,     // Allow HTML (we trust our AI output)
+    smartLists: true,    // Use smarter list behavior
+    smartypants: true,   // Use typographic quotes
+    headerIds: false,    // Disable header IDs to avoid conflicts
+});
+
+let currentChatId = {% if current_chat %}{{ current_chat.id }}{% else %}null{% endif %};
+let currentIndices = '*';
+let isLoading = false;
+
+// Auto-resize textarea
+const chatInput = document.getElementById('chatInput');
+chatInput.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+});
+
+function handleKeyDown(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+    }
+}
+
+function toggleFilterMenu() {
+    const menu = document.getElementById('filterMenu');
+    menu.classList.toggle('show');
+}
+
+function setFilter(indices, label) {
+    currentIndices = indices;
+    document.getElementById('filterLabel').textContent = label;
+    document.getElementById('filterMenu').classList.remove('show');
+    
+    // Update radio buttons
+    document.querySelectorAll('.filter-option input').forEach(input => {
+        input.checked = input.value === indices;
+    });
+}
+
+// Close filter menu when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.querySelector('.filter-dropdown');
+    if (!dropdown.contains(event.target)) {
+        document.getElementById('filterMenu').classList.remove('show');
+    }
+});
+
+function startNewChat() {
+    currentChatId = null;
+    document.getElementById('chatMessages').innerHTML = `
+        <div class="chat-welcome" id="chatWelcome">
+            <div class="chat-welcome-icon">🔍</div>
+            <div class="chat-welcome-title">AI 智慧搜尋助手</div>
+            <div class="chat-welcome-subtitle">
+                輸入您的問題，我會從公司內部資料庫中搜尋相關資訊，並為您提供詳細的回答。
+            </div>
+        </div>
+    `;
+    
+    // Update sidebar
+    document.querySelectorAll('.chat-list-item').forEach(item => {
+        item.classList.remove('active');
+    });
+}
+
+function loadChat(chatId) {
+    window.location.href = '{% url "opensearch:ai_chat" %}?chat_id=' + chatId;
+}
+
+function deleteChat(chatId) {
+    if (!confirm('確定要刪除此對話嗎？')) return;
+    
+    fetch(`{% url "opensearch:api_ai_chat" %}${chatId}/`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const item = document.querySelector(`.chat-list-item[data-chat-id="${chatId}"]`);
+            if (item) item.remove();
+            if (currentChatId === chatId) {
+                startNewChat();
+            }
+        }
+    });
+}
+
+function addMessage(role, content, meta = {}) {
+    const welcome = document.getElementById('chatWelcome');
+    if (welcome) welcome.remove();
+    
+    const messagesDiv = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message message-${role}`;
+    
+    let metaHtml = '';
+    if (role === 'assistant' && meta.keywords_used) {
+        metaHtml = `
+            <div class="message-meta">
+                <span class="message-meta-item">🔑 ${meta.keywords_used}</span>
+                <span class="message-meta-item">📄 ${meta.search_count} 筆</span>
+                ${meta.retry_count > 0 ? `<span class="message-meta-item">🔄 重試 ${meta.retry_count} 次</span>` : ''}
+            </div>
+        `;
+        
+        if (meta.sources && meta.sources.length > 0) {
+            metaHtml += `
+                <div class="message-sources">
+                    <div class="message-sources-title">📚 參考來源</div>
+                    ${meta.sources.map(s => `
+                        <div class="source-item">
+                            <span class="source-item-title">${s.title || '無標題'}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    }
+    
+    // Parse markdown for assistant messages
+    let contentHtml = role === 'assistant' 
+        ? marked.parse(content)
+        : content.replace(/\n/g, '<br>');
+    
+    // Prepare avatar HTML
+    const avatarHtml = role === 'user' 
+        ? '👤' 
+        : '<img src="{% static "OpenSearch/images/single_ai_icon.png" %}" alt="AI">';
+    
+    messageDiv.innerHTML = `
+        <div class="message-avatar">${avatarHtml}</div>
+        <div class="message-content">
+            <div class="markdown-content"></div>
+            <textarea class="raw-markdown" style="display:none;">${content}</textarea>
+            <div class="rendered-markdown">${contentHtml}</div>
+            ${metaHtml}
+        </div>
+    `;
+    
+    messagesDiv.appendChild(messageDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    
+    return messageDiv;
+}
+
+function addLoadingMessage() {
+    const messagesDiv = document.getElementById('chatMessages');
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'message message-assistant';
+    loadingDiv.id = 'loadingMessage';
+    loadingDiv.innerHTML = `
+        <div class="message-avatar"><img src="{% static "OpenSearch/images/single_ai_icon.png" %}" alt="AI"></div>
+        <div class="message-content">
+            <div class="message-loading">
+                <div class="loading-dots">
+                    <span></span><span></span><span></span>
+                </div>
+                <span>思考中...</span>
+            </div>
+        </div>
+    `;
+    messagesDiv.appendChild(loadingDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function removeLoadingMessage() {
+    const loading = document.getElementById('loadingMessage');
+    if (loading) loading.remove();
+}
+
+async function sendMessage() {
+    if (isLoading) return;
+    
+    const input = document.getElementById('chatInput');
+    const question = input.value.trim();
+    if (!question) return;
+    
+    // Clear input
+    input.value = '';
+    input.style.height = 'auto';
+    
+    // Add user message
+    addMessage('user', question);
+    
+    // Show loading
+    isLoading = true;
+    const sendBtn = document.getElementById('sendBtn');
+    sendBtn.disabled = true;
+    addLoadingMessage();
+    
+    try {
+        const response = await fetch('{% url "opensearch:api_ai_chat" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                question: question,
+                chat_id: currentChatId,
+                indices: currentIndices
+            })
+        });
+        
+        removeLoadingMessage();
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            addMessage('assistant', `❌ 伺服器錯誤 (${response.status})：${errorText.substring(0, 200)}`);
+            console.error('Server error:', response.status, errorText);
+            return;
+        }
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            addMessage('assistant', `❌ 錯誤：${data.error}`);
+        } else {
+            currentChatId = data.chat_id;
+            addMessage('assistant', data.answer, {
+                keywords_used: data.keywords_used,
+                search_count: data.search_count,
+                retry_count: data.retry_count,
+                sources: data.sources
+            });
+            
+            // Update URL without reload
+            if (window.history.pushState) {
+                window.history.pushState({}, '', `{% url "opensearch:ai_chat" %}?chat_id=${data.chat_id}`);
+            }
+        }
+    } catch (error) {
+        removeLoadingMessage();
+        addMessage('assistant', `❌ 網路錯誤：${error.message || '無法連接到伺服器，請稍後再試。'}`);
+        console.error('Fetch error:', error);
+    } finally {
+        isLoading = false;
+        sendBtn.disabled = false;
+    }
+}
+
+// Initialize: scroll to bottom if there are messages
+document.addEventListener('DOMContentLoaded', function() {
+    const messagesDiv = document.getElementById('chatMessages');
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    
+    // Process existing messages
+    document.querySelectorAll('.message').forEach(msg => {
+        const rawTextarea = msg.querySelector('.raw-markdown');
+        const contentDiv = msg.querySelector('.markdown-content');
+        
+        if (rawTextarea && contentDiv) {
+            const rawContent = rawTextarea.value;
+            
+            if (msg.classList.contains('message-assistant')) {
+                // Parse markdown for assistant messages
+                contentDiv.innerHTML = marked.parse(rawContent);
+            } else {
+                // Simple formatting for user messages
+                contentDiv.innerHTML = rawContent.replace(/\n/g, '<br>');
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
