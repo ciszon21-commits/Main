@@ -14,6 +14,11 @@ from django.conf import settings
 from django.db.models import Q
 from decimal import Decimal
 
+try:
+    from GeoCoding.services import get_geocoding_service
+except ImportError:
+    get_geocoding_service = None
+
 
 class GeocodingService:
     """
@@ -35,7 +40,8 @@ class GeocodingService:
         self.session = requests.Session()
         # OSM requires a valid, unique User-Agent with contact info
         self.session.headers.update({
-            'User-Agent': 'GeoDataHub/1.0 (https://geodatahub.example.com; geodatahub@example.com)',
+            'User-Agent': 'CoDevStudio/1.0 (codevstudio@local.dev)',
+            'Referer': 'http://localhost:8000',
             'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
             'Accept': 'application/json'
         })
@@ -48,6 +54,13 @@ class GeocodingService:
             'west': 119.0,
         })
 
+        self.internal_geocoder = None
+        if get_geocoding_service:
+            try:
+                self.internal_geocoder = get_geocoding_service()
+            except Exception as exc:
+                print(f'[GeoDataHub] Local GeoCoding service unavailable: {exc}')
+
     def _rate_limit(self):
         """遵守 Nominatim 速率限制"""
         now = time.time()
@@ -55,6 +68,52 @@ class GeocodingService:
         if elapsed < self.RATE_LIMIT_SECONDS:
             time.sleep(self.RATE_LIMIT_SECONDS - elapsed)
         GeocodingService._last_request_time = time.time()
+
+    def _geocode_internal(self, address: str) -> Optional[Dict]:
+        """優先使用 GeoCoding app 的本地地名資料"""
+        if not self.internal_geocoder or not address:
+            return None
+        try:
+            result = self.internal_geocoder.geocode(address, save_history=False)
+        except Exception as exc:
+            print(f'[GeoDataHub] GeoCoding geocoder error: {exc}')
+            return None
+
+        if not result or not getattr(result, 'success', False):
+            return None
+
+        lat = getattr(result, 'latitude', None)
+        lng = getattr(result, 'longitude', None)
+        if lat is None or lng is None:
+            return None
+
+        county = getattr(result, 'county', None)
+        township = getattr(result, 'township', None)
+        village = getattr(result, 'village', None)
+
+        address_dict = {}
+        if county:
+            address_dict['county'] = county
+        if township:
+            address_dict['township'] = township
+        if village:
+            address_dict['village'] = village
+
+        if hasattr(result, 'full_address') and result.full_address:
+            display_name = result.full_address
+        else:
+            display_name = ''.join(part for part in [county, township, village] if part) or address
+
+        confidence = getattr(result, 'confidence', 0.0) or 0.0
+
+        return {
+            'latitude': float(lat),
+            'longitude': float(lng),
+            'display_name': display_name,
+            'address': address_dict,
+            'confidence': float(confidence),
+            'source': 'GeoCoding'
+        }
 
     def geocode_address(
         self, 
@@ -74,6 +133,17 @@ class GeocodingService:
         if cache_entry.is_success and cache_entry.result:
             return cache_entry.result
             
+        country_code = (country or 'TW').upper()
+
+        if country_code == 'TW':
+            local_result = self._geocode_internal(address)
+            if local_result:
+                cache_entry.result = local_result
+                cache_entry.is_success = True
+                cache_entry.fail_count = 0
+                cache_entry.save()
+                return local_result
+            
         # 2. 失敗保護：如果失敗超過 3 次且最近嘗試過，則跳過
         if not cache_entry.is_success and cache_entry.fail_count >= 3:
             # 如果是最近一小時內的嘗試，則直接跳過外部請求
@@ -84,7 +154,7 @@ class GeocodingService:
         result = None
         
         # For Taiwan addresses, try multiple services starting with ArcGIS which is reliable
-        if country.upper() == 'TW':
+        if country_code == 'TW':
             # 1. Try ArcGIS (Most reliable for Taiwan detail addresses currently)
             result = self._geocode_arcgis(address)
             
@@ -94,7 +164,7 @@ class GeocodingService:
         
         # Fallback to Nominatim if others failed
         if not result:
-            result = self._geocode_nominatim(address, country, bounded)
+            result = self._geocode_nominatim(address, country_code, bounded)
             
         # 4. 更新快取狀態
         if result:
@@ -1009,16 +1079,25 @@ class OpenSearchMappingService:
         # 2. 嘗試標題地理編碼 (place name)
         title = source.get('title')
         if title and len(title) > 1:
-            # 加上 "台灣" 增加準確度
+            # 優先使用本地地名資料避免對外連線
             result = self.geocoder.geocode_address(title)
             if result and result.get('confidence', 0) > 0.6:
                 from .models import GeoLocation
+                address_meta = result.get('address') or {}
                 loc = GeoLocation.objects.create(
                     latitude=Decimal(str(result['latitude'])),
                     longitude=Decimal(str(result['longitude'])),
                     address=result.get('display_name', title),
+                    city=address_meta.get('city') or address_meta.get('county') or "",
+                    district=(
+                        address_meta.get('district')
+                        or address_meta.get('township')
+                        or address_meta.get('village')
+                        or ""
+                    ),
+                    country=address_meta.get('country') or "台灣",
                     geometry_type='POINT',
-                    accuracy=result.get('confidence', 0) * 100
+                    accuracy=float(result.get('confidence', 0)) * 100
                 )
                 return loc
                 

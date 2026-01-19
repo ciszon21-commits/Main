@@ -85,6 +85,7 @@ INSTALLED_APPS = [
     'ReservoirHydro',
     'OpenSearch',  # OpenSearch 搜尋引擎
     'GeoDataHub',  # 地圖導向資料管理平台
+    'GeoCoding',  # 地址編碼服務
 ] + local.STAGE_INSTALLED_APPS
 
 

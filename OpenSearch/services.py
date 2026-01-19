@@ -4,6 +4,7 @@ Handles connection and queries to OpenSearch
 """
 from opensearchpy import OpenSearch
 from django.conf import settings
+from django.core.cache import cache
 import urllib3
 
 # Disable SSL warnings for development
@@ -31,6 +32,12 @@ def get_indices():
 
 def get_index_categories():
     """Get indices grouped by category"""
+    # Try to get from cache first
+    cache_key = 'opensearch_index_categories'
+    cached_categories = cache.get(cache_key)
+    if cached_categories:
+        return cached_categories
+
     indices = get_indices()
     
     categories = {
@@ -87,6 +94,9 @@ def get_index_categories():
     for cat in categories.values():
         cat['total_docs'] = sum(int(i.get('docs.count', 0) or 0) for i in cat['indices'])
         cat['count'] = len(cat['indices'])
+    
+    # Cache for 5 minutes
+    cache.set(cache_key, categories, 300)
     
     return categories
 
@@ -279,11 +289,11 @@ def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, d
         terms = main_query.split()
         
         if len(terms) == 1:
-            # Single term: use match_phrase for exact phrase match
+            # Single term
             must_clauses.append({
                 "multi_match": {
                     "query": main_query,
-                    "fields": ["title^3", "content^2", "file^2", "path", "meta", "*"],
+                    "fields": ["title^3", "content^2", "file.filename^2", "path.real", "meta", "file.extension"],
                     "type": "phrase"
                 }
             })
@@ -294,7 +304,7 @@ def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, d
                 should_clauses.append({
                     "multi_match": {
                         "query": term,
-                        "fields": ["title^3", "content^2", "file^2", "path", "meta", "*"],
+                        "fields": ["title^3", "content^2", "file.filename^2", "path.real", "meta", "file.extension"],
                         "type": "phrase"
                     }
                 })

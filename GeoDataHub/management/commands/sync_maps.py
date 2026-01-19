@@ -40,9 +40,21 @@ class Command(BaseCommand):
         service = OpenSearchMappingService()
         result = service.sync_sino_maps(limit=limit, batch_size=batch_size)
         
-        self.stdout.write(f"Total processed: {result['total_processed']}")
-        self.stdout.write(f"New created: {result['new_created']}")
-        self.stdout.write(self.style.SUCCESS(f"Skipped (already exists): {result['skipped']}"))
+        if 'metadata_stage' in result:
+            meta = result['metadata_stage']
+            self.stdout.write(self.style.SUCCESS('Metadata Sync:'))
+            self.stdout.write(f"  Processed: {meta.get('processed', 0)}")
+            self.stdout.write(f"  Created: {meta.get('created', 0)}")
+            if 'error' in meta:
+                self.stdout.write(self.style.ERROR(f"  Error: {meta['error']}"))
+
+        if 'location_stage' in result:
+            loc = result['location_stage']
+            self.stdout.write(self.style.SUCCESS('\nLocation Resolution:'))
+            self.stdout.write(f"  Processed: {loc.get('processed', 0)}")
+            self.stdout.write(f"  Updated: {loc.get('updated', 0)}")
+            if 'error' in loc:
+                self.stdout.write(self.style.ERROR(f"  Error: {loc['error']}"))
         
         self.stdout.write(self.style.SUCCESS('Sync completed successfully.'))
         if options['all']:

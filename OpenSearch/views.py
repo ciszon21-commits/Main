@@ -74,6 +74,7 @@ class SearchView(LoginRequiredMixin, TemplateView):
                     context['total'] = 0
                 else:
                     hits = response.get('hits', {})
+                    took = response.get('took', 0)
                     total = hits.get('total', {})
                     if isinstance(total, dict):
                         total_value = total.get('value', 0)
@@ -117,6 +118,7 @@ class SearchView(LoginRequiredMixin, TemplateView):
                     
                     context['results'] = results
                     context['total'] = total_value
+                    context['took_seconds'] = round(took / 1000, 2)
                     context['page_count'] = (total_value + size - 1) // size
                     context['has_prev'] = page > 1
                     context['has_next'] = page * size < total_value
