@@ -787,11 +787,38 @@ def edit_resource(request, pk):
             
             # Check if this is a referencing hotspot
             if hotspot.source_hotspot:
-                # If referencing, do NOT allow changing media
+                # If referencing, do NOT allow changing media files
                 if 'image' in request.FILES or 'video' in request.FILES:
                     return JsonResponse({
                         'status': 'error', 
                         'message': '此為引用資源，無法修改媒體內容。請編輯原始資源。'
+                    }, status=400)
+                
+                # If referencing, do NOT allow changing media type category
+                # Determine current media category
+                current_has_image = bool(hotspot.image)
+                current_has_video = bool(hotspot.video)
+                
+                # Determine new media category from type
+                new_is_image_type = hotspot_type in ['image', 'image_hover']
+                new_is_video_type = hotspot_type in ['video', 'video_hover']
+                new_is_text_type = hotspot_type in ['text', 'text_hover']
+                
+                # Validate that the type change stays within the same media category
+                if current_has_image and not new_is_image_type:
+                    return JsonResponse({
+                        'status': 'error', 
+                        'message': '此為引用圖片資源，只能在「圖片」和「懸浮圖片」之間切換類型。'
+                    }, status=400)
+                elif current_has_video and not new_is_video_type:
+                    return JsonResponse({
+                        'status': 'error', 
+                        'message': '此為引用影片資源，只能在「影片」和「懸浮影片」之間切換類型。'
+                    }, status=400)
+                elif not current_has_image and not current_has_video and not new_is_text_type:
+                    return JsonResponse({
+                        'status': 'error', 
+                        'message': '此為引用文字資源，只能在「文字」和「懸浮文字」之間切換類型。'
                     }, status=400)
             
             # Handle media files

@@ -580,8 +580,10 @@
                 document.getElementById('edit_description').value = desc;
                 document.getElementById('edit_type').value = type;
 
-                // Store referencing status for updateMediaSections to use
+                // Store referencing status and media info for updateMediaSections to use
                 document.getElementById('editResourceForm').dataset.isReferencing = isReferencing;
+                document.getElementById('editResourceForm').dataset.hasImage = hasImage;
+                document.getElementById('editResourceForm').dataset.hasVideo = hasVideo;
 
                 // Show/hide reference warning
                 const warningDiv = document.getElementById('referenceWarning');
@@ -618,15 +620,46 @@
             const imageSection = document.getElementById('imageUploadSection');
             const videoSection = document.getElementById('videoUploadSection');
             const previewSection = document.getElementById('currentMediaPreview');
+            const typeSelect = document.getElementById('edit_type');
             const isReferencing = document.getElementById('editResourceForm').dataset.isReferencing === 'true';
+            const hasImage = document.getElementById('editResourceForm').dataset.hasImage === 'true';
+            const hasVideo = document.getElementById('editResourceForm').dataset.hasVideo === 'true';
 
-            // Always hide upload sections if referencing
+            // If referencing another resource, restrict type options based on current media
             if (isReferencing) {
+                // Determine current media category
+                let allowedTypes = [];
+                if (hasImage) {
+                    // Image types can only switch between image and image_hover
+                    allowedTypes = ['image', 'image_hover'];
+                } else if (hasVideo) {
+                    // Video types can only switch between video and video_hover
+                    allowedTypes = ['video', 'video_hover'];
+                } else {
+                    // Text types can only switch between text and text_hover
+                    allowedTypes = ['text', 'text_hover'];
+                }
+
+                // Disable options that are not allowed (show them greyed out, not hidden)
+                Array.from(typeSelect.options).forEach(option => {
+                    if (allowedTypes.includes(option.value)) {
+                        option.disabled = false;
+                    } else {
+                        option.disabled = true;
+                    }
+                });
+
+                // Always hide upload sections if referencing
                 imageSection.classList.add('d-none');
                 videoSection.classList.add('d-none');
                 // We still show the preview section so they can see what it is
                 previewSection.classList.remove('d-none');
                 return;
+            } else {
+                // Not referencing - enable all type options
+                Array.from(typeSelect.options).forEach(option => {
+                    option.disabled = false;
+                });
             }
 
             if (type === 'text' || type === 'text_hover') {
