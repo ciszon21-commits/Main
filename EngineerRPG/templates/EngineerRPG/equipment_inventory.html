@@ -41,115 +41,172 @@
                     <!-- 頭盔 -->
                     <div class="equipment-slot mb-md">
                         {% if equipped.helmet %}
-                        <div class="equipped-item">
-                            <div class="equipped-icon-wrapper" title="{{ equipped.helmet.equipment.name }}
-HP: +{{ equipped.helmet.get_total_hp_bonus }}
-MP: +{{ equipped.helmet.get_total_mp_bonus }}">
+                        <div class="equipped-item"
+                            style="display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; position: relative;">
+                            <!-- 裝備圖示 -->
+                            <div style="flex-shrink: 0;">
                                 {% if equipped.helmet.equipment.icon %}
                                 <img src="{{ equipped.helmet.equipment.icon.url }}"
-                                    alt="{{ equipped.helmet.equipment.name }}" class="sidebar-icon">
+                                    alt="{{ equipped.helmet.equipment.name }}"
+                                    style="width: 64px; height: 64px; border: 2px solid #8B7355; border-radius: 4px; background: rgba(0,0,0,0.5);">
                                 {% else %}
-                                <i class="fas fa-hard-hat sidebar-placeholder-icon"></i>
+                                <div
+                                    style="width: 64px; height: 64px; border: 2px solid #8B7355; border-radius: 4px; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-hard-hat" style="font-size: 32px; color: #8B7355;"></i>
+                                </div>
                                 {% endif %}
                             </div>
-                            <div class="equipped-info">
-                                <div class="equipped-name">
-                                    {{ equipped.helmet.equipment.name }}
-                                    <span class="enhancement-level">+{{ equipped.helmet.enhancement_level }}</span>
+
+                            <!-- 裝備資訊 -->
+                            <div style="flex: 1; min-width: 0;">
+                                <!-- 名稱 + 強化等級 -->
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                    <span style="color: #FFD700; font-size: 1.1rem; font-weight: bold;">
+                                        {{ equipped.helmet.equipment.name }}
+                                    </span>
+                                    <span
+                                        style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; font-size: 0.9rem; font-weight: bold; padding: 2px 8px; border-radius: 50%; min-width: 32px; text-align: center; box-shadow: 0 2px 4px rgba(255,215,0,0.5);">
+                                        +{{ equipped.helmet.enhancement_level }}
+                                    </span>
                                 </div>
-                                <div class="item-stats">
-                                    HP +{{ equipped.helmet.get_total_hp_bonus }} |
-                                    MP +{{ equipped.helmet.get_total_mp_bonus }}
+
+                                <!-- 能力效果 -->
+                                <div style="color: #00FF00; font-size: 0.95rem; margin-bottom: 4px;">
+                                    {% if equipped.helmet.get_total_hp_bonus > 0 %}
+                                    HP +{{ quipped.helmet.get_total_hp_bonus }}{% endif %}
+                                    {% if equipped.helmet.get_total_mp_bonus > 0 %}
+                                    {% if equipped.helmet.get_total_hp_bonus > 0 %} | {% endif %}
+                                    MP +{{ equipped.helmet.get_total_mp_bonus }}{% endif %}
                                 </div>
-                                <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.helmet.id %}">
-                                    {% csrf_token %}
-                                    <button type="submit" class="unequip-btn" title="卸下裝備">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </form>
                             </div>
+
+                            <!-- 卸下按鈕 -->
+                            <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.helmet.id %}"
+                                style="position: absolute; top: 8px; right: 8px;">
+                                {% csrf_token %}
+                                <button type="submit"
+                                    style="background: rgba(255,0,0,0.7); border: none; color: white; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s;"
+                                    onmouseover="this.style.background='rgba(255,0,0,1)'"
+                                    onmouseout="this.style.background='rgba(255,0,0,0.7)'" title="卸下裝備">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
                         </div>
                         {% else %}
-                        <div class="slot-label">
-                            <i class="fas fa-hard-hat"></i> 頭盔
+                        <div
+                            style="padding: 12px; background: rgba(0,0,0,0.2); border: 2px dashed #555; border-radius: 8px; text-align: center; color: #888;">
+                            <i class="fas fa-hard-hat" style="font-size: 24px; margin-bottom: 8px;"></i>
+                            <div>頭盔</div>
+                            <div style="font-size: 0.85rem;">未裝備</div>
                         </div>
-                        <div class="empty-slot">未裝備</div>
                         {% endif %}
                     </div>
 
                     <!-- 盔甲 -->
                     <div class="equipment-slot mb-md">
                         {% if equipped.armor %}
-                        <div class="equipped-item">
-                            <div class="equipped-icon-wrapper"
-                                title="{{ equipped.armor.equipment.name }}&#10;HP: +{{ equipped.armor.get_total_hp_bonus }}&#10;MP: +{{ equipped.armor.get_total_mp_bonus }}">
+                        <div class="equipped-item"
+                            style="display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; position: relative;">
+                            <div style="flex-shrink: 0;">
                                 {% if equipped.armor.equipment.icon %}
                                 <img src="{{ equipped.armor.equipment.icon.url }}"
-                                    alt="{{ equipped.armor.equipment.name }}" class="sidebar-icon">
+                                    alt="{{ equipped.armor.equipment.name }}"
+                                    style="width: 64px; height: 64px; border: 2px solid #8B7355; border-radius: 4px; background: rgba(0,0,0,0.5);">
                                 {% else %}
-                                <i class="fas fa-vest sidebar-placeholder-icon"></i>
+                                <div
+                                    style="width: 64px; height: 64px; border: 2px solid #8B7355; border-radius: 4px; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-vest" style="font-size: 32px; color: #8B7355;"></i>
+                                </div>
                                 {% endif %}
                             </div>
-                            <div class="equipped-info">
-                                <div class="equipped-name">
-                                    {{ equipped.armor.equipment.name }}
-                                    <span class="enhancement-level">+{{ equipped.armor.enhancement_level }}</span>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                    <span style="color: #FFD700; font-size: 1.1rem; font-weight: bold;">
+                                        {{ equipped.armor.equipment.name }}</span>
+                                    <span
+                                        style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; font-size: 0.9rem; font-weight: bold; padding: 2px 8px; border-radius: 50%; min-width: 32px; text-align: center; box-shadow: 0 2px 4px rgba(255,215,0,0.5);">
+                                        +{{ equipped.armor.enhancement_level }}</span>
                                 </div>
-                                <div class="item-stats">
-                                    HP +{{ equipped.armor.get_total_hp_bonus }} |
-                                    MP +{{ equipped.armor.get_total_mp_bonus }}
+                                <div style="color: #00FF00; font-size: 0.95rem; margin-bottom: 4px;">
+                                    {% if equipped.armor.get_total_hp_bonus > 0 %}
+                                    HP +{{ equipped.armor.get_total_hp_bonus }}{% endif %}
+                                    {% if equipped.armor.get_total_mp_bonus > 0 %}
+                                    {% if equipped.armor.get_total_hp_bonus > 0 %} | {% endif %}
+                                    MP +{{ equipped.armor.get_total_mp_bonus }}{% endif %}
                                 </div>
-                                <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.armor.id %}">
-                                    {% csrf_token %}
-                                    <button type="submit" class="unequip-btn" title="卸下裝備">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </form>
                             </div>
+                            <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.armor.id %}"
+                                style="position: absolute; top: 8px; right: 8px;">
+                                {% csrf_token %}
+                                <button type="submit"
+                                    style="background: rgba(255,0,0,0.7); border: none; color: white; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s;"
+                                    onmouseover="this.style.background='rgba(255,0,0,1)'"
+                                    onmouseout="this.style.background='rgba(255,0,0,0.7)'" title="卸下裝備">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
                         </div>
                         {% else %}
-                        <div class="slot-label">
-                            <i class="fas fa-vest"></i> 盔甲
+                        <div
+                            style="padding: 12px; background: rgba(0,0,0,0.2); border: 2px dashed #555; border-radius: 8px; text-align: center; color: #888;">
+                            <i class="fas fa-vest" style="font-size: 24px; margin-bottom: 8px;"></i>
+                            <div>盔甲</div>
+                            <div style="font-size: 0.85rem;">未裝備</div>
                         </div>
-                        <div class="empty-slot">未裝備</div>
                         {% endif %}
                     </div>
 
                     <!-- 靴子 -->
                     <div class="equipment-slot">
                         {% if equipped.boots %}
-                        <div class="equipped-item">
-                            <div class="equipped-icon-wrapper"
-                                title="{{ equipped.boots.equipment.name }}&#10;HP: +{{ equipped.boots.get_total_hp_bonus }}&#10;MP: +{{ equipped.boots.get_total_mp_bonus }}">
+                        <div class="equipped-item"
+                            style="display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; position: relative;">
+                            <div style="flex-shrink: 0;">
                                 {% if equipped.boots.equipment.icon %}
                                 <img src="{{ equipped.boots.equipment.icon.url }}"
-                                    alt="{{ equipped.boots.equipment.name }}" class="sidebar-icon">
+                                    alt="{{ equipped.boots.equipment.name }}"
+                                    style="width: 64px; height: 64px; border: 2px solid #8B7355; border-radius: 4px; background: rgba(0,0,0,0.5);">
                                 {% else %}
-                                <i class="fas fa-boot sidebar-placeholder-icon"></i>
+                                <div
+                                    style="width: 64px; height: 64px; border: 2px solid #8B7355; border-radius: 4px; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-boot" style="font-size: 32px; color: #8B7355;"></i>
+                                </div>
                                 {% endif %}
                             </div>
-                            <div class="equipped-info">
-                                <div class="equipped-name">
-                                    {{ equipped.boots.equipment.name }}
-                                    <span class="enhancement-level">+{{ equipped.boots.enhancement_level }}</span>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                    <span style="color: #FFD700; font-size: 1.1rem; font-weight: bold;">
+                                        {{ equipped.boots.equipment.name }}</span>
+                                    <span
+                                        style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; font-size: 0.9rem; font-weight: bold; padding: 2px 8px; border-radius: 50%; min-width: 32px; text-align: center; box-shadow: 0 2px 4px rgba(255,215,0,0.5);">
+                                        +{{ equipped.boots.enhancement_level }}</span>
                                 </div>
-                                <div class="item-stats">
-                                    HP +{{ equipped.boots.get_total_hp_bonus }} |
-                                    MP +{{ equipped.boots.get_total_mp_bonus }}
+                                <div style="color: #00FF00; font-size: 0.95rem; margin-bottom: 4px;">
+                                    {% if equipped.boots.get_total_hp_bonus > 0 %}
+                                    HP +{{ equipped.boots.get_total_hp_bonus }}{% endif %}
+                                    {% if equipped.boots.get_total_mp_bonus > 0 %}
+                                    {% if equipped.boots.get_total_hp_bonus > 0 %} | {% endif %}
+                                    MP +{{ equipped.boots.get_total_mp_bonus }}{% endif %}
                                 </div>
-                                <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.boots.id %}">
-                                    {% csrf_token %}
-                                    <button type="submit" class="unequip-btn" title="卸下裝備">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </form>
                             </div>
+                            <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.boots.id %}"
+                                style="position: absolute; top: 8px; right: 8px;">
+                                {% csrf_token %}
+                                <button type="submit"
+                                    style="background: rgba(255,0,0,0.7); border: none; color: white; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s;"
+                                    onmouseover="this.style.background='rgba(255,0,0,1)'"
+                                    onmouseout="this.style.background='rgba(255,0,0,0.7)'" title="卸下裝備">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
                         </div>
                         {% else %}
-                        <div class="slot-label">
-                            <i class="fas fa-boot"></i> 靴子
+                        <div
+                            style="padding: 12px; background: rgba(0,0,0,0.2); border: 2px dashed #555; border-radius: 8px; text-align: center; color: #888;">
+                            <i class="fas fa-boot" style="font-size: 24px; margin-bottom: 8px;"></i>
+                            <div>靴子</div>
+                            <div style="font-size: 0.85rem;">未裝備</div>
                         </div>
-                        <div class="empty-slot">未裝備</div>
                         {% endif %}
                     </div>
 
@@ -164,7 +221,8 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
                         {% if equipped.tool_1 %}
                         <div class="equipped-item">
                             <div class="equipped-icon-wrapper"
-                                title="{{ equipped.tool_1.equipment.name }}&#10;特效: {{ equipped.tool_1.equipment.skill_effect|default:" 無" }}">
+                                title="{{ equipped.tool_1.equipment.name }}&#10;特效: {{ equipped.tool_1.equipment.skill_effect|default:"
+                                無" }}">
                                 {% if equipped.tool_1.equipment.icon %}
                                 <img src="{{ equipped.tool_1.equipment.icon.url }}"
                                     alt="{{ equipped.tool_1.equipment.name }}" class="sidebar-icon">
@@ -179,7 +237,8 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
                                 </div>
                                 <div class="item-stats">
                                     {% if equipped.tool_1.equipment.skill_effect %}
-                                    <span class="text-xs text-primary">{{ equipped.tool_1.equipment.skill_effect }}</span>
+                                    <span class="text-xs text-primary">
+                                        {{ equipped.tool_1.equipment.skill_effect }}</span>
                                     {% endif %}
                                 </div>
                                 <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.tool_1.id %}">
@@ -203,7 +262,8 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
                         {% if equipped.tool_2 %}
                         <div class="equipped-item">
                             <div class="equipped-icon-wrapper"
-                                title="{{ equipped.tool_2.equipment.name }}&#10;特效: {{ equipped.tool_2.equipment.skill_effect|default:" 無" }}">
+                                title="{{ equipped.tool_2.equipment.name }}&#10;特效: {{ equipped.tool_2.equipment.skill_effect|default:"
+                                無" }}">
                                 {% if equipped.tool_2.equipment.icon %}
                                 <img src="{{ equipped.tool_2.equipment.icon.url }}"
                                     alt="{{ equipped.tool_2.equipment.name }}" class="sidebar-icon">
@@ -218,7 +278,8 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
                                 </div>
                                 <div class="item-stats">
                                     {% if equipped.tool_2.equipment.skill_effect %}
-                                    <span class="text-xs text-primary">{{ equipped.tool_2.equipment.skill_effect }}</span>
+                                    <span class="text-xs text-primary">
+                                        {{ equipped.tool_2.equipment.skill_effect }}</span>
                                     {% endif %}
                                 </div>
                                 <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.tool_2.id %}">
@@ -242,7 +303,8 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
                         {% if equipped.tool_3 %}
                         <div class="equipped-item">
                             <div class="equipped-icon-wrapper"
-                                title="{{ equipped.tool_3.equipment.name }}&#10;特效: {{ equipped.tool_3.equipment.skill_effect|default:" 無" }}">
+                                title="{{ equipped.tool_3.equipment.name }}&#10;特效: {{ equipped.tool_3.equipment.skill_effect|default:"
+                                無" }}">
                                 {% if equipped.tool_3.equipment.icon %}
                                 <img src="{{ equipped.tool_3.equipment.icon.url }}"
                                     alt="{{ equipped.tool_3.equipment.name }}" class="sidebar-icon">
@@ -257,7 +319,8 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
                                 </div>
                                 <div class="item-stats">
                                     {% if equipped.tool_3.equipment.skill_effect %}
-                                    <span class="text-xs text-primary">{{ equipped.tool_3.equipment.skill_effect }}</span>
+                                    <span class="text-xs text-primary">
+                                        {{ equipped.tool_3.equipment.skill_effect }}</span>
                                     {% endif %}
                                 </div>
                                 <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.tool_3.id %}">
@@ -285,12 +348,14 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
                     <div class="stat-box">
                         <i class="fas fa-heart"></i>
                         <div class="text-stone mb-xs">最大生命值</div>
-                        <div class="text-xl font-bold text-white">{{ request.user.profile.hp }}/{{ request.user.profile.get_total_hp }}</div>
+                        <div class="text-xl font-bold text-white">
+                            {{ request.user.profile.hp }}/{{ request.user.profile.get_total_hp }}</div>
                     </div>
                     <div class="stat-box">
                         <i class="fas fa-bolt"></i>
                         <div class="text-stone mb-xs">最大魔力值</div>
-                        <div class="text-xl font-bold text-white">{{ request.user.profile.mp }}/{{ request.user.profile.get_total_mp }}</div>
+                        <div class="text-xl font-bold text-white">
+                            {{ request.user.profile.mp }}/{{ request.user.profile.get_total_mp }}</div>
                     </div>
                     <div class="stat-box">
                         <i class="fas fa-fist-raised"></i>
@@ -336,8 +401,10 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
                     <div class="equipment-info">
                         <h4 class="equipment-name">
                             {{ item.user_equipment.equipment.name }}
-                            <span class="tier-badge tier-{{ item.user_equipment.equipment.tier }}">T{{ item.user_equipment.equipment.tier }}</span>
-                            <span class="enhancement-badge">+{{ item.user_equipment.enhancement_level }}</span>
+                            <span class="tier-badge tier-{{ item.user_equipment.equipment.tier }}">
+                                T{{ item.user_equipment.equipment.tier }}</span>
+                            <span class="enhancement-badge">
+                                +{{ item.user_equipment.enhancement_level }}</span>
                         </h4>
 
                         <div class="equipment-rarity rarity-{{ item.user_equipment.equipment.rarity|lower }}">
@@ -348,23 +415,28 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
 
                         <div class="equipment-stats">
                             {% if item.user_equipment.get_total_hp_bonus > 0 %}
-                            <span class="stat-item"><i class="fas fa-heart"></i> HP +{{ item.user_equipment.get_total_hp_bonus }}</span>
+                            <span class="stat-item"><i class="fas fa-heart"></i>
+                                HP +{{ item.user_equipment.get_total_hp_bonus }}</span>
                             {% endif %}
                             {% if item.user_equipment.get_total_mp_bonus > 0 %}
-                            <span class="stat-item"><i class="fas fa-bolt"></i> MP +{{ item.user_equipment.get_total_mp_bonus }}</span>
+                            <span class="stat-item"><i class="fas fa-bolt"></i>
+                                MP +{{ item.user_equipment.get_total_mp_bonus }}</span>
                             {% endif %}
                             {% if item.user_equipment.get_damage_reduction > 0 %}
-                            <span class="stat-item"><i class="fas fa-shield-virus"></i> 減傷 -{{ item.user_equipment.get_damage_reduction }}</span>
+                            <span class="stat-item"><i class="fas fa-shield-virus"></i>
+                                減傷 -{{ item.user_equipment.get_damage_reduction }}</span>
                             {% endif %}
                             {% if item.user_equipment.equipment.skill_effect %}
-                            <span class="stat-item skill-effect"><i class="fas fa-magic"></i> {{ item.user_equipment.equipment.skill_effect }}</span>
+                            <span class="stat-item skill-effect"><i class="fas fa-magic"></i>
+                                {{ item.user_equipment.equipment.skill_effect }}</span>
                             {% endif %}
                         </div>
 
                         {% if item.user_equipment.equipment.special_ability_name %}
                         <div
                             class="special-ability-section {% if item.user_equipment.enhancement_level >= 9 %}unlocked{% else %}locked{% endif %}">
-                            <div class="ability-title"><i class="fas fa-star"></i> +9 能力: {{ item.user_equipment.equipment.special_ability_name }}</div>
+                            <div class="ability-title"><i class="fas fa-star"></i>
+                                +9 能力: {{ item.user_equipment.equipment.special_ability_name }}</div>
                             <div class="ability-desc">{{ item.user_equipment.equipment.special_ability_description }}
                             </div>
                         </div>
@@ -372,7 +444,8 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
 
                         <div class="equipment-actions">
                             {% if not item.is_unlocked %}
-                            <span class="locked-label"><i class="fas fa-lock"></i> 需等級 {{ item.user_equipment.equipment.required_level }}</span>
+                            <span class="locked-label"><i class="fas fa-lock"></i>
+                                需等級 {{ item.user_equipment.equipment.required_level }}</span>
                             {% else %}
                             {% if item.user_equipment.is_equipped %}
                             <form method="post" action="{% url 'engineer_rpg:unequip_item' item.user_equipment.id %}"
@@ -410,7 +483,8 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
                             {% endif %}
                             {% endif %}
 
-                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %} <form method="post"
+                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %} 
+                            <form method="post"
                                 action="{% url 'engineer_rpg:enhance_equipment' item.user_equipment.id %}"
                                 style="display: inline;">
                                 {% csrf_token %}
@@ -444,8 +518,10 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
                     <div class="equipment-info">
                         <h4 class="equipment-name">
                             {{ item.user_equipment.equipment.name }}
-                            <span class="tier-badge tier-{{ item.user_equipment.equipment.tier }}">T{{ item.user_equipment.equipment.tier }}</span>
-                            <span class="enhancement-badge">+{{ item.user_equipment.enhancement_level }}</span>
+                            <span class="tier-badge tier-{{ item.user_equipment.equipment.tier }}">
+                                T{{ item.user_equipment.equipment.tier }}</span>
+                            <span class="enhancement-badge">
+                                +{{ item.user_equipment.enhancement_level }}</span>
                         </h4>
 
                         <div class="equipment-rarity rarity-{{ item.user_equipment.equipment.rarity|lower }}">
@@ -456,23 +532,28 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
 
                         <div class="equipment-stats">
                             {% if item.user_equipment.get_total_hp_bonus > 0 %}
-                            <span class="stat-item"><i class="fas fa-heart"></i> HP +{{ item.user_equipment.get_total_hp_bonus }}</span>
+                            <span class="stat-item"><i class="fas fa-heart"></i>
+                                HP +{{ item.user_equipment.get_total_hp_bonus }}</span>
                             {% endif %}
                             {% if item.user_equipment.get_total_mp_bonus > 0 %}
-                            <span class="stat-item"><i class="fas fa-bolt"></i> MP +{{ item.user_equipment.get_total_mp_bonus }}</span>
+                            <span class="stat-item"><i class="fas fa-bolt"></i>
+                                MP +{{ item.user_equipment.get_total_mp_bonus }}</span>
                             {% endif %}
                             {% if item.user_equipment.get_damage_reduction > 0 %}
-                            <span class="stat-item"><i class="fas fa-shield-virus"></i> 減傷 -{{ item.user_equipment.get_damage_reduction }}</span>
+                            <span class="stat-item"><i class="fas fa-shield-virus"></i>
+                                減傷 -{{ item.user_equipment.get_damage_reduction }}</span>
                             {% endif %}
                             {% if item.user_equipment.equipment.skill_effect %}
-                            <span class="stat-item skill-effect"><i class="fas fa-magic"></i> {{ item.user_equipment.equipment.skill_effect }}</span>
+                            <span class="stat-item skill-effect"><i class="fas fa-magic"></i>
+                                {{ item.user_equipment.equipment.skill_effect }}</span>
                             {% endif %}
                         </div>
 
                         {% if item.user_equipment.equipment.special_ability_name %}
                         <div
                             class="special-ability-section {% if item.user_equipment.enhancement_level >= 9 %}unlocked{% else %}locked{% endif %}">
-                            <div class="ability-title"><i class="fas fa-star"></i> +9 能力: {{ item.user_equipment.equipment.special_ability_name }}</div>
+                            <div class="ability-title"><i class="fas fa-star"></i>
+                                +9 能力: {{ item.user_equipment.equipment.special_ability_name }}</div>
                             <div class="ability-desc">{{ item.user_equipment.equipment.special_ability_description }}
                             </div>
                         </div>
@@ -480,7 +561,8 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
 
                         <div class="equipment-actions">
                             {% if not item.is_unlocked %}
-                            <span class="locked-label"><i class="fas fa-lock"></i> 需等級 {{ item.user_equipment.equipment.required_level }}</span>
+                            <span class="locked-label"><i class="fas fa-lock"></i>
+                                需等級 {{ item.user_equipment.equipment.required_level }}</span>
                             {% else %}
                             {% if item.user_equipment.is_equipped %}
                             <form method="post" action="{% url 'engineer_rpg:unequip_item' item.user_equipment.id %}"
@@ -518,7 +600,8 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
                             {% endif %}
                             {% endif %}
 
-                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %} <form method="post"
+                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %} 
+                            <form method="post"
                                 action="{% url 'engineer_rpg:enhance_equipment' item.user_equipment.id %}"
                                 style="display: inline;">
                                 {% csrf_token %}
@@ -552,7 +635,8 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
                     <div class="equipment-info">
                         <h4 class="equipment-name">
                             {{ item.user_equipment.equipment.name }}
-                            <span class="tier-badge tier-{{ item.user_equipment.equipment.tier }}">T{{ item.user_equipment.equipment.tier }}</span>
+                            <span class="tier-badge tier-{{ item.user_equipment.equipment.tier }}">
+                                T{{ item.user_equipment.equipment.tier }}</span>
                             <span class="enhancement-badge">+{{ item.user_equipment.enhancement_level }}</span>
                         </h4>
 
@@ -564,23 +648,28 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
 
                         <div class="equipment-stats">
                             {% if item.user_equipment.get_total_hp_bonus > 0 %}
-                            <span class="stat-item"><i class="fas fa-heart"></i> HP +{{ item.user_equipment.get_total_hp_bonus }}</span>
+                            <span class="stat-item"><i class="fas fa-heart"></i>
+                                HP +{{ item.user_equipment.get_total_hp_bonus }}</span>
                             {% endif %}
                             {% if item.user_equipment.get_total_mp_bonus > 0 %}
-                            <span class="stat-item"><i class="fas fa-bolt"></i> MP +{{ item.user_equipment.get_total_mp_bonus }}</span>
+                            <span class="stat-item"><i class="fas fa-bolt"></i>
+                                MP +{{ item.user_equipment.get_total_mp_bonus }}</span>
                             {% endif %}
                             {% if item.user_equipment.get_damage_reduction > 0 %}
-                            <span class="stat-item"><i class="fas fa-shield-virus"></i> 減傷 -{{ item.user_equipment.get_damage_reduction }}</span>
+                            <span class="stat-item"><i class="fas fa-shield-virus"></i>
+                                減傷 -{{ item.user_equipment.get_damage_reduction }}</span>
                             {% endif %}
                             {% if item.user_equipment.equipment.skill_effect %}
-                            <span class="stat-item skill-effect"><i class="fas fa-magic"></i> {{ item.user_equipment.equipment.skill_effect }}</span>
+                            <span class="stat-item skill-effect"><i class="fas fa-magic"></i>
+                                {{ item.user_equipment.equipment.skill_effect }}</span>
                             {% endif %}
                         </div>
 
                         {% if item.user_equipment.equipment.special_ability_name %}
                         <div
                             class="special-ability-section {% if item.user_equipment.enhancement_level >= 9 %}unlocked{% else %}locked{% endif %}">
-                            <div class="ability-title"><i class="fas fa-star"></i> +9 能力: {{ item.user_equipment.equipment.special_ability_name }}</div>
+                            <div class="ability-title"><i class="fas fa-star"></i>
+                                +9 能力: {{ item.user_equipment.equipment.special_ability_name }}</div>
                             <div class="ability-desc">{{ item.user_equipment.equipment.special_ability_description }}
                             </div>
                         </div>
@@ -588,7 +677,8 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
 
                         <div class="equipment-actions">
                             {% if not item.is_unlocked %}
-                            <span class="locked-label"><i class="fas fa-lock"></i> 需等級 {{ item.user_equipment.equipment.required_level }}</span>
+                            <span class="locked-label"><i class="fas fa-lock"></i> 需等級 {{
+                                item.user_equipment.equipment.required_level }}</span>
                             {% else %}
                             {% if item.user_equipment.is_equipped %}
                             <form method="post" action="{% url 'engineer_rpg:unequip_item' item.user_equipment.id %}"
@@ -626,7 +716,8 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
                             {% endif %}
                             {% endif %}
 
-                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %} <form method="post"
+                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %}
+                             <form method="post"
                                 action="{% url 'engineer_rpg:enhance_equipment' item.user_equipment.id %}"
                                 style="display: inline;">
                                 {% csrf_token %}
@@ -660,7 +751,8 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
                     <div class="equipment-info">
                         <h4 class="equipment-name">
                             {{ item.user_equipment.equipment.name }}
-                            <span class="tier-badge tier-{{ item.user_equipment.equipment.tier }}">T{{ item.user_equipment.equipment.tier }}</span>
+                            <span class="tier-badge tier-{{ item.user_equipment.equipment.tier }}">
+                                T{{ item.user_equipment.equipment.tier }}</span>
                             <span class="enhancement-badge">+{{ item.user_equipment.enhancement_level }}</span>
                         </h4>
 
@@ -672,23 +764,28 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
 
                         <div class="equipment-stats">
                             {% if item.user_equipment.get_total_hp_bonus > 0 %}
-                            <span class="stat-item"><i class="fas fa-heart"></i> HP +{{ item.user_equipment.get_total_hp_bonus }}</span>
+                            <span class="stat-item"><i class="fas fa-heart"></i>
+                                HP +{{ item.user_equipment.get_total_hp_bonus }}</span>
                             {% endif %}
                             {% if item.user_equipment.get_total_mp_bonus > 0 %}
-                            <span class="stat-item"><i class="fas fa-bolt"></i> MP +{{ item.user_equipment.get_total_mp_bonus }}</span>
+                            <span class="stat-item"><i class="fas fa-bolt"></i>
+                                MP +{{ item.user_equipment.get_total_mp_bonus }}</span>
                             {% endif %}
                             {% if item.user_equipment.get_damage_reduction > 0 %}
-                            <span class="stat-item"><i class="fas fa-shield-virus"></i> 減傷 -{{ item.user_equipment.get_damage_reduction }}</span>
+                            <span class="stat-item"><i class="fas fa-shield-virus"></i>
+                                減傷 -{{ item.user_equipment.get_damage_reduction }}</span>
                             {% endif %}
                             {% if item.user_equipment.equipment.skill_effect %}
-                            <span class="stat-item skill-effect"><i class="fas fa-magic"></i> {{ item.user_equipment.equipment.skill_effect }}</span>
+                            <span class="stat-item skill-effect"><i class="fas fa-magic"></i>
+                                {{ item.user_equipment.equipment.skill_effect }}</span>
                             {% endif %}
                         </div>
 
                         {% if item.user_equipment.equipment.special_ability_name %}
                         <div
                             class="special-ability-section {% if item.user_equipment.enhancement_level >= 9 %}unlocked{% else %}locked{% endif %}">
-                            <div class="ability-title"><i class="fas fa-star"></i> +9 能力: {{ item.user_equipment.equipment.special_ability_name }}</div>
+                            <div class="ability-title"><i class="fas fa-star"></i>
+                                +9 能力: {{ item.user_equipment.equipment.special_ability_name }}</div>
                             <div class="ability-desc">{{ item.user_equipment.equipment.special_ability_description }}
                             </div>
                         </div>
@@ -696,7 +793,8 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
 
                         <div class="equipment-actions">
                             {% if not item.is_unlocked %}
-                            <span class="locked-label"><i class="fas fa-lock"></i> 需等級 {{ item.user_equipment.equipment.required_level }}</span>
+                            <span class="locked-label"><i class="fas fa-lock"></i>
+                                需等級 {{ item.user_equipment.equipment.required_level }}</span>
                             {% else %}
                             {% if item.user_equipment.is_equipped %}
                             <form method="post" action="{% url 'engineer_rpg:unequip_item' item.user_equipment.id %}"
@@ -734,7 +832,8 @@ MP: +{{ equipped.helmet.get_total_mp_bonus }}">
                             {% endif %}
                             {% endif %}
 
-                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %} <form method="post"
+                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement%}
+                             <form method="post"
                                 action="{% url 'engineer_rpg:enhance_equipment' item.user_equipment.id %}"
                                 style="display: inline;">
                                 {% csrf_token %}

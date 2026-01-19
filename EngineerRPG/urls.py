@@ -76,6 +76,7 @@ urlpatterns = [
     path('guild/exchange/<int:post_id>/', views.guild_post_detail, name='guild_post_detail'),  # 文章詳情
     path('admin-panel/users/create/', views.create_user, name='create_user'),
     path('admin-panel/users/<int:user_id>/edit/', views.edit_user, name='edit_user'),
+    path('admin-panel/users/<int:user_id>/delete/', views.delete_user, name='delete_user'),
     path('admin-panel/questions/', views.question_management, name='question_management'),
     path('admin-panel/questions/create/', views.create_question, name='create_question'),
     path('admin-panel/questions/<int:question_id>/edit/', views.edit_question, name='edit_question'),

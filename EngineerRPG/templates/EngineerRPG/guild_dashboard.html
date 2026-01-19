@@ -114,30 +114,33 @@
 
                 <div class="member-grid">
                     {% for member in team.current_members.all %}
-                    <div class="member-card">
-                        {% if member.avatar_image %}
-                        <img src="{{ member.avatar_image.url }}" class="member-avatar"
-                            style="border-color: {% if member.role == 'ADMIN' %}var(--color-danger){% elif member.role == 'MANAGER' %}var(--color-mech){% else %}var(--color-border){% endif %};">
-                        {% else %}
-                        <div class="member-avatar flex flex-center"
-                            style="background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; border-color: {% if member.role == 'ADMIN' %}var(--color-danger){% elif member.role == 'MANAGER' %}var(--color-mech){% else %}var(--color-border){% endif %};">
-                            <i class="fas fa-user text-stone"></i>
-                        </div>
-                        {% endif %}
+                    <a href="{% url 'engineer_rpg:member_profile_detail' member.id %}?from=guild"
+                        class="member-card-link">
+                        <div class="member-card">
+                            {% if member.avatar_image %}
+                            <img src="{{ member.avatar_image.url }}" class="member-avatar"
+                                style="border-color: {% if member.role == 'ADMIN' %}var(--color-danger){% elif member.role == 'MANAGER' %}var(--color-mech){% else %}var(--color-border){% endif %};">
+                            {% else %}
+                            <div class="member-avatar flex flex-center"
+                                style="background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; border-color: {% if member.role == 'ADMIN' %}var(--color-danger){% elif member.role == 'MANAGER' %}var(--color-mech){% else %}var(--color-border){% endif %};">
+                                <i class="fas fa-user text-stone"></i>
+                            </div>
+                            {% endif %}
 
-                        <div class="member-info">
-                            <div class="member-name">
-                                {{ member.user.username }}
-                                {% if team.leader == member.user %}
-                                <i class="fas fa-crown text-gold ml-xs" title="隊長"></i>
-                                {% endif %}
-                            </div>
-                            <div class="member-meta">
-                                <span>Lv.{{ member.level }}</span>
-                                <span>{{ member.character_class.name }}</span>
+                            <div class="member-info">
+                                <div class="member-name">
+                                    {{ member.user.username }}
+                                    {% if team.leader == member.user %}
+                                    <i class="fas fa-crown text-gold ml-xs" title="隊長"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="member-meta">
+                                    <span>Lv.{{ member.level }}</span>
+                                    <span>{{ member.character_class.name }}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </a>
                     {% endfor %}
                 </div>
             </div>
@@ -154,25 +157,28 @@
 
                 <div class="member-grid">
                     {% for member in free_members %}
-                    <div class="member-card">
-                        {% if member.avatar_image %}
-                        <img src="{{ member.avatar_image.url }}" class="member-avatar"
-                            style="border-color: var(--color-border);">
-                        {% else %}
-                        <div class="member-avatar flex flex-center"
-                            style="background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; border-color: var(--color-border);">
-                            <i class="fas fa-user text-stone"></i>
-                        </div>
-                        {% endif %}
+                    <a href="{% url 'engineer_rpg:member_profile_detail' member.id %}?from=guild"
+                        class="member-card-link">
+                        <div class="member-card">
+                            {% if member.avatar_image %}
+                            <img src="{{ member.avatar_image.url }}" class="member-avatar"
+                                style="border-color: var(--color-border);">
+                            {% else %}
+                            <div class="member-avatar flex flex-center"
+                                style="background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; border-color: var(--color-border);">
+                                <i class="fas fa-user text-stone"></i>
+                            </div>
+                            {% endif %}
 
-                        <div class="member-info">
-                            <div class="member-name">{{ member.user.username }}</div>
-                            <div class="member-meta">
-                                <span>Lv.{{ member.level }}</span>
-                                <span>{{ member.character_class.name }}</span>
+                            <div class="member-info">
+                                <div class="member-name">{{ member.user.username }}</div>
+                                <div class="member-meta">
+                                    <span>Lv.{{ member.level }}</span>
+                                    <span>{{ member.character_class.name }}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </a>
                     {% endfor %}
                 </div>
             </div>
@@ -215,9 +221,15 @@
         transition: transform 0.2s, background 0.2s;
     }
 
+    .member-card-link {
+        text-decoration: none;
+        display: block;
+    }
+
     .member-card:hover {
         background: rgba(255, 255, 255, 0.08);
         transform: translateY(-2px);
+        cursor: pointer;
     }
 
     .member-avatar {

@@ -7,9 +7,23 @@
 <div class="rpg-container">
     <!-- 返回按鈕 -->
     <div class="mb-lg">
+        {% if request.GET.from == 'team' and request.GET.team_id %}
+        <a href="{% url 'engineer_rpg:team_detail' request.GET.team_id %}" class="rpg-btn rpg-btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回隊伍
+        </a>
+        {% elif request.GET.from == 'guild' %}
+        <a href="{% url 'engineer_rpg:guild_dashboard' %}" class="rpg-btn rpg-btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回公會大廳
+        </a>
+        {% elif team %}
         <a href="{% url 'engineer_rpg:team_detail' team.id %}" class="rpg-btn rpg-btn-secondary">
             <i class="fas fa-arrow-left"></i> 返回隊伍
         </a>
+        {% else %}
+        <a href="{% url 'engineer_rpg:guild_dashboard' %}" class="rpg-btn rpg-btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回公會大廳
+        </a>
+        {% endif %}
     </div>
 
     <!-- 隊員基本資訊 -->

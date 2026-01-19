@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 
 from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth.models import User
 
 
 
@@ -918,13 +919,14 @@ def profile_edit(request):
 
 
         'profile': profile,
-
-
-
+        'avatar_data': [
+            (1, '人類戰士'), (2, '人類法師'), (3, '人類盜賊'), (4, '人類牧師'),
+            (5, '矮人戰士'), (6, '矮人工匠'), (7, '矮人礦工'), (8, '矮人酒保'),
+            (9, '精靈弓手'), (10, '精靈德魯伊'), (11, '精靈吟遊詩人'), (12, '精靈舞者'),
+            (13, '獸人戰士'), (14, '獸人薩滿'), (15, '獸人獵人'), (16, '獸人鐵匠'),
+            (17, '魔族術士'), (18, '魔族刺客'), (19, '魔族死靈法師'), (20, '魔族血騎士'),
+        ],
         'default_avatars': range(1, 21)
-
-
-
     }
 
 
@@ -4954,50 +4956,198 @@ def user_management(request):
 
 
 @login_required
-
-
-
 def create_user(request):
-
-
-
-    """Create User"""
-
-
-
-    # TODO: User creation logic?
-
-
-
-    pass
-
-
-
-
-
-
-
-
-
+    """創建新使用者"""
+    profile = get_or_create_user_profile(request.user)
+    if profile.role not in ['MANAGER', 'ADMIN']:
+        messages.error(request, '權限不足！')
+        return redirect('engineer_rpg:dashboard')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '').strip()
+        employee_id = request.POST.get('employee_id', '').strip()
+        character_class_id = request.POST.get('character_class')
+        role = request.POST.get('role', 'ADVENTURER')
+        email = request.POST.get('email', '').strip()
+        
+        # 驗證必填欄位
+        if not all([username, password, employee_id, character_class_id]):
+            messages.error(request, '請填寫所有必填欄位！')
+            return redirect('engineer_rpg:create_user')
+        
+        # 檢查使用者名稱是否已存在
+        if User.objects.filter(username=username).exists():
+            messages.error(request, f'使用者名稱「{username}」已存在！')
+            return redirect('engineer_rpg:create_user')
+        
+        # 檢查員工編號是否已存在
+        if UserProfile.objects.filter(employee_id=employee_id).exists():
+            messages.error(request, f'員工編號「{employee_id}」已存在！')
+            return redirect('engineer_rpg:create_user')
+        
+        try:
+            # 創建 User
+            user = User.objects.create_user(
+                username=username,
+                password=password,
+                email=email
+            )
+            
+            # 創建 UserProfile
+            character_class = CharacterClass.objects.get(id=character_class_id)
+            user_profile = UserProfile.objects.create(
+                user=user,
+                employee_id=employee_id,
+                character_class=character_class,
+                role=role,
+                level=1,
+                experience=0
+            )
+            
+            messages.success(request, f'使用者「{username}」創建成功！')
+            return redirect('engineer_rpg:user_management')
+            
+        except Exception as e:
+            messages.error(request, f'創建使用者時發生錯誤：{str(e)}')
+            # 如果創建失敗，刪除已創建的 User
+            try:
+                if 'user' in locals():
+                    user.delete()
+            except:
+                pass
+            return redirect('engineer_rpg:create_user')
+    
+    # GET 請求，顯示表單
+    character_classes = CharacterClass.objects.all()
+    role_choices = UserProfile.ROLE_CHOICES
+    
+    context = {
+        'profile': profile,
+        'character_classes': character_classes,
+        'role_choices': role_choices,
+    }
+    return render(request, 'EngineerRPG/user_form.html', context)
 
 
 @login_required
-
-
-
 def edit_user(request, user_id):
+    """編輯使用者"""
+    profile = get_or_create_user_profile(request.user)
+    if not profile or profile.role not in ['MANAGER', 'ADMIN']:
+        messages.error(request, '權限不足！')
+        return redirect('engineer_rpg:dashboard')
+    
+    # 獲取要編輯的使用者
+    user_profile = get_object_or_404(UserProfile, id=user_id)
+    
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '').strip()
+        employee_id = request.POST.get('employee_id', '').strip()
+        character_class_id = request.POST.get('character_class')
+        role = request.POST.get('role', 'ADVENTURER')
+        email = request.POST.get('email', '').strip()
+        is_active = request.POST.get('is_active') == 'on'
+        
+        # 驗證必填欄位
+        if not all([username, employee_id, character_class_id]):
+            messages.error(request, '請填寫所有必填欄位！')
+            return redirect('engineer_rpg:edit_user', user_id=user_id)
+        
+        # 檢查使用者名稱是否已被其他使用者使用
+        if User.objects.filter(username=username).exclude(id=user_profile.user.id).exists():
+            messages.error(request, f'使用者名稱「{username}」已存在！')
+            return redirect('engineer_rpg:edit_user', user_id=user_id)
+        
+        # 檢查員工編號是否已被其他使用者使用
+        if UserProfile.objects.filter(employee_id=employee_id).exclude(id=user_profile.id).exists():
+            messages.error(request, f'員工編號「{employee_id}」已存在！')
+            return redirect('engineer_rpg:edit_user', user_id=user_id)
+        
+        try:
+            # 更新 User
+            user_profile.user.username = username
+            user_profile.user.email = email
+            user_profile.user.is_active = is_active
+            
+            # 如果提供了新密碼，則更新密碼
+            if password:
+                user_profile.user.set_password(password)
+            
+            user_profile.user.save()
+            
+            # 更新 UserProfile
+            character_class = CharacterClass.objects.get(id=character_class_id)
+            user_profile.employee_id = employee_id
+            user_profile.character_class = character_class
+            user_profile.role = role
+            user_profile.save()
+            
+            messages.success(request, f'使用者「{username}」更新成功！')
+            return redirect('engineer_rpg:user_management')
+            
+        except Exception as e:
+            messages.error(request, f'更新使用者時發生錯誤：{str(e)}')
+            return redirect('engineer_rpg:edit_user', user_id=user_id)
+    
+    # GET 請求，顯示編輯表單
+    character_classes = CharacterClass.objects.all()
+    role_choices = UserProfile.ROLE_CHOICES
+    
+    context = {
+        'profile': profile,
+        'user_profile': user_profile,
+        'character_classes': character_classes,
+        'role_choices': role_choices,
+        'is_edit': True,
+    }
+    return render(request, 'EngineerRPG/user_edit_form.html', context)
+
+
+@login_required
+def delete_user(request, user_id):
+    """刪除使用者"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': '無效的請求方法'})
+    
+    profile = get_or_create_user_profile(request.user)
+    if not profile or profile.role not in ['MANAGER', 'ADMIN']:
+        return JsonResponse({'success': False, 'message': '權限不足！'})
+    
+    # 安全檢查：防止刪除自己的帳號
+    if str(user_id) == str(profile.id):
+        return JsonResponse({'success': False, 'message': '不能刪除自己的帳號！'})
+    
+    try:
+        user_profile = get_object_or_404(UserProfile, id=user_id)
+        username = user_profile.user.username
+        
+        # 刪除 User（會級聯刪除 UserProfile）
+        user_profile.user.delete()
+        
+        return JsonResponse({
+            'success': True, 
+            'message': f'使用者「{username}」已成功刪除'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False, 
+            'message': f'刪除使用者時發生錯誤：{str(e)}'
+        })
 
 
 
-    """Edit User"""
 
 
 
-    # TODO: User editing logic?
 
 
 
-    pass
+
+
+
 
 
 
@@ -10383,9 +10533,20 @@ def delete_team(request, *args, **kwargs):
     return JsonResponse({'status': 'success', 'message': 'Function restored as placeholder'}, status=200)
 
 @login_required
-def team_management(request, *args, **kwargs):
-    # Placeholder restored automatically
-    return JsonResponse({'status': 'success', 'message': 'Function restored as placeholder'}, status=200)
+def team_management(request):
+    """隊伍管理列表"""
+    profile = get_or_create_user_profile(request.user)
+    if profile.role not in ['OFFICER', 'MANAGER', 'ADMIN']:
+        messages.error(request, '權限不足！')
+        return redirect('engineer_rpg:dashboard')
+    
+    teams = Team.objects.all().prefetch_related('current_members').order_by('-created_at')
+    
+    context = {
+        'profile': profile,
+        'teams': teams,
+    }
+    return render(request, 'EngineerRPG/admin_team_list.html', context)
 
 @login_required
 def edit_team(request, *args, **kwargs):
