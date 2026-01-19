@@ -1036,8 +1036,15 @@ def get_resource_references(request, pk):
                 'scene_title': ref.scene.title,
                 'scene_id': ref.scene.id,
                 'hotspot_title': ref.title,
+                'hotspot_type': ref.hotspot_type,
+                'hotspot_type_display': ref.get_hotspot_type_display(),
                 'hotspot_description': ref.description,  # The reference's description (may be modified)
+                'source_title': resource.title,  # The original resource's title
+                'source_type': resource.hotspot_type,  # The original resource's type
+                'source_type_display': resource.get_hotspot_type_display(),  # The original resource's type display
                 'source_description': resource.description,  # The original resource's description
+                'title_modified': ref.title != resource.title,  # Flag if titles differ
+                'type_modified': ref.hotspot_type != resource.hotspot_type,  # Flag if types differ
                 'description_modified': ref.description != resource.description,  # Flag if descriptions differ
                 'is_outdated': is_outdated,
                 'current_version': resource.version_number,
