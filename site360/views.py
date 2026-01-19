@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.urls import reverse_lazy, reverse
 from django.db.models import Max, Count
 from django.db import models
-from .forms import ProjectForm, SceneForm
+from .forms import ProjectForm, SceneForm, ProjectMapSearchForm
 from .models import Project, Scene, Hotspot
 from django.views.decorators.csrf import csrf_exempt
 from django.http import StreamingHttpResponse
@@ -72,9 +72,36 @@ class ProjectMapView(UserActionLoggingMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from .models import Project
+        from django.db.models import Q
         
-        # Group projects by city in Python to get both count and list
-        projects = Project.objects.exclude(city='').order_by('city', '-created_at')
+        # Create search form with GET data
+        search_form = ProjectMapSearchForm(self.request.GET or None)
+        context['search_form'] = search_form
+        
+        # Start with all projects
+        projects = Project.objects.all()
+        
+        # Apply search filters if form is valid
+        if search_form.is_valid():
+            search_query = search_form.cleaned_data.get('search_query')
+            city_filter = search_form.cleaned_data.get('city')
+            address_filter = search_form.cleaned_data.get('address')
+            
+            if search_query:
+                projects = projects.filter(name__icontains=search_query)
+            
+            if city_filter:
+                projects = projects.filter(city=city_filter)
+            
+            if address_filter:
+                projects = projects.filter(
+                    Q(city__icontains=address_filter) |
+                    Q(district__icontains=address_filter) |
+                    Q(address_detail__icontains=address_filter)
+                )
+        
+        # Group projects by city for stats
+        projects = projects.exclude(city='').order_by('city', '-created_at')
         
         cities_data = {}
         for p in projects:
@@ -97,10 +124,32 @@ class ProjectMapView(UserActionLoggingMixin, TemplateView):
         return context
 
 def project_map_data(request):
-    """API: 回傳所有專案的地圖資料，包含熱點統計"""
+    """API: 回傳所有專案的地圖資料，包含熱點統計（支援搜尋篩選）"""
     from django.db.models import Count, Q
     
-    projects = Project.objects.filter(latitude__isnull=False, longitude__isnull=False).annotate(
+    # Start with projects that have coordinates
+    projects = Project.objects.filter(latitude__isnull=False, longitude__isnull=False)
+    
+    # Apply search filters from GET parameters
+    search_query = request.GET.get('search_query', '').strip()
+    city_filter = request.GET.get('city', '').strip()
+    address_filter = request.GET.get('address', '').strip()
+    
+    if search_query:
+        projects = projects.filter(name__icontains=search_query)
+    
+    if city_filter:
+        projects = projects.filter(city=city_filter)
+    
+    if address_filter:
+        projects = projects.filter(
+            Q(city__icontains=address_filter) |
+            Q(district__icontains=address_filter) |
+            Q(address_detail__icontains=address_filter)
+        )
+    
+    # Annotate with hotspot counts
+    projects = projects.annotate(
         text_count=Count('scenes__hotspots', filter=Q(scenes__hotspots__hotspot_type__in=['text', 'text_hover'])),
         image_count=Count('scenes__hotspots', filter=Q(scenes__hotspots__hotspot_type__in=['image', 'image_hover'])),
         video_count=Count('scenes__hotspots', filter=Q(scenes__hotspots__hotspot_type__in=['video', 'video_hover']))
