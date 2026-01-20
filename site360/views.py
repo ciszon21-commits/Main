@@ -5,7 +5,7 @@ from django.urls import reverse_lazy, reverse
 from django.db.models import Max, Count
 from django.db import models
 from .forms import ProjectForm, SceneForm, ProjectMapSearchForm
-from .models import Project, Scene, Hotspot
+from .models import Project, Scene, Hotspot, UserActionLog
 from django.views.decorators.csrf import csrf_exempt
 from django.http import StreamingHttpResponse
 import os
@@ -1136,3 +1136,97 @@ def hotspot_data(request, pk):
         })
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+class UserActivityLogListView(ListView):
+    """
+    使用者操作記錄列表視圖
+    提供篩選、搜尋、分頁功能
+    """
+    model = UserActionLog
+    template_name = 'site360/user_activity_logs.html'
+    context_object_name = 'logs'
+    paginate_by = 50
+    
+    def get_queryset(self):
+        queryset = UserActionLog.objects.select_related('user', 'content_type').all()
+        
+        # 篩選：操作類型
+        action_type = self.request.GET.get('action_type')
+        if action_type:
+            queryset = queryset.filter(action_type=action_type)
+        
+        # 篩選：使用者
+        user_id = self.request.GET.get('user')
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+        
+        # 篩選：對象類型
+        content_type_id = self.request.GET.get('content_type')
+        if content_type_id:
+            queryset = queryset.filter(content_type_id=content_type_id)
+        
+        # 篩選：日期範圍
+        date_from = self.request.GET.get('date_from')
+        if date_from:
+            queryset = queryset.filter(created_at__gte=date_from)
+        
+        date_to = self.request.GET.get('date_to')
+        if date_to:
+            from datetime import datetime, timedelta
+            # Add one day to include the entire end date
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+            queryset = queryset.filter(created_at__lt=date_to_obj)
+        
+        # 搜尋
+        search = self.request.GET.get('search')
+        if search:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(user__username__icontains=search) |
+                Q(ip_address__icontains=search) |
+                Q(object_repr__icontains=search) |
+                Q(request_path__icontains=search)
+            )
+        
+        return queryset.order_by('-created_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # 提供篩選選項
+        from django.contrib.auth.models import User
+        from django.contrib.contenttypes.models import ContentType
+        
+        context['all_users'] = User.objects.all().order_by('username')
+        context['action_types'] = UserActionLog.ACTION_TYPE_CHOICES
+        context['content_types'] = ContentType.objects.filter(
+            id__in=UserActionLog.objects.values_list('content_type_id', flat=True).distinct()
+        ).order_by('model')
+        
+        # 保留當前篩選條件
+        context['current_action_type'] = self.request.GET.get('action_type', '')
+        context['current_user'] = self.request.GET.get('user', '')
+        context['current_content_type'] = self.request.GET.get('content_type', '')
+        context['current_date_from'] = self.request.GET.get('date_from', '')
+        context['current_date_to'] = self.request.GET.get('date_to', '')
+        context['current_search'] = self.request.GET.get('search', '')
+        
+        # 操作類型顏色映射（與 admin 一致）
+        context['action_colors'] = {
+            'CREATE': '#28a745',
+            'UPDATE': '#ffc107',
+            'DELETE': '#dc3545',
+            'VIEW': '#17a2b8',
+            'LOGIN': '#6610f2',
+            'LOGOUT': '#6c757d',
+            'UPLOAD': '#007bff',
+            'DOWNLOAD': '#20c997',
+            'REFERENCE': '#fd7e14',
+            'REORDER': '#e83e8c',
+            'MOVE': '#6f42c1',
+            'SET_COVER': '#17a2b8',
+            'OTHER': '#6c757d',
+        }
+        
+        return context
