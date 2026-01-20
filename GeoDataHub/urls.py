@@ -12,6 +12,7 @@ app_name = 'geodatahub'
 urlpatterns = [
     # 主頁面
     path('', views.MapView.as_view(), name='map'),
+    path('dashboard/', views.DashboardView.as_view(), name='dashboard'),
     path('mark/', views.MapMarkView.as_view(), name='map_mark'),
     
     # 資料來源 CRUD
@@ -27,6 +28,7 @@ urlpatterns = [
     path('api/geocode/', views.GeocodeAPI.as_view(), name='api_geocode'),
     path('api/reverse-geocode/', views.ReverseGeocodeAPI.as_view(), name='api_reverse_geocode'),
     path('api/tags/', views.TagListAPI.as_view(), name='api_tags'),
+    path('api/log-click/', views.GeoClickLogAPI.as_view(), name='api_log_click'),
     
     # OpenSearch 地理搜尋 API
     path('api/opensearch/geo/', views.OpenSearchGeoSearchAPI.as_view(), name='api_opensearch_geo'),

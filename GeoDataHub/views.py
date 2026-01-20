@@ -10,12 +10,17 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import JsonResponse
 from django.views import View
 from django.db.models import Count, Q
+from django.db.models.functions import TruncDate, TruncMonth
+from django.db.models import Count, Q
+from django.db.models.functions import TruncDate, TruncMonth
 from django.core.paginator import Paginator
+from django.utils import timezone
+from datetime import timedelta
 from django.urls import reverse_lazy
 from decimal import Decimal
 import json
 
-from .models import GeoCategory, GeoLocation, GeoDataSource, DataTag, GeoDataView
+from .models import GeoCategory, GeoLocation, GeoDataSource, DataTag, GeoDataView, GeoClickLog
 from .forms import GeoLocationForm, GeoDataSourceForm, GeoSearchForm, GeoCategoryForm
 from .services import GeocodingService, GeoQueryService, OpenSearchGeoService
 
@@ -61,6 +66,50 @@ class MapView(TemplateView):
             'zoom': 7
         }
         
+        return context
+
+
+class DashboardView(TemplateView):
+    """使用量儀表板"""
+    template_name = 'GeoDataHub/dashboard.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # 30 Days Daily Stats
+        last_30_days = timezone.now() - timedelta(days=30)
+        daily_stats = GeoClickLog.objects.filter(
+            created_at__gte=last_30_days
+        ).annotate(
+            date=TruncDate('created_at')
+        ).values('date').annotate(
+            count=Count('id')
+        ).order_by('date')
+        
+        # 12 Months Monthly Stats
+        last_12_months = timezone.now() - timedelta(days=365)
+        monthly_stats = GeoClickLog.objects.filter(
+            created_at__gte=last_12_months
+        ).annotate(
+            month=TruncMonth('created_at')
+        ).values('month').annotate(
+            count=Count('id')
+        ).order_by('month')
+        
+        # Format for Chart.js / Display
+        context['daily_labels'] = [d['date'].strftime('%Y-%m-%d') for d in daily_stats]
+        context['daily_data'] = [d['count'] for d in daily_stats]
+        
+        context['monthly_labels'] = [m['month'].strftime('%Y-%m') for m in monthly_stats]
+        context['monthly_data'] = [m['count'] for m in monthly_stats]
+        
+        
+        # Superuser Only: Recent Logs
+        if self.request.user.is_superuser:
+            context['recent_logs'] = GeoClickLog.objects.select_related(
+                'source', 'user', 'category'
+            ).order_by('-created_at')[:100]
+            
         return context
 
 
@@ -504,6 +553,51 @@ class OpenSearchGeoSearchAPI(View):
             'total': result.get('hits', {}).get('total', {}).get('value', 0),
             'hits': result.get('hits', {}).get('hits', [])
         })
+
+
+class GeoClickLogAPI(View):
+    """點擊記錄 API"""
+    
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            source_id = data.get('source_id')
+            category_id = data.get('category_id')
+            click_type = data.get('click_type', 'view_detail')
+            
+            if not source_id:
+                return JsonResponse({'success': False, 'error': 'Source ID required'}, status=400)
+
+            # Get objects
+            source = get_object_or_404(GeoDataSource, id=source_id)
+            category = None
+            if category_id:
+                # Handle empty string or invalid id
+                try:
+                    category = GeoCategory.objects.filter(id=category_id).first()
+                except (ValueError, TypeError):
+                    pass
+                
+            # Create log
+            GeoClickLog.objects.create(
+                source=source,
+                user=request.user if request.user.is_authenticated else None,
+                category=category,
+                click_type=click_type,
+                ip_address=self.get_client_ip(request),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')[:500]
+            )
+            
+            return JsonResponse({'success': True})
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+    def get_client_ip(self, request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            return x_forwarded_for.split(',')[0]
+        return request.META.get('REMOTE_ADDR')
 
 
 # ============================================

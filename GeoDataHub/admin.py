@@ -6,7 +6,7 @@ Django Admin 配置
 
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import GeoCategory, GeoLocation, GeoDataSource, DataTag, GeoDataView
+from .models import GeoCategory, GeoLocation, GeoDataSource, DataTag, GeoDataView, GeoClickLog
 
 
 @admin.register(DataTag)
@@ -123,3 +123,13 @@ class GeoDataViewAdmin(admin.ModelAdmin):
     raw_id_fields = ['source', 'user']
     readonly_fields = ['viewed_at']
     date_hierarchy = 'viewed_at'
+
+
+@admin.register(GeoClickLog)
+class GeoClickLogAdmin(admin.ModelAdmin):
+    list_display = ['source', 'user', 'category', 'click_type', 'ip_address', 'created_at']
+    list_filter = ['click_type', 'created_at', 'category']
+    search_fields = ['source__title', 'user__username', 'ip_address']
+    raw_id_fields = ['source', 'user', 'category']
+    readonly_fields = ['created_at']
+    date_hierarchy = 'created_at'
