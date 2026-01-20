@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import ClashReport, ClassificationResult
 from django.contrib.auth.models import User
+from django.db.models import Count
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -32,12 +33,14 @@ class ClashReportListSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     classification_count = serializers.SerializerMethodField()
     clash_count = serializers.SerializerMethodField()
+    frequently_clashed_item_id = serializers.SerializerMethodField()
     
     class Meta:
         model = ClashReport
         fields = [
             'id', 'title', 'user', 'uploaded_at',
-            'classification_count', 'clash_count'
+            'classification_count', 'clash_count',
+            'frequently_clashed_item_id'
         ]
     
     def get_classification_count(self, obj):
@@ -48,6 +51,36 @@ class ClashReportListSerializer(serializers.ModelSerializer):
         """取得預測為碰撞的數量"""
         return obj.classifications.filter(predicted_class=1).count()
 
+    def get_frequently_clashed_item_id(self, obj):
+        """取得常見碰撞項目 ID"""
+
+        q1 = obj.classifications.filter(predicted_class=1) \
+            .values('item1_id') \
+            .annotate(count=Count('item1_id')) \
+            .order_by('-count') \
+            .first()
+
+        q2 = obj.classifications.filter(predicted_class=1) \
+            .values('item2_id') \
+            .annotate(count=Count('item2_id')) \
+            .order_by('-count') \
+            .first()
+
+        item1 = q1.get('item1_id') if q1 else None
+        item2 = q2.get('item2_id') if q2 else None
+
+        # 都沒有資料
+        if item1 is None and item2 is None:
+            return None
+
+        # 其中一個是 None
+        if item1 is None:
+            return item2
+        if item2 is None:
+            return item1
+
+        # Python 三元運算
+        return item1 if item1 > item2 else item2
 
 class ClashReportSerializer(serializers.ModelSerializer):
     """完整報告序列化器"""
@@ -55,13 +88,15 @@ class ClashReportSerializer(serializers.ModelSerializer):
     classifications = ClassificationResultSerializer(many=True, read_only=True)
     classification_count = serializers.SerializerMethodField()
     clash_count = serializers.SerializerMethodField()
+    frequently_clashed_item_id = serializers.SerializerMethodField()
     
     class Meta:
         model = ClashReport
         fields = [
             'id', 'title', 'user', 'html_file', 'csv_file',
             'uploaded_at', 'classifications',
-            'classification_count', 'clash_count'
+            'classification_count', 'clash_count',
+            'frequently_clashed_item_id'
         ]
     
     def get_classification_count(self, obj):
@@ -71,6 +106,37 @@ class ClashReportSerializer(serializers.ModelSerializer):
     def get_clash_count(self, obj):
         """取得預測為碰撞的數量"""
         return obj.classifications.filter(predicted_class=1).count()
+
+    def get_frequently_clashed_item_id(self, obj):
+        """取得常見碰撞項目 ID"""
+
+        q1 = obj.classifications.filter(predicted_class=1) \
+            .values('item1_id') \
+            .annotate(count=Count('item1_id')) \
+            .order_by('-count') \
+            .first()
+
+        q2 = obj.classifications.filter(predicted_class=1) \
+            .values('item2_id') \
+            .annotate(count=Count('item2_id')) \
+            .order_by('-count') \
+            .first()
+
+        item1 = q1.get('item1_id') if q1 else None
+        item2 = q2.get('item2_id') if q2 else None
+
+        # 都沒有資料
+        if item1 is None and item2 is None:
+            return None
+
+        # 其中一個是 None
+        if item1 is None:
+            return item2
+        if item2 is None:
+            return item1
+
+        # Python 三元運算
+        return item1 if item1 > item2 else item2
 
 
 class ClashReportUploadSerializer(serializers.ModelSerializer):
