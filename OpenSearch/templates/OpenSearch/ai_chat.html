@@ -162,7 +162,9 @@
 .message {
     display: flex;
     margin-bottom: 24px;
-    max-width: 900px;
+    max-width: 98%;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .message-user {
@@ -206,22 +208,35 @@
 }
 
 .message-content {
-    max-width: 75%;
     padding: 16px 20px;
     border-radius: 16px;
     line-height: 1.6;
+    position: relative;
+    word-wrap: break-word;
+    min-width: 200px;
 }
 
 .message-user .message-content {
+    max-width: 80%;
     background: #e8f0fe;
     color: var(--text-primary);
     border-bottom-right-radius: 4px;
 }
 
 .message-assistant .message-content {
+    max-width: 95%;
     background: #f8f9fa;
     color: var(--text-primary);
     border-bottom-left-radius: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+}
+
+.message-text {
+    flex: 1;
+    min-width: 300px;
+    max-width: 100%;
 }
 
 /* Markdown content styling */
@@ -365,9 +380,28 @@
 }
 
 .message-sources {
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border-color);
+    width: 320px;
+    flex-shrink: 0;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+    border-left: 1px solid var(--border-color);
+    padding-left: 20px;
+}
+
+@media (max-width: 1100px) {
+    .message-assistant .message-content {
+        flex-direction: column;
+    }
+    
+    .message-sources {
+        width: 100%;
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+        padding-left: 0;
+        padding-top: 16px;
+        margin-top: 8px;
+    }
 }
 
 .message-sources-title {
@@ -379,21 +413,116 @@
 
 .source-item {
     display: flex;
-    align-items: center;
-    padding: 6px 8px;
+    flex-direction: column;
+    padding: 10px 12px;
     background: white;
-    border-radius: 6px;
-    margin-bottom: 4px;
-    font-size: 12px;
+    border: 1px solid #e8eaed;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    transition: box-shadow 0.2s;
 }
 
-.source-item-title {
-    flex: 1;
-    min-width: 0;
+.source-item:hover {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-color: #dadce0;
+}
+
+.source-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.source-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.source-title {
+    color: #1a0dab;
+    text-decoration: none;
+    font-weight: 500;
+    line-height: 1.4;
+    word-break: break-all;
+}
+
+.source-title:hover {
+    text-decoration: underline;
+}
+
+.source-meta {
+    font-size: 12px;
+    color: #70757a;
+    margin-bottom: 6px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.source-snippet {
+    color: #4d5156;
+    font-size: 12px;
+    line-height: 1.5;
+    margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.source-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-top: 1px solid #f1f3f4;
+    padding-top: 8px;
+    margin-top: auto;
+}
+
+.source-path {
+    font-size: 11px;
+    color: #006621;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: var(--text-link);
+    flex: 1;
+}
+
+.source-action {
+    background: none;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    color: #5f6368;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.source-action:hover {
+    background: #f8f9fa;
+    color: #3c4043;
+}
+
+.source-more-btn {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    background: #f8f9fa;
+    border: 1px dashed #dadce0;
+    border-radius: 8px;
+    color: #1a73e8;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.source-more-btn:hover {
+    background: #e8f0fe;
+    border-color: #1a73e8;
 }
 
 /* Loading indicator */
@@ -436,7 +565,7 @@
     display: flex;
     align-items: flex-end;
     gap: 12px;
-    max-width: 900px;
+    max-width: 98%;
     margin: 0 auto;
 }
 
@@ -549,6 +678,122 @@
     .ai-chat-container {
         height: calc(100vh - 80px);
     }
+}
+/* Source Selection Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    background: white;
+    border-radius: 16px;
+    padding: 32px;
+    width: 90%;
+    max-width: 800px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+    animation: modalSlideUp 0.3s ease-out;
+}
+
+@keyframes modalSlideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.source-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin: 24px 0;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 4px;
+}
+
+.source-choice {
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+}
+
+.source-choice:hover {
+    border-color: var(--primary-blue);
+    background: #f8fbff;
+}
+
+.source-choice.selected {
+    border-color: var(--primary-blue);
+    background: #e8f0fe;
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+}
+
+.source-choice-icon {
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f3f4;
+    border-radius: 50%;
+}
+
+.source-choice.selected .source-choice-icon {
+    background: white;
+}
+
+.source-choice-info {
+    flex: 1;
+}
+
+.source-choice-name {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.source-choice-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid var(--border-color);
+    padding-top: 24px;
+    margin-top: 8px;
+}
+
+.modal-btn {
+    padding: 10px 32px;
+    background: var(--primary-blue);
+    color: white;
+    border: none;
+    border-radius: 24px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 15px;
+}
+
+.modal-btn:hover {
+    background: var(--primary-blue-hover);
 }
 {% endblock %}
 
@@ -671,6 +916,39 @@
             </div>
         </div>
     </div>
+    <!-- Source Selection Modal -->
+    <div id="sourceSelectionModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 8px; color: var(--text-primary); font-size: 24px;">請選擇資料來源</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 24px; font-size: 15px;">
+                為提供更精準的回答，請選擇您要搜尋的資料範圍。您可以隨時在對話介面下方切換來源。
+            </p>
+            
+            <div class="source-options">
+                <div class="source-choice selected" onclick="selectSourceFromModal('*', '全部資料', this)">
+                    <div class="source-choice-icon">🌐</div>
+                    <div class="source-choice-info">
+                        <div class="source-choice-name">全部資料</div>
+                        <div class="source-choice-desc">搜尋所有可用的知識庫</div>
+                    </div>
+                </div>
+                
+                {% for key, cat in categories.items %}
+                <div class="source-choice" onclick="selectSourceFromModal('{{ cat.pattern }}', '{{ cat.name }}', this)">
+                    <div class="source-choice-icon">{{ cat.icon }}</div>
+                    <div class="source-choice-info">
+                        <div class="source-choice-name">{{ cat.name }}</div>
+                        <div class="source-choice-desc">包含 {{ cat.total_docs|floatformat:0 }} 筆資料</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="modal-actions">
+                <button class="modal-btn" onclick="confirmSourceSelection()">開始對話</button>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -773,6 +1051,32 @@ function deleteChat(chatId) {
     });
 }
 
+function toggleSources(id, btn) {
+    const container = document.getElementById(id);
+    if (container.style.display === 'none') {
+        container.style.display = 'block';
+        btn.innerHTML = '▲ 收起資料';
+    } else {
+        container.style.display = 'none';
+        btn.innerHTML = `查看更多資料 (${container.children.length} 筆) ▼`;
+    }
+}
+
+function copySourcePath(btn, path) {
+    navigator.clipboard.writeText(path).then(() => {
+        const originalText = btn.textContent;
+        btn.textContent = '已複製';
+        btn.style.color = '#34a853';
+        btn.style.borderColor = '#34a853';
+        
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.style.color = '';
+            btn.style.borderColor = '';
+        }, 2000);
+    });
+}
+
 function addMessage(role, content, meta = {}) {
     const welcome = document.getElementById('chatWelcome');
     if (welcome) welcome.remove();
@@ -781,25 +1085,66 @@ function addMessage(role, content, meta = {}) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message message-${role}`;
     
-    let metaHtml = '';
-    if (role === 'assistant' && meta.keywords_used) {
-        metaHtml = `
-            <div class="message-meta">
-                <span class="message-meta-item">🔑 ${meta.keywords_used}</span>
-                <span class="message-meta-item">📄 ${meta.search_count} 筆</span>
-                ${meta.retry_count > 0 ? `<span class="message-meta-item">🔄 重試 ${meta.retry_count} 次</span>` : ''}
-            </div>
-        `;
+    let metaInfoHtml = '';
+    let sourcesHtml = '';
+    
+    if (role === 'assistant') {
+        if (meta.keywords_used) {
+            metaInfoHtml = `
+                <div class="message-meta">
+                    <span class="message-meta-item">🔑 ${meta.keywords_used}</span>
+                    <span class="message-meta-item">📄 ${meta.search_count} 筆</span>
+                    ${meta.retry_count > 0 ? `<span class="message-meta-item">🔄 重試 ${meta.retry_count} 次</span>` : ''}
+                </div>
+            `;
+        }
         
         if (meta.sources && meta.sources.length > 0) {
-            metaHtml += `
+            const visibleCount = 10;
+            const hasMore = meta.sources.length > visibleCount;
+            const visibleSources = meta.sources.slice(0, visibleCount);
+            const hiddenSources = meta.sources.slice(visibleCount);
+            const uniqueId = 'sources-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            
+            const renderSource = (s) => {
+                const link = s.url || '#';
+                const target = s.url ? 'target="_blank" rel="noopener"' : '';
+                const date = s.dt ? s.dt.split('T')[0] : '';
+                const safePath = (s.path || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                
+                return `
+                <div class="source-item">
+                    <div class="source-header">
+                        <span class="source-icon">📄</span>
+                        <a href="${link}" class="source-title" ${target}>${s.title || '無標題'}</a>
+                    </div>
+                    <div class="source-meta">
+                        ${date ? `<span>📅 ${date}</span>` : ''}
+                        ${s.poster ? `<span>👤 ${s.poster}</span>` : ''}
+                        ${s.index ? `<span>📂 ${s.index}</span>` : ''}
+                    </div>
+                    ${s.content ? `<div class="source-snippet">${s.content}...</div>` : ''}
+                    <div class="source-footer">
+                        <div class="source-path" title="${s.path}">${s.path || ''}</div>
+                        ${s.path ? `<button class="source-action" onclick="event.stopPropagation(); copySourcePath(this, '${safePath}')">複製路徑</button>` : ''}
+                    </div>
+                </div>
+                `;
+            };
+
+            sourcesHtml = `
                 <div class="message-sources">
-                    <div class="message-sources-title">📚 參考來源</div>
-                    ${meta.sources.map(s => `
-                        <div class="source-item">
-                            <span class="source-item-title">${s.title || '無標題'}</span>
+                    <div class="message-sources-title">📚 參考資料 (${meta.sources.length} 筆)</div>
+                    ${visibleSources.map(renderSource).join('')}
+                    
+                    ${hasMore ? `
+                        <div id="${uniqueId}" style="display: none;">
+                            ${hiddenSources.map(renderSource).join('')}
                         </div>
-                    `).join('')}
+                        <button class="source-more-btn" onclick="toggleSources('${uniqueId}', this)">
+                            查看更多資料 (${hiddenSources.length} 筆) ▼
+                        </button>
+                    ` : ''}
                 </div>
             `;
         }
@@ -818,10 +1163,12 @@ function addMessage(role, content, meta = {}) {
     messageDiv.innerHTML = `
         <div class="message-avatar">${avatarHtml}</div>
         <div class="message-content">
-            <div class="markdown-content"></div>
-            <textarea class="raw-markdown" style="display:none;">${content}</textarea>
-            <div class="rendered-markdown">${contentHtml}</div>
-            ${metaHtml}
+            <div class="message-text">
+                <textarea class="raw-markdown" style="display:none;">${content}</textarea>
+                <div class="rendered-markdown">${contentHtml}</div>
+                ${metaInfoHtml}
+            </div>
+            ${sourcesHtml}
         </div>
     `;
     
@@ -949,6 +1296,65 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+});
+
+function showSourceSelectionModal() {
+    const modal = document.getElementById('sourceSelectionModal');
+    if (modal) modal.style.display = 'flex';
+}
+
+function selectSourceFromModal(pattern, name, el) {
+    document.querySelectorAll('.source-choice').forEach(e => e.classList.remove('selected'));
+    el.classList.add('selected');
+    setFilter(pattern, name);
+}
+
+function confirmSourceSelection() {
+    const modal = document.getElementById('sourceSelectionModal');
+    if (modal) modal.style.display = 'none';
+    document.getElementById('chatInput').focus();
+}
+
+function startNewChat() {
+    currentChatId = null;
+    currentIndices = '*';
+    
+    // Clear messages UI
+    const messagesDiv = document.getElementById('chatMessages');
+    messagesDiv.innerHTML = `
+        <div class="chat-welcome" id="chatWelcome">
+            <div class="chat-welcome-icon">🔍</div>
+            <div class="chat-welcome-title">AI 智慧搜尋助手</div>
+            <div class="chat-welcome-subtitle">
+                輸入您的問題，我會從公司內部資料庫中搜尋相關資訊，並為您提供詳細的回答。
+            </div>
+        </div>
+    `;
+    
+    // Update URL
+    if (window.history.pushState) {
+        window.history.pushState({}, '', '{% url "opensearch:ai_chat" %}');
+    }
+    
+    // Reset active sidebar
+    document.querySelectorAll('.chat-list-item').forEach(el => el.classList.remove('active'));
+    
+    // Reset modal selection to default
+    const defaultOption = document.querySelector('.source-choice');
+    if (defaultOption) {
+        selectSourceFromModal('*', '全部資料', defaultOption);
+    }
+    
+    // Show modal
+    showSourceSelectionModal();
+}
+
+// Show modal on load if new chat
+document.addEventListener('DOMContentLoaded', function() {
+    const messages = document.querySelectorAll('.message');
+    if (messages.length === 0) {
+        showSourceSelectionModal();
+    }
 });
 </script>
 {% endblock %}
