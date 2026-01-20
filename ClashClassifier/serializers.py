@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import ClashReport, ClassificationResult
 from django.contrib.auth.models import User
 from django.db.models import Count
+from itertools import chain
+from collections import Counter
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -52,35 +54,26 @@ class ClashReportListSerializer(serializers.ModelSerializer):
         return obj.classifications.filter(predicted_class=1).count()
 
     def get_frequently_clashed_item_id(self, obj):
-        """取得常見碰撞項目 ID"""
+        """item1_id 與 item2_id 一起比出現次數，回傳最多次的 ID"""
 
-        q1 = obj.classifications.filter(predicted_class=1) \
-            .values('item1_id') \
-            .annotate(count=Count('item1_id')) \
-            .order_by('-count') \
-            .first()
+        qs = obj.classifications.filter(predicted_class=1)
 
-        q2 = obj.classifications.filter(predicted_class=1) \
-            .values('item2_id') \
-            .annotate(count=Count('item2_id')) \
-            .order_by('-count') \
-            .first()
+        # 取得兩欄的計數
+        item1_counts = qs.values('item1_id').annotate(c=Count('item1_id'))
+        item2_counts = qs.values('item2_id').annotate(c=Count('item2_id'))
 
-        item1 = q1.get('item1_id') if q1 else None
-        item2 = q2.get('item2_id') if q2 else None
+        counter = Counter()
 
-        # 都沒有資料
-        if item1 is None and item2 is None:
+        for row in chain(item1_counts, item2_counts):
+            # row 可能是 {'item1_id': 123, 'c': 5}
+            item_id = row.get('item1_id') or row.get('item2_id')
+            counter[item_id] += row['c']
+
+        if not counter:
             return None
 
-        # 其中一個是 None
-        if item1 is None:
-            return item2
-        if item2 is None:
-            return item1
-
-        # Python 三元運算
-        return item1 if item1 > item2 else item2
+        # 取出出現最多次的
+        return counter.most_common(1)[0][0]
 
 class ClashReportSerializer(serializers.ModelSerializer):
     """完整報告序列化器"""
@@ -108,35 +101,26 @@ class ClashReportSerializer(serializers.ModelSerializer):
         return obj.classifications.filter(predicted_class=1).count()
 
     def get_frequently_clashed_item_id(self, obj):
-        """取得常見碰撞項目 ID"""
+        """item1_id 與 item2_id 一起比出現次數，回傳最多次的 ID"""
 
-        q1 = obj.classifications.filter(predicted_class=1) \
-            .values('item1_id') \
-            .annotate(count=Count('item1_id')) \
-            .order_by('-count') \
-            .first()
+        qs = obj.classifications.filter(predicted_class=1)
 
-        q2 = obj.classifications.filter(predicted_class=1) \
-            .values('item2_id') \
-            .annotate(count=Count('item2_id')) \
-            .order_by('-count') \
-            .first()
+        # 取得兩欄的計數
+        item1_counts = qs.values('item1_id').annotate(c=Count('item1_id'))
+        item2_counts = qs.values('item2_id').annotate(c=Count('item2_id'))
 
-        item1 = q1.get('item1_id') if q1 else None
-        item2 = q2.get('item2_id') if q2 else None
+        counter = Counter()
 
-        # 都沒有資料
-        if item1 is None and item2 is None:
+        for row in chain(item1_counts, item2_counts):
+            # row 可能是 {'item1_id': 123, 'c': 5}
+            item_id = row.get('item1_id') or row.get('item2_id')
+            counter[item_id] += row['c']
+
+        if not counter:
             return None
 
-        # 其中一個是 None
-        if item1 is None:
-            return item2
-        if item2 is None:
-            return item1
-
-        # Python 三元運算
-        return item1 if item1 > item2 else item2
+        # 取出出現最多次的
+        return counter.most_common(1)[0][0]
 
 
 class ClashReportUploadSerializer(serializers.ModelSerializer):
