@@ -1,0 +1,185 @@
+{% extends "GeoDataHub/base.html" %}
+{% block title %}使用量儀表板 - GeoDataHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .re-dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    @media (min-width: 1024px) {
+        .re-dashboard-grid { grid-template-columns: 1fr 1fr; }
+    }
+    .re-chart-card {
+        background: white;
+        border: 1px solid #E2E8F0;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .re-table-container {
+        overflow-x: auto;
+        background: white;
+        border: 1px solid #E2E8F0;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .re-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+    }
+    .re-table th {
+        background: #F8FAFC;
+        text-align: left;
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        color: #475569;
+        border-bottom: 1px solid #E2E8F0;
+    }
+    .re-table td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #E2E8F0;
+        color: #1F2937;
+    }
+    .re-table tbody tr:last-child td { border-bottom: none; }
+    .re-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.125rem 0.625rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .re-badge--blue { background: #DBEAFE; color: #1E40AF; }
+    .re-badge--green { background: #D1FAE5; color: #065F46; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto; padding: 2rem 1rem;">
+    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+        <a href="{% url 'geodatahub:map' %}" style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: white; border: 1px solid #E2E8F0; color: #64748B;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        </a>
+        <h1 class="re-h2">使用量儀表板</h1>
+    </div>
+
+    <!-- Charts -->
+    <div class="re-dashboard-grid">
+        <div class="re-chart-card">
+            <h3 class="re-h3" style="margin-bottom: 1rem;">每日點擊數 (近 30 天)</h3>
+            <canvas id="dailyChart"></canvas>
+        </div>
+        <div class="re-chart-card">
+            <h3 class="re-h3" style="margin-bottom: 1rem;">每月趨勢 (近 12 個月)</h3>
+            <canvas id="monthlyChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Logs (Superuser Only) -->
+    {% if user.is_superuser %}
+    <div id="superuser-logs" style="background: white; border-radius: 0.5rem; overflow: hidden; border: 1px solid #E2E8F0;">
+        <div style="padding: 1.5rem; border-bottom: 1px solid #E2E8F0; background: #F8FAFC;">
+            <h3 class="re-h3">詳細點擊記錄 (僅管理員可見)</h3>
+        </div>
+        <div class="re-table-container">
+            <table class="re-table">
+                <thead>
+                    <tr>
+                        <th>時間</th>
+                        <th>使用者</th>
+                        <th>資料來源</th>
+                        <th>分類</th>
+                        <th>動作</th>
+                        <th>IP 位址</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in recent_logs %}
+                    <tr>
+                        <td style="white-space: nowrap; color: #64748B;">{{ log.created_at|date:"Y-m-d H:i" }}</td>
+                        <td>
+                            {% if log.user %}
+                            <span style="font-weight: 500;">{{ log.user.username }}</span>
+                            {% else %}
+                            <span style="color: #94A3B8;">Anonymous</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'geodatahub:source_detail' log.source.id %}" target="_blank" style="color: #0F766E; text-decoration: underline;">
+                                {{ log.source.title }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if log.category %}
+                            {{ log.category.name }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="re-badge re-badge--blue">{{ log.get_click_type_display }}</span>
+                        </td>
+                        <td style="font-family: monospace; color: #64748B;">{{ log.ip_address|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 2rem; color: #94A3B8;">尚無記錄</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // Config
+    const chartConfig = {
+        options: {
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#F1F5F9' } },
+                x: { grid: { display: false } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    };
+
+    // Daily Chart
+    new Chart(document.getElementById('dailyChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ daily_labels|safe }},
+            datasets: [{
+                label: '點擊數',
+                data: {{ daily_data|safe }},
+                backgroundColor: '#0F766E',
+                borderRadius: 4
+            }]
+        },
+        ...chartConfig
+    });
+
+    // Monthly Chart
+    new Chart(document.getElementById('monthlyChart'), {
+        type: 'line',
+        data: {
+            labels: {{ monthly_labels|safe }},
+            datasets: [{
+                label: '點擊數',
+                data: {{ monthly_data|safe }},
+                borderColor: '#F59E0B',
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        ...chartConfig
+    });
+</script>
+{% endblock %}

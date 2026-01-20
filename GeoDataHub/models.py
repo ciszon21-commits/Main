@@ -426,3 +426,55 @@ class GeoSyncLog(models.Model):
         self.error_count += error
         self.skipped_count += skipped
         self.save()
+
+
+class GeoClickLog(models.Model):
+    """使用者點擊記錄"""
+    
+    class ClickType(models.TextChoices):
+        VIEW_DETAIL = 'view_detail', '查看詳情'
+        COPY_UNC = 'copy_unc', '複製 UNC 路徑'
+
+    source = models.ForeignKey(
+        GeoDataSource,
+        on_delete=models.CASCADE,
+        related_name='click_logs',
+        verbose_name='資料來源'
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='geo_click_logs',
+        verbose_name='使用者'
+    )
+    category = models.ForeignKey(
+        GeoCategory,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name='分類'
+    )
+    click_type = models.CharField(
+        max_length=20,
+        choices=ClickType.choices,
+        default=ClickType.VIEW_DETAIL,
+        verbose_name='點擊類型'
+    )
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name='IP 位址')
+    user_agent = models.CharField(max_length=500, blank=True, verbose_name='User Agent')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
+
+    class Meta:
+        verbose_name = '點擊記錄'
+        verbose_name_plural = '點擊記錄'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['-created_at']),
+            models.Index(fields=['source', '-created_at']),
+            models.Index(fields=['user', '-created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.user or 'Anonymous'} - {self.source.title} ({self.get_click_type_display()})"

@@ -4,7 +4,7 @@
 {% with category=result.category source=result.source highlight=result.highlight index=result.index is_secret=result.is_secret %}
 
 {# ===== SECRET DATA - RESTRICTED DISPLAY ===== #}
-{% if is_secret %}
+{% if is_secret and not request.user.is_superuser %}
 <div class="secret-badge">🔒 機敏資料</div>
 <h3 class="result-title">
     <span class="secret-title">{{ source|extract_title }}</span>
@@ -23,6 +23,9 @@
 
 {% else %}
 {# ===== NON-SECRET DATA - NORMAL DISPLAY ===== #}
+{% if is_secret %}
+<div class="secret-badge">🔒 機敏資料</div>
+{% endif %}
 {% with fsmeta=source|parse_fscrawler_meta %}
 
 {# Check if this is a file-based record #}

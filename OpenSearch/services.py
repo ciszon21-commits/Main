@@ -4,20 +4,48 @@ Handles connection and queries to OpenSearch
 """
 from opensearchpy import OpenSearch
 from django.conf import settings
+from django.core.cache import cache
 import urllib3
 
 # Disable SSL warnings for development
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# Singleton client instance for connection reuse
+_client = None
+
 
 def get_client():
-    """Get OpenSearch client instance"""
-    return OpenSearch(
-        hosts=[settings.OPENSEARCH_HOST],
-        http_auth=(settings.OPENSEARCH_USERNAME, settings.OPENSEARCH_PASSWORD),
-        verify_certs=settings.OPENSEARCH_VERIFY_CERTS,
-        ssl_show_warn=False,
-    )
+    """
+    Get OpenSearch client instance (singleton pattern).
+    
+    This implementation:
+    - Reuses the same connection pool across requests
+    - Configures timeout, retries, and compression for optimal performance
+    - Reduces connection overhead for high-frequency searches
+    """
+    global _client
+    if _client is None:
+        _client = OpenSearch(
+            hosts=[settings.OPENSEARCH_HOST],
+            http_auth=(settings.OPENSEARCH_USERNAME, settings.OPENSEARCH_PASSWORD),
+            verify_certs=settings.OPENSEARCH_VERIFY_CERTS,
+            ssl_show_warn=False,
+            # Performance optimization parameters
+            timeout=getattr(settings, 'OPENSEARCH_TIMEOUT', 30),
+            max_retries=getattr(settings, 'OPENSEARCH_MAX_RETRIES', 1),
+            retry_on_timeout=getattr(settings, 'OPENSEARCH_RETRY_ON_TIMEOUT', False),
+            http_compress=getattr(settings, 'OPENSEARCH_HTTP_COMPRESS', True),
+        )
+    return _client
+
+
+def reset_client():
+    """
+    Reset the OpenSearch client singleton.
+    Useful for testing or when connection settings change.
+    """
+    global _client
+    _client = None
 
 
 def get_indices():
@@ -31,6 +59,12 @@ def get_indices():
 
 def get_index_categories():
     """Get indices grouped by category"""
+    # Try to get from cache first
+    cache_key = 'opensearch_index_categories'
+    cached_categories = cache.get(cache_key)
+    if cached_categories:
+        return cached_categories
+
     indices = get_indices()
     
     categories = {
@@ -87,6 +121,10 @@ def get_index_categories():
     for cat in categories.values():
         cat['total_docs'] = sum(int(i.get('docs.count', 0) or 0) for i in cat['indices'])
         cat['count'] = len(cat['indices'])
+    
+    # Cache using configurable timeout (default 900 seconds = 15 minutes)
+    cache_timeout = getattr(settings, 'OPENSEARCH_INDEX_CACHE_TIMEOUT', 900)
+    cache.set(cache_key, categories, cache_timeout)
     
     return categories
 
@@ -176,7 +214,7 @@ def parse_search_query(query):
     return result
 
 
-def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, date_to=None):
+def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, date_to=None, include_content=False):
     """
     Execute search query against OpenSearch
     
@@ -188,6 +226,7 @@ def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, d
         sort_by: Sort field and order (e.g., "dt:desc")
         date_from: Filter by date from (ISO format)
         date_to: Filter by date to (ISO format)
+        include_content: Whether to search inside full-text content (slower)
     
     Returns:
         Search response with hits
@@ -279,23 +318,33 @@ def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, d
         terms = main_query.split()
         
         if len(terms) == 1:
-            # Single term: use match_phrase for exact phrase match
+            # Single term - use best_fields for faster query
+            search_fields = ["title^3", "file.filename^2", "path.real^2", "meta", "file.extension"]
+            if include_content:
+                search_fields.append("content^1")
+            
             must_clauses.append({
                 "multi_match": {
                     "query": main_query,
-                    "fields": ["title^3", "content^2", "file^2", "path", "meta", "*"],
-                    "type": "phrase"
+                    "fields": search_fields,
+                    "type": "best_fields",
+                    "tie_breaker": 0.3
                 }
             })
         else:
             # Multiple terms: use bool should for OR matching
             should_clauses = []
+            search_fields = ["title^3", "file.filename^2", "path.real^2", "meta", "file.extension"]
+            if include_content:
+                search_fields.append("content^1")
+                
             for term in terms:
                 should_clauses.append({
                     "multi_match": {
                         "query": term,
-                        "fields": ["title^3", "content^2", "file^2", "path", "meta", "*"],
-                        "type": "phrase"
+                        "fields": search_fields,
+                        "type": "best_fields",
+                        "tie_breaker": 0.3
                     }
                 })
             must_clauses.append({
@@ -324,7 +373,7 @@ def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, d
             date_filter["range"]["dt"]["lte"] = date_to
         filters.append(date_filter)
     
-    # Construct body
+    # Construct body with performance optimizations
     body = {
         "query": {
             "bool": {
@@ -332,18 +381,23 @@ def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, d
                 "filter": filters
             }
         },
+        # Limit _source to essential fields only (exclude large content field unless requested)
+        "_source": {
+            "excludes": ["content"] if not include_content else []
+        },
+        # Optimized highlight - skip content field unless requested
         "highlight": {
             "pre_tags": ["<mark>"],
             "post_tags": ["</mark>"],
             "fields": {
                 "title": {"number_of_fragments": 0},
-                "content": {"fragment_size": 200, "number_of_fragments": 3},
                 "file": {"number_of_fragments": 0},
                 "path": {"number_of_fragments": 0}
             }
         },
         "size": size,
-        "from": from_
+        "from": from_,
+        "terminate_after": 5000  # Performance: Stop after finding enough candidates
     }
     
     # Add sort
@@ -356,7 +410,67 @@ def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, d
             index=search_indices,
             body=body,
             ignore_unavailable=True,
-            request_timeout=300
+            request_timeout=getattr(settings, 'OPENSEARCH_TIMEOUT', 30)
+        )
+        return response
+    except Exception as e:
+        return {"error": str(e), "hits": {"hits": [], "total": {"value": 0}}}
+
+
+def search_fast(query, indices="*", size=10):
+    """
+    Ultra-fast search for instant results (autocomplete, suggestions).
+    
+    Optimizations:
+    - No highlight
+    - Minimal _source fields
+    - terminate_after for early termination
+    - Shorter timeout
+    
+    Args:
+        query: Search query string
+        indices: Index pattern to search
+        size: Number of results (default: 10)
+    
+    Returns:
+        Search response with minimal hits
+    """
+    client = get_client()
+    
+    # Convert to alias patterns
+    if indices == "*":
+        search_indices = "alias_*,reviewing_*"
+    else:
+        parts = [p.strip() for p in indices.split(',')]
+        alias_parts = []
+        for part in parts:
+            if part.startswith('alias_') or part.startswith('reviewing_'):
+                alias_parts.append(part)
+            else:
+                alias_parts.append(f'alias_{part}')
+                alias_parts.append(f'reviewing_{part}')
+        search_indices = ','.join(alias_parts)
+    
+    body = {
+        "query": {
+            "multi_match": {
+                "query": query,
+                "fields": ["title^3", "file.filename^2", "path.real"],
+                "type": "best_fields",
+                "tie_breaker": 0.3
+            }
+        },
+        "_source": ["title", "file.filename", "path.real", "dt", "_index"],
+        "size": size,
+        "terminate_after": size * 10  # Stop after finding enough candidates
+    }
+    
+    try:
+        response = client.search(
+            index=search_indices,
+            body=body,
+            ignore_unavailable=True,
+            request_timeout=5  # Very short timeout for fast search
         )
         return response
     except Exception as e:
