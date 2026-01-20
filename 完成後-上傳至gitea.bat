@@ -38,6 +38,7 @@ if %errorlevel% neq 0 goto Error
 echo.
 echo [Step 4] 正在推送至您的 Fork (git push)...
 git push
+git push
 if %errorlevel% neq 0 goto Error
 
 echo.
