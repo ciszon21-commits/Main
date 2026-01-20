@@ -235,6 +235,7 @@ def search_with_keywords(keywords: str, indices: str = "*", size: int = 10) -> d
                 'path': source.get('path', {}).get('real', '') if isinstance(source.get('path'), dict) else source.get('path', ''),
                 'dt': source.get('dt', ''),
                 'poster': source.get('poster', ''),
+                'url': source.get('url', ''),
             })
         
         return {
@@ -420,7 +421,7 @@ def ask_ai(question: str, user, indices: str = "*", max_retries: int = 3) -> dic
                 total_metrics[key] += keyword_result['metrics'].get(key, 0)
         
         # Search with keywords
-        search_result = search_with_keywords(keywords_used, indices, size=10)
+        search_result = search_with_keywords(keywords_used, indices, size=100)
         
         if search_result['success'] and search_result['total'] > 0:
             search_results = search_result['results']
@@ -430,7 +431,7 @@ def ask_ai(question: str, user, indices: str = "*", max_retries: int = 3) -> dic
         logger.info(f"No results on attempt {attempt}, retrying with adjusted keywords...")
     
     # Step 3: Build context from search results
-    context = build_context(search_results, max_docs=5)
+    context = build_context(search_results, max_docs=20)
     
     # Step 4: Generate answer
     answer_result = generate_answer(question, context, user_name)
@@ -441,12 +442,17 @@ def ask_ai(question: str, user, indices: str = "*", max_retries: int = 3) -> dic
     
     # Build source list for response
     sources = []
-    for result in search_results[:5]:
+    for result in search_results[:100]:
         sources.append({
+            'id': result.get('id', ''),
             'title': result.get('title', ''),
             'path': result.get('path', ''),
             'index': result.get('index', ''),
             'score': result.get('score', 0),
+            'content': result.get('content', '')[:200],  # Short snippet for preview
+            'dt': result.get('dt', ''),
+            'poster': result.get('poster', ''),
+            'url': result.get('url', ''),
         })
     
     if answer_result['success']:
