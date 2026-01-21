@@ -42,6 +42,9 @@ def has_discipline_admin_permission(user, discipline):
         return True
     if user == discipline.responsible_user:
         return True
+    # 標案管理員也有權限編輯所有專業分組
+    if has_project_admin_permission(user, discipline.project):
+        return True
     return False
 
 
