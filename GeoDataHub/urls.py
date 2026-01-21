@@ -20,6 +20,7 @@ urlpatterns = [
     path('sources/create/', views.DataSourceCreateView.as_view(), name='source_create'),
     path('sources/<int:pk>/', views.DataSourceDetailView.as_view(), name='source_detail'),
     path('sources/<int:pk>/edit/', views.DataSourceUpdateView.as_view(), name='source_update'),
+    path('sources/<int:pk>/delete/', views.DataSourceDeleteView.as_view(), name='source_delete'),
     
     # API 端點
     path('api/categories/', views.CategoryListAPI.as_view(), name='api_categories'),

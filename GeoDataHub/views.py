@@ -5,7 +5,7 @@ GeoDataHub Views
 """
 
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import TemplateView, ListView, DetailView, CreateView, UpdateView
+from django.views.generic import TemplateView, ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import JsonResponse
 from django.views import View
@@ -378,6 +378,28 @@ class DataSourceDetailView(DetailView):
         if x_forwarded_for:
             return x_forwarded_for.split(',')[0]
         return request.META.get('REMOTE_ADDR')
+
+
+class DataSourceDeleteView(SuperuserRequiredMixin, DeleteView):
+    """刪除資料來源 - 僅限 Superuser"""
+    model = GeoDataSource
+    success_url = reverse_lazy('geodatahub:map')
+    
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        return obj
+    
+    def form_valid(self, form):
+        # 同時刪除關聯的 location
+        if self.object.location:
+            location = self.object.location
+            self.object.location = None
+            self.object.save()
+            location.delete()
+        
+        from django.contrib import messages
+        messages.success(self.request, f'已成功刪除「{self.object.title}」')
+        return super().form_valid(form)
 
 
 class DataSourceCreateView(LoginRequiredMixin, CreateView):
