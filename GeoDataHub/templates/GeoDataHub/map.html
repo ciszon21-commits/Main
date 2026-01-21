@@ -303,14 +303,22 @@
                     
                     const formatUNC = (path) => {
                         if (!path) return '';
-                        let formatted = path.replace(/\//g, '\\');
+                        // Remove file:// prefix if present
+                        let formatted = path.replace(/^file:\/+/, '');
+                        // Replace forward slashes with backslashes for Windows
+                        formatted = formatted.replace(/\//g, '\\');
+                        // Ensure UNC path starts with \\
                         if (!formatted.startsWith('\\\\')) {
                             formatted = formatted.startsWith('\\') ? '\\' + formatted : '\\\\' + formatted;
                         }
                         return formatted;
                     };
 
-                    const uncPath = item.metadata && item.metadata.url ? formatUNC(item.metadata.url) : '';
+                    // Try multiple sources for the path: url, path.real
+                    const rawPath = (item.metadata && item.metadata.url) || 
+                                   (item.metadata && item.metadata.path && item.metadata.path.real) || 
+                                   '';
+                    const uncPath = formatUNC(rawPath);
                     
                     marker.bindPopup(`
                         <div style="font-family: 'Outfit'; min-width: 220px;">
@@ -326,7 +334,16 @@
                                     </button>
                                 </div>
                             ` : ''}
-                            <div style="color: #64748B; font-size: 0.85rem; margin-bottom: 8px;">${item.location.address || '無地址'}</div>
+                            <div style="color: #64748B; font-size: 0.85rem; margin-bottom: 8px;">${(() => {
+                                const addr = item.location.address || '';
+                                // If address looks like a file path, extract just filename
+                                if (addr.includes('/') || addr.includes('\\\\')) {
+                                    const parts = addr.replace(/\\\\/g, '/').split('/');
+                                    const filename = parts[parts.length - 1];
+                                    return filename || '無地址';
+                                }
+                                return addr || '無地址';
+                            })()}</div>
                             <a href="${CONFIG.detailUrl.replace('999999', item.id)}" onclick="logClick(${item.id}, ${item.category?.id || 'null'}, 'view_detail')" class="re-btn re-btn--primary re-btn--sm" style="width: 100%;">查看詳情</a>
                         </div>
                     `);
