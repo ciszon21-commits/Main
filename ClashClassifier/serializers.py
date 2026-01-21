@@ -82,6 +82,7 @@ class ClashReportSerializer(serializers.ModelSerializer):
     classification_count = serializers.SerializerMethodField()
     clash_count = serializers.SerializerMethodField()
     frequently_clashed_item_id = serializers.SerializerMethodField()
+    clash_matrix = serializers.SerializerMethodField()
     
     class Meta:
         model = ClashReport
@@ -89,13 +90,13 @@ class ClashReportSerializer(serializers.ModelSerializer):
             'id', 'title', 'user', 'html_file', 'csv_file',
             'uploaded_at', 'classifications',
             'classification_count', 'clash_count',
-            'frequently_clashed_item_id'
+            'frequently_clashed_item_id', 'clash_matrix'
         ]
     
     def get_classification_count(self, obj):
         """取得分類結果總數"""
         return obj.classifications.count()
-    
+
     def get_clash_count(self, obj):
         """取得預測為碰撞的數量"""
         return obj.classifications.filter(predicted_class=1).count()
@@ -121,7 +122,21 @@ class ClashReportSerializer(serializers.ModelSerializer):
 
         # 取出出現最多次的
         return counter.most_common(1)[0][0]
+    
+    def get_clash_matrix(self, obj):
+        """整理碰撞矩陣"""
+        item1_systems = obj.classifications.values_list('item1_system', flat=True).distinct()
+        item2_systems = obj.classifications.values_list('item2_system', flat=True).distinct()
+        systems = set(item1_systems).union(set(item2_systems))
 
+        qs = obj.classifications.filter(predicted_class=1)
+        matrix = {}
+        for sys1 in systems:
+            matrix[sys1] = {}
+            for sys2 in systems:
+                count = qs.filter(item1_system=sys1, item2_system=sys2).count()
+                matrix[sys1][sys2] = count
+        return matrix        
 
 class ClashReportUploadSerializer(serializers.ModelSerializer):
     """上傳報告序列化器"""
