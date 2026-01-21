@@ -402,6 +402,33 @@ class DataSourceDeleteView(SuperuserRequiredMixin, DeleteView):
         return super().form_valid(form)
 
 
+class DataSourceDeleteAPI(View):
+    """AJAX 刪除資料來源 API - 僅限 Superuser"""
+    
+    def post(self, request, pk):
+        # 檢查權限
+        if not request.user.is_authenticated or not request.user.is_superuser:
+            return JsonResponse({'success': False, 'error': '權限不足'}, status=403)
+        
+        try:
+            source = get_object_or_404(GeoDataSource, pk=pk)
+            title = source.title
+            
+            # 刪除關聯的 location
+            if source.location:
+                location = source.location
+                source.location = None
+                source.save()
+                location.delete()
+            
+            # 刪除資料來源
+            source.delete()
+            
+            return JsonResponse({'success': True, 'message': f'已刪除「{title}」'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
 class DataSourceCreateView(LoginRequiredMixin, CreateView):
     """新增資料來源"""
     model = GeoDataSource
