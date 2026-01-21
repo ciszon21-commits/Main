@@ -149,12 +149,32 @@
         apiBase: '{% url "geodatahub:api_search" %}',
         countApi: '{% url "geodatahub:api_count" %}',
         detailUrl: '{% url "geodatahub:source_detail" pk=999999 %}',
-        logClickUrl: '{% url "geodatahub:api_log_click" %}'
+        deleteUrl: '{% url "geodatahub:api_source_delete" pk=999999 %}',
+        logClickUrl: '{% url "geodatahub:api_log_click" %}',
+        isSuperuser: {% if user.is_superuser %}true{% else %}false{% endif %}
     };
     
     // State
     let map, markersLayer, drawnItems;
     let currentCategory = '', currentSourceType = '', currentKeyword = '', currentBounds = null;
+    let deleteMode = false;
+
+    // Console command to enable delete mode (type in browser console: enableDeleteMode())
+    window.enableDeleteMode = function() {
+        if (!CONFIG.isSuperuser) {
+            console.log('%c❌ 權限不足：需要 Superuser 權限', 'color: #DC2626; font-weight: bold;');
+            return;
+        }
+        deleteMode = true;
+        console.log('%c🗑️ 刪除模式已啟用！點擊標記可看到刪除按鈕', 'color: #059669; font-weight: bold; font-size: 14px;');
+        console.log('%c⚠️ 注意：刪除操作無法復原', 'color: #D97706;');
+        loadMarkers(); // Reload to show delete buttons
+    };
+    window.disableDeleteMode = function() {
+        deleteMode = false;
+        console.log('%c✅ 刪除模式已關閉', 'color: #3B82F6; font-weight: bold;');
+        loadMarkers();
+    };
 
     // Custom Modern Pin Icon Generator
     const createMarkerIcon = (color, count, iconText) => {
@@ -236,6 +256,15 @@
 
         // Load
         loadMarkers();
+        
+        // Auto-refresh on map movement (zoom/pan) with debounce
+        let moveTimer;
+        map.on('moveend', () => {
+            clearTimeout(moveTimer);
+            moveTimer = setTimeout(() => {
+                loadMarkers();
+            }, 1000); // 1 second debounce
+        });
         
         // Category/Filter Events
         document.querySelectorAll('.re-nav-item').forEach(el => {
@@ -320,6 +349,7 @@
                                    '';
                     const uncPath = formatUNC(rawPath);
                     
+                    marker.sourceId = item.id;
                     marker.bindPopup(`
                         <div style="font-family: 'Outfit'; min-width: 220px;">
                             <div style="font-weight: 700; color: #134E4A; margin-bottom: 4px;">${item.title}</div>
@@ -345,6 +375,14 @@
                                 return addr || '無地址';
                             })()}</div>
                             <a href="${CONFIG.detailUrl.replace('999999', item.id)}" onclick="logClick(${item.id}, ${item.category?.id || 'null'}, 'view_detail')" class="re-btn re-btn--primary re-btn--sm" style="width: 100%;">查看詳情</a>
+                            ${deleteMode ? `
+                                <button onclick="deleteSource(${item.id}, event)"
+                                    data-title="${encodeURIComponent(item.title).replace(/'/g, "%27")}"
+                                    class="delete-btn-${item.id}"
+                                    style="width: 100%; margin-top: 6px; padding: 8px 12px; background: #DC2626; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                                    🗑️ 刪除此點位
+                                </button>
+                            ` : ''}
                         </div>
                     `);
                     markersLayer.addLayer(marker);
@@ -403,6 +441,70 @@
                 click_type: clickType
             })
         }).catch(err => console.error('Log click failed', err));
+    }
+
+    function deleteSource(sourceId, event) {
+        const btn = event.currentTarget;
+        const title = decodeURIComponent(btn.dataset.title);
+        
+        if (!deleteMode || !CONFIG.isSuperuser) {
+            alert('無權限刪除');
+            return;
+        }
+        if (!confirm(`確定要刪除「${title}」嗎？\n\n此操作無法復原！`)) {
+            return;
+        }
+        
+        // Loading state
+        btn.disabled = true;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '刪除中...';
+        
+        fetch(CONFIG.deleteUrl.replace('999999', sourceId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                // Success feedback
+                btn.innerHTML = '✅ 已刪除';
+                btn.style.background = '#059669';
+                
+                setTimeout(() => {
+                    map.closePopup();
+                    
+                    // 1. Immediately remove from local markers layer
+                    const layers = markersLayer.getLayers();
+                    const marker = layers.find(m => m.sourceId === sourceId);
+                    if (marker) {
+                        markersLayer.removeLayer(marker);
+                    }
+                    
+                    // 2. Update local counts for instant feedback
+                    const totalCountEl = document.getElementById('total-count');
+                    if (totalCountEl) {
+                        let count = parseInt(totalCountEl.innerText) || 0;
+                        totalCountEl.innerText = Math.max(0, count - 1);
+                    }
+                    
+                    console.log(`%c✅ 已刪除：${title}`, 'color: #059669; font-weight: bold;');
+                }, 800);
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                alert('刪除失敗：' + (data.error || '未知錯誤'));
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            console.error('Delete failed:', err);
+            alert('刪除失敗：網路錯誤');
+        });
     }
 
     document.addEventListener('DOMContentLoaded', initMap);
