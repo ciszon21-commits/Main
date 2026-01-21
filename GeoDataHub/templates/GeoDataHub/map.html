@@ -156,6 +156,7 @@
     
     // State
     let map, markersLayer, drawnItems;
+    let markersMap = new Map(); // Track markers by ID for delta updates
     let currentCategory = '', currentSourceType = '', currentKeyword = '', currentBounds = null;
     let deleteMode = false;
 
@@ -168,11 +169,19 @@
         deleteMode = true;
         console.log('%c🗑️ 刪除模式已啟用！點擊標記可看到刪除按鈕', 'color: #059669; font-weight: bold; font-size: 14px;');
         console.log('%c⚠️ 注意：刪除操作無法復原', 'color: #D97706;');
-        loadMarkers(); // Reload to show delete buttons
+        
+        // Force re-render to show delete buttons in popups
+        markersLayer.clearLayers();
+        markersMap.clear();
+        loadMarkers(); 
     };
     window.disableDeleteMode = function() {
         deleteMode = false;
         console.log('%c✅ 刪除模式已關閉', 'color: #3B82F6; font-weight: bold;');
+        
+        // Force re-render to hide delete buttons
+        markersLayer.clearLayers();
+        markersMap.clear();
         loadMarkers();
     };
 
@@ -322,9 +331,17 @@
                 if (totalCountEl) {
                     totalCountEl.innerText = data.count;
                 }
-
-                markersLayer.clearLayers();
+                // Delta Update Strategy:
+                // 1. Mark which IDs are present in the new data
+                const seenIds = new Set();
                 data.items.forEach(item => {
+                    seenIds.add(item.id);
+                    
+                    // 2. If marker already exists, skip creation (preserves open popups)
+                    if (markersMap.has(item.id)) {
+                        return;
+                    }
+                    
                     const color = item.category?.color || '#0F766E';
                     const marker = L.marker([item.location.lat, item.location.lng], {
                         icon: createMarkerIcon(color, null, item.category?.icon || '📍')
@@ -386,7 +403,16 @@
                         </div>
                     `);
                     markersLayer.addLayer(marker);
+                    markersMap.set(item.id, marker);
                 });
+
+                // 3. Remove markers that are no longer in the result set
+                for (let [id, marker] of markersMap.entries()) {
+                    if (!seenIds.has(id)) {
+                        markersLayer.removeLayer(marker);
+                        markersMap.delete(id);
+                    }
+                }
                 document.getElementById('total-count').textContent = data.count;
             }
         });
@@ -482,6 +508,7 @@
                     const marker = layers.find(m => m.sourceId === sourceId);
                     if (marker) {
                         markersLayer.removeLayer(marker);
+                        markersMap.delete(sourceId);
                     }
                     
                     // 2. Update local counts for instant feedback
