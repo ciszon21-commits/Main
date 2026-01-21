@@ -39,8 +39,16 @@ class ProjectListView(LoginRequiredMixin, ListView):
     ordering = ['-created_at']
     
     def get_queryset(self):
-        """僅顯示未刪除的標案"""
-        return Project.objects.filter(deleted_at__isnull=True).order_by('-created_at')
+        """僅顯示未刪除的標案，並為每個標案添加編輯權限標記"""
+        from .permissions import has_project_admin_permission
+        
+        queryset = Project.objects.filter(deleted_at__isnull=True).order_by('-created_at')
+        
+        # 為每個標案添加編輯權限標記
+        for project in queryset:
+            project.can_edit = has_project_admin_permission(self.request.user, project)
+        
+        return queryset
 
 class ProjectCreateView(LoginRequiredMixin, CreateView):
     model = Project
