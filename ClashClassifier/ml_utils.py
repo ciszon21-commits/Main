@@ -23,7 +23,7 @@ SYS_MAP = {
 }
 
 # 預測閾值
-THRESHOLD = 0.3
+THRESHOLD = 0.5
 
 # 全域變數儲存載入的模型（避免重複載入）
 _model = None
@@ -231,7 +231,6 @@ def predict_clash_classification(records):
         "log_distance",
         "comp1_count_log",
         "comp2_count_log",
-        "count_diff",
         "sys_pair",
     ] + [f"embed_pca_{i}" for i in range(pca.n_components_)]
     
