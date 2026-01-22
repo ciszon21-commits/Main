@@ -232,8 +232,6 @@ def predict_clash_classification(records):
         "comp1_count_log",
         "comp2_count_log",
         "count_diff",
-        "sys1_code",
-        "sys2_code",
         "sys_pair",
     ] + [f"embed_pca_{i}" for i in range(pca.n_components_)]
     
