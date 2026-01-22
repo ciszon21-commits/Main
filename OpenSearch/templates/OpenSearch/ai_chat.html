@@ -1111,12 +1111,14 @@ function addMessage(role, content, meta = {}) {
                 const target = s.url ? 'target="_blank" rel="noopener"' : '';
                 const date = s.dt ? s.dt.split('T')[0] : '';
                 const safePath = (s.path || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                // Use filename as fallback if title is empty
+                const displayTitle = s.title || s.filename || '無標題';
                 
                 return `
                 <div class="source-item">
                     <div class="source-header">
                         <span class="source-icon">📄</span>
-                        <a href="${link}" class="source-title" ${target}>${s.title || '無標題'}</a>
+                        <a href="${link}" class="source-title" ${target}>${displayTitle}</a>
                     </div>
                     <div class="source-meta">
                         ${date ? `<span>📅 ${date}</span>` : ''}

@@ -134,6 +134,26 @@ class GeoClickLogTest(TestCase):
         self.assertEqual(log.user.id, self.user.id)
         self.assertEqual(log.category.id, self.category.id)
 
+    def test_detail_view_logs_click(self):
+        from django.urls import reverse
+        from GeoDataHub.models import GeoClickLog
+        
+        url = reverse('geodatahub:source_detail', kwargs={'pk': self.source.id})
+        
+        # Initial count
+        self.assertEqual(GeoClickLog.objects.count(), 0)
+        
+        # Visit detail page
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, 200)
+        
+        # Check if log was created
+        self.assertEqual(GeoClickLog.objects.count(), 1)
+        log = GeoClickLog.objects.first()
+        self.assertEqual(log.source.id, self.source.id)
+        self.assertEqual(log.click_type, GeoClickLog.ClickType.VIEW_DETAIL)
+
 
 class DashboardTest(TestCase):
     def setUp(self):

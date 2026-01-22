@@ -226,11 +226,16 @@ def search_with_keywords(keywords: str, indices: str = "*", size: int = 10) -> d
         results = []
         for hit in hits.get('hits', []):
             source = hit.get('_source', {})
+            # Extract filename from file.filename field
+            file_info = source.get('file', {})
+            filename = file_info.get('filename', '') if isinstance(file_info, dict) else ''
+            
             results.append({
                 'index': hit.get('_index', ''),
                 'id': hit.get('_id', ''),
                 'score': hit.get('_score', 0),
                 'title': source.get('title', ''),
+                'filename': filename,
                 'content': source.get('content', '')[:2000],  # Limit content length
                 'path': source.get('path', {}).get('real', '') if isinstance(source.get('path'), dict) else source.get('path', ''),
                 'dt': source.get('dt', ''),
@@ -271,7 +276,8 @@ def build_context(search_results: list, max_docs: int = 5) -> str:
     
     context_parts = []
     for i, result in enumerate(search_results[:max_docs], 1):
-        title = result.get('title', '無標題')
+        # Use filename as fallback if title is empty
+        title = result.get('title', '') or result.get('filename', '') or '無標題'
         content = result.get('content', '')[:1000]  # Limit each doc
         path = result.get('path', '')
         poster = result.get('poster', '')
@@ -446,6 +452,7 @@ def ask_ai(question: str, user, indices: str = "*", max_retries: int = 3) -> dic
         sources.append({
             'id': result.get('id', ''),
             'title': result.get('title', ''),
+            'filename': result.get('filename', ''),
             'path': result.get('path', ''),
             'index': result.get('index', ''),
             'score': result.get('score', 0),
