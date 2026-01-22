@@ -82,9 +82,10 @@ class ScenarioManager {
     }
 
     updatePageTitle(scenarioInfo) {
-        const titleEl = document.querySelector('.title');
-        if (titleEl) {
-            titleEl.textContent = `${scenarioInfo.project_name} - ${scenarioInfo.scenario_name}`;
+        // Keep the original page title, show scenario info in subtitle
+        const subtitleEl = document.querySelector('.subtitle');
+        if (subtitleEl) {
+            subtitleEl.textContent = `${scenarioInfo.project_name} - ${scenarioInfo.scenario_name}`;
         }
     }
 
