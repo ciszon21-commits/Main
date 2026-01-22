@@ -17,7 +17,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <h1 class="title">高快速公路碳排概算平台</h1>
-                    <p class="subtitle">園路部高快速公路常用組件碳排概算</p>
+                    <p class="subtitle">園路部高快速公路常用斷面與組件碳排概算平台</p>
                 </div>
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <!-- User Info -->
@@ -27,15 +27,28 @@
                     </div>
                     {% endif %}
 
+
+                    <!-- Admin: Hidden Scenarios Button -->
+                    {% if is_superuser %}
+                    <a href="{% url 'hidden_scenarios' %}" class="btn"
+                        style="background: #6b7280; color: white; cursor: pointer; text-decoration: none;">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            style="margin-right: 6px">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        隱藏方案列表
+                    </a>
+                    {% endif %}
+
+
                     <!-- Guide Button -->
-                    <a href="{% static 'carbon_estimation/docs/guide.pdf' %}" target="_blank"
-                        class="btn-lg-action btn-action-guide">
+                    <a href="{% static 'carbon_estimation/docs/guide.pdf' %}" target="_blank" class="btn btn-guide">
                         高快速公路減碳指引
                     </a>
                     <!-- Create Button -->
-                    <button onclick="openCreateModal()" class="btn-lg-action btn-action-create"
-                        style="cursor: pointer;">
-                        <span style="margin-right: 8px; font-size: 1.2rem;">+</span> 建立新方案
+                    <button onclick="openCreateModal()" class="btn btn-success" style="cursor: pointer;">
+                        <span style="margin-right: 6px; font-size: 1.1rem;">+</span> 建立新方案
                     </button>
                 </div>
             </div>
@@ -62,6 +75,17 @@
                         <div class="form-group">
                             <label class="form-label">方案名稱</label>
                             <input type="text" class="form-input" id="scenarioName" required placeholder="例如：方案 A">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">工程階段</label>
+                            <select class="form-input" id="projectPhase" required>
+                                <option value="comprehensive">綜規及基設階段</option>
+                                <option value="feasibility">可評階段</option>
+                            </select>
+                            <small style="color: #64748b; font-size: 0.85em; margin-top: 0.25rem; display: block;">
+                                ● 可評階段使用「斷面概算」。<br>
+                                ● 綜規及基設階段使用「組件概算」。
+                            </small>
                         </div>
                     </form>
                 </div>
@@ -137,41 +161,155 @@
 
         <div class="scenario-list">
             {% if scenarios %}
-            {% for scenario in scenarios %}
-            <div class="scenario-item">
-                <div class="scenario-header">
-                    <div>
-                        <div class="scenario-title" style="margin-bottom: 0.8rem;">{{ scenario.scenario_name }}</div>
-                        <div class="scenario-meta">
-                            計畫編號：{{ scenario.project_number }} | 計畫名稱：{{ scenario.project_name }}
-                        </div>
-                        <div class="scenario-meta" style="margin-bottom: 0rem;">
-                            創建者：{{ scenario.creator.get_full_name|default:scenario.creator.username|default:"訪客" }} |
-                            建立時間：{{ scenario.created_at|date:"Y-m-d H:i" }} |
-                            最後更新：{{ scenario.updated_at|date:"Y-m-d H:i" }}
-                        </div>
-                        {% if scenario.description %}
-                        <div class="scenario-meta" style="margin-top: 5px; font-style: italic;">{{ scenario.description
-                            }}</div>
-                        {% endif %}
-                    </div>
-                    <div class="scenario-actions">
-                        <button class="btn btn-start" onclick="loadScenario({{ scenario.id }})">開始概算</button>
-
-                        {% if not scenario.creator or user == scenario.creator %}
-                        <!-- Only creator (or anyone for guest scenarios) checks -->
-                        <button class="btn btn-settings"
-                            onclick="openEditModal({{ scenario.id }}, '{{ scenario.project_number|escapejs }}', '{{ scenario.project_name|escapejs }}', '{{ scenario.scenario_name|escapejs }}', '{{ scenario.description|default:''|escapejs }}')">方案設定</button>
-                        {% endif %}
-
-                        {% if user.is_authenticated and scenario.creator == user %}
-                        <button class="btn btn-collab"
-                            onclick="openCollaboratorModal({{ scenario.id }}, '{{ scenario.scenario_name|escapejs }}', {{ scenario.collaborators.count }})">人員設定</button>
-                        {% endif %}
-                    </div>
-                </div>
+            <!-- Tab Navigation -->
+            <div class="tab-nav">
+                <button class="tab-btn active" onclick="switchTab('feasibility')">
+                    可評階段（常用斷面概算）
+                </button>
+                <button class="tab-btn" onclick="switchTab('comprehensive')">
+                    綜規及基設階段（常用組件概算）
+                </button>
             </div>
-            {% endfor %}
+
+            <!-- Feasibility Phase Tab -->
+            <div id="feasibility-tab" class="tab-content active">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr
+                            style="background: linear-gradient(135deg, var(--primary-600), var(--primary-700)); color: white; border-bottom: 2px solid var(--primary-500);">
+                            <th style="padding: 1.25rem; text-align: left; font-weight: 600; font-size: 0.95rem;">方案資訊</th>
+                            <th style="padding: 1.25rem; text-align: left; font-weight: 600; font-size: 0.95rem;">創建與更新時間</th>
+                            <th style="padding: 1.25rem; text-align: center; font-weight: 600; font-size: 0.95rem; width: 360px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for scenario in scenarios %}
+                        {% if scenario.project_phase == 'feasibility' %}
+                        <tr class="scenario-row"
+                            style="border-bottom: 1px solid var(--border-color); transition: background-color 0.2s ease;">
+                            <td style="padding: 1.25rem;">
+                                <div class="scenario-title"
+                                    style="font-size: 1.1rem; font-weight: 700; color: var(--primary-color); margin-bottom: 0.5rem;">
+                                    {{ scenario.scenario_name }}
+                                </div>
+                                <div class="scenario-meta"
+                                    style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.25rem;">
+                                    計畫編號：{{ scenario.project_number }}
+                                </div>
+                                <div class="scenario-meta"
+                                    style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.25rem;">
+                                    計畫名稱：{{ scenario.project_name }}
+                                </div>
+                                <div class="scenario-meta" style="color: var(--text-secondary); font-size: 0.875rem;">
+                                    創建者：{{ scenario.creator.get_full_name|default:scenario.creator.username }}
+                                </div>
+                                {% if scenario.description %}
+                                <div class="scenario-meta"
+                                    style="margin-top: 0.5rem; font-style: italic; color: var(--text-secondary); font-size: 0.875rem;">
+                                    {{ scenario.description }}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 1.25rem;">
+                                <div style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.25rem;">
+                                    建立：{{ scenario.created_at|date:"Y-m-d H:i" }}
+                                </div>
+                                <div style="color: var(--text-secondary); font-size: 0.875rem;">
+                                    更新：{{ scenario.updated_at|date:"Y-m-d H:i" }}
+                                </div>
+                            </td>
+                            <td style="padding: 1.25rem;">
+                                <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+                                    <button class="btn btn-start"
+                                        onclick="loadScenario({{ scenario.id }}, '{{ scenario.project_phase }}')">開始概算</button>
+
+                                    {% if user == scenario.creator %}
+                                    <button class="btn btn-settings"
+                                        onclick="openEditModal({{ scenario.id }}, '{{ scenario.project_number|escapejs }}', '{{ scenario.project_name|escapejs }}', '{{ scenario.scenario_name|escapejs }}', '{{ scenario.description|default:''|escapejs }}')">方案設定</button>
+                                    {% endif %}
+
+                                    {% if user == scenario.creator %}
+                                    <button class="btn btn-collab"
+                                        onclick="openCollaboratorModal({{ scenario.id }}, '{{ scenario.scenario_name|escapejs }}', {{ scenario.collaborators.count }})">人員設定</button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Comprehensive Phase Tab -->
+            <div id="comprehensive-tab" class="tab-content">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr
+                            style="background: linear-gradient(135deg, var(--primary-600), var(--primary-700)); color: white; border-bottom: 2px solid var(--primary-500);">
+                            <th style="padding: 1.25rem; text-align: left; font-weight: 600; font-size: 0.95rem;">方案資訊</th>
+                            <th style="padding: 1.25rem; text-align: left; font-weight: 600; font-size: 0.95rem;">創建與更新時間</th>
+                            <th style="padding: 1.25rem; text-align: center; font-weight: 600; font-size: 0.95rem; width: 360px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for scenario in scenarios %}
+                        {% if scenario.project_phase == 'comprehensive' %}
+                        <tr class="scenario-row"
+                            style="border-bottom: 1px solid var(--border-color); transition: background-color 0.2s ease;">
+                            <td style="padding: 1.25rem;">
+                                <div class="scenario-title"
+                                    style="font-size: 1.1rem; font-weight: 700; color: var(--primary-color); margin-bottom: 0.5rem;">
+                                    {{ scenario.scenario_name }}
+                                </div>
+                                <div class="scenario-meta"
+                                    style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.25rem;">
+                                    計畫編號：{{ scenario.project_number }}
+                                </div>
+                                <div class="scenario-meta"
+                                    style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.25rem;">
+                                    計畫名稱：{{ scenario.project_name }}
+                                </div>
+                                <div class="scenario-meta" style="color: var(--text-secondary); font-size: 0.875rem;">
+                                    創建者：{{ scenario.creator.get_full_name|default:scenario.creator.username }}
+                                </div>
+                                {% if scenario.description %}
+                                <div class="scenario-meta"
+                                    style="margin-top: 0.5rem; font-style: italic; color: var(--text-secondary); font-size: 0.875rem;">
+                                    {{ scenario.description }}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 1.25rem;">
+                                <div style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.25rem;">
+                                    建立：{{ scenario.created_at|date:"Y-m-d H:i" }}
+                                </div>
+                                <div style="color: var(--text-secondary); font-size: 0.875rem;">
+                                    更新：{{ scenario.updated_at|date:"Y-m-d H:i" }}
+                                </div>
+                            </td>
+                            <td style="padding: 1.25rem;">
+                                <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+                                    <button class="btn btn-start"
+                                        onclick="loadScenario({{ scenario.id }}, '{{ scenario.project_phase }}')">開始概算</button>
+
+                                    {% if user == scenario.creator %}
+                                    <button class="btn btn-settings"
+                                        onclick="openEditModal({{ scenario.id }}, '{{ scenario.project_number|escapejs }}', '{{ scenario.project_name|escapejs }}', '{{ scenario.scenario_name|escapejs }}', '{{ scenario.description|default:''|escapejs }}')">方案設定</button>
+                                    {% endif %}
+
+                                    {% if user == scenario.creator %}
+                                    <button class="btn btn-collab"
+                                        onclick="openCollaboratorModal({{ scenario.id }}, '{{ scenario.scenario_name|escapejs }}', {{ scenario.collaborators.count }})">人員設定</button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
             {% else %}
             <p style="text-align: center; color: var(--text-secondary); padding: 2rem;">
                 目前沒有任何方案。請先建立方案，或點擊上方「+」按鈕新增。
@@ -181,6 +319,28 @@
     </div>
 
     <script>
+        // 傳遞用戶權限到 JavaScript
+        const isUserSuperuser = {{ is_superuser| yesno:"true,false" }};
+
+        // --- Tab Switching Function ---
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab content
+            document.getElementById(tabName + '-tab').classList.add('active');
+
+            // Activate the clicked button
+            event.target.classList.add('active');
+        }
+
         // --- Create Modal Functions ---
         function openCreateModal() {
             document.getElementById('createModal').style.display = 'flex';
@@ -246,7 +406,9 @@
 
         async function deleteScenario() {
             const id = document.getElementById('editScenarioId').value;
-            if (!confirm('確定要刪除此方案嗎？此操作無法復原！')) {
+
+            // 所有使用者都只能軟刪除（隱藏），永久刪除只能在隱藏方案列表執行
+            if (!confirm('確定要隱藏此方案嗎？')) {
                 return;
             }
 
@@ -258,17 +420,76 @@
                     }
                 });
 
+                const result = await response.json();
                 if (response.ok) {
-                    alert('方案已刪除');
+                    alert(result.message);
                     location.reload();
                 } else {
-                    const result = await response.json();
                     alert(result.error || '刪除失敗');
                 }
             } catch (error) {
                 alert('刪除時發生錯誤');
             }
         }
+
+        // 復原隱藏的方案（僅管理員）
+        async function restoreScenario(scenarioId) {
+            if (!confirm('確定要復原此方案嗎？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/carbon/api/scenarios/${scenarioId}/restore/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert(result.error || '復原失敗');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('復原時發生錯誤');
+            }
+        }
+
+        // 永久刪除方案（僅管理員）
+        async function permanentDeleteScenario(scenarioId) {
+            if (!confirm('⚠️ 確定要永久刪除此方案嗎？\n\n此操作無法復原！')) {
+                return;
+            }
+
+            if (!confirm('⚠️⚠️ 再次確認：\n\n永久刪除後無法復原，確定要繼續嗎？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/carbon/api/scenarios/${scenarioId}/?permanent=true`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert(result.error || '刪除失敗');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('刪除時發生錯誤');
+            }
+        }
+
 
         // --- Collaborator Modal Functions ---
         let currentManageScenarioId = null;
@@ -381,8 +602,9 @@
             const projectNumber = document.getElementById('projectNumber').value;
             const projectName = document.getElementById('projectName').value;
             const scenarioName = document.getElementById('scenarioName').value;
+            const projectPhase = document.getElementById('projectPhase').value;
 
-            if (!projectNumber || !projectName || !scenarioName) {
+            if (!projectNumber || !projectName || !scenarioName || !projectPhase) {
                 alert('請填寫所有欄位');
                 return;
             }
@@ -397,7 +619,8 @@
                     body: JSON.stringify({
                         project_number: projectNumber,
                         project_name: projectName,
-                        scenario_name: scenarioName
+                        scenario_name: scenarioName,
+                        project_phase: projectPhase
                     })
                 });
 
@@ -413,8 +636,15 @@
             }
         }
 
-        function loadScenario(scenarioId) {
-            window.location.href = `/carbon/calculator/?scenario=${scenarioId}`;
+        function loadScenario(scenarioId, projectPhase) {
+            // 根據工程階段導向不同的概算頁面
+            if (projectPhase === 'feasibility') {
+                // 可評階段 → 斷面概算
+                window.location.href = `/carbon/section-calculator/?scenario=${scenarioId}`;
+            } else {
+                // 綜規及基設階段 → 組件概算
+                window.location.href = `/carbon/calculator/?scenario=${scenarioId}`;
+            }
         }
 
         function getCookie(name) {

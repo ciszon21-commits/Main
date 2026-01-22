@@ -7,7 +7,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page_title }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Link to the external CSS file -->
     <link rel="stylesheet" href="{% static 'carbon_estimation/css/calculator.css' %}">
     <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
 </head>
@@ -31,16 +30,11 @@
             </div>
         </header>
 
-        <!-- Summary Cards -->
+        <!-- Summary Card (僅碳排總量) -->
         <div class="summary-section">
-            <div class="summary-card">
-                <div class="summary-label">減碳前碳排總量</div>
-                <div class="summary-value" id="total-carbon-before">0</div>
-                <div class="summary-unit">kgCO2e</div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-label">減碳後碳排總量</div>
-                <div class="summary-value" id="total-carbon-after">0</div>
+            <div class="summary-card" style="flex: 1; max-width: 100%;">
+                <div class="summary-label">碳排總量</div>
+                <div class="summary-value" id="total-carbon" style="font-size: 3rem;">0</div>
                 <div class="summary-unit">kgCO2e</div>
             </div>
         </div>
@@ -51,80 +45,56 @@
                 <thead>
                     <tr>
                         <th style="gap: 10px">
-                            項次
+                            大項
                             <span id="global-collapse-btn" class="header-collapse-icon" title="全部收合/展開"> ▼ </span>
                         </th>
                         <th>工作項目</th>
                         <th>單位</th>
                         <th class="num-col">數量</th>
-                        <th class="num-col">減碳前<br>單位碳排<br><span class="sub-unit">(kgCO2e/單位)</span></th>
-                        <th class="num-col">減碳後<br>單位碳排<br><span class="sub-unit">(kgCO2e/單位)</span></th>
-                        <th class="highlight-col num-col">減碳前<br>碳排總量<br><span class="sub-unit">(kgCO2e)</span></th>
-                        <th class="highlight-col num-col">減碳後<br>碳排總量<br><span class="sub-unit">(kgCO2e)</span></th>
+                        <th class="num-col">單位面積碳排<br><span class="sub-unit">(kgCO2e/m2)</span></th>
+                        <th class="highlight-col num-col">碳排總量<br><span class="sub-unit">(kgCO2e)</span></th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for cat_data in data %}
                     <!-- Category Header -->
                     <tr class="category-header" data-category-id="{{ cat_data.category.id }}">
-                        <td colspan="6" class="category-title">
-                            {{ cat_data.category.code }}. {{ cat_data.category.name }}
+                        <td colspan="5" class="category-title">
+                            {{ cat_data.category.name }}
                             <button class="category-save-btn" data-category-id="{{ cat_data.category.id }}"
                                 title="儲存此分類">
                                 儲存
                             </button>
                         </td>
                         <td class="category-subtotal num-col" data-category-id="{{ cat_data.category.id }}"
-                            data-type="carbon-before">0</td>
-                        <td class="category-subtotal num-col" data-category-id="{{ cat_data.category.id }}"
-                            data-type="carbon-after">0</td>
+                            data-type="carbon">0</td>
                     </tr>
 
                     <!-- Category Items -->
                     {% for item in cat_data.items %}
-                    <tr class="data-row level-{{ item.level }}" data-item-id="{{ item.id }}"
-                        data-category-id="{{ cat_data.category.id }}" data-level="{{ item.level }}"
-                        data-carbon-before="{{ item.carbon_before|default:'0' }}"
-                        data-carbon-after="{{ item.carbon_after|default:'0' }}"
-                        data-cost-before="{{ item.cost_before|default:'0' }}"
-                        data-cost-after="{{ item.cost_after|default:'0' }}">
+                    <tr class="data-row level-3" data-item-id="{{ item.id }}"
+                        data-category-id="{{ cat_data.category.id }}"
+                        data-carbon="{{ item.carbon_per_unit|default:'0' }}">
 
-                        <td class="col-item-no">{{ item.item_no }}</td>
+                        <td class="col-item-no">{{ cat_data.category.name }}</td>
                         <td class="col-work-item">{{ item.work_item }}</td>
                         <td class="col-unit">{{ item.unit }}</td>
                         <td>
-                            {% if item.level == 3 %}
                             <input type="number" class="quantity-input" data-item-id="{{ item.id }}" min="0" step="0.01"
                                 placeholder="0">
-                            {% endif %}
                         </td>
-                        <td class="num-col">
-                            {% if item.level == 3 %}
-                            {{ item.carbon_before|floatformat:2|default:"-" }}
-                            {% endif %}
-                        </td>
-                        <td class="num-col">
-                            {% if item.level == 3 %}
-                            {{ item.carbon_after|floatformat:2|default:"-" }}
-                            {% endif %}
-                        </td>
+                        <td class="num-col">{{ item.carbon_per_unit|floatformat:2 }}</td>
 
                         <!-- Calculated Results -->
-                        <td class="num-col highlight-col calculated result-carbon-before">
-                            {% if item.level == 3 %}0{% endif %}
-                        </td>
-                        <td class="num-col highlight-col calculated result-carbon-after">
-                            {% if item.level == 3 %}0{% endif %}
-                        </td>
+                        <td class="num-col highlight-col calculated result-carbon">0</td>
                     </tr>
                     {% endfor %}
                     {% endfor %}
                 </tbody>
                 <tfoot>
                     <tr class="grand-total-row">
-                        <td colspan="6" style="text-align: right; padding-right: 2rem; font-weight: 700;">總計</td>
-                        <td class="num-col" id="grand-total-carbon-before">0</td>
-                        <td class="num-col" id="grand-total-carbon-after">0</td>
+                        <td colspan="5" style="text-align: right; padding-right: 2rem;">總計</td>
+                        <td id="grand-total-carbon">0</td>
                     </tr>
                 </tfoot>
             </table>
@@ -138,10 +108,10 @@
     <button id="back-to-top" class="back-to-top" title="回到頂部">▲</button>
 
     <!-- Save Functionality Script -->
-    <script src="{% static 'carbon_estimation/js/save.js' %}"></script>
+    <script src="{% static 'carbon_estimation/js/section_save.js' %}"></script>
 
     <!-- Calculator Logic Script -->
-    <script src="{% static 'carbon_estimation/js/calculator.js' %}"></script>
+    <script src="{% static 'carbon_estimation/js/section.js' %}"></script>
 </body>
 
 </html>
