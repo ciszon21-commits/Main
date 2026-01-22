@@ -1,0 +1,191 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>隱藏方案列表</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'carbon_estimation/css/calculator.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header"
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <div>
+                <h1 class="title" style="margin-bottom: 0.25rem;">隱藏方案列表</h1>
+                <p class="subtitle" style="color: var(--danger-color);">這些是已刪除的方案，您可以復原或永久刪除它們</p>
+            </div>
+            <a href="{% url 'home' %}" class="btn"
+                style="background: var(--text-secondary); color: white; display: flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                返回方案列表
+            </a>
+        </header>
+
+        <!-- 警告提示 -->
+        <div
+            style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 1rem 1.5rem; margin-bottom: 2rem; border-radius: 8px; display: flex; align-items: flex-start; gap: 1rem;">
+            <svg width="20" height="20" fill="none" stroke="#f59e0b" viewBox="0 0 24 24" style="flex-shrink: 0;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+                <strong style="color: #92400e;">注意：</strong>
+                <span style="color: #78350f;">永久刪除後無法復原，請謹慎操作！</span>
+            </div>
+        </div>
+
+        <!-- 方案列表 -->
+        <div class="scenario-list">
+            {% if hidden_scenarios %}
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr
+                        style="background: linear-gradient(135deg, var(--primary-600), var(--primary-700)); color: white; border-bottom: 2px solid var(--primary-500);">
+                        <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.95rem;">方案資訊</th>
+                        <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.95rem;">刪除資訊</th>
+                        <th
+                            style="padding: 1rem; text-align: center; font-weight: 600; font-size: 0.95rem; width: 240px;">
+                            操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for scenario in hidden_scenarios %}
+                    <tr class="scenario-row"
+                        style="border-bottom: 1px solid var(--border-color); border-left: 3px solid var(--danger-color);">
+                        <td style="padding: 1.25rem;">
+                            <div style="font-weight: 600; color: var(--text-secondary); margin-bottom: 0.25rem;">
+                                {{ scenario.scenario_name }}
+                                {% if scenario.project_phase == 'feasibility' %}
+                                <span
+                                    style="background: #dbeafe; color: #1e40af; padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-left: 0.5rem;">
+                                    可評階段
+                                </span>
+                                {% else %}
+                                <span
+                                    style="background: #e0e7ff; color: #4338ca; padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-left: 0.5rem;">
+                                    綜規及基設階段
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div style="font-size: 0.875rem; color: var(--text-secondary);">
+                                計畫編號：{{ scenario.project_number }}
+                            </div>
+                            <div style="font-size: 0.875rem; color: var(--text-secondary);">
+                                計畫名稱：{{ scenario.project_name }}
+                            </div>
+                            <div style="font-size: 0.875rem; color: var(--text-secondary);">
+                                創建者：{{ scenario.creator.get_full_name|default:scenario.creator.username }}
+                            </div>
+                        </td>
+                        <td style="padding: 1.25rem;">
+                            <div style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.25rem;">
+                                刪除時間：{{ scenario.hidden_at|date:"Y-m-d H:i" }}
+                            </div>
+                            {% if scenario.hidden_by %}
+                            <div style="font-size: 0.875rem; color: var(--text-secondary);">
+                                刪除人員：{{ scenario.hidden_by.get_full_name|default:scenario.hidden_by.username }}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 1.25rem;">
+                            <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                                <button class="btn btn-restore" onclick="restoreScenario({{ scenario.id }})">
+                                    復原
+                                </button>
+                                <button class="btn btn-danger"
+                                    onclick="permanentDeleteScenario({{ scenario.id }}, '{{ scenario.scenario_name|escapejs }}')">
+                                    永久刪除
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div style="padding: 4rem 2rem; text-align: center; color: var(--text-secondary);">
+                <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    style="margin: 0 auto 1rem;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+                <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">沒有隱藏的方案</h3>
+                <p style="font-size: 0.875rem;">所有方案都在正常列表中</p>
+            </div>
+            {% endif %}
+        </div>
+
+        {% csrf_token %}
+
+        <script>
+            // 復原隱藏的方案
+            async function restoreScenario(scenarioId) {
+                if (!confirm('確定要復原此方案嗎？')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/carbon/api/scenarios/${scenarioId}/restore/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        }
+                    });
+
+                    const result = await response.json();
+                    if (response.ok) {
+                        alert(result.message);
+                        location.reload();
+                    } else {
+                        alert(result.error || '復原失敗');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('復原時發生錯誤');
+                }
+            }
+
+            // 永久刪除方案
+            async function permanentDeleteScenario(scenarioId, scenarioName) {
+                if (!confirm(`確定要永久刪除「${scenarioName}」嗎？\n\n此操作無法復原！`)) {
+                    return;
+                }
+
+                if (!confirm('再次確認：永久刪除後無法復原，確定要繼續嗎？')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/carbon/api/scenarios/${scenarioId}/?permanent=true`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        }
+                    });
+
+                    const result = await response.json();
+                    if (response.ok) {
+                        alert(result.message);
+                        location.reload();
+                    } else {
+                        alert(result.error || '刪除失敗');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('刪除時發生錯誤');
+                }
+            }
+        </script>
+    </div>
+</body>
+
+</html>

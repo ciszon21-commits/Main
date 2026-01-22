@@ -113,21 +113,15 @@ class CarbonCalculator {
         const quantity = parseFloat(input.value) || 0;
         const carbonBefore = parseFloat(row.dataset.carbonBefore) || 0;
         const carbonAfter = parseFloat(row.dataset.carbonAfter) || 0;
-        const costBefore = parseFloat(row.dataset.costBefore) || 0;
-        const costAfter = parseFloat(row.dataset.costAfter) || 0;
 
-        // Calculate J, K, L, M
-        const j = quantity * carbonBefore;  // 減碳前碳排總量
-        const k = quantity * carbonAfter;   // 減碳後碳排總量
-        const l = quantity * costBefore;    // 減碳前總費用
-        const m = quantity * costAfter;     // 減碳後總費用
+        // Calculate carbon totals
+        const totalCarbonBefore = quantity * carbonBefore;  // 減碳前碳排總量
+        const totalCarbonAfter = quantity * carbonAfter;    // 減碳後碳排總量
 
-        // Update display
+        // Update display (only 2 calculated columns now: carbon before and after)
         const cells = row.querySelectorAll('.calculated');
-        if (cells[0]) cells[0].textContent = this.formatNumber(j, 0);  // J
-        if (cells[1]) cells[1].textContent = this.formatNumber(k, 0);  // K
-        if (cells[2]) cells[2].textContent = this.formatNumber(l, 0);  // L
-        if (cells[3]) cells[3].textContent = this.formatNumber(m, 0);  // M
+        if (cells[0]) cells[0].textContent = this.formatNumber(totalCarbonBefore);
+        if (cells[1]) cells[1].textContent = this.formatNumber(totalCarbonAfter);
 
         // Add animation effect
         this.animateValue(cells);
@@ -138,15 +132,14 @@ class CarbonCalculator {
         const categoryHeaders = document.querySelectorAll('.category-header');
 
         categoryHeaders.forEach(header => {
-            const categoryId = header.querySelector('.category-subtotal').dataset.categoryId;
+            // Get categoryId directly from header element
+            const categoryId = header.dataset.categoryId;
 
             // Find all rows in this category
             const categoryRows = document.querySelectorAll(`.data-row[data-category-id="${categoryId}"]`);
 
             let totalCarbonBefore = 0;
             let totalCarbonAfter = 0;
-            let totalCostBefore = 0;
-            let totalCostAfter = 0;
 
             categoryRows.forEach(row => {
                 // Skip rows without quantity input (level 2 items)
@@ -156,37 +149,22 @@ class CarbonCalculator {
                 const quantity = parseFloat(quantityInput.value) || 0;
                 const carbonBefore = parseFloat(row.dataset.carbonBefore) || 0;
                 const carbonAfter = parseFloat(row.dataset.carbonAfter) || 0;
-                const costBefore = parseFloat(row.dataset.costBefore) || 0;
-                const costAfter = parseFloat(row.dataset.costAfter) || 0;
 
                 totalCarbonBefore += quantity * carbonBefore;
                 totalCarbonAfter += quantity * carbonAfter;
-                totalCostBefore += quantity * costBefore;
-                totalCostAfter += quantity * costAfter;
             });
 
-            // Update category subtotals
+            // Update category subtotals (only carbon, not cost)
             const subtotals = header.querySelectorAll('.category-subtotal');
             subtotals.forEach(cell => {
                 const type = cell.dataset.type;
-                let value = 0;
 
                 switch (type) {
                     case 'carbon-before':
-                        value = totalCarbonBefore;
-                        cell.textContent = this.formatNumber(value, 0);
+                        cell.textContent = this.formatNumber(totalCarbonBefore);
                         break;
                     case 'carbon-after':
-                        value = totalCarbonAfter;
-                        cell.textContent = this.formatNumber(value, 0);
-                        break;
-                    case 'cost-before':
-                        value = totalCostBefore;
-                        cell.textContent = this.formatNumber(value, 0);
-                        break;
-                    case 'cost-after':
-                        value = totalCostAfter;
-                        cell.textContent = this.formatNumber(value, 0);
+                        cell.textContent = this.formatNumber(totalCarbonAfter);
                         break;
                 }
             });
@@ -196,8 +174,6 @@ class CarbonCalculator {
     updateGrandTotals() {
         let grandCarbonBefore = 0;
         let grandCarbonAfter = 0;
-        let grandCostBefore = 0;
-        let grandCostAfter = 0;
 
         // Sum all data rows (skip level 2 items without quantity inputs)
         document.querySelectorAll('.data-row').forEach(row => {
@@ -207,26 +183,18 @@ class CarbonCalculator {
             const quantity = parseFloat(quantityInput.value) || 0;
             const carbonBefore = parseFloat(row.dataset.carbonBefore) || 0;
             const carbonAfter = parseFloat(row.dataset.carbonAfter) || 0;
-            const costBefore = parseFloat(row.dataset.costBefore) || 0;
-            const costAfter = parseFloat(row.dataset.costAfter) || 0;
 
             grandCarbonBefore += quantity * carbonBefore;
             grandCarbonAfter += quantity * carbonAfter;
-            grandCostBefore += quantity * costBefore;
-            grandCostAfter += quantity * costAfter;
         });
 
-        // Update summary cards
-        this.updateSummaryCard('total-carbon-before', grandCarbonBefore, 0);
-        this.updateSummaryCard('total-carbon-after', grandCarbonAfter, 0);
-        this.updateSummaryCard('total-cost-before', grandCostBefore, 0);
-        this.updateSummaryCard('total-cost-after', grandCostAfter, 0);
+        // Update summary cards (top of page)
+        this.updateSummaryCard('total-carbon-before', grandCarbonBefore);
+        this.updateSummaryCard('total-carbon-after', grandCarbonAfter);
 
-        // Update footer totals (previously missing)
-        this.updateSummaryCard('grand-total-carbon-before', grandCarbonBefore, 0);
-        this.updateSummaryCard('grand-total-carbon-after', grandCarbonAfter, 0);
-        this.updateSummaryCard('grand-total-cost-before', grandCostBefore, 0);
-        this.updateSummaryCard('grand-total-cost-after', grandCostAfter, 0);
+        // Update footer totals
+        this.updateSummaryCard('grand-total-carbon-before', grandCarbonBefore);
+        this.updateSummaryCard('grand-total-carbon-after', grandCarbonAfter);
     }
 
     updateSummaryCard(elementId, value, decimals) {
@@ -243,7 +211,7 @@ class CarbonCalculator {
         }
     }
 
-    formatNumber(num, decimals = 0) {
+    formatNumber(num, decimals = 2) {
         if (isNaN(num) || num === 0) {
             return decimals > 0 ? '0.' + '0'.repeat(decimals) : '0';
         }
@@ -258,9 +226,9 @@ class CarbonCalculator {
     animateValue(cells) {
         cells.forEach(cell => {
             cell.style.transition = 'background-color 0.3s ease';
-            cell.style.backgroundColor = 'rgba(14, 165, 233, 0.15)';
+            cell.style.backgroundColor = 'rgba(20, 184, 166, 0.15)';
             setTimeout(() => {
-                cell.style.backgroundColor = 'rgba(14, 165, 233, 0.05)';
+                cell.style.backgroundColor = 'rgba(20, 184, 166, 0.05)';
             }, 300);
         });
     }
