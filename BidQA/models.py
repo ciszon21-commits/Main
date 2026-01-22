@@ -5,11 +5,10 @@ from django.contrib.auth.models import User
 class Bid(models.Model):
     """標案模型"""
     STATUS_CHOICES = [
-        ('draft', '草稿'),
-        ('submitted', '已投標'),
         ('won', '得標'),
         ('lost', '未得標'),
-        ('cancelled', '已取消'),
+        ('failed', '流標'),
+        ('unannounced', '未公布'),
     ]
     
     name = models.CharField(max_length=300, verbose_name="標案名稱")
@@ -18,7 +17,7 @@ class Bid(models.Model):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default='draft',
+        default='unannounced',
         verbose_name="狀態"
     )
     description = models.TextField(blank=True, verbose_name="說明")

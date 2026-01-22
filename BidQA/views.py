@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, FileResponse, Http404
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q, Count
 from django.core.paginator import Paginator
 import csv
@@ -80,6 +81,9 @@ def bid_update(request, pk):
     """編輯標案"""
     bid = get_object_or_404(Bid, pk=pk)
     
+    if request.user != bid.created_by and not request.user.is_superuser:
+        raise PermissionDenied("您沒有權限編輯此標案")
+        
     if request.method == 'POST':
         form = BidForm(request.POST, instance=bid)
         if form.is_valid():
@@ -101,6 +105,9 @@ def bid_delete(request, pk):
     """刪除標案"""
     bid = get_object_or_404(Bid, pk=pk)
     
+    if request.user != bid.created_by and not request.user.is_superuser:
+        raise PermissionDenied("您沒有權限刪除此標案")
+        
     if request.method == 'POST':
         name = bid.name
         bid.delete()
