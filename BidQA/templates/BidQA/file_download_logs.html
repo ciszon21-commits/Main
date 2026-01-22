@@ -1,0 +1,76 @@
+{% extends 'BidQA/base.html' %}
+
+{% block title %}下載記錄 - {{ file.filename }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="breadcrumb-separator">/</span>
+<a href="{% url 'bidqa:bid_detail' pk=file.bid.pk %}">{{ file.bid.name|truncatewords:3 }}</a>
+<span class="breadcrumb-separator">/</span>
+<span>下載記錄</span>
+{% endblock %}
+
+{% block content %}
+<div class="section-header">
+    <div>
+        <h1 class="section-title">下載記錄</h1>
+        <p class="section-subtitle">{{ file.filename }}</p>
+    </div>
+    <a href="{% url 'bidqa:bid_detail' pk=file.bid.pk %}" class="btn btn-secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        返回
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header" style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border-light);">
+        <div class="flex items-center gap-3" style="justify-content:space-between;">
+            <span class="text-secondary">共 {{ logs.count }} 次下載</span>
+            <span class="badge badge-info">公開記錄</span>
+        </div>
+    </div>
+    
+    {% if logs %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>下載者</th>
+                <th>下載時間</th>
+                <th>IP 位址</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td>
+                    <div class="flex items-center gap-2">
+                        <div class="qa-avatar" style="width:32px;height:32px;font-size:12px;">
+                            {{ log.downloaded_by.username|first|upper }}
+                        </div>
+                        <div>
+                            <div>{{ log.downloaded_by.get_full_name|default:log.downloaded_by.username }}</div>
+                            <div class="text-muted text-sm">{{ log.downloaded_by.email }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>{{ log.downloaded_at|date:"Y/m/d H:i" }}</td>
+                <td><code>{{ log.ip_address }}</code></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state" style="padding:32px;">
+        <div class="empty-state-icon" style="width:48px;height:48px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+        </div>
+        <p class="text-muted">尚無下載記錄</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,281 @@
+{% extends 'BidQA/base.html' %}
+
+{% block title %}{{ bid.name }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="breadcrumb-separator">/</span>
+<a href="{% url 'bidqa:bid_list' %}">標案列表</a>
+<span class="breadcrumb-separator">/</span>
+<span>{{ bid.name|truncatewords:5 }}</span>
+{% endblock %}
+
+{% block content %}
+<!-- Bid Header -->
+<div class="card mb-6">
+    <div class="card-header">
+        <div>
+            <h1 class="page-title" style="margin-bottom:4px;">{{ bid.name }}</h1>
+            <div class="flex gap-4 text-sm text-secondary">
+                {% if bid.bid_number %}<span>編號：{{ bid.bid_number }}</span>{% endif %}
+                {% if bid.bid_date %}<span>開標日期：{{ bid.bid_date|date:"Y/m/d" }}</span>{% endif %}
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <span class="badge badge-{{ bid.status }}">{{ bid.get_status_display }}</span>
+            <a href="{% url 'bidqa:bid_update' pk=bid.pk %}" class="btn btn-ghost btn-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                編輯
+            </a>
+            <a href="{% url 'bidqa:bid_delete' pk=bid.pk %}" class="btn btn-ghost btn-sm" style="color:var(--danger);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                </svg>
+                刪除
+            </a>
+        </div>
+    </div>
+    {% if bid.description %}
+    <div class="card-body">
+        <p>{{ bid.description }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value">{{ bid_committees|length }}</div>
+            <div class="stat-label">評審委員</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value">{{ bid.get_question_count }}</div>
+            <div class="stat-label">問答記錄</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value">{{ bid.files.count }}</div>
+            <div class="stat-label">附件檔案</div>
+        </div>
+    </div>
+</div>
+
+<!-- Files Section -->
+<div class="section-header">
+    <div>
+        <h2 class="section-title">附件檔案</h2>
+        <p class="section-subtitle">上傳的文件供參與者下載（下載留有公開紀錄）</p>
+    </div>
+    <a href="{% url 'bidqa:file_upload' bid_pk=bid.pk %}" class="btn btn-secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        上傳檔案
+    </a>
+</div>
+
+{% if bid.files.exists %}
+<div class="card mb-6">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>檔案名稱</th>
+                <th>說明</th>
+                <th>上傳者</th>
+                <th>上傳時間</th>
+                <th>下載</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for file in bid.files.all %}
+            <tr>
+                <td>
+                    <div class="flex items-center gap-2">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--text-muted);">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        {{ file.filename }}
+                    </div>
+                </td>
+                <td class="text-secondary">{{ file.description|default:"-" }}</td>
+                <td>{{ file.uploaded_by.get_full_name|default:file.uploaded_by.username }}</td>
+                <td>{{ file.uploaded_at|date:"Y/m/d H:i" }}</td>
+                <td>
+                    <a href="{% url 'bidqa:file_download_logs' pk=file.pk %}" class="text-link">
+                        {{ file.get_download_count }} 次
+                    </a>
+                </td>
+                <td>
+                    <div class="flex gap-2">
+                        <a href="{% url 'bidqa:file_download' pk=file.pk %}" class="btn btn-primary btn-sm">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            下載
+                        </a>
+                        <a href="{% url 'bidqa:file_delete' pk=file.pk %}" class="btn btn-ghost btn-sm" style="color:var(--danger);">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card mb-6" style="padding:32px;text-align:center;color:var(--text-muted);">
+    尚無附件檔案 — <a href="{% url 'bidqa:file_upload' bid_pk=bid.pk %}" class="text-link">上傳檔案</a>
+</div>
+{% endif %}
+
+<!-- Committees Section -->
+<div class="section-header">
+    <div>
+        <h2 class="section-title">評審委員與問答</h2>
+        <p class="section-subtitle">管理此標案的委員提問與回答</p>
+    </div>
+    <a href="{% url 'bidqa:add_committee_to_bid' bid_pk=bid.pk %}" class="btn btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+            <circle cx="8.5" cy="7" r="4"/>
+            <path d="M20 8v6M23 11h-6"/>
+        </svg>
+        新增委員
+    </a>
+</div>
+
+{% if bid_committees %}
+    {% for bc in bid_committees %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="committee-info">
+                <div class="committee-avatar">{{ bc.committee.name|first }}</div>
+                <div>
+                    <div class="committee-name">{{ bc.committee.name }}</div>
+                    <div class="committee-meta">
+                        {% if bc.committee.organization %}{{ bc.committee.organization }}{% endif %}
+                        {% if bc.committee.specialty %} · {{ bc.committee.specialty }}{% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <a href="{% url 'bidqa:question_create' bid_committee_pk=bc.pk %}" class="btn btn-secondary btn-sm">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 8v8M8 12h8"/>
+                    </svg>
+                    新增問答
+                </a>
+                <a href="{% url 'bidqa:remove_committee_from_bid' bid_pk=bid.pk committee_pk=bc.committee.pk %}" class="btn btn-ghost btn-sm" style="color:var(--danger);" title="移除委員">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+        
+        {% if bc.questions.all %}
+        <div class="card-body">
+            {% for question in bc.questions.all %}
+            <div class="qa-card" style="background:var(--bg-secondary);">
+                <div class="qa-header">
+                    <span class="text-sm text-muted">#{{ forloop.counter }}</span>
+                    <div class="flex gap-2">
+                        <a href="{% url 'bidqa:question_update' pk=question.pk %}" class="btn btn-ghost btn-sm">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </a>
+                        <a href="{% url 'bidqa:question_delete' pk=question.pk %}" class="btn btn-ghost btn-sm" style="color:var(--danger);">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="qa-question">
+                    <div class="qa-question-label">提問</div>
+                    <div>{{ question.question|linebreaksbr }}</div>
+                </div>
+                
+                {% if question.answer %}
+                <div class="qa-answer">
+                    <div class="qa-answer-label">回答</div>
+                    <div>{{ question.answer|linebreaksbr }}</div>
+                </div>
+                {% endif %}
+                
+                {% if question.reference %}
+                <div class="qa-reference">
+                    <div class="qa-reference-label">參考資料</div>
+                    <div>{{ question.reference|linebreaksbr }}</div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="card-body" style="text-align:center;padding:24px;color:var(--text-muted);">
+            尚無問答記錄
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+{% else %}
+<div class="empty-state">
+    <div class="empty-state-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+        </svg>
+    </div>
+    <h3 class="empty-state-title">尚無評審委員</h3>
+    <p class="empty-state-description">新增評審委員以開始記錄問答內容</p>
+    <a href="{% url 'bidqa:add_committee_to_bid' bid_pk=bid.pk %}" class="btn btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+            <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+            <circle cx="8.5" cy="7" r="4"/>
+            <path d="M20 8v6M23 11h-6"/>
+        </svg>
+        新增委員
+    </a>
+</div>
+{% endif %}
+{% endblock %}
