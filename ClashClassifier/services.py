@@ -12,7 +12,7 @@ from io import StringIO
 from .models import ClassificationResult
 
 
-SYSTEM_CODES = ["DR", "SW", "WW", "PW", "RW", "IE"]
+SYSTEM_CODES = ["DR", "SW", "WW", "PW", "RW", "IE", "UT"]
 
 
 def extract_system_code(filename: str) -> str:
