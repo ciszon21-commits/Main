@@ -1,0 +1,89 @@
+{% extends 'BidQA/base.html' %}
+
+{% block title %}評審委員{% endblock %}
+
+{% block breadcrumb %}
+<span class="breadcrumb-separator">/</span>
+<span>評審委員</span>
+{% endblock %}
+
+{% block content %}
+<!-- Section Header -->
+<div class="section-header">
+    <div>
+        <h1 class="section-title">評審委員</h1>
+        <p class="section-subtitle">管理所有評審委員資料</p>
+    </div>
+    <div class="flex gap-3">
+        <form method="get" class="search-bar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <input type="text" name="q" value="{{ q }}" placeholder="搜尋委員...">
+        </form>
+        <a href="{% url 'bidqa:import_committees' %}" class="btn btn-secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            匯入
+        </a>
+        <a href="{% url 'bidqa:committee_create' %}" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                <circle cx="8.5" cy="7" r="4"/>
+                <path d="M20 8v6M23 11h-6"/>
+            </svg>
+            新增委員
+        </a>
+    </div>
+</div>
+
+{% if committees %}
+<div class="card-grid">
+    {% for committee in committees %}
+    <a href="{% url 'bidqa:committee_detail' pk=committee.pk %}" class="card card-clickable">
+        <div class="committee-info">
+            <div class="committee-avatar">{{ committee.name|first }}</div>
+            <div style="flex:1;">
+                <div class="committee-name">{{ committee.name }}</div>
+                <div class="committee-meta">
+                    {% if committee.organization %}{{ committee.organization }}{% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="card-footer" style="margin-top:12px;padding-top:12px;">
+            <span class="text-sm text-secondary">
+                {% if committee.specialty %}{{ committee.specialty }}{% else %}未設定專長{% endif %}
+            </span>
+            <div class="flex gap-3 text-sm text-muted">
+                <span>{{ committee.bid_count }} 標案</span>
+                <span>{{ committee.question_count }} 問答</span>
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-state-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+        </svg>
+    </div>
+    <h3 class="empty-state-title">尚無評審委員</h3>
+    <p class="empty-state-description">新增評審委員以開始建立問答記錄</p>
+    <a href="{% url 'bidqa:committee_create' %}" class="btn btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+            <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+            <circle cx="8.5" cy="7" r="4"/>
+            <path d="M20 8v6M23 11h-6"/>
+        </svg>
+        新增委員
+    </a>
+</div>
+{% endif %}
+{% endblock %}

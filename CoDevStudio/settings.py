@@ -86,6 +86,7 @@ INSTALLED_APPS = [
     'OpenSearch',  # OpenSearch 搜尋引擎
     'GeoDataHub',  # 地圖導向資料管理平台
     'GeoCoding',  # 地址編碼服務
+    'BidQA',  # 標案問答管理
 ] + local.STAGE_INSTALLED_APPS
 
 

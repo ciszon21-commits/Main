@@ -1,0 +1,68 @@
+{% extends 'BidQA/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="breadcrumb-separator">/</span>
+<a href="{% url 'bidqa:bid_detail' pk=bid_committee.bid.pk %}">{{ bid_committee.bid.name|truncatewords:3 }}</a>
+<span class="breadcrumb-separator">/</span>
+<span>{{ title }}</span>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:700px;">
+    <div class="card">
+        <div class="card-header mb-4">
+            <div>
+                <h1 class="section-title">{{ title }}</h1>
+                <p class="text-secondary mt-2">
+                    委員：{{ bid_committee.committee.name }} · 標案：{{ bid_committee.bid.name }}
+                </p>
+            </div>
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label class="form-label" for="{{ form.question.id_for_label }}">提問內容 *</label>
+                {{ form.question }}
+                {% if form.question.errors %}
+                {% for error in form.question.errors %}
+                <p class="form-error">{{ error }}</p>
+                {% endfor %}
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="{{ form.answer.id_for_label }}">回答內容</label>
+                {{ form.answer }}
+                <p class="form-help">記錄現場的回答或後續補充資料</p>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="{{ form.reference.id_for_label }}">參考資料</label>
+                {{ form.reference }}
+                <p class="form-help">相關文件、連結或其他參考資訊</p>
+            </div>
+            
+            <div class="form-group" style="max-width:120px;">
+                <label class="form-label" for="{{ form.order.id_for_label }}">排序</label>
+                {{ form.order }}
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                        <polyline points="17 21 17 13 7 13 7 21"/>
+                        <polyline points="7 3 7 8 15 8"/>
+                    </svg>
+                    儲存
+                </button>
+                <a href="{% url 'bidqa:bid_detail' pk=bid_committee.bid.pk %}" class="btn btn-secondary">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

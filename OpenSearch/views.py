@@ -112,7 +112,7 @@ class SearchView(LoginRequiredMixin, TemplateView):
                             'source': source,
                             'highlight': highlight,
                             'is_secret': is_secret,
-                            'category': services.get_category_from_index(index_name),
+                            'category': hit.get('category_name', services.get_category_from_index(index_name)),
                         }
                         results.append(result)
                     
@@ -260,6 +260,9 @@ class LogClickView(LoginRequiredMixin, View):
                 title=data.get('title', '')[:500],
                 path=data.get('path', '')
             )
+            
+            # Increment vote in OpenSearch for popularity boosting
+            services.increment_vote(data.get('index', ''), data.get('doc_id', ''))
             
             return JsonResponse({'status': 'ok'})
         except Exception as e:

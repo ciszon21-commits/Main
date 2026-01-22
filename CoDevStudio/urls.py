@@ -35,6 +35,7 @@ urlpatterns = [
     path('search/', include('OpenSearch.urls')),  # OpenSearch 搜尋引擎
     path('geodatahub/', include('GeoDataHub.urls')),  # 地圖導向資料管理平台
     path('geocoding/', include('GeoCoding.urls')),  # 地址編碼服務
+    path('bidqa/', include('BidQA.urls')),  # 標案問答管理
 ]
 
 # 條件載入 ClashClassifier API
