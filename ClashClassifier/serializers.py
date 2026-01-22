@@ -124,19 +124,40 @@ class ClashReportSerializer(serializers.ModelSerializer):
         return counter.most_common(1)[0][0]
     
     def get_clash_matrix(self, obj):
-        """整理碰撞矩陣"""
+        """整理碰撞矩陣 - 所有碰撞集中到右上三角（包含對角線）"""
         item1_systems = obj.classifications.values_list('item1_system', flat=True).distinct()
         item2_systems = obj.classifications.values_list('item2_system', flat=True).distinct()
-        systems = set(item1_systems).union(set(item2_systems))
+        systems = sorted(set(item1_systems).union(set(item2_systems)))
 
         qs = obj.classifications.filter(predicted_class=1)
         matrix = {}
-        for sys1 in systems:
+        
+        for i, sys1 in enumerate(systems):
             matrix[sys1] = {}
-            for sys2 in systems:
-                count = qs.filter(item1_system=sys1, item2_system=sys2).count()
-                matrix[sys1][sys2] = count
-        return matrix        
+            for j, sys2 in enumerate(systems):
+                if i < j:
+                    # 右上三角（不含對角線）：合併雙向碰撞
+                    # sys1 vs sys2 的碰撞 + sys2 vs sys1 的碰撞
+                    count = qs.filter(
+                        item1_system=sys1, 
+                        item2_system=sys2
+                    ).count() + qs.filter(
+                        item1_system=sys2, 
+                        item2_system=sys1
+                    ).count()
+                    matrix[sys1][sys2] = count
+                elif i == j:
+                    # 對角線：只計算同系統內的碰撞
+                    count = qs.filter(
+                        item1_system=sys1, 
+                        item2_system=sys2
+                    ).count()
+                    matrix[sys1][sys2] = count
+                else:
+                    # 左下三角：設為 null
+                    matrix[sys1][sys2] = None
+        
+        return matrix     
 
 class ClashReportUploadSerializer(serializers.ModelSerializer):
     """上傳報告序列化器"""
