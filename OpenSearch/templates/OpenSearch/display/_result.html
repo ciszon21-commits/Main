@@ -49,12 +49,16 @@
 {# File name as title #}
 <h3 class="result-title">
     <a href="#" class="result-link" data-index="{{ index }}" data-doc-id="{{ result.id }}" data-title="{{ fsmeta.filename|default:fsmeta.title|default:'未知' }}" data-path="{{ fsmeta.path|to_windows_path|default:'' }}">
-        {% if highlight.file %}
-            {{ highlight.file.0|safe }}
+        {% if fsmeta.filename %}
+            {% if highlight.file %}
+                {{ highlight.file.0|safe }}
+            {% else %}
+                {{ fsmeta.filename }}
+            {% endif %}
+        {% elif highlight.title %}
+            {{ highlight.title.0|safe }}
         {% elif fsmeta.title %}
-            {{ fsmeta.title }}{% if fsmeta.filename %} ({{ fsmeta.filename }}){% endif %}
-        {% elif fsmeta.filename %}
-            {{ fsmeta.filename }}
+            {{ fsmeta.title }}
         {% else %}
             (無檔案名稱)
         {% endif %}
@@ -63,6 +67,9 @@
 
 {# Compact inline metadata #}
 <div class="result-meta file-meta-inline">
+    {% if category and category != '其他' %}
+    <span class="result-meta-item category-badge">📂 {{ category }}</span>
+    {% endif %}
     {% if fsmeta.modified %}
     <span class="result-meta-item">📅 {{ fsmeta.modified }}</span>
     {% endif %}
@@ -127,6 +134,9 @@
 
 {# Metadata - Compact inline #}
 <div class="result-meta">
+    {% if category and category != '其他' %}
+    <span class="result-meta-item category-badge">📂 {{ category }}</span>
+    {% endif %}
     {% if source.dt %}
     <span class="result-meta-item">📅 {{ source.dt }}</span>
     {% elif source.publishdate %}

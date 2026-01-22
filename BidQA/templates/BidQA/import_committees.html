@@ -1,0 +1,54 @@
+{% extends 'BidQA/base.html' %}
+
+{% block title %}匯入委員{% endblock %}
+
+{% block breadcrumb %}
+<span class="breadcrumb-separator">/</span>
+<a href="{% url 'bidqa:committee_list' %}">評審委員</a>
+<span class="breadcrumb-separator">/</span>
+<span>匯入委員</span>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:700px;">
+    <div class="card">
+        <h1 class="section-title mb-4">匯入評審委員</h1>
+        <p class="text-secondary mb-6">上傳 CSV 檔案批次匯入評審委員資料。系統會自動略過已存在的委員（姓名+單位完全相同）。</p>
+        
+        <div class="alert alert-info mb-4">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;flex-shrink:0;">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            <div>
+                <strong>CSV 格式說明</strong><br>
+                欄位順序：序號, 姓名, 單位/職稱, 經歷/學歷說明...<br>
+                系統會讀取第 2 欄（姓名）、第 3 欄（單位）、第 4 欄（備註）
+            </div>
+        </div>
+        
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label class="form-label">選擇 CSV 檔案</label>
+                <input type="file" name="csv_file" accept=".csv" class="form-input" required>
+                <p class="form-help">支援 UTF-8 編碼的 CSV 檔案</p>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    開始匯入
+                </button>
+                <a href="{% url 'bidqa:committee_list' %}" class="btn btn-secondary">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

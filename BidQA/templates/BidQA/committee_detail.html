@@ -1,0 +1,113 @@
+{% extends 'BidQA/base.html' %}
+
+{% block title %}{{ committee.name }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="breadcrumb-separator">/</span>
+<a href="{% url 'bidqa:committee_list' %}">評審委員</a>
+<span class="breadcrumb-separator">/</span>
+<span>{{ committee.name }}</span>
+{% endblock %}
+
+{% block content %}
+<!-- Committee Header -->
+<div class="card mb-6">
+    <div class="card-header">
+        <div class="committee-info">
+            <div class="committee-avatar" style="width:56px;height:56px;font-size:22px;">{{ committee.name|first }}</div>
+            <div>
+                <h1 class="page-title">{{ committee.name }}</h1>
+                <div class="text-secondary mt-2">
+                    {% if committee.organization %}{{ committee.organization }}{% endif %}
+                    {% if committee.specialty %} · {{ committee.specialty }}{% endif %}
+                </div>
+            </div>
+        </div>
+        <a href="{% url 'bidqa:committee_update' pk=committee.pk %}" class="btn btn-secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            編輯
+        </a>
+    </div>
+    {% if committee.notes %}
+    <div class="card-body">
+        <p class="text-secondary">{{ committee.notes }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Committee's Q&A by Bid -->
+<div class="section-header">
+    <div>
+        <h2 class="section-title">問答記錄</h2>
+        <p class="section-subtitle">此委員在各標案的問答記錄</p>
+    </div>
+</div>
+
+{% if bid_committees %}
+    {% for bc in bid_committees %}
+    {% if bc.questions.all %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <div>
+                <a href="{% url 'bidqa:bid_detail' pk=bc.bid.pk %}" class="card-title" style="color:var(--primary);">
+                    {{ bc.bid.name }}
+                </a>
+                <div class="card-subtitle">
+                    {{ bc.bid.bid_number|default:"" }} 
+                    {% if bc.bid.bid_date %}· {{ bc.bid.bid_date|date:"Y/m/d" }}{% endif %}
+                </div>
+            </div>
+            <span class="badge badge-{{ bc.bid.status }}">{{ bc.bid.get_status_display }}</span>
+        </div>
+        <div class="card-body">
+            {% for question in bc.questions.all %}
+            <div class="qa-card" style="background:var(--bg-secondary);">
+                <div class="qa-question">
+                    <div class="qa-question-label">提問</div>
+                    <div>{{ question.question|linebreaksbr }}</div>
+                </div>
+                
+                {% if question.answer %}
+                <div class="qa-answer">
+                    <div class="qa-answer-label">回答</div>
+                    <div>{{ question.answer|linebreaksbr }}</div>
+                </div>
+                {% endif %}
+                
+                {% if question.reference %}
+                <div class="qa-reference">
+                    <div class="qa-reference-label">參考資料</div>
+                    <div>{{ question.reference|linebreaksbr }}</div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    {% empty %}
+    <div class="empty-state">
+        <div class="empty-state-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            </svg>
+        </div>
+        <h3 class="empty-state-title">尚無問答記錄</h3>
+        <p class="empty-state-description">此委員尚未有任何問答記錄</p>
+    </div>
+    {% endfor %}
+{% else %}
+<div class="empty-state">
+    <div class="empty-state-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+        </svg>
+    </div>
+    <h3 class="empty-state-title">尚無問答記錄</h3>
+    <p class="empty-state-description">此委員尚未被加入任何標案</p>
+</div>
+{% endif %}
+{% endblock %}
