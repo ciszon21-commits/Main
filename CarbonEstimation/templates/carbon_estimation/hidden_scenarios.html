@@ -18,72 +18,52 @@
             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
             <div>
                 <h1 class="title" style="margin-bottom: 0.25rem;">隱藏方案列表</h1>
-                <p class="subtitle" style="color: var(--danger-color);">這些是已刪除的方案，您可以復原或永久刪除它們</p>
+                <p class="subtitle" style="color: var(--error-red);">這些是已刪除的方案，您可以復原或永久刪除它們</p>
             </div>
-            <a href="{% url 'home' %}" class="btn"
-                style="background: var(--text-secondary); color: white; display: flex; align-items: center; gap: 0.5rem; text-decoration: none;">
-                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
+            <a href="{% url 'home' %}" class="btn btn-secondary"
+                style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none;">
                 返回方案列表
             </a>
         </header>
-
-        <!-- 警告提示 -->
-        <div
-            style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 1rem 1.5rem; margin-bottom: 2rem; border-radius: 8px; display: flex; align-items: flex-start; gap: 1rem;">
-            <svg width="20" height="20" fill="none" stroke="#f59e0b" viewBox="0 0 24 24" style="flex-shrink: 0;">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <div>
-                <strong style="color: #92400e;">注意：</strong>
-                <span style="color: #78350f;">永久刪除後無法復原，請謹慎操作！</span>
-            </div>
-        </div>
 
         <!-- 方案列表 -->
         <div class="scenario-list">
             {% if hidden_scenarios %}
             <table style="width: 100%; border-collapse: collapse;">
                 <thead>
-                    <tr
-                        style="background: linear-gradient(135deg, var(--primary-600), var(--primary-700)); color: white; border-bottom: 2px solid var(--primary-500);">
-                        <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.95rem;">方案資訊</th>
-                        <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.95rem;">刪除資訊</th>
+                    <tr style="background: var(--primary-700); color: white;">
+                        <th style="padding: 1.25rem; text-align: left; font-weight: 600; font-size: 0.95rem;">方案資訊</th>
+                        <th style="padding: 1.25rem; text-align: left; font-weight: 600; font-size: 0.95rem;">刪除資訊</th>
                         <th
-                            style="padding: 1rem; text-align: center; font-weight: 600; font-size: 0.95rem; width: 240px;">
+                            style="padding: 1.25rem; text-align: center; font-weight: 600; font-size: 0.95rem; width: 360px;">
                             操作</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for scenario in hidden_scenarios %}
-                    <tr class="scenario-row"
-                        style="border-bottom: 1px solid var(--border-color); border-left: 3px solid var(--danger-color);">
+                    <tr class="scenario-row" style="border-bottom: 1px solid var(--border-color);">
                         <td style="padding: 1.25rem;">
-                            <div style="font-weight: 600; color: var(--text-secondary); margin-bottom: 0.25rem;">
+                            <div class="scenario-title"
+                                style="font-size: 1.1rem; font-weight: 700; color: var(--primary-700); margin-bottom: 0.5rem;">
                                 {{ scenario.scenario_name }}
                                 {% if scenario.project_phase == 'feasibility' %}
-                                <span
-                                    style="background: #dbeafe; color: #1e40af; padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-left: 0.5rem;">
-                                    可評階段
-                                </span>
+                                <span class="phase-badge eval"
+                                    style="display: inline-block; padding: 0.25rem 0.625rem; font-size: 0.75rem; font-weight: 600; border-radius: 4px; margin-left: 0.5rem; background: var(--accent-100); color: var(--accent-700);">可評階段</span>
                                 {% else %}
-                                <span
-                                    style="background: #e0e7ff; color: #4338ca; padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-left: 0.5rem;">
-                                    綜規及基設階段
-                                </span>
+                                <span class="phase-badge design"
+                                    style="display: inline-block; padding: 0.25rem 0.625rem; font-size: 0.75rem; font-weight: 600; border-radius: 4px; margin-left: 0.5rem; background: var(--primary-100); color: var(--primary-700);">綜規及基設階段</span>
                                 {% endif %}
                             </div>
-                            <div style="font-size: 0.875rem; color: var(--text-secondary);">
+                            <div class="scenario-meta"
+                                style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.25rem;">
                                 計畫編號：{{ scenario.project_number }}
                             </div>
-                            <div style="font-size: 0.875rem; color: var(--text-secondary);">
+                            <div class="scenario-meta"
+                                style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.25rem;">
                                 計畫名稱：{{ scenario.project_name }}
                             </div>
-                            <div style="font-size: 0.875rem; color: var(--text-secondary);">
-                                創建者：{{ scenario.creator.get_full_name|default:scenario.creator.username }}
+                            <div class="scenario-meta" style="color: var(--text-secondary); font-size: 0.875rem;">
+                                建置人員：{{ scenario.creator.get_full_name|default:scenario.creator.username }}
                             </div>
                         </td>
                         <td style="padding: 1.25rem;">
@@ -91,19 +71,19 @@
                                 刪除時間：{{ scenario.hidden_at|date:"Y-m-d H:i" }}
                             </div>
                             {% if scenario.hidden_by %}
-                            <div style="font-size: 0.875rem; color: var(--text-secondary);">
+                            <div style="color: var(--text-secondary); font-size: 0.875rem;">
                                 刪除人員：{{ scenario.hidden_by.get_full_name|default:scenario.hidden_by.username }}
                             </div>
                             {% endif %}
                         </td>
                         <td style="padding: 1.25rem;">
-                            <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                            <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
                                 <button class="btn btn-restore" onclick="restoreScenario({{ scenario.id }})">
                                     復原
                                 </button>
                                 <button class="btn btn-danger"
                                     onclick="permanentDeleteScenario({{ scenario.id }}, '{{ scenario.scenario_name|escapejs }}')">
-                                    永久刪除
+                                    刪除
                                 </button>
                             </div>
                         </td>

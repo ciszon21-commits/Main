@@ -100,8 +100,8 @@ class CarbonCalculator {
                     }
                 });
 
-                // Update button text
-                globalBtn.textContent = allExpanded ? '▲' : '▼';
+                // Update button text - 修正：展開時顯示▲，收合時顯示▼
+                globalBtn.textContent = allExpanded ? '▼' : '▲';
             });
         }
     }
@@ -225,10 +225,10 @@ class CarbonCalculator {
 
     animateValue(cells) {
         cells.forEach(cell => {
-            cell.style.transition = 'background-color 0.3s ease';
-            cell.style.backgroundColor = 'rgba(20, 184, 166, 0.15)';
+            cell.style.transition = 'none';
+            cell.style.backgroundColor = '#e5e7eb';
             setTimeout(() => {
-                cell.style.backgroundColor = 'rgba(20, 184, 166, 0.05)';
+                cell.style.backgroundColor = '#f9fafb';
             }, 300);
         });
     }
@@ -265,9 +265,9 @@ class CarbonCalculator {
             saveBtn.textContent = '未儲存';
             this.unsavedCategories.add(categoryId);
 
-            // Show Save All button
+            // Enable Save All button
             const saveAllBtn = document.getElementById('save-all-btn');
-            if (saveAllBtn) saveAllBtn.style.display = 'block';
+            if (saveAllBtn) saveAllBtn.disabled = false;
 
         } else {
             input.classList.remove('unsaved');
@@ -290,12 +290,8 @@ class CarbonCalculator {
             // Checks if there are any remaining unsaved categories globally
             if (this.unsavedCategories.size === 0) {
                 const saveAllBtn = document.getElementById('save-all-btn');
-                // Optional: hide it if clean? User wanted button "added", not "toggle".
-                // But earlier I decided to toggle. Let's keep it visible but maybe opacity?
-                // Or just keep it displayed if user prefers. 
-                // Decision: Keep it displayed always once it appears, or toggle. 
-                // Let's toggle to be consistent with "There are changes". 
-                if (saveAllBtn) saveAllBtn.style.display = 'none';
+                // Disable Save All button when no unsaved changes
+                if (saveAllBtn) saveAllBtn.disabled = true;
             }
         }
     }
@@ -329,9 +325,9 @@ class CarbonCalculator {
             this.resetDirtyState(categoryId);
         });
 
-        // Hide Save All button
+        // Disable Save All button
         const saveAllBtn = document.getElementById('save-all-btn');
-        if (saveAllBtn) saveAllBtn.style.display = 'none';
+        if (saveAllBtn) saveAllBtn.disabled = true;
 
         this.unsavedCategories.clear();
     }

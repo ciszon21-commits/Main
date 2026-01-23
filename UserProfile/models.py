@@ -27,5 +27,11 @@ class UserProfile(models.Model):
     def dept_display(self) -> 'str':
         return SINO_DEPT_DB.get(self.emp_dept, '部門')
 
+    def get_full_name(self):
+        """傳回員工姓名，若無則傳回 User 的 get_full_name 或 username"""
+        if self.emp_name:
+            return self.emp_name
+        return self.user.get_full_name() or self.user.username
+
 
 
