@@ -370,6 +370,16 @@ class DataSourceDetailView(DetailView):
             ip_address=self.get_client_ip(request),
             user_agent=request.META.get('HTTP_USER_AGENT', '')[:500]
         )
+
+        # 同步建立點擊記錄 (用於儀表板)
+        GeoClickLog.objects.create(
+            source=source,
+            user=request.user if request.user.is_authenticated else None,
+            category=source.category,
+            click_type=GeoClickLog.ClickType.VIEW_DETAIL,
+            ip_address=self.get_client_ip(request),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')[:500]
+        )
         
         return response
 

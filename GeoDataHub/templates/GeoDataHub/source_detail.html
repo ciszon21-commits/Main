@@ -236,8 +236,28 @@
                                     const btn = event.currentTarget;
                                     const originalText = btn.innerHTML;
                                     btn.innerHTML = '✅ 已複製';
+                                    
+                                    // 記錄點擊
+                                    logClick({{ source.id }}, {{ source.category.id|default:'null' }}, 'copy_unc');
+                                    
                                     setTimeout(() => btn.innerHTML = originalText, 2000);
                                 });
+                            }
+
+                            function logClick(sourceId, categoryId, clickType) {
+                                fetch('{% url "geodatahub:api_log_click" %}', {
+                                    method: 'POST',
+                                    keepalive: true,
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': '{{ csrf_token }}'
+                                    },
+                                    body: JSON.stringify({
+                                        source_id: sourceId,
+                                        category_id: categoryId,
+                                        click_type: clickType
+                                    })
+                                }).catch(err => console.error('Log click failed', err));
                             }
                         </script>
                         {% endif %}
