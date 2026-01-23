@@ -229,6 +229,8 @@ class ScenarioManager {
     }
 
     async saveAllCategories() {
+        const saveAllBtn = document.getElementById('save-all-btn');
+
         if (!window.carbonCalculator || window.carbonCalculator.unsavedCategories.size === 0) {
             alert('目前沒有未儲存的變更');
             return;

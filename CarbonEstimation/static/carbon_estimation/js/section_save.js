@@ -48,6 +48,12 @@ async function saveCategoryData(scenarioId, categoryId) {
         }
     });
 
+    // 防呆：檢查是否有填寫數量的項目
+    if (data.length === 0) {
+        alert('此分類沒有填寫數量的項目');
+        return;
+    }
+
     try {
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
@@ -66,18 +72,18 @@ async function saveCategoryData(scenarioId, categoryId) {
         const result = await response.json();
 
         if (result.success) {
-            showToast('✅ 分類數據已儲存', 'success');
+            alert('分類資料已儲存！');
 
             // 重置髒值狀態
             if (window.sectionCalculator) {
                 window.sectionCalculator.resetDirtyState(categoryId);
             }
         } else {
-            showToast('❌ 儲存失敗: ' + result.error, 'error');
+            alert('儲存失敗');
         }
     } catch (error) {
         console.error('儲存錯誤:', error);
-        showToast('❌ 儲存時發生錯誤', 'error');
+        alert('儲存時發生錯誤');
     }
 }
 
@@ -85,32 +91,50 @@ async function saveCategoryData(scenarioId, categoryId) {
  * 儲存所有分類的數據
  */
 async function saveAllCategories(scenarioId) {
-    const categoryIds = [...new Set(
-        Array.from(document.querySelectorAll('tr.data-row'))
-            .map(row => row.dataset.categoryId)
-    )];
+    // 防呆：檢查是否有未儲存的變更
+    if (!window.sectionCalculator || window.sectionCalculator.unsavedCategories.size === 0) {
+        alert('目前沒有未儲存的變更');
+        return;
+    }
+
+    const unsavedIds = Array.from(window.sectionCalculator.unsavedCategories);
+
+    // 準備所有需要儲存的數據
+    const payloads = [];
+    for (const categoryId of unsavedIds) {
+        const rows = document.querySelectorAll(`tr.data-row[data-category-id="${categoryId}"]`);
+        const data = [];
+
+        rows.forEach(row => {
+            const input = row.querySelector('.quantity-input');
+            const quantity = parseFloat(input.value) || 0;
+
+            if (quantity > 0) {
+                data.push({
+                    section_item_id: input.dataset.itemId,
+                    quantity: quantity
+                });
+            }
+        });
+
+        if (data.length > 0) {
+            payloads.push({ categoryId: categoryId, data: data });
+        }
+    }
+
+    // 防呆：檢查是否有可儲存的數據
+    if (payloads.length === 0) {
+        alert('沒有可儲存的數據');
+        return;
+    }
 
     let successCount = 0;
     let failCount = 0;
 
-    for (const categoryId of categoryIds) {
+    for (const payload of payloads) {
         try {
-            const rows = document.querySelectorAll(`tr.data-row[data-category-id="${categoryId}"]`);
-            const data = [];
-
-            rows.forEach(row => {
-                const input = row.querySelector('.quantity-input');
-                const quantity = parseFloat(input.value) || 0;
-
-                if (quantity > 0) {
-                    data.push({
-                        section_item_id: input.dataset.itemId,
-                        quantity: quantity
-                    });
-                }
-            });
-
-            if (data.length === 0) continue; // 跳過沒有數據的分類
+            const data = payload.data;
+            const categoryId = payload.categoryId;
 
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
@@ -144,15 +168,16 @@ async function saveAllCategories(scenarioId) {
         }
     }
 
+    // 最終反饋
     if (failCount === 0) {
-        showToast(`✅ 所有數據已成功儲存（${successCount} 個分類）`, 'success');
+        alert(`已成功儲存 ${successCount} 個分類的變更！`);
 
         // 全部儲存成功，重置所有狀態
         if (window.sectionCalculator) {
             window.sectionCalculator.resetAllDirtyStates();
         }
     } else {
-        showToast(`⚠️ 部分儲存失敗（成功: ${successCount}, 失敗: ${failCount}）`, 'warning');
+        alert(`部分儲存失敗（成功: ${successCount}, 失敗: ${failCount}）`);
     }
 }
 
