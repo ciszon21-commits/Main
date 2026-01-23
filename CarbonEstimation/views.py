@@ -14,6 +14,7 @@ from UserProfile.models import UserProfile
 @login_required
 def calculator_view(request):
     """計算器主頁面"""
+    scenario_id = request.GET.get('scenario')
     categories = MainCategory.objects.all().prefetch_related('items')
     
     data = []
@@ -23,9 +24,15 @@ def calculator_view(request):
             'items': category.items.all()
         })
     
+    scenario = None
+    if scenario_id:
+        scenario = Scenario.objects.filter(id=scenario_id).first()
+    
     context = {
-        'page_title': '高快速公路常用組件碳排概算',
-        'data': data
+        'page_title': '綜規及基設階段-常用組件碳排概算',
+        'data': data,
+        'scenario_id': scenario_id,
+        'scenario': scenario
     }
     
     return render(request, 'carbon_estimation/calculator.html', context)
@@ -279,22 +286,27 @@ def manage_collaborators(request, scenario_id):
         action = data.get('action')
         username = data.get('username')
         
-        if not username:
+        if action != 'list' and not username:
             return JsonResponse({'success': False, 'error': '請提供使用者名稱'}, status=400)
             
-        try:
-            user = User.objects.get(username=username)
-        except User.DoesNotExist:
-            return JsonResponse({'success': False, 'error': '找不到此使用者'}, status=404)
-            
-        if action == 'add':
-            if user == scenario.creator:
-                return JsonResponse({'success': False, 'error': '建立者已經擁有權限'}, status=400)
-            scenario.collaborators.add(user)
-            message = f'已加入協作人員 {username}'
-        elif action == 'remove':
-            scenario.collaborators.remove(user)
-            message = f'已移除協作人員 {username}'
+        if action == 'list':
+            message = '協作人員列表'
+        elif username:
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                return JsonResponse({'success': False, 'error': '找不到此使用者'}, status=404)
+                
+            if action == 'add':
+                if user == scenario.creator:
+                    return JsonResponse({'success': False, 'error': '建立者已經擁有權限'}, status=400)
+                scenario.collaborators.add(user)
+                message = f'已加入協作人員 {username}'
+            elif action == 'remove':
+                scenario.collaborators.remove(user)
+                message = f'已移除協作人員 {username}'
+            else:
+                return JsonResponse({'success': False, 'error': '無效的操作'}, status=400)
         else:
             return JsonResponse({'success': False, 'error': '無效的操作'}, status=400)
             
@@ -304,7 +316,7 @@ def manage_collaborators(request, scenario_id):
             'collaborators': [
                 {
                     'username': u.username, 
-                    'display': u.get_full_name() or u.username
+                    'display': (u.profile.get_full_name() if hasattr(u, 'profile') else u.get_full_name()) or u.username
                 } for u in scenario.collaborators.all()
             ]
         })
@@ -397,7 +409,7 @@ def search_users(request):
         # Try to get profile data
         if hasattr(user, 'profile'):
             profile = user.profile
-            name = profile.emp_name
+            name = profile.get_full_name()
             dept = profile.dept_display  # Use the property from model
             
             if name:
@@ -432,10 +444,15 @@ def section_calculator_view(request):
             'items': category.items.all()
         })
     
+    scenario = None
+    if scenario_id:
+        scenario = Scenario.objects.filter(id=scenario_id).first()
+    
     context = {
-        'page_title': '高快速公路常用斷面碳排概算',
+        'page_title': '可評階段-常用斷面碳排概算',
         'data': data,
-        'scenario_id': scenario_id
+        'scenario_id': scenario_id,
+        'scenario': scenario
     }
     
     return render(request, 'carbon_estimation/section_calculator.html', context)

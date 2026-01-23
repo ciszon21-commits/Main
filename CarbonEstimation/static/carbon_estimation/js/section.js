@@ -47,8 +47,6 @@ class SectionCalculator {
         const scenarioId = urlParams.get('scenario');
         if (scenarioId) {
             this.loadScenarioData(scenarioId);
-            const saveAllBtn = document.getElementById('save-all-btn');
-            if (saveAllBtn) saveAllBtn.style.display = 'inline-block';
         }
 
         // 初始計算
@@ -72,8 +70,8 @@ class SectionCalculator {
                         row.style.display = isCollapsed ? 'none' : '';
                     });
                 });
-
-                globalCollapseBtn.textContent = isCollapsed ? ' ▶ ' : ' ▼ ';
+                // 統一為上下箭頭：▲收合/▼展開
+                globalCollapseBtn.textContent = isCollapsed ? '▲' : '▼';
             });
         }
 
@@ -127,11 +125,11 @@ class SectionCalculator {
         if (carbonCell) {
             carbonCell.textContent = this.formatNumber(carbonTotal);
 
-            // 添加動畫效果
-            carbonCell.style.transition = 'background-color 0.3s ease';
-            carbonCell.style.backgroundColor = 'rgba(20, 184, 166, 0.15)';
+            // 移除動畫效果，改為即時灰色高亮
+            carbonCell.style.transition = 'none';
+            carbonCell.style.backgroundColor = '#e5e7eb';
             setTimeout(() => {
-                carbonCell.style.backgroundColor = 'rgba(20, 184, 166, 0.05)';
+                carbonCell.style.backgroundColor = '#f9fafb';
             }, 300);
         }
     }
@@ -229,9 +227,9 @@ class SectionCalculator {
             }
             this.unsavedCategories.add(categoryId);
 
-            // 顯示全部儲存按鈕
+            // 啟用全部儲存按鈕
             const saveAllBtn = document.getElementById('save-all-btn');
-            if (saveAllBtn) saveAllBtn.style.display = 'inline-block';
+            if (saveAllBtn) saveAllBtn.disabled = false;
 
         } else {
             input.classList.remove('unsaved');
@@ -254,10 +252,10 @@ class SectionCalculator {
                 this.unsavedCategories.delete(categoryId);
             }
 
-            // 如果沒有任何未儲存的分類，隱藏全部儲存按鈕
+            // 如果沒有任何未儲存的分類，停用全部儲存按鈕
             if (this.unsavedCategories.size === 0) {
                 const saveAllBtn = document.getElementById('save-all-btn');
-                if (saveAllBtn) saveAllBtn.style.display = 'none';
+                if (saveAllBtn) saveAllBtn.disabled = true;
             }
         }
     }
@@ -293,7 +291,7 @@ class SectionCalculator {
         });
 
         const saveAllBtn = document.getElementById('save-all-btn');
-        if (saveAllBtn) saveAllBtn.style.display = 'none';
+        if (saveAllBtn) saveAllBtn.disabled = true;
 
         this.unsavedCategories.clear();
     }
