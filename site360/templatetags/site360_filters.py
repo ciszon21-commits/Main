@@ -13,3 +13,13 @@ def after_underscore(value):
     if "_" in value:
         return value.split("_", 1)[1]
     return value
+
+@register.filter
+def get_item(dictionary, key):
+    """
+    Access dictionary item by key in templates.
+    Usage: {{ mydict|get_item:mykey }}
+    """
+    if dictionary is None:
+        return None
+    return dictionary.get(key)
