@@ -1,0 +1,36 @@
+{% extends 'BidQA/base.html' %}
+
+{% block title %}確認刪除{% endblock %}
+
+{% block content %}
+<div style="max-width:500px;">
+    <div class="card">
+        <div style="text-align:center;">
+            <div class="empty-state-icon" style="background:var(--danger-light);margin:0 auto 16px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--danger);">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+            </div>
+            <h2 class="section-title mb-2">確認刪除</h2>
+            <p class="text-secondary mb-4">您確定要刪除「{{ object_name }}」嗎？</p>
+            <p class="text-muted text-sm mb-6">此操作無法復原</p>
+            
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-actions" style="justify-content:center;">
+                    <button type="submit" class="btn btn-danger">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                        </svg>
+                        確認刪除
+                    </button>
+                    <a href="{% url cancel_url pk=cancel_pk|default:object.pk %}" class="btn btn-secondary">取消</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

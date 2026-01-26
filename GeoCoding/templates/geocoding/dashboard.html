@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地理編碼服務 - Geocoding</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-600: #4b5563;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--gray-800);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        header p {
+            opacity: 0.9;
+            margin-top: 0.5rem;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: var(--gray-50);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--gray-200);
+            font-weight: 600;
+            color: var(--gray-800);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .search-section {
+            grid-column: 1 / -1;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 1rem;
+            align-items: stretch;
+        }
+
+        .search-input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            font-size: 1.1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+        }
+
+        .search-btn {
+            padding: 1rem 2rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .search-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .result-card {
+            display: none;
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: var(--gray-50);
+            border-radius: 12px;
+            border-left: 4px solid var(--success);
+        }
+
+        .result-card.error {
+            border-left-color: var(--danger);
+        }
+
+        .result-card.show {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .result-item label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--gray-600);
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+
+        .result-item span {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .confidence-bar {
+            height: 8px;
+            background: var(--gray-200);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), #34d399);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        #map {
+            height: 400px;
+            border-radius: 12px;
+            z-index: 1;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .history-table th {
+            text-align: left;
+            padding: 0.75rem;
+            background: var(--gray-50);
+            border-bottom: 2px solid var(--gray-200);
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+
+        .history-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .history-table tr:hover {
+            background: var(--gray-50);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--gray-600);
+        }
+
+        .suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+        }
+
+        .suggestions.show {
+            display: block;
+        }
+
+        .suggestion-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .suggestion-item:hover {
+            background: var(--gray-50);
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-type {
+            font-size: 0.7rem;
+            color: var(--primary);
+            text-transform: uppercase;
+        }
+
+        .coords-text {
+            font-family: 'Courier New', monospace;
+            background: var(--gray-100);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🗺️ 台灣地理編碼服務</h1>
+            <p>輸入地名或地址，快速取得經緯度座標</p>
+        </header>
+
+        <div class="main-grid">
+            <!-- Search Section -->
+            <div class="card search-section">
+                <div class="card-header">
+                    <span>🔍</span> 地址查詢
+                </div>
+                <div class="card-body">
+                    <form class="search-form" id="searchForm">
+                        <div class="search-input-wrapper">
+                            <input type="text" class="search-input" id="queryInput"
+                                placeholder="輸入地名，例如：台北市中山區、板橋、礁溪鄉..." autocomplete="off">
+                            <div class="suggestions" id="suggestions"></div>
+                        </div>
+                        <button type="submit" class="search-btn">查詢座標</button>
+                    </form>
+
+                    <div class="result-card" id="resultCard">
+                        <strong id="resultAddress"></strong>
+                        <div class="result-grid">
+                            <div class="result-item">
+                                <label>緯度 (Lat)</label>
+                                <span id="resultLat">-</span>
+                            </div>
+                            <div class="result-item">
+                                <label>經度 (Lng)</label>
+                                <span id="resultLng">-</span>
+                            </div>
+                            <div class="result-item">
+                                <label>匹配信心度</label>
+                                <span id="resultConfidence">-</span>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Section -->
+            <div class="card">
+                <div class="card-header">
+                    <span>📍</span> 地圖預覽
+                </div>
+                <div class="card-body">
+                    <div id="map"></div>
+                </div>
+            </div>
+
+            <!-- History Section -->
+            <div class="card">
+                <div class="card-header">
+                    <span>📋</span> 最近查詢紀錄
+                </div>
+                <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                    {% if recent_queries %}
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>時間</th>
+                                <th>查詢內容</th>
+                                <th>匹配結果</th>
+                                <th>座標</th>
+                                <th>信心度</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for query in recent_queries %}
+                            <tr class="history-row" data-lat="{{ query.latitude|default:'' }}"
+                                data-lng="{{ query.longitude|default:'' }}">
+                                <td>{{ query.created_at|date:"m/d H:i" }}</td>
+                                <td>{{ query.query_text|truncatechars:20 }}</td>
+                                <td>
+                                    {% if query.matched_county %}
+                                    {{ query.matched_county.name }}
+                                    {% if query.matched_township %}{{ query.matched_township.name }}{% endif %}
+                                    {% if query.matched_village %}{{ query.matched_village.name }}{% endif %}
+                                    {% else %}
+                                    <span style="color: var(--gray-400);">無匹配</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if query.latitude %}
+                                    <span class="coords-text">{{ query.latitude|floatformat:4 }},
+                                        {{ query.longitude|floatformat:4 }}</span>
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if query.confidence >= 0.8 %}
+                                    <span class="badge badge-success">{{ query.confidence|floatformat:0|add:0 }}%</span>
+                                    {% elif query.confidence >= 0.5 %}
+                                    <span class="badge badge-warning">{{ query.confidence|floatformat:0|add:0 }}%</span>
+                                    {% else %}
+                                    <span class="badge badge-danger">{{ query.confidence|floatformat:0|add:0 }}%</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="empty-state">
+                        <p>尚無查詢紀錄</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize map centered on Taiwan
+        const map = L.map('map').setView([23.5, 121], 7);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        let currentMarker = null;
+
+        function showOnMap(lat, lng, label) {
+            if (currentMarker) {
+                map.removeLayer(currentMarker);
+            }
+            if (lat && lng) {
+                currentMarker = L.marker([lat, lng]).addTo(map);
+                if (label) {
+                    currentMarker.bindPopup(label).openPopup();
+                }
+                map.setView([lat, lng], 12);
+            }
+        }
+
+        // Search form
+        const form = document.getElementById('searchForm');
+        const input = document.getElementById('queryInput');
+        const suggestionsDiv = document.getElementById('suggestions');
+        const resultCard = document.getElementById('resultCard');
+
+        let debounceTimer;
+        input.addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            const query = e.target.value.trim();
+            if (query.length < 1) {
+                suggestionsDiv.classList.remove('show');
+                return;
+            }
+            debounceTimer = setTimeout(() => fetchSuggestions(query), 300);
+        });
+
+        async function fetchSuggestions(query) {
+            try {
+                const res = await fetch(`/api/geocoding/suggest/?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                if (data.length > 0) {
+                    suggestionsDiv.innerHTML = data.map(s => `
+                        <div class="suggestion-item" data-name="${s.full_name}" data-lat="${s.latitude}" data-lng="${s.longitude}">
+                            <div class="suggestion-type">${s.type === 'county' ? '縣市' : s.type === 'township' ? '鄉鎮區' : '村里'}</div>
+                            <div>${s.full_name}</div>
+                        </div>
+                    `).join('');
+                    suggestionsDiv.classList.add('show');
+
+                    document.querySelectorAll('.suggestion-item').forEach(item => {
+                        item.addEventListener('click', () => {
+                            input.value = item.dataset.name;
+                            suggestionsDiv.classList.remove('show');
+                            showResult({
+                                success: true,
+                                full_address: item.dataset.name,
+                                latitude: parseFloat(item.dataset.lat),
+                                longitude: parseFloat(item.dataset.lng),
+                                confidence: 1.0
+                            });
+                        });
+                    });
+                } else {
+                    suggestionsDiv.classList.remove('show');
+                }
+            } catch (err) {
+                console.error('Suggestion error:', err);
+            }
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-input-wrapper')) {
+                suggestionsDiv.classList.remove('show');
+            }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const query = input.value.trim();
+            if (!query) return;
+
+            suggestionsDiv.classList.remove('show');
+
+            try {
+                const res = await fetch('/api/geocoding/geocode/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+                const data = await res.json();
+                showResult(data);
+            } catch (err) {
+                showResult({ success: false, message: '查詢發生錯誤' });
+            }
+        });
+
+        function showResult(data) {
+            resultCard.classList.add('show');
+            resultCard.classList.toggle('error', !data.success);
+
+            document.getElementById('resultAddress').textContent =
+                data.success ? `📍 ${data.full_address}` : `❌ ${data.message}`;
+            document.getElementById('resultLat').textContent = data.latitude || '-';
+            document.getElementById('resultLng').textContent = data.longitude || '-';
+
+            const confidence = (data.confidence || 0) * 100;
+            document.getElementById('resultConfidence').textContent = `${confidence.toFixed(0)}%`;
+            document.getElementById('confidenceFill').style.width = `${confidence}%`;
+
+            if (data.success && data.latitude && data.longitude) {
+                showOnMap(data.latitude, data.longitude, data.full_address);
+            }
+        }
+
+        // Click on history rows
+        document.querySelectorAll('.history-row').forEach(row => {
+            row.style.cursor = 'pointer';
+            row.addEventListener('click', () => {
+                const lat = parseFloat(row.dataset.lat);
+                const lng = parseFloat(row.dataset.lng);
+                if (lat && lng) {
+                    showOnMap(lat, lng);
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

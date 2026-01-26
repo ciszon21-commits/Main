@@ -4,20 +4,83 @@ Handles connection and queries to OpenSearch
 """
 from opensearchpy import OpenSearch
 from django.conf import settings
+from django.core.cache import cache
 import urllib3
+import json
 
 # Disable SSL warnings for development
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# Singleton client instance for connection reuse
+_client = None
+
 
 def get_client():
-    """Get OpenSearch client instance"""
-    return OpenSearch(
-        hosts=[settings.OPENSEARCH_HOST],
-        http_auth=(settings.OPENSEARCH_USERNAME, settings.OPENSEARCH_PASSWORD),
-        verify_certs=settings.OPENSEARCH_VERIFY_CERTS,
-        ssl_show_warn=False,
-    )
+    """
+    Get OpenSearch client instance (singleton pattern).
+    
+    This implementation:
+    - Reuses the same connection pool across requests
+    - Configures timeout, retries, and compression for optimal performance
+    - Reduces connection overhead for high-frequency searches
+    """
+    global _client
+    if _client is None:
+        _client = OpenSearch(
+            hosts=[settings.OPENSEARCH_HOST],
+            http_auth=(settings.OPENSEARCH_USERNAME, settings.OPENSEARCH_PASSWORD),
+            verify_certs=settings.OPENSEARCH_VERIFY_CERTS,
+            ssl_show_warn=False,
+            # Performance optimization parameters
+            timeout=getattr(settings, 'OPENSEARCH_TIMEOUT', 30),
+            max_retries=getattr(settings, 'OPENSEARCH_MAX_RETRIES', 1),
+            retry_on_timeout=getattr(settings, 'OPENSEARCH_RETRY_ON_TIMEOUT', False),
+            http_compress=getattr(settings, 'OPENSEARCH_HTTP_COMPRESS', True),
+        )
+    return _client
+
+
+def reset_client():
+    """
+    Reset the OpenSearch client singleton.
+    Useful for testing or when connection settings change.
+    """
+    global _client
+    _client = None
+
+
+def clean_text(text):
+    """
+    Fix mojibake text (e.g. Big5 displayed as Latin-1).
+    """
+    if not text:
+        return ""
+    try:
+        # Common pattern in Taiwan: Big5 bytes interpreted as Latin-1
+        return text.encode('latin1').decode('big5')
+    except:
+        return text
+
+
+def increment_vote(index_name, doc_id):
+    """Increment the vote count for a document"""
+    client = get_client()
+    try:
+        client.update(
+            index=index_name,
+            id=doc_id,
+            body={
+                "script": {
+                    "source": "if (ctx._source.vote == null) { ctx._source.vote = 1 } else { ctx._source.vote += 1 }",
+                    "lang": "painless"
+                }
+            },
+            retry_on_conflict=3
+        )
+        return True
+    except Exception as e:
+        # print(f"Error incrementing vote: {e}")
+        return False
 
 
 def get_indices():
@@ -31,6 +94,12 @@ def get_indices():
 
 def get_index_categories():
     """Get indices grouped by category"""
+    # Try to get from cache first
+    cache_key = 'opensearch_index_categories'
+    cached_categories = cache.get(cache_key)
+    if cached_categories:
+        return cached_categories
+
     indices = get_indices()
     
     categories = {
@@ -38,19 +107,19 @@ def get_index_categories():
         'sinobook': {'name': '圖書', 'icon': '📚', 'indices': [], 'pattern': 'sinobook*'},
         'sino_map': {'name': '地理圖資', 'icon': '🗺️', 'indices': [], 'pattern': 'sino_map*'},
         'sinoqa': {'name': '工程問題與對策', 'icon': '❓', 'indices': [], 'pattern': 'sinoqa*'},
-        'sino_kmv1': {'name': '技術文件 V1', 'icon': '📄', 'indices': [], 'pattern': 'sino_kmv1*'},
-        'sino_kmv2': {'name': '技術文件 V2', 'icon': '📑', 'indices': [], 'pattern': 'sino_kmv2*'},
+        'sino_kmv1': {'name': '技術文件', 'icon': '📄', 'indices': [], 'pattern': 'sino_kmv1*'},
+        'sino_kmv2': {'name': '組織知識', 'icon': '📑', 'indices': [], 'pattern': 'sino_kmv2*'},
         'sino_budget': {'name': '預算書', 'icon': '💰', 'indices': [], 'pattern': 'sino_budget*'},
         'sino_spec': {'name': '施工規範', 'icon': '📋', 'indices': [], 'pattern': 'sino_spec*'},
         'sino_cns': {'name': 'CNS 標準', 'icon': '📐', 'indices': [], 'pattern': 'sino_cns*'},
-        'sinopmis_meeting': {'name': '會議紀錄', 'icon': '🗣️', 'indices': [], 'pattern': 'sinopmis_meeting*'},
-        'sinopmis_file': {'name': 'PMIS 檔案', 'icon': '📁', 'indices': [], 'pattern': 'sinopmis_file*'},
-        'sinopmis_iobook_in': {'name': '收文', 'icon': '📥', 'indices': [], 'pattern': 'sinopmis_iobook_in*'},
-        'sinopmis_iobook_out': {'name': '發文', 'icon': '📤', 'indices': [], 'pattern': 'sinopmis_iobook_out*'},
-        'sinoproject-dept': {'name': '部門封存', 'icon': '🏢', 'indices': [], 'pattern': 'sinoproject-dept*'},
-        'sinoproject-early': {'name': '結案光碟', 'icon': '💿', 'indices': [], 'pattern': 'sinoproject-early*'},
+        # 'sinopmis_meeting': {'name': '會議紀錄', 'icon': '🗣️', 'indices': [], 'pattern': 'sinopmis_meeting*'},
+        # 'sinopmis_file': {'name': 'PMIS 檔案', 'icon': '📁', 'indices': [], 'pattern': 'sinopmis_file*'},
+        # 'sinopmis_iobook_in': {'name': '收文', 'icon': '📥', 'indices': [], 'pattern': 'sinopmis_iobook_in*'},
+        # 'sinopmis_iobook_out': {'name': '發文', 'icon': '📤', 'indices': [], 'pattern': 'sinopmis_iobook_out*'},
+        'sino_dept': {'name': '部門封存', 'icon': '🏢', 'indices': [], 'pattern': 'sino_dept*'},
+        'sino_early': {'name': '結案光碟', 'icon': '💿', 'indices': [], 'pattern': 'sino_early*'},
         'sinoproject': {'name': '計畫封存', 'icon': '📦', 'indices': [], 'pattern': 'sinoproject*'},
-        'sinoeng': {'name': '環興封存', 'icon': '🏗️', 'indices': [], 'pattern': 'sinoeng-*'},
+        'sino_eng': {'name': '環興封存', 'icon': '🏗️', 'indices': [], 'pattern': 'sino_eng*'},
         'sinobim_element': {'name': 'BIM 元件', 'icon': '🧱', 'indices': [], 'pattern': 'sinobim_element*'},
         'sinobim_issue': {'name': 'BIM 議題', 'icon': '⚠️', 'indices': [], 'pattern': 'sinobim_issue*'},
         'sinobim_file': {'name': 'BIM 檔案', 'icon': '📐', 'indices': [], 'pattern': 'sinobim_file*'},
@@ -65,20 +134,30 @@ def get_index_categories():
     
     for idx in indices:
         name = idx['index']
-        # Strip 're_' prefix for matching purposes (re-indexed indices)
-        match_name = name[3:] if name.startswith('re_') else name
+        # Strip prefixes for matching purposes
+        match_name = name
+        if match_name.startswith('re_'):
+            match_name = match_name[3:]
+        if match_name.startswith('alias_'):
+            match_name = match_name[6:]
+        if match_name.startswith('reviewing_'):
+            match_name = match_name[10:]
+            
+        # Normalize for matching (convert - to _ for comparison)
+        norm_match_name = match_name.replace('-', '_')
+            
         matched = False
         # Order matters - more specific patterns first
-        for cat_key in ['sinobook_journal', 'sinoproject-dept', 'sinoproject-early', 
+        for cat_key in ['sinobook_journal', 'sino_dept', 'sino_early', 
                         'sinopmis_meeting', 'sinopmis_file', 'sinopmis_iobook_in', 'sinopmis_iobook_out',
                         'sinobim_element', 'sinobim_issue', 'sinobim_file',
                         'sino_website_in', 'sino_website_out', 'sino_website_user', 'sino_website_prkms',
                         'sinobook', 'sino_map', 'sinoqa', 'sino_kmv1', 'sino_kmv2',
-                        'sino_budget', 'sino_spec', 'sino_cns', 'sinoproject', 'sinoeng',
+                        'sino_budget', 'sino_spec', 'sino_cns', 'sinoproject', 'sino_eng',
                         'sino_prkms', 'sino_carbon', 'sino_drawing']:
             if cat_key in categories:
-                pattern = cat_key.replace('-', '-')
-                if match_name.startswith(pattern) or match_name.startswith(cat_key):
+                norm_cat_key = cat_key.replace('-', '_')
+                if norm_match_name.startswith(norm_cat_key):
                     categories[cat_key]['indices'].append(idx)
                     matched = True
                     break
@@ -87,6 +166,10 @@ def get_index_categories():
     for cat in categories.values():
         cat['total_docs'] = sum(int(i.get('docs.count', 0) or 0) for i in cat['indices'])
         cat['count'] = len(cat['indices'])
+    
+    # Cache using configurable timeout (default 900 seconds = 15 minutes)
+    cache_timeout = getattr(settings, 'OPENSEARCH_INDEX_CACHE_TIMEOUT', 900)
+    cache.set(cache_key, categories, cache_timeout)
     
     return categories
 
@@ -126,7 +209,7 @@ def parse_search_query(query):
     - title:關鍵字 - Search only in title field
     - ext:pdf - Search by file extension (e.g., ext:pdf, ext:docx)
     - proj:0001b - Search by project number (5 chars after sinoproject-)
-    - dept:11 - Search by department number (2 chars after sinoproject-dept_)
+    - dept:11 - Search by department number (2 chars after sino_dept_)
     
     Returns:
         dict with keys: 'query' (remaining query), 'title', 'ext', 'proj', 'dept'
@@ -176,7 +259,7 @@ def parse_search_query(query):
     return result
 
 
-def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, date_to=None):
+def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, date_to=None, include_content=False):
     """
     Execute search query against OpenSearch
     
@@ -188,6 +271,7 @@ def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, d
         sort_by: Sort field and order (e.g., "dt:desc")
         date_from: Filter by date from (ISO format)
         date_to: Filter by date to (ISO format)
+        include_content: Whether to search inside full-text content (slower)
     
     Returns:
         Search response with hits
@@ -207,16 +291,21 @@ def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, d
         # Search both alias_ and reviewing_ prefixed indices
         search_indices = "alias_*,reviewing_*"
     else:
-        # Handle comma-separated patterns
+        # Handle comma-separated patterns and hyphen/underscore variations
         parts = [p.strip() for p in indices.split(',')]
         alias_parts = []
         for part in parts:
-            if part.startswith('alias_') or part.startswith('reviewing_'):
-                alias_parts.append(part)
-            else:
-                # Add both alias_ and reviewing_ versions
-                alias_parts.append(f'alias_{part}')
-                alias_parts.append(f'reviewing_{part}')
+            # Generate hyphen and underscore versions
+            variations = {part, part.replace('-', '_'), part.replace('_', '-')}
+            for var in variations:
+                if var.startswith('alias_') or var.startswith('reviewing_'):
+                    alias_parts.append(var)
+                else:
+                    # Add both alias_ and reviewing_ versions
+                    alias_parts.append(f'alias_{var}')
+                    alias_parts.append(f'reviewing_{var}')
+        # Remove duplicates
+        alias_parts = sorted(list(set(alias_parts)))
         search_indices = ','.join(alias_parts)
     
     # Parse special search operators from query
@@ -224,12 +313,13 @@ def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, d
     # - title:關鍵字 - Search only in title field
     # - ext:pdf - Search by file extension
     # - proj:0001b - Search by project number (5 chars after sinoproject-)
-    # - dept:11 - Search by department number (2 chars after sinoproject-dept_)
+    # - dept:11 - Search by department number (2 chars after sino_dept_)
     parsed = parse_search_query(query)
     
     # Build query based on parsed operators
     must_clauses = []
     filter_clauses = []
+    should_clauses_main = []  # Top-level should clauses for boosting
     
     # Handle project number filter
     if parsed.get('proj'):
@@ -242,9 +332,9 @@ def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, d
     # Handle department filter
     if parsed.get('dept'):
         dept_code = parsed['dept']
-        # Department pattern: sinoproject-dept_XX where XX is the 2-char code
+        # Department pattern: sino_dept_XX where XX is the 2-char code
         filter_clauses.append({
-            "wildcard": {"_index": f"*sinoproject-dept_{dept_code}*"}
+            "wildcard": {"_index": f"*sino_dept_{dept_code}*"}
         })
     
     # Handle file extension filter
@@ -266,42 +356,72 @@ def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, d
     # Build main query
     main_query = parsed.get('query', '').strip()
     
+    # Build title phrase boost (boost exact phrase matches in title)
+    # Build title phrase boost (boost exact phrase matches in title)
     if parsed.get('title'):
-        # Title-only search
         title_terms = parsed['title']
         must_clauses.append({
-            "match_phrase": {
-                "title": title_terms
+            "wildcard": {
+                "file.filename": f"*{title_terms}*"
             }
+        })
+    elif main_query:
+        # Boost exact phrase match in title (user intent preservation) - SHOULD clause
+        should_clauses_main.append({
+             "match_phrase": {"file.filename": {"query": main_query, "boost": 2.0}}
+        })
+        should_clauses_main.append({
+             "match_phrase": {"content": {"query": main_query, "boost": 1.5}}
         })
     
     if main_query:
         terms = main_query.split()
         
         if len(terms) == 1:
-            # Single term: use match_phrase for exact phrase match
+            # Single term - use phrase match to prevent splitting into single characters
+            # Always search content field to find keywords inside documents
+            search_fields = ["title^3", "file.filename^2", "path.real^2", "meta", "file.extension", "content^1"]
+            
             must_clauses.append({
                 "multi_match": {
                     "query": main_query,
-                    "fields": ["title^3", "content^2", "file^2", "path", "meta", "*"],
-                    "type": "phrase"
+                    "fields": search_fields,
+                    "type": "phrase",
+                    "slop": 0
                 }
             })
         else:
-            # Multiple terms: use bool should for OR matching
-            should_clauses = []
+            # Multiple terms: use AND matching (must contains all terms)
+            # Each term is treated as a PHRASE (contiguous characters)
+            search_fields = ["title^3", "file.filename^2", "path.real^2", "meta", "file.extension", "content^1"]
+            
             for term in terms:
-                should_clauses.append({
+                must_clauses.append({
                     "multi_match": {
                         "query": term,
-                        "fields": ["title^3", "content^2", "file^2", "path", "meta", "*"],
-                        "type": "phrase"
+                        "fields": search_fields,
+                        "type": "phrase",
+                        "slop": 0  # Strict adjacency for characters in the term
                     }
                 })
-            must_clauses.append({
-                "bool": {
-                    "should": should_clauses,
-                    "minimum_should_match": 1
+            
+            # 2. Phrase Boost: If the WHOLE query matches as a phrase, give it a HUGE boost
+            should_clauses_main.append({
+                "match_phrase": {
+                    "file.filename": {
+                        "query": main_query,
+                        "boost": 10.0,
+                        "slop": 2 
+                    }
+                }
+            })
+            should_clauses_main.append({
+                "match_phrase": {
+                    "content": {
+                        "query": main_query,
+                        "boost": 5.0,
+                        "slop": 2
+                    }
                 }
             })
     
@@ -324,26 +444,49 @@ def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, d
             date_filter["range"]["dt"]["lte"] = date_to
         filters.append(date_filter)
     
-    # Construct body
+    # Construct body with performance optimizations
+    # Wrap in function_score for Popularity Boosting (vote field)
+    # Construct body with performance optimizations
+    # Wrap in function_score for Popularity Boosting (vote field)
+    query_body = {
+        "bool": {
+            "must": must_query,
+            "filter": filters,
+            "should": should_clauses_main
+        }
+    }
+    
     body = {
         "query": {
-            "bool": {
-                "must": must_query,
-                "filter": filters
+            "function_score": {
+                "query": query_body,
+                "field_value_factor": {
+                    "field": "vote",
+                    "factor": 1.2,
+                    "modifier": "log1p",
+                    "missing": 0
+                },
+                "boost_mode": "sum"
             }
         },
+        # Limit _source to essential fields only (exclude large content field unless requested)
+        "_source": {
+            "excludes": ["content"] if not include_content else []
+        },
+        # Optimized highlight - skip content field unless requested
         "highlight": {
             "pre_tags": ["<mark>"],
             "post_tags": ["</mark>"],
             "fields": {
                 "title": {"number_of_fragments": 0},
-                "content": {"fragment_size": 200, "number_of_fragments": 3},
                 "file": {"number_of_fragments": 0},
-                "path": {"number_of_fragments": 0}
+                "path": {"number_of_fragments": 0},
+                "content": {"fragment_size": 150, "number_of_fragments": 1}
             }
         },
         "size": size,
-        "from": from_
+        "from": from_,
+        "terminate_after": 5000  # Performance: Stop after finding enough candidates
     }
     
     # Add sort
@@ -356,7 +499,109 @@ def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, d
             index=search_indices,
             body=body,
             ignore_unavailable=True,
-            request_timeout=120
+            request_timeout=getattr(settings, 'OPENSEARCH_TIMEOUT', 30)
+        )
+        
+        # Process results: add category and clean text
+        hits = response.get('hits', {})
+        if 'hits' in hits:
+            # Get categories for lookup
+            categories_map = get_index_categories()
+            processed_hits = []
+            
+            for hit in hits['hits']:
+                index_name = hit.get('_index', '')
+                source = hit.get('_source', {})
+                
+                # 1. Clean title if garbled
+                if 'title' in source:
+                    source['title'] = clean_text(source['title'])
+                
+                # 2. Inject category name
+                category_name = "其他"
+                for cat_key, cat_data in categories_map.items():
+                    if any(idx['index'] == index_name for idx in cat_data['indices']):
+                        category_name = cat_data['name']
+                        
+                        # Special handling for sino_dept: Append department name
+                        if cat_key == 'sino_dept':
+                            # Extract dept code from index name (e.g. ...sino_dept_11...)
+                            import re
+                            match = re.search(r'sino_dept_(\d+)', index_name)
+                            if match:
+                                code = match.group(1)
+                                dept_name = DEPT_CODES.get(code)
+                                if dept_name:
+                                    category_name = f"{category_name} - {dept_name}"
+                        break
+                hit['category_name'] = category_name
+                
+                processed_hits.append(hit)
+            
+            hits['hits'] = processed_hits
+            
+        return response
+    except Exception as e:
+        return {"error": str(e), "hits": {"hits": [], "total": {"value": 0}}}
+
+
+def search_fast(query, indices="*", size=10):
+    """
+    Ultra-fast search for instant results (autocomplete, suggestions).
+    
+    Optimizations:
+    - No highlight
+    - Minimal _source fields
+    - terminate_after for early termination
+    - Shorter timeout
+    
+    Args:
+        query: Search query string
+        indices: Index pattern to search
+        size: Number of results (default: 10)
+    
+    Returns:
+        Search response with minimal hits
+    """
+    client = get_client()
+    
+    # Convert to alias patterns
+    if indices == "*":
+        search_indices = "alias_*,reviewing_*"
+    else:
+        parts = [p.strip() for p in indices.split(',')]
+        alias_parts = []
+        for part in parts:
+            variations = {part, part.replace('-', '_'), part.replace('_', '-')}
+            for var in variations:
+                if var.startswith('alias_') or var.startswith('reviewing_'):
+                    alias_parts.append(var)
+                else:
+                    alias_parts.append(f'alias_{var}')
+                    alias_parts.append(f'reviewing_{var}')
+        alias_parts = sorted(list(set(alias_parts)))
+        search_indices = ','.join(alias_parts)
+    
+    body = {
+        "query": {
+            "multi_match": {
+                "query": query,
+                "fields": ["title^3", "file.filename^2", "path.real"],
+                "type": "best_fields",
+                "tie_breaker": 0.3
+            }
+        },
+        "_source": ["title", "file.filename", "path.real", "dt", "_index"],
+        "size": size,
+        "terminate_after": size * 10  # Stop after finding enough candidates
+    }
+    
+    try:
+        response = client.search(
+            index=search_indices,
+            body=body,
+            ignore_unavailable=True,
+            request_timeout=5  # Very short timeout for fast search
         )
         return response
     except Exception as e:
@@ -368,8 +613,9 @@ def get_category_from_index(index_name):
     # Order matters - more specific patterns first
     patterns = [
         ('sinobook_journal', 'book_journal'),
-        ('sinoproject-dept', 'dept_file'),
-        ('sinoproject-early', 'early_file'),
+        ('sino_dept', 'dept_file'),
+        ('sino_early', 'early_file'),
+        ('sino_early', 'early_file'), # Handle both variations
         ('sinopmis_meeting', 'pmis_meeting'),
         ('sinopmis_file', 'pmis_file'),
         ('sinopmis_iobook_in', 'pmis_iobook_in'),
@@ -396,7 +642,7 @@ def get_category_from_index(index_name):
         ('sino_spec', 'spec'),
         ('sino_cns', 'cns'),
         ('sinoproject', 'file'),
-        ('sinoeng', 'eng_file'),
+        ('sino_eng', 'eng_file'),
     ]
     
     for pattern, template in patterns:

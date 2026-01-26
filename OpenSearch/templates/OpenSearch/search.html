@@ -150,9 +150,11 @@
 }
 
 .result-snippet mark {
-    background: transparent;
-    font-weight: 600;
+    background: #ffeb3b;  /* Brighter yellow */
     color: #202124;
+    font-weight: 700;
+    padding: 0 2px;
+    border-radius: 2px;
 }
 
 .result-meta {
@@ -297,7 +299,9 @@
 }
 
 .result-content-preview mark {
-    background: #fef7e0;
+    background: #ffeb3b;
+    color: #202124;
+    font-weight: 700;
     padding: 0 2px;
 }
 
@@ -452,7 +456,7 @@
 
         {% if query or indices != '*' %}
         <div class="search-stats">
-            約有 <strong>{{ total|floatformat:0 }}</strong> 項結果
+            約有 <strong>{{ total|floatformat:0 }}</strong> 項結果 (搜尋時間：{{ took_seconds }} 秒)
             {% if indices and indices != '*' %}(在 {{ indices }} 中搜尋){% endif %}
         </div>
         {% endif %}
@@ -558,6 +562,11 @@ function copyFolderPath(btn) {
     const container = btn.closest('.path-toggle-container');
     const fullPath = container.dataset.path;
     const folderPath = getFolderPath(fullPath);
+    
+    // Log the action to boost popularity
+    if (typeof logClick === 'function') {
+        logClick(container.dataset.index, container.dataset.docId, container.dataset.title, fullPath);
+    }
     
     navigator.clipboard.writeText(folderPath).then(() => {
         const originalText = btn.innerHTML;
