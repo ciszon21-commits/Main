@@ -33,4 +33,5 @@ urlpatterns = [
     path('api/resource/batch-update/', views.batch_update_references, name='batch_update_references'),
     path('api/resource/references/<int:pk>/', views.get_resource_references, name='get_resource_references'),
     path('api/hotspot/data/<int:pk>/', views.hotspot_data, name='hotspot_data'),
+    path('user-activity-logs/', views.UserActivityLogListView.as_view(), name='user_activity_logs'),
 ]

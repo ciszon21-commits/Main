@@ -322,10 +322,7 @@
                 <div class="alert alert-info">
                     <h6 class="mb-1"><i class="fas fa-info-circle"></i> 資源資訊</h6>
                     <p class="mb-0">
-                        <strong>標題：</strong><span id="ref_resource_title"></span><br>
-                        <strong>版本號：</strong><span id="ref_resource_version"></span>
-                        <span id="ref_is_latest" class="badge bg-success ms-2 d-none">最新版本</span>
-                        <span id="ref_has_newer" class="badge bg-warning text-dark ms-2 d-none">有新版本可用</span>
+                        <strong>標題：</strong><span id="ref_resource_title"></span>
                     </p>
                 </div>
 
@@ -355,12 +352,14 @@
                         <table class="table table-bordered table-hover">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 15%;">專案</th>
-                                    <th style="width: 20%;">場景</th>
-                                    <th style="width: 20%;">熱點標題</th>
-                                    <th style="width: 10%;">說明比對</th>
-                                    <th style="width: 15%;">版本狀態</th>
-                                    <th style="width: 10%;">操作</th>
+                                    <th style="width: 12%;">專案</th>
+                                    <th style="width: 15%;">場景</th>
+                                    <th style="width: 15%;">熱點標題</th>
+                                    <th style="width: 8%;">標題比對</th>
+                                    <th style="width: 8%;">類型比對</th>
+                                    <th style="width: 8%;">說明比對</th>
+                                    <th style="width: 15%;">同步狀態</th>
+                                    <th style="width: 12%;">操作</th>
                                 </tr>
                             </thead>
                             <tbody id="ref_references_tbody">
@@ -580,8 +579,10 @@
                 document.getElementById('edit_description').value = desc;
                 document.getElementById('edit_type').value = type;
 
-                // Store referencing status for updateMediaSections to use
+                // Store referencing status and media info for updateMediaSections to use
                 document.getElementById('editResourceForm').dataset.isReferencing = isReferencing;
+                document.getElementById('editResourceForm').dataset.hasImage = hasImage;
+                document.getElementById('editResourceForm').dataset.hasVideo = hasVideo;
 
                 // Show/hide reference warning
                 const warningDiv = document.getElementById('referenceWarning');
@@ -618,15 +619,46 @@
             const imageSection = document.getElementById('imageUploadSection');
             const videoSection = document.getElementById('videoUploadSection');
             const previewSection = document.getElementById('currentMediaPreview');
+            const typeSelect = document.getElementById('edit_type');
             const isReferencing = document.getElementById('editResourceForm').dataset.isReferencing === 'true';
+            const hasImage = document.getElementById('editResourceForm').dataset.hasImage === 'true';
+            const hasVideo = document.getElementById('editResourceForm').dataset.hasVideo === 'true';
 
-            // Always hide upload sections if referencing
+            // If referencing another resource, restrict type options based on current media
             if (isReferencing) {
+                // Determine current media category
+                let allowedTypes = [];
+                if (hasImage) {
+                    // Image types can only switch between image and image_hover
+                    allowedTypes = ['image', 'image_hover'];
+                } else if (hasVideo) {
+                    // Video types can only switch between video and video_hover
+                    allowedTypes = ['video', 'video_hover'];
+                } else {
+                    // Text types can only switch between text and text_hover
+                    allowedTypes = ['text', 'text_hover'];
+                }
+
+                // Disable options that are not allowed (show them greyed out, not hidden)
+                Array.from(typeSelect.options).forEach(option => {
+                    if (allowedTypes.includes(option.value)) {
+                        option.disabled = false;
+                    } else {
+                        option.disabled = true;
+                    }
+                });
+
+                // Always hide upload sections if referencing
                 imageSection.classList.add('d-none');
                 videoSection.classList.add('d-none');
                 // We still show the preview section so they can see what it is
                 previewSection.classList.remove('d-none');
                 return;
+            } else {
+                // Not referencing - enable all type options
+                Array.from(typeSelect.options).forEach(option => {
+                    option.disabled = false;
+                });
             }
 
             if (type === 'text' || type === 'text_hover') {
@@ -724,16 +756,6 @@
                         if (data.status === 'success') {
                             // Update resource info
                             document.getElementById('ref_resource_title').textContent = data.resource_title;
-                            document.getElementById('ref_resource_version').textContent = `v${data.resource_version}`;
-
-                            // Show version badges
-                            if (data.is_latest) {
-                                document.getElementById('ref_is_latest').classList.remove('d-none');
-                                document.getElementById('ref_has_newer').classList.add('d-none');
-                            } else if (data.has_newer_version) {
-                                document.getElementById('ref_is_latest').classList.add('d-none');
-                                document.getElementById('ref_has_newer').classList.remove('d-none');
-                            }
 
                             if (data.reference_count === 0) {
                                 // No references
@@ -763,33 +785,41 @@
                                         <td>${ref.scene_title}</td>
                                         <td>${ref.hotspot_title}</td>
                                         <td class="text-center">
-                                            <button class="btn btn-sm btn-outline-info toggle-desc-btn" data-row-index="${index}">
-                                                <i class="fas fa-eye"></i> 
-                                                ${ref.description_modified ?
-                                            '<span class="badge bg-warning text-dark ms-1">已修改</span>' :
-                                            '<span class="badge bg-success ms-1">相同</span>'
-                                        }
-                                            </button>
+                                            ${ref.title_modified ?
+                                            '<span class="badge bg-warning text-dark"><i class="fas fa-exclamation-circle"></i> 已修改</span>' :
+                                            '<span class="badge bg-success"><i class="fas fa-check"></i> 相同</span>'}
+                                        </td>
+                                        <td class="text-center">
+                                            ${ref.type_modified ?
+                                            '<span class="badge bg-warning text-dark"><i class="fas fa-exclamation-circle"></i> 已修改</span>' :
+                                            '<span class="badge bg-success"><i class="fas fa-check"></i> 相同</span>'}
+                                        </td>
+                                        <td class="text-center">
+                                            ${ref.description_modified ?
+                                            '<span class="badge bg-warning text-dark"><i class="fas fa-exclamation-circle"></i> 已修改</span>' :
+                                            '<span class="badge bg-success"><i class="fas fa-check"></i> 相同</span>'}
                                         </td>
                                         <td class="text-center">
                                             ${ref.is_outdated ?
                                             `<span class="badge bg-warning text-dark">
-                                                    <i class="fas fa-exclamation-triangle"></i> 
-                                                    v${ref.current_version} (可更新至 v${ref.latest_version})
+                                                    <i class="fas fa-exclamation-triangle"></i> 需要同步
                                                 </span>` :
                                             `<span class="badge bg-success">
-                                                    <i class="fas fa-check"></i> 最新
+                                                    <i class="fas fa-check"></i> 已同步
                                                 </span>`
                                         }
                                         </td>
                                         <td class="text-center">
+                                            <button class="btn btn-sm btn-outline-info toggle-desc-btn mb-1" data-row-index="${index}">
+                                                <i class="fas fa-eye"></i> 查看詳情
+                                            </button>
                                             ${ref.is_outdated ?
                                             `<button class="btn btn-sm btn-warning update-single-ref-btn" 
                                                     data-ref-id="${ref.id}"
                                                     data-latest-version="${ref.latest_version}">
                                                     <i class="fas fa-sync-alt"></i> 更新
                                                 </button>` :
-                                            `<span class="text-muted">-</span>`
+                                            ``
                                         }
                                         </td>
                                     `;
@@ -800,24 +830,54 @@
                                     detailRow.className = 'detail-row d-none';
                                     detailRow.setAttribute('data-row-index', index);
                                     detailRow.innerHTML = `
-                                        <td colspan="6" class="bg-light">
+                                        <td colspan="8" class="bg-light">
                                             <div class="p-3">
-                                                <div class="row">
+                                                <h6 class="mb-3"><i class="fas fa-exchange-alt"></i> 詳細比對</h6>
+                                                <div class="row mb-3">
                                                     <div class="col-md-6">
-                                                        <h6 class="text-primary"><i class="fas fa-database"></i> 原始資源說明</h6>
-                                                        <div class="border rounded p-2 bg-white">
+                                                        <h6 class="text-primary"><i class="fas fa-heading"></i> 標題比對</h6>
+                                                        <div class="border rounded p-2 bg-white mb-2">
+                                                            <small class="text-muted d-block">原始資源：</small>
+                                                            <strong>${ref.source_title}</strong>
+                                                        </div>
+                                                        <div class="border rounded p-2 bg-white ${ref.title_modified ? 'border-warning' : ''}">
+                                                            <small class="text-muted d-block">引用熱點：</small>
+                                                            <strong>${ref.hotspot_title}</strong>
+                                                            ${ref.title_modified ? '<span class="badge bg-warning text-dark ms-2">已修改</span>' : ''}
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <h6 class="text-primary"><i class="fas fa-tag"></i> 類型比對</h6>
+                                                        <div class="border rounded p-2 bg-white mb-2">
+                                                            <small class="text-muted d-block">原始資源：</small>
+                                                            <span class="badge badge-${ref.source_type}">${ref.source_type_display}</span>
+                                                        </div>
+                                                        <div class="border rounded p-2 bg-white ${ref.type_modified ? 'border-warning' : ''}">
+                                                            <small class="text-muted d-block">引用熱點：</small>
+                                                            <span class="badge badge-${ref.hotspot_type}">${ref.hotspot_type_display}</span>
+                                                            ${ref.type_modified ? '<span class="badge bg-warning text-dark ms-2">已修改</span>' : ''}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <h6 class="text-primary"><i class="fas fa-align-left"></i> 說明比對</h6>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <small class="text-muted d-block mb-1">原始資源說明：</small>
+                                                        <div class="border rounded p-2 bg-white" style="min-height: 80px;">
                                                             ${ref.source_description || '<span class="text-muted">無說明</span>'}
                                                         </div>
                                                     </div>
                                                     <div class="col-md-6">
-                                                        <h6 class="text-success"><i class="fas fa-edit"></i> 引用熱點說明</h6>
-                                                        <div class="border rounded p-2 bg-white ${ref.description_modified ? 'border-warning' : ''}">
+                                                        <small class="text-muted d-block mb-1">引用熱點說明：</small>
+                                                        <div class="border rounded p-2 bg-white ${ref.description_modified ? 'border-warning' : ''}" style="min-height: 80px;">
                                                             ${ref.hotspot_description || '<span class="text-muted">無說明</span>'}
-                                                        </div>
-                                                        ${ref.description_modified ?
-                                            '<small class="text-warning"><i class="fas fa-exclamation-circle"></i> 此引用的說明已被修改</small>' :
-                                            '<small class="text-success"><i class="fas fa-check-circle"></i> 說明與原始資源相同</small>'
+                                                            ${ref.description_modified ?
+                                            '<span class="badge bg-warning text-dark ms-2">已修改</span>' :
+                                            ''
                                         }
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>

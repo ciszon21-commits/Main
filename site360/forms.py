@@ -31,3 +31,39 @@ class SceneForm(forms.ModelForm):
             'yaw': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
             'hfov': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
         }
+
+class ProjectMapSearchForm(forms.Form):
+    """專案地圖搜尋表單"""
+    search_query = forms.CharField(
+        label='專案名稱',
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '搜尋專案名稱...',
+        })
+    )
+    
+    city = forms.ChoiceField(
+        label='縣市',
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    address = forms.CharField(
+        label='地址',
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '搜尋地址關鍵字...',
+        })
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Dynamically populate city choices from Project model
+        from .models import Project
+        cities = Project.objects.exclude(city='').values_list('city', flat=True).distinct().order_by('city')
+        city_choices = [('', '--- 全部縣市 ---')] + [(city, city) for city in cities]
+        self.fields['city'].choices = city_choices
