@@ -1,0 +1,1505 @@
+{% extends "SinoTemplate/base.html" %}
+{% load static %}
+
+{% block title %}{{ room.name }} - Sinotech 聊天{% endblock %}
+
+{% block head_block %}
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+:root {
+    --sino-red: #C41E3A;
+    --sino-red-dark: #A01830;
+    --bg-primary: #FFFFFF;
+    --bg-chat: #F5E6E8;
+    --text-primary: #1A1A1A;
+    --text-secondary: #999999;
+    --text-white: #FFFFFF;
+    --bubble-self: #C41E3A;
+    --bubble-other: #FFFFFF;
+}
+
+.chat-container {
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--bg-chat);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+}
+
+.chat-header {
+    background: var(--sino-red);
+    color: white;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.back-btn {
+    color: white;
+    font-size: 24px;
+    text-decoration: none;
+}
+
+.room-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.room-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+}
+
+.room-name {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.header-actions {
+    display: flex;
+    gap: 16px;
+}
+
+.header-actions a {
+    color: white;
+    font-size: 20px;
+}
+
+/* 訊息區域 */
+.messages-wrapper {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+.burn-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    background: linear-gradient(180deg, var(--bg-chat) 0%, rgba(245, 230, 232, 0.8) 30%, transparent 100%);
+    z-index: 10;
+    pointer-events: none;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 12px;
+}
+
+.burn-text {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: rgba(196, 30, 58, 0.5);
+}
+
+.messages-area {
+    height: 100%;
+    overflow-y: auto;
+    padding: 80px 16px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* 日期標籤 */
+.date-label {
+    text-align: center;
+    margin: 8px 0;
+}
+
+.date-badge {
+    display: inline-block;
+    background: rgba(0,0,0,0.12);
+    color: white;
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 12px;
+}
+
+/* 訊息氣泡 */
+.message-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+}
+
+.message-row.self {
+    justify-content: flex-end;
+}
+
+.message-row.system {
+    justify-content: center;
+}
+
+.msg-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.msg-bubble {
+    max-width: 70%;
+    padding: 10px 14px;
+    border-radius: 16px;
+}
+
+.message-row.other .msg-bubble {
+    background: var(--bubble-other);
+    border-top-left-radius: 0;
+}
+
+.message-row.self .msg-bubble {
+    background: var(--bubble-self);
+    border-top-right-radius: 0;
+    color: white;
+}
+
+.message-row.system .msg-bubble {
+    background: rgba(0,0,0,0.08);
+    font-size: 12px;
+    color: var(--text-secondary);
+    padding: 6px 12px;
+}
+
+.msg-sender {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--sino-red);
+    margin-bottom: 4px;
+}
+
+.msg-content {
+    font-size: 14px;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.msg-time {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.msg-attachments {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.message-row.self .msg-time {
+    color: rgba(255,255,255,0.7);
+}
+
+/* 圖片訊息 */
+.msg-image {
+    max-width: 180px;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+/* 檔案訊息 */
+.msg-file {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.2);
+    padding: 8px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+}
+
+.message-row.self .msg-file {
+    background: rgba(255,255,255,0.2);
+}
+
+.message-row.other .msg-file {
+    background: rgba(0,0,0,0.05);
+}
+
+.file-icon {
+    width: 40px;
+    height: 40px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.file-info {
+    flex: 1;
+}
+
+.file-name {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.file-size {
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+/* 輸入區域 */
+.input-area {
+    background: var(--bg-primary);
+    padding: 10px 12px 24px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.input-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s;
+}
+
+.input-btn.media {
+    background: #E0E0E0;
+    color: #666;
+}
+
+.input-btn.media.secondary {
+    display: none;
+}
+
+.input-area.media-open .input-btn.media.secondary {
+    display: flex;
+}
+
+.input-btn.media:hover {
+    background: #D0D0D0;
+}
+
+.input-btn.send {
+    background: var(--sino-red);
+    color: white;
+}
+
+.input-btn.send:hover {
+    background: var(--sino-red-dark);
+}
+
+.text-input {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 20px;
+    background: var(--bg-chat);
+    font-size: 14px;
+}
+
+.text-input:focus {
+    outline: none;
+}
+
+/* 檔案預覽 */
+.file-preview {
+    background: var(--bg-primary);
+    padding: 8px 12px;
+    border-top: 1px solid #E5E5E5;
+    display: none;
+}
+
+.file-preview.show {
+    display: block;
+}
+
+.preview-list {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.preview-item {
+    position: relative;
+    padding: 8px 12px;
+    background: #F5F5F5;
+    border-radius: 8px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.preview-item .remove-btn {
+    cursor: pointer;
+    color: #999;
+}
+
+.preview-size {
+    font-size: 11px;
+    color: #777;
+}
+
+/* 側邊欄 - 成員列表 */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    display: none;
+}
+
+.sidebar-overlay.show {
+    display: block;
+}
+
+.members-sidebar {
+    position: fixed;
+    top: 0;
+    right: -300px;
+    width: 300px;
+    height: 100vh;
+    background: white;
+    z-index: 1001;
+    transition: right 0.3s;
+    display: flex;
+    flex-direction: column;
+}
+
+.members-sidebar.show {
+    right: 0;
+}
+
+.sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid #E5E5E5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sidebar-header h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.close-sidebar {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+}
+
+.members-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+}
+
+.member-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+}
+
+.member-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--sino-red);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.member-info {
+    flex: 1;
+}
+
+.member-name {
+    font-weight: 600;
+}
+
+.member-role {
+    font-size: 12px;
+    color: #999;
+}
+
+.sidebar-actions {
+    padding: 16px;
+    border-top: 1px solid #E5E5E5;
+}
+
+.sidebar-btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-bottom: 8px;
+}
+
+.sidebar-btn.invite {
+    background: var(--sino-red);
+    color: white;
+}
+
+.sidebar-btn.leave {
+    background: #F5F5F5;
+    color: #666;
+}
+
+.sidebar-btn.download {
+    background: #E8F0FE;
+    color: #1A73E8;
+}
+
+/* 邀請成員彈窗 */
+.invite-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 2000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.invite-modal.show {
+    display: flex;
+}
+
+.invite-dialog {
+    background: white;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 400px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.invite-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #E5E5E5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.invite-header h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.close-invite {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+}
+
+.invite-body {
+    padding: 16px 20px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.invite-search {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.invite-search i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+}
+
+.invite-search input {
+    width: 100%;
+    padding: 12px 12px 12px 40px;
+    border: 1px solid #E5E5E5;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.invite-search input:focus {
+    outline: none;
+    border-color: var(--sino-red);
+}
+
+.invite-results {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.invite-user-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.invite-user-item:hover {
+    background: #F5F5F5;
+}
+
+.invite-user-item.selected {
+    background: rgba(196, 30, 58, 0.1);
+}
+
+.invite-user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--sino-red);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.invite-user-info {
+    flex: 1;
+}
+
+.invite-user-name {
+    font-weight: 600;
+}
+
+.invite-user-dept {
+    font-size: 12px;
+    color: #999;
+}
+
+.invite-user-check {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #E5E5E5;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.invite-user-item.selected .invite-user-check {
+    background: var(--sino-red);
+    border-color: var(--sino-red);
+    color: white;
+}
+
+.selected-list {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #E5E5E5;
+}
+
+.selected-list h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: #666;
+}
+
+.selected-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.selected-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #F5F5F5;
+    border-radius: 20px;
+    font-size: 13px;
+}
+
+.selected-tag .remove-tag {
+    cursor: pointer;
+    color: #999;
+    font-size: 14px;
+}
+
+.invite-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #E5E5E5;
+}
+
+.invite-submit {
+    width: 100%;
+    padding: 14px;
+    background: var(--sino-red);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.invite-submit:hover {
+    background: var(--sino-red-dark);
+}
+
+.invite-submit:disabled {
+    background: #CCC;
+    cursor: not-allowed;
+}
+
+.no-results {
+    text-align: center;
+    padding: 20px;
+    color: #999;
+}
+
+/* 下載記錄 */
+.download-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 2100;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.download-modal.show {
+    display: flex;
+}
+
+.download-dialog {
+    background: white;
+    border-radius: 16px;
+    width: 92%;
+    max-width: 480px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.download-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #E5E5E5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.download-header h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.close-download {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+}
+
+.download-body {
+    padding: 16px 20px;
+    overflow-y: auto;
+}
+
+.download-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.download-item {
+    padding: 12px 14px;
+    border: 1px solid #E5E5E5;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.download-file {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.download-meta {
+    font-size: 12px;
+    color: #666;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.download-action {
+    margin-top: 6px;
+}
+
+.download-link {
+    display: inline-block;
+    padding: 6px 10px;
+    background: #F5F5F5;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #444;
+    font-size: 12px;
+}
+
+.download-empty,
+.download-loading,
+.download-error {
+    text-align: center;
+    padding: 20px 0;
+    color: #999;
+    font-size: 13px;
+}
+
+/* 隱藏的檔案輸入 */
+.hidden-input {
+    display: none;
+}
+
+/* 手機適配 */
+@media (max-width: 480px) {
+    .chat-container {
+        max-width: 100%;
+        box-shadow: none;
+    }
+}
+</style>
+{% endblock %}
+
+{% block main_block %}
+<div class="chat-container">
+    <!-- 標題欄 -->
+    <div class="chat-header">
+        <a href="{% url 'sinochat:room_list' %}" class="back-btn">
+            <i class="bi bi-chevron-left"></i>
+        </a>
+        <div class="room-info">
+            <div class="room-avatar" style="background-color: {{ room.avatar_color }}">
+                <i class="bi bi-{% if room.visibility == 'private' %}lock{% else %}people{% endif %}"></i>
+            </div>
+            <span class="room-name">{{ room.name }}</span>
+        </div>
+        <div class="header-actions">
+            <a href="#" id="membersToggle" title="成員"><i class="bi bi-people"></i></a>
+            <a href="#" id="menuToggle" title="選單"><i class="bi bi-list"></i></a>
+        </div>
+    </div>
+
+    <!-- 訊息區域 -->
+    <div class="messages-wrapper">
+        <div class="burn-overlay">
+            <div class="burn-text">
+                <i class="bi bi-fire"></i>
+                <span>舊訊息將自動消失（僅保留最後{{ max_messages }}則）</span>
+            </div>
+        </div>
+        <div class="messages-area" id="messagesArea">
+            <!-- 日期標籤 -->
+            <div class="date-label">
+                <span class="date-badge">今天</span>
+            </div>
+
+            {% for message in messages %}
+            <div class="message-row {% if message.sender == request.user %}self{% elif message.message_type == 'system' %}system{% else %}other{% endif %}" data-id="{{ message.id }}">
+                {% if message.message_type != 'system' and message.sender != request.user %}
+                <div class="msg-avatar" style="background-color: {{ room.avatar_color }}">
+                    <i class="bi bi-person"></i>
+                </div>
+                {% endif %}
+
+                <div class="msg-bubble">
+                    {% if message.message_type != 'system' and message.sender != request.user %}
+                    <div class="msg-sender">
+                        {{ message.sender.get_full_name|default:message.sender.username }}
+                    </div>
+                    {% endif %}
+
+                    {% if message.message_type == 'system' %}
+                        <div class="msg-content">{{ message.content }}</div>
+                    {% else %}
+                        {% if message.content %}
+                        <div class="msg-content">{{ message.content }}</div>
+                        {% endif %}
+                        {% with files=message.files.all %}
+                            {% if files %}
+                            <div class="msg-attachments">
+                                {% for file in files %}
+                                    {% if file.is_image %}
+                                    <img src="{% url 'sinochat:file_access' file_id=file.id %}" class="msg-image" alt="{{ file.original_name }}" onclick="window.open(this.src)">
+                                    {% else %}
+                                    <a href="{% url 'sinochat:file_access' file_id=file.id %}?download=1" class="msg-file" target="_blank">
+                                        <div class="file-icon">
+                                            <i class="bi bi-file-earmark"></i>
+                                        </div>
+                                        <div class="file-info">
+                                            <div class="file-name">{{ file.original_name }}</div>
+                                            <div class="file-size">{{ file.file_size_display }}</div>
+                                        </div>
+                                    </a>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        {% endwith %}
+                    {% endif %}
+
+                    {% if message.message_type != 'system' %}
+                    <div class="msg-time">
+                        {{ message.created_at|date:"A h:i" }}
+                        {% if message.sender == request.user %}✓✓{% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 檔案預覽 -->
+    <div class="file-preview" id="filePreview">
+        <div class="preview-list" id="previewList"></div>
+    </div>
+
+    <!-- 輸入區域 -->
+    <div class="input-area media-open">
+        <button type="button" class="input-btn media" id="addMediaBtn" title="新增">
+            <i class="bi bi-plus-lg"></i>
+        </button>
+        <button type="button" class="input-btn media secondary" id="attachFileBtn" title="上傳檔案">
+            <i class="bi bi-paperclip"></i>
+        </button>
+        <button type="button" class="input-btn media secondary" id="attachImageBtn" title="上傳圖片">
+            <i class="bi bi-image"></i>
+        </button>
+        <input type="text" class="text-input" id="messageInput" placeholder="輸入訊息...">
+        <button type="button" class="input-btn send" id="sendBtn">
+            <i class="bi bi-send"></i>
+        </button>
+    </div>
+
+    <!-- 隱藏的檔案輸入 -->
+    <input type="file" id="fileInput" class="hidden-input" multiple>
+    <input type="file" id="imageInput" class="hidden-input" accept="image/*" multiple>
+</div>
+
+<!-- 成員側邊欄 -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="members-sidebar" id="membersSidebar">
+    <div class="sidebar-header">
+        <h3>成員 ({{ members.count }})</h3>
+        <button class="close-sidebar" id="closeSidebar">×</button>
+    </div>
+    <div class="members-list">
+        {% for member in members %}
+        <div class="member-item">
+            <div class="member-avatar">
+                <i class="bi bi-person"></i>
+            </div>
+            <div class="member-info">
+                <div class="member-name">
+                    {{ member.user.get_full_name|default:member.user.username }}
+                </div>
+                <div class="member-role">
+                    {% if member.role == 'admin' %}管理員{% else %}成員{% endif %}
+                    {% if member.user == room.creator %} · 建立者{% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="sidebar-actions">
+        {% if is_admin %}
+        <button class="sidebar-btn invite" id="inviteBtn">
+            <i class="bi bi-person-plus"></i> 邀請成員
+        </button>
+        {% endif %}
+        <button class="sidebar-btn download" id="downloadBtn">
+            <i class="bi bi-clock-history"></i> 下載記錄
+        </button>
+        <button class="sidebar-btn leave" id="leaveBtn">
+            <i class="bi bi-box-arrow-right"></i> 離開聊天室
+        </button>
+    </div>
+</div>
+<!-- 邀請成員彈窗 -->
+<div class="invite-modal" id="inviteModal">
+    <div class="invite-dialog">
+        <div class="invite-header">
+            <h3><i class="bi bi-person-plus"></i> 邀請成員</h3>
+            <button class="close-invite" id="closeInvite">×</button>
+        </div>
+        <div class="invite-body">
+            <div class="invite-search">
+                <i class="bi bi-search"></i>
+                <input type="text" id="inviteSearchInput" placeholder="搜尋同仁姓名...">
+            </div>
+            <div class="invite-results" id="inviteResults">
+                <div class="no-results">輸入姓名開始搜尋</div>
+            </div>
+            <div class="selected-list" id="selectedList" style="display: none;">
+                <h4>已選擇的成員</h4>
+                <div class="selected-tags" id="selectedTags"></div>
+            </div>
+        </div>
+        <div class="invite-footer">
+            <button class="invite-submit" id="inviteSubmit" disabled>
+                <i class="bi bi-send"></i> 發送邀請
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 下載記錄彈窗 -->
+<div class="download-modal" id="downloadModal">
+    <div class="download-dialog">
+        <div class="download-header">
+            <h3><i class="bi bi-clock-history"></i> 下載記錄</h3>
+            <button class="close-download" id="closeDownload">×</button>
+        </div>
+        <div class="download-body">
+            <div class="download-loading" id="downloadLoading">載入中...</div>
+            <div class="download-error" id="downloadError" style="display: none;">載入失敗，請稍後再試</div>
+            <div class="download-empty" id="downloadEmpty" style="display: none;">尚無下載記錄</div>
+            <div class="download-list" id="downloadList"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const roomId = {{ room.id }};
+    const currentUserId = {{ request.user.id }};
+    const messagesArea = document.getElementById('messagesArea');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const addMediaBtn = document.getElementById('addMediaBtn');
+    const inputArea = document.querySelector('.input-area');
+    const fileInput = document.getElementById('fileInput');
+    const imageInput = document.getElementById('imageInput');
+    const filePreview = document.getElementById('filePreview');
+    const previewList = document.getElementById('previewList');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const menuToggle = document.getElementById('menuToggle');
+    const downloadModal = document.getElementById('downloadModal');
+    const closeDownload = document.getElementById('closeDownload');
+    const downloadList = document.getElementById('downloadList');
+    const downloadLoading = document.getElementById('downloadLoading');
+    const downloadEmpty = document.getElementById('downloadEmpty');
+    const downloadError = document.getElementById('downloadError');
+
+    let lastMessageId = 0;
+    {% if messages %}
+        {% with last_msg=messages|last %}
+            {% if last_msg %}
+                lastMessageId = {{ last_msg.id }};
+            {% endif %}
+        {% endwith %}
+    {% endif %}
+
+    let selectedFiles = [];
+
+    // 滾動到底部
+    function scrollToBottom() {
+        messagesArea.scrollTop = messagesArea.scrollHeight;
+    }
+    scrollToBottom();
+
+    // 發送訊息
+    function sendMessage() {
+        const content = messageInput.value.trim();
+        if (!content && selectedFiles.length === 0) return;
+
+        const formData = new FormData();
+        formData.append('content', content);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        selectedFiles.forEach(file => {
+            formData.append('files', file);
+        });
+
+        fetch(`{% url 'sinochat:send_message' room_id=room.id %}`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                messageInput.value = '';
+                selectedFiles = [];
+                updateFilePreview();
+                appendMessage(data.message, true);
+                scrollToBottom();
+            } else {
+                alert(data.error || '發送失敗');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    // 新增訊息到畫面
+    function appendMessage(msg, isSelf) {
+        const row = document.createElement('div');
+        row.className = `message-row ${isSelf ? 'self' : msg.message_type === 'system' ? 'system' : 'other'}`;
+        row.dataset.id = msg.id;
+
+        let html = '';
+
+        if (msg.message_type !== 'system' && !isSelf) {
+            html += `<div class="msg-avatar" style="background-color: {{ room.avatar_color }}">
+                <i class="bi bi-person"></i>
+            </div>`;
+        }
+
+        html += '<div class="msg-bubble">';
+
+        if (msg.message_type !== 'system' && !isSelf) {
+            html += `<div class="msg-sender">${msg.sender_name}</div>`;
+        }
+
+        if (msg.message_type === 'system') {
+            html += `<div class="msg-content">${msg.content || ''}</div>`;
+        } else {
+            if (msg.content) {
+                html += `<div class="msg-content">${msg.content}</div>`;
+            }
+            if (msg.files && msg.files.length > 0) {
+                html += '<div class="msg-attachments">';
+                msg.files.forEach(file => {
+                    if (file.is_image) {
+                        html += `<img src="${file.url}" class="msg-image" onclick="window.open(this.src)">`;
+                    } else {
+                        const downloadUrl = file.download_url || file.url;
+                        html += `<a href="${downloadUrl}" class="msg-file" target="_blank">
+                            <div class="file-icon"><i class="bi bi-file-earmark"></i></div>
+                            <div class="file-info">
+                                <div class="file-name">${file.name}</div>
+                                <div class="file-size">${file.size}</div>
+                            </div>
+                        </a>`;
+                    }
+                });
+                html += '</div>';
+            }
+        }
+
+        if (msg.message_type !== 'system') {
+            html += `<div class="msg-time">${msg.created_at}${isSelf ? ' ✓✓' : ''}</div>`;
+        }
+
+        html += '</div>';
+        row.innerHTML = html;
+        messagesArea.appendChild(row);
+        lastMessageId = msg.id;
+    }
+
+    // 輪詢新訊息
+    function pollMessages() {
+        fetch(`{% url 'sinochat:get_messages' room_id=room.id %}?last_id=${lastMessageId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.messages.length > 0) {
+                data.messages.forEach(msg => {
+                    if (!document.querySelector(`[data-id="${msg.id}"]`)) {
+                        appendMessage(msg, msg.is_self);
+                    }
+                });
+                scrollToBottom();
+            }
+        })
+        .catch(error => console.error('Poll error:', error));
+    }
+
+    // 每 3 秒輪詢一次
+    setInterval(pollMessages, 3000);
+
+    // 事件綁定
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    if (addMediaBtn && inputArea) {
+        addMediaBtn.addEventListener('click', function() {
+            inputArea.classList.toggle('media-open');
+        });
+    }
+
+    // 檔案上傳
+    document.getElementById('attachFileBtn').addEventListener('click', () => fileInput.click());
+    document.getElementById('attachImageBtn').addEventListener('click', () => imageInput.click());
+
+    function handleFileSelect(e) {
+        const files = Array.from(e.target.files);
+        selectedFiles = selectedFiles.concat(files);
+        updateFilePreview();
+        e.target.value = '';
+    }
+
+    fileInput.addEventListener('change', handleFileSelect);
+    imageInput.addEventListener('change', handleFileSelect);
+
+    function formatFileSize(size) {
+        const units = ['B', 'KB', 'MB', 'GB'];
+        let index = 0;
+        let value = size;
+        while (value >= 1024 && index < units.length - 1) {
+            value /= 1024;
+            index += 1;
+        }
+        return `${value.toFixed(1)} ${units[index]}`;
+    }
+
+    function updateFilePreview() {
+        if (selectedFiles.length === 0) {
+            filePreview.classList.remove('show');
+            return;
+        }
+
+        filePreview.classList.add('show');
+        previewList.innerHTML = selectedFiles.map((file, index) => `
+            <div class="preview-item">
+                <i class="bi bi-${file.type.startsWith('image/') ? 'image' : 'file-earmark'}"></i>
+                <span>${file.name}</span>
+                <span class="preview-size">${formatFileSize(file.size)}</span>
+                <span class="remove-btn" onclick="removeFile(${index})">×</span>
+            </div>
+        `).join('');
+    }
+
+    window.removeFile = function(index) {
+        selectedFiles.splice(index, 1);
+        updateFilePreview();
+    };
+
+    // 側邊欄
+    const sidebar = document.getElementById('membersSidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+
+    document.getElementById('membersToggle').addEventListener('click', function(e) {
+        e.preventDefault();
+        sidebar.classList.add('show');
+        overlay.classList.add('show');
+    });
+
+    document.getElementById('closeSidebar').addEventListener('click', closeSidebar);
+    overlay.addEventListener('click', closeSidebar);
+
+    function closeSidebar() {
+        sidebar.classList.remove('show');
+        overlay.classList.remove('show');
+    }
+
+    // 離開聊天室
+    document.getElementById('leaveBtn').addEventListener('click', function() {
+        if (confirm('確定要離開此聊天室嗎？')) {
+            fetch(`{% url 'sinochat:leave_room' room_id=room.id %}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = '{% url "sinochat:room_list" %}';
+                }
+            });
+        }
+    });
+
+    // 邀請成員功能
+    const inviteModal = document.getElementById('inviteModal');
+    const inviteBtn = document.getElementById('inviteBtn');
+    const closeInvite = document.getElementById('closeInvite');
+    const inviteSearchInput = document.getElementById('inviteSearchInput');
+    const inviteResults = document.getElementById('inviteResults');
+    const selectedList = document.getElementById('selectedList');
+    const selectedTags = document.getElementById('selectedTags');
+    const inviteSubmit = document.getElementById('inviteSubmit');
+
+    let selectedInviteUsers = [];
+    let searchTimeout = null;
+
+    // 開啟邀請彈窗
+    if (inviteBtn) {
+        inviteBtn.addEventListener('click', function() {
+            inviteModal.classList.add('show');
+            closeSidebar();
+            inviteSearchInput.focus();
+        });
+    }
+
+    // 關閉邀請彈窗
+    closeInvite.addEventListener('click', closeInviteModal);
+    inviteModal.addEventListener('click', function(e) {
+        if (e.target === inviteModal) {
+            closeInviteModal();
+        }
+    });
+
+    function closeInviteModal() {
+        inviteModal.classList.remove('show');
+        inviteSearchInput.value = '';
+        inviteResults.innerHTML = '<div class="no-results">輸入姓名開始搜尋</div>';
+    }
+
+    // 搜尋用戶
+    inviteSearchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+
+        if (searchTimeout) clearTimeout(searchTimeout);
+
+        if (query.length < 1) {
+            inviteResults.innerHTML = '<div class="no-results">輸入姓名開始搜尋</div>';
+            return;
+        }
+
+        inviteResults.innerHTML = '<div class="no-results">搜尋中...</div>';
+
+        searchTimeout = setTimeout(() => {
+            fetch(`{% url 'sinochat:search_users' %}?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.users.length > 0) {
+                    inviteResults.innerHTML = data.users.map(u => {
+                        const isSelected = selectedInviteUsers.find(s => s.id === u.id);
+                        return `
+                            <div class="invite-user-item ${isSelected ? 'selected' : ''}"
+                                 data-id="${u.id}" data-name="${u.name}" data-username="${u.username}">
+                                <div class="invite-user-avatar">
+                                    <i class="bi bi-person"></i>
+                                </div>
+                                <div class="invite-user-info">
+                                    <div class="invite-user-name">${u.name}</div>
+                                    <div class="invite-user-dept">${u.username}</div>
+                                </div>
+                                <div class="invite-user-check">
+                                    ${isSelected ? '<i class="bi bi-check"></i>' : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    // 綁定點擊事件
+                    inviteResults.querySelectorAll('.invite-user-item').forEach(item => {
+                        item.addEventListener('click', function() {
+                            toggleInviteUser(this.dataset.id, this.dataset.name);
+                        });
+                    });
+                } else {
+                    inviteResults.innerHTML = '<div class="no-results">找不到用戶</div>';
+                }
+            });
+        }, 300);
+    });
+
+    // 選擇/取消選擇用戶
+    function toggleInviteUser(id, name) {
+        const index = selectedInviteUsers.findIndex(u => u.id === id);
+        if (index > -1) {
+            selectedInviteUsers.splice(index, 1);
+        } else {
+            selectedInviteUsers.push({ id, name });
+        }
+        updateInviteUI();
+    }
+
+    // 移除已選用戶
+    window.removeInviteUser = function(id) {
+        selectedInviteUsers = selectedInviteUsers.filter(u => u.id !== id);
+        updateInviteUI();
+    };
+
+    // 更新邀請 UI
+    function updateInviteUI() {
+        // 更新已選列表
+        if (selectedInviteUsers.length > 0) {
+            selectedList.style.display = 'block';
+            selectedTags.innerHTML = selectedInviteUsers.map(u => `
+                <div class="selected-tag">
+                    <span>${u.name}</span>
+                    <span class="remove-tag" onclick="removeInviteUser('${u.id}')">×</span>
+                </div>
+            `).join('');
+            inviteSubmit.disabled = false;
+        } else {
+            selectedList.style.display = 'none';
+            inviteSubmit.disabled = true;
+        }
+
+        // 更新搜尋結果中的選中狀態
+        inviteResults.querySelectorAll('.invite-user-item').forEach(item => {
+            const isSelected = selectedInviteUsers.find(u => u.id === item.dataset.id);
+            if (isSelected) {
+                item.classList.add('selected');
+                item.querySelector('.invite-user-check').innerHTML = '<i class="bi bi-check"></i>';
+            } else {
+                item.classList.remove('selected');
+                item.querySelector('.invite-user-check').innerHTML = '';
+            }
+        });
+    }
+
+    // 發送邀請
+    inviteSubmit.addEventListener('click', function() {
+        if (selectedInviteUsers.length === 0) return;
+
+        const formData = new FormData();
+        selectedInviteUsers.forEach(u => {
+            formData.append('user_ids', u.id);
+        });
+
+        fetch(`{% url 'sinochat:invite_members' room_id=room.id %}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`成功邀請 ${data.invited_count} 位成員！`);
+                closeInviteModal();
+                selectedInviteUsers = [];
+                updateInviteUI();
+                // 重新載入頁面以更新成員列表
+                location.reload();
+            } else {
+                alert(data.error || '邀請失敗');
+            }
+        });
+    });
+
+    function openDownloadModal() {
+        downloadModal.classList.add('show');
+        loadDownloadLogs();
+    }
+
+    function closeDownloadModal() {
+        downloadModal.classList.remove('show');
+    }
+
+    if (menuToggle) {
+        menuToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            openDownloadModal();
+        });
+    }
+
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', function() {
+            openDownloadModal();
+        });
+    }
+
+    if (closeDownload) {
+        closeDownload.addEventListener('click', closeDownloadModal);
+    }
+
+    if (downloadModal) {
+        downloadModal.addEventListener('click', function(e) {
+            if (e.target === downloadModal) {
+                closeDownloadModal();
+            }
+        });
+    }
+
+    function loadDownloadLogs() {
+        downloadLoading.style.display = 'block';
+        downloadEmpty.style.display = 'none';
+        downloadError.style.display = 'none';
+        downloadList.innerHTML = '';
+
+        fetch(`{% url 'sinochat:download_logs' room_id=room.id %}`)
+            .then(response => response.json())
+            .then(data => {
+                downloadLoading.style.display = 'none';
+                if (!data.success) {
+                    downloadError.textContent = data.error || '載入失敗';
+                    downloadError.style.display = 'block';
+                    return;
+                }
+                if (!data.logs || data.logs.length === 0) {
+                    downloadEmpty.style.display = 'block';
+                    return;
+                }
+                downloadList.innerHTML = data.logs.map(log => `
+                    <div class="download-item">
+                        <div class="download-file">${log.file_name}</div>
+                        <div class="download-meta">
+                            <span>${log.downloaded_by}</span>
+                            <span>${log.downloaded_at}</span>
+                        </div>
+                        <div class="download-action">
+                            <a class="download-link" href="${log.download_url}" target="_blank">再次下載</a>
+                        </div>
+                    </div>
+                `).join('');
+            })
+            .catch((error) => {
+                downloadLoading.style.display = 'none';
+                downloadError.textContent = '載入失敗';
+                downloadError.style.display = 'block';
+            });
+    }
+});
+</script>
+{% endblock %}
