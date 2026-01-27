@@ -89,6 +89,7 @@ INSTALLED_APPS = [
     'BidQA',  # 標案問答管理
     'DesignConsistency',
     'SinoChat',  # Sinotech 內部聊天室
+    'InterviewAssessment',
 ] + local.STAGE_INSTALLED_APPS
 
 

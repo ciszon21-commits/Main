@@ -1,0 +1,61 @@
+{% extends 'InterviewAssessment/base.html' %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">題庫管理</h1>
+    <a href="{% url 'interview_assessment:question_add' %}" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">新增題目</a>
+</div>
+
+<div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="px-4 py-5 border-b border-gray-200 sm:px-6 flex space-x-4">
+        <a href="?" class="text-sm text-gray-600 hover:text-gray-900 {% if not request.GET.category %}font-bold underline{% endif %}">全部</a>
+        {% for cat in categories %}
+        <a href="?category={{ cat.id }}" class="text-sm text-gray-600 hover:text-gray-900 {% if request.GET.category == cat.id|stringformat:'s' %}font-bold underline{% endif %}">{{ cat.name }}</a>
+        {% endfor %}
+    </div>
+    
+    <ul class="divide-y divide-gray-200">
+        {% for question in questions %}
+        <li class="px-4 py-4 sm:px-6 hover:bg-gray-50">
+            <div class="flex justify-between">
+                <div>
+                    <div class="text-sm font-medium text-gray-900">{{ question.text|truncatechars:100 }}</div>
+                    <div class="mt-1 text-xs text-gray-500">
+                        <span class="bg-gray-100 px-2 py-0.5 rounded">{{ question.category }}</span>
+                        <span class="ml-2">{{ question.get_question_type_display }}</span>
+                        <span class="ml-2 text-yellow-600">難度: {{ question.difficulty }}</span>
+                    </div>
+                </div>
+                <div class="text-sm text-gray-500">
+                    {{ question.points }} 分
+                </div>
+            </div>
+        </li>
+        {% empty %}
+        <li class="px-4 py-10 text-center text-gray-500">
+            目前沒有題目
+        </li>
+        {% endfor %}
+    </ul>
+    
+    {% if is_paginated %}
+    <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+        <div class="flex justify-between">
+             {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="text-indigo-600 hover:text-indigo-900">上一頁</a>
+             {% else %}
+                <span></span>
+             {% endif %}
+             
+             <span class="text-sm text-gray-700">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+             
+             {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="text-indigo-600 hover:text-indigo-900">下一頁</a>
+             {% else %}
+                <span></span>
+             {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

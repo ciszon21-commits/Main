@@ -38,6 +38,7 @@ urlpatterns = [
     path('bidqa/', include('BidQA.urls')),  # 標案問答管理
     path('consistency/', include('DesignConsistency.urls')),
     path('chat/', include('SinoChat.urls', namespace='sinochat')),  # Sinotech 聊天室
+    path('interview/', include('InterviewAssessment.urls', namespace='interview_assessment')),
 ]
 
 # 條件載入 ClashClassifier API
