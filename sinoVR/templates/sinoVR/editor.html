@@ -215,6 +215,44 @@
                 <button class="btn btn-sm btn-success" id="btn-save" onclick="saveScene()">
                     <i class="fas fa-save"></i> Save
                 </button>
+                <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#helpModal">
+                    <i class="fas fa-question-circle"></i> Help
+                </button>
+            </div>
+        </div>
+
+
+
+        <!-- Help Modal -->
+        <div class="modal fade" id="helpModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content bg-dark text-light border-secondary">
+                    <div class="modal-header border-secondary">
+                        <h5 class="modal-title"><i class="fas fa-gamepad"></i> 編輯器操作說明</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <h6 class="text-info">攝影機導覽 (Camera)</h6>
+                        <ul class="small mb-3">
+                            <li><strong>左鍵拖曳：</strong> 環繞旋轉 (Orbit)</li>
+                            <li><strong>滾輪滑動：</strong> 縮放 (Zoom)</li>
+                            <li><strong>右鍵拖曳：</strong> 平移 (Pan)</li>
+                        </ul>
+                        <h6 class="text-warning">物件編輯 (Object)</h6>
+                        <ul class="small mb-0">
+                            <li><strong>點擊物件：</strong> 選取</li>
+                            <li><strong>T 鍵：</strong> 移動工具 (Translate)</li>
+                            <li><strong>R 鍵：</strong> 旋轉工具 (Rotate)</li>
+                            <li><strong>S 鍵：</strong> 縮放工具 (Scale)</li>
+                            <li><strong>Del 鍵：</strong> 刪除選取物件</li>
+                        </ul>
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <small class="text-muted me-auto">按 'ESC' 可退出 Play Mode</small>
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">關閉</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -373,6 +411,8 @@
     let isPlayMode = false;
     let isInspectorUpdating = false;
 
+    // Fly Mode Variables - REMOVED
+
     // UI Inputs
     const inputs = {
         pos: { x: document.getElementById('inp-pos-x'), y: document.getElementById('inp-pos-y'), z: document.getElementById('inp-pos-z') },
@@ -415,6 +455,11 @@
         // Controls
         controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
+        controls.mouseButtons = {
+            LEFT: THREE.MOUSE.ROTATE,
+            MIDDLE: THREE.MOUSE.DOLLY,
+            RIGHT: THREE.MOUSE.PAN
+        }
 
         transformControl = new TransformControls(camera, renderer.domElement);
         transformControl.addEventListener('dragging-changed', (event) => controls.enabled = !event.value);
@@ -430,7 +475,10 @@
         // Listeners
         window.addEventListener('resize', onWindowResize);
         container.addEventListener('pointerdown', onPointerDown);
-        document.addEventListener('keydown', onKeyDown);
+        window.addEventListener('keydown', onKeyDown);
+
+        // Prevent context menu on right click
+        container.addEventListener('contextmenu', e => e.preventDefault());
 
         // Initial Load
         loadSkybox();
@@ -464,7 +512,7 @@
     function loadExistingObjects() {
         {% for obj in scene.objects.all %}
         loadModel('{{ obj.asset.pk }}', '{{ obj.asset.file.url }}', {
-            position: { x: {{ obj.position_x }}, y: { { obj.position_y } }, z: { { obj.position_z } } },
+            position: { x: {{ obj.position_x }}, y: { { obj.position_y } }, z: { { obj.position_z } }},
     rotation: { x: { { obj.rotation_x } }, y: { { obj.rotation_y } }, z: { { obj.rotation_z } } },
     scale: { x: { { obj.scale_x } }, y: { { obj.scale_y } }, z: { { obj.scale_z } } }
         }, '{{ obj.asset.title }}');
