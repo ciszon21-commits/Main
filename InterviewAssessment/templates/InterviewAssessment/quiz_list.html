@@ -1,0 +1,60 @@
+{% extends 'InterviewAssessment/base.html' %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">試卷管理</h1>
+    <a href="{% url 'interview_assessment:quiz_add' %}" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">建立新試卷</a>
+</div>
+
+<div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <ul class="divide-y divide-gray-200">
+        {% for quiz in quizzes %}
+        <li class="px-4 py-4 sm:px-6 hover:bg-gray-50">
+            <div class="flex items-center justify-between">
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-lg font-medium text-indigo-600 truncate">
+                        {{ quiz.title }}
+                        {% if not quiz.is_active %}<span class="ml-2 px-2 text-xs text-red-800 bg-red-100 rounded-full">已關閉</span>{% endif %}
+                    </h3>
+                    <div class="mt-2 flex">
+                        <div class="flex items-center text-sm text-gray-500 mr-6">
+                            <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            {{ quiz.time_limit_minutes }} 分鐘
+                        </div>
+                        <div class="flex items-center text-sm text-gray-500">
+                             <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                             {{ quiz.questions.count }} 題
+                        </div>
+                    </div>
+                </div>
+                <div class="flex space-x-3">
+                     <!-- Copy Public Link -->
+                     <button onclick="copyLink('{{ request.scheme }}://{{ request.get_host }}{% url 'interview_assessment:quiz_entry' quiz.id %}')" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
+                        複製連結
+                     </button>
+                     
+                     <!-- Edit Questions -->
+                     <a href="{% url 'interview_assessment:quiz_builder' quiz.id %}" class="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-xs font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none">
+                        編修題目
+                     </a>
+                </div>
+            </div>
+        </li>
+        {% empty %}
+        <li class="px-4 py-10 text-center text-gray-500">
+            目前沒有試卷
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+
+<script>
+function copyLink(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        alert('測驗連結已複製到剪貼簿:\n' + text);
+    }, function(err) {
+        console.error('Could not copy text: ', err);
+    });
+}
+</script>
+{% endblock %}

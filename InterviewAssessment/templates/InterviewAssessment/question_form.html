@@ -1,0 +1,63 @@
+{% extends 'InterviewAssessment/base.html' %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white shadow sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">新增/編輯 題目</h3>
+        </div>
+        <div class="px-4 py-5 sm:p-6">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                {{ form.non_field_errors }}
+                
+                {% for field in form %}
+                <div class="mb-5">
+                    <label for="{{ field.id_for_label }}" class="block text-lg font-medium text-gray-700 mb-2">{{ field.label }}</label>
+                    
+                    {% if field.field.widget.input_type == 'checkbox' %}
+                         <div class="flex items-center">
+                            {{ field }}
+                            <span class="ml-2 text-gray-600">{{ field.help_text }}</span>
+                         </div>
+                    {% elif "RadioSelect" in field.field.widget_name or field.name == 'question_type' or field.name == 'difficulty' %}
+                         <!-- Handle Radio Selects Horizontally or Vertically -->
+                         <div class="space-y-2 sm:space-y-0 sm:space-x-6 flex flex-col sm:flex-row">
+                            {% for radio in field %}
+                                <div class="flex items-center">
+                                    {{ radio.tag }}
+                                    <label for="{{ radio.id_for_label }}" class="ml-2 block text-lg text-gray-700">
+                                        {{ radio.choice_label }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                         </div>
+                    {% else %}
+                        <div class="mt-1">
+                            {{ field }}
+                        </div>
+                    {% endif %}
+
+                    {% if field.help_text and field.field.widget.input_type != 'checkbox' %}
+                    <p class="mt-1 text-sm text-gray-500">{{ field.help_text }}</p>
+                    {% endif %}
+                    {% if field.errors %}
+                    <p class="mt-1 text-base text-red-600 font-medium">{{ field.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                
+                <div class="pt-5 border-t border-gray-200 flex justify-end">
+                    <a href="{% url 'interview_assessment:question_list' %}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mr-3">
+                        取消
+                    </a>
+                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        儲存題目
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
