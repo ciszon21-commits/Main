@@ -1,0 +1,12 @@
+from django.urls import path
+from . import views
+
+app_name = 'sinoVR'
+
+urlpatterns = [
+    path('', views.SceneListView.as_view(), name='scene_list'),
+    path('create/', views.SceneCreateView.as_view(), name='scene_create'),
+    path('scene/<int:pk>/', views.SceneDetailView.as_view(), name='scene_detail'),
+    path('api/scene/<int:pk>/save/', views.SceneUpdateAPI.as_view(), name='scene_save'),
+    path('api/upload/', views.AssetUploadView.as_view(), name='asset_upload'),
+]

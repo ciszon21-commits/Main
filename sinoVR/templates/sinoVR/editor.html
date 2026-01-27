@@ -1,0 +1,777 @@
+{% extends 'sinoVR/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<!-- Import Map for Three.js -->
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+</script>
+<style>
+    /* Unity-Like Layout */
+    body {
+        overflow: hidden;
+        /* Prevent body scroll */
+    }
+
+    .editor-container {
+        display: flex;
+        height: calc(100vh - 56px - 40px);
+        /* Minus navbar and footer */
+        width: 100vw;
+        background-color: #222;
+        color: #ddd;
+    }
+
+    /* Left Panel: Viewport */
+    .viewport-panel {
+        flex: 1;
+        position: relative;
+        background-color: #111;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #vr-container {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .toolbar {
+        height: 40px;
+        background-color: #333;
+        display: flex;
+        align-items: center;
+        padding: 0 10px;
+        border-bottom: 1px solid #444;
+        justify-content: space-between;
+    }
+
+    /* Right Panel: Sidebar */
+    .sidebar-panel {
+        width: 350px;
+        background-color: #2d2d2d;
+        border-left: 2px solid #111;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .panel-section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        border-bottom: 2px solid #111;
+        min-height: 0;
+        /* Important for scroll */
+    }
+
+    .panel-section.fixed-height {
+        flex: 0 0 auto;
+    }
+
+    .panel-header {
+        padding: 5px 10px;
+        background-color: #383838;
+        font-weight: bold;
+        font-size: 0.9rem;
+        border-bottom: 1px solid #444;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .panel-content {
+        padding: 10px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    /* Hierarchy Tree */
+    .hierarchy-item {
+        padding: 2px 5px;
+        cursor: pointer;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        font-size: 0.9rem;
+    }
+
+    .hierarchy-item:hover {
+        background-color: #444;
+    }
+
+    .hierarchy-item.selected {
+        background-color: #3d7e9a;
+        color: white;
+    }
+
+    /* Form Inputs */
+    .transform-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+    }
+
+    .transform-label {
+        width: 80px;
+        font-size: 0.8rem;
+        color: #aaa;
+    }
+
+    .transform-input-group {
+        display: flex;
+        gap: 5px;
+        flex: 1;
+    }
+
+    .transform-input {
+        width: 100%;
+        background-color: #111;
+        border: 1px solid #444;
+        color: white;
+        font-size: 0.8rem;
+        padding: 2px 5px;
+    }
+
+    .transform-axis-label {
+        font-size: 0.7rem;
+        color: #777;
+        margin-right: 2px;
+    }
+
+    /* Project Assets */
+    .asset-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 10px;
+    }
+
+    .asset-card {
+        background-color: #333;
+        border: 1px solid #444;
+        border-radius: 4px;
+        padding: 5px;
+        cursor: pointer;
+        text-align: center;
+        font-size: 0.8rem;
+        transition: transform 0.1s;
+    }
+
+    .asset-card:hover {
+        background-color: #444;
+        transform: scale(1.05);
+    }
+
+    .asset-icon {
+        font-size: 2rem;
+        margin-bottom: 5px;
+        color: #aaa;
+    }
+
+    /* Play Mode */
+    .play-mode-active #gui-controls {
+        display: none !important;
+    }
+
+    .play-mode-overlay {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.5);
+        padding: 10px 20px;
+        border-radius: 20px;
+        pointer-events: none;
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="editor-container">
+    <!-- Center / Left Viewport -->
+    <div class="viewport-panel">
+        <div class="toolbar">
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-secondary" onclick="setTool('translate')" title="Move (T)"><i
+                        class="fas fa-arrows-alt"></i></button>
+                <button class="btn btn-sm btn-secondary" onclick="setTool('rotate')" title="Rotate (R)"><i
+                        class="fas fa-sync"></i></button>
+                <button class="btn btn-sm btn-secondary" onclick="setTool('scale')" title="Scale (S)"><i
+                        class="fas fa-expand"></i></button>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-light" id="btn-play-toggle" onclick="togglePlayMode()">
+                    <i class="fas fa-play"></i> Play
+                </button>
+                <button class="btn btn-sm btn-success" id="btn-save" onclick="saveScene()">
+                    <i class="fas fa-save"></i> Save
+                </button>
+            </div>
+        </div>
+
+        <div id="vr-container">
+            <div id="loading" class="loading-overlay"
+                style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:999; justify-content:center; align-items:center;">
+                <div class="text-white text-center">
+                    <div class="spinner-border" role="status"></div>
+                    <div class="mt-2 text-center" id="loading-text">Loading...</div>
+                </div>
+            </div>
+            <div class="play-mode-overlay text-white">
+                <i class="fas fa-gamepad"></i> Play Mode Active (Press ESC to Exit)
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="sidebar-panel">
+
+        <!-- Hierarchy Panel -->
+        <div class="panel-section" style="flex: 1; max-height: 30%;">
+            <div class="panel-header">
+                <span><i class="fas fa-sitemap small"></i> Hierarchy</span>
+                <button class="btn btn-xs btn-outline-light py-0" onclick="updateHierarchy()"><i
+                        class="fas fa-sync-alt"></i></button>
+            </div>
+            <div class="panel-content" id="hierarchy-tree">
+                <!-- Items injected via JS -->
+                <div class="text-muted small text-center">No objects</div>
+            </div>
+        </div>
+
+        <!-- Inspector Panel -->
+        <div class="panel-section fixed-height">
+            <div class="panel-header">
+                <span><i class="fas fa-info-circle small"></i> Inspector</span>
+            </div>
+            <div class="panel-content">
+                <div id="inspector-transform">
+                    <h6 class="small text-muted mb-2 font-weight-bold">Transform</h6>
+
+                    <div class="transform-row">
+                        <span class="transform-label">Position</span>
+                        <div class="transform-input-group">
+                            <span class="transform-axis-label text-danger">X</span>
+                            <input type="number" id="inp-pos-x" class="transform-input" step="0.1">
+                        </div>
+                        <div class="transform-input-group">
+                            <span class="transform-axis-label text-success">Y</span>
+                            <input type="number" id="inp-pos-y" class="transform-input" step="0.1">
+                        </div>
+                        <div class="transform-input-group">
+                            <span class="transform-axis-label text-primary">Z</span>
+                            <input type="number" id="inp-pos-z" class="transform-input" step="0.1">
+                        </div>
+                    </div>
+
+                    <div class="transform-row">
+                        <span class="transform-label">Rotation</span>
+                        <div class="transform-input-group">
+                            <span class="transform-axis-label text-danger">X</span>
+                            <input type="number" id="inp-rot-x" class="transform-input" step="1">
+                        </div>
+                        <div class="transform-input-group">
+                            <span class="transform-axis-label text-success">Y</span>
+                            <input type="number" id="inp-rot-y" class="transform-input" step="1">
+                        </div>
+                        <div class="transform-input-group">
+                            <span class="transform-axis-label text-primary">Z</span>
+                            <input type="number" id="inp-rot-z" class="transform-input" step="1">
+                        </div>
+                    </div>
+
+                    <div class="transform-row">
+                        <span class="transform-label">Scale</span>
+                        <div class="transform-input-group">
+                            <span class="transform-axis-label text-danger">X</span>
+                            <input type="number" id="inp-scale-x" class="transform-input" step="0.1">
+                        </div>
+                        <div class="transform-input-group">
+                            <span class="transform-axis-label text-success">Y</span>
+                            <input type="number" id="inp-scale-y" class="transform-input" step="0.1">
+                        </div>
+                        <div class="transform-input-group">
+                            <span class="transform-axis-label text-primary">Z</span>
+                            <input type="number" id="inp-scale-z" class="transform-input" step="0.1">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <h6 class="small text-muted mb-2 font-weight-bold">Tools</h6>
+                    <div class="btn-group w-100 mb-2">
+                        <button class="btn btn-sm btn-outline-warning" onclick="centerSelected()">
+                            Fix Pivot
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="scaleSelected()">
+                            Auto Scale (2m)
+                        </button>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger w-100" onclick="deleteSelected()">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project / Assets Panel -->
+        <div class="panel-section" style="flex: 1;">
+            <div class="panel-header">
+                <span><i class="fas fa-folder small"></i> Project Assets</span>
+                <label class="btn btn-xs btn-outline-success py-0" style="cursor: pointer;">
+                    <i class="fas fa-plus"></i>
+                    <input type="file" id="file-upload" hidden accept=".fbx,.jpg,.png">
+                </label>
+            </div>
+            <div class="panel-content">
+                <div class="asset-grid" id="asset-list">
+                    {% for asset in assets %}
+                    <div class="asset-card"
+                        onclick="addModel('{{ asset.pk }}', '{{ asset.file.url }}', '{{ asset.title }}')">
+                        <div class="asset-icon"><i class="fas fa-cube"></i></div>
+                        <div class="text-truncate">{{ asset.title }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { VRButton } from 'three/addons/webxr/VRButton.js';
+    import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+    import { TransformControls } from 'three/addons/controls/TransformControls.js';
+
+    // Django variables
+    const SCENE_ID = {{ scene.pk }};
+    const SAVE_URL = "{% url 'sinoVR:scene_save' scene.pk %}";
+    const UPLOAD_URL = "{% url 'sinoVR:asset_upload' %}";
+    const CSRF_TOKEN = "{{ csrf_token }}";
+
+    // Globals
+    let container, camera, scene, renderer;
+    let controls, transformControl;
+    let raycaster, pointer;
+    let skyboxMesh;
+    let clock = new THREE.Clock();
+
+    const objects = [];
+    let selectedObject = null;
+    let isPlayMode = false;
+    let isInspectorUpdating = false;
+
+    // UI Inputs
+    const inputs = {
+        pos: { x: document.getElementById('inp-pos-x'), y: document.getElementById('inp-pos-y'), z: document.getElementById('inp-pos-z') },
+        rot: { x: document.getElementById('inp-rot-x'), y: document.getElementById('inp-rot-y'), z: document.getElementById('inp-rot-z') },
+        scale: { x: document.getElementById('inp-scale-x'), y: document.getElementById('inp-scale-y'), z: document.getElementById('inp-scale-z') },
+    };
+
+    // init(); // Moved to bottom
+    // animate(); // Moved to bottom
+
+    function init() {
+        container = document.getElementById('vr-container');
+
+        // Three.js Scene Setup (Same as before)
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x303030);
+
+        camera = new THREE.PerspectiveCamera(70, container.clientWidth / container.clientHeight, 0.1, 2000);
+        camera.position.set(0, 1.6, 5);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(5, 10, 7.5);
+        scene.add(dirLight);
+
+        // Grid Helper
+        const gridHelper = new THREE.GridHelper(20, 20, 0x555555, 0x333333);
+        scene.add(gridHelper);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.xr.enabled = true;
+        container.appendChild(renderer.domElement);
+
+        document.body.appendChild(VRButton.createButton(renderer));
+
+        // Controls
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        transformControl = new TransformControls(camera, renderer.domElement);
+        transformControl.addEventListener('dragging-changed', (event) => controls.enabled = !event.value);
+        transformControl.addEventListener('change', () => {
+            updateInspectorFromObject();
+            // Maybe debounce updateHierarchy?
+        });
+        scene.add(transformControl);
+
+        raycaster = new THREE.Raycaster();
+        pointer = new THREE.Vector2();
+
+        // Listeners
+        window.addEventListener('resize', onWindowResize);
+        container.addEventListener('pointerdown', onPointerDown);
+        document.addEventListener('keydown', onKeyDown);
+
+        // Initial Load
+        loadSkybox();
+        loadExistingObjects();
+
+        // UI Setup
+        // setupUI(); // Removed obsolete call
+        setupInspectorEvents();
+
+        document.getElementById('loading').style.display = 'flex';
+        // Hide loading after a bit roughly
+        setTimeout(() => document.getElementById('loading').style.display = 'none', 1000);
+    }
+
+    // --- Core Logic ---
+
+    function loadSkybox() {
+        {% if scene.background %}
+        new THREE.TextureLoader().load('{{ scene.background.image.url }}', (texture) => {
+            texture.mapping = THREE.EquirectangularReflectionMapping;
+            texture.colorSpace = THREE.SRGBColorSpace;
+            const geo = new THREE.SphereGeometry(500, 60, 40);
+            geo.scale(-1, 1, 1);
+            const mat = new THREE.MeshBasicMaterial({ map: texture });
+            skyboxMesh = new THREE.Mesh(geo, mat);
+            scene.add(skyboxMesh);
+        });
+        {% endif %}
+    }
+
+    function loadExistingObjects() {
+        {% for obj in scene.objects.all %}
+        loadModel('{{ obj.asset.pk }}', '{{ obj.asset.file.url }}', {
+            position: { x: {{ obj.position_x }}, y: { { obj.position_y } }, z: { { obj.position_z } } },
+    rotation: { x: { { obj.rotation_x } }, y: { { obj.rotation_y } }, z: { { obj.rotation_z } } },
+    scale: { x: { { obj.scale_x } }, y: { { obj.scale_y } }, z: { { obj.scale_z } } }
+        }, '{{ obj.asset.title }}');
+    {% endfor %}
+    }
+
+    // Global exposed functions
+    window.addModel = function (id, url, title) {
+        document.getElementById('loading').style.display = 'flex';
+        loadModel(id, url, {}, title, () => {
+            document.getElementById('loading').style.display = 'none';
+        });
+    };
+
+    window.setTool = function (mode) {
+        if (!selectedObject) return;
+        transformControl.setMode(mode);
+        transformControl.attach(selectedObject);
+    }
+
+    window.togglePlayMode = function () {
+        isPlayMode = !isPlayMode;
+
+        const btn = document.getElementById('btn-play-toggle');
+        const overlay = document.querySelector('.play-mode-overlay');
+
+        if (isPlayMode) {
+            btn.classList.replace('btn-light', 'btn-primary');
+            btn.innerHTML = '<i class="fas fa-stop"></i> Stop';
+            overlay.style.display = 'block';
+
+            // Hide helpers
+            transformControl.detach();
+            transformControl.visible = false;
+            // gridHelper.visible = false; // Optional
+
+            // Reset Camera for "Game" feel?
+            // For now, OrbitControls is fine, just maybe restrict plain View
+
+        } else {
+            btn.classList.replace('btn-primary', 'btn-light');
+            btn.innerHTML = '<i class="fas fa-play"></i> Play';
+            overlay.style.display = 'none';
+
+            transformControl.visible = true;
+            if (selectedObject) transformControl.attach(selectedObject);
+        }
+    }
+
+    window.saveScene = function () {
+        const dataToSave = objects.map(obj => ({
+            asset_id: obj.userData.assetId,
+            transform: {
+                position: obj.position,
+                rotation: obj.rotation,
+                scale: obj.scale
+            }
+        }));
+
+        fetch(SAVE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+            body: JSON.stringify({ objects: dataToSave })
+        }).then(r => r.json()).then(d => {
+            if (d.status === 'success') alert('Saved!');
+            else alert('Error: ' + d.message);
+        });
+    }
+
+    function loadModel(assetId, url, transform = {}, title = 'Model', callback) {
+        new FBXLoader().load(url, (object) => {
+            if (transform.position) object.position.set(transform.position.x, transform.position.y, transform.position.z);
+            if (transform.rotation) object.rotation.set(transform.rotation.x, transform.rotation.y, transform.rotation.z);
+            if (transform.scale) object.scale.set(transform.scale.x, transform.scale.y, transform.scale.z);
+
+            // Normalize scale check
+            if (!transform.scale && object.scale.length() < 0.01) object.scale.set(0.1, 0.1, 0.1);
+
+            object.userData.isInteractable = true;
+            object.userData.assetId = assetId;
+            object.name = title;
+
+            scene.add(object);
+            objects.push(object);
+
+            // Select it newly added (unless loading existing)
+            if (!transform.position) selectObject(object);
+
+            updateHierarchy();
+            if (callback) callback(object);
+        });
+    }
+
+    function selectObject(object) {
+        selectedObject = object;
+
+        if (object) {
+            if (!isPlayMode) transformControl.attach(object);
+            updateInspectorFromObject();
+        } else {
+            transformControl.detach();
+            // Clear inspector inputs?
+        }
+
+        // Highlight in Hierarchy
+        updateHierarchyUI();
+    }
+
+    window.deleteSelected = function () {
+        if (selectedObject && confirm('Delete ' + selectedObject.name + '?')) {
+            transformControl.detach();
+            scene.remove(selectedObject);
+            const idx = objects.indexOf(selectedObject);
+            if (idx > -1) objects.splice(idx, 1);
+            selectedObject = null;
+            updateHierarchy();
+        }
+    }
+
+    // Model Tools
+    window.centerSelected = function () {
+        if (!selectedObject) return alert('Select model first');
+        const obj = selectedObject;
+        transformControl.detach();
+
+        const box = new THREE.Box3().setFromObject(obj);
+        const center = box.getCenter(new THREE.Vector3());
+
+        // World Offset from visual center to pivot
+        const offset = obj.position.clone().sub(center);
+
+        // Apply offset to children (Inverse of rotation/scale of parent)
+        const inverseRot = obj.quaternion.clone().invert();
+        const localOffset = offset.applyQuaternion(inverseRot).divide(obj.scale);
+
+        obj.children.forEach(c => c.position.add(localOffset));
+
+        transformControl.attach(obj);
+        alert('Pivot Centered');
+    };
+
+    window.scaleSelected = function () {
+        if (!selectedObject) return alert('Select model first');
+        const obj = selectedObject;
+        const box = new THREE.Box3().setFromObject(obj);
+        const size = box.getSize(new THREE.Vector3());
+        const max = Math.max(size.x, size.y, size.z);
+        if (max > 0) {
+            obj.scale.multiplyScalar(2.0 / max);
+            updateInspectorFromObject();
+            alert('Scaled to 2m');
+        }
+    }
+
+    // --- UI/Interaction ---
+
+    function onPointerDown(event) {
+        if (isPlayMode) return;
+
+        // Don't deselect if clicking on the Gizmo
+        // This is tricky, simplified:
+
+        const rect = renderer.domElement.getBoundingClientRect();
+        pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(pointer, camera);
+        const intersects = raycaster.intersectObjects(objects, true);
+
+        if (intersects.length > 0) {
+            let target = intersects[0].object;
+            while (target.parent && target.parent !== scene) target = target.parent;
+
+            if (target !== selectedObject) {
+                selectObject(target);
+            }
+        } else {
+            // Deselect if clicking empty space?
+            // selectObject(null); 
+            // Often annoying if accidental click. Let's keep selection.
+        }
+    }
+
+    function onKeyDown(event) {
+        if (event.key === 'Escape' && isPlayMode) togglePlayMode();
+        if (isPlayMode || event.target.tagName === 'INPUT') return;
+
+        switch (event.key.toLowerCase()) {
+            case 't': setTool('translate'); break;
+            case 'r': setTool('rotate'); break;
+            case 's': setTool('scale'); break;
+            case 'delete': deleteSelected(); break;
+        }
+    }
+
+    // Hierarchy System
+    window.updateHierarchy = function () {
+        const tree = document.getElementById('hierarchy-tree');
+        tree.innerHTML = '';
+
+        objects.forEach((obj, index) => {
+            const el = document.createElement('div');
+            el.className = 'hierarchy-item';
+            el.dataset.uuid = obj.uuid;
+            if (selectedObject === obj) el.classList.add('selected');
+
+            el.innerHTML = `<i class="fas fa-cube small mr-2" style="margin-right:5px; color:#aaa;"></i> ${obj.name || 'Object'}`;
+            el.onclick = () => selectObject(obj);
+
+            tree.appendChild(el);
+        });
+
+        if (objects.length === 0) {
+            tree.innerHTML = '<div class="text-muted small text-center mt-2">Scene is Empty</div>';
+        }
+    }
+
+    function updateHierarchyUI() {
+        // Highlighting
+        const items = document.querySelectorAll('.hierarchy-item');
+        items.forEach(el => {
+            if (selectedObject && el.dataset.uuid === selectedObject.uuid) el.classList.add('selected');
+            else el.classList.remove('selected');
+        });
+    }
+
+    // Inspector System
+    function setupInspectorEvents() {
+        document.querySelectorAll('.transform-input').forEach(inp => {
+            inp.addEventListener('input', updateObjectFromInspector);
+        });
+
+        document.getElementById('file-upload').addEventListener('change', (e) => {
+            if (!e.target.files[0]) return;
+            const formData = new FormData();
+            formData.append('file', e.target.files[0]);
+
+            document.getElementById('loading').style.display = 'flex';
+            fetch(UPLOAD_URL, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': CSRF_TOKEN },
+                body: formData
+            }).then(r => r.json()).then(d => {
+                document.getElementById('loading').style.display = 'none';
+                if (d.id && d.type === 'model') {
+                    // Refresh assets list simply by appending (or reload page needed for clean sync, but append is better UX)
+                    const grid = document.getElementById('asset-list');
+                    const card = document.createElement('div');
+                    card.className = 'asset-card';
+                    card.onclick = () => addModel(d.id, d.url, d.title);
+                    card.innerHTML = `<div class="asset-icon"><i class="fas fa-cube"></i></div><div class="text-truncate">${d.title}</div>`;
+                    grid.prepend(card);
+                    alert('Asset Uploaded');
+                } else {
+                    alert('Uploaded!'); // Panoramas
+                }
+            });
+            e.target.value = '';
+        });
+    }
+
+    function updateInspectorFromObject() {
+        if (!selectedObject || isInspectorUpdating) return;
+        isInspectorUpdating = true;
+
+        const r2d = THREE.MathUtils.radToDeg;
+        const o = selectedObject;
+
+        inputs.pos.x.value = +o.position.x.toFixed(2);
+        inputs.pos.y.value = +o.position.y.toFixed(2);
+        inputs.pos.z.value = +o.position.z.toFixed(2);
+
+        inputs.rot.x.value = +r2d(o.rotation.x).toFixed(1);
+        inputs.rot.y.value = +r2d(o.rotation.y).toFixed(1);
+        inputs.rot.z.value = +r2d(o.rotation.z).toFixed(1);
+
+        inputs.scale.x.value = +o.scale.x.toFixed(2);
+        inputs.scale.y.value = +o.scale.y.toFixed(2);
+        inputs.scale.z.value = +o.scale.z.toFixed(2);
+
+        isInspectorUpdating = false;
+    }
+
+    function updateObjectFromInspector() {
+        if (!selectedObject || isInspectorUpdating) return;
+        const d2r = THREE.MathUtils.degToRad;
+        const o = selectedObject;
+
+        o.position.set(+inputs.pos.x.value, +inputs.pos.y.value, +inputs.pos.z.value);
+        o.rotation.set(d2r(+inputs.rot.x.value), d2r(+inputs.rot.y.value), d2r(+inputs.rot.z.value));
+        o.scale.set(+inputs.scale.x.value, +inputs.scale.y.value, +inputs.scale.z.value);
+    }
+
+    function onWindowResize() {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    // Start Application
+    init();
+    animate();
+</script>
+{% endblock %}

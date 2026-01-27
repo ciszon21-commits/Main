@@ -1,0 +1,48 @@
+{% extends 'sinoVR/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>SinoVR 場景列表</h2>
+        <a href="{% url 'sinoVR:scene_create' %}" class="btn btn-success">
+            <i class="fas fa-plus"></i> 建立新場景
+        </a>
+    </div>
+
+    <div class="row">
+        {% for scene in scenes %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                {% if scene.background %}
+                <div style="height: 200px; overflow: hidden;">
+                    <img src="{{ scene.background.image.url }}" class="card-img-top" alt="{{ scene.title }}"
+                        style="object-fit: cover; height: 100%; width: 100%;">
+                </div>
+                {% else %}
+                <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center text-white"
+                    style="height: 200px;">
+                    <span>No Preview</span>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ scene.title }}</h5>
+                    <p class="card-text text-muted">{{ scene.description|truncatechars:100 }}</p>
+                    <a href="{% url 'sinoVR:scene_detail' scene.pk %}" class="btn btn-primary w-100">
+                        <i class="fas fa-vr-cardboard"></i> 進入場景
+                    </a>
+                </div>
+                <div class="card-footer text-muted">
+                    <small>Updated: {{ scene.updated_at|date:"Y-m-d H:i" }}</small>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <h4 class="text-muted">尚無場景</h4>
+            <p>請至後台新增場景</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
