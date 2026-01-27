@@ -1,0 +1,72 @@
+{% extends 'InterviewAssessment/base.html' %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">測驗詳細結果</h1>
+        <p class="text-gray-600">{{ attempt.candidate.name }} - {{ attempt.quiz.title }}</p>
+    </div>
+    <a href="{% url 'interview_assessment:result_list' %}" class="text-indigo-600 hover:text-indigo-900">返回列表</a>
+</div>
+
+<div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+    <div class="px-4 py-5 sm:px-6">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">基本資訊</h3>
+    </div>
+    <div class="border-t border-gray-200">
+        <dl>
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">應徵者 Email</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ attempt.candidate.email }}</dd>
+            </div>
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">測驗時間</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    開始: {{ attempt.start_time }}<br>
+                    結束: {{ attempt.end_time|default:"-" }}
+                </dd>
+            </div>
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">總分</dt>
+                <dd class="mt-1 text-2xl font-bold text-indigo-600 sm:mt-0 sm:col-span-2">
+                    {{ attempt.score }} / {{ attempt.max_score }} ({{ attempt.percentage }}%)
+                </dd>
+            </div>
+        </dl>
+    </div>
+</div>
+
+<div class="bg-white shadow sm:rounded-lg">
+    <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+         <h3 class="text-lg leading-6 font-medium text-gray-900">作答明細</h3>
+    </div>
+    <ul class="divide-y divide-gray-200">
+        {% for response in attempt.responses.all %}
+        <li class="px-4 py-4 sm:px-6">
+            <div class="space-y-2">
+                <div class="flex justify-between">
+                    <div class="font-medium text-gray-900">{{ response.question.text }}</div>
+                    <div class="flex-shrink-0">
+                         {% if response.is_correct %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">正確 (+{{ response.question.points }})</span>
+                         {% else %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">錯誤 (0)</span>
+                         {% endif %}
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="text-gray-500">選擇答案: </span>
+                        <span class="{% if response.is_correct %}text-green-600{% else %}text-red-600{% endif %} font-medium">{{ response.selected_answer }}</span>
+                    </div>
+                    <div>
+                         <span class="text-gray-500">正確答案: </span>
+                         <span class="text-gray-900">{{ response.question.correct_answer }}</span>
+                    </div>
+                </div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

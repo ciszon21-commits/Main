@@ -1,0 +1,116 @@
+{% extends 'InterviewAssessment/base.html' %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <!-- Card 1 -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
+                        <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">總題庫數</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ questions_count }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-5 py-3">
+                <a href="{% url 'interview_assessment:question_list' %}" class="text-sm font-medium text-blue-600 hover:text-blue-500">檢視所有題目</a>
+            </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
+                        <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">已建立試卷</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ quizzes_count }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-5 py-3">
+                <a href="{% url 'interview_assessment:quiz_list' %}" class="text-sm font-medium text-blue-600 hover:text-blue-500">管理試卷</a>
+            </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 bg-yellow-500 rounded-md p-3">
+                        <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">應徵者總數</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ candidates_count }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 4 (Action) -->
+        <div class="bg-indigo-600 overflow-hidden shadow rounded-lg hover:bg-indigo-700 transition cursor-pointer" onclick="location.href='{% url 'interview_assessment:quiz_add' %}'">
+             <div class="p-5 h-full flex items-center justify-center">
+                 <div class="text-white font-bold text-lg flex items-center">
+                     <svg class="h-6 w-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                     建立新試卷
+                 </div>
+             </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">最近測驗紀錄</h3>
+        </div>
+        <ul class="divide-y divide-gray-200">
+            {% for attempt in recent_attempts %}
+            <li class="px-4 py-4 sm:px-6 hover:bg-gray-50">
+                <div class="flex items-center justify-between">
+                    <div class="flex flex-col">
+                        <p class="text-sm font-medium text-indigo-600 truncate">{{ attempt.candidate.name }}</p>
+                        <p class="flex items-center text-sm text-gray-500">
+                            {{ attempt.quiz.title }}
+                        </p>
+                    </div>
+                    <div class="ml-2 flex-shrink-0 flex flex-col items-end">
+                        <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {% if attempt.is_completed %}bg-green-100 text-green-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                            {% if attempt.is_completed %}已完成{% else %}進行中{% endif %}
+                        </p>
+                        {% if attempt.score is not None %}
+                        <p class="text-sm font-bold text-gray-700 mt-1">{{ attempt.score }} 分</p>
+                        {% endif %}
+                        <p class="text-xs text-gray-500 mt-1">{{ attempt.start_time|timesince }} ago</p>
+                    </div>
+                </div>
+            </li>
+            {% empty %}
+            <li class="px-4 py-4 sm:px-6 text-gray-500 text-center">尚無任何測驗紀錄</li>
+            {% endfor %}
+        </ul>
+        <div class="bg-gray-50 px-5 py-3 border-t border-gray-200">
+            <a href="{% url 'interview_assessment:result_list' %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">檢視所有紀錄 &rarr;</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

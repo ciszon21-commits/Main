@@ -1,0 +1,58 @@
+{% extends 'InterviewAssessment/base.html' %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <form method="post">
+        {% csrf_token %}
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">編修試卷題目: {{ quiz.title }}</h1>
+                <p class="text-sm text-gray-500">勾選下方題目以加入此試卷</p>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{% url 'interview_assessment:quiz_list' %}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    完成並返回
+                </a>
+                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                    儲存變更
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+             <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
+                <!-- Tabs or Category Sections -->
+                {% for category in categories %}
+                    {% if category.questions.all %}
+                        <div class="mb-8">
+                            <h3 class="text-lg font-medium text-gray-900 border-b pb-2 mb-4">{{ category.name }}</h3>
+                            <ul class="divide-y divide-gray-200">
+                                {% for question in category.questions.all %}
+                                <li class="py-3 flex items-start">
+                                    <div class="flex items-center h-5">
+                                        <input id="q_{{ question.id }}" name="question_ids" type="checkbox" value="{{ question.id }}" 
+                                               {% if question.id in selected_question_ids %}checked{% endif %}
+                                               class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                                    </div>
+                                    <div class="ml-3 text-sm">
+                                        <label for="q_{{ question.id }}" class="font-medium text-gray-700">{{ question.text }}</label>
+                                        <div class="text-gray-500">
+                                            <span class="mr-2">{{ question.get_question_type_display }}</span>
+                                            <span class="mr-2 bg-yellow-100 px-1 rounded text-xs">{{ question.difficulty }} 難度</span>
+                                            <span>{{ question.points }} 分</span>
+                                        </div>
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+                
+                <!-- Uncategorized if any -->
+                <!-- Skipped for simplicity, assuming all have categories or handled above if prefetch logic works for null too (it might not defaultly group nulls in category loop unless explicitly handled. User task said categories will be defined.) -->
+             </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
