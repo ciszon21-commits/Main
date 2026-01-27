@@ -12,6 +12,15 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from datetime import timedelta
 import os
 from pathlib import Path
+import tempfile
+
+# Set matplotlib config dir to a writable temp path to avoid Permission Denied in /var/www/.config
+os.environ['MPLCONFIGDIR'] = os.path.join(tempfile.gettempdir(), 'matplotlib_config')
+if not os.path.exists(os.environ['MPLCONFIGDIR']):
+    try:
+        os.makedirs(os.environ['MPLCONFIGDIR'])
+    except OSError:
+        pass  # Might exist or permission issue, but usually temp is writable
 
 from .settings_local import settings as local
 
