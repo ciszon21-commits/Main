@@ -18,7 +18,7 @@ class WhitelistRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
             return True
         return AdminWhitelist.objects.filter(user=user).exists()
 
-class DashboardView(WhitelistRequiredMixin, TemplateView):
+class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'InterviewAssessment/dashboard.html'
     
     def get_context_data(self, **kwargs):
@@ -30,7 +30,7 @@ class DashboardView(WhitelistRequiredMixin, TemplateView):
         return context
 
 # --- Question Management ---
-class QuestionListView(WhitelistRequiredMixin, ListView):
+class QuestionListView(LoginRequiredMixin, ListView):
     model = Question
     template_name = 'InterviewAssessment/question_list.html'
     context_object_name = 'questions'
@@ -48,7 +48,7 @@ class QuestionListView(WhitelistRequiredMixin, ListView):
         context['categories'] = QuestionCategory.objects.all()
         return context
 
-class QuestionCreateView(WhitelistRequiredMixin, CreateView):
+class QuestionCreateView(LoginRequiredMixin, CreateView):
     model = Question
     form_class = QuestionForm
     template_name = 'InterviewAssessment/question_form.html'
@@ -59,7 +59,7 @@ class QuestionCreateView(WhitelistRequiredMixin, CreateView):
         messages.success(self.request, "題目已建立")
         return super().form_valid(form)
 
-class CategoryManagerView(WhitelistRequiredMixin, View):
+class CategoryManagerView(LoginRequiredMixin, View):
     template_name = 'InterviewAssessment/category_list.html'
 
     def get(self, request, *args, **kwargs):
@@ -75,12 +75,12 @@ class CategoryManagerView(WhitelistRequiredMixin, View):
         return redirect('interview_assessment:category_list')
 
 # --- Quiz Management ---
-class QuizListView(WhitelistRequiredMixin, ListView):
+class QuizListView(LoginRequiredMixin, ListView):
     model = Quiz
     template_name = 'InterviewAssessment/quiz_list.html'
     context_object_name = 'quizzes'
 
-class QuizCreateView(WhitelistRequiredMixin, CreateView):
+class QuizCreateView(LoginRequiredMixin, CreateView):
     model = Quiz
     form_class = QuizForm
     template_name = 'InterviewAssessment/quiz_form.html'
@@ -91,7 +91,7 @@ class QuizCreateView(WhitelistRequiredMixin, CreateView):
         messages.success(self.request, "試卷已建立，請選擇題目")
         return redirect('interview_assessment:quiz_builder', pk=quiz.pk)
 
-class QuizBuilderView(WhitelistRequiredMixin, DetailView):
+class QuizBuilderView(LoginRequiredMixin, DetailView):
     model = Quiz
     template_name = 'InterviewAssessment/quiz_builder.html'
     context_object_name = 'quiz'
@@ -211,13 +211,29 @@ class TakeQuizView(DetailView):
          return render(self.request, 'InterviewAssessment/completed.html', {'attempt': attempt})
 
 # --- Admin Result Views ---
-class ResultListView(WhitelistRequiredMixin, ListView):
+class ResultListView(LoginRequiredMixin, ListView):
     model = QuizAttempt
     template_name = 'InterviewAssessment/result_list.html'
     context_object_name = 'attempts'
     ordering = ['-start_time']
 
-class ResultDetailView(WhitelistRequiredMixin, DetailView):
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if not user.is_superuser:
+            qs = qs.filter(quiz__created_by=user)
+        return qs
+
+class ResultDetailView(LoginRequiredMixin, DetailView):
     model = QuizAttempt
     template_name = 'InterviewAssessment/result_detail.html'
     context_object_name = 'attempt'
+
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        user = self.request.user
+        if not user.is_superuser:
+            if obj.quiz.created_by != user:
+                from django.core.exceptions import PermissionDenied
+                raise PermissionDenied("You do not have permission to view this result.")
+        return obj
