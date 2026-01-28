@@ -449,7 +449,7 @@ def section_calculator_view(request):
         scenario = Scenario.objects.filter(id=scenario_id).first()
     
     context = {
-        'page_title': '可評階段-常用斷面碳排概算',
+        'page_title': '可評階段-標準斷面碳排概算',
         'data': data,
         'scenario_id': scenario_id,
         'scenario': scenario
