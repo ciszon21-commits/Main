@@ -52,7 +52,7 @@ class Command(BaseCommand):
             
             # 路工
             {'category': '路工', 'work_item': '路塹段', 'carbon': 2200.99, 'order': 1},
-            {'category': '路工', 'work_item': '路提段', 'carbon': 1749.98, 'order': 2},
+            {'category': '路工', 'work_item': '路堤段', 'carbon': 1749.98, 'order': 2},
             {'category': '路工', 'work_item': '半挖半填段', 'carbon': 1669.66, 'order': 3},
             
             # 隧道
