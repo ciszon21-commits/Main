@@ -1,4 +1,19 @@
-# 在 views.py 末尾新增以下內容
+# Team Management Views
+# 隊伍管理相關的 view 函數
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.contrib import messages
+from .models import Team, UserProfile, TeamMembership
+
+# Helper function
+def get_or_create_user_profile(user):
+    """Get or create user profile"""
+    try:
+        return user.rpg_profile
+    except UserProfile.DoesNotExist:
+        return None
 
 # ==================== Team Management Views ====================
 
@@ -35,16 +50,15 @@ def create_team(request):
             messages.error(request, '隊伍名稱不能為空！')
             return redirect('engineer_rpg:create_team')
         
-        # 使用 TeamKnowledgeHub.KnowledgeTeam 創建
-        from TeamKnowledgeHub.models import KnowledgeTeam
-        team = KnowledgeTeam.objects.create(
+        # 創建隊伍
+        team = Team.objects.create(
             name=name,
             description=description,
             created_by=request.user
         )
         
         messages.success(request, f'隊伍「{name}」創建成功！')
-        return redirect('engineer_rpg:edit_team', team_id=team.id)
+        return redirect('engineer_rpg:manage_team_members', team_id=team.id)
     
     context = {
         'profile': profile,
@@ -114,32 +128,68 @@ def manage_team_members(request, team_id):
             user_id = request.POST.get('user_id')
             try:
                 user_profile = UserProfile.objects.get(id=user_id)
+                
+                # 同時創建 TeamMembership 記錄和更新 UserProfile
+                from django.utils import timezone
+                
+                # 創建 TeamMembership 記錄
+                membership, created = TeamMembership.objects.get_or_create(
+                    team=team,
+                    user=user_profile.user,
+                    defaults={
+                        'role': 'MEMBER',
+                        'joined_at': timezone.now()
+                    }
+                )
+                
+                # 更新 UserProfile
                 user_profile.current_team = team
                 user_profile.save()
+                
                 messages.success(request, f'已將 {user_profile.user.username} 加入隊伍！')
             except UserProfile.DoesNotExist:
                 messages.error(request, '使用者不存在！')
+            except Exception as e:
+                messages.error(request, f'加入隊伍失敗：{str(e)}')
         
         elif action == 'remove_member':
             user_id = request.POST.get('user_id')
             try:
                 user_profile = UserProfile.objects.get(id=user_id)
                 if user_profile.current_team == team:
+                    # 同時刪除 TeamMembership 記錄和更新 UserProfile
+                    TeamMembership.objects.filter(
+                        team=team,
+                        user=user_profile.user
+                    ).delete()
+                    
                     user_profile.current_team = None
                     user_profile.save()
+                    
                     messages.success(request, f'已將 {user_profile.user.username} 移出隊伍！')
             except UserProfile.DoesNotExist:
                 messages.error(request, '使用者不存在！')
+            except Exception as e:
+                messages.error(request, f'移出隊伍失敗：{str(e)}')
         
         elif action == 'set_leader':
             user_id = request.POST.get('user_id')
             try:
                 user = User.objects.get(id=user_id)
+                
+                # 更新隊長
                 team.leader = user
                 team.save()
+                
+                # 更新 TeamMembership 中的角色
+                TeamMembership.objects.filter(team=team, role='LEADER').update(role='MEMBER')
+                TeamMembership.objects.filter(team=team, user=user).update(role='LEADER')
+                
                 messages.success(request, f'已將 {user.username} 設為隊長！')
             except User.DoesNotExist:
                 messages.error(request, '使用者不存在！')
+            except Exception as e:
+                messages.error(request, f'設定隊長失敗：{str(e)}')
         
         return redirect('engineer_rpg:manage_team_members', team_id=team.id)
     

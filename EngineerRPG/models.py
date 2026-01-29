@@ -125,7 +125,7 @@ class UserProfile(models.Model):
     
     # 隊伍歸屬
     current_team = models.ForeignKey('Team', on_delete=models.SET_NULL, null=True, blank=True,
-                                    related_name='current_members', verbose_name='當前隊伍')
+                                    related_name='current_members', verbose_name='當前隊伍', db_constraint=False)
     
     # 強化券
     enhancement_tickets = models.IntegerField('強化券數量', default=0, validators=[MinValueValidator(0)])

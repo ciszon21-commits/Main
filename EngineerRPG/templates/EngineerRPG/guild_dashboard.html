@@ -117,21 +117,22 @@
                     <a href="{% url 'engineer_rpg:member_profile_detail' member.id %}?from=guild"
                         class="member-card-link">
                         <div class="member-card">
-                            {% if member.avatar_image %}
-                            <img src="{{ member.avatar_image.url }}" class="member-avatar"
+                            <img src="{{ member.get_avatar_url }}" alt="{{ member.user.username }}"
+                                class="member-avatar"
                                 style="border-color: {% if member.role == 'ADMIN' %}var(--color-danger){% elif member.role == 'MANAGER' %}var(--color-mech){% else %}var(--color-border){% endif %};">
-                            {% else %}
-                            <div class="member-avatar flex flex-center"
-                                style="background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; border-color: {% if member.role == 'ADMIN' %}var(--color-danger){% elif member.role == 'MANAGER' %}var(--color-mech){% else %}var(--color-border){% endif %};">
-                                <i class="fas fa-user text-stone"></i>
-                            </div>
-                            {% endif %}
 
                             <div class="member-info">
                                 <div class="member-name">
                                     {{ member.user.username }}
-                                    {% if team.leader == member.user %}
-                                    <i class="fas fa-crown text-gold ml-xs" title="隊長"></i>
+                                    {% if member.role == 'MANAGER' %}
+                                    <i class="fas fa-crown" style="color: #FFD700; margin-left: 8px; font-size: 0.9rem;"
+                                        title="公會會長"></i>
+                                    {% elif member.role == 'OFFICER' %}
+                                    <i class="fas fa-shield-alt"
+                                        style="color: #FFD700; margin-left: 8px; font-size: 0.9rem;" title="公會幹部"></i>
+                                    {% elif team.leader == member.user %}
+                                    <i class="fas fa-star" style="color: #FFD700; margin-left: 8px; font-size: 0.9rem;"
+                                        title="隊長"></i>
                                     {% endif %}
                                 </div>
                                 <div class="member-meta">
@@ -160,18 +161,20 @@
                     <a href="{% url 'engineer_rpg:member_profile_detail' member.id %}?from=guild"
                         class="member-card-link">
                         <div class="member-card">
-                            {% if member.avatar_image %}
-                            <img src="{{ member.avatar_image.url }}" class="member-avatar"
-                                style="border-color: var(--color-border);">
-                            {% else %}
-                            <div class="member-avatar flex flex-center"
-                                style="background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; border-color: var(--color-border);">
-                                <i class="fas fa-user text-stone"></i>
-                            </div>
-                            {% endif %}
+                            <img src="{{ member.get_avatar_url }}" alt="{{ member.user.username }}"
+                                class="member-avatar" style="border-color: var(--color-border);">
 
                             <div class="member-info">
-                                <div class="member-name">{{ member.user.username }}</div>
+                                <div class="member-name">
+                                    {{ member.user.username }}
+                                    {% if member.role == 'MANAGER' %}
+                                    <i class="fas fa-crown" style="color: #FFD700; margin-left: 8px; font-size: 0.9rem;"
+                                        title="公會會長"></i>
+                                    {% elif member.role == 'OFFICER' %}
+                                    <i class="fas fa-shield-alt"
+                                        style="color: #FFD700; margin-left: 8px; font-size: 0.9rem;" title="公會幹部"></i>
+                                    {% endif %}
+                                </div>
                                 <div class="member-meta">
                                     <span>Lv.{{ member.level }}</span>
                                     <span>{{ member.character_class.name }}</span>
@@ -247,7 +250,7 @@
 
     .member-name {
         font-weight: bold;
-        color: var(--color-text);
+        color: white;
         margin-bottom: 2px;
         white-space: nowrap;
         overflow: hidden;

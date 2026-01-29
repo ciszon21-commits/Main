@@ -97,6 +97,9 @@ from .forms import (
 
 )
 
+# Import team management functions
+from .views_team_management import edit_team, manage_team_members, create_team
+
 
 
 
@@ -10517,15 +10520,9 @@ def unequip_item(request, user_equipment_id):
     
     return redirect('engineer_rpg:equipment_inventory')
 
-@login_required
-def manage_team_members(request, *args, **kwargs):
-    # Placeholder restored automatically
-    return JsonResponse({'status': 'success', 'message': 'Function restored as placeholder'}, status=200)
 
-@login_required
-def create_team(request, *args, **kwargs):
-    # Placeholder restored automatically
-    return JsonResponse({'status': 'success', 'message': 'Function restored as placeholder'}, status=200)
+
+
 
 @login_required
 def delete_team(request, *args, **kwargs):
@@ -10548,10 +10545,7 @@ def team_management(request):
     }
     return render(request, 'EngineerRPG/admin_team_list.html', context)
 
-@login_required
-def edit_team(request, *args, **kwargs):
-    # Placeholder restored automatically
-    return JsonResponse({'status': 'success', 'message': 'Function restored as placeholder'}, status=200)
+
 
 @login_required
 def enhance_equipment(request, user_equipment_id):
