@@ -331,15 +331,15 @@
                         <span class="transform-label">Scale</span>
                         <div class="transform-input-group">
                             <span class="transform-axis-label text-danger">X</span>
-                            <input type="number" id="inp-scale-x" class="transform-input" step="0.1">
+                            <input type="number" id="inp-scale-x" class="transform-input" step="0.001">
                         </div>
                         <div class="transform-input-group">
                             <span class="transform-axis-label text-success">Y</span>
-                            <input type="number" id="inp-scale-y" class="transform-input" step="0.1">
+                            <input type="number" id="inp-scale-y" class="transform-input" step="0.001">
                         </div>
                         <div class="transform-input-group">
                             <span class="transform-axis-label text-primary">Z</span>
-                            <input type="number" id="inp-scale-z" class="transform-input" step="0.1">
+                            <input type="number" id="inp-scale-z" class="transform-input" step="0.001">
                         </div>
                     </div>
                 </div>
@@ -411,7 +411,12 @@
     let isPlayMode = false;
     let isInspectorUpdating = false;
 
-    // Fly Mode Variables - REMOVED
+    // Fly Mode Variables
+    let isFPSMode = false;
+    const flySpeed = 5.0;
+    const flyRotateSpeed = 2.0;
+    const moveState = { w: false, a: false, s: false, d: false, q: false, e: false, shift: false };
+    const euler = new THREE.Euler(0, 0, 0, 'YXZ');
 
     // UI Inputs
     const inputs = {
@@ -475,7 +480,10 @@
         // Listeners
         window.addEventListener('resize', onWindowResize);
         container.addEventListener('pointerdown', onPointerDown);
+        container.addEventListener('pointerup', onPointerUp);
+        container.addEventListener('pointermove', onPointerMove);
         window.addEventListener('keydown', onKeyDown);
+        window.addEventListener('keyup', onKeyUp);
 
         // Prevent context menu on right click
         container.addEventListener('contextmenu', e => e.preventDefault());
@@ -511,12 +519,12 @@
 
     function loadExistingObjects() {
         {% for obj in scene.objects.all %}
-        loadModel('{{ obj.asset.pk }}', '{{ obj.asset.file.url }}', {
-            position: { x: {{ obj.position_x }}, y: { { obj.position_y } }, z: { { obj.position_z } }},
-    rotation: { x: { { obj.rotation_x } }, y: { { obj.rotation_y } }, z: { { obj.rotation_z } } },
-    scale: { x: { { obj.scale_x } }, y: { { obj.scale_y } }, z: { { obj.scale_z } } }
-        }, '{{ obj.asset.title }}');
-    {% endfor %}
+            loadModel('{{ obj.asset.pk }}', '{{ obj.asset.file.url }}', {
+                position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }} },
+                rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }} },
+                scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} }
+            }, '{{ obj.asset.title }}');
+         {% endfor %}
     }
 
     // Global exposed functions
@@ -547,16 +555,19 @@
             // Hide helpers
             transformControl.detach();
             transformControl.visible = false;
-            // gridHelper.visible = false; // Optional
 
-            // Reset Camera for "Game" feel?
-            // For now, OrbitControls is fine, just maybe restrict plain View
+            // Disable Orbit Controls
+            controls.enabled = false;
+
+            // capture initial rotation again just in case
+            euler.setFromQuaternion(camera.quaternion);
 
         } else {
             btn.classList.replace('btn-primary', 'btn-light');
             btn.innerHTML = '<i class="fas fa-play"></i> Play';
             overlay.style.display = 'none';
 
+            controls.enabled = true;
             transformControl.visible = true;
             if (selectedObject) transformControl.attach(selectedObject);
         }
@@ -588,9 +599,6 @@
             if (transform.rotation) object.rotation.set(transform.rotation.x, transform.rotation.y, transform.rotation.z);
             if (transform.scale) object.scale.set(transform.scale.x, transform.scale.y, transform.scale.z);
 
-            // Normalize scale check
-            if (!transform.scale && object.scale.length() < 0.01) object.scale.set(0.1, 0.1, 0.1);
-
             object.userData.isInteractable = true;
             object.userData.assetId = assetId;
             object.name = title;
@@ -599,7 +607,9 @@
             objects.push(object);
 
             // Select it newly added (unless loading existing)
-            if (!transform.position) selectObject(object);
+            if (Object.keys(transform).length === 0) {
+                selectObject(object);
+            }
 
             updateHierarchy();
             if (callback) callback(object);
@@ -670,7 +680,15 @@
     // --- UI/Interaction ---
 
     function onPointerDown(event) {
-        if (isPlayMode) return;
+        if (isPlayMode) {
+            // FPS Mode Check: Right Click holds to rotating
+            if (event.button === 2) {
+                isFPSMode = true;
+                controls.enabled = false;
+                euler.setFromQuaternion(camera.quaternion);
+            }
+            return;
+        }
 
         // Don't deselect if clicking on the Gizmo
         // This is tricky, simplified:
@@ -696,15 +714,61 @@
         }
     }
 
+    function onPointerUp(event) {
+        if (event.button === 2) {
+            isFPSMode = false;
+            if (!isPlayMode) controls.enabled = true;
+        }
+    }
+
+    function onPointerMove(event) {
+        if (isFPSMode && isPlayMode) {
+            const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+            const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
+
+            euler.y -= movementX * 0.002 * flyRotateSpeed;
+            euler.x -= movementY * 0.002 * flyRotateSpeed;
+
+            euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, euler.x));
+
+            camera.quaternion.setFromEuler(euler);
+        }
+    }
+
     function onKeyDown(event) {
         if (event.key === 'Escape' && isPlayMode) togglePlayMode();
-        if (isPlayMode || event.target.tagName === 'INPUT') return;
+        if (event.target.tagName === 'INPUT') return;
+
+        if (isPlayMode) {
+            switch (event.code) {
+                case 'KeyW': moveState.w = true; break;
+                case 'KeyA': moveState.a = true; break;
+                case 'KeyS': moveState.s = true; break;
+                case 'KeyD': moveState.d = true; break;
+                case 'ShiftLeft':
+                case 'ShiftRight': moveState.shift = true; break;
+            }
+            return;
+        }
 
         switch (event.key.toLowerCase()) {
             case 't': setTool('translate'); break;
             case 'r': setTool('rotate'); break;
             case 's': setTool('scale'); break;
             case 'delete': deleteSelected(); break;
+        }
+    }
+
+    function onKeyUp(event) {
+        if (isPlayMode) {
+            switch (event.code) {
+                case 'KeyW': moveState.w = false; break;
+                case 'KeyA': moveState.a = false; break;
+                case 'KeyS': moveState.s = false; break;
+                case 'KeyD': moveState.d = false; break;
+                case 'ShiftLeft':
+                case 'ShiftRight': moveState.shift = false; break;
+            }
         }
     }
 
@@ -789,9 +853,9 @@
         inputs.rot.y.value = +r2d(o.rotation.y).toFixed(1);
         inputs.rot.z.value = +r2d(o.rotation.z).toFixed(1);
 
-        inputs.scale.x.value = +o.scale.x.toFixed(2);
-        inputs.scale.y.value = +o.scale.y.toFixed(2);
-        inputs.scale.z.value = +o.scale.z.toFixed(2);
+        inputs.scale.x.value = +o.scale.x.toFixed(4);
+        inputs.scale.y.value = +o.scale.y.toFixed(4);
+        inputs.scale.z.value = +o.scale.z.toFixed(4);
 
         isInspectorUpdating = false;
     }
@@ -814,7 +878,35 @@
 
     function animate() {
         requestAnimationFrame(animate);
-        controls.update();
+
+        const delta = clock.getDelta();
+
+        if (isPlayMode) {
+            // Physics/Movement Logic
+            const actualSpeed = moveState.shift ? flySpeed * 2.0 : flySpeed;
+            const direction = new THREE.Vector3();
+
+            if (moveState.w) direction.z -= 1;
+            if (moveState.s) direction.z += 1;
+            if (moveState.a) direction.x -= 1;
+            if (moveState.d) direction.x += 1;
+
+            if (direction.lengthSq() > 0) {
+                direction.normalize();
+                direction.applyQuaternion(camera.quaternion); // Move in looking direction
+                // But typically FPS implies movement on XZ plane only? 
+                // User asked for "FPS style", usually means free fly or grounded. 
+                // Let's do Free Fly for now as it's easier for "Scene Inspection".
+                // Or stick to previous "Fly Mode" style.
+
+                camera.position.addScaledVector(direction, actualSpeed * delta);
+            }
+
+            // Disable OrbitControls update in PlayMode usually
+        } else {
+            controls.update();
+        }
+
         renderer.render(scene, camera);
     }
 
