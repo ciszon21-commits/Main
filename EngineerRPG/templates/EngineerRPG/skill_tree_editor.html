@@ -5,6 +5,7 @@
 
 {% block content %}
 <div class="skill-editor-container">
+    {% csrf_token %}
     <!-- 頂部工具列 -->
     <div class="editor-header">
         <div class="header-left">
@@ -13,7 +14,7 @@
         <div class="header-right">
             <select id="classSelect" class="rpg-select" onchange="filterSkills()">
                 {% for class in classes %}
-                <option value="{{ class.code }}" {% if selected_class == class.code %}selected{% endif %}>
+                <option value="{{ class.code }}" {% if selected_clas == class.code %}selected{% endif %}>
                     {{ class.name }}
                 </option>
                 {% endfor %}
@@ -24,6 +25,43 @@
             <button onclick="autoLayout()" class="rpg-btn rpg-btn-primary">
                 <i class="fas fa-magic"></i> 自動佈局
             </button>
+        </div>
+    </div>
+
+    <!-- 經驗值預算儀表板 -->
+    <div class="budget-panel">
+        <!-- ROOT Budget -->
+        <div class="budget-item">
+            <div class="budget-info">
+                <span><i class="fas fa-seedling"></i> 共同必修預算 (Lv.10)</span>
+                <span>{{ root_xp_current }} / {{ root_xp_limit }} XP</span>
+            </div>
+            <div class="budget-progress">
+                <div class="progress-bar {% if root_xp_current > root_xp_limit %}over-limit{% endif %}"
+                    style="width: {% widthratio root_xp_current root_xp_limit 100 %}%;"></div>
+            </div>
+            {% if root_xp_current < root_xp_limit %} <button onclick="autoDistribute('ROOT')"
+                class="rpg-btn rpg-btn-sm rpg-btn-warning mt-sm">
+                <i class="fas fa-balance-scale"></i> 自動分配剩餘 {{ root_xp_limit|add:"-"|add:root_xp_current }} XP
+                </button>
+                {% endif %}
+        </div>
+
+        <!-- CORE Budget -->
+        <div class="budget-item">
+            <div class="budget-info">
+                <span><i class="fas fa-star"></i> 職業核心預算 (Lv.50) [{{ selected_class }}]</span>
+                <span>{{ core_xp_current }} / {{ core_xp_limit }} XP</span>
+            </div>
+            <div class="budget-progress">
+                <div class="progress-bar {% if core_xp_current > core_xp_limit %}over-limit{% endif %}"
+                    style="width: {% widthratio core_xp_current core_xp_limit 100 %}%;"></div>
+            </div>
+            {% if core_xp_current < core_xp_limit %} <button onclick="autoDistribute('CORE')"
+                class="rpg-btn rpg-btn-sm rpg-btn-warning mt-sm">
+                <i class="fas fa-balance-scale"></i> 自動分配剩餘 {{ core_xp_limit|add:"-"|add:core_xp_current }} XP
+                </button>
+                {% endif %}
         </div>
     </div>
 
@@ -551,6 +589,50 @@
         color: var(--color-text);
         font-size: 0.95rem;
     }
+
+    /* Budget Panel */
+    .budget-panel {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .budget-item {
+        flex: 1;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--color-primary);
+        border-radius: 4px;
+        padding: 10px;
+    }
+
+    .budget-info {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+        color: var(--color-text);
+        font-size: 0.9rem;
+    }
+
+    .budget-progress {
+        height: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 5px;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background: var(--color-success);
+        transition: width 0.3s;
+    }
+
+    .over-limit {
+        background: var(--color-danger);
+    }
+
+    .mt-sm {
+        margin-top: 10px;
+    }
 </style>
 
 <script>
@@ -760,9 +842,14 @@
             courses: courses
         };
 
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
+
         fetch('/rpg/api/skill-editor/node/save/', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
             body: JSON.stringify(data)
         })
             .then(res => res.json())
@@ -782,9 +869,14 @@
     function deleteSkill(skillId) {
         if (!confirm('確定要刪除此技能嗎？此操作無法復原。')) return;
 
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
+
         fetch('/rpg/api/skill-editor/node/delete/', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
             body: JSON.stringify({ id: skillId })
         })
             .then(res => res.json())
@@ -798,14 +890,54 @@
             });
     }
 
+    function autoDistribute(type) {
+        const classCode = document.getElementById('classSelect').value;
+        const confirmMsg = type === 'ROOT' ?
+            '確定要將剩餘經驗值平均分配給所有「共同必修」技能嗎？' :
+            `確定要將剩餘經驗值平均分配給 [${currentClass}] 的「職業核心」技能嗎？`;
+
+        if (!confirm(confirmMsg)) return;
+
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
+
+        fetch('/rpg/api/skill-editor/auto-distribute/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
+                type: type,
+                class_code: classCode
+            })
+        })
+            .then(res => res.json())
+            .then(result => {
+                if (result.error) {
+                    alert('分配失敗: ' + result.error);
+                } else {
+                    alert(result.message);
+                    window.location.reload();
+                }
+            })
+            .catch(err => {
+                alert('請求失敗: ' + err.message);
+            });
+    }
+
     function autoLayout() {
         if (!confirm('確定要自動計算技能樹佈局嗎？這將覆蓋現有的座標設定。')) return;
 
         const classCode = document.getElementById('classSelect').value;
 
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
+
         fetch('/rpg/api/skill-tree/auto-layout/', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
             body: JSON.stringify({ class_code: classCode })
         })
             .then(res => res.json())

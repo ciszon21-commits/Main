@@ -103,6 +103,13 @@ class UserProfile(models.Model):
     hp = models.IntegerField('生命值', default=3)
     mp = models.IntegerField('技能值', default=100)
     
+    RANK_CHOICES = [
+        ('INTERN', '實習生'),
+        ('ASSISTANT', '助理工程師'),
+        ('ENGINEER', '工程師'),
+    ]
+    rank = models.CharField('職銜', max_length=20, choices=RANK_CHOICES, default='INTERN')
+    
 
     
     # 裝備欄位

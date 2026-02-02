@@ -1,4 +1,5 @@
-﻿# -*- coding: utf-8 -*-
+from django.db.models import Sum
+# -*- coding: utf-8 -*-
 from django.shortcuts import render, redirect, get_object_or_404
 
 
@@ -312,14 +313,21 @@ def user_register(request):
 
 
 
+    # Calculate XP Budgets
+    root_xp_current = SkillNode.objects.filter(node_type='ROOT').aggregate(Sum('exp_reward'))['exp_reward__sum'] or 0
+    core_xp_current = SkillNode.objects.filter(node_type='CORE', character_class__code=selected_class_code).aggregate(Sum('exp_reward'))['exp_reward__sum'] or 0
+    
     context = {
-
-
-
-        'form': form,
-
-
-
+        'profile': profile,
+        'skills': skills,
+        'courses': courses,
+        'classes': classes,
+        'selected_class': selected_class_code,
+        # Budget Info
+        'root_xp_current': root_xp_current,
+        'root_xp_limit': 4500,
+        'core_xp_current': core_xp_current,
+        'core_xp_limit': 118000,
     }
 
 
@@ -566,10 +574,17 @@ def dashboard(request):
 
 
     today = timezone.now().date()
-
-
-
-    daily_trials = Trial.objects.filter(is_daily=True, is_active=True, refresh_date=today)
+    
+    # Use DailyTrialTask to get today's generated dungeons
+    from .models import DailyTrialTask
+    from .utils import generate_daily_tasks
+    
+    daily_tasks_query = DailyTrialTask.objects.filter(date=today).order_by('task_number')
+    if not daily_tasks_query.exists():
+        daily_tasks_query = generate_daily_tasks(date=today)
+        
+    # Extract trials from tasks to maintain template compatibility
+    daily_trials = [task.trial for task in daily_tasks_query]
 
 
 
@@ -1508,26 +1523,45 @@ def complete_skill(request, skill_id):
 
 
 
-        while profile.experience >= profile.experience_to_next_level() and profile.level < 100:
-
-
-
-            profile.experience -= profile.experience_to_next_level()
-
-
-
-            profile.level += 1
-
-
-
-            messages.success(request, 'Operation successful')
-
-
-
-
+        # 瑼Ｘ?臬??
+        # Level Cap Logic:
+        # Intern -> Cap at 10
+        # Assistant -> Cap at 50
+        # Engineer -> Cap at 100
         
+        while profile.experience >= profile.experience_to_next_level():
+            # Check Level Caps
+            if profile.rank == 'INTERN' and profile.level >= 10:
+                break
+            if profile.rank == 'ASSISTANT' and profile.level >= 50:
+                break
+            if profile.level >= 100:
+                break
+                
+            profile.experience -= profile.experience_to_next_level()
+            profile.level += 1
+            messages.success(request, f'恭喜升級！等級提升至 {profile.level}！')
+            
+            # HP/MP growth logic (if any)
+            if profile.level % 10 == 0:
+                # e.g. bonus
+                pass
 
-
+        # Notification Logic
+        if profile.rank == 'ASSISTANT':
+             # Check if eligible for Engineer promotion ( > 50% CORE skills)
+             req_core = SkillNode.objects.filter(character_class=profile.character_class, node_type='CORE').count()
+             done_core = UserSkill.objects.filter(
+                 user_profile=profile, 
+                 skill_node__character_class=profile.character_class,
+                 skill_node__node_type='CORE',
+                 status='COMPLETED'
+             ).count()
+             
+             if req_core > 0 and (done_core / req_core) >= 0.5:
+                 # Check if recently qualified (e.g. just passed the threshold)
+                 # Simpler: just notify every time they complete a skill if they are eligible
+                 messages.info(request, '【系統通知】您已完成超過 50% 的職業核心技能，具備晉升「工程師」的資格！請至儀表板申請晉升。')
 
         profile.save()
 
@@ -4077,172 +4111,86 @@ def trial_record_detail(request, record_id):
 
 
 
+@login_required
 def apply_promotion(request):
-
-
-
-    """Function docstring"""
-
-
+    """申請晉升"""
     profile = get_or_create_user_profile(request.user)
-
-
-
     
-
-
-
-    # 瑼Ｘ��?臬��?��?撖拇��?���唾�?
-
-
-
+    # Check for pending request
     pending_request = PromotionRequest.objects.filter(
-
-
-
         applicant=profile,
-
-
-
         status='PENDING'
-
-
-
     ).first()
-
-
-
     
-
-
-
     if pending_request:
+        messages.warning(request, '您已有審核中的晉升申請，請耐心等候。')
+        return redirect('engineer_rpg:dashboard')
+    
+    # 決定目標職銜與檢查條件
+    current_rank = profile.rank
+    target_rank = None
+    
+    if current_rank == 'INTERN':
+        # 實習生 -> 助理工程師
+        # 條件：共同必修 (ROOT) 技能 100% 完成
+        required_root = SkillNode.objects.filter(node_type='ROOT')
+        completed_root = UserSkill.objects.filter(
+            user_profile=profile,
+            skill_node__in=required_root,
+            status='COMPLETED'
+        ).count()
+        
+        if completed_root < required_root.count():
+            messages.error(request, '申請失敗：需完成所有「共同必修」技能才可申請成為助理工程師。')
+            return redirect('engineer_rpg:skill_tree')
+            
+        target_rank = 'ASSISTANT'
+        
+    elif current_rank == 'ASSISTANT':
+        # 助理工程師 -> 工程師
+        # 條件：職業核心 (CORE) 技能完成度 > 50%
+        required_core = SkillNode.objects.filter(
+            character_class=profile.character_class,
+            node_type='CORE'
+        )
+        completed_core = UserSkill.objects.filter(
+            user_profile=profile,
+            skill_node__in=required_core,
+            status='COMPLETED'
+        ).count()
+        
+        total_core = required_core.count()
+        if total_core > 0 and (completed_core / total_core) < 0.5:
+            messages.error(request, '申請失敗：需完成 50% 以上「職業核心」技能才可申請成為工程師。')
+            return redirect('engineer_rpg:skill_tree')
+            
+        target_rank = 'ENGINEER'
 
-
-
-        messages.warning(request, 'Warning')
-
-
-
-
+    elif current_rank == 'ENGINEER':
+        messages.info(request, '您已是正式工程師，無需再申請基礎晉升。')
+        return redirect('engineer_rpg:dashboard')
+        
+    else:
+        messages.error(request, '未知的職銜狀態。')
         return redirect('engineer_rpg:dashboard')
 
-
-
-    
-
-
-
-    # Comment
-
-    required_skills = SkillNode.objects.filter(
-
-
-
-        character_class=profile.character_class,
-
-
-
-        node_type='CORE'
-
-
-
-    )
-
-
-
-    completed_skills = UserSkill.objects.filter(
-
-
-
-        user_profile=profile,
-
-
-
-        skill_node__in=required_skills,
-
-
-
-        status='COMPLETED'
-
-
-
-    ).count()
-
-
-
-    
-
-
-
-    if completed_skills < required_skills.count():
-
-
-
-        messages.error(request, 'An error occurred')
-
-
-
-
-        return redirect('engineer_rpg:skill_tree')
-
-
-
-    
-
-
-
-    # 撱箇??��??唾?
-
-
-
+    # 建立晉升申請
     target_level = profile.level + 1
-
-
-
-    promotion_request = PromotionRequest.objects.create(
-
-
-
-        applicant=profile,
-
-
-
-        current_level=profile.level,
-
-
-
-        target_level=target_level,
-
-
-
-        status='PENDING'
-
-
-
-    )
-
-
-
     
-
-
-
-    messages.success(request, 'Operation successful')
-
-
-
-
+    promotion_request = PromotionRequest.objects.create(
+        applicant=profile,
+        current_level=profile.level,
+        target_level=target_level,
+        status='PENDING'
+    )
+    
+    # 我們可以將 target_rank 存入備註或日誌，或者依據 level 推算 (暫不更動模型)
+    # 但為了讓審核者知道，我們可以 update 申請單的備註? 
+    # PromotionRequest 有 review_comment，但那是審核者寫的。
+    # 暫時依賴 approve_request 裡的邏輯重判。
+    
+    messages.success(request, f'已成功送出晉升申請！')
     return redirect('engineer_rpg:dashboard')
-
-
-
-
-
-
-
-
-
 
 
 @login_required
@@ -4692,113 +4640,52 @@ def review_request(request, request_id):
 
 
 
-def approve_request(request, request_id):
-
-
-
-    """Function docstring"""
-
-
-    profile = get_or_create_user_profile(request.user)
-
-
-
-    
-
-
-
-    if profile.role not in ['MANAGER', 'ADMIN']:
-
-
-
-        messages.error(request, 'An error occurred')
-
-
-
-
-        return redirect('engineer_rpg:dashboard')
-
-
-
-    
-
-
-
-    promotion_request = get_object_or_404(PromotionRequest, id=request_id)
-
-
-
-    
-
-
-
-    if promotion_request.status == 'PENDING':
-
-
-
-        promotion_request.status = 'APPROVED'
-
-
-
-        promotion_request.reviewer = request.user
-
-
-
-        promotion_request.reviewed_at = timezone.now()
-
-
-
-        promotion_request.save()
-
-
-
-        
-
-
-
-        # ?湔��?唾?鈭箇?蝝?
-
-
-
-        applicant = promotion_request.applicant
-
-
-
-        applicant.level = promotion_request.target_level
-
-
-
-        applicant.save()
-
-
-
-        
-
-
-
-        messages.success(request, 'Operation successful')
-
-
-
-
-    
-
-
-
-    return redirect('engineer_rpg:manager_dashboard')
-
-
-
-
-
-
-
-
-
-
-
 @login_required
-
+def approve_request(request, request_id):
+    """核准晉升申請"""
+    profile = get_or_create_user_profile(request.user)
+    
+    if profile.role not in ['MANAGER', 'ADMIN']:
+        messages.error(request, '您沒有權限執行此操作。')
+        return redirect('engineer_rpg:dashboard')
+    
+    promotion_request = get_object_or_404(PromotionRequest, id=request_id)
+    
+    if promotion_request.status == 'PENDING':
+        promotion_request.status = 'APPROVED'
+        promotion_request.reviewer = request.user
+        promotion_request.reviewed_at = timezone.now()
+        promotion_request.save()
+        
+        # 更新申請人職銜與等級
+        applicant = promotion_request.applicant
+        
+        # 決定新職銜
+        if applicant.rank == 'INTERN':
+             applicant.rank = 'ASSISTANT'
+        elif applicant.rank == 'ASSISTANT':
+             applicant.rank = 'ENGINEER'
+        
+        # 重新計算等級 (釋放累積的經驗值)
+        # 原本是直接設為 target_level，現在要根據總經驗值重算
+        # Import helper here to avoid circular imports at top level if not handled
+        from EngineerRPG.utils.level_system import calculate_level_from_xp
+        
+        new_level, remaining_xp = calculate_level_from_xp(applicant.level, applicant.experience)
+        
+        # 如果新等級比 target_level 還低 (不應該發生，因為有基本獎勵)，至少升一級
+        if new_level <= applicant.level:
+            new_level = applicant.level + 1
+            
+        applicant.level = new_level
+        applicant.experience = remaining_xp
+        applicant.save()
+        
+        messages.success(request, f'已核准 {applicant.user.username} 的晉升申請！新職銜：{applicant.get_rank_display()}，等級提升至 Lv.{applicant.level}。')
+        
+        # 發送通知給申請人 (TODO: Implement notification system)
+        
+    return redirect('engineer_rpg:promotion_requests')
 
 
 def reject_request(request, request_id):
@@ -6584,30 +6471,22 @@ def skill_tree_editor(request):
 
 
 
+    # Calculate XP Budgets
+    from django.db.models import Sum
+    root_xp_current = SkillNode.objects.filter(node_type='ROOT').aggregate(Sum('exp_reward'))['exp_reward__sum'] or 0
+    core_xp_current = SkillNode.objects.filter(node_type='CORE', character_class__code=selected_class_code).aggregate(Sum('exp_reward'))['exp_reward__sum'] or 0
+
     context = {
-
-
-
         'profile': profile,
-
-
-
         'skills': skills,
-
-
-
         'courses': courses,
-
-
-
         'classes': classes,
-
-
-
         'selected_class': selected_class_code,
-
-
-
+        # Budget Info
+        'root_xp_current': root_xp_current,
+        'root_xp_limit': 4500,
+        'core_xp_current': core_xp_current,
+        'core_xp_limit': 118000,
     }
 
 
@@ -7101,6 +6980,57 @@ def api_save_skill_node(request):
             except CharacterClass.DoesNotExist:
                 pass
                 
+                # Validate ROOT XP Limit (Lv 10 Cap check)
+        # Lv 10 requires ~ 4500 XP (Sum of n*100 for n=1 to 9 is 4500)
+        # Actually, let's double check the formula.
+        # Lv 1->2: 100
+        # ...
+        # Lv 9->10: 900
+        # Total = 4500.
+        MAX_ROOT_XP = 4500
+        
+        if node.node_type == 'ROOT':
+            # Calculate current total ROOT XP (excluding this node if it exists)
+            current_root_xp = 0
+            root_skills = SkillNode.objects.filter(node_type='ROOT')
+            if node.id:
+                root_skills = root_skills.exclude(id=node.id)
+                
+            for s in root_skills:
+                current_root_xp += s.exp_reward
+                
+            new_total = current_root_xp + node.exp_reward
+            
+            if new_total > MAX_ROOT_XP:
+                return JsonResponse({
+                    'error': f'共同必修 (ROOT) 總經驗值上限為 {MAX_ROOT_XP} (Lv.10)。目前總計: {new_total}，請調整獎勵值。'
+                }, status=400)
+        
+        MAX_CORE_XP = 118000
+        
+        if node.node_type == 'CORE':
+             current_core_xp = 0
+             # Note: node.character_class might not be set yet if it's new and we rely on data.get('class_code')
+             # But loop above sets node.character_class.
+             
+             if not node.character_class:
+                 # Try to get from data if not set yet (unlikely given previous logic)
+                 pass
+                 
+             if node.character_class:
+                 core_skills = SkillNode.objects.filter(node_type='CORE', character_class=node.character_class)
+                 if node.id:
+                     core_skills = core_skills.exclude(id=node.id)
+                     
+                 for s in core_skills:
+                     current_core_xp += s.exp_reward
+                     
+                 new_total = current_core_xp + node.exp_reward
+                 
+                 if new_total > MAX_CORE_XP:
+                     return JsonResponse({
+                         'error': f'職業核心 (CORE) 總經驗值上限為 {MAX_CORE_XP} (Lv.50)。目前總計: {new_total}，請調整獎勵值。'
+                     }, status=400)
         node.save()
         
         # Handle parent skills
@@ -10678,3 +10608,75 @@ def submit_course_exam(request, course_id):
         'incorrect_questions': incorrect_questions,
     }
     return render(request, 'EngineerRPG/course_result.html', context)
+
+
+@login_required
+def api_auto_distribute_xp(request):
+    """自動分配剩餘經驗值"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+        
+    profile = get_or_create_user_profile(request.user)
+    if profile.role != 'ADMIN':
+         return JsonResponse({'error': 'Permission denied'}, status=403)
+         
+    try:
+        data = json.loads(request.body)
+        dist_type = data.get('type')
+        class_code = data.get('class_code')
+        
+        target_xp = 0
+        skills = []
+        
+        if dist_type == 'ROOT':
+            target_xp = 4500
+            skills = list(SkillNode.objects.filter(node_type='ROOT'))
+        elif dist_type == 'CORE':
+            target_xp = 118000
+            skills = list(SkillNode.objects.filter(node_type='CORE', character_class__code=class_code))
+        else:
+            return JsonResponse({'error': 'Invalid type'}, status=400)
+            
+        if not skills:
+            return JsonResponse({'error': 'No skills found'}, status=404)
+            
+        # Calculate current total
+        current_total = sum(s.exp_reward for s in skills)
+        gap = target_xp - current_total
+        
+        if gap <= 0:
+            return JsonResponse({'status': 'success', 'message': '已額滿或超標，無需分配'})
+            
+        # Distribute gap
+        count = len(skills)
+        base_add = gap // count
+        remainder = gap % count
+        
+        for i, skill in enumerate(skills):
+            skill.exp_reward += base_add
+            if i < remainder:
+                skill.exp_reward += 1
+            skill.save()
+            
+        return JsonResponse({'status': 'success', 'message': f'已將 {gap} XP 分配給 {count} 個技能'})
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+
+@login_required
+def delete_question(request, question_id):
+    """Delete a question"""
+    profile = get_or_create_user_profile(request.user)
+    if profile.role not in ['ADMIN', 'MANAGER', 'OFFICER']:
+        messages.error(request, '權限不足')
+        return redirect('engineer_rpg:question_management')
+        
+    question = get_object_or_404(Question, id=question_id)
+    
+    if request.method == 'POST':
+        question.delete()
+        messages.success(request, '題目已刪除')
+        
+    return redirect('engineer_rpg:question_management')
