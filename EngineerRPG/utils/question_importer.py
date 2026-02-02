@@ -7,7 +7,7 @@ import csv
 import io
 from openpyxl import load_workbook
 from django.db import transaction
-from EngineerRPG.models import Question, SkillNode
+from EngineerRPG.models import Question, SkillNode, QuestionCategory
 
 
 class QuestionImporter:
@@ -93,21 +93,19 @@ class QuestionImporter:
             correct_answer=correct_answer,
             explanation=row.get('答案解析', ''),
             difficulty=self._get_difficulty(row['難度']),
-            tags=row.get('標籤', ''),
             is_active=str(row.get('啟用', 'Y')).upper() == 'Y'
         )
-        
+
+        # 處理分類
+        if row.get('分類'):
+            category_name = str(row['分類']).strip()
+            try:
+                category = QuestionCategory.objects.get(name=category_name)
+                question.category = category
+            except QuestionCategory.DoesNotExist:
+                pass  # 分類不存在則保留無分類
+
         question.save()
-        
-        # 處理相關技能
-        if row.get('相關技能'):
-            skill_names = [s.strip() for s in str(row['相關技能']).split(',')]
-            for skill_name in skill_names:
-                try:
-                    skill = SkillNode.objects.get(name=skill_name)
-                    question.related_skills.add(skill)
-                except SkillNode.DoesNotExist:
-                    pass
         
         return question
     
@@ -133,10 +131,10 @@ class QuestionImporter:
 
 def generate_template_csv():
     """產生匯入範本 CSV"""
-    template = """題目內容,題目類型,選項A,選項B,選項C,選項D,正確答案,答案解析,難度,標籤,相關技能,啟用
-工地主任應具備哪些資格？,單選,土木技師,建築師,營造業專任工程人員,以上皆可,D,工地主任需具備相關專業資格,B,法規,工地管理,Y
-下列何者為施工安全重點？,多選,佩戴安全帽,設置安全網,定期檢查,僅A,"A,B,C",施工安全需要多重防護措施,C,安全,安全管理,Y
-混凝土澆置前需進行鋼筋檢查,是非,,,,,TRUE,確保結構安全的必要步驟,C,施工,混凝土工程,Y"""
+    template = """題目內容,題目類型,選項A,選項B,選項C,選項D,正確答案,答案解析,難度,分類,啟用
+工地主任應具備哪些資格？,單選,土木技師,建築師,營造業專任工程人員,以上皆可,D,工地主任需具備相關專業資格,B,工務行政,Y
+下列何者為施工安全重點？,多選,佩戴安全帽,設置安全網,定期檢查,僅A,"A,B,C",施工安全需要多重防護措施,C,職安衛,Y
+混凝土澆置前需進行鋼筋檢查,是非,,,,,TRUE,確保結構安全的必要步驟,C,施工管理,Y"""
     
     return template
 
@@ -152,7 +150,7 @@ def generate_template_excel():
     
     headers = [
         '題目內容', '題目類型', '選項A', '選項B', '選項C', '選項D',
-        '正確答案', '答案解析', '難度', '標籤', '相關技能', '啟用'
+        '正確答案', '答案解析', '難度', '分類', '啟用'
     ]
     ws.append(headers)
     
@@ -160,17 +158,17 @@ def generate_template_excel():
         [
             '工地主任應具備哪些資格？', '單選', '土木技師', '建築師', 
             '營造業專任工程人員', '以上皆可', 'D', '工地主任需具備相關專業資格',
-            'B', '法規', '工地管理', 'Y'
+            'B', '工務行政', 'Y'
         ],
         [
             '下列何者為施工安全重點？', '多選', '佩戴安全帽', '設置安全網',
             '定期檢查', '僅A', 'A,B,C', '施工安全需要多重防護措施',
-            'C', '安全', '安全管理', 'Y'
+            'C', '職安衛', 'Y'
         ],
         [
             '混凝土澆置前需進行鋼筋檢查', '是非', '', '',
             '', '', 'TRUE', '確保結構安全的必要步驟',
-            'C', '施工', '混凝土工程', 'Y'
+            'C', '施工管理', 'Y'
         ],
     ]
     

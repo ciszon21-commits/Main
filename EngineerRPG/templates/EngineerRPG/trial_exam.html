@@ -18,137 +18,202 @@
             <div class="hp-container">
                 <span class="status-label"><i class="fas fa-heart text-danger"></i> HP</span>
                 <div class="hp-bar-bg">
-                    <div class="hp-bar-fill" id="hpBar" style="width: {% widthratio initial_hp base_hp 100 %}%;">{{
-                        initial_hp }}/{{ base_hp }}</div>
+                    <div class="hp-bar-fill" id="hpBar"
+                        style="width: {% widthratio initial_hp base_hp 100 %}%; background: {% if initial_hp <= 0 %}linear-gradient(90deg, #dc3545, #8b0000){% else %}{% widthratio initial_hp base_hp 100 as hp_percentage %}{% if hp_percentage <= 20 %}linear-gradient(90deg, #dc3545, #8b0000){% else %}linear-gradient(90deg, #28a745, #1e7e34){% endif %}{% endif %};">
+                    </div>
+                    <span class="bar-value" id="hpValue">{{ initial_hp }}/{{ base_hp }}</span>
                 </div>
             </div>
             <div class="mp-container">
                 <span class="status-label"><i class="fas fa-bolt text-warning"></i> MP</span>
                 <div class="mp-bar-bg">
-                    <div class="mp-bar-fill" id="mpBar" style="width: 100%;">{{ initial_mp }}/100</div>
+                    <div class="mp-bar-fill" id="mpBar" style="width: {{ initial_mp }}%;"></div>
+                    <span class="bar-value" id="mpValue">{{ initial_mp }}/100</span>
                 </div>
-            </div>
-        </div>
-
-        <!-- 進度條 -->
-        <div class="progress-info mt-md">
-            <span class="progress-text">第 <span id="currentIndex">{{ current_index|add:1 }}</span> / {{ total_questions
-                }} 題</span>
-            <div class="progress-bar-container">
-                <div class="progress-bar" id="progressBar"
-                    style="width: {% widthratio current_index total_questions 100 %}%"></div>
             </div>
         </div>
     </div>
 
-    <!-- 單題顯示區 -->
-    <div class="rpg-card mb-lg question-card" id="questionCard">
-        {% if question %}
-        <div class="question-header mb-md">
-            <span class="question-number">Q{{ current_index|add:1 }}</span>
-            <span class="question-type badge badge-info">{{ question.get_question_type_display }}</span>
-            <span class="question-difficulty badge badge-{{ question.difficulty }}">{{ question.get_difficulty_display
-                }}</span>
+    <!-- 進度條 -->
+    <div class="progress-info mt-md">
+        <span class="progress-text">第 <span id="currentIndex">{{ current_index|add:1 }}</span>
+            / {{ total_questions }} 題</span>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progressBar"
+                style="width: {% widthratio current_index total_questions 100 %}%"></div>
         </div>
+    </div>
+</div>
 
-        <div class="question-content mb-lg">
-            <h3 class="mb-md">{{ question.content|linebreaksbr }}</h3>
-            {% if question.image %}
-            <img src="{{ question.image.url }}" alt="Question Image" class="question-image mb-md">
-            {% endif %}
+<!-- 單題顯示區 -->
+<div class="rpg-card mb-lg question-card" id="questionCard">
+    {% if is_completed %}
+    <!-- 結算畫面 -->
+    <div class="completion-result text-center py-xl">
+        {% if is_passed %}
+        <div class="result-icon mb-lg">
+            <i class="fas fa-trophy text-primary" style="font-size: 5rem;"></i>
         </div>
-
-        <form id="answerForm">
-            {% csrf_token %}
-
-            <!-- MP 技能按鈕 -->
-            <div class="skill-buttons mb-lg" id="skillButtons">
-                <button type="button" class="skill-btn" id="hintBtn" onclick="useHint()">
-                    <i class="fas fa-lightbulb"></i> 提示 (30 MP)
-                </button>
-                <button type="button" class="skill-btn" id="fiftyFiftyBtn" onclick="useFiftyFifty()">
-                    <i class="fas fa-cut"></i> 二選一 (50 MP)
-                </button>
-            </div>
-
-            <!-- 道具欄 -->
-            {% if user_items %}
-            <div class="items-toolbar mb-lg">
-                <div class="items-label">
-                    <i class="fas fa-briefcase"></i> 可用道具
-                </div>
-                <div class="items-list">
-                    {% for user_item in user_items %}
-                    <button type="button" class="item-btn" data-item-id="{{ user_item.id }}"
-                        data-item-name="{{ user_item.item.name }}" data-effect-type="{{ user_item.item.effect_type }}"
-                        data-effect-value="{{ user_item.item.effect_value }}" onclick="useItem(this)">
-                        <div class="item-icon">
-                            {% if user_item.item.effect_type == 'HEAL' %}
-                            <i class="fas fa-heart"></i>
-                            {% elif user_item.item.effect_type == 'HINT' %}
-                            <i class="fas fa-lightbulb"></i>
-                            {% elif user_item.item.effect_type == 'SKIP' %}
-                            <i class="fas fa-forward"></i>
-                            {% elif user_item.item.effect_type == 'SHIELD' %}
-                            <i class="fas fa-shield-alt"></i>
-                            {% elif user_item.item.effect_type == 'TIME_EXTEND' %}
-                            <i class="fas fa-hourglass-half"></i>
-                            {% elif user_item.item.effect_type == 'REMOVE_OPTION' %}
-                            <i class="fas fa-cut"></i>
-                            {% else %}
-                            <i class="fas fa-box"></i>
-                            {% endif %}
-                        </div>
-                        <div class="item-info">
-                            <div class="item-name">{{ user_item.item.name }}</div>
-                            <div class="item-quantity">x{{ user_item.quantity }}</div>
-                        </div>
-                    </button>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            <div class="options-list" id="optionsList">
-                {% if question.question_type == 'SINGLE' or question.question_type == 'TRUEFALSE' %}
-                {% for key, value in question.options.items %}
-                <label class="option-item">
-                    <input type="radio" name="answer" value="{{ key }}" required>
-                    <span class="option-text">{{ key }}. {{ value }}</span>
-                </label>
-                {% endfor %}
-                {% elif question.question_type == 'MULTIPLE' %}
-                {% for key, value in question.options.items %}
-                <label class="option-item">
-                    <input type="checkbox" name="answer" value="{{ key }}">
-                    <span class="option-text">{{ key }}. {{ value }}</span>
-                </label>
-                {% endfor %}
-                {% endif %}
-            </div>
-
-            <div class="action-buttons mt-xl text-center">
-                <button type="submit" class="rpg-btn rpg-btn-primary btn-large" id="submitBtn">
-                    <i class="fas fa-check"></i> 提交答案
-                </button>
-            </div>
-        </form>
-
-        <!-- 反饋區域（初始隱藏） -->
-        <div class="feedback-area" id="feedbackArea" style="display: none;">
-            <div class="feedback-content">
-                <div class="feedback-icon" id="feedbackIcon"></div>
-                <h3 class="feedback-title" id="feedbackTitle"></h3>
-                <div class="feedback-details" id="feedbackDetails"></div>
-                <button class="rpg-btn rpg-btn-secondary btn-large mt-lg" id="nextBtn">
-                    <i class="fas fa-arrow-right"></i> 下一題
-                </button>
-            </div>
-        </div>
+        <h2 class="text-primary mb-md">🎉 挑戰成功！</h2>
+        <p class="text-lg text-stone mb-lg">恭喜您完成了本次每日試煉！</p>
         {% else %}
-        <p class="text-center">沒有可用的題目</p>
+        <div class="result-icon mb-lg">
+            <i class="fas fa-skull text-danger" style="font-size: 5rem;"></i>
+        </div>
+        <h2 class="text-danger mb-md">💀 挑戰失敗</h2>
+        <p class="text-lg text-stone mb-lg">很遺憾，您的 HP 已歸零...</p>
+        {% endif %}
+
+        <!-- 統計數據 -->
+        <div class="stats-grid grid grid-cols-4 gap-md mb-xl max-w-3xl mx-auto">
+            <div class="stat-card bg-black/30 p-md rounded">
+                <div class="stat-value text-3xl font-bold text-primary">{{ correct_count }}</div>
+                <div class="stat-label text-stone text-sm">答對題數</div>
+            </div>
+            <div class="stat-card bg-black/30 p-md rounded">
+                <div class="stat-value text-3xl font-bold text-warning">{{ total_count }}</div>
+                <div class="stat-label text-stone text-sm">總題數</div>
+            </div>
+            <div class="stat-card bg-black/30 p-md rounded">
+                <div class="stat-value text-3xl font-bold text-secondary">{{ accuracy|floatformat:1 }}%</div>
+                <div class="stat-label text-stone text-sm">正確率</div>
+            </div>
+            <div class="stat-card bg-black/30 p-md rounded">
+                <div class="stat-value text-3xl font-bold text-success">+{{ exp_reward }}</div>
+                <div class="stat-label text-stone text-sm">獲得經驗</div>
+            </div>
+        </div>
+
+        <!-- HP 狀態 -->
+        <div class="hp-result mb-xl max-w-md mx-auto">
+            <div class="flex justify-between text-sm mb-xs">
+                <span class="text-stone"><i class="fas fa-heart text-danger"></i> 最終 HP</span>
+                <span class="{% if final_hp > 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ final_hp }} / {{initial_hp }}
+                </span>
+            </div>
+            <div class="hp-bar-container bg-black/40 rounded-full h-6 overflow-hidden">
+                <div class="hp-bar bg-gradient-to-r from-danger to-primary h-full transition-all duration-500"
+                    style="width: {% widthratio final_hp initial_hp 100 %}%"></div>
+            </div>
+        </div>
+
+        <!-- 返回按鈕 -->
+        <a href="{% url 'engineer_rpg:daily_trial_list' %}" class="rpg-btn rpg-btn-primary btn-large">
+            <i class="fas fa-home"></i> 返回每日挑戰列表
+        </a>
+    </div>
+    {% elif question %}
+    <div class="question-header mb-md">
+        <span class="question-number">Q{{ current_index|add:1 }}</span>
+        <span class="question-type badge badge-info">{{ question.get_question_type_display }}</span>
+        <span class="question-difficulty badge badge-{{ question.difficulty }}">
+            {{ question.get_difficulty_display }}</span>
+    </div>
+
+    <div class="question-content mb-lg">
+        <h3 class="mb-md">{{ question.content|linebreaksbr }}</h3>
+        {% if question.image %}
+        <img src="{{ question.image.url }}" alt="Question Image" class="question-image mb-md">
         {% endif %}
     </div>
+
+    <form id="answerForm">
+        {% csrf_token %}
+
+        <!-- MP 技能按鈕 -->
+        <div class="skill-buttons mb-lg" id="skillButtons">
+            {% if 'HINT' in available_skills %}
+            <button type="button" class="skill-btn" id="hintBtn" onclick="useHint()">
+                <i class="fas fa-lightbulb"></i> 提示 (30 MP)
+            </button>
+            {% endif %}
+
+            {% if 'REMOVE_OPTION' in available_skills %}
+            <button type="button" class="skill-btn" id="fiftyFiftyBtn" onclick="useFiftyFifty()">
+                <i class="fas fa-cut"></i> 二選一 (50 MP)
+            </button>
+            {% endif %}
+        </div>
+
+        <!-- 道具欄 -->
+        {% if user_items %}
+        <div class="items-toolbar mb-lg">
+            <div class="items-label">
+                <i class="fas fa-briefcase"></i> 可用道具
+            </div>
+            <div class="items-list">
+                {% for user_item in user_items %}
+                <button type="button" class="item-btn" data-item-id="{{ user_item.id }}"
+                    data-item-name="{{ user_item.item.name }}" data-effect-type="{{ user_item.item.effect_type }}"
+                    data-effect-value="{{ user_item.item.effect_value }}" onclick="useItem(this)">
+                    <div class="item-icon">
+                        {% if user_item.item.effect_type == 'HEAL' %}
+                        <i class="fas fa-heart"></i>
+                        {% elif user_item.item.effect_type == 'HINT' %}
+                        <i class="fas fa-lightbulb"></i>
+                        {% elif user_item.item.effect_type == 'SKIP' %}
+                        <i class="fas fa-forward"></i>
+                        {% elif user_item.item.effect_type == 'SHIELD' %}
+                        <i class="fas fa-shield-alt"></i>
+                        {% elif user_item.item.effect_type == 'TIME_EXTEND' %}
+                        <i class="fas fa-hourglass-half"></i>
+                        {% elif user_item.item.effect_type == 'REMOVE_OPTION' %}
+                        <i class="fas fa-cut"></i>
+                        {% else %}
+                        <i class="fas fa-box"></i>
+                        {% endif %}
+                    </div>
+                    <div class="item-info">
+                        <div class="item-name">{{ user_item.item.name }}</div>
+                        <div class="item-quantity">x{{ user_item.quantity }}</div>
+                    </div>
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="options-list" id="optionsList">
+            {% if question.question_type == 'SINGLE' or question.question_type == 'TRUEFALSE' %}
+            {% for key, value in question.options.items %}
+            <label class="option-item">
+                <input type="radio" name="answer" value="{{ key }}" required>
+                <span class="option-text">{{ key }}. {{ value }}</span>
+            </label>
+            {% endfor %}
+            {% elif question.question_type == 'MULTIPLE' %}
+            {% for key, value in question.options.items %}
+            <label class="option-item">
+                <input type="checkbox" name="answer" value="{{ key }}">
+                <span class="option-text">{{ key }}. {{ value }}</span>
+            </label>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="action-buttons mt-xl text-center">
+            <button type="submit" class="rpg-btn rpg-btn-primary btn-large" id="submitBtn">
+                <i class="fas fa-check"></i> 提交答案
+            </button>
+        </div>
+    </form>
+
+    <!-- 反饋區域（初始隱藏） -->
+    <div class="feedback-area" id="feedbackArea" style="display: none;">
+        <div class="feedback-content">
+            <div class="feedback-icon" id="feedbackIcon"></div>
+            <h3 class="feedback-title" id="feedbackTitle"></h3>
+            <div class="feedback-details" id="feedbackDetails"></div>
+            <button class="rpg-btn rpg-btn-secondary btn-large mt-lg" id="nextBtn">
+                <i class="fas fa-arrow-right"></i> 下一題
+            </button>
+        </div>
+    </div>
+    {% else %}
+    <p class="text-center">沒有可用的題目</p>
+    {% endif %}
+</div>
 </div>
 
 <script>
@@ -157,9 +222,26 @@
     let currentHP = {{ initial_hp }};
     const maxHP = {{ base_hp }};
 
-    // 倒數計時
-    const timeLimitMinutes = {{ trial.time_limit_minutes }};
-    let remainingSeconds = timeLimitMinutes * 60;
+    // 防止意外離開頁面
+    let isSubmitting = false;
+
+    window.addEventListener('beforeunload', function (e) {
+        if (!isSubmitting) {
+            // 現代瀏覽器通常忽略自定義消息，只顯示標準警告
+            const message = "離開此頁面將可能導致任務失敗或進度異常，確定要離開嗎？";
+            e.preventDefault();
+            e.returnValue = message;
+            return message;
+        }
+    });
+
+    // 提交表單時設置標誌，避免觸發警告
+    document.getElementById('answerForm').addEventListener('submit', function () {
+        isSubmitting = true;
+    });
+
+    // 倒數計時（使用後端計算的剩餘時間）
+    let remainingSeconds = {{ remaining_seconds }};
     const timerElement = document.getElementById('timeRemaining');
 
     function updateTimer() {
@@ -184,6 +266,7 @@
         e.preventDefault();
 
         const formData = new FormData(this);
+        formData.append('current_mp', currentMP);  // 傳送當前 MP 到後端
         const submitBtn = document.getElementById('submitBtn');
         submitBtn.disabled = true;
 
@@ -235,7 +318,7 @@
             feedbackDetails.innerHTML = `
             <p class="text-lg mb-md"><strong>正確答案：</strong>${data.correct_answer}</p>
             <p class="text-md">${data.explanation || '請再接再厲！'}</p>
-            <p class="text-danger mt-md"><strong>❤️ HP -1</strong></p>
+            <p class="text-danger mt-md"><strong>❤️ HP -${data.hp_damage || 10}</strong></p>
         `;
         }
 
@@ -252,9 +335,10 @@
     // 更新 HP 顯示
     function updateHPDisplay(hp) {
         const hpBar = document.getElementById('hpBar');
+        const hpValue = document.getElementById('hpValue');
         const percentage = Math.max(0, Math.min(100, (hp / maxHP) * 100));
         hpBar.style.width = `${percentage}%`;
-        hpBar.textContent = `${hp}/${maxHP}`;
+        hpValue.textContent = `${hp}/${maxHP}`;
 
         // 顏色變化 (低血量警示)
         if (percentage <= 20) {
@@ -335,9 +419,10 @@
 
     function updateMPDisplay(mp) {
         const mpBar = document.getElementById('mpBar');
+        const mpValue = document.getElementById('mpValue');
         const percentage = (mp / 100) * 100;
         mpBar.style.width = `${percentage}%`;
-        mpBar.textContent = `${mp}/100`;
+        mpValue.textContent = `${mp}/100`;
     }
 
     // 使用道具
@@ -593,6 +678,20 @@
         gap: 10px;
     }
 
+    .status-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 3px;
+    }
+
+    .status-value {
+        font-family: monospace;
+        font-size: 0.9rem;
+        font-weight: bold;
+        color: #fff;
+    }
+
     .status-label {
         font-weight: bold;
         font-family: monospace;
@@ -602,29 +701,7 @@
         gap: 5px;
     }
 
-    .hp-bar-bg {
-        width: 150px;
-        height: 16px;
-        background: rgba(0, 0, 0, 0.5);
-        border-radius: 8px;
-        overflow: hidden;
-        border: 1px solid var(--color-stone);
-        position: relative;
-    }
-
-    .hp-bar-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #28a745, #1e7e34);
-        font-size: 0.7rem;
-        color: #fff;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        line-height: 1;
-        transition: width 0.3s ease, background 0.3s ease;
-    }
-
+    .hp-bar-bg,
     .mp-bar-bg {
         width: 150px;
         height: 16px;
@@ -635,16 +712,37 @@
         position: relative;
     }
 
-    .mp-bar-fill {
+    .bar-value {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
         height: 100%;
-        background: linear-gradient(90deg, #ffd700, #ffa500);
-        font-size: 0.7rem;
-        color: #000;
-        font-weight: bold;
         display: flex;
         align-items: center;
         justify-content: center;
-        line-height: 1;
+        font-size: 0.7rem;
+        font-weight: bold;
+        color: #fff;
+        text-shadow: 0 0 3px rgba(0, 0, 0, 0.8), 0 0 5px rgba(0, 0, 0, 0.6);
+        pointer-events: none;
+        z-index: 2;
+    }
+
+    .hp-bar-fill,
+    .mp-bar-fill {
+        height: 100%;
+        transition: width 0.3s ease, background 0.3s ease;
+        position: relative;
+        z-index: 1;
+    }
+
+    .hp-bar-fill {
+        background: linear-gradient(90deg, #28a745, #1e7e34);
+    }
+
+    .mp-bar-fill {
+        background: linear-gradient(90deg, #ffd700, #ffa500);
     }
 
     /* 反饋區域 */

@@ -80,6 +80,15 @@ urlpatterns = [
     path('admin-panel/questions/', views.question_management, name='question_management'),
     path('admin-panel/questions/create/', views.create_question, name='create_question'),
     path('admin-panel/questions/<int:question_id>/edit/', views.edit_question, name='edit_question'),
+    path('admin-panel/courses/', views.course_management, name='course_management'),
+    path('admin-panel/courses/create/', views.create_course, name='create_course'),
+    path('admin-panel/courses/<int:course_id>/edit/', views.edit_course, name='edit_course'),
+    path('admin-panel/courses/<int:course_id>/delete/', views.delete_course, name='delete_course'),
+    
+    # Study & Exam
+    path('courses/<int:course_id>/study/', views.course_study, name='course_study'),
+    path('courses/<int:course_id>/exam/', views.course_exam, name='course_exam'),
+    path('courses/<int:course_id>/exam/submit/', views.submit_course_exam, name='submit_course_exam'),
     path('admin-panel/categories/', views.category_management, name='category_management'),
     path('admin-panel/dungeons/', views.dungeon_management, name='dungeon_management'),
     path('admin-panel/dungeons/create/', views.create_dungeon, name='create_dungeon'),

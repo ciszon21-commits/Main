@@ -1,4 +1,5 @@
-﻿from django.shortcuts import render, redirect, get_object_or_404
+﻿# -*- coding: utf-8 -*-
+from django.shortcuts import render, redirect, get_object_or_404
 
 
 
@@ -63,7 +64,7 @@ from .models import (
 
 
 
-    Team, TeamMembership, GuildPost, GuildComment
+    Team, TeamMembership, GuildPost, GuildComment, UserCourseProgress
 
 
 
@@ -106,7 +107,7 @@ from .views_team_management import edit_team, manage_team_members, create_team
 
 
 
-# ==================== 頛?賢? ====================
+# ==================== 頛����?賢? ====================
 
 
 
@@ -133,7 +134,7 @@ def get_or_create_user_profile(user):
 
 
 
-        # 憒?瘝?瑼?嚗??身摰???
+        # 憒��?瘝��?瑼��?嚗��??�閮剖���???
 
 
 
@@ -156,7 +157,7 @@ def check_skill_unlocked(user_profile, skill_node):
     """Check if skill is unlocked"""
 
 
-    # 瑼Ｘ蝑??
+    # 瑼Ｘ�亦���??����
 
 
 
@@ -206,7 +207,7 @@ def check_skill_unlocked(user_profile, skill_node):
 
 
 
-    return True  # 瘝??蔭??踝??湔閫??
+    return True  # 瘝��??�蝵�?�?踝??湔�亥�??
 
 
 
@@ -230,7 +231,7 @@ def check_skill_unlocked(user_profile, skill_node):
 
 
 
-# ==================== 閮餃????====================
+# ==================== 閮餃??����??====================
 
 
 
@@ -274,11 +275,11 @@ def user_register(request):
 
 
 
-            # ??隤?敺垢
+            # ?��?隤��?敺�蝡�
 
 
 
-            # ??隤?敺垢 - ?Ⅱ?? ModelBackend 隞仿????蝡航?蝒?
+            # ?��?隤��?敺�蝡� - ?�蝣�?��? ModelBackend 隞仿��?��??��?蝡航?蝒?
 
 
 
@@ -480,7 +481,7 @@ def user_logout(request):
 
 
 
-# ==================== 擐???銵冽 ====================
+# ==================== 擐��??��?銵冽�� ====================
 
 
 
@@ -560,7 +561,7 @@ def dashboard(request):
 
 
 
-    # 瘥?舀
+    # 瘥����?舀��
 
 
 
@@ -747,7 +748,7 @@ def profile_edit(request):
 
 
 
-                # 撽???蝣?
+                # 撽��??��?蝣?
 
 
 
@@ -755,7 +756,7 @@ def profile_edit(request):
 
 
 
-                    form.add_error('old_password', '??蝣潔?甇?Ⅱ')
+                    form.add_error('old_password', '?��?蝣潔?甇?Ⅱ')
 
 
 
@@ -811,7 +812,7 @@ def profile_edit(request):
 
 
 
-                # 憒??????豢??身?剖?"嚗vatar_index ??> 0
+                # 憒��??��????豢??�閮�?剖?"嚗�avatar_index ??> 0
 
 
 
@@ -829,7 +830,7 @@ def profile_edit(request):
 
                     # Comment
 
-                    # ?ㄐ?豢?撠?avatar_image 閮剔 None嚗誑靘?get_avatar_url ?芸?雿輻 index
+                    # ?�鋆�?豢?撠?avatar_image 閮剔�� None嚗�隞乩�?get_avatar_url ?芸?雿輻�� index
 
 
 
@@ -841,7 +842,7 @@ def profile_edit(request):
 
 
 
-                # 憒????單??嚗?閬? (?芸?蝝?擃?
+                # 憒��??��??單��?��?嚗��?閬��? (?芸?蝝��?擃?
 
 
 
@@ -853,7 +854,7 @@ def profile_edit(request):
 
 
 
-                    profile.avatar_index = 0 # ?蔭蝝Ｗ?
+                    profile.avatar_index = 0 # ?�蝵桃揣�?
 
 
 
@@ -1061,7 +1062,7 @@ def skill_tree(request):
 
 
 
-    # 摨?? JSON 靘?蝡臭蝙??
+    # 摨��??���� JSON 靘��?蝡臭蝙??
 
 
 
@@ -1230,7 +1231,7 @@ def skill_detail(request, skill_id):
 
 
 
-    # 瑼Ｘ?臬閫??
+    # 瑼Ｘ��?臬�西�??
 
 
 
@@ -1491,7 +1492,7 @@ def complete_skill(request, skill_id):
 
 
 
-        # ?脣?蝬???
+        # ?脣?蝬��???
 
 
 
@@ -1503,7 +1504,7 @@ def complete_skill(request, skill_id):
 
 
 
-        # 瑼Ｘ?臬??
+        # 瑼Ｘ��?臬��?��?
 
 
 
@@ -1557,7 +1558,7 @@ def complete_skill(request, skill_id):
 
 
 
-# ==================== ?蝟餌絞 ====================
+# ==================== ?���瑞頂蝯� ====================
 
 
 
@@ -1706,7 +1707,7 @@ def daily_trial_list(request):
 
 
 
-    # ?脣?隞???乩遙??
+    # ?脣?隞����?��??乩遙??
 
 
 
@@ -1730,7 +1731,7 @@ def daily_trial_list(request):
 
 
 
-    # 憒?隞瘝?隞餃?嚗????
+    # 憒��?隞���交���?隞餃?嚗����?��???
 
 
 
@@ -1788,6 +1789,15 @@ def daily_trial_list(request):
 
 
 
+        
+        
+        is_timeout = False
+        if progress and not progress.is_completed and progress.started_at:
+            time_limit_seconds = task.trial.time_limit_minutes * 60
+            elapsed_seconds = (timezone.now() - progress.started_at).total_seconds()
+            if elapsed_seconds > time_limit_seconds:
+                 is_timeout = True
+
         task_progress_list.append({
 
 
@@ -1804,6 +1814,8 @@ def daily_trial_list(request):
 
 
 
+            'is_timeout': is_timeout,
+
         })
 
 
@@ -1812,7 +1824,7 @@ def daily_trial_list(request):
 
 
 
-    # 閮?頝?瑟????
+    # 閮��?頝����?瑟��?��???
 
 
 
@@ -1865,9 +1877,9 @@ def daily_trial_list(request):
 
 
         'today': today,
-
-
-
+        'total_completed': sum(1 for item in task_progress_list if item['progress'] and item['progress'].is_completed),
+        'total_passed': sum(1 for item in task_progress_list if item['progress'] and item['progress'].is_passed),
+        'total_exp_earned': sum(item['task'].trial.exp_reward for item in task_progress_list if item['progress'] and item['progress'].is_passed),
     }
 
 
@@ -1911,7 +1923,7 @@ def trial_detail(request, trial_id):
 
 
 
-    # 瑼Ｘ?臬蝚血?璇辣
+    # 瑼Ｘ��?臬�衣泵�?璇�隞�
 
 
 
@@ -1982,7 +1994,7 @@ def start_trial(request, trial_id):
 
 
 
-    # ?冽??賢?憿
+    # ?冽??賢?憿����
 
 
 
@@ -2018,7 +2030,7 @@ def start_trial(request, trial_id):
 
 
 
-    request.session['current_question_index'] = 0  # ?啣?嚗???桃揣撘?
+    request.session['current_question_index'] = 0  # ?啣?嚗����?��??桃揣撘?
 
 
 
@@ -2030,11 +2042,11 @@ def start_trial(request, trial_id):
 
 
 
-    # ????HP/MP
+    # ?��???HP/MP
 
 
 
-    # ?箇? HP ?箏???3嚗????憭?蝞?
+    # ?箇? HP ?箏???3嚗��??��??���血���?蝞?
 
 
 
@@ -2088,7 +2100,7 @@ def start_trial(request, trial_id):
 
 
 
-        'question': current_question,  # ?寧?桅?
+        'question': current_question,  # ?寧��?桅?
 
 
 
@@ -2104,7 +2116,7 @@ def start_trial(request, trial_id):
 
 
 
-        'initial_hp': total_hp,  # 蝮?HP (?怨?????
+        'initial_hp': total_hp,  # 蝮?HP (?怨??��???
 
 
 
@@ -2112,7 +2124,7 @@ def start_trial(request, trial_id):
 
 
 
-        'heart_range': range(1, max(total_hp, 5) + 1),  # ?????賊?
+        'heart_range': range(1, max(total_hp, 5) + 1),  # ?��??��??賊?
 
 
 
@@ -2171,7 +2183,7 @@ def start_daily_trial(request, task_id):
 
 
 
-    # ?脣?瘥隞餃?
+    # ?脣?瘥���乩遙�?
 
 
 
@@ -2183,7 +2195,7 @@ def start_daily_trial(request, task_id):
 
 
 
-    # 瑼Ｘ?臬?箔??乩遙??
+    # 瑼Ｘ��?臬��?箔??乩遙??
 
 
 
@@ -2218,7 +2230,7 @@ def start_daily_trial(request, task_id):
 
 
 
-    # 憒?撌脣???銝???
+    # 憒��?撌脣??��?銝����?����?��?
 
 
 
@@ -2239,7 +2251,7 @@ def start_daily_trial(request, task_id):
 
 
 
-    # 憒? HP 甇賊嚗??賜匱蝥?
+    # 憒��? HP 甇賊�塚���??賜匱蝥?
 
 
 
@@ -2259,7 +2271,7 @@ def start_daily_trial(request, task_id):
 
 
 
-    # ?脣?隞餃?????
+    # ?脣?隞餃??��???
 
 
 
@@ -2271,7 +2283,7 @@ def start_daily_trial(request, task_id):
 
 
 
-    # 瑼Ｘ?臬????
+    # 瑼Ｘ��?臬��?��???
 
 
 
@@ -2296,51 +2308,49 @@ def start_daily_trial(request, task_id):
 
 
 
+    # 初始化 Session
     request.session['daily_task_id'] = daily_task.id
-
-
-
     request.session['trial_questions'] = [q.id for q in questions]
-
-
-
     request.session['trial_start_time'] = timezone.now().isoformat()
-
-
-
-    request.session['current_question_index'] = 0
-
-
-
     
-
-
-
-    # Comment
+    # 檢查是否已有進度
+    if progress.started_at and not progress.is_completed:
+        # 恢復進度
+        current_index = progress.current_question_index
+        request.session['current_question_index'] = current_index
+        
+        # 如果不是第一題，直接跳轉到 next_question 處理渲染
+        if current_index > 0:
+            return redirect('engineer_rpg:next_question', trial_id=daily_task.trial.id)
+    else:
+        # 新的開始
+        request.session['current_question_index'] = 0
+        current_index = 0
 
     if not progress.started_at:
-
-
-
         progress.started_at = timezone.now()
-
-
-
         progress.save()
 
-
-
-    
-
-
-
-    # Comment
-
-    current_question = questions[0] if questions else None
+    current_question = questions[current_index] if questions else None
 
 
 
     
+    
+    # 計算剩餘時間
+    if progress.started_at:
+        from datetime import timedelta
+        elapsed = (timezone.now() - progress.started_at).total_seconds()
+        time_limit_seconds = daily_task.trial.time_limit_minutes * 60
+        remaining_seconds = max(0, int(time_limit_seconds - elapsed))
+    else:
+        remaining_seconds = daily_task.trial.time_limit_minutes * 60
+
+    # 獲取裝備賦予的技能
+    available_skills = set()
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3, profile.equipped_tool_4, profile.equipped_tool_5]:
+        if slot and slot.equipment.skill_effect:
+            available_skills.add(slot.equipment.skill_effect)
 
 
 
@@ -2393,6 +2403,8 @@ def start_daily_trial(request, task_id):
 
 
         'user_items': UserItem.objects.filter(user_profile=profile, quantity__gt=0).select_related('item'),
+        'remaining_seconds': remaining_seconds,
+        'available_skills': available_skills,
 
 
 
@@ -2452,7 +2464,7 @@ def submit_answer(request, trial_id):
 
 
 
-    # ?脣??嗅?憿
+    # ?脣??嗅?憿����
 
 
 
@@ -2496,11 +2508,27 @@ def submit_answer(request, trial_id):
 
 
 
+    # 獲取當前 MP（從前端傳來）
+
+
+
+    current_mp = int(request.POST.get('current_mp', 100))
+
+
+
+    # 初始化 HP 傷害值
+
+
+
+    hp_damage = 0
+
+
+
     
 
 
 
-    # ?斗撠
+    # ?斗�瑕�����
 
 
 
@@ -2540,7 +2568,7 @@ def submit_answer(request, trial_id):
 
 
 
-    # ?湔 Session 銝剔?蝑?閮?
+    # ?湔�� Session 銝剔?蝑��?閮��?
 
 
 
@@ -2572,7 +2600,7 @@ def submit_answer(request, trial_id):
 
 
 
-    # 瑼Ｘ?臬?箸??乩遙??
+    # 瑼Ｘ��?臬��?箸??乩遙??
 
 
 
@@ -2584,7 +2612,7 @@ def submit_answer(request, trial_id):
 
 
 
-        # 瘥隞餃?嚗??DailyTrialProgress
+        # 瘥���乩遙�?嚗����??DailyTrialProgress
 
 
 
@@ -2620,7 +2648,7 @@ def submit_answer(request, trial_id):
 
 
 
-            # ?? HP嚗????荔?
+            # ??�� HP嚗��??��??荔?
 
 
 
@@ -2631,11 +2659,20 @@ def submit_answer(request, trial_id):
                 damage = 10
                 if question.difficulty == 'C': damage = 5
                 elif question.difficulty in ['A', 'S']: damage = 15
+                hp_damage = damage
                 progress.current_hp = max(0, progress.current_hp - damage)
 
 
 
-                progress.save()
+            
+
+
+
+            # 更新 MP（從前端同步）
+
+
+
+            progress.current_mp = current_mp
 
 
 
@@ -2651,34 +2688,25 @@ def submit_answer(request, trial_id):
 
 
 
-            # ?湔蝑?閮?
+            # ?湔�啁���?閮��?
 
 
 
+            # 更新答題記錄
             if not progress.answers:
-
-
-
                 progress.answers = {}
-
-
-
+            
             progress.answers[str(question.id)] = {
-
-
-
                 'user_answer': user_answer,
-
-
-
                 'is_correct': is_correct,
-
-
-
             }
-
-
-
+            
+            # 重要：在答案提交成功後，更新進度索引，這樣下一題 (next_question) 才會渲染新題目
+            # 只有當前未結束時才增加
+            if progress.current_hp > 0:
+                 progress.current_question_index = current_index + 1
+                 request.session['current_question_index'] = current_index + 1
+            
             progress.save()
 
 
@@ -2706,11 +2734,20 @@ def submit_answer(request, trial_id):
                 damage = 10
                 if question.difficulty == 'C': damage = 5
                 elif question.difficulty in ['A', 'S']: damage = 15
+                hp_damage = damage
                 current_hp = max(0, current_hp - damage)
 
 
 
                 request.session['trial_hp'] = current_hp
+
+
+
+            # 更新 MP 到 session
+
+
+
+            request.session['trial_mp'] = current_mp
 
 
 
@@ -2731,6 +2768,7 @@ def submit_answer(request, trial_id):
             damage = 10
             if question.difficulty == 'C': damage = 5
             elif question.difficulty in ['A', 'S']: damage = 15
+            hp_damage = damage
             current_hp = max(0, current_hp - damage)
 
 
@@ -2739,11 +2777,19 @@ def submit_answer(request, trial_id):
 
 
 
+        # 更新 MP 到 session
+
+
+
+        request.session['trial_mp'] = current_mp
+
+
+
     
 
 
 
-    # ?斗?臬 Game Over
+    # ?斗��?臬�� Game Over
 
 
 
@@ -2755,7 +2801,7 @@ def submit_answer(request, trial_id):
 
 
 
-    # 餈? JSON ??
+    # 餈��? JSON ?��?
 
 
 
@@ -2776,6 +2822,10 @@ def submit_answer(request, trial_id):
 
 
         'remaining_hp': current_hp,
+
+
+
+        'hp_damage': hp_damage,
 
 
 
@@ -2835,7 +2885,7 @@ def next_question(request, trial_id):
 
 
 
-    # ?脣?憿?”
+    # ?脣?憿����?�銵�
 
 
 
@@ -2851,11 +2901,30 @@ def next_question(request, trial_id):
 
 
 
-    # 憓?蝝Ｗ?
+    # 憓��?蝝Ｗ?
 
 
 
-    next_index = current_index + 1
+    # 檢查請求方法：只有 POST 才處理答案並推進題目
+    if request.method == 'POST':
+         # 處理答案邏輯 (原有的代碼邏輯需要移入這裡)
+         # ...
+         # 假設處理成功，索引遞增
+         next_index = current_index + 1
+         request.session['current_question_index'] = next_index
+         
+         # 同步更新資料庫
+         try:
+             daily_task = DailyTrialTask.objects.get(id=daily_task_id)
+             progress = DailyTrialProgress.objects.get(user_profile=profile, daily_task=daily_task)
+             progress.current_question_index = next_index
+             progress.save(update_fields=['current_question_index'])
+         except Exception:
+             pass
+    else:
+        # GET 請求（或是 F5 刷新）：停留在當前題目
+        next_index = current_index
+        # 不要遞增索引
 
 
 
@@ -2863,19 +2932,72 @@ def next_question(request, trial_id):
 
 
 
-    # 瑼Ｘ?臬??銝?憿?
+    # 瑼Ｘ��?臬��?��?銝��?憿?
 
 
 
     if next_index >= len(question_ids):
-
-
-
-        # 瘝?銝?憿?嚗???蝞???
-
-
-
-        return redirect('engineer_rpg:finish_trial', trial_id=trial_id)
+        # 所有題目已完成，進行結算
+        daily_task_id = request.session.get('daily_task_id')
+        
+        if daily_task_id:
+            # 每日試煉：在當前頁面顯示結算
+            from .models import DailyTrialTask, DailyTrialProgress
+            try:
+                daily_task = DailyTrialTask.objects.get(id=daily_task_id)
+                progress = DailyTrialProgress.objects.get(user_profile=profile, daily_task=daily_task)
+                
+                # 標記為完成
+                progress.is_completed = True
+                progress.completed_at = timezone.now()
+                
+                # 判斷是否通過（HP > 0）
+                progress.is_passed = progress.current_hp > 0
+                progress.save()
+                
+                # 發放經驗值獎勵（僅通過時）
+                if progress.is_passed:
+                    exp_reward = daily_task.trial.exp_reward
+                    profile.experience += exp_reward
+                    
+                    # 檢查升級
+                    while profile.experience >= profile.experience_to_next_level() and profile.level < 100:
+                        profile.experience -= profile.experience_to_next_level()
+                        profile.level += 1
+                    
+                    profile.save()
+                else:
+                    exp_reward = 0
+                
+                # 計算統計數據
+                correct_count = sum(1 for ans in progress.answers.values() if ans.get('is_correct', False))
+                total_count = len(question_ids)
+                accuracy = (correct_count / total_count * 100) if total_count > 0 else 0
+                
+                # 渲染結算頁面
+                context = {
+                    'profile': profile,
+                    'trial': daily_task.trial,
+                    'daily_task': daily_task,
+                    'is_completed': True,
+                    'is_passed': progress.is_passed,
+                    'final_hp': progress.current_hp,
+                    'initial_hp': progress.initial_hp,
+                    'correct_count': correct_count,
+                    'total_count': total_count,
+                    'accuracy': accuracy,
+                    'exp_reward': exp_reward,
+                    'is_daily_task': True,
+                }
+                
+                return render(request, 'EngineerRPG/trial_exam.html', context)
+                
+            except Exception as e:
+                messages.error(request, f'結算時發生錯誤: {e}')
+                return redirect('engineer_rpg:daily_trial_list')
+        
+        # 一般試煉：跳轉到提交頁面
+        return redirect('engineer_rpg:submit_trial', trial_id=trial_id)
 
 
 
@@ -2883,7 +3005,7 @@ def next_question(request, trial_id):
 
 
 
-    # ?湔蝝Ｗ?
+    # ?湔�啁揣�?
 
 
 
@@ -2895,7 +3017,7 @@ def next_question(request, trial_id):
 
 
 
-    # ?脣?銝?憿?
+    # ?脣?銝��?憿?
 
 
 
@@ -2907,7 +3029,7 @@ def next_question(request, trial_id):
 
 
 
-    # 瑼Ｘ?臬?箸??乩遙??
+    # 瑼Ｘ��?臬��?箸??乩遙??
 
 
 
@@ -2919,7 +3041,7 @@ def next_question(request, trial_id):
 
 
 
-        # 瘥隞餃?嚗? DailyTrialProgress ?脣? HP/MP
+        # 瘥���乩遙�?嚗��? DailyTrialProgress ?脣? HP/MP
 
 
 
@@ -3017,11 +3139,28 @@ def next_question(request, trial_id):
 
 
 
-    base_hp = 3
+    base_hp = total_hp
 
 
 
     
+    
+    
+    
+    # 計算剩餘時間
+    if progress.started_at:
+        from datetime import timedelta
+        elapsed = (timezone.now() - progress.started_at).total_seconds()
+        time_limit_seconds = daily_task.trial.time_limit_minutes * 60
+        remaining_seconds = max(0, int(time_limit_seconds - elapsed))
+    else:
+        remaining_seconds = daily_task.trial.time_limit_minutes * 60
+
+    # 獲取裝備賦予的技能
+    available_skills = set()
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3, profile.equipped_tool_4, profile.equipped_tool_5]:
+        if slot and slot.equipment.skill_effect:
+            available_skills.add(slot.equipment.skill_effect)
 
 
 
@@ -3070,6 +3209,8 @@ def next_question(request, trial_id):
 
 
         'user_items': UserItem.objects.filter(user_profile=profile, quantity__gt=0).select_related('item'),
+        'remaining_seconds': remaining_seconds,
+        'available_skills': available_skills,
 
 
 
@@ -3236,7 +3377,7 @@ def submit_trial(request, trial_id):
 
 
 
-    # ?脣?蝑?
+    # ?脣?蝑��?
 
 
 
@@ -3252,7 +3393,7 @@ def submit_trial(request, trial_id):
 
 
 
-    # 閮??
+    # 閮��??����
 
 
 
@@ -3352,7 +3493,7 @@ def submit_trial(request, trial_id):
 
 
 
-    # 閮???
+    # 閮��??��?
 
 
 
@@ -3368,11 +3509,11 @@ def submit_trial(request, trial_id):
 
 
 
-    # 閮????HP
+    # 閮��??����??HP
 
 
 
-    # ?脣??? HP (憒?瘝?閮???閮剔 3)
+    # ?脣??��? HP (憒��?瘝��?閮��??��?閮剔�� 3)
 
 
 
@@ -3400,7 +3541,7 @@ def submit_trial(request, trial_id):
 
 
 
-    # ??璇辣嚗???>= 60 銝?HP > 0
+    # ?��?璇�隞塚���???>= 60 銝?HP > 0
 
 
 
@@ -3412,7 +3553,7 @@ def submit_trial(request, trial_id):
 
 
 
-    # 瑼Ｘ?臬?箏銝?????
+    # 瑼Ｘ��?臬��?箏�唬���??��??��?
 
 
 
@@ -3438,7 +3579,7 @@ def submit_trial(request, trial_id):
 
 
 
-    # 閮?蝬???
+    # 閮��?蝬��???
 
 
 
@@ -3450,7 +3591,7 @@ def submit_trial(request, trial_id):
 
 
 
-        exp_reward = max(1, int(exp_reward * 0.01))  # ? 1% 蝬???
+        exp_reward = max(1, int(exp_reward * 0.01))  # ?���� 1% 蝬��???
 
 
 
@@ -3458,7 +3599,7 @@ def submit_trial(request, trial_id):
 
 
 
-    # 撱箇?閮?
+    # 撱箇?閮��?
 
 
 
@@ -3510,7 +3651,7 @@ def submit_trial(request, trial_id):
 
 
 
-    # 瑼Ｘ?臬?箸??乩遙??
+    # 瑼Ｘ��?臬��?箸??乩遙??
 
 
 
@@ -3554,7 +3695,7 @@ def submit_trial(request, trial_id):
 
 
 
-            # 璅??箏歇摰?
+            # 璅��??箏歇摰��?
 
 
 
@@ -3578,7 +3719,7 @@ def submit_trial(request, trial_id):
 
 
 
-            # ? TrialRecord ??DailyTrialTask
+            # ?���� TrialRecord ??DailyTrialTask
 
 
 
@@ -3606,7 +3747,7 @@ def submit_trial(request, trial_id):
 
 
 
-    # 憒???嚗策鈭???
+    # 憒��??��?嚗�蝯虫���???
 
 
 
@@ -3622,7 +3763,7 @@ def submit_trial(request, trial_id):
 
 
 
-        # 瑼Ｘ??
+        # 瑼Ｘ��?��?
 
 
 
@@ -3653,11 +3794,11 @@ def submit_trial(request, trial_id):
 
 
 
-            # MP 瘥???
+            # MP 瘥��??��?
 
 
 
-            msg_parts.append('?憭?MP +20')
+            msg_parts.append('?�憭?MP +20')
 
 
 
@@ -3665,7 +3806,7 @@ def submit_trial(request, trial_id):
 
 
 
-            # HP 瘥?10 蝝???
+            # HP 瘥?10 蝝��???
 
 
 
@@ -3673,7 +3814,7 @@ def submit_trial(request, trial_id):
 
 
 
-                msg_parts.append('?憭?HP +1')
+                msg_parts.append('?�憭?HP +1')
 
 
 
@@ -3689,7 +3830,7 @@ def submit_trial(request, trial_id):
 
 
 
-        profile.update_stats()  # 蝣箔?撅祆扳??
+        profile.update_stats()  # 蝣箔?撅祆�扳��??
 
 
 
@@ -3697,7 +3838,7 @@ def submit_trial(request, trial_id):
 
 
 
-        # ?寞??璈嚗??????銝?嚗??銝?嚗?
+        # ?寞??���菜����塚���??��??��??���唬���?嚗��??���唬���?嚗?
 
 
 
@@ -3705,7 +3846,7 @@ def submit_trial(request, trial_id):
 
 
 
-            # ??
+            # ?����?����
 
 
 
@@ -3764,7 +3905,7 @@ def submit_trial(request, trial_id):
 
 
 
-            # 撘瑕??瑁遘?嚗??蝝?璇臬?憓?嚗?
+            # 撘瑕??瑁遘?���蛛�����?��?蝝��?璇臬?憓��?嚗?
 
 
 
@@ -3841,7 +3982,7 @@ def submit_trial(request, trial_id):
 
 
 
-    # 皜 session
+    # 皜���� session
 
 
 
@@ -3924,7 +4065,7 @@ def trial_record_detail(request, record_id):
 
 
 
-# ==================== ??蝟餌絞 ====================
+# ==================== ?��?蝟餌絞 ====================
 
 
 
@@ -3951,7 +4092,7 @@ def apply_promotion(request):
 
 
 
-    # 瑼Ｘ?臬??撖拇?隢?
+    # 瑼Ｘ��?臬��?��?撖拇��?���唾�?
 
 
 
@@ -4051,7 +4192,7 @@ def apply_promotion(request):
 
 
 
-    # 撱箇????唾?
+    # 撱箇??��??唾?
 
 
 
@@ -4127,7 +4268,7 @@ def promotion_trial(request, request_id):
 
 
 
-    # ?ㄐ?臭誑閮剛??寞????岫??
+    # ?�鋆�?臭誑閮剛??寞??��??�閰�??
 
 
 
@@ -4145,7 +4286,7 @@ def promotion_trial(request, request_id):
 
 
 
-# ==================== ??璁?====================
+# ==================== ?��?璁?====================
 
 
 
@@ -4173,7 +4314,7 @@ def leaderboard(request):
 
 
 
-    # 蝑???
+    # 蝑��??��?
 
 
 
@@ -4185,7 +4326,7 @@ def leaderboard(request):
 
 
 
-    # 閰衣???嚗?梧?
+    # 閰衣??��?嚗����?梧?
 
 
 
@@ -4265,7 +4406,7 @@ def leaderboard(request):
 
 
 
-# ==================== 銝餌恣隞 ====================
+# ==================== 銝餌恣隞���� ====================
 
 
 
@@ -4309,7 +4450,7 @@ def manager_dashboard(request):
 
 
 
-    # 敺祟?貊隢?
+    # 敺�撖�?貊�唾�?
 
 
 
@@ -4397,7 +4538,7 @@ def promotion_requests(request):
 
 
 
-    # ??
+    # ?��?
 
 
 
@@ -4615,7 +4756,7 @@ def approve_request(request, request_id):
 
 
 
-        # ?湔?唾?鈭箇?蝝?
+        # ?湔��?唾?鈭箇?蝝?
 
 
 
@@ -4805,7 +4946,7 @@ def admin_dashboard(request):
 
 
 
-    # 蝯梯?鞈?
+    # 蝯梯?鞈��?
 
 
 
@@ -5181,16 +5322,20 @@ def question_management(request):
 
 
 
-    if profile.role != 'ADMIN':
-
-
-
-        messages.error(request, 'An error occurred')
-
-
-
-
+    if profile.role not in ['ADMIN', 'MANAGER', 'OFFICER']:
+        messages.error(request, '權限不足')
         return redirect('engineer_rpg:dashboard')
+
+    # 重置今日試煉功能的處理（如果有點擊重置按鈕）
+    if request.method == 'POST' and 'reset_trial' in request.POST:
+        from .models import DailyTrialProgress
+        today = timezone.now().date()
+        deleted_count, _ = DailyTrialProgress.objects.filter(
+            user_profile=profile,
+            daily_task__date=today
+        ).delete()
+        messages.success(request, f'已重置今日試煉進度 (共刪除 {deleted_count} 筆記錄)')
+        return redirect('engineer_rpg:question_management')
 
 
 
@@ -5198,7 +5343,7 @@ def question_management(request):
 
 
 
-    # 蝭拚
+    # 蝭拚��
 
 
 
@@ -5246,7 +5391,7 @@ def question_management(request):
 
 
 
-    # ??
+    # ?��?
 
 
 
@@ -5267,37 +5412,14 @@ def question_management(request):
 
 
     categories = QuestionCategory.objects.all()
-
-
-
     
-
-
-
+    
     context = {
-
-
-
         'profile': profile,
-
-
-
         'page_obj': page_obj,
-
-
-
         'categories': categories,
-
-
-
         'selected_category': int(category_id) if category_id else None,
-
-
-
         'search_query': search_query,
-
-
-
     }
 
 
@@ -5316,6 +5438,176 @@ def question_management(request):
 
 
 
+
+
+# -*- coding: utf-8 -*-
+
+@login_required
+def course_management(request):
+    """Course Management Dashboard"""
+    profile = get_or_create_user_profile(request.user)
+    
+    if profile.role not in ['ADMIN', 'MANAGER', 'OFFICER']:
+        messages.error(request, '權限不足')
+        return redirect('engineer_rpg:dashboard')
+
+    search_query = request.GET.get('q')
+    courses = Course.objects.all().order_by('title')
+    
+    if search_query:
+        courses = courses.filter(
+            Q(title__icontains=search_query) | 
+            Q(description__icontains=search_query)
+        )
+        
+    paginator = Paginator(courses, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'profile': profile,
+        'courses': page_obj, 
+        'search_query': search_query,
+        'page_obj': page_obj,
+        'is_paginated': True,
+    }
+    return render(request, 'EngineerRPG/management/course_list.html', context)
+
+
+@login_required
+def create_course(request):
+    """Create a new course"""
+    profile = get_or_create_user_profile(request.user)
+    
+    if profile.role not in ['ADMIN', 'MANAGER', 'OFFICER']:
+        messages.error(request, '權限不足')
+        return redirect('engineer_rpg:dashboard')
+    
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        description = request.POST.get('description', '')
+        content_type = request.POST.get('content_type', 'LINK')
+        content_url = request.POST.get('content_url', '')
+        content_file = request.FILES.get('content_file')
+        
+        # Exam settings
+        exam_time_limit = request.POST.get('exam_time_limit', 20)
+        passing_score = request.POST.get('passing_score', 80)
+        question_ids = request.POST.getlist('questions')
+        
+        try:
+            course = Course.objects.create(
+                title=title,
+                description=description,
+                content_type=content_type,
+                content_url=content_url,
+                content_file=content_file,
+                exam_time_limit=int(exam_time_limit),
+                passing_score=int(passing_score)
+            )
+            
+            # Add questions to course
+            if question_ids:
+                questions = Question.objects.filter(id__in=question_ids)
+                course.questions.set(questions)
+            
+            messages.success(request, f'課程「{course.title}」創建成功')
+            return redirect('engineer_rpg:course_management')
+        except Exception as e:
+            messages.error(request, f'創建課程失敗: {e}')
+    
+    # Get all questions for selection
+    questions = Question.objects.all().order_by('category__name', 'content')
+    categories = QuestionCategory.objects.all()
+    
+    context = {
+        'profile': profile,
+        'questions': questions,
+        'categories': categories,
+        'mode': 'create',
+        'selected_question_ids': [],
+    }
+    
+    return render(request, 'EngineerRPG/management/course_form.html', context)
+
+
+@login_required
+def edit_course(request, course_id):
+    """Edit an existing course"""
+    profile = get_or_create_user_profile(request.user)
+    
+    if profile.role not in ['ADMIN', 'MANAGER', 'OFFICER']:
+        messages.error(request, '權限不足')
+        return redirect('engineer_rpg:dashboard')
+    
+    course = get_object_or_404(Course, id=course_id)
+    
+    if request.method == 'POST':
+        course.title = request.POST.get('title')
+        course.description = request.POST.get('description', '')
+        course.content_type = request.POST.get('content_type', 'LINK')
+        course.content_url = request.POST.get('content_url', '')
+        
+        if 'content_file' in request.FILES:
+            course.content_file = request.FILES['content_file']
+        
+        course.exam_time_limit = int(request.POST.get('exam_time_limit', 20))
+        course.passing_score = int(request.POST.get('passing_score', 80))
+        
+        question_ids = request.POST.getlist('questions')
+        
+        try:
+            course.save()
+            
+            # Update questions
+            if question_ids:
+                questions = Question.objects.filter(id__in=question_ids)
+                course.questions.set(questions)
+            else:
+                course.questions.clear()
+            
+            messages.success(request, f'課程「{course.title}」更新成功')
+            return redirect('engineer_rpg:course_management')
+        except Exception as e:
+            messages.error(request, f'更新課程失敗: {e}')
+    
+    # Get all questions for selection
+    questions = Question.objects.all().order_by('category__name', 'content')
+    categories = QuestionCategory.objects.all()
+    
+    context = {
+        'profile': profile,
+        'course': course,
+        'questions': questions,
+        'categories': categories,
+        'selected_question_ids': list(course.questions.values_list('id', flat=True)),
+        'mode': 'edit'
+    }
+    
+    return render(request, 'EngineerRPG/management/course_form.html', context)
+
+
+
+@login_required
+def delete_course(request, course_id):
+    """Delete a course"""
+    profile = get_or_create_user_profile(request.user)
+    
+    if profile.role not in ['ADMIN', 'MANAGER', 'OFFICER']:
+        messages.error(request, '權限不足')
+        return redirect('engineer_rpg:dashboard')
+    
+    course = get_object_or_404(Course, id=course_id)
+    
+    if request.method == 'POST':
+        course_title = course.title
+        try:
+            course.delete()
+            messages.success(request, f'課程「{course_title}」已刪除')
+        except Exception as e:
+            messages.error(request, f'刪除課程失敗: {e}')
+    
+    return redirect('engineer_rpg:course_management')
 
 
 @login_required
@@ -5349,7 +5641,7 @@ def create_question(request):
 
 
 
-        # 蝪∪撖虫?嚗?蝥?寧 Form
+        # 蝪∪�桀祕�?嚗��?蝥����?寧�� Form
 
 
 
@@ -5373,7 +5665,7 @@ def create_question(request):
 
 
 
-        # ???賊???獢?
+        # ?��??賊??��?獢?
 
 
 
@@ -5632,7 +5924,7 @@ def edit_question(request, question_id):
 
 
 
-# ==================== ???銝?蝞∠? ====================
+# ==================== ?��??���唬���?蝞∠? ====================
 
 
 
@@ -5777,7 +6069,7 @@ def dungeon_management(request):
 
 
 
-    # ?芸???????
+    # ?芸??��??��???
 
 
 
@@ -5866,7 +6158,7 @@ def create_dungeon(request):
 
 
 
-        item_reward_id = request.POST.get('equipment_reward')  # ?垢甈??迂?急?靽? equipment_reward
+        item_reward_id = request.POST.get('equipment_reward')  # ?�蝡舀���??�蝔�?急?靽��? equipment_reward
 
 
 
@@ -5951,11 +6243,11 @@ def create_dungeon(request):
 
 
 
-    questions = Question.objects.filter(is_active=True) # ?臭誑?芸???AJAX 頛
+    questions = Question.objects.filter(is_active=True) # ?臭誑?芸???AJAX 頛����
 
 
 
-    items = Item.objects.all()  # ?脣??????
+    items = Item.objects.all()  # ?脣??�?��???
 
 
 
@@ -5975,7 +6267,7 @@ def create_dungeon(request):
 
 
 
-        'equipments': items  # ?箔??詨捆璅⊥嚗? equipments 霈??
+        'equipments': items  # ?箔??詨捆璅⊥�選�����?���� equipments 霈����??
 
 
 
@@ -6184,7 +6476,7 @@ def edit_dungeon(request, dungeon_id):
 
 
 
-        'equipments': items, # ?詨捆璅⊥
+        'equipments': items, # ?詨捆璅⊥��
 
 
 
@@ -6766,446 +7058,78 @@ def api_save_skill_layout(request):
 
 
 def api_save_skill_node(request):
-
-
-
     """Build Skill Tree"""
-
-
-
     if request.method != 'POST':
-
-
-
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-
-
-        
-
-
-
-    profile = get_or_create_user_profile(request.user)
-
-
-
-    if profile.role != 'ADMIN':
-
-
-
-        return JsonResponse({'error': 'Permission denied'}, status=403)
-
-
-
-        
-
-
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
 
     try:
-
-
+        profile = get_or_create_user_profile(request.user)
+        if not profile or profile.role != 'ADMIN':
+            return JsonResponse({'error': 'Permission denied'}, status=403)
 
         data = json.loads(request.body)
-
-
-
         node_id = data.get('id')
-
-
-
         
-
-
-
         if node_id:
-
-
-
             # Update
-
-
-
             node = SkillNode.objects.get(id=node_id)
-
-
-
         else:
-
-
-
             # Create
-
-
-
             node = SkillNode()
-
-
-
-            # Default pos
-
-
-
-            node.position_x = 100
-
-
-
-            node.position_y = 100
-
-
-
             
-
-
-
         node.name = data.get('name')
-
-
-
-        node.description = data.get('description', '')
-
-
-
-        node.node_type = data.get('type')
-
-
-
         
-
-
-
-        # Handle class specific logic
-
-
-
-        if node.node_type == 'ROOT':
-
-
-
-            node.character_class = None
-
-
-
+        # Handle node_type: Ensure it's valid
+        node_type = data.get('type') or data.get('node_type')
+        if not node_type:
+             node.node_type = 'ADVANCED' # Default
         else:
-
-
-
-            class_code = data.get('class_code')
-
-
-
-            if class_code:
-
-
-
-                node.character_class = CharacterClass.objects.get(code=class_code)
-
-
-
+             node.node_type = node_type
+             
+        node.description = data.get('description', '')
+        node.exp_reward = int(data.get('exp_reward', 50))
+        
+        # Character Class
+        class_code = data.get('class_code')
+        if class_code:
+            try:
+                char_class = CharacterClass.objects.get(code=class_code)
+                node.character_class = char_class
+            except CharacterClass.DoesNotExist:
+                pass
                 
-
-
-
         node.save()
-
-
-
         
-
-
-
-        # Handle prerequisites (parents) with validation
-
-
-
-        if 'parents' in data:
-
-
-
-            parent_ids = data['parents']
-
-
-
-            if parent_ids is not None:
-
-
-
-                # Validate parent skills
-
-
-
-                parent_skills = SkillNode.objects.filter(id__in=parent_ids)
-
-
-
-                
-
-
-
-                # 1. Check type restrictions
-
-
-
-                node_type = node.node_type
-
-
-
-                for parent in parent_skills:
-
-
-
-                    if node_type == 'ROOT':
-
-
-
-                        # ROOT can only have ROOT parents
-
-
-
-                        if parent.node_type != 'ROOT':
-
-
-
-                            return JsonResponse({'error': 'Parent node must be ROOT'}, status=400)
-
-
-
-
-
-                    elif node_type == 'CORE':
-
-
-
-                        # CORE can only have ROOT or CORE parents
-
-
-
-                        if parent.node_type not in ['ROOT', 'CORE']:
-
-
-
-                            return JsonResponse({'error': 'Invalid parent for CORE node'}, status=400)
-
-
-
-
-
-                    # ADVANCED can have any type, no restriction
-
-
-
-                
-
-
-
-                # 2. Check for circular dependencies
-
-
-
-                def would_create_cycle(node_id, new_parent_ids):
-
-
-
-                    """Function docstring"""
-
-
-                    # 撱箇??嗅???鞈游?嚗???喳?靽格??暺?
-
-
-
-                    def get_all_ancestors(skill_id, visited=None):
-
-
-
-                        """Function docstring"""
-
-
-                        if visited is None:
-
-
-
-                            visited = set()
-
-
-
-                        
-
-
-
-                        if skill_id in visited:
-
-
-
-                            return visited
-
-
-
-                        
-
-
-
-                        visited.add(skill_id)
-
-
-
-                        
-
-
-
-                        # Comment
-
-                        if skill_id == node_id:
-
-
-
-                            # Comment
-
-                            parent_ids = new_parent_ids
-
-
-
-                        else:
-
-
-
-                            # Comment
-
-                            parent_ids = list(SkillNode.objects.get(id=skill_id).parent_skills.values_list('id', flat=True))
-
-
-
-                        
-
-
-
-                        for parent_id in parent_ids:
-
-
-
-                            if parent_id in visited:
-
-
-
-                                # 瑼Ｘ葫?啣儐?堆?
-
-
-
-                                return None  # 餈? None 銵函內?儐??
-
-
-
-                            ancestors = get_all_ancestors(parent_id, visited.copy())
-
-
-
-                            if ancestors is None:
-
-
-
-                                return None  # ?單敺芰瑼Ｘ葫蝯?
-
-
-
-                            visited.update(ancestors)
-
-
-
-                        
-
-
-
-                        return visited
-
-
-
-                    
-
-
-
-                    # 瑼Ｘ?臬?耦?儐??
-
-
-
-                    result = get_all_ancestors(node_id)
-
-
-
-                    return result is None  # None 銵函內?儐??
-
-
-
-                
-
-
-
-                # Comment
-
-                parent_ids = [p.id for p in parent_skills]
-
-
-
-                
-
-
-
-                # 蝪∪瑼Ｘ嚗?暺??賢??芸楛閮剔?蔭
-
-
-
-                if node.id in parent_ids:
-
-
-
-                        return JsonResponse({'error': 'Cannot set parent to itself or duplicate'}, status=400)
-
-
-
-
-
-                
-
-
-
-                # Comment
-
-                if would_create_cycle(node.id, parent_ids):
-
-
-
-                        return JsonResponse({'error': 'Cycle detected'}, status=400)
-
-
-
-
-                
-
-
-
-                # All validations passed, set parents
-
-
-
-                node.parent_skills.set(parent_skills)
-
-
-
+        # Handle parent skills
+        parent_ids = data.get('parents', [])
+        node.parent_skills.clear()
+        if parent_ids:
+            for pid in parent_ids:
+                 try:
+                     parent = SkillNode.objects.get(id=pid)
+                     node.parent_skills.add(parent)
+                 except SkillNode.DoesNotExist:
+                     pass
+                     
+        # Handle courses
+        course_ids = data.get('courses', [])
+        node.courses.clear()
+        if course_ids:
+            for cid in course_ids:
+                try:
+                    course = Course.objects.get(id=cid)
+                    node.courses.add(course)
+                except Course.DoesNotExist:
+                    pass
         
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        return JsonResponse({'status': 'success', 'message': 'Saved successfully', 'node': {'id': node.id, 'name': node.name}})
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
 
 @login_required
 
@@ -7293,101 +7217,36 @@ def api_delete_skill_node(request):
 
 
 def api_manage_skill_course(request):
-
-
-
-    """Function docstring"""
-
-
+    """Manage skill course association"""
     if request.method != 'POST':
-
-
-
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-
-
-        
-
-
-
-    profile = get_or_create_user_profile(request.user)
-
-
-
-    if profile.role != 'ADMIN':
-
-
-
-        return JsonResponse({'error': 'Permission denied'}, status=403)
-
-
-
-        
-
-
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
 
     try:
-
-
+        profile = get_or_create_user_profile(request.user)
+        if not profile or profile.role != 'ADMIN':
+            return JsonResponse({'error': 'Permission denied'}, status=403)
 
         data = json.loads(request.body)
-
-
-
         node_id = data.get('node_id')
-
-
-
         course_id = data.get('course_id')
-
-
-
         action = data.get('action') # 'add' or 'remove'
-
-
-
         
-
-
-
         node = SkillNode.objects.get(id=node_id)
-
-
-
         course = Course.objects.get(id=course_id)
-
-
-
         
-
-
-
         if action == 'add':
-
-
-
             course.skill_nodes.add(node)
-
-
-
         elif action == 'remove':
-
-
-
             course.skill_nodes.remove(node)
-
-
-
             
-
-
-
         return JsonResponse({'status': 'success', 'message': 'Operation successful'})
 
     except Exception as e:
-
         return JsonResponse({'error': str(e)}, status=400)
+
 
 
 
@@ -7631,7 +7490,7 @@ def api_auto_layout_skill_tree(request):
 
 
 
-        # ?惜蝝?蝯?
+        # ?�撅斤���?蝯?
 
 
 
@@ -7659,15 +7518,15 @@ def api_auto_layout_skill_tree(request):
 
 
 
-        # ??摨扳?
+        # ?��?摨扳?
 
 
 
-        Y_SPACING = 200  # 撅斤???
+        Y_SPACING = 200  # 撅斤??��?
 
 
 
-        X_SPACING = 150  # ?惜蝝??賡?頝?
+        X_SPACING = 150  # ?�撅斤���??賡?頝?
 
 
 
@@ -8091,7 +7950,7 @@ def download_template(request, format='csv'):
 
 
 
-# ==================== ??蝞∠? ====================
+# ==================== ?��?蝞∠? ====================
 
 
 
@@ -8247,7 +8106,7 @@ def guild_dashboard(request):
 
 
 
-    # ?脣??梢?閮?
+    # ?脣??梢?閮��?
 
 
 
@@ -8281,7 +8140,7 @@ def guild_dashboard(request):
 
 
 
-    # ?脣??⊿?隡??∴??芰???
+    # ?脣??⊿?隡��??∴??芰��?����?��?
 
 
 
@@ -8301,7 +8160,7 @@ def guild_dashboard(request):
 
 
 
-    # 瑼Ｘ?臬?箇恣?嚗?潮＊蝷箇恣?葉敹???
+    # 瑼Ｘ��?臬��?箇恣?���∴�����?潮＊蝷箇恣?�銝剖�����???
 
 
 
@@ -8383,7 +8242,7 @@ def guild_exchange_list(request):
     # 獲取所有文章，但排除公告
     posts = GuildPost.objects.exclude(category='ANNOUNCEMENT')
 
-    # ?蕪??
+    # ?�瞈�?��?
 
 
 
@@ -8399,7 +8258,7 @@ def guild_exchange_list(request):
 
 
 
-    # 蝵桅??????蝡?
+    # 蝵桅??��??����?��?蝡?
 
 
 
@@ -8415,7 +8274,7 @@ def guild_exchange_list(request):
 
 
 
-    # ??
+    # ?��?
 
 
 
@@ -8423,7 +8282,7 @@ def guild_exchange_list(request):
 
 
 
-    paginator = Paginator(normal_posts, 20)  # 瘥? 20 蝭?
+    paginator = Paginator(normal_posts, 20)  # 瘥��? 20 蝭?
 
 
 
@@ -8504,7 +8363,7 @@ def guild_post_create(request):
 
 
 
-    # ?舀?? URL ????
+    # ?舀��?��? URL ?����?����?��?
 
 
 
@@ -8536,7 +8395,7 @@ def guild_post_create(request):
 
 
 
-        # 甈?瑼Ｘ嚗?恣??臭誑?澆??
+        # 甈��?瑼Ｘ�伐�����?�蝞�?����?臭誑?澆��??
 
 
 
@@ -8572,7 +8431,7 @@ def guild_post_create(request):
 
 
 
-                content=content,  # 瘜冽?嚗??蝙??CKEditor ?閬?閮?HTML
+                content=content,  # 瘜冽?嚗��??�雿�??CKEditor ?�閬��?閮?HTML
 
 
 
@@ -8659,7 +8518,7 @@ def guild_announcement_create(request):
                 content=content,
                 category='ANNOUNCEMENT'  # 自動設為公告
             )
-            messages.success(request, '公告發布成功')
+            messages.success(request, 'Announcement published successfully')
             return redirect('engineer_rpg:guild_dashboard')
         else:
             messages.error(request, '請填寫完整資訊')
@@ -8697,7 +8556,7 @@ def guild_announcement_edit(request, post_id):
             post.title = title
             post.content = content
             post.save()
-            messages.success(request, '公告更新成功')
+            messages.success(request, 'Operation successful')
             return redirect('engineer_rpg:guild_post_detail', post_id=post.id)
         else:
             messages.error(request, '請填寫完整資訊')
@@ -8790,7 +8649,7 @@ def guild_post_detail(request, post_id):
 
 
 
-    # 憓??汗??
+    # 憓��??�閬�??
 
 
 
@@ -8806,7 +8665,7 @@ def guild_post_detail(request, post_id):
 
 
 
-    # ????
+    # ?��??��?
 
 
 
@@ -8960,7 +8819,7 @@ def team_detail(request, team_id):
 
 
 
-    # ?脣???”?摮貊?蝯梯?嚗??恍??瘀?
+    # ?脣??����?�銵�?���嗅飛�?蝯梯?嚗��??恍??瘀?
 
 
 
@@ -8972,7 +8831,7 @@ def team_detail(request, team_id):
 
 
 
-    # 撠??瑕??交??∪?銵剁?憒????profile嚗?
+    # 撠��??瑕??交??∪?銵剁?憒��??����??profile嚗?
 
 
 
@@ -8984,7 +8843,7 @@ def team_detail(request, team_id):
 
 
 
-        # 瑼Ｘ??臬撌脩??冽??∪?銵其葉嚗??銴?
+        # 瑼Ｘ��?����?臬�血歇�??冽??∪?銵其葉嚗����?��?銴��?
 
 
 
@@ -8992,7 +8851,7 @@ def team_detail(request, team_id):
 
 
 
-            members.insert(0, leader_profile)  # 撠??瑟?典?銵冽??
+            members.insert(0, leader_profile)  # 撠��??瑟��?典?銵冽??����
 
 
 
@@ -9000,7 +8859,7 @@ def team_detail(request, team_id):
 
 
 
-        pass  # 憒??瘝? profile嚗歲??
+        pass  # 憒��??���瑟���? profile嚗�頝�??
 
 
 
@@ -9018,7 +8877,10 @@ def team_detail(request, team_id):
 
         # Comment
 
-        total_skills = SkillNode.objects.filter(character_class=member.character_class).count()
+        # 計算應有總技能數（包含 ROOT 與該職業專有的技能）
+        total_skills = SkillNode.objects.filter(
+            Q(character_class=member.character_class) | Q(character_class__isnull=True)
+        ).count()
 
 
 
@@ -9064,7 +8926,7 @@ def team_detail(request, team_id):
 
 
 
-        # 閮?閰衣?蝯梯?
+        # 閮��?閰衣?蝯梯?
 
 
 
@@ -9128,6 +8990,9 @@ def team_detail(request, team_id):
 
 
 
+    # 計算平均等級
+    avg_level = round(sum(m.level for m in members) / len(members), 1) if members else 0
+
     context = {
 
 
@@ -9141,6 +9006,7 @@ def team_detail(request, team_id):
 
 
         'member_stats': member_stats,
+        'avg_level': avg_level,
 
 
 
@@ -9236,7 +9102,7 @@ def team_member_detail(request, team_id, member_id):
 
 
 
-    # 蝣箄?閰脫??∪惇?潭迨??
+    # 蝣箄?閰脫??∪惇?潭迨?��?
 
 
 
@@ -9257,9 +9123,34 @@ def team_member_detail(request, team_id, member_id):
 
 
 
-    # Comment
-
-    skills = UserSkill.objects.filter(user_profile=member).select_related('skill_node')
+    # 獲獲該成員應有的所有技能節點（ROOT + 專屬職業技能）
+    applicable_skill_nodes = SkillNode.objects.filter(
+        Q(character_class=member.character_class) | Q(character_class__isnull=True)
+    )
+    
+    # 獲取已有的使用者技能記錄
+    existing_user_skills = UserSkill.objects.filter(
+        user_profile=member,
+        skill_node__in=applicable_skill_nodes
+    ).select_related('skill_node')
+    
+    # 建立一個 mapping 方便查找
+    user_skill_map = {us.skill_node_id: us for us in existing_user_skills}
+    
+    # 組合最終要顯示的技能列表（保留 UserSkill 物件的結構）
+    display_skills = []
+    for node in applicable_skill_nodes:
+        if node.id in user_skill_map:
+            display_skills.append(user_skill_map[node.id])
+        else:
+            # 如果還沒有記錄，建立一個虛擬的 UserSkill 物件用於範本顯示
+            virtual_skill = UserSkill(
+                user_profile=member,
+                skill_node=node,
+                status='LOCKED',
+                progress=0
+            )
+            display_skills.append(virtual_skill)
 
 
 
@@ -9267,7 +9158,7 @@ def team_member_detail(request, team_id, member_id):
 
 
 
-    # ?脣?閰衣?閮?
+    # ?脣?閰衣?閮��?
 
 
 
@@ -9287,7 +9178,7 @@ def team_member_detail(request, team_id, member_id):
 
 
 
-    # ??
+    # ?��?
 
 
 
@@ -9323,7 +9214,7 @@ def team_member_detail(request, team_id, member_id):
 
 
 
-        'skills': skills,
+        'skills': display_skills,
 
 
 
@@ -9416,7 +9307,7 @@ def member_profile_detail(request, member_id):
 
 
 
-    # ?脣?閰衣?閮?
+    # ?脣?閰衣?閮��?
 
 
 
@@ -9436,7 +9327,7 @@ def member_profile_detail(request, member_id):
 
 
 
-    # ??
+    # ?��?
 
 
 
@@ -9464,7 +9355,7 @@ def member_profile_detail(request, member_id):
 
 
 
-        'team': member.current_team,  # ?航??None
+        'team': member.current_team,  # ?航��??None
 
 
 
@@ -9535,7 +9426,7 @@ def team_manage_members(request, team_id):
 
 
 
-    # 瑼Ｘ甈?嚗???瑕隞亦恣??
+    # 瑼Ｘ�交���?嚗����?��??瑕�臭誑蝞�??
 
 
 
@@ -9556,7 +9447,7 @@ def team_manage_members(request, team_id):
 
 
 
-    # ?脣??嗅??
+    # ?脣??嗅??����
 
 
 
@@ -9683,7 +9574,7 @@ def team_add_member(request, team_id):
 
 
 
-    # 瑼Ｘ甈?
+    # 瑼Ｘ�交���?
 
 
 
@@ -9737,7 +9628,7 @@ def team_add_member(request, team_id):
 
 
 
-        # 瑼Ｘ?臬撌脫???
+        # 瑼Ｘ��?臬�血歇�??��?
 
 
 
@@ -9758,7 +9649,7 @@ def team_add_member(request, team_id):
 
 
 
-        # ?湔 UserProfile
+        # ?湔�� UserProfile
 
 
 
@@ -9774,7 +9665,7 @@ def team_add_member(request, team_id):
 
 
 
-        # ?萄遣 TeamMembership 閮?
+        # ?萄遣 TeamMembership 閮��?
 
 
 
@@ -9882,7 +9773,7 @@ def team_remove_member(request, team_id, member_id):
 
 
 
-    # 瑼Ｘ甈?
+    # 瑼Ｘ�交���?
 
 
 
@@ -9915,7 +9806,7 @@ def team_remove_member(request, team_id, member_id):
 
 
 
-        # 瑼Ｘ?臬?冽迨??銝?
+        # 瑼Ｘ��?臬��?冽迨?��?銝?
 
 
 
@@ -9936,7 +9827,7 @@ def team_remove_member(request, team_id, member_id):
 
 
 
-        # ?湔 UserProfile
+        # ?湔�� UserProfile
 
 
 
@@ -9952,7 +9843,7 @@ def team_remove_member(request, team_id, member_id):
 
 
 
-        # ?湔 TeamMembership 閮?
+        # ?湔�� TeamMembership 閮��?
 
 
 
@@ -9996,7 +9887,7 @@ def team_remove_member(request, team_id, member_id):
 
 
 
-            membership.leave_reason = '?蝘駁'
+            membership.leave_reason = '?���瑞宏���'
 
 
 
@@ -10068,7 +9959,7 @@ def item_inventory(request):
 
 
 
-    # ?脣?銝血?憿???
+    # ?脣?銝血?憿��???
 
 
 
@@ -10080,7 +9971,7 @@ def item_inventory(request):
 
 
 
-    # ????蝯?
+    # ?��??��?蝯?
 
 
 
@@ -10346,7 +10237,7 @@ def api_consume_item(request, user_item_id):
 
 
 
-        # 皜??賊?
+        # 皜��??賊?
 
 
 
@@ -10650,3 +10541,140 @@ def equip_item(request, user_equipment_id):
         messages.error(request, 'Equipment not found!')
     
     return redirect('engineer_rpg:equipment_inventory')
+
+
+@login_required
+def course_study(request, course_id):
+    """View course content"""
+    profile = get_or_create_user_profile(request.user)
+    course = get_object_or_404(Course, id=course_id)
+    
+    progress, created = UserCourseProgress.objects.get_or_create(user_profile=profile, course=course)
+    
+    context = {
+        'profile': profile,
+        'course': course,
+        'progress': progress,
+    }
+    return render(request, 'EngineerRPG/course_study.html', context)
+
+
+@login_required
+def course_exam(request, course_id):
+    """Take course exam"""
+    profile = get_or_create_user_profile(request.user)
+    course = get_object_or_404(Course, id=course_id)
+    
+    questions = course.questions.all().order_by('?')
+    if not questions.exists():
+        messages.warning(request, "此課程沒有考試題目，請聯繫管理員。")
+        return redirect('engineer_rpg:course_study', course_id=course.id)
+    
+    # Calculate points per question for display
+    total_questions = questions.count()
+    points_per_question = round(100 / total_questions, 1) if total_questions > 0 else 0
+
+    context = {
+        'profile': profile,
+        'course': course,
+        'questions': questions,
+        'points_per_question': points_per_question,
+    }
+    return render(request, 'EngineerRPG/course_exam.html', context)
+
+
+@login_required
+def submit_course_exam(request, course_id):
+    """Submit course exam"""
+    if request.method != 'POST':
+        return redirect('engineer_rpg:course_study', course_id=course_id)
+        
+    profile = get_or_create_user_profile(request.user)
+    course = get_object_or_404(Course, id=course_id)
+    questions = course.questions.all()
+    
+    score = 0
+    total_questions = questions.count()
+    correct_count = 0
+    
+    incorrect_questions = []
+    
+    for question in questions:
+        user_answer = request.POST.get(f'question_{question.id}')
+        
+        # Determine if correct (assuming single choice for now based on template)
+        is_correct = False
+        if user_answer and user_answer == question.correct_answer:
+            is_correct = True
+            correct_count += 1
+            
+        if not is_correct:
+            # Get readable text
+            user_option_text = question.options.get(user_answer, '未作答') if user_answer else '未作答'
+            correct_option_text = question.options.get(question.correct_answer, '')
+            
+            incorrect_questions.append({
+                'question': question,
+                'user_answer': user_answer,
+                'user_option_text': user_option_text,
+                'correct_answer': question.correct_answer,
+                'correct_option_text': correct_option_text,
+            })
+            
+    if total_questions > 0:
+        score = int((correct_count / total_questions) * 100)
+    else:
+        score = 100 
+        
+    is_passed = score >= course.passing_score
+    
+    # Update progress
+    progress, _ = UserCourseProgress.objects.get_or_create(user_profile=profile, course=course)
+    
+    # Update score if higher
+    if score > progress.score:
+        progress.score = score
+        
+    if is_passed and not progress.is_completed:
+        progress.is_completed = True
+        progress.completed_at = timezone.now()
+        progress.save()
+        
+        # Check skill completion logic
+        for skill in course.skill_nodes.all():
+            all_courses = skill.courses.all()
+            completed_courses = UserCourseProgress.objects.filter(
+                user_profile=profile,
+                course__in=all_courses,
+                is_completed=True
+            ).count()
+            
+            if all_courses.count() > 0:
+                skill_progress_percent = int((completed_courses / all_courses.count()) * 100)
+                
+                user_skill, _ = UserSkill.objects.get_or_create(user_profile=profile, skill_node=skill)
+                user_skill.progress = skill_progress_percent
+                
+                if skill_progress_percent == 100 and user_skill.status != 'COMPLETED':
+                    user_skill.status = 'COMPLETED'
+                    user_skill.completed_at = timezone.now()
+                    
+                    profile.experience += skill.exp_reward
+                    profile.save()
+                    messages.success(request, f'恭喜！習得技能「{skill.name}」，獲得 {skill.exp_reward} 經驗值！')
+                
+                user_skill.save()
+    else:
+        progress.save()
+        
+    context = {
+        'profile': profile,
+        'course': course,
+        'score': score,
+        'is_passed': is_passed,
+        'correct_count': correct_count,
+        'total_questions': total_questions,
+        'passing_score': course.passing_score,
+        'incorrect_questions': incorrect_questions,
+    }
+    return render(request, 'EngineerRPG/course_result.html', context)

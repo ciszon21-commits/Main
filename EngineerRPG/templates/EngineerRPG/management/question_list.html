@@ -1,10 +1,17 @@
-{% extends 'EngineerRPG/management/base_management.html' %}
+﻿{% extends 'EngineerRPG/management/base_management.html' %}
 
 {% block management_content %}
 <div class="rpg-card">
     <div class="rpg-card-header flex justify-between items-center">
         <h3 class="rpg-card-title"><i class="fas fa-question-circle"></i> 題庫管理</h3>
-        <div class="flex gap-sm">
+        <div class="flex gap-sm items-center">
+            <form method="post" onsubmit="return confirm('確定要重置今日的試煉進度嗎？這將允許您重新挑戰今日任務。');">
+                {% csrf_token %}
+                <button type="submit" name="reset_trial" value="true" class="rpg-btn rpg-btn-sm rpg-btn-danger">
+                    <i class="fas fa-redo"></i> 重置試煉
+                </button>
+            </form>
+            <div class="w-1px h-6 bg-white/20 mx-xs"></div>
             <a href="{% url 'engineer_rpg:import_questions' %}" class="rpg-btn rpg-btn-sm rpg-btn-secondary">
                 <i class="fas fa-file-upload"></i> 匯入
             </a>
@@ -12,6 +19,13 @@
                 <i class="fas fa-plus"></i> 新增題目
             </a>
         </div>
+    </div>
+
+
+
+    <!-- Questions Section Header -->
+    <div class="rpg-card-header">
+        <h3 class="rpg-card-title"><i class="fas fa-question-circle"></i> 題目列表</h3>
     </div>
 
     <!-- Filters -->
@@ -58,9 +72,6 @@
                 <tr>
                     <td class="text-xs">
                         <div class="line-clamp-2" title="{{ question.content }}">{{ question.content }}</div>
-                        <div class="text-stone mt-xs text-xs">
-                            <i class="fas fa-tags text-xs"></i> {{ question.tags|default:"無標籤" }}
-                        </div>
                     </td>
                     <td>
                         {% if question.category %}

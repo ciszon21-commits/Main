@@ -248,9 +248,7 @@ class Course(models.Model):
     """課程內容"""
     
     CONTENT_TYPE_CHOICES = [
-        ('VIDEO', '影片'),
         ('PDF', 'PDF文件'),
-        ('PPT', 'PowerPoint'),
         ('LINK', '外部連結'),
     ]
     
@@ -264,6 +262,11 @@ class Course(models.Model):
     skill_nodes = models.ManyToManyField(SkillNode, related_name='courses', verbose_name='關聯技能')
     
     duration_minutes = models.IntegerField('課程時長（分鐘）', default=30)
+    
+    # 考試設定
+    questions = models.ManyToManyField('Question', blank=True, verbose_name='考試題目', related_name='courses')
+    passing_score = models.IntegerField('及格分數', default=80)
+    exam_time_limit = models.IntegerField('考試時限（分鐘）', default=20)
     created_at = models.DateTimeField('建立時間', auto_now_add=True)
     
     class Meta:
@@ -299,6 +302,25 @@ class UserSkill(models.Model):
         
     def __str__(self):
         return f"{self.user_profile.user.username} - {self.skill_node.name} ({self.get_status_display()})"
+
+
+class UserCourseProgress(models.Model):
+    """使用者課程進度"""
+    
+    user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='course_progress')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='user_progress')
+    
+    is_completed = models.BooleanField('已完成', default=False)
+    score = models.IntegerField('最高分數', default=0)
+    completed_at = models.DateTimeField('完成時間', null=True, blank=True)
+    
+    class Meta:
+        verbose_name = '使用者課程進度'
+        verbose_name_plural = '使用者課程進度'
+        unique_together = ['user_profile', 'course']
+        
+    def __str__(self):
+        return f"{self.user_profile.user.username} - {self.course.title}"
 
 
 # ==================== 裝備系統 ====================
@@ -801,6 +823,9 @@ class DailyTrialProgress(models.Model):
     
     # 答題記錄（JSON）
     answers = models.JSONField('答題記錄', default=dict, blank=True)
+    
+    # 當前題目索引（用於狀態保持）
+    current_question_index = models.IntegerField('當前題目索引', default=0)
     
     class Meta:
         verbose_name = '每日試煉進度'

@@ -64,12 +64,13 @@
                     </div>
 
                     <!-- HP/MP Status -->
-                    {% if item.progress %}
+                    {% if item.progress and not item.progress.is_completed and not item.progress.is_passed and not item.is_timeout %}
                     <div class="task-status mb-md p-sm bg-black/20 rounded border-l-2 border-primary">
                         <div class="flex justify-between text-sm mb-xs">
                             <span class="text-stone"><i class="fas fa-heart text-danger"></i> HP</span>
-                            <span class="font-bold">{{ item.progress.current_hp }} / {{ item.progress.initial_hp
-                                }}</span>
+                            <span class="font-bold">
+                                {{ item.progress.current_hp }} / {{ item.progress.initial_hp }}
+                            </span>
                         </div>
                     </div>
                     {% endif %}
@@ -84,7 +85,7 @@
                         {% elif item.progress and item.progress.is_completed %}
                         {% if item.progress.is_passed %}
                         <button class="rpg-btn rpg-btn-success w-full cursor-default">
-                            <i class="fas fa-check-circle"></i> 已通過
+                            <i class="fas fa-check-circle"></i> 挑戰成功 - 已通過
                         </button>
                         {% else %}
                         <button class="rpg-btn rpg-btn-danger w-full cursor-default opacity-60">
@@ -93,7 +94,11 @@
                         {% endif %}
                         {% elif item.progress and item.progress.current_hp <= 0 %} <button
                             class="rpg-btn w-full cursor-default opacity-60">
-                            <i class="fas fa-skull"></i> HP 歸零
+                            <i class="fas fa-skull"></i> 挑戰失敗 - HP 歸零
+                            </button>
+                            {% elif item.is_timeout %}
+                            <button class="rpg-btn w-full cursor-default opacity-60">
+                                <i class="fas fa-hourglass-end"></i> 挑戰失敗 - 時間到
                             </button>
                             {% else %}
                             <a href="{% url 'engineer_rpg:start_daily_trial' item.task.id %}"
@@ -128,29 +133,13 @@
                 </div>
                 <div class="stat-box bg-black/20 p-lg rounded text-center">
                     <div class="text-3xl font-bold text-success mb-xs">
-                        {% with passed_count=0 %}
-                        {% for item in task_progress_list %}
-                        {% if item.progress.is_passed %}
-                        {% with passed_count=passed_count|add:1 %}
-                        {% endwith %}
-                        {% endif %}
-                        {% endfor %}
-                        {{ passed_count|default:"0" }}
-                        {% endwith %}
+                        {{ total_passed|default:"0" }}
                     </div>
                     <div class="text-sm text-stone">已通過</div>
                 </div>
                 <div class="stat-box bg-black/20 p-lg rounded text-center">
                     <div class="text-3xl font-bold text-warning mb-xs">
-                        {% with total_exp=0 %}
-                        {% for item in task_progress_list %}
-                        {% if item.progress.is_passed %}
-                        {% with total_exp=total_exp|add:item.task.trial.exp_reward %}
-                        {% endwith %}
-                        {% endif %}
-                        {% endfor %}
-                        {{ total_exp|default:"0" }}
-                        {% endwith %}
+                        {{ total_exp_earned|default:"0" }}
                     </div>
                     <div class="text-sm text-stone">獲得經驗</div>
                 </div>

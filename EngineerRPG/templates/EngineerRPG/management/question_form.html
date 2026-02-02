@@ -21,7 +21,7 @@
                 <select name="category" class="rpg-input w-full">
                     <option value="">-- 無分類 --</option>
                     {% for cat in categories %}
-                    <option value="{{ cat.id }}" {% if question.category_id==cat.id %}selected{% endif %}>
+                    <option value="{{ cat.id }}" {% if question.category_id == cat.id %}selected{% endif %}>
                         {{ cat.name }}
                     </option>
                     {% endfor %}
@@ -32,11 +32,11 @@
             <div class="form-group">
                 <label class="form-label">難度</label>
                 <select name="difficulty" class="rpg-input w-full">
-                    <option value="C" {% if question.difficulty=='C' %}selected{% endif %}>C級（簡單）</option>
-                    <option value="B" {% if question.difficulty=='B' or not question %}selected{% endif %}>B級（中等）
+                    <option value="C" {% if question.difficulty == 'C' %}selected{% endif %}>C級（簡單）</option>
+                    <option value="B" {% if question.difficulty == 'B' or not question %}selected{% endif %}>B級（中等）
                     </option>
-                    <option value="A" {% if question.difficulty=='A' %}selected{% endif %}>A級（困難）</option>
-                    <option value="S" {% if question.difficulty=='S' %}selected{% endif %}>S級（最難）</option>
+                    <option value="A" {% if question.difficulty == 'A' %}selected{% endif %}>A級（困難）</option>
+                    <option value="S" {% if question.difficulty == 'S' %}selected{% endif %}>S級（最難）</option>
                 </select>
             </div>
         </div>
@@ -45,9 +45,9 @@
         <div class="form-group mb-md">
             <label class="form-label">題目類型</label>
             <select name="question_type" id="questionType" class="rpg-input w-full" onchange="updateOptionsUI()">
-                <option value="SINGLE" {% if question.question_type=='SINGLE' %}selected{% endif %}>單選題</option>
-                <option value="MULTIPLE" {% if question.question_type=='MULTIPLE' %}selected{% endif %}>多選題</option>
-                <option value="TRUEFALSE" {% if question.question_type=='TRUEFALSE' %}selected{% endif %}>是非題</option>
+                <option value="SINGLE" {% if question.question_type == 'SINGLE' %}selected{% endif %}>單選題</option>
+                <option value="MULTIPLE" {% if question.question_type == 'MULTIPLE' %}selected{% endif %}>多選題</option>
+                <option value="TRUEFALSE" {% if question.question_type == 'TRUEFALSE' %}selected{% endif %}>是非題</option>
             </select>
         </div>
 
@@ -97,8 +97,8 @@
 </div>
 
 <script>
-    let options = {{ options_json|default: '{"A":"", "B":"", "C":"", "D":""}' | safe }};
-    let answer = {{ answer_json|default: '"A"' | safe }};
+    let options = {{ options_json|default:'{"A":"", "B":"", "C":"", "D":""}' | safe }};
+    let answer = {{ answer_json|default:'"A"' | safe }};
 
     function init() {
         const type = document.getElementById('questionType').value;
