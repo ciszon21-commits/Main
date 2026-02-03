@@ -6,12 +6,12 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('soilmove', '0001_initial'),
+        ('SoilMove', '0001_initial'),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='soilmove',
+            model_name='SoilMove',
             name='updated_at',
             field=models.DateTimeField(auto_now=True, verbose_name='資料更新時間'),
         ),
