@@ -11,7 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import SoilMove
 
 class DashboardView(TemplateView):
-    template_name = "soilmove/dashboard.html"
+    template_name = "SoilMove/dashboard.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
