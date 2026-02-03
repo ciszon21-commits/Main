@@ -53,53 +53,52 @@ INSTALLED_APPS = [
     # DRF套件
     "rest_framework",
     "rest_framework.authtoken",
-    # "rest_framework_simplejwt.token_blacklist",
+    "rest_framework_simplejwt.token_blacklist",
     
     # CORS
-    # "corsheaders",
+    "corsheaders",
 
     # CKEditor 5
-    # "django_ckeditor_5",
+    "django_ckeditor_5",
 
     # 中興擴充套件
-    # "SinoExtension",
-    # "SinoTemplate",
-    # "SinoErrorPage",
-    # "BimAuth",
-    # "SinoAuth",
-    # "CourseRegistration",
-    # "TutorialHub",
-    # "SingleAuth",
-    # "SinoArchive",
-    # # CoDevStudio
-    # "StudioBase",
-    # "Home",
-    # "UserProfile",
-    # "ImageGallery",
-    # "DevShowcase",
-    # "RndRequest",
-    # "NewsSubscriber",
-    # "CarbonEstimation",
-    # "ProgramDbRegistry",
-    # "BudgetReview",
-    # 'ERModelGenerator',
-    # 'EVCodeSigning',
-    # 'TeamKnowledgeHub',
-    # 'SynonymManager',
-    # 'PatentRegistry',
-    # 'site360',
-    # 'SinoFile',
-    # 'Inlet_Design',
-    # 'DroneReservation',
-    # 'ReservoirHydro',
-    # 'OpenSearch',  # OpenSearch 搜尋引擎
-    # 'GeoDataHub',  # 地圖導向資料管理平台
-    # 'GeoCoding',  # 地址編碼服務
-    # 'BidQA',  # 標案問答管理
-    # # 'DesignConsistency',
-    # 'SinoChat',  # Sinotech 內部聊天室
-    # 'InterviewAssessment',
-    'soilmove',
+    "SinoExtension",
+    "SinoTemplate",
+    "SinoErrorPage",
+    "BimAuth",
+    "SinoAuth",
+    "CourseRegistration",
+    "TutorialHub",
+    "SingleAuth",
+    "SinoArchive",
+    # CoDevStudio
+    "StudioBase",
+    "Home",
+    "UserProfile",
+    "ImageGallery",
+    "DevShowcase",
+    "RndRequest",
+    "NewsSubscriber",
+    "CarbonEstimation",
+    "ProgramDbRegistry",
+    "BudgetReview",
+    'ERModelGenerator',
+    'EVCodeSigning',
+    'TeamKnowledgeHub',
+    'SynonymManager',
+    'PatentRegistry',
+    'site360',
+    'SinoFile',
+    'Inlet_Design',
+    'DroneReservation',
+    'ReservoirHydro',
+    'OpenSearch',  # OpenSearch 搜尋引擎
+    'GeoDataHub',  # 地圖導向資料管理平台
+    'GeoCoding',  # 地址編碼服務
+    'BidQA',  # 標案問答管理
+    # 'DesignConsistency',
+    'SinoChat',  # Sinotech 內部聊天室
+    'InterviewAssessment',
 ] + local.STAGE_INSTALLED_APPS
 
 
@@ -107,7 +106,7 @@ GEMINI_API_KEY = local.GEMINI_API_KEY
 GEMINI_MODEL = local.GEMINI_MODEL
 
 MIDDLEWARE = [
-    # "corsheaders.middleware.CorsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -172,32 +171,32 @@ DATABASE_ROUTERS = [
     "CoDevStudio.routers.DataBaseRouter",
 ]
 
-# SIMPLE_JWT = {
-#     "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
-#     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
-#     "ROTATE_REFRESH_TOKENS": True,
-#     "BLACKLIST_AFTER_ROTATION": True,
-#     "UPDATE_LAST_LOGIN": False,
-#     "ALGORITHM": "HS256",
-#     "SIGNING_KEY": local.SECRET_KEY,
-#     "VERIFYING_KEY": None,
-#     "AUDIENCE": None,
-#     "ISSUER": None,
-#     "JWK_URL": None,
-#     "LEEWAY": 0,
-#     "AUTH_HEADER_TYPES": ("Bearer",),
-#     "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
-#     "USER_ID_FIELD": "id",
-#     "USER_ID_CLAIM": "user_id",
-#     "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
-#     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
-#     "TOKEN_TYPE_CLAIM": "token_type",
-#     "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
-#     "JTI_CLAIM": "jti",
-#     "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
-#     "SLIDING_TOKEN_LIFETIME": timedelta(days=1),
-#     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
-# }
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": False,
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": local.SECRET_KEY,
+    "VERIFYING_KEY": None,
+    "AUDIENCE": None,
+    "ISSUER": None,
+    "JWK_URL": None,
+    "LEEWAY": 0,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+    "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "TOKEN_TYPE_CLAIM": "token_type",
+    "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
+    "JTI_CLAIM": "jti",
+    "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
+    "SLIDING_TOKEN_LIFETIME": timedelta(days=1),
+    "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -261,33 +260,33 @@ AUTHENTICATION_BACKENDS = local.AUTHENTICATION_BACKENDS
 EMAIL_BACKEND = local.EMAIL_BACKEND
 
 
-# # CKEditor 5 Configuration
-# CKEDITOR_5_CONFIGS = {
-#     'default': {
-#         'toolbar': {
-#             'items': ['heading', '|', 'bold', 'italic', 'link',
-#                       'bulletedList', 'numberedList', 'blockQuote', 'imageUpload'],
-#         }
-#     },
-#     'extends': {
-#         'toolbar': {
-#             'items': ['heading', '|', 'bold', 'italic', 'link', 'underline',
-#                       'strikethrough', 'code', 'subscript', 'superscript', '|',
-#                       'bulletedList', 'numberedList', 'todoList', '|',
-#                       'outdent', 'indent', '|', 'blockQuote', 'insertImage',
-#                       'mediaEmbed', 'insertTable', 'codeBlock', 'sourceEditing'],
-#             'shouldNotGroupWhenFull': True
-#         },
-#         'image': {
-#             'toolbar': ['imageTextAlternative', 'imageStyle:alignLeft',
-#                         'imageStyle:alignCenter', 'imageStyle:alignRight']
-#         },
-#         'table': {
-#             'contentToolbar': ['tableColumn', 'tableRow', 'mergeTableCells']
-#         }
-#     }
-# }
-# CKEDITOR_5_FILE_UPLOAD_PERMISSION = "authenticated"
+# CKEditor 5 Configuration
+CKEDITOR_5_CONFIGS = {
+    'default': {
+        'toolbar': {
+            'items': ['heading', '|', 'bold', 'italic', 'link',
+                      'bulletedList', 'numberedList', 'blockQuote', 'imageUpload'],
+        }
+    },
+    'extends': {
+        'toolbar': {
+            'items': ['heading', '|', 'bold', 'italic', 'link', 'underline',
+                      'strikethrough', 'code', 'subscript', 'superscript', '|',
+                      'bulletedList', 'numberedList', 'todoList', '|',
+                      'outdent', 'indent', '|', 'blockQuote', 'insertImage',
+                      'mediaEmbed', 'insertTable', 'codeBlock', 'sourceEditing'],
+            'shouldNotGroupWhenFull': True
+        },
+        'image': {
+            'toolbar': ['imageTextAlternative', 'imageStyle:alignLeft',
+                        'imageStyle:alignCenter', 'imageStyle:alignRight']
+        },
+        'table': {
+            'contentToolbar': ['tableColumn', 'tableRow', 'mergeTableCells']
+        }
+    }
+}
+CKEDITOR_5_FILE_UPLOAD_PERMISSION = "authenticated"
 
 # File Upload Limits
 FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
@@ -295,9 +294,9 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
 DATA_UPLOAD_MAX_NUMBER_FILES = local.DATA_UPLOAD_MAX_NUMBER_FILES
 
 # CORS Settings
-# CORS_ALLOWED_ORIGINS = local.CORS_ALLOWED_ORIGINS
-# CORS_TRUSTED_ORIGINS = local.CORS_TRUSTED_ORIGINS
-# CORS_ALLOW_CREDENTIALS = local.CORS_ALLOW_CREDENTIALS
+CORS_ALLOWED_ORIGINS = local.CORS_ALLOWED_ORIGINS
+CORS_TRUSTED_ORIGINS = local.CORS_TRUSTED_ORIGINS
+CORS_ALLOW_CREDENTIALS = local.CORS_ALLOW_CREDENTIALS
 
 # CSRF Settings
 CSRF_TRUSTED_ORIGINS = local.CSRF_TRUSTED_ORIGINS
