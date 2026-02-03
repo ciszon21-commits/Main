@@ -6,12 +6,12 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('soilmove', '0002_soilmove_updated_at'),
+        ('SoilMove', '0002_soilmove_updated_at'),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='soilmove',
+            model_name='SoilMove',
             name='status',
             field=models.CharField(choices=[('正常', '正常'), ('停止', '停止')], default='正常', max_length=10, verbose_name='狀態'),
         ),
