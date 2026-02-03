@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django_ckeditor_5.widgets import CKEditor5Widget
-from .models import DroneReservation, Announcement, SiteSettings, DroneReviewer
+from .models import DroneReservation, Announcement, SiteSettings, DroneReviewer, EmailTemplate
 
 
 class ReservationForm(forms.ModelForm):
@@ -203,3 +203,29 @@ class ReviewerTimeEditForm(forms.ModelForm):
                 raise ValidationError('結束時間必須在開始時間之後')
 
         return cleaned_data
+
+
+class EmailTemplateForm(forms.ModelForm):
+    """郵件模板編輯表單"""
+
+    class Meta:
+        model = EmailTemplate
+        fields = ['subject_template', 'body_template']
+        widgets = {
+            'subject_template': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '郵件主旨'
+            }),
+            'body_template': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 8,
+                'placeholder': '郵件內容'
+            }),
+        }
+        labels = {
+            'subject_template': '郵件主旨',
+            'body_template': '郵件內容',
+        }
+        help_texts = {
+            'body_template': '可用變數：{applicant_name}, {start_time}, {end_time}, {location}, {project_number}, {reason}, {reviewer_name}, {rejection_reason}, {old_start_time}, {old_end_time}',
+        }

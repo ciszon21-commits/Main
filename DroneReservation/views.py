@@ -12,13 +12,33 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth.models import User
 
-from .models import Announcement, DroneReservation, DroneReviewer, SiteSettings
-from .forms import ReservationForm, ReviewForm, AnnouncementForm, SiteSettingsForm, ReviewerCancelForm, ReviewerTimeEditForm
+from .models import Announcement, DroneReservation, DroneReviewer, SiteSettings, EmailTemplate
+from .forms import ReservationForm, ReviewForm, AnnouncementForm, SiteSettingsForm, ReviewerCancelForm, ReviewerTimeEditForm, EmailTemplateForm
 
 
 def format_local_datetime(dt):
     """將 datetime 轉換為本地時區並格式化"""
     return localtime(dt).strftime('%Y/%m/%d %H:%M')
+
+
+def send_templated_email(email_type, context, recipient_list):
+    """使用資料庫模板發送郵件"""
+    if not recipient_list:
+        return
+    
+    template = EmailTemplate.get_template(email_type)
+    subject, body = template.render(context)
+    
+    try:
+        send_mail(
+            subject=subject,
+            message=body,
+            from_email=settings.EMAIL_HOST_USER,
+            recipient_list=recipient_list,
+            fail_silently=True,
+        )
+    except Exception as e:
+        print(f"Failed to send email: {e}")
 
 
 class ReviewerRequiredMixin(UserPassesTestMixin):
@@ -100,30 +120,15 @@ class ReservationCreateView(LoginRequiredMixin, CreateView):
         reviewers = DroneReviewer.objects.filter(is_active=True, receive_email=True).select_related('user')
         reviewer_emails = [r.user.email for r in reviewers if r.user.email]
         
-        if reviewer_emails:
-            try:
-                send_mail(
-                    subject=f'[無人機預約] 新申請待審核 - {reservation.applicant.get_full_name() or reservation.applicant.username}',
-                    message=f"""您好，
-
-有一筆新的無人機預約申請待審核：
-
-申請人：{reservation.applicant.get_full_name() or reservation.applicant.username}
-使用時間：{format_local_datetime(reservation.usage_start_datetime)} ~ {format_local_datetime(reservation.usage_end_datetime)}
-地點：{reservation.location}
-計畫編號：{reservation.project_number}
-申請理由：{reservation.reason}
-
-請登入系統進行審核。
-
-此為系統自動發送郵件，請勿直接回覆。
-""",
-                    from_email=settings.EMAIL_HOST_USER,
-                    recipient_list=reviewer_emails,
-                    fail_silently=True,
-                )
-            except Exception as e:
-                print(f"Failed to send email: {e}")
+        context = {
+            'applicant_name': reservation.applicant.get_full_name() or reservation.applicant.username,
+            'start_time': format_local_datetime(reservation.usage_start_datetime),
+            'end_time': format_local_datetime(reservation.usage_end_datetime),
+            'location': reservation.location,
+            'project_number': reservation.project_number,
+            'reason': reservation.reason,
+        }
+        send_templated_email('new_application', context, reviewer_emails)
 
 
 class ReservationUpdateView(LoginRequiredMixin, UpdateView):
@@ -184,73 +189,37 @@ class ReservationUpdateView(LoginRequiredMixin, UpdateView):
 
     def send_time_change_notification(self, reservation, old_start, old_end):
         """發送時間變更通知給申請人與審核人"""
-        applicant_name = reservation.applicant.get_full_name() or reservation.applicant.username
-        
-        message = f"""您好，
-
-以下已核准的無人機預約時間已被修改：
-
-申請人：{applicant_name}
-地點：{reservation.location}
-計畫編號：{reservation.project_number}
-
-【時間變更】
-原時間：{format_local_datetime(old_start)} ~ {format_local_datetime(old_end)}
-新時間：{format_local_datetime(reservation.usage_start_datetime)} ~ {format_local_datetime(reservation.usage_end_datetime)}
-
-如有疑問，請聯繫相關人員。
-
-此為系統自動發送郵件，請勿直接回覆。
-"""
-        
-        # 收件人清單：申請人 + 審核人（如有）
         recipients = []
         if reservation.applicant.email:
             recipients.append(reservation.applicant.email)
         if reservation.reviewer and reservation.reviewer.email:
             recipients.append(reservation.reviewer.email)
         
-        if recipients:
-            try:
-                send_mail(
-                    subject=f'[無人機預約] 已核准預約時間變更 - {applicant_name}',
-                    message=message,
-                    from_email=settings.EMAIL_HOST_USER,
-                    recipient_list=recipients,
-                    fail_silently=True,
-                )
-            except Exception as e:
-                print(f"Failed to send email: {e}")
+        context = {
+            'applicant_name': reservation.applicant.get_full_name() or reservation.applicant.username,
+            'start_time': format_local_datetime(reservation.usage_start_datetime),
+            'end_time': format_local_datetime(reservation.usage_end_datetime),
+            'location': reservation.location,
+            'project_number': reservation.project_number,
+            'old_start_time': format_local_datetime(old_start),
+            'old_end_time': format_local_datetime(old_end),
+        }
+        send_templated_email('time_changed', context, recipients)
 
     def send_edit_notification_to_reviewers(self, reservation):
         """發送編輯通知給所有啟用且接收郵件的簽核人"""
         reviewers = DroneReviewer.objects.filter(is_active=True, receive_email=True).select_related('user')
         reviewer_emails = [r.user.email for r in reviewers if r.user.email]
         
-        if reviewer_emails:
-            try:
-                send_mail(
-                    subject=f'[無人機預約] 申請已修改 - {reservation.applicant.get_full_name() or reservation.applicant.username}',
-                    message=f"""您好，
-
-以下無人機預約申請已被修改：
-
-申請人：{reservation.applicant.get_full_name() or reservation.applicant.username}
-使用時間：{format_local_datetime(reservation.usage_start_datetime)} ~ {format_local_datetime(reservation.usage_end_datetime)}
-地點：{reservation.location}
-計畫編號：{reservation.project_number}
-申請理由：{reservation.reason}
-
-請登入系統進行審核。
-
-此為系統自動發送郵件，請勿直接回覆。
-""",
-                    from_email=settings.EMAIL_HOST_USER,
-                    recipient_list=reviewer_emails,
-                    fail_silently=True,
-                )
-            except Exception as e:
-                print(f"Failed to send email: {e}")
+        context = {
+            'applicant_name': reservation.applicant.get_full_name() or reservation.applicant.username,
+            'start_time': format_local_datetime(reservation.usage_start_datetime),
+            'end_time': format_local_datetime(reservation.usage_end_datetime),
+            'location': reservation.location,
+            'project_number': reservation.project_number,
+            'reason': reservation.reason,
+        }
+        send_templated_email('new_application', context, reviewer_emails)
 
 
 class ReviewerUpdateView(LoginRequiredMixin, ReviewerRequiredMixin, UpdateView):
@@ -495,46 +464,17 @@ def send_review_notification(reservation):
     if not reservation.applicant.email:
         return
     
-    if reservation.status == 'approved':
-        subject = f'[無人機預約] 您的申請已核准'
-        message = f"""您好，
-
-您的無人機預約申請已核准：
-
-使用時間：{format_local_datetime(reservation.usage_start_datetime)} ~ {format_local_datetime(reservation.usage_end_datetime)}
-地點：{reservation.location}
-簽核人：{reservation.reviewer.get_full_name() or reservation.reviewer.username}
-
-請依照流程，聯繫簽核人(#07130)，確認行程安排。
-
-此為系統自動發送郵件，請勿直接回覆。
-"""
-    else:
-        subject = f'[無人機預約] 您的申請已被拒絕'
-        message = f"""您好，
-
-您的無人機預約申請已被拒絕：
-
-使用時間：{format_local_datetime(reservation.usage_start_datetime)} ~ {format_local_datetime(reservation.usage_end_datetime)}
-地點：{reservation.location}
-簽核人：{reservation.reviewer.get_full_name() or reservation.reviewer.username}
-拒絕理由：{reservation.rejection_reason}
-
-如有疑問，請聯繫簽核人(#07130)。
-
-此為系統自動發送郵件，請勿直接回覆。
-"""
+    context = {
+        'applicant_name': reservation.applicant.get_full_name() or reservation.applicant.username,
+        'start_time': format_local_datetime(reservation.usage_start_datetime),
+        'end_time': format_local_datetime(reservation.usage_end_datetime),
+        'location': reservation.location,
+        'reviewer_name': reservation.reviewer.get_full_name() or reservation.reviewer.username,
+        'rejection_reason': reservation.rejection_reason or '',
+    }
     
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=settings.EMAIL_HOST_USER,
-            recipient_list=[reservation.applicant.email],
-            fail_silently=True,
-        )
-    except Exception as e:
-        print(f"Failed to send email: {e}")
+    email_type = 'approved' if reservation.status == 'approved' else 'rejected'
+    send_templated_email(email_type, context, [reservation.applicant.email])
 
 
 def send_cancel_notification(reservation):
@@ -542,25 +482,13 @@ def send_cancel_notification(reservation):
     if not reservation.reviewer or not reservation.reviewer.email:
         return
     
-    try:
-        send_mail(
-            subject=f'[無人機預約] 預約已取消 - {reservation.applicant.get_full_name() or reservation.applicant.username}',
-            message=f"""您好，
-
-以下無人機預約已被申請人取消：
-
-申請人：{reservation.applicant.get_full_name() or reservation.applicant.username}
-使用時間：{format_local_datetime(reservation.usage_start_datetime)} ~ {format_local_datetime(reservation.usage_end_datetime)}
-地點：{reservation.location}
-
-此為系統自動發送郵件，請勿直接回覆。
-""",
-            from_email=settings.EMAIL_HOST_USER,
-            recipient_list=[reservation.reviewer.email],
-            fail_silently=True,
-        )
-    except Exception as e:
-        print(f"Failed to send email: {e}")
+    context = {
+        'applicant_name': reservation.applicant.get_full_name() or reservation.applicant.username,
+        'start_time': format_local_datetime(reservation.usage_start_datetime),
+        'end_time': format_local_datetime(reservation.usage_end_datetime),
+        'location': reservation.location,
+    }
+    send_templated_email('cancelled', context, [reservation.reviewer.email])
 
 
 @login_required
@@ -715,6 +643,11 @@ class SettingsView(LoginRequiredMixin, AdminRequiredMixin, TemplateView):
         context['site_settings_form'] = SiteSettingsForm(instance=context['site_settings'])
         context['reviewers'] = DroneReviewer.objects.select_related('user').order_by('-can_manage_reviewers', '-is_active', 'user__last_name')
         context['all_users'] = User.objects.filter(is_active=True).order_by('last_name', 'username')
+        
+        # 確保所有郵件模板都存在
+        EmailTemplate.ensure_all_templates()
+        context['email_templates'] = EmailTemplate.objects.all().order_by('email_type')
+        
         return context
 
     def post(self, request, *args, **kwargs):
@@ -760,6 +693,17 @@ class SettingsView(LoginRequiredMixin, AdminRequiredMixin, TemplateView):
                 reviewer.is_active = False
                 reviewer.save()
                 messages.success(request, f'已停用簽核人：{reviewer.user.get_full_name() or reviewer.user.username}')
+        
+        elif action == 'update_template':
+            template_id = request.POST.get('template_id')
+            if template_id:
+                template = get_object_or_404(EmailTemplate, pk=template_id)
+                form = EmailTemplateForm(request.POST, instance=template)
+                if form.is_valid():
+                    form.save()
+                    messages.success(request, f'已更新郵件模板：{template.get_email_type_display()}')
+                else:
+                    messages.error(request, '郵件模板更新失敗。')
         
         return redirect('drone:settings')
 
@@ -820,85 +764,3 @@ def send_reviewer_cancel_notification(reservation, reviewer):
     except Exception as e:
         print(f"Failed to send email: {e}")
 
-
-# ========================================
-# Wizard 精靈模式視圖
-# ========================================
-
-class WizardLandingView(LoginRequiredMixin, TemplateView):
-    """Wizard 精靈模式首頁 - 顯示預約情形與身分選擇"""
-    template_name = 'DroneReservation/wizard/landing.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user = self.request.user
-        
-        # 檢查是否為審核人
-        try:
-            reviewer_profile = user.drone_reviewer_profile
-            context['is_reviewer'] = reviewer_profile.is_active
-            context['pending_count'] = DroneReservation.objects.filter(status='pending').count()
-        except DroneReviewer.DoesNotExist:
-            context['is_reviewer'] = False
-            context['pending_count'] = 0
-        
-        # 使用者的申請數量
-        context['my_reservation_count'] = DroneReservation.objects.filter(
-            applicant=user
-        ).count()
-        
-        return context
-
-
-class WizardCreateView(LoginRequiredMixin, CreateView):
-    """Wizard 精靈模式新增預約申請"""
-    model = DroneReservation
-    form_class = ReservationForm
-    template_name = 'DroneReservation/wizard/reservation_wizard.html'
-    success_url = reverse_lazy('drone:my_reservations')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user = self.request.user
-        context['applicant_name'] = user.last_name or user.get_full_name() or user.username
-        return context
-
-    def form_valid(self, form):
-        form.instance.applicant = self.request.user
-        response = super().form_valid(form)
-        
-        # 發送郵件通知簽核人
-        self.send_notification_to_reviewers(form.instance)
-        
-        messages.success(self.request, '預約申請已送出，等待簽核人審核。')
-        return response
-
-    def send_notification_to_reviewers(self, reservation):
-        """發送通知給所有啟用且接收郵件的簽核人"""
-        reviewers = DroneReviewer.objects.filter(is_active=True, receive_email=True).select_related('user')
-        reviewer_emails = [r.user.email for r in reviewers if r.user.email]
-        
-        if reviewer_emails:
-            try:
-                send_mail(
-                    subject=f'[無人機預約] 新申請待審核 - {reservation.applicant.get_full_name() or reservation.applicant.username}',
-                    message=f"""您好，
-
-有一筆新的無人機預約申請待審核：
-
-申請人：{reservation.applicant.get_full_name() or reservation.applicant.username}
-使用時間：{format_local_datetime(reservation.usage_start_datetime)} ~ {format_local_datetime(reservation.usage_end_datetime)}
-地點：{reservation.location}
-計畫編號：{reservation.project_number}
-申請理由：{reservation.reason}
-
-請登入系統進行審核。
-
-此為系統自動發送郵件，請勿直接回覆。
-""",
-                    from_email=settings.EMAIL_HOST_USER,
-                    recipient_list=reviewer_emails,
-                    fail_silently=True,
-                )
-            except Exception as e:
-                print(f"Failed to send email: {e}")
