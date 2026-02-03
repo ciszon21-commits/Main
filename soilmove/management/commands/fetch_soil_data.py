@@ -2,7 +2,7 @@ import requests
 import json
 import re
 from django.core.management.base import BaseCommand
-from SoilMove.models import SoilMove
+from ...models import SoilMove
 
 class Command(BaseCommand):
     help = 'Fetches soil temporary storage data from soilmove.tw and updates the database.'
