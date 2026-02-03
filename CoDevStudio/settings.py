@@ -100,6 +100,7 @@ INSTALLED_APPS = [
     'SinoChat',  # Sinotech 內部聊天室
     'InterviewAssessment',
     'GravityPipeCalc',  # 重力管水理計算器
+    'soilmove',
 ] + local.STAGE_INSTALLED_APPS
 
 
