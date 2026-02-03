@@ -37,7 +37,7 @@ if not exist "requirements.txt" (
 :: 3. 升級 pip
 echo.
 echo [Step 1/2] 正在檢查 pip 版本...
-python -m pip install --upgrade pip
+py -m pip install --upgrade pip
 
 :: 4. 安裝套件
 echo.
