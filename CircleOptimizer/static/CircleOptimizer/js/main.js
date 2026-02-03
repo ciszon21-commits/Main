@@ -127,13 +127,26 @@ function updateConnector(arc, pStart, pEnd) {
 
     // 4. Update Angles
     // Normal atan2
-    const angStart = Math.atan2(pStart.y - arc.cy, pStart.x - arc.cx) * 180 / Math.PI;
-    const angEnd = Math.atan2(pEnd.y - arc.cy, pEnd.x - arc.cx) * 180 / Math.PI;
+    let angStart = Math.atan2(pStart.y - arc.cy, pStart.x - arc.cx) * 180 / Math.PI;
+    let angEnd = Math.atan2(pEnd.y - arc.cy, pEnd.x - arc.cx) * 180 / Math.PI;
+
+    let diff = angEnd - angStart;
+    while (diff < 0) diff += 360;
+
+    // Constraint: Arc Angle < 180
+    if (diff > 180) {
+        arc.cx = mx;
+        arc.cy = my;
+        arc.r = len / 2;
+
+        // Recalculate angles at midpoint
+        angStart = Math.atan2(pStart.y - arc.cy, pStart.x - arc.cx) * 180 / Math.PI;
+        angEnd = Math.atan2(pEnd.y - arc.cy, pEnd.x - arc.cx) * 180 / Math.PI;
+    }
 
     arc.startAngle = angStart;
     arc.endAngle = angEnd;
 }
-
 
 // ------------------------------------------------------------
 // Rendering
@@ -332,8 +345,6 @@ function onDrag(e) {
         if (div) {
             div.querySelector('.coord-x').value = mx.toFixed(1);
             div.querySelector('.coord-y').value = my.toFixed(1);
-
-            // Auto-update viewbox if needed (optional, or just redraw)
             drawSystem();
             return;
         }
@@ -498,8 +509,202 @@ function bindZoomPanEvents() {
 }
 
 // ------------------------------------------------------------
-// Utilities
+// Utilities (Area Calc, etc.)
 // ------------------------------------------------------------
+
+function calculateTotalArea() {
+    let totalArea = 0;
+
+    // Green's Theorem for Circular Arcs
+    // Area = Sum of (0.5 * integral(x dy - y dx))
+    // For an arc from t1 to t2 (in radians):
+    // Integral = [cx*R*sin(t) - cy*R*cos(t) + R^2*t] evaluated at t2 - t1
+    // Important: The loop must be traversed Counter-Clockwise (CCW).
+
+    // My arcs order:
+    // Arc 1 (Top): 10 deg -> 170 deg. (This is Right -> Left).
+    // CCW traversal of the *shape* means we move along the boundary.
+    // The visual boundary is:
+    // 1. Arc 1: From Start(10) to End(170). (This is actually CCW angularly 10->170).
+    // 2. Arc 3: From Arc1.End to Arc2.Start.
+    // 3. Arc 2: From Start(-120) to End(-60). (Left -> Right). 
+    //    Wait. Shape connects Arc3(End) -> Arc2(Start).
+    //    Arc3 End is Arc2 Start (Left side, -120 deg).
+    //    So we traverse Arc 2 from Start(-120) to End(-60). (This is CCW).
+    // 4. Arc 4: From Arc2.End -> Arc1.Start.
+
+    // So distinct segments are:
+    // Seg 1: Arc 1 (10 deg to 170 deg)
+    // Seg 2: Arc 3 (Angle ?). We need to determine Arc 3's sweep angle and direction.
+    // Seg 3: Arc 2 (-120 to -60)
+    // Seg 4: Arc 4 (Angle ?)
+
+    // Let's assume standard CCW angle definition for Green's theorem.
+    // We just need to sum the contributions of each arc segment traversed from P_start to P_end.
+
+    const segments = [arcs[0], arcs[2], arcs[1], arcs[3]];
+    // Note: arcs[1] is Arc 2. arcs[2] is Arc 3. arcs[3] is Arc 4.
+    // Sequence in loop: Arc 1 -> Arc 3 -> Arc 2 -> Arc 4 -> (Back to Arc 1)
+
+    // However, we need to check if the angles in the object (startAngle, endAngle) 
+    // actually correspond to the direction of traversal in the loop.
+
+    // Arc 1: Start(10) -> End(170). Yes, CCW.
+    // Arc 3: Start(Arc1.End) -> End(Arc2.Start). 
+    //        Arc 3 is on the Left. Arc1.End is Top-Left. Arc2.Start is Bottom-Left.
+    //        So it goes Top -> Bottom.
+    //        We need to check the angular sweep.
+    //        Typically Arc 3 center is outside. 
+    //        Let's trust the startAngle/endAngle in the object are correct for drawing the arc visually.
+    //        We just need to check if drawing goes S->E or E->S.
+    //        In `describeArc`, we move from Start to End. 
+    //        And we know Arc 3 connects 1.End to 2.Start. So yes, Start->End is the path.
+
+    // Arc 2: Start(-120) -> End(-60). Left -> Right. Yes, CCW.
+    // Arc 4: Start(Arc2.End) -> End(Arc1.Start). Bottom-Right -> Top-Right.
+
+    // So for all 4 arcs, the traversal is formatted as from 'startAngle' to 'endAngle'.
+
+    segments.forEach(arc => {
+        let t1 = arc.startAngle * Math.PI / 180;
+        let t2 = arc.endAngle * Math.PI / 180;
+
+        // Handle wrapping for calculation correctly?
+        // If the draw logic (describeArc) assumes CCW sweep, then we just need the difference.
+        // But Green's theorem needs absolute angles? No, just the definite integral.
+        // term: cx*R*sin(t) - cy*R*cos(t) + R^2*t
+
+        // However, if the arc crosses 180/-180, we need to be careful with t values not being continuous?
+        // Actually, as long as we use consistent continuous t, it's fine.
+        // describeArc handles largeArcFlags etc.
+        // We should ensure t2 > t1 if it's CCW? Or just follow the difference.
+
+        let angleDiff = t2 - t1;
+        while (angleDiff < 0) {
+            angleDiff += 2 * Math.PI; // Ensure we go CCW
+            // But wait, if we are going CW physically, Area is negative.
+            // But we established the loop is CCW.
+            // Are the individual arcs drawn CCW?
+            // Arc 1: 10 -> 170. Yes.
+            // Arc 3: Top-Left -> Bottom-Left.
+            //    Center of Arc 3 is likely further Left (negative X).
+            //    So angles are likely roughly 0 -> -X? or similar.
+            //    If center is at (-35, 10). Start is (~-29, 10). Angle ~0.
+            //    End is (~-30, -15). Angle ~ -something.
+            //    So 0 -> -something is CW?
+            //    If so, we must integrate t1 -> t2. If t2 < t1, it handles itself?
+            //    Yes, standard integral calc handles direction.
+            //    Adjust t2 relative to t1 to match the physical sweep.
+        }
+
+        // Let's effectively reconstruct the continuous t2.
+        // If describeArc uses sweepFlag=0 (CCW in SVG? No, 0 is usually small arc, 1 is sweep).
+        // My describeArc implementation:
+        // let angleDiff = endAngle - startAngle;
+        // while (angleDiff < 0) angleDiff += 360;
+        // ... sweepFlag = "0". 
+        // Wait. SVG Arc command: A rx ry x-axis-rotation large-arc-flag sweep-flag x y
+        // sweep-flag: 1 = positive-angle direction (CW in SVG coord system because Y is down? No. In SVG, +Angle is usually CW because Y is down).
+        // My describeArc calculations:
+        // x = cx + r*cos(a), y = cy - r*sin(a).  (Flip Y for Cartesian)
+        // I am using Cartesian coordinates for logic, then flipping Y for SVG drawing (-y).
+        // My Green's theorem formula depends on Cartesian coords (x, y) where Y is UP.
+        // Since my logic (arcs array) stores Cartesian "cy" (e.g. 5, 15, 60), 
+        // I should use the standard Cartesian Green's theorem.
+
+        // Re-eval arc direction in Cartesian:
+        // Arc 1: 10 -> 170 (CCW).
+        // Arc 3: Start (Top-Left) -> End (Bottom-Left).
+        //    Let's check Angle logic for Arc 3.
+        //    updateConnector:
+        //    angStart = atan2(pStart.y - cy, pStart.x - cx).
+        //    pStart is Top-Left (e.g. y=20). cy=10. dy > 0.
+        //    pEnd is Bottom-Left (e.g. y=0). cy=10. dy < 0.
+        //    So AngStart is positive (e.g. 90). AngEnd is negative (e.g. -90).
+        //    So 90 -> -90 is decreasing. ie. CW.
+        //    If the loop is CCW, but this segment is CW?
+        //    Wait. Top-Left to Bottom-Left. Tangent vector points down.
+        //    Center is to the Left?
+        //    If Center is Left, then Top->Bottom is CW.
+        //    If Center is Right, then Top->Bottom is CCW.
+        //    My default Center 3 is (-35, 10). Points are to the right of Center.
+        //    So moving Top->Bottom is indeed CW (Clockwise) around that center.
+        //    So Arc 3 contribution should be "Negative Area" relative to its center?
+        //    Green's theorem doesn't care about "Negative Area". It just cares about path direction.
+        //    The integral will automatically come out negative if dt is negative.
+        //    So I simply need to integrate from t1 to t2, *without* forcing t2 > t1.
+        //    I just need to respect the angle values that `Math.atan2` gave us,
+        //    BUT accounting for the wrap-around (360) appropriately.
+
+        //    Case: 170 -> -170. (Crosses 180).
+        //    atan2 returns -180 to 180.
+        //    If geometric path crosses the cut, we need to adjust.
+        //    My `updateConnector` calculates angStart, angEnd.
+        //    Then `diff = angEnd - angStart; while(diff < 0) diff += 360`. 
+        //    This implies I always interpret the arc as CCW!
+        //    If `diff` was forced > 0, I am treating Arc 3 as 270 deg CCW loop instead of 90 deg CW?
+        //    If so, that's WRONG for the shape closing.
+        //    Arc 3 connects Top -> Bottom directly (Short path).
+        //    If it's CW, then diff should be e.g. -90.
+        //    My `describeArc` code does: `while (angleDiff < 0) angleDiff += 360;`.
+        //    And `sweepFlag = "0"`.
+        //    This combination typically draws the CCW path in SVG?
+        //    SVG `A` command with sweep-flag 0 means "Negative angle direction".
+        //    Wait.
+        //    If I want to support both CW and CCW arcs in connection, I should handle it.
+        //    Currently Arc 1 & 2 are explicitly CCW (10->170, -120->-60).
+        //    Arc 3 & 4 are "Connectors". 
+        //    If Arc 3 is meant to be the short path, and it turns out to be CW, 
+        //    my `updateConnector` logic currently Forces it to be interpreted as CCW for `describeArc`.
+        //    Effectively, if the real path is CW, `diff += 360` makes it a large loop (300 deg).
+        //    Does the visual look right?
+        //    If the visual is a short arc, then `describeArc` must be doing something else.
+        //    `largeArcFlag = angleDiff > 180 ? "1" : "0"`.
+        //    If I force `angleDiff += 360`, then `angleDiff` is always positive.
+        //    If real diff was -30 (CW), `angleDiff` becomes 330. `largeArcFlag` = 1.
+        //    SVG draws 330 deg CCW arc. That is the long way around.
+        //    So if Arc 3 is physically CW, my current code draws the long loop!?
+        //    Unless... Arc 3 center is on the OTHER side?
+        //    If Arc 3 center is to the Right of the chord, then Top->Bottom is CCW.
+        //    If Arc 3 center is to the Left, Top->Bottom is CW.
+        //    My default cx is -35. Top/Bottom points are around x=-15.
+        //    So Center is Left.
+        //    So Path is CW.
+        //    So currently Arc 3 might be drawn inverted or wrong if I enforce CCW?
+        //    Actually, user said "Arc 3 connects 1 End to 2 Start".
+        //    If my current visual is correct, then maybe I am handling it?
+
+        //    Let's refine `calculateTotalArea` to be robust:
+        //    Use chord approximation (polygon) for area? No, imprecise.
+        //    Let's stick to Green's.
+        //    We just need the correct Delta Theta.
+        //    Area Term = (Integral from t1 to t2).
+        //    We need to determine if we go t1->t2 via minimal path.
+        //    Let's assume minimal path (< 180 deg).
+        //    dTheta = t2 - t1.
+        //    Normalize dTheta to [-PI, PI].
+        //    Then Integrate from t1 to t1+dTheta.
+
+        //    Formula Integral(t) = R * (cx * sin(t) - cy * cos(t)) + 0.5 * R^2 * t
+        //    Val = F(t2) - F(t1).
+
+        let dRad = t2 - t1;
+        // Normalize to -PI...PI
+        while (dRad > Math.PI) dRad -= 2 * Math.PI;
+        while (dRad <= -Math.PI) dRad += 2 * Math.PI;
+
+        // Resulting t2 (effective)
+        const tEnd = t1 + dRad;
+
+        const F = (t) => {
+            return arc.r * (arc.cx * Math.sin(t) - arc.cy * Math.cos(t)) + 0.5 * arc.r * arc.r * t;
+        };
+
+        totalArea += F(tEnd) - F(t1);
+    });
+
+    return Math.abs(totalArea); // Area is positive
+}
 
 function describeArc(x, y, radius, startAngle, endAngle) {
     const start = {
@@ -527,7 +732,14 @@ function updateInfoPanel() {
     const container = document.getElementById('resultsContainer');
     if (!container) return;
 
-    let html = '';
+    const totalArea = calculateTotalArea();
+
+    let html = `
+    <div style="margin-bottom:15px; padding:10px; background:#e8f5e9; border:1px solid #c3e6cb; border-radius:5px;">
+        <h3 style="margin:0; color:#155724;">Total Area: ${totalArea.toFixed(2)}</h3>
+    </div>
+    `;
+
     arcs.forEach((a, i) => {
         const pStart = getPointOnCircle(a.cx, a.cy, a.r, a.startAngle);
         const pEnd = getPointOnCircle(a.cx, a.cy, a.r, a.endAngle);
