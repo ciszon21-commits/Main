@@ -68,10 +68,6 @@ function updateConnectorGeometry(masterConnectorIndex = null) {
     const p2_end = getPointOnCircle(arcs[1].cx, arcs[1].cy, arcs[1].r, arcs[1].endAngle);
 
     // Symmetry Logic:
-    // If masterConnectorIndex is 3 (Left), we update 3, then mirror 4.
-    // If masterConnectorIndex is 4 (Right), we update 4, then mirror 3.
-    // If null, we default to updating 3 then mirroring 4 (Arbitrary preference for Left side).
-
     if (masterConnectorIndex === 4) {
         // Update 4, then mirror 3
         updateConnector(arcs[3], p2_end, p1_start);
@@ -167,10 +163,10 @@ function drawSystem() {
 
 function drawPolygon(container) {
     const points = [];
-    document.querySelectorAll('.point-input').forEach(div => {
+    document.querySelectorAll('.point-input').forEach((div, index) => {
         const x = parseFloat(div.querySelector('.coord-x').value);
         const y = parseFloat(div.querySelector('.coord-y').value);
-        if (!isNaN(x) && !isNaN(y)) points.push({ x, y });
+        if (!isNaN(x) && !isNaN(y)) points.push({ x, y, index });
     });
 
     if (points.length < 3) return;
@@ -181,50 +177,82 @@ function drawPolygon(container) {
     poly.setAttribute('d', d);
     poly.setAttribute('fill', 'rgba(0, 0, 0, 0.05)'); // Very light grey fill
     poly.setAttribute('stroke', '#000000'); // Black Stroke
-    poly.setAttribute('stroke-width', '1');
+    poly.setAttribute('stroke-width', '0.5');
     poly.setAttribute('stroke-dasharray', '5,5');
     container.appendChild(poly);
 
     // Draw Vertices
-    points.forEach((p, i) => {
+    points.forEach(p => {
         const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         dot.setAttribute('cx', p.x);
         dot.setAttribute('cy', -p.y);
-        dot.setAttribute('r', '1.2');
+        dot.setAttribute('r', '0.8'); // Smaller size
         dot.setAttribute('fill', '#000000');
+        dot.setAttribute('class', 'interactive-handle');
+        dot.style.cursor = 'move';
+        bindDrag(dot, p.index, 'polygonPoint');
         container.appendChild(dot);
     });
 }
 
 function drawArc(container, arc, index) {
+    // Arc Path (Thinner Line Width: 0.5)
     const d = describeArc(arc.cx, -arc.cy, arc.r, arc.startAngle, arc.endAngle);
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', d);
     path.setAttribute('fill', 'none');
     path.setAttribute('stroke', arc.color);
-    path.setAttribute('stroke-width', '1.5');
+    path.setAttribute('stroke-width', '0.5'); // Reduced from 1.5
     container.appendChild(path);
 
-    // Draw Center
+    // Center Handle
     const center = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     center.setAttribute('cx', arc.cx);
     center.setAttribute('cy', -arc.cy);
-    center.setAttribute('r', '2');
+    center.setAttribute('r', '1.5'); // Slightly smaller handle
     center.setAttribute('fill', arc.color);
     center.setAttribute('class', 'interactive-handle');
     center.style.cursor = 'move';
     bindDrag(center, index, 'center');
     container.appendChild(center);
 
+    // On-Canvas Labels (Center & Radius)
+    const labelGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    labelGroup.style.pointerEvents = 'none'; // Don't block clicking
+
+    // Center Label
+    const cLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    cLabel.setAttribute('x', arc.cx);
+    cLabel.setAttribute('y', -arc.cy + 4); // Offset below center
+    cLabel.setAttribute('font-size', '2.5');
+    cLabel.setAttribute('fill', arc.color);
+    cLabel.setAttribute('text-anchor', 'middle');
+    cLabel.textContent = `C(${arc.cx.toFixed(1)}, ${arc.cy.toFixed(1)})`;
+    labelGroup.appendChild(cLabel);
+
+    // Radius Label (Positioned at midpoint of arc or near radius handle)
+    const midAngle = (arc.startAngle + arc.endAngle) / 2;
+    const pMid = getPointOnCircle(arc.cx, arc.cy, arc.r, midAngle);
+    // slightly offset outward
+    const rLabelPos = getPointOnCircle(arc.cx, arc.cy, arc.r + 3, midAngle);
+
+    const rLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    rLabel.setAttribute('x', rLabelPos.x);
+    rLabel.setAttribute('y', -rLabelPos.y);
+    rLabel.setAttribute('font-size', '2.5');
+    rLabel.setAttribute('fill', arc.color);
+    rLabel.setAttribute('text-anchor', 'middle');
+    rLabel.textContent = `R:${arc.r.toFixed(1)}`;
+    labelGroup.appendChild(rLabel);
+
+    container.appendChild(labelGroup);
+
     // Handles for Arc 1/2
     if (index < 2) {
-        const midAngle = (arc.startAngle + arc.endAngle) / 2;
-        const p = getPointOnCircle(arc.cx, arc.cy, arc.r, midAngle);
-
         const rHandle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        rHandle.setAttribute('cx', p.x);
-        rHandle.setAttribute('cy', -p.y);
-        rHandle.setAttribute('r', '1.5');
+        rHandle.setAttribute('cx', pMid.x);
+        rHandle.setAttribute('cy', -pMid.y);
+        rHandle.setAttribute('r', '1.2');
         rHandle.setAttribute('fill', 'white');
         rHandle.setAttribute('stroke', arc.color);
         rHandle.setAttribute('stroke-width', '0.5');
@@ -236,20 +264,20 @@ function drawArc(container, arc, index) {
         const pEnd = getPointOnCircle(arc.cx, arc.cy, arc.r, arc.endAngle);
 
         const sHandle = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        sHandle.setAttribute('x', pStart.x - 1.5);
-        sHandle.setAttribute('y', -pStart.y - 1.5);
-        sHandle.setAttribute('width', '3');
-        sHandle.setAttribute('height', '3');
+        sHandle.setAttribute('x', pStart.x - 1.2);
+        sHandle.setAttribute('y', -pStart.y - 1.2);
+        sHandle.setAttribute('width', '2.4');
+        sHandle.setAttribute('height', '2.4');
         sHandle.setAttribute('fill', arc.color);
         sHandle.style.cursor = 'pointer';
         bindDrag(sHandle, index, 'startAngle');
         container.appendChild(sHandle);
 
         const eHandle = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        eHandle.setAttribute('x', pEnd.x - 1.5);
-        eHandle.setAttribute('y', -pEnd.y - 1.5);
-        eHandle.setAttribute('width', '3');
-        eHandle.setAttribute('height', '3');
+        eHandle.setAttribute('x', pEnd.x - 1.2);
+        eHandle.setAttribute('y', -pEnd.y - 1.2);
+        eHandle.setAttribute('width', '2.4');
+        eHandle.setAttribute('height', '2.4');
         eHandle.setAttribute('fill', arc.color);
         eHandle.setAttribute('stroke', 'white');
         eHandle.style.cursor = 'pointer';
@@ -298,6 +326,18 @@ function onDrag(e) {
     const svgY = (cy - CTM.f) / CTM.d;
     const mx = svgX;
     const my = -svgY;
+
+    if (dragType === 'polygonPoint') {
+        const div = document.querySelector(`.point-input[data-index="${activeDragIndex}"]`);
+        if (div) {
+            div.querySelector('.coord-x').value = mx.toFixed(1);
+            div.querySelector('.coord-y').value = my.toFixed(1);
+
+            // Auto-update viewbox if needed (optional, or just redraw)
+            drawSystem();
+            return;
+        }
+    }
 
     const arc = arcs[activeDragIndex];
     let master = null;
