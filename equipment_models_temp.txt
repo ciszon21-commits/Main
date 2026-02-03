@@ -1,0 +1,78 @@
+# Equipment 和 UserEquipment 模型（在 Item 之前插入）
+
+class Equipment(models.Model):
+    """裝備系統 - 頭盔、盔甲、靴子、工具"""
+    
+    EQUIPMENT_TYPE_CHOICES = [
+        ('HELMET', '頭盔 (Helmet)'),
+        ('ARMOR', '盔甲 (Armor)'),
+        ('BOOTS', '靴子 (Boots)'),
+        ('TOOL', '工具 (Tool)'),
+    ]
+    
+    RARITY_CHOICES = [
+        ('COMMON', '普通 (Common)'),
+        ('RARE', '稀有 (Rare)'),
+        ('EPIC', '史詩 (Epic)'),
+        ('LEGENDARY', '傳說 (Legendary)'),
+    ]
+    
+    name = models.CharField('裝備名稱', max_length=100)
+    description = models.TextField('裝備描述')
+    equipment_type = models.CharField('裝備類型', max_length=20, choices=EQUIPMENT_TYPE_CHOICES)
+    rarity = models.CharField('稀有度', max_length=20, choices=RARITY_CHOICES, default='COMMON')
+    
+    # 屬性加成
+    hp_bonus = models.IntegerField('HP加成', default=0)
+    mp_bonus = models.IntegerField('MP加成', default=0)
+    
+    # 技能效果（工具類裝備）
+    skill_effect = models.CharField('技能效果', max_length=50, blank=True, null=True)
+    skill_description = models.TextField('技能描述', blank=True, null=True)
+    mp_cost = models.IntegerField('MP消耗', default=0)
+    
+    # 解鎖條件
+    required_skill = models.ForeignKey('SkillNode', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='需求技能')
+    required_level = models.IntegerField('需求等級', default=1)
+    
+    # 強化
+    max_enhancement = models.IntegerField('最大強化等級', default=5)
+    
+    # 視覺
+    icon = models.ImageField('裝備圖示', upload_to='rpg/equipment_icons/', null=True, blank=True)
+    
+    created_at = models.DateTimeField('建立時間', auto_now_add=True)
+    
+    class Meta:
+        verbose_name = '裝備'
+        verbose_name_plural = '裝備列表'
+        
+    def __str__(self):
+        return f"{self.name} ({self.get_equipment_type_display()})"
+
+
+class UserEquipment(models.Model):
+    """使用者擁有的裝備"""
+    
+    user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='owned_equipment')
+    equipment = models.ForeignKey(Equipment, on_delete=models.CASCADE)
+    
+    enhancement_level = models.IntegerField('強化等級', default=0, validators=[MinValueValidator(0)])
+    is_equipped = models.BooleanField('是否裝備中', default=False)
+    obtained_at = models.DateTimeField('獲得時間', auto_now_add=True)
+    
+    class Meta:
+        verbose_name = '使用者裝備'
+        verbose_name_plural = '使用者裝備'
+        unique_together = [['user_profile', 'equipment']]
+        
+    def __str__(self):
+        return f"{self.user_profile.user.username} - {self.equipment.name} (+{self.enhancement_level})"
+    
+    def get_total_hp_bonus(self):
+        """計算總HP加成（含強化）"""
+        return self.equipment.hp_bonus + (self.enhancement_level * 1)
+    
+    def get_total_mp_bonus(self):
+        """計算總MP加成（含強化）"""
+        return self.equipment.mp_bonus + (self.enhancement_level * 5)
