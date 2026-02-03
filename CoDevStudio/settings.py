@@ -96,6 +96,7 @@ INSTALLED_APPS = [
     'GeoDataHub',  # 地圖導向資料管理平台
     'GeoCoding',  # 地址編碼服務
     'BidQA',  # 標案問答管理
+    'CircleOptimizer',  # 圓優化工具
     # 'DesignConsistency',
     'SinoChat',  # Sinotech 內部聊天室
     'InterviewAssessment',
