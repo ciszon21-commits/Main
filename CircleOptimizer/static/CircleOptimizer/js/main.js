@@ -178,7 +178,7 @@ function drawPolygon(container) {
     poly.setAttribute('fill', 'rgba(0, 0, 0, 0.05)'); // Very light grey fill
     poly.setAttribute('stroke', '#000000'); // Black Stroke
     poly.setAttribute('stroke-width', '0.5');
-    poly.setAttribute('stroke-dasharray', '5,5');
+    poly.setAttribute('stroke-dasharray', '2,2');
     container.appendChild(poly);
 
     // Draw Vertices
