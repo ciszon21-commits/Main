@@ -99,6 +99,7 @@ INSTALLED_APPS = [
     # 'DesignConsistency',
     'SinoChat',  # Sinotech 內部聊天室
     'InterviewAssessment',
+    'FinanceInsight',  # 財經新聞與選股建議
 ] + local.STAGE_INSTALLED_APPS
 
 
