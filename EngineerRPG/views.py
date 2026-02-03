@@ -5379,7 +5379,7 @@ def create_course(request):
         
         # Exam settings
         exam_time_limit = request.POST.get('exam_time_limit', 20)
-        passing_score = request.POST.get('passing_score', 80)
+        passing_score = 80
         question_ids = request.POST.getlist('questions')
         
         try:
@@ -5439,7 +5439,7 @@ def edit_course(request, course_id):
             course.content_file = request.FILES['content_file']
         
         course.exam_time_limit = int(request.POST.get('exam_time_limit', 20))
-        course.passing_score = int(request.POST.get('passing_score', 80))
+        course.passing_score = 80
         
         question_ids = request.POST.getlist('questions')
         
@@ -6130,7 +6130,7 @@ def create_dungeon(request):
 
 
 
-    questions = Question.objects.filter(is_active=True) # ?臭誑?芸???AJAX 頛����
+    questions = Question.objects.filter(is_active=True).order_by('category__name', 'content') # ?臭誑?芸???AJAX 頛����
 
 
 
@@ -6335,7 +6335,7 @@ def edit_dungeon(request, dungeon_id):
 
 
 
-    questions = Question.objects.filter(is_active=True)
+    questions = Question.objects.filter(is_active=True).order_by('category__name', 'content')
 
 
 
