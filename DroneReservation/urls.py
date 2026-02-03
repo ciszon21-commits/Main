@@ -28,9 +28,7 @@ urlpatterns = [
     path('announcements/<int:pk>/edit/', views.AnnouncementUpdateView.as_view(), name='announcement_update'),
     path('announcements/<int:pk>/delete/', views.AnnouncementDeleteView.as_view(), name='announcement_delete'),
     
-    # Wizard 精靈模式
-    path('wizard/', views.WizardLandingView.as_view(), name='wizard_landing'),
-    path('wizard/apply/', views.WizardCreateView.as_view(), name='wizard_apply'),
+
     
     # API
     path('api/events/', views.calendar_events_api, name='calendar_events'),
