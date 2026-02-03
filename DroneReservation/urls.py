@@ -19,6 +19,7 @@ urlpatterns = [
     # 簽核人管理頁面
     path('pending/', views.PendingApprovalsView.as_view(), name='pending_approvals'),
     path('<int:pk>/review/', views.review_reservation, name='review_reservation'),
+    path('<int:pk>/reviewer-edit/', views.ReviewerUpdateView.as_view(), name='reviewer_update'),
     
     # 公告管理（僅限簽核人）
     path('announcements/', views.AnnouncementListView.as_view(), name='announcement_list'),
@@ -26,6 +27,10 @@ urlpatterns = [
     path('announcements/<int:pk>/', views.AnnouncementDetailView.as_view(), name='announcement_detail'),
     path('announcements/<int:pk>/edit/', views.AnnouncementUpdateView.as_view(), name='announcement_update'),
     path('announcements/<int:pk>/delete/', views.AnnouncementDeleteView.as_view(), name='announcement_delete'),
+    
+    # Wizard 精靈模式
+    path('wizard/', views.WizardLandingView.as_view(), name='wizard_landing'),
+    path('wizard/apply/', views.WizardCreateView.as_view(), name='wizard_apply'),
     
     # API
     path('api/events/', views.calendar_events_api, name='calendar_events'),

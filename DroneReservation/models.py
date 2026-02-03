@@ -152,7 +152,7 @@ class DroneReservation(models.Model):
 
     def can_edit(self, user):
         """檢查使用者是否可以編輯此預約"""
-        # 只有申請人且狀態為申請中時可以編輯
+        # 申請人只能在申請中狀態下編輯（已核准後只有審核人可修改時間）
         return user == self.applicant and self.status == 'pending'
 
     def can_cancel(self, user):
@@ -162,6 +162,16 @@ class DroneReservation(models.Model):
 
     def can_reviewer_cancel(self, user):
         """檢查簽核人是否可以取消已核准的預約"""
+        if self.status != 'approved':
+            return False
+        try:
+            reviewer_profile = user.drone_reviewer_profile
+            return reviewer_profile.is_active
+        except DroneReviewer.DoesNotExist:
+            return False
+
+    def can_reviewer_edit(self, user):
+        """檢查審核人是否可以編輯已核准預約的時間"""
         if self.status != 'approved':
             return False
         try:

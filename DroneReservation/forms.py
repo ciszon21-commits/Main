@@ -166,3 +166,40 @@ class ReviewerCancelForm(forms.Form):
         required=True,
         label="取消理由"
     )
+
+
+class ReviewerTimeEditForm(forms.ModelForm):
+    """審核人編輯預約時間表單"""
+
+    class Meta:
+        model = DroneReservation
+        fields = ['usage_start_datetime', 'usage_end_datetime']
+        widgets = {
+            'usage_start_datetime': forms.DateTimeInput(
+                attrs={
+                    'type': 'datetime-local',
+                    'class': 'form-control',
+                    'step': '60'
+                },
+                format='%Y-%m-%dT%H:%M'
+            ),
+            'usage_end_datetime': forms.DateTimeInput(
+                attrs={
+                    'type': 'datetime-local',
+                    'class': 'form-control',
+                    'step': '60'
+                },
+                format='%Y-%m-%dT%H:%M'
+            ),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_time = cleaned_data.get('usage_start_datetime')
+        end_time = cleaned_data.get('usage_end_datetime')
+
+        if start_time and end_time:
+            if end_time <= start_time:
+                raise ValidationError('結束時間必須在開始時間之後')
+
+        return cleaned_data
