@@ -1,0 +1,107 @@
+{% extends 'EngineerRPG/management/base_management.html' %}
+
+{% block management_content %}
+<div class="rpg-card">
+    <div class="rpg-card-header flex justify-between items-center">
+        <h3 class="rpg-card-title"><i class="fas fa-scroll"></i> 課程管理</h3>
+        <a href="{% url 'engineer_rpg:create_course' %}" class="rpg-btn rpg-btn-sm rpg-btn-primary">
+            <i class="fas fa-plus"></i> 新增課程
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-black/30 p-md rounded-lg mb-md flex gap-md items-end m-md">
+        <form method="get" class="flex gap-md w-full items-end">
+            <div class="flex-1">
+                <label class="form-label text-xs mb-xs">關鍵字搜尋</label>
+                <input type="text" name="q" value="{{ search_query|default:'' }}" class="rpg-input w-full"
+                    placeholder="搜尋課程標題或描述...">
+            </div>
+            <button type="submit" class="rpg-btn rpg-btn-secondary">
+                <i class="fas fa-search"></i> 搜尋
+            </button>
+            <a href="{% url 'engineer_rpg:course_management' %}" class="rpg-btn rpg-btn-outline" title="清除篩選">
+                <i class="fas fa-times"></i>
+            </a>
+        </form>
+    </div>
+
+    <div class="p-md">
+        {% if courses %}
+        <div class="table-container">
+            <table class="rpg-table w-full">
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">課程名稱</th>
+                        <th>類型</th>
+                        <th>題目數</th>
+                        <th>時限</th>
+                        <th style="width: 15%;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for course in courses %}
+                    <tr>
+                        <td>
+                            <div class="font-bold text-secondary">{{ course.title }}</div>
+                        </td>
+                        <td>
+                            <span class="badge bg-info/20 text-info">
+                                {{ course.get_content_type_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="text-sm">{{ course.questions.count }}</span>
+                        </td>
+                        <td>
+                            <span class="text-sm">{{ course.exam_time_limit }} 分鐘</span>
+                        </td>
+                        <td>
+                            <div class="flex gap-xs">
+                                <a href="{% url 'engineer_rpg:edit_course' course.id %}"
+                                    class="rpg-btn rpg-btn-xs rpg-btn-secondary" title="編輯">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form method="post" action="{% url 'engineer_rpg:delete_course' course.id %}"
+                                    onsubmit="return confirm('確定要刪除課程「{{ course.title }}」嗎？');" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="rpg-btn rpg-btn-xs rpg-btn-danger" title="刪除">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="pagination flex justify-center gap-xs mt-lg">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}"
+                class="rpg-btn rpg-btn-sm rpg-btn-outline"><i class="fas fa-chevron-left"></i></a>
+            {% endif %}
+
+            <span class="rpg-btn rpg-btn-sm rpg-btn-disabled">
+                {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}"
+                class="rpg-btn rpg-btn-sm rpg-btn-outline"><i class="fas fa-chevron-right"></i></a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-lg text-stone">
+            <i class="fas fa-inbox text-4xl mb-md opacity-30"></i>
+            <p>尚無課程，點擊上方「新增課程」開始建立</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
