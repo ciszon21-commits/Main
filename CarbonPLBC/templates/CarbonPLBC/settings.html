@@ -1,0 +1,149 @@
+{% extends 'CarbonPLBC/base.html' %}
+
+{% block title %}全域設定 - 外部碳排放計算系統{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-gear-fill"></i> 全域碳排放係數設定
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle-fill"></i>
+                        <strong>注意：</strong>修改這些係數將影響所有後續的碳排放計算。建議參考最新的環保署數據進行調整。
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <!-- 私人運具 -->
+                        <div class="section-title"><i class="bi bi-car-front-fill"></i> 私人運具排放係數</div>
+                        <p class="small text-muted">單位：kg CO2e/延人公里</p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.car_factor.label }}</label>
+                                    {{ form.car_factor }}
+                                    <small class="text-muted">{{ form.car_factor.help_text }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.electric_car_factor.label }}</label>
+                                    {{ form.electric_car_factor }}
+                                    <small class="text-muted">{{ form.electric_car_factor.help_text }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.motorcycle_factor.label }}</label>
+                                    {{ form.motorcycle_factor }}
+                                    <small class="text-muted">{{ form.motorcycle_factor.help_text }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.electric_motorcycle_factor.label }}</label>
+                                    {{ form.electric_motorcycle_factor }}
+                                    <small class="text-muted">{{ form.electric_motorcycle_factor.help_text }}</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 大眾運具 -->
+                        <div class="section-title"><i class="bi bi-bus-front-fill"></i> 大眾運具排放係數</div>
+                        <p class="small text-muted">單位：kg CO2e/延人公里</p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.bus_factor.label }}</label>
+                                    {{ form.bus_factor }}
+                                    <small class="text-muted">{{ form.bus_factor.help_text }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.intercity_bus_factor.label }}</label>
+                                    {{ form.intercity_bus_factor }}
+                                    <small class="text-muted">{{ form.intercity_bus_factor.help_text }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.metro_factor.label }}</label>
+                                    {{ form.metro_factor }}
+                                    <small class="text-muted">{{ form.metro_factor.help_text }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.railway_factor.label }}</label>
+                                    {{ form.railway_factor }}
+                                    <small class="text-muted">{{ form.railway_factor.help_text }}</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 再生能源 -->
+                        <div class="section-title"><i class="bi bi-sun-fill"></i> 再生能源減碳係數</div>
+                        <p class="small text-muted">單位：kg CO2e/kWh（減碳量）</p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.solar_factor.label }}</label>
+                                    {{ form.solar_factor }}
+                                    <small class="text-muted">{{ form.solar_factor.help_text }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.wind_factor.label }}</label>
+                                    {{ form.wind_factor }}
+                                    <small class="text-muted">{{ form.wind_factor.help_text }}</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 其他 -->
+                        <div class="section-title"><i class="bi bi-recycle"></i> 其他減碳係數</div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.water_recycling_factor.label }}</label>
+                                    {{ form.water_recycling_factor }}
+                                    <small class="text-muted">{{ form.water_recycling_factor.help_text }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.waste_recycling_factor.label }}</label>
+                                    {{ form.waste_recycling_factor }}
+                                    <small class="text-muted">{{ form.waste_recycling_factor.help_text }}</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <a href="{% url 'carbonplbc:index' %}" class="btn btn-secondary me-2">
+                                <i class="bi bi-arrow-left"></i> 返回
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> 儲存設定
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="mt-4 p-3 bg-light rounded">
+                        <small class="text-secondary">
+                            <strong>最後更新時間：</strong> {{ settings.updated_at|date:"Y-m-d H:i:s" }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

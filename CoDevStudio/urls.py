@@ -39,6 +39,7 @@ urlpatterns = [
     # path('consistency/', include('DesignConsistency.urls')),
     path('chat/', include('SinoChat.urls', namespace='sinochat')),  # Sinotech 聊天室
     path('interview/', include('InterviewAssessment.urls', namespace='interview_assessment')),
+    path('carbon-plbc/', include('CarbonPLBC.urls', namespace='carbonplbc')),  # 外部碳排放計算系統 (PL-BC)
 ]
 
 # 條件載入 ClashClassifier API

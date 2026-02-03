@@ -99,6 +99,7 @@ INSTALLED_APPS = [
     # 'DesignConsistency',
     'SinoChat',  # Sinotech 內部聊天室
     'InterviewAssessment',
+    'CarbonPLBC',  # 外部碳排放計算系統 (PL-BC)
 ] + local.STAGE_INSTALLED_APPS
 
 
