@@ -1,0 +1,175 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>重力管水理計算專家系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .input-group {
+            @apply mb-4;
+        }
+
+        .label-text {
+            @apply block text-sm font-semibold text-gray-600 mb-1;
+        }
+
+        .input-field {
+            @apply w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-emerald-500 outline-none;
+        }
+
+        .result-row:nth-child(even) {
+            @apply bg-slate-50;
+        }
+
+        .warning {
+            @apply text-red-500 font-bold;
+        }
+
+        .highlight {
+            @apply text-emerald-600 font-bold;
+        }
+
+        th {
+            @apply sticky top-0 bg-emerald-700 text-white p-2 text-xs;
+        }
+
+        td {
+            @apply p-2 border-b border-gray-100 text-center text-sm;
+        }
+
+        .mode-btn.active {
+            @apply bg-emerald-100 text-emerald-700 border-emerald-700;
+        }
+
+        .mode-btn {
+            @apply border-l-4 border-transparent hover:bg-gray-200 text-gray-600;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-100 min-h-screen p-4 md:p-8">
+    <div class="max-w-6xl mx-auto bg-white shadow-2xl rounded-xl overflow-hidden border border-gray-200">
+        <header class="bg-emerald-800 text-white p-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold flex items-center gap-2">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z">
+                            </path>
+                        </svg>
+                        重力管水理計算專家系統
+                    </h1>
+                    <p class="text-emerald-200 text-xs mt-1">高解析度模式 (Step: 0.05 d/D) | 流量單位：CMD | 管徑單位：mm</p>
+                </div>
+                <div class="text-right hidden md:block">
+                    <p class="text-xs text-emerald-300">設計標準：下水道工程設施標準</p>
+                    <p class="text-xs text-emerald-300">核心算法：Manning Equation</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-0">
+            <!-- 側邊欄導航 -->
+            <div class="lg:col-span-3 bg-slate-50 border-r border-gray-200 p-4">
+                <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">計算類型清單</h2>
+                <nav class="space-y-1" id="nav-menu">
+                    <button class="mode-btn active w-full text-left p-3 rounded text-xs font-medium transition"
+                        data-mode="1">
+                        類型一：管線輸送流量表
+                    </button>
+                    <button class="mode-btn w-full text-left p-3 rounded text-xs font-medium transition" data-mode="2">
+                        類型二：特定水深輸送容量
+                    </button>
+                    <button class="mode-btn w-full text-left p-3 rounded text-xs font-medium transition" data-mode="3">
+                        類型三：給定流量求水深流速
+                    </button>
+                    <button class="mode-btn w-full text-left p-3 rounded text-xs font-medium transition" data-mode="4">
+                        類型四：維持流速之坡降表
+                    </button>
+                    <button class="mode-btn w-full text-left p-3 rounded text-xs font-medium transition" data-mode="5">
+                        類型五：維持流速流量之坡降
+                    </button>
+                    <button class="mode-btn w-full text-left p-3 rounded text-xs font-medium transition" data-mode="6">
+                        類型六：輸送流量之坡降表
+                    </button>
+                    <button class="mode-btn w-full text-left p-3 rounded text-xs font-medium transition" data-mode="7">
+                        類型七：輸送流量水深求坡降
+                    </button>
+                    <button class="mode-btn w-full text-left p-3 rounded text-xs font-medium transition" data-mode="8">
+                        類型八：建議管徑計算
+                    </button>
+                </nav>
+            </div>
+
+            <!-- 主要內容區 -->
+            <div class="lg:col-span-9 p-6">
+                <div id="mode-title" class="text-xl font-bold text-slate-800 mb-6 border-l-4 border-emerald-600 pl-3">
+                    類型一：管線輸送流量表
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- 輸入區 -->
+                    <div id="input-container" class="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+                        <div class="space-y-4" id="input-form">
+                            <!-- 動態生成輸入欄位 -->
+                        </div>
+                    </div>
+
+                    <!-- 建議區 -->
+                    <div id="suggestion-container" class="bg-emerald-50 p-5 rounded-xl border border-emerald-100">
+                        <h3 class="font-bold text-emerald-800 mb-2 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path
+                                    d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1a1 1 0 112 0v1a1 1 0 11-2 0zM13.536 14.243a1 1 0 011.414 1.414l-.707.707a1 1 0 11-1.414-1.414l.707-.707zM16 18a1 1 0 100-2 1 1 0 000 2z">
+                                </path>
+                            </svg>
+                            工程師建議
+                        </h3>
+                        <div id="suggestion-text" class="text-sm text-emerald-700 leading-relaxed italic">
+                            請輸入數據後點擊計算，系統將自動比對法規標準。
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 結果表格 -->
+                <div class="mt-8 border rounded-lg overflow-hidden shadow-sm">
+                    <div class="max-h-[500px] overflow-y-auto">
+                        <table class="w-full text-sm text-left text-gray-600" id="result-table">
+                            <thead>
+                                <tr id="table-head">
+                                    <th>請先執行計算</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body">
+                                <tr>
+                                    <td class="p-4 text-center text-gray-400">尚無計算結果</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'GravityPipeCalc/js/main_pro.js' %}"></script>
+    <script>
+        // 設置 Django URL
+        window.djangoUrls = {
+            type1: "{% url 'calculate_type1' %}",
+            type2: "{% url 'calculate_type2' %}",
+            type3: "{% url 'calculate_type3' %}",
+            type4: "{% url 'calculate_type4' %}",
+            type5: "{% url 'calculate_type5' %}",
+            type6: "{% url 'calculate_type6' %}",
+            type7: "{% url 'calculate_type7' %}",
+            type8: "{% url 'calculate_type8' %}"
+        };
+    </script>
+</body>
+
+</html>

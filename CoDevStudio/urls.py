@@ -39,6 +39,7 @@ urlpatterns = [
     # path('consistency/', include('DesignConsistency.urls')),
     path('chat/', include('SinoChat.urls', namespace='sinochat')),  # Sinotech 聊天室
     path('interview/', include('InterviewAssessment.urls', namespace='interview_assessment')),
+    path('gravity-pipe/', include('GravityPipeCalc.urls')),  # 重力管水理計算器
 ]
 
 # 條件載入 ClashClassifier API
