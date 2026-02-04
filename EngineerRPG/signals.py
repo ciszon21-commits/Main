@@ -33,10 +33,15 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
             # 根據是否為 superuser 設置角色
             role = 'ADMIN' if instance.is_superuser else 'ADVENTURER'
             
+            # 自動生成員工編號 (取 username 中的數字)
+            import re
+            digits = ''.join(re.findall(r'\d+', instance.username))
+            employee_id = digits if digits else f'EMP{instance.id:05d}'
+            
             # 創建 UserProfile
             profile = UserProfile.objects.create(
                 user=instance,
-                employee_id=f'EMP{instance.id:05d}',
+                employee_id=employee_id,
                 character_class=default_class,
                 role=role
             )
