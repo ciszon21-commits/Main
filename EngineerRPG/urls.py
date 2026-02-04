@@ -64,6 +64,7 @@ urlpatterns = [
     # 管理員介面（創世神）
     path('admin-panel/', views.admin_dashboard, name='admin_dashboard'),
     path('admin-panel/users/', views.user_management, name='user_management'),
+    path('admin-panel/whitelist/', views.admin_whitelist_management, name='admin_whitelist_management'),
 
     # 公會系統
     path('guild/', views.guild_dashboard, name='guild_dashboard'),  # 公會大廳

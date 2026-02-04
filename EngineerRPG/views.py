@@ -1554,3 +1554,91 @@ def api_auto_distribute_xp(request):
     """API: 自動分配經驗值"""
     return JsonResponse({'success': False, 'message': '功能開發中'})
 
+
+# ==================== 管理者白名單管理 ====================
+
+@login_required
+def admin_whitelist_management(request):
+    """管理者白名單管理（僅 superuser）
+    
+    允許 superuser 管理其他使用者的管理員角色
+    """
+    if not request.user.is_superuser:
+        messages.error(request, '權限不足：僅系統超級管理員可以訪問此功能')
+        return redirect('engineer_rpg:dashboard')
+    
+    from .models import AdminWhitelist
+    
+    profile = get_or_create_user_profile(request.user)
+    whitelist = AdminWhitelist.objects.all().select_related('user', 'granted_by', 'user__rpg_profile')
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'add':
+            user_id = request.POST.get('user_id')
+            role = request.POST.get('role')
+            notes = request.POST.get('notes', '')
+            
+            try:
+                user = User.objects.get(id=user_id)
+                
+                # 防止將 superuser 加入白名單（他們已經是 ADMIN）
+                if user.is_superuser:
+                    messages.warning(request, f'{user.username} 已經是系統超級管理員，無需加入白名單')
+                else:
+                    whitelist_entry, created = AdminWhitelist.objects.update_or_create(
+                        user=user,
+                        defaults={
+                            'role': role,
+                            'granted_by': request.user,
+                            'notes': notes
+                        }
+                    )
+                    action_text = '已添加' if created else '已更新'
+                    role_display = dict(UserProfile.ROLE_CHOICES).get(role, role)
+                    messages.success(request, f'{action_text} {user.username} 為 {role_display}')
+                    
+            except User.DoesNotExist:
+                messages.error(request, '使用者不存在')
+            except Exception as e:
+                messages.error(request, f'操作失敗：{str(e)}')
+        
+        elif action == 'remove':
+            whitelist_id = request.POST.get('whitelist_id')
+            try:
+                entry = AdminWhitelist.objects.get(id=whitelist_id)
+                user = entry.user
+                entry.delete()
+                
+                # 重置為一般使用者
+                try:
+                    user.rpg_profile.role = 'ADVENTURER'
+                    user.rpg_profile.save(update_fields=['role'])
+                except:
+                    pass
+                    
+                messages.success(request, f'已移除 {user.username} 的管理權限，重置為冒險者')
+            except AdminWhitelist.DoesNotExist:
+                messages.error(request, '白名單項目不存在')
+            except Exception as e:
+                messages.error(request, f'移除失敗：{str(e)}')
+        
+        return redirect('engineer_rpg:admin_whitelist_management')
+    
+    # 可以被加入白名單的使用者（排除已在白名單中的和 superuser）
+    available_users = User.objects.exclude(
+        admin_whitelist__isnull=False
+    ).exclude(
+        is_superuser=True
+    ).select_related('rpg_profile').order_by('username')
+    
+    context = {
+        'profile': profile,
+        'whitelist': whitelist,
+        'available_users': available_users,
+        'role_choices': UserProfile.ROLE_CHOICES,
+    }
+    
+    return render(request, 'EngineerRPG/admin_whitelist.html', context)
+

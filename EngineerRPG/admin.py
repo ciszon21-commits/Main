@@ -6,8 +6,9 @@ from .models import (
     CharacterClass, UserProfile, SkillNode, Course, UserSkill,
     Equipment, UserEquipment, Item, UserItem, Question, Trial, TrialRecord,
     PromotionRequest, EnhancementScroll, Achievement, UserAchievement,
-    Team, TeamMembership, DailyTrialTask, DailyTrialProgress
+    Team, TeamMembership, DailyTrialTask, DailyTrialProgress, AdminWhitelist
 )
+
 
 
 # 重新註冊 User 模型以支援自動完成
@@ -442,3 +443,24 @@ class DailyTrialProgressAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+@admin.register(AdminWhitelist)
+class AdminWhitelistAdmin(admin.ModelAdmin):
+    list_display = ['user', 'role', 'granted_by', 'granted_at']
+    list_filter = ['role', 'granted_at']
+    search_fields = ['user__username', 'granted_by__username', 'notes']
+    readonly_fields = ['granted_at']
+    
+    fieldsets = (
+        ('基本資訊', {
+            'fields': ('user', 'role')
+        }),
+        ('授權資訊', {
+            'fields': ('granted_by', 'granted_at', 'notes')
+        }),
+    )
+    
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.granted_by = request.user
+        super().save_model(request, obj, form, change)

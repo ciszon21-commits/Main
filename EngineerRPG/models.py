@@ -900,3 +900,47 @@ class GuildComment(models.Model):
         return f"{self.author.user.username} 留言於 {self.post.title}"
 
 
+# ==================== 管理者白名單系統 ====================
+
+class AdminWhitelist(models.Model):
+    """管理者白名單 - 由 superuser 管理
+    
+    允許 superuser 將特定使用者設置為管理員角色
+    當白名單項目被創建或更新時，自動同步到 UserProfile.role
+    """
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE, 
+                               related_name='admin_whitelist', 
+                               verbose_name='使用者')
+    role = models.CharField('指定角色', max_length=20, 
+                           choices=UserProfile.ROLE_CHOICES,
+                           default='OFFICER',
+                           help_text='為此使用者指定的管理角色')
+    granted_by = models.ForeignKey(User, on_delete=models.SET_NULL, 
+                                   null=True, blank=True,
+                                   related_name='granted_admin_rights',
+                                   verbose_name='授權者')
+    granted_at = models.DateTimeField('授權時間', auto_now_add=True)
+    notes = models.TextField('備註', blank=True, 
+                            help_text='授權原因或其他說明')
+    
+    class Meta:
+        verbose_name = '管理者白名單'
+        verbose_name_plural = '管理者白名單'
+        ordering = ['-granted_at']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.get_role_display()}"
+    
+    def save(self, *args, **kwargs):
+        """儲存時同步更新 UserProfile 的 role"""
+        super().save(*args, **kwargs)
+        try:
+            profile = self.user.rpg_profile
+            if profile.role != self.role:
+                profile.role = self.role
+                profile.save(update_fields=['role'])
+        except UserProfile.DoesNotExist:
+            # 如果 UserProfile 不存在，將在下次登入時創建
+            pass
+
