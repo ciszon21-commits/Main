@@ -1,0 +1,276 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}技能圖鑑 - 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container" style="padding: 2rem 1rem;">
+    <!-- 頁面標題 -->
+    <div class="rpg-card" style="margin-bottom: 1.5rem;">
+        <div class="flex flex-between" style="align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <a href="{% url 'engineer_rpg:codex_main' %}" style="color: var(--color-text-muted); text-decoration: none;">
+                    <i class="fas fa-arrow-left"></i> 返回圖鑑
+                </a>
+                <h1 style="font-size: 1.8rem; margin: 0.5rem 0 0;">
+                    <i class="fas fa-magic" style="color: var(--color-info);"></i>
+                    技能圖鑑
+                </h1>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 1.5rem; font-weight: bold; color: var(--color-info);">
+                    {{ completed }} / {{ total }}
+                </div>
+                <div style="font-size: 0.85rem; color: var(--color-text-muted);">已習得技能</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 篩選器 -->
+    <div class="rpg-card" style="margin-bottom: 1.5rem;">
+        <form method="get" class="filter-form">
+            <div class="grid grid-2" style="gap: 1rem;">
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">節點類型</label>
+                    <select name="type" class="rpg-input" onchange="this.form.submit()">
+                        <option value="all" {% if filters.type == 'all' %}selected{% endif %}>全部類型</option>
+                        {% for code, name in type_choices %}
+                        <option value="{{ code }}" {% if filters.type == code %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">職業分類</label>
+                    <select name="class" class="rpg-input" onchange="this.form.submit()">
+                        <option value="all" {% if filters.class == 'all' %}selected{% endif %}>全部職業</option>
+                        {% for code, name in class_choices %}
+                        <option value="{{ code }}" {% if filters.class == code %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- 狀態說明 -->
+    <div class="rpg-card" style="margin-bottom: 1.5rem;">
+        <div class="flex gap-md" style="flex-wrap: wrap; justify-content: center;">
+            <div class="status-legend">
+                <span class="status-dot status-locked"></span> 未解鎖
+            </div>
+            <div class="status-legend">
+                <span class="status-dot status-available"></span> 可學習
+            </div>
+            <div class="status-legend">
+                <span class="status-dot status-in-progress"></span> 學習中
+            </div>
+            <div class="status-legend">
+                <span class="status-dot status-completed"></span> 已完成
+            </div>
+        </div>
+    </div>
+
+    <!-- 技能列表 -->
+    {% if skill_list %}
+    <div class="grid grid-3" style="gap: 1rem;">
+        {% for entry in skill_list %}
+        <a href="{% url 'engineer_rpg:skill_detail' entry.skill.id %}"
+           class="rpg-card skill-card status-{{ entry.status|lower }}"
+           style="text-decoration: none;">
+            <div class="skill-header">
+                <div class="skill-icon">
+                    {% if entry.skill.icon_unlocked and entry.status == 'COMPLETED' %}
+                    <img src="{{ entry.skill.icon_unlocked.url }}" alt="{{ entry.skill.name }}">
+                    {% elif entry.skill.icon_locked %}
+                    <img src="{{ entry.skill.icon_locked.url }}" alt="{{ entry.skill.name }}">
+                    {% else %}
+                    <i class="fas fa-{% if entry.skill.node_type == 'ROOT' %}seedling{% elif entry.skill.node_type == 'CORE' %}tree{% else %}leaf{% endif %}"></i>
+                    {% endif %}
+                </div>
+                <div class="skill-info">
+                    <div class="skill-name">{{ entry.skill.name }}</div>
+                    <div class="skill-type">
+                        {{ entry.skill.get_node_type_display }}
+                        {% if entry.skill.character_class %}
+                        <span style="color: var(--color-secondary);">| {{ entry.skill.character_class.name }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <p class="skill-desc">{{ entry.skill.description|truncatewords:20 }}</p>
+
+            <div class="skill-meta">
+                <span><i class="fas fa-level-up-alt"></i> Lv.{{ entry.skill.min_level }}+</span>
+                <span><i class="fas fa-star"></i> {{ entry.skill.exp_reward }} EXP</span>
+            </div>
+
+            <!-- 進度條 -->
+            {% if entry.status == 'IN_PROGRESS' %}
+            <div class="progress-bar" style="margin-top: 0.75rem;">
+                <div class="progress-fill" style="width: {{ entry.progress }}%;"></div>
+            </div>
+            <div style="text-align: center; font-size: 0.85rem; margin-top: 0.25rem;">
+                {{ entry.progress }}%
+            </div>
+            {% endif %}
+
+            <div class="status-badge status-{{ entry.status|lower }}">
+                {% if entry.status == 'LOCKED' %}
+                <i class="fas fa-lock"></i> 未解鎖
+                {% elif entry.status == 'AVAILABLE' %}
+                <i class="fas fa-unlock"></i> 可學習
+                {% elif entry.status == 'IN_PROGRESS' %}
+                <i class="fas fa-spinner"></i> 學習中
+                {% else %}
+                <i class="fas fa-check"></i> 已完成
+                {% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="rpg-card" style="text-align: center; padding: 3rem;">
+        <i class="fas fa-search" style="font-size: 3rem; color: var(--color-text-muted); margin-bottom: 1rem;"></i>
+        <p>沒有符合條件的技能</p>
+    </div>
+    {% endif %}
+
+    <!-- 前往技能樹 -->
+    <div class="rpg-card" style="text-align: center; margin-top: 2rem;">
+        <a href="{% url 'engineer_rpg:skill_tree' %}" class="rpg-btn rpg-btn-lg">
+            <i class="fas fa-tree"></i> 前往技能樹視覺化
+        </a>
+    </div>
+</div>
+
+<style>
+.grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+}
+.grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+}
+@media (max-width: 1024px) {
+    .grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+}
+
+.status-legend {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+.status-dot.status-locked { background: #6b7280; }
+.status-dot.status-available { background: #3b82f6; }
+.status-dot.status-in-progress { background: #f59e0b; }
+.status-dot.status-completed { background: #10b981; }
+
+.skill-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+}
+.skill-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+.skill-card.status-locked {
+    opacity: 0.6;
+}
+.skill-card.status-locked:hover {
+    opacity: 0.9;
+}
+
+.skill-header {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+.skill-icon {
+    width: 50px;
+    height: 50px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--color-info);
+}
+.skill-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.skill-info {
+    flex: 1;
+}
+.skill-name {
+    font-weight: bold;
+}
+.skill-type {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.skill-desc {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+}
+
+.skill-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.progress-bar {
+    height: 6px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.progress-fill {
+    height: 100%;
+    background: var(--color-warning);
+    border-radius: 3px;
+}
+
+.status-badge {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+.status-badge.status-locked { background: #6b7280; color: white; }
+.status-badge.status-available { background: #3b82f6; color: white; }
+.status-badge.status-in-progress { background: #f59e0b; color: white; }
+.status-badge.status-completed { background: #10b981; color: white; }
+
+.rpg-input {
+    width: 100%;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    color: var(--color-text);
+}
+</style>
+{% endblock %}

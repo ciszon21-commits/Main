@@ -109,6 +109,7 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='rpg_profile')
     employee_id = models.CharField('員工編號', max_length=20, unique=True)
     character_class = models.ForeignKey(CharacterClass, on_delete=models.PROTECT, verbose_name='職業')
+    is_class_selected = models.BooleanField('已選擇職業', default=False)
     role = models.CharField('角色權限', max_length=20, choices=ROLE_CHOICES, default='ADVENTURER')
     
     # 角色屬性
@@ -395,11 +396,31 @@ class Equipment(models.Model):
     max_enhancement = models.IntegerField('最大強化等級', default=9)
     
     # 視覺
-    icon = models.CharField('裝備圖示路徑', max_length=200, blank=True, null=True, 
+    icon = models.CharField('裝備圖示路徑', max_length=200, blank=True, null=True,
                            help_text='Static 路徑，例如: EngineerRPG/img/equipment_icons/helmet.png')
-    
+
+    # 獲取方式說明
+    OBTAIN_METHOD_CHOICES = [
+        ('TRIAL', '試煉獎勵'),
+        ('DUNGEON', '地下城掉落'),
+        ('DAILY', '每日任務'),
+        ('ACHIEVEMENT', '成就獎勵'),
+        ('SKILL', '技能解鎖'),
+        ('PROMOTION', '晉升獎勵'),
+        ('SPECIAL', '特殊活動'),
+        ('STARTER', '初始裝備'),
+    ]
+    obtain_method = models.CharField('主要獲取方式', max_length=20, choices=OBTAIN_METHOD_CHOICES,
+                                     default='TRIAL', help_text='此裝備的主要獲取途徑')
+    obtain_description = models.TextField('獲取說明', blank=True,
+                                          help_text='詳細說明如何獲得此裝備，例如：通過職安地下城第3層可獲得')
+    obtain_trial = models.ForeignKey('Trial', on_delete=models.SET_NULL, null=True, blank=True,
+                                     related_name='droppable_equipment', verbose_name='關聯試煉',
+                                     help_text='可從哪個試煉獲得此裝備')
+    is_obtainable = models.BooleanField('可獲得', default=True, help_text='此裝備目前是否可以被獲得')
+
     created_at = models.DateTimeField('建立時間', auto_now_add=True)
-    
+
     class Meta:
         verbose_name = '裝備'
         verbose_name_plural = '裝備列表'
@@ -511,13 +532,29 @@ class Item(models.Model):
     
     # 視覺
     icon = models.ImageField('道具圖示', upload_to='rpg/item_icons/', null=True, blank=True)
-    
+
+    # 獲取方式說明
+    OBTAIN_METHOD_CHOICES = [
+        ('TRIAL', '試煉獎勵'),
+        ('DUNGEON', '地下城掉落'),
+        ('DAILY', '每日任務'),
+        ('ACHIEVEMENT', '成就獎勵'),
+        ('COMBO', '連勝獎勵'),
+        ('SPECIAL', '特殊活動'),
+        ('STARTER', '初始道具'),
+    ]
+    obtain_method = models.CharField('主要獲取方式', max_length=20, choices=OBTAIN_METHOD_CHOICES,
+                                     default='TRIAL', help_text='此道具的主要獲取途徑')
+    obtain_description = models.TextField('獲取說明', blank=True,
+                                          help_text='詳細說明如何獲得此道具')
+    is_obtainable = models.BooleanField('可獲得', default=True, help_text='此道具目前是否可以被獲得')
+
     created_at = models.DateTimeField('建立時間', auto_now_add=True)
-    
+
     class Meta:
         verbose_name = '道具'
         verbose_name_plural = '道具列表'
-        
+
     def __str__(self):
         return self.name
 

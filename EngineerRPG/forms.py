@@ -4,7 +4,7 @@ EngineerRPG Forms - 更新版本
 """
 
 from django import forms
-from .models import Question, SkillNode, Course, CharacterClass
+from .models import Question, SkillNode, Course, CharacterClass, UserProfile
 
 
 class QuestionForm(forms.ModelForm):
@@ -248,13 +248,7 @@ class UserRegistrationForm(forms.Form):
             'placeholder': '請輸入電子郵件'
         })
     )
-    employee_id = forms.CharField(
-        label='員工編號',
-        widget=forms.TextInput(attrs={
-            'class': 'rpg-input',
-            'placeholder': '請輸入員工編號'
-        })
-    )
+
     character_class = forms.ModelChoiceField(
         queryset=CharacterClass.objects.all(),
         label='選擇職業',
@@ -300,12 +294,21 @@ class UserRegistrationForm(forms.Form):
             password=self.cleaned_data['password']
         )
         
-        # 建立個人檔案
-        UserProfile.objects.create(
-            user=user,
-            employee_id=self.cleaned_data['employee_id'],
-            character_class=self.cleaned_data['character_class']
-        )
+        # 自動生成員工編號 (取 username 中的數字)
+        import re
+        digits = ''.join(re.findall(r'\d+', user.username))
+        if digits:
+            employee_id = digits
+        else:
+            employee_id = f'EMP{user.id:05d}'
+        
+        # 更新個人檔案 (由 signal 自動建立，這裡更新職業與確認員編)
+        # Note: signal 已經建立了 profile，我們這裡主要是更新使用者選擇的職業
+        profile = UserProfile.objects.get(user=user)
+        profile.employee_id = employee_id
+        profile.character_class = self.cleaned_data['character_class']
+        profile.is_class_selected = True
+        profile.save()
         
         return user
 
@@ -388,3 +391,39 @@ class UserProfileEditForm(forms.Form):
                 self.add_error('old_password', "變更密碼時必須輸入舊密碼")
 
         return cleaned_data
+
+
+class AvatarEditForm(forms.Form):
+    """頭像編輯表單 - 僅允許修改頭像"""
+    avatar_image = forms.ImageField(
+        label='大頭照',
+        required=False,
+        widget=forms.FileInput(attrs={
+            'class': 'rpg-input'
+        })
+    )
+    avatar_index = forms.IntegerField(
+        label='預設頭像索引',
+        required=False,
+        widget=forms.HiddenInput()
+    )
+
+
+class AdminUserEditForm(forms.Form):
+    """管理員編輯使用者表單"""
+    role = forms.ChoiceField(
+        label='角色權限',
+        choices=UserProfile.ROLE_CHOICES,
+        widget=forms.Select(attrs={'class': 'rpg-input'})
+    )
+    character_class = forms.ModelChoiceField(
+        label='職業',
+        queryset=CharacterClass.objects.all(),
+        widget=forms.Select(attrs={'class': 'rpg-input'})
+    )
+    is_active = forms.BooleanField(
+        label='帳號啟用',
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'rpg-checkbox'})
+    )
+
