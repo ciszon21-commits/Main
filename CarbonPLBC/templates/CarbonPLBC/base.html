@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}外部碳排放計算系統 (PL-BC){% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Nunito:wght@400;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <style>
+        :root {
+            /* Organic B    iophilic Palette */
+            --primary-color: #3A5A40;
+            /* Hunter Green */
+            --secondary-color: #8ba264;
+            /* Sage Green */
+            --accent-color: #DAD7CD;
+            /* Pale Grey/Green */
+            --background-color: #e7ebdc;
+            /* Rice Paper */
+            --text-color: #344E41;
+            /* Charcoal Green */
+            --card-bg: #FFFFFF;
+            --success-color: #588157;
+            --warning-color: #D4A373;
+            --danger-color: #BC4749;
+        }
+
+        body {
+            font-family: 'Nunito', 'Microsoft JhengHei', sans-serif;
+            background-color: var(--background-color);
+            /* background-image: radial-gradient(#E9ECEF 1px, transparent 1px); */
+            background-size: 20px 20px;
+            color: var(--text-color);
+            min-height: 100vh;
+            padding: 30px 0;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-family: 'Merriweather', serif;
+            color: var(--primary-color);
+        }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+
+        /* Organic Card Style */
+        .card {
+            border: none;
+            border-radius: 20px;
+            background-color: var(--card-bg);
+            box-shadow: 0 10px 25px -5px rgba(58, 90, 64, 0.08), 0 8px 10px -6px rgba(58, 90, 64, 0.05);
+            margin-bottom: 30px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 25px -5px rgba(58, 90, 64, 0.12), 0 10px 10px -5px rgba(58, 90, 64, 0.06);
+        }
+
+        .card-header {
+            background-color: rgba(163, 177, 138, 0.2);
+            /* Soft Sage Tint */
+            color: var(--primary-color);
+            font-weight: 700;
+            font-family: 'Merriweather', serif;
+            font-size: 1.15rem;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid rgba(163, 177, 138, 0.3);
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background-color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 2.5rem;
+            font-weight: 600;
+            border-radius: 50px;
+            /* Fully rounded */
+            box-shadow: 0 4px 6px -1px rgba(58, 90, 64, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: #2F4A33;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(58, 90, 64, 0.4);
+        }
+
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            border-radius: 50px;
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        /* Forms */
+        .form-label {
+            font-weight: 700;
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .form-control,
+        .form-select {
+            border-radius: 12px;
+            border: 2px solid #E5E7EB;
+            padding: 0.75rem 1rem;
+            background-color: #FAFAF9;
+            transition: all 0.2s;
+            color: var(--text-color);
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--secondary-color);
+            background-color: #fff;
+            box-shadow: 0 0 0 4px rgba(163, 177, 138, 0.2);
+        }
+
+        /* Sections */
+        .section-title {
+            font-family: 'Merriweather', serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 2rem 0 1.5rem 0;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(to right, rgba(163, 177, 138, 0.2), transparent);
+            border-left: 6px solid var(--primary-color);
+            border-radius: 0 10px 10px 0;
+        }
+
+        /* Results */
+        .result-card {
+            background-color: #FFFFFF;
+            border: 1px solid rgba(163, 177, 138, 0.3);
+            border-left: 6px solid var(--secondary-color);
+            padding: 1.5rem;
+            border-radius: 16px;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .result-value {
+            font-family: 'Merriweather', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-top: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .navbar-custom {
+            /* Remove box/frame styling */
+            background: transparent;
+            box-shadow: none;
+            border: none;
+
+            /* Layout */
+            position: relative;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            margin-bottom: 40px;
+            padding: 2rem 0;
+        }
+
+        .navbar-title {
+            font-size: 2.8rem;
+            /* Larger font */
+            font-weight: 800;
+            color: var(--primary-color);
+            text-align: left;
+            text-shadow: 2px 2px 4px rgba(163, 177, 138, 0.4);
+            /* Soft shadow */
+            letter-spacing: 1px;
+            margin-left: 10px;
+        }
+
+        .navbar-actions {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .footer {
+            text-align: center;
+            color: var(--secondary-color);
+            margin-top: 60px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 350px;
+            margin: 20px 0;
+        }
+
+        .text-icon {
+            color: var(--primary-color);
+        }
+
+        .navbar-title {
+            text-align: left;
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <!-- Navbar -->
+    <div class="main-container">
+        <nav class="navbar-custom">
+            <!-- Centered Title -->
+            <div class="navbar-title">
+                <i class="bi bi-calculator-fill me-2 text-icon"></i>
+                外部碳排放計算系統 (PL-BC)
+            </div>
+
+            <!-- Right-aligned Actions -->
+            <div class="navbar-actions">
+                <a href="{% url 'carbonplbc:index' %}" class="btn btn-sm btn-outline-primary me-2">
+                    <i class="bi bi-house-fill"></i> 首頁
+                </a>
+                {% if user.is_staff %}
+                <a href="{% url 'carbonplbc:settings' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-gear-fill"></i> 設定
+                </a>
+                {% endif %}
+            </div>
+        </nav>
+
+        <!-- Messages -->
+        {% if messages %}
+        <div class="container">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Content -->
+        {% block content %}{% endblock %}
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>&copy; 2026 外部碳排放計算系統 (PL-BC)</p>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

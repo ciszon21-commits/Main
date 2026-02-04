@@ -104,6 +104,7 @@ INSTALLED_APPS = [
     'SoilMove',
     'EngineerRPG',  # 現場監造工程師職涯冒險培訓系統
     'FinanceInsight',  # 財經新聞與選股建議
+    'CarbonPLBC',  # 外部碳排放計算系統 (PL-BC)
 ] + local.STAGE_INSTALLED_APPS
 
 
