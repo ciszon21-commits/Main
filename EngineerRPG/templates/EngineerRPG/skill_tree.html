@@ -1,0 +1,483 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}技能樹 - 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <div class="mb-lg">
+        <h1 class="text-center">
+            <i class="fas fa-project-diagram"></i>
+            {{ profile.character_class.name }} 技能樹
+        </h1>
+        <p class="text-center" style="color: var(--color-secondary); font-size: 1.1rem;">
+            完成技能學習，解鎖更多強大能力！
+        </p>
+    </div>
+
+    <!-- 技能樹說明 -->
+    <div class="rpg-card mb-lg">
+        <div class="grid grid-4 gap-md text-center">
+            <div>
+                <div style="font-size: 1.5rem; color: var(--color-stone); margin-bottom: 0.5rem;">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <div style="font-weight: 600;">未解鎖</div>
+                <div style="font-size: 0.85rem; color: var(--color-stone);">需完成前置技能</div>
+            </div>
+            <div>
+                <div style="font-size: 1.5rem; color: var(--color-secondary); margin-bottom: 0.5rem;">
+                    <i class="fas fa-book-open"></i>
+                </div>
+                <div style="font-weight: 600;">可學習</div>
+                <div style="font-size: 0.85rem; color: var(--color-stone);">點擊開始學習</div>
+            </div>
+            <div>
+                <div style="font-size: 1.5rem; color: var(--color-civil); margin-bottom: 0.5rem;">
+                    <i class="fas fa-spinner"></i>
+                </div>
+                <div style="font-weight: 600;">學習中</div>
+                <div style="font-size: 0.85rem; color: var(--color-stone);">繼續完成課程</div>
+            </div>
+            <div>
+                <div style="font-size: 1.5rem; color: var(--color-safety); margin-bottom: 0.5rem;">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div style="font-weight: 600;">已完成</div>
+                <div style="font-size: 0.85rem; color: var(--color-stone);">獲得經驗值</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 視覺化技能樹 -->
+    <div class="rpg-card"
+        style="padding: 0; overflow: hidden; background: #1a1a1a; border: 2px solid var(--color-stone);">
+        <div id="skill-tree-container" style="min-height: 800px; position: relative; overflow: auto; cursor: grab;">
+            <svg id="skill-tree-svg" width="100%" height="800">
+                <defs>
+                    <marker id="arrow-head" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="var(--color-stone)" />
+                    </marker>
+                    <marker id="arrow-head-completed" markerWidth="10" markerHeight="7" refX="9" refY="3.5"
+                        orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="var(--color-safety)" />
+                    </marker>
+                    <marker id="arrow-head-available" markerWidth="10" markerHeight="7" refX="9" refY="3.5"
+                        orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="var(--color-secondary)" />
+                    </marker>
+                </defs>
+            </svg>
+        </div>
+    </div>
+
+    <!-- JSON 數據儲存區 -->
+    <script id="skill-tree-data-json" type="application/json">
+        {{ skill_tree_json|safe }}
+    </script>
+</div>
+
+<style>
+    #skill-tree-container {
+        background-color: #0c0c0c;
+        background-image:
+            linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: 50px 50px;
+    }
+
+    .skill-node-group {
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .skill-node-group:hover .skill-node-frame {
+        stroke: var(--color-secondary);
+        stroke-width: 2px;
+        filter: drop-shadow(0 0 8px var(--color-secondary));
+    }
+
+    .skill-node-frame {
+        fill: #1e1e1e;
+        stroke: #444;
+        stroke-width: 2px;
+        rx: 4px;
+        transition: all 0.3s ease;
+    }
+
+    /* 節點類型樣式 */
+    .skill-node-ROOT .skill-node-frame {
+        stroke: var(--color-safety);
+    }
+
+    .skill-node-CORE .skill-node-frame {
+        stroke: var(--color-civil);
+    }
+
+    .skill-node-ADVANCED .skill-node-frame {
+        stroke: var(--color-me);
+    }
+
+    /* 狀態樣式 */
+    .status-LOCKED .skill-node-frame {
+        fill: #111;
+        stroke: #333;
+        opacity: 0.8;
+    }
+
+    .status-LOCKED .skill-icon {
+        filter: grayscale(100%) brightness(0.5);
+    }
+
+    .status-AVAILABLE .skill-node-frame {
+        stroke: var(--color-secondary);
+        animation: pulse-border 2s infinite;
+    }
+
+    .status-COMPLETED .skill-node-frame {
+        fill: #252525;
+        stroke: var(--color-safety);
+        stroke-width: 3px;
+    }
+
+    .skill-connection {
+        fill: none;
+        stroke: #444;
+        stroke-width: 2px;
+        marker-end: url(#arrow-head);
+        transition: all 0.5s ease;
+    }
+
+    .skill-connection.completed {
+        stroke: var(--color-safety);
+        marker-end: url(#arrow-head-completed);
+    }
+
+    .skill-connection.available {
+        stroke: var(--color-secondary);
+        stroke-dasharray: 5, 5;
+        animation: dash-flow 30s linear infinite;
+        marker-end: url(#arrow-head-available);
+    }
+
+    .group-box {
+        fill: rgba(255, 255, 255, 0.03);
+        stroke: #666;
+        stroke-width: 1px;
+        stroke-dasharray: 4 4;
+        rx: 10;
+    }
+
+    .skill-text-name {
+        fill: #e0e0e0;
+        font-size: 14px;
+        font-weight: bold;
+        text-anchor: middle;
+        pointer-events: none;
+    }
+
+    @keyframes pulse-border {
+        0% {
+            stroke-opacity: 1;
+        }
+
+        50% {
+            stroke-opacity: 0.5;
+        }
+
+        100% {
+            stroke-opacity: 1;
+        }
+    }
+
+    @keyframes dash-flow {
+        to {
+            stroke-dashoffset: -1000;
+        }
+    }
+</style>
+
+<script>
+    // 定義主繪圖函數
+    function drawSkillTree() {
+        // 從 Script 標籤獲取資料 (更安全的方式)
+        const dataScript = document.getElementById('skill-tree-data-json');
+        let skillTreeData = [];
+
+        if (dataScript) {
+            try {
+                skillTreeData = JSON.parse(dataScript.textContent);
+            } catch (e) {
+                console.error('Failed to parse skill tree JSON:', e);
+            }
+        }
+
+        const svg = document.getElementById('skill-tree-svg');
+        const container = document.getElementById('skill-tree-container');
+
+        // 如果沒有資料或元素，直接返回
+        if (!skillTreeData || !svg || !container) {
+            console.error('Missing data or SVG container');
+            return;
+        }
+
+        // 清空 SVG（保留 defs，這很重要）
+        // 我們不使用 innerHTML = ''，而是移除除了 defs 以外的所有子元素
+        const childNodes = Array.from(svg.childNodes);
+        childNodes.forEach(node => {
+            if (node.tagName !== 'defs' && node.tagName !== 'DEFS') {
+                svg.removeChild(node);
+            }
+        });
+
+        // 設定參數
+        const CONFIG = {
+            nodeWidth: 60,
+            nodeHeight: 60,
+            padding: 50  // 畫布邊距
+        };
+
+        // 1. 資料處理：直接使用資料庫座標
+        const positions = {};
+
+        skillTreeData.forEach(item => {
+            positions[item.skill.id] = {
+                x: (item.skill.position_x || 0) + CONFIG.padding,
+                y: (item.skill.position_y || 0) + CONFIG.padding,
+                item: item
+            };
+        });
+
+        // 識別群組
+        const parentGroupsMap = {};
+
+        skillTreeData.forEach(child => {
+            const parentIds = child.skill.parent_skills.sort();
+            if (parentIds.length > 1) {
+                const key = parentIds.join(',');
+                if (!parentGroupsMap[key]) {
+                    parentGroupsMap[key] = { parents: parentIds, children: [] };
+                }
+                parentGroupsMap[key].children.push(child.skill.id);
+            }
+        });
+
+        // 處理 Group 渲染資料
+        const visualGroups = Object.values(parentGroupsMap).map(g => {
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            g.parents.forEach(pid => {
+                const p = positions[pid];
+                if (p) {
+                    minX = Math.min(minX, p.x);
+                    maxX = Math.max(maxX, p.x);
+                    minY = Math.min(minY, p.y);
+                    maxY = Math.max(maxY, p.y);
+                }
+            });
+
+            if (minX === Infinity) return null; // Skip if parents not found
+
+            const padding = 20;
+            return {
+                x: minX - CONFIG.nodeWidth / 2 - padding,
+                y: minY - CONFIG.nodeHeight / 2 - padding,
+                width: (maxX - minX) + CONFIG.nodeWidth + padding * 2,
+                height: (maxY - minY) + CONFIG.nodeHeight + padding * 2,
+                parents: g.parents,
+                children: g.children,
+                centerX: (minX + maxX) / 2,
+                bottomY: maxY + CONFIG.nodeHeight / 2 + padding
+            };
+        }).filter(g => g !== null);
+
+        // 設定 SVG 最終尺寸
+        const allX = Object.values(positions).map(p => p.x);
+        const allY = Object.values(positions).map(p => p.y);
+        const maxX = allX.length > 0 ? Math.max(...allX) : 800;
+        const maxY = allY.length > 0 ? Math.max(...allY) : 800;
+        svg.setAttribute('width', maxX + CONFIG.padding + CONFIG.nodeWidth);
+        svg.setAttribute('height', maxY + CONFIG.padding + CONFIG.nodeHeight);
+
+        // 2. 繪製連接線
+        const drawnConnections = new Set();
+
+        skillTreeData.forEach(item => {
+            const childId = item.skill.id;
+            const childPos = positions[childId];
+            if (!childPos) return;
+
+            let drivenByGroup = null;
+            for (let g of visualGroups) {
+                if (g.children.includes(childId)) {
+                    drivenByGroup = g;
+                    break;
+                }
+            }
+
+            if (drivenByGroup) {
+                const connKey = `group-${drivenByGroup.parents.join(',')}-to-${childId}`;
+                if (!drawnConnections.has(connKey)) {
+                    drawOrthogonalLine(
+                        svg,
+                        drivenByGroup.centerX,
+                        drivenByGroup.bottomY,
+                        childPos.x,
+                        childPos.y - CONFIG.nodeHeight / 2,
+                        item.status
+                    );
+                    drawnConnections.add(connKey);
+                }
+            } else {
+                item.skill.parent_skills.forEach(pid => {
+                    const parentPos = positions[pid];
+                    if (parentPos) {
+                        drawOrthogonalLine(
+                            svg,
+                            parentPos.x,
+                            parentPos.y + CONFIG.nodeHeight / 2,
+                            childPos.x,
+                            childPos.y - CONFIG.nodeHeight / 2,
+                            item.status
+                        );
+                    }
+                });
+            }
+        });
+
+        // 3. 繪製 Group 框
+        visualGroups.forEach(g => {
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('x', g.x);
+            rect.setAttribute('y', g.y);
+            rect.setAttribute('width', g.width);
+            rect.setAttribute('height', g.height);
+            rect.setAttribute('class', 'group-box');
+            // Insert after defs if possible, or pretend
+            svg.insertBefore(rect, svg.firstChild.nextSibling);
+        });
+
+        // 4. 繪製節點
+        Object.values(positions).forEach(pos => {
+            const item = pos.item;
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            g.setAttribute('class', `skill-node-group status-${item.status} skill-node-${item.skill.node_type}`);
+            g.setAttribute('transform', `translate(${pos.x}, ${pos.y})`); // Use transform for easier positioning
+            g.style.cursor = 'pointer';
+
+            g.addEventListener('click', () => {
+                window.location.href = `/rpg/skill/${item.skill.id}/`;
+            });
+
+            // 節點框
+            const frame = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            frame.setAttribute('x', -CONFIG.nodeWidth / 2);
+            frame.setAttribute('y', -CONFIG.nodeHeight / 2);
+            frame.setAttribute('width', CONFIG.nodeWidth);
+            frame.setAttribute('height', CONFIG.nodeHeight);
+            frame.setAttribute('class', 'skill-node-frame');
+            g.appendChild(frame);
+
+            // 圖示
+            const iconText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            iconText.setAttribute('y', 5);
+            iconText.setAttribute('text-anchor', 'middle');
+            iconText.setAttribute('fill', item.status === 'LOCKED' ? '#555' : '#fff');
+            iconText.setAttribute('font-size', '24px');
+            iconText.style.pointerEvents = 'none';
+
+            let iconChar = '??';
+            if (item.skill.node_type === 'ROOT') iconChar = '??';
+            else if (item.skill.name.includes('無人機')) iconChar = '??';
+            else if (item.skill.name.includes('測繪')) iconChar = '???';
+            else if (item.skill.name.includes('BIM')) iconChar = '??';
+            else if (item.skill.name.includes('熱影像')) iconChar = '???';
+            else if (item.skill.name.includes('MR')) iconChar = '??';
+            else if (item.skill.name.includes('氣體')) iconChar = '???';
+            else if (item.skill.name.includes('噪音')) iconChar = '??';
+            else if (item.skill.name.includes('VR')) iconChar = '??';
+            else if (item.skill.name.includes('環景')) iconChar = '??';
+
+            iconText.textContent = iconChar;
+            g.appendChild(iconText);
+
+            // 名稱標籤
+            const textBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            textBg.setAttribute('x', -50);
+            textBg.setAttribute('y', CONFIG.nodeHeight / 2 + 5);
+            textBg.setAttribute('width', 100);
+            textBg.setAttribute('height', 20);
+            textBg.setAttribute('rx', 4);
+            textBg.setAttribute('fill', 'rgba(0,0,0,0.8)');
+            g.appendChild(textBg);
+
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('y', CONFIG.nodeHeight / 2 + 19);
+            text.setAttribute('class', 'skill-text-name');
+            text.textContent = item.skill.name.length > 6 ? item.skill.name.substring(0, 6) + '..' : item.skill.name;
+            g.appendChild(text);
+
+            svg.appendChild(g);
+        });
+
+        // 拖曳功能
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+        let startY;
+        let scrollTop;
+
+        container.addEventListener('mousedown', (e) => {
+            isDown = true;
+            container.classList.add('active');
+            startX = e.pageX - container.offsetLeft;
+            scrollLeft = container.scrollLeft;
+            startY = e.pageY - container.offsetTop;
+            scrollTop = container.scrollTop;
+            container.style.cursor = 'grabbing';
+        });
+
+        container.addEventListener('mouseleave', () => {
+            isDown = false;
+            container.style.cursor = 'grab';
+        });
+
+        container.addEventListener('mouseup', () => {
+            isDown = false;
+            container.style.cursor = 'grab';
+        });
+
+        container.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - container.offsetLeft;
+            const walkX = (x - startX) * 2;
+            container.scrollLeft = scrollLeft - walkX;
+
+            const y = e.pageY - container.offsetTop;
+            const walkY = (y - startY) * 2;
+            container.scrollTop = scrollTop - walkY;
+        });
+    }
+
+    function drawOrthogonalLine(svg, x1, y1, x2, y2, status) {
+        const midY = (y1 + y2) / 2;
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const d = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
+
+        path.setAttribute('d', d);
+        let className = 'skill-connection';
+        if (status === 'COMPLETED') className += ' completed';
+        else if (status === 'AVAILABLE') className += ' available';
+        path.setAttribute('class', className);
+
+        // Insert before grouping boxes? No, grouping boxes are lowest. 
+        // We want lines BELOW nodes but ABOVE group boxes? 
+        // Actually fine if lines are lowest.
+        svg.insertBefore(path, svg.firstChild);
+    }
+
+    // 頁面載入後繪製
+    document.addEventListener('DOMContentLoaded', drawSkillTree);
+    window.addEventListener('resize', drawSkillTree);
+</script>
+{% endblock %}

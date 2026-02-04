@@ -1,0 +1,964 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}技能樹編輯器 - 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="skill-editor-container">
+    {% csrf_token %}
+    <!-- 頂部工具列 -->
+    <div class="editor-header">
+        <div class="header-left">
+            <h2><i class="fas fa-sitemap"></i> 技能樹編輯器</h2>
+        </div>
+        <div class="header-right">
+            <select id="classSelect" class="rpg-select" onchange="filterSkills()">
+                {% for class in classes %}
+                <option value="{{ class.code }}" {% if selected_clas == class.code %}selected{% endif %}>
+                    {{ class.name }}
+                </option>
+                {% endfor %}
+            </select>
+            <button onclick="showCreateModal()" class="rpg-btn rpg-btn-success">
+                <i class="fas fa-plus"></i> 新增技能
+            </button>
+            <button onclick="autoLayout()" class="rpg-btn rpg-btn-primary">
+                <i class="fas fa-magic"></i> 自動佈局
+            </button>
+        </div>
+    </div>
+
+    <!-- 經驗值預算儀表板 -->
+    <div class="budget-panel">
+        <!-- ROOT Budget -->
+        <div class="budget-item">
+            <div class="budget-info">
+                <span><i class="fas fa-seedling"></i> 共同必修預算 (Lv.10)</span>
+                <span>{{ root_xp_current }} / {{ root_xp_limit }} XP</span>
+            </div>
+            <div class="budget-progress">
+                <div class="progress-bar {% if root_xp_current > root_xp_limit %}over-limit{% endif %}"
+                    style="width: {% widthratio root_xp_current root_xp_limit 100 %}%;"></div>
+            </div>
+            {% if root_xp_current < root_xp_limit %} <button onclick="autoDistribute('ROOT')"
+                class="rpg-btn rpg-btn-sm rpg-btn-warning mt-sm">
+                <i class="fas fa-balance-scale"></i> 自動分配剩餘 {{ root_xp_limit|add:"-"|add:root_xp_current }} XP
+                </button>
+                {% endif %}
+        </div>
+
+        <!-- CORE Budget -->
+        <div class="budget-item">
+            <div class="budget-info">
+                <span><i class="fas fa-star"></i> 職業核心預算 (Lv.50) [{{ selected_class }}]</span>
+                <span>{{ core_xp_current }} / {{ core_xp_limit }} XP</span>
+            </div>
+            <div class="budget-progress">
+                <div class="progress-bar {% if core_xp_current > core_xp_limit %}over-limit{% endif %}"
+                    style="width: {% widthratio core_xp_current core_xp_limit 100 %}%;"></div>
+            </div>
+            {% if core_xp_current < core_xp_limit %} <button onclick="autoDistribute('CORE')"
+                class="rpg-btn rpg-btn-sm rpg-btn-warning mt-sm">
+                <i class="fas fa-balance-scale"></i> 自動分配剩餘 {{ core_xp_limit|add:"-"|add:core_xp_current }} XP
+                </button>
+                {% endif %}
+        </div>
+    </div>
+
+    <!-- 篩選器 -->
+    <div class="filter-bar">
+        <button class="filter-btn active" data-type="ALL" onclick="filterByType('ALL')">
+            <i class="fas fa-list"></i> 全部
+        </button>
+        <button class="filter-btn" data-type="ROOT" onclick="filterByType('ROOT')">
+            <i class="fas fa-seedling"></i> 共同必修
+        </button>
+        <button class="filter-btn" data-type="CORE" onclick="filterByType('CORE')">
+            <i class="fas fa-star"></i> 職業核心
+        </button>
+        <button class="filter-btn" data-type="ADVANCED" onclick="filterByType('ADVANCED')">
+            <i class="fas fa-graduation-cap"></i> 進階選修
+        </button>
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" placeholder="搜尋技能..." onkeyup="searchSkills()">
+        </div>
+    </div>
+
+    <!-- 技能列表 -->
+    <div class="skills-list" id="skillsList">
+        {% for skill in skills %}
+        <div class="skill-card" data-type="{{ skill.node_type }}" data-id="{{ skill.id }}">
+            <div class="skill-card-header">
+                <div class="skill-title">
+                    <span class="skill-type-badge badge-{{ skill.node_type }}">
+                        {{ skill.get_node_type_display }}
+                    </span>
+                    <h3>{{ skill.name }}</h3>
+                </div>
+                <div class="skill-actions">
+                    <button onclick="editSkill({{ skill.id }})" class="btn-icon" title="編輯">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="deleteSkill({{ skill.id }})" class="btn-icon btn-danger" title="刪除">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="skill-card-body">
+                <p class="skill-description">{{ skill.description|truncatewords:20 }}</p>
+                <div class="skill-meta">
+                    <div class="meta-item">
+                        <i class="fas fa-book"></i>
+                        <span>{{ skill.courses.count }} 課程</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-link"></i>
+                        <span>{{ skill.parent_skills.count }} 前置技能</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-trophy"></i>
+                        <span>{{ skill.exp_reward }} EXP</span>
+                    </div>
+                </div>
+                {% if skill.parent_skills.exists %}
+                <div class="skill-prerequisites">
+                    <strong>前置技能：</strong>
+                    {% for parent in skill.parent_skills.all %}
+                    <span class="prerequisite-tag">{{ parent.name }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% if skill.courses.exists %}
+                <div class="skill-courses">
+                    <strong>關聯課程：</strong>
+                    {% for course in skill.courses.all %}
+                    <span class="course-tag">{{ course.title }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>尚無技能，請點擊「新增技能」開始建立</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- 編輯/新增技能 Modal -->
+<div id="skillModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">編輯技能</h3>
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
+        <form id="skillForm" onsubmit="saveSkill(event)">
+            <div class="modal-body">
+                <input type="hidden" id="skillId" name="skill_id">
+
+                <div class="form-group">
+                    <label for="skillName">技能名稱 <span class="required">*</span></label>
+                    <input type="text" id="skillName" name="name" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="skillType">節點類型 <span class="required">*</span></label>
+                    <select id="skillType" name="node_type" class="form-control" required>
+                        <option value="ROOT">共同必修 (ROOT)</option>
+                        <option value="CORE">職業核心 (CORE)</option>
+                        <option value="ADVANCED">進階選修 (ADVANCED)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="skillDescription">技能描述</label>
+                    <textarea id="skillDescription" name="description" class="form-control" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="expReward">經驗值獎勵</label>
+                    <input type="number" id="expReward" name="exp_reward" class="form-control" value="50" min="0">
+                </div>
+
+                <div class="form-group">
+                    <label>前置技能（可多選）</label>
+                    <div id="parentSkillsList" class="checkbox-list">
+                        {% for skill in skills %}
+                        <label class="checkbox-item">
+                            <input type="checkbox" name="parent_skills" value="{{ skill.id }}">
+                            <span>{{ skill.name }} ({{ skill.get_node_type_display }})</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>關聯課程（可多選）</label>
+                    <div id="coursesList" class="checkbox-list">
+                        {% for course in courses %}
+                        <label class="checkbox-item">
+                            <input type="checkbox" name="courses" value="{{ course.id }}">
+                            <span>{{ course.title }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeModal()" class="rpg-btn rpg-btn-secondary">取消</button>
+                <button type="submit" class="rpg-btn rpg-btn-primary">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .skill-editor-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .editor-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid var(--color-primary);
+    }
+
+    .header-left h2 {
+        margin: 0;
+        color: var(--color-secondary);
+    }
+
+    .header-right {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .rpg-select {
+        padding: 8px 12px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--color-primary);
+        border-radius: 4px;
+        color: var(--color-text);
+        font-size: 1rem;
+    }
+
+    .filter-bar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .filter-btn {
+        padding: 8px 16px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--color-primary);
+        border-radius: 4px;
+        color: var(--color-text);
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .filter-btn:hover {
+        background: var(--color-primary);
+        color: white;
+    }
+
+    .filter-btn.active {
+        background: var(--color-secondary);
+        border-color: var(--color-secondary);
+        color: white;
+    }
+
+    .search-box {
+        margin-left: auto;
+        position: relative;
+        width: 250px;
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--color-stone);
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 8px 12px 8px 35px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--color-primary);
+        border-radius: 4px;
+        color: var(--color-text);
+    }
+
+    .skills-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        gap: 20px;
+    }
+
+    .skill-card {
+        background: linear-gradient(135deg, rgba(26, 26, 46, 0.9) 0%, rgba(22, 33, 62, 0.9) 100%);
+        border: 2px solid var(--color-primary);
+        border-radius: 8px;
+        padding: 20px;
+        transition: all 0.3s;
+    }
+
+    .skill-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        border-color: var(--color-secondary);
+    }
+
+    .skill-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+    }
+
+    .skill-title {
+        flex: 1;
+    }
+
+    .skill-title h3 {
+        margin: 5px 0 0 0;
+        color: var(--color-secondary);
+        font-size: 1.3rem;
+    }
+
+    .skill-type-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .badge-ROOT {
+        background: var(--color-safety);
+        color: white;
+    }
+
+    .badge-CORE {
+        background: var(--color-civil);
+        color: white;
+    }
+
+    .badge-ADVANCED {
+        background: var(--color-me);
+        color: white;
+    }
+
+    .skill-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-icon {
+        background: none;
+        border: none;
+        color: var(--color-text);
+        cursor: pointer;
+        padding: 5px 10px;
+        border-radius: 4px;
+        transition: all 0.3s;
+    }
+
+    .btn-icon:hover {
+        background: var(--color-primary);
+        color: white;
+    }
+
+    .btn-icon.btn-danger:hover {
+        background: #dc3545;
+    }
+
+    .skill-description {
+        color: var(--color-stone);
+        margin-bottom: 15px;
+        line-height: 1.6;
+    }
+
+    .skill-meta {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--color-text);
+        font-size: 0.9rem;
+    }
+
+    .meta-item i {
+        color: var(--color-secondary);
+    }
+
+    .skill-prerequisites,
+    .skill-courses {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 0.9rem;
+    }
+
+    .prerequisite-tag,
+    .course-tag {
+        display: inline-block;
+        padding: 3px 8px;
+        margin: 2px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        font-size: 0.85rem;
+    }
+
+    .prerequisite-tag {
+        border-left: 3px solid var(--color-secondary);
+    }
+
+    .course-tag {
+        border-left: 3px solid var(--color-primary);
+    }
+
+    .empty-state {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--color-stone);
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+
+    /* Modal 樣式 */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border: 2px solid var(--color-primary);
+        border-radius: 8px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        border-bottom: 1px solid var(--color-primary);
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        color: var(--color-secondary);
+    }
+
+    .close-btn {
+        background: none;
+        border: none;
+        color: var(--color-text);
+        font-size: 2rem;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        line-height: 1;
+    }
+
+    .close-btn:hover {
+        color: var(--color-secondary);
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--color-secondary);
+        font-weight: 600;
+    }
+
+    .required {
+        color: #dc3545;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--color-primary);
+        border-radius: 4px;
+        color: var(--color-text);
+        font-family: inherit;
+        font-size: 1rem;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--color-secondary);
+        box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.2);
+    }
+
+    textarea.form-control {
+        resize: vertical;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 20px;
+        border-top: 1px solid var(--color-primary);
+    }
+
+    .checkbox-list {
+        max-height: 200px;
+        overflow-y: auto;
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--color-primary);
+        border-radius: 4px;
+    }
+
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+        padding: 8px;
+        margin-bottom: 5px;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+
+    .checkbox-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .checkbox-item input[type="checkbox"] {
+        margin-right: 10px;
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .checkbox-item span {
+        color: var(--color-text);
+        font-size: 0.95rem;
+    }
+
+    /* Budget Panel */
+    .budget-panel {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .budget-item {
+        flex: 1;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--color-primary);
+        border-radius: 4px;
+        padding: 10px;
+    }
+
+    .budget-info {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+        color: var(--color-text);
+        font-size: 0.9rem;
+    }
+
+    .budget-progress {
+        height: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 5px;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background: var(--color-success);
+        transition: width 0.3s;
+    }
+
+    .over-limit {
+        background: var(--color-danger);
+    }
+
+    .mt-sm {
+        margin-top: 10px;
+    }
+</style>
+
+<script>
+    let currentFilter = 'ALL';
+    let currentClass = '{{ selected_class }}';
+
+    function filterByType(type) {
+        currentFilter = type;
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-type="${type}"]`).classList.add('active');
+
+        const cards = document.querySelectorAll('.skill-card');
+        cards.forEach(card => {
+            if (type === 'ALL' || card.dataset.type === type) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    function searchSkills() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const cards = document.querySelectorAll('.skill-card');
+
+        cards.forEach(card => {
+            const title = card.querySelector('h3').textContent.toLowerCase();
+            const description = card.querySelector('.skill-description').textContent.toLowerCase();
+
+            if (title.includes(query) || description.includes(query)) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    function filterSkills() {
+        const classCode = document.getElementById('classSelect').value;
+        window.location.href = `?class=${classCode}`;
+    }
+
+    function showCreateModal() {
+        document.getElementById('modalTitle').textContent = '新增技能';
+        document.getElementById('skillForm').reset();
+        document.getElementById('skillId').value = '';
+
+        // Uncheck all checkboxes
+        document.querySelectorAll('input[name="parent_skills"]').forEach(cb => cb.checked = false);
+        document.querySelectorAll('input[name="courses"]').forEach(cb => cb.checked = false);
+
+        // Filter parent skills based on type
+        filterParentSkillsByType('ROOT');
+
+        document.getElementById('skillModal').style.display = 'flex';
+    }
+
+    function editSkill(skillId) {
+        fetch(`/rpg/api/skill-editor/data/?class=${currentClass}`)
+            .then(res => res.json())
+            .then(data => {
+                const skill = data.nodes.find(n => n.id === skillId);
+                if (skill) {
+                    document.getElementById('modalTitle').textContent = '編輯技能';
+                    document.getElementById('skillId').value = skill.id;
+                    document.getElementById('skillName').value = skill.name;
+                    document.getElementById('skillType').value = skill.type;
+                    document.getElementById('skillDescription').value = skill.description;
+                    document.getElementById('expReward').value = skill.exp_reward;
+
+                    // Filter parent skills based on type
+                    filterParentSkillsByType(skill.type, skill.id);
+
+                    // Set checked parent skills
+                    document.querySelectorAll('input[name="parent_skills"]').forEach(checkbox => {
+                        checkbox.checked = skill.parents.includes(parseInt(checkbox.value));
+                    });
+
+                    // Set checked courses
+                    document.querySelectorAll('input[name="courses"]').forEach(checkbox => {
+                        checkbox.checked = skill.courses.includes(parseInt(checkbox.value));
+                    });
+
+                    document.getElementById('skillModal').style.display = 'flex';
+                }
+            })
+            .catch(err => {
+                console.error('編輯技能失敗:', err);
+                alert('載入技能資料失敗: ' + err.message);
+            });
+    }
+
+    function filterParentSkillsByType(skillType, currentSkillId = null) {
+        const parentList = document.getElementById('parentSkillsList');
+        if (!parentList) {
+            console.error('parentSkillsList not found');
+            return;
+        }
+
+        const checkboxItems = parentList.querySelectorAll('.checkbox-item');
+
+        checkboxItems.forEach(item => {
+            const checkbox = item.querySelector('input[name="parent_skills"]');
+            if (!checkbox) return;
+
+            const label = item.querySelector('span');
+            if (!label) return;
+
+            const labelText = label.textContent;
+            const skillId = parseInt(checkbox.value);
+
+            // Extract skill type from label (e.g., "技能名稱 (共同必修)")
+            let parentType = 'ADVANCED';
+            if (labelText.includes('共同必修') || labelText.includes('ROOT')) {
+                parentType = 'ROOT';
+            } else if (labelText.includes('職業核心') || labelText.includes('CORE')) {
+                parentType = 'CORE';
+            }
+
+            // Hide self
+            if (currentSkillId && skillId === currentSkillId) {
+                item.style.display = 'none';
+                checkbox.checked = false;
+                return;
+            }
+
+            // Apply type-based filtering
+            let shouldShow = false;
+            if (skillType === 'ROOT') {
+                // ROOT can only have ROOT parents
+                shouldShow = (parentType === 'ROOT');
+            } else if (skillType === 'CORE') {
+                // CORE can have ROOT or CORE parents
+                shouldShow = (parentType === 'ROOT' || parentType === 'CORE');
+            } else if (skillType === 'ADVANCED') {
+                // ADVANCED can have any type
+                shouldShow = true;
+            }
+
+            if (shouldShow) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+                checkbox.checked = false; // Uncheck if hidden
+            }
+        });
+    }
+
+    // Listen to skill type changes
+    document.addEventListener('DOMContentLoaded', function () {
+        const skillTypeSelect = document.getElementById('skillType');
+        if (skillTypeSelect) {
+            skillTypeSelect.addEventListener('change', function () {
+                const currentSkillId = document.getElementById('skillId').value;
+                filterParentSkillsByType(this.value, currentSkillId ? parseInt(currentSkillId) : null);
+            });
+        }
+    });
+
+    function closeModal() {
+        document.getElementById('skillModal').style.display = 'none';
+    }
+
+    function validateParentSkills(skillId, parentIds) {
+        // Check for circular dependencies
+        if (!skillId) return true; // New skill, no circular dependency possible
+
+        // Simple check: if any parent has this skill as its parent, it's circular
+        // For a complete check, we'd need to traverse the entire dependency graph
+        // This is a basic implementation
+
+        return true; // Will implement server-side validation
+    }
+
+    function saveSkill(event) {
+        event.preventDefault();
+
+        const formData = new FormData(event.target);
+        const skillId = formData.get('skill_id');
+        const skillType = formData.get('node_type');
+
+        // Get checked parent skills
+        const parentSkills = Array.from(document.querySelectorAll('input[name="parent_skills"]:checked'))
+            .map(cb => parseInt(cb.value));
+
+        // Get checked courses
+        const courses = Array.from(document.querySelectorAll('input[name="courses"]:checked'))
+            .map(cb => parseInt(cb.value));
+
+        // Client-side validation
+        if (!validateParentSkills(skillId, parentSkills)) {
+            alert('檢測到循環依賴！請檢查前置技能設定。');
+            return;
+        }
+
+        const data = {
+            id: skillId ? parseInt(skillId) : null,
+            name: formData.get('name'),
+            description: formData.get('description'),
+            type: skillType,
+            exp_reward: parseInt(formData.get('exp_reward')),
+            class_code: currentClass,
+            parents: parentSkills,
+            courses: courses
+        };
+
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
+
+        fetch('/rpg/api/skill-editor/node/save/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify(data)
+        })
+            .then(res => res.json())
+            .then(result => {
+                if (result.error) {
+                    alert('保存失敗: ' + result.error);
+                } else {
+                    alert('保存成功！');
+                    window.location.reload();
+                }
+            })
+            .catch(err => {
+                alert('保存失敗: ' + err.message);
+            });
+    }
+
+    function deleteSkill(skillId) {
+        if (!confirm('確定要刪除此技能嗎？此操作無法復原。')) return;
+
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
+
+        fetch('/rpg/api/skill-editor/node/delete/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({ id: skillId })
+        })
+            .then(res => res.json())
+            .then(result => {
+                if (result.error) {
+                    alert('刪除失敗: ' + result.error);
+                } else {
+                    alert('刪除成功！');
+                    window.location.reload();
+                }
+            });
+    }
+
+    function autoDistribute(type) {
+        const classCode = document.getElementById('classSelect').value;
+        const confirmMsg = type === 'ROOT' ?
+            '確定要將剩餘經驗值平均分配給所有「共同必修」技能嗎？' :
+            `確定要將剩餘經驗值平均分配給 [${currentClass}] 的「職業核心」技能嗎？`;
+
+        if (!confirm(confirmMsg)) return;
+
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
+
+        fetch('/rpg/api/skill-editor/auto-distribute/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
+                type: type,
+                class_code: classCode
+            })
+        })
+            .then(res => res.json())
+            .then(result => {
+                if (result.error) {
+                    alert('分配失敗: ' + result.error);
+                } else {
+                    alert(result.message);
+                    window.location.reload();
+                }
+            })
+            .catch(err => {
+                alert('請求失敗: ' + err.message);
+            });
+    }
+
+    function autoLayout() {
+        if (!confirm('確定要自動計算技能樹佈局嗎？這將覆蓋現有的座標設定。')) return;
+
+        const classCode = document.getElementById('classSelect').value;
+
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
+
+        fetch('/rpg/api/skill-tree/auto-layout/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({ class_code: classCode })
+        })
+            .then(res => res.json())
+            .then(result => {
+                if (result.error) {
+                    alert('自動佈局失敗: ' + result.error);
+                } else {
+                    alert(`自動佈局完成！已處理 ${result.count} 個技能節點。`);
+                }
+            })
+            .catch(err => {
+                alert('自動佈局失敗: ' + err.message);
+            });
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function (event) {
+        const modal = document.getElementById('skillModal');
+        if (event.target === modal) {
+            closeModal();
+        }
+    }
+</script>
+{% endblock %}

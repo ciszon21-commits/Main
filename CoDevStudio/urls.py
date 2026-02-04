@@ -41,6 +41,7 @@ urlpatterns = [
     path('interview/', include('InterviewAssessment.urls', namespace='interview_assessment')),
     path('gravity-pipe/', include('GravityPipeCalc.urls')),  # 重力管水理計算器
     path('soilmove/', include('SoilMove.urls', namespace='SoilMove')),  # 土石方查詢
+    path('rpg/', include('EngineerRPG.urls')),  # 現場監造工程師職涯冒險培訓系統
 ]
 
 # 條件載入 ClashClassifier API

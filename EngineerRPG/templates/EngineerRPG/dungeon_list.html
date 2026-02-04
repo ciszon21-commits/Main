@@ -1,0 +1,164 @@
+{% extends 'EngineerRPG/base.html' %}
+
+{% block content %}
+<div class="container py-lg">
+    <!-- Header -->
+    <div class="page-header mb-xl">
+        <h1><i class="fas fa-dungeon"></i> 地下城試煉</h1>
+        <p class="text-stone">挑戰特定主題的地下城，證明你的專業能力！</p>
+    </div>
+
+    <!-- Back Button -->
+    <div class="mb-lg">
+        <a href="{% url 'engineer_rpg:training_hub' %}" class="rpg-btn rpg-btn-secondary mb-md">
+            <i class="fas fa-arrow-left"></i> 返回試煉場
+        </a>
+    </div>
+
+    <!-- Category Filter -->
+    <div class="category-tabs mb-lg overflow-x-auto pb-sm custom-scrollbar flex gap-sm">
+        <button class="rpg-btn rpg-btn-sm rpg-btn-primary active" onclick="filterCategory('all', this)">
+            全部
+        </button>
+        {% for category in categories %}
+        <button class="rpg-btn rpg-btn-sm rpg-btn-outline" onclick="filterCategory('cat-{{ category.id }}', this)">
+            {% if category.icon %}
+            <img src="{{ category.icon.url }}" class="w-4 h-4 mr-1 inline">
+            {% endif %}
+            {{ category.name }}
+        </button>
+        {% endfor %}
+    </div>
+
+    <!-- Dungeons Grid -->
+    <div class="dungeon-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
+        {% for category in categories %}
+        {% for dungeon in category.active_dungeons %}
+        <div class="rpg-card dungeon-card category-item cat-{{ category.id }}">
+            <div class="rpg-card-header flex justify-between items-start">
+                <div>
+                    <h3 class="rpg-card-title text-xl mb-xs">{{ dungeon.title }}</h3>
+                    <span class="badge bg-secondary/20 text-secondary text-xs">{{ category.name }}</span>
+                </div>
+                <div class="text-right">
+                    <span
+                        class="badge {% if profile.level >= dungeon.required_level %}bg-success/20 text-success{% else %}bg-danger/20 text-danger{% endif %} text-xs block mb-xs">
+                        Lv.{{ dungeon.required_level }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="p-md text-stone text-sm mb-md h-12 overflow-hidden">
+                {{ dungeon.description|truncatechars:60 }}
+            </div>
+
+            <div class="flex justify-between items-center text-xs text-stone mb-md border-t border-white/10 pt-sm">
+                <span><i class="fas fa-question-circle"></i> {{ dungeon.question_count }} 題</span>
+                {% if dungeon.time_limit_minutes > 0 %}
+                <span><i class="fas fa-hourglass-half"></i> {{ dungeon.time_limit_minutes }} 分</span>
+                {% else %}
+                <span><i class="fas fa-infinity"></i> 不限時</span>
+                {% endif %}
+            </div>
+
+            <div class="dungeon-actions mt-auto">
+                {% if dungeon.id in passed_dungeon_ids %}
+                <div class="flex gap-sm">
+                    <span class="rpg-btn rpg-btn-disabled w-full flex-1 text-center">
+                        <i class="fas fa-check-circle"></i> 已通關
+                    </span>
+                    <a href="{% url 'engineer_rpg:trial_detail' dungeon.id %}" class="rpg-btn rpg-btn-outline">
+                        <i class="fas fa-redo"></i>
+                    </a>
+                </div>
+                <p class="text-xs text-center mt-xs text-stone">重複挑戰僅獲 1% 經驗</p>
+                {% elif profile.level < dungeon.required_level %} <button class="rpg-btn rpg-btn-disabled w-full"
+                    disabled>
+                    <i class="fas fa-lock"></i> 等級不足
+                    </button>
+                    {% else %}
+                    <a href="{% url 'engineer_rpg:trial_detail' dungeon.id %}"
+                        class="rpg-btn rpg-btn-primary w-full pulse-animation">
+                        <i class="fas fa-sword"></i> 開始挑戰
+                    </a>
+                    {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        {% endfor %}
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="text-center py-xl text-stone hidden">
+        <i class="fas fa-dungeon text-4xl mb-md opacity-50"></i>
+        <p>此分類目前沒有開放的地下城</p>
+    </div>
+</div>
+
+<script>
+    function filterCategory(catClass, btn) {
+        // Update buttons
+        document.querySelectorAll('.category-tabs button').forEach(b => {
+            b.classList.remove('rpg-btn-primary', 'active');
+            b.classList.add('rpg-btn-outline');
+        });
+        btn.classList.remove('rpg-btn-outline');
+        btn.classList.add('rpg-btn-primary', 'active');
+
+        // Filter items
+        const items = document.querySelectorAll('.dungeon-card');
+        let visibleCount = 0;
+
+        items.forEach(item => {
+            if (catClass === 'all' || item.classList.contains(catClass)) {
+                item.style.display = 'block';
+                // Add fade in animation
+                item.style.animation = 'fadeIn 0.5s ease';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        // Show empty state
+        const emptyState = document.getElementById('emptyState');
+        if (visibleCount === 0) {
+            emptyState.classList.remove('hidden');
+        } else {
+            emptyState.classList.add('hidden');
+        }
+    }
+</script>
+
+<style>
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .pulse-animation {
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb), 0.4);
+        }
+
+        70% {
+            box-shadow: 0 0 0 10px rgba(var(--color-primary-rgb), 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb), 0);
+        }
+    }
+</style>
+{% endblock %}
