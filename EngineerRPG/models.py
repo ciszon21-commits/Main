@@ -30,56 +30,70 @@ class CharacterClass(models.Model):
         return self.name
 
 
-# ==================== Team System Models ====================
+# ==================== RPG Team System Models ====================
+# 獨立的 RPG 團隊系統，不與 TeamKnowledgeHub 衝突
 
-class Team(models.Model):
-    name = models.CharField(max_length=200, verbose_name='隊伍名稱')
-    description = models.TextField(blank=True, verbose_name='隊伍說明')
+class RPGTeam(models.Model):
+    """RPG 遊戲團隊系統 - 完全獨立於 TeamKnowledgeHub"""
+    
+    name = models.CharField('團隊名稱', max_length=200)
+    description = models.TextField('團隊說明', blank=True)
     leader = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
-                               related_name='led_teams', verbose_name='隊長')
+                               related_name='led_rpg_teams', verbose_name='隊長')
     created_by = models.ForeignKey(User, on_delete=models.CASCADE,
-                                   related_name='created_teams', verbose_name='建立者')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
+                                   related_name='created_rpg_teams', verbose_name='建立者')
+    max_members = models.IntegerField('最大成員數', default=6)
+    is_active = models.BooleanField('啟用', default=True)
+    
+    created_at = models.DateTimeField('建立時間', auto_now_add=True)
+    updated_at = models.DateTimeField('更新時間', auto_now=True)
     
     class Meta:
-        managed = False
-        db_table = 'TeamKnowledgeHub_knowledgeteam'
-        verbose_name = '隊伍'
-        verbose_name_plural = '隊伍列表'
-
+        verbose_name = 'RPG團隊'
+        verbose_name_plural = 'RPG團隊列表'
+        ordering = ['-created_at']
+    
     def __str__(self):
         return self.name
     
     def get_member_count(self):
-        """獲取隊伍成員數量"""
-        return self.current_members.count()
+        """獲取團隊成員數量"""
+        return self.members.count()
     
     def is_leader(self, user):
         """檢查使用者是否為隊長"""
         return self.leader == user
+    
+    def is_full(self):
+        """檢查團隊是否已滿"""
+        return self.get_member_count() >= self.max_members
 
-class TeamMembership(models.Model):
+
+class RPGTeamMember(models.Model):
+    """RPG 團隊成員"""
+    
     ROLE_CHOICES = [
-        ('MEMBER', '成員'),
         ('LEADER', '隊長'),
         ('VICE_LEADER', '副隊長'),
+        ('MEMBER', '成員'),
     ]
     
-    team = models.ForeignKey(Team, on_delete=models.DO_NOTHING)
-    user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
-    role = models.CharField(max_length=20)
-    joined_at = models.DateTimeField()
-
+    team = models.ForeignKey(RPGTeam, on_delete=models.CASCADE, 
+                            related_name='members', verbose_name='團隊')
+    user_profile = models.ForeignKey('UserProfile', on_delete=models.CASCADE,
+                                    related_name='rpg_team_memberships', 
+                                    verbose_name='成員')
+    role = models.CharField('角色', max_length=20, choices=ROLE_CHOICES, default='MEMBER')
+    joined_at = models.DateTimeField('加入時間', auto_now_add=True)
+    
     class Meta:
-        managed = False
-        db_table = 'TeamKnowledgeHub_knowledgeteammember'
-        unique_together = (('team', 'user'),)
-        verbose_name = '隊伍成員'
-        verbose_name_plural = '隊伍成員列表'
-        
+        verbose_name = 'RPG團隊成員'
+        verbose_name_plural = 'RPG團隊成員列表'
+        unique_together = [['team', 'user_profile']]
+        ordering = ['joined_at']
+    
     def __str__(self):
-        return f"{self.user.username} - {self.team.name}"
+        return f"{self.user_profile.user.username} - {self.team.name}"
 
 
 class UserProfile(models.Model):
@@ -130,9 +144,9 @@ class UserProfile(models.Model):
     equipped_tool_5 = models.ForeignKey('UserEquipment', on_delete=models.SET_NULL, null=True, blank=True,
                                        related_name='equipped_as_tool_5', verbose_name='工具欄5')
     
-    # 隊伍歸屬
-    current_team = models.ForeignKey('Team', on_delete=models.SET_NULL, null=True, blank=True,
-                                    related_name='current_members', verbose_name='當前隊伍', db_constraint=False)
+    
+    # 團隊成員關係現在通過 RPGTeamMember 模型管理
+    
     
     # 強化券
     enhancement_tickets = models.IntegerField('強化券數量', default=0, validators=[MinValueValidator(0)])

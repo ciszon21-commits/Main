@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
@@ -14,8 +15,9 @@ from .models import (
     CharacterClass, UserProfile, SkillNode, Course, UserSkill,
     Equipment, UserEquipment, Item, UserItem, Question, QuestionCategory, Trial, TrialRecord,
     PromotionRequest, EnhancementScroll, Achievement, UserAchievement,
-    Team, TeamMembership, GuildPost, GuildComment, DailyTrialTask, DailyTrialProgress
+    RPGTeam, RPGTeamMember, GuildPost, GuildComment, DailyTrialTask, DailyTrialProgress
 )
+
 
 from .forms import (
     QuestionForm, QuestionImportForm, SkillNodeForm, CourseForm, UserLoginForm,
@@ -735,10 +737,12 @@ def trial_record_detail(request, record_id):
 
 @login_required
 def team_dashboard(request):
-    """隊伍中心"""
+    """RPG 團隊中心"""
     profile = get_or_create_user_profile(request.user)
-    led_teams = Team.objects.filter(leader=request.user)
-    current_membership = TeamMembership.objects.filter(user_profile=profile, is_current=True).first()
+    led_teams = RPGTeam.objects.filter(leader=request.user, is_active=True)
+    current_membership = RPGTeamMember.objects.filter(
+        user_profile=profile
+    ).select_related('team').first()
     
     return render(request, 'EngineerRPG/team_dashboard.html', {
         'profile': profile,
@@ -749,10 +753,10 @@ def team_dashboard(request):
 
 @login_required
 def team_detail(request, team_id):
-    """隊伍詳情（戰力與成員分析）"""
+    """RPG 團隊詳情（戰力與成員分析）"""
     profile = get_or_create_user_profile(request.user)
-    team = get_object_or_404(Team, id=team_id)
-    memberships = TeamMembership.objects.filter(team=team, is_current=True).select_related('user_profile__user', 'user_profile__character_class')
+    team = get_object_or_404(RPGTeam, id=team_id)
+    memberships = RPGTeamMember.objects.filter(team=team).select_related('user_profile__user', 'user_profile__character_class')
     
     # 獲取各成員技能進度
     member_data = []
@@ -775,47 +779,58 @@ def team_detail(request, team_id):
 
 @login_required
 def team_manage_members(request, team_id):
-    """管理員/隊長：成員異動"""
-    team = get_object_or_404(Team, id=team_id)
+    """管理RPG團隊成員"""
+    team = get_object_or_404(RPGTeam, id=team_id)
     if team.leader != request.user and request.user.rpg_profile.role not in ['MANAGER', 'ADMIN']:
         return redirect('engineer_rpg:team_detail', team_id=team_id)
         
-    current = TeamMembership.objects.filter(team=team, is_current=True).select_related('user_profile__user')
-    available = UserProfile.objects.filter(current_team__isnull=True).exclude(user=team.leader)
+    current = RPGTeamMember.objects.filter(team=team).select_related('user_profile__user')
+    # 獲取還沒加入任何團隊的使用者
+    joined_profiles = RPGTeamMember.objects.values_list('user_profile_id', flat=True)
+    available = UserProfile.objects.exclude(id__in=joined_profiles).exclude(user=team.leader)
     
     return render(request, 'EngineerRPG/team_manage_members.html', {'team': team, 'current': current, 'available': available})
 
 
 @login_required
 def team_add_member(request, team_id):
-    """招募新隊員"""
-    if request.method != 'POST': return redirect('engineer_rpg:team_manage_members', team_id=team_id)
-    team = get_object_or_404(Team, id=team_id)
+    """新增RPG團隊成員"""
+    if request.method != 'POST': 
+        return redirect('engineer_rpg:team_manage_members', team_id=team_id)
+    
+    team = get_object_or_404(RPGTeam, id=team_id)
     uid = request.POST.get('user_id')
     target = get_object_or_404(UserProfile, id=uid)
     
-    if not target.current_team:
-        TeamMembership.objects.create(team=team, user_profile=target, is_current=True)
-        target.current_team = team
-        target.save()
+    # 檢查是否已在其他團隊
+    existing = RPGTeamMember.objects.filter(user_profile=target).exists()
+    if not existing and not team.is_full():
+        RPGTeamMember.objects.create(team=team, user_profile=target, role='MEMBER')
         messages.success(request, f'已加入 {target.user.username}')
+    elif team.is_full():
+        messages.error(request, '團隊已滿')
+    else:
+        messages.error(request, f'{target.user.username} 已在其他團隊')
+    
     return redirect('engineer_rpg:team_manage_members', team_id=team_id)
 
 
 @login_required
 def team_remove_member(request, team_id, member_id):
-    """剔除隊員"""
-    if request.method != 'POST': return redirect('engineer_rpg:team_manage_members', team_id=team_id)
-    team = get_object_or_404(Team, id=team_id)
-    m = get_object_or_404(TeamMembership, team=team, user_profile_id=member_id, is_current=True)
-    p = m.user_profile
-    m.is_current = False
-    m.left_at = timezone.now()
-    m.save()
-    p.current_team = None
-    p.save()
-    messages.success(request, f'已移出 {p.user.username}')
+    """移除RPG團隊成員"""
+    if request.method != 'POST': 
+        return redirect('engineer_rpg:team_manage_members', team_id=team_id)
+    
+    team = get_object_or_404(RPGTeam, id=team_id)
+    membership = get_object_or_404(RPGTeamMember, team=team, user_profile_id=member_id)
+    username = membership.user_profile.user.username
+    
+    # 刪除成員關係
+    membership.delete()
+    
+    messages.success(request, f'已移除 {username}')
     return redirect('engineer_rpg:team_manage_members', team_id=team_id)
+
 
 
 # ==================== 公會與討論區 ====================
