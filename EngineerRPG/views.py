@@ -15,13 +15,14 @@ from .models import (
     CharacterClass, UserProfile, SkillNode, Course, UserSkill,
     Equipment, UserEquipment, Item, UserItem, Question, QuestionCategory, Trial, TrialRecord,
     PromotionRequest, EnhancementScroll, Achievement, UserAchievement,
-    RPGTeam, RPGTeamMember, GuildPost, GuildComment, DailyTrialTask, DailyTrialProgress
+    RPGTeam, RPGTeamMember, GuildPost, GuildComment, DailyTrialTask, DailyTrialProgress,
+    AdminWhitelist
 )
 
 
 from .forms import (
     QuestionForm, QuestionImportForm, SkillNodeForm, CourseForm, UserLoginForm,
-    UserRegistrationForm, UserProfileEditForm
+    UserRegistrationForm, UserProfileEditForm, AvatarEditForm
 )
 
 # ==================== 輔助函數 ====================
@@ -42,9 +43,14 @@ def get_or_create_user_profile(user):
                 description='專精土木工程的職業'
             )
         
+        # 自動生成員工編號 (取 username 中的數字)
+        import re
+        digits = ''.join(re.findall(r'\d+', user.username))
+        employee_id = digits if digits else f'EMP{user.id:05d}'
+
         profile = UserProfile.objects.create(
             user=user,
-            employee_id=f'EMP{user.id:05d}',
+            employee_id=employee_id,
             character_class=default_class,
             role='ADVENTURER'
         )
@@ -142,6 +148,10 @@ def dashboard(request):
     profile = get_or_create_user_profile(request.user)
     if not profile:
         return redirect('engineer_rpg:setup_profile')
+
+    # 強制選擇職業
+    if not profile.is_class_selected:
+        return redirect('engineer_rpg:select_character_class')
     
     # 獲取統計數據
     total_skills = UserSkill.objects.filter(user_profile=profile).count()
@@ -175,54 +185,30 @@ def dashboard(request):
 
 @login_required
 def profile_edit(request):
-    """編輯個人檔案"""
+    """編輯個人檔案 - 僅允許修改頭像"""
     profile = get_or_create_user_profile(request.user)
-    
-    if request.method == 'POST':
-        form = UserProfileEditForm(request.POST, request.FILES)
-        if form.is_valid():
-            user = request.user
-            user.username = form.cleaned_data['username']
-            if form.cleaned_data['email']:
-                user.email = form.cleaned_data['email']
-            
-            new_password = form.cleaned_data.get('new_password')
-            old_password = form.cleaned_data.get('old_password')
-            
-            if new_password:
-                if not user.check_password(old_password):
-                    form.add_error('old_password', '舊密碼不正確')
-                else:
-                    user.set_password(new_password)
-                    user.save()
-                    from django.contrib.auth import update_session_auth_hash
-                    update_session_auth_hash(request, user)
-            else:
-                user.save()
 
-            if not form.errors:
-                profile.employee_id = form.cleaned_data['employee_id']
-                
-                avatar_index = form.cleaned_data.get('avatar_index')
-                if avatar_index and int(avatar_index) > 0:
-                    profile.avatar_index = int(avatar_index)
-                    profile.avatar_image = None 
-                    
-                if form.cleaned_data.get('avatar_image'):
-                    profile.avatar_image = form.cleaned_data['avatar_image']
-                    profile.avatar_index = 0
-                
-                profile.save()
-                messages.success(request, '個人資料更新成功！')
-                return redirect('engineer_rpg:dashboard')
+    if request.method == 'POST':
+        form = AvatarEditForm(request.POST, request.FILES)
+        if form.is_valid():
+            # 只處理頭像更新
+            avatar_index = form.cleaned_data.get('avatar_index')
+            if avatar_index and int(avatar_index) > 0:
+                profile.avatar_index = int(avatar_index)
+                profile.avatar_image = None
+
+            if form.cleaned_data.get('avatar_image'):
+                profile.avatar_image = form.cleaned_data['avatar_image']
+                profile.avatar_index = 0
+
+            profile.save()
+            messages.success(request, '頭像更新成功！')
+            return redirect('engineer_rpg:dashboard')
     else:
         initial_data = {
-            'username': request.user.username,
-            'email': request.user.email,
-            'employee_id': profile.employee_id,
             'avatar_index': profile.avatar_index,
         }
-        form = UserProfileEditForm(initial=initial_data)
+        form = AvatarEditForm(initial=initial_data)
 
     context = {
         'form': form,
@@ -230,6 +216,38 @@ def profile_edit(request):
         'default_avatars': range(1, 21)
     }
     return render(request, 'EngineerRPG/profile_edit.html', context)
+
+
+@login_required
+def select_character_class(request):
+    """首次登入選擇職業（適用於自動建立的帳號）"""
+    profile = get_or_create_user_profile(request.user)
+    
+    # 如果已經選擇過，直接導向 dashboard
+    if profile.is_class_selected:
+        return redirect('engineer_rpg:dashboard')
+        
+    if request.method == 'POST':
+        class_id = request.POST.get('character_class')
+        if class_id:
+            try:
+                selected_class = CharacterClass.objects.get(id=class_id)
+                profile.character_class = selected_class
+                profile.is_class_selected = True
+                profile.save()
+                
+                messages.success(request, f'歡迎加入！你已成為 {selected_class.name}')
+                return redirect('engineer_rpg:dashboard')
+            except CharacterClass.DoesNotExist:
+                messages.error(request, '選擇的職業不存在')
+        else:
+            messages.error(request, '請選擇一個職業')
+            
+    character_classes = CharacterClass.objects.all()
+    
+    return render(request, 'EngineerRPG/select_class.html', {
+        'character_classes': character_classes
+    })
 
 
 # ==================== 技能樹系統 ====================
@@ -1418,9 +1436,52 @@ def create_user(request):
 
 @login_required
 def edit_user(request, user_id):
-    """編輯使用者"""
-    messages.info(request, '此功能正在開發中')
-    return redirect('engineer_rpg:user_management')
+    """編輯使用者（管理員功能）"""
+    profile = get_or_create_user_profile(request.user)
+    
+    # 權限檢查：需為 ADMIN 或在白名單中
+    is_whitelist = False
+    try:
+        from .models import AdminWhitelist
+        is_whitelist = AdminWhitelist.objects.filter(user=request.user).exists()
+    except:
+        pass
+        
+    if profile.role != 'ADMIN' and not is_whitelist:
+        messages.error(request, '權限不足')
+        return redirect('engineer_rpg:dashboard')
+        
+    target_user = get_object_or_404(User, id=user_id)
+    target_profile = get_or_create_user_profile(target_user)
+    
+    from .forms import AdminUserEditForm
+    
+    if request.method == 'POST':
+        form = AdminUserEditForm(request.POST)
+        if form.is_valid():
+            # 更新資料
+            target_profile.role = form.cleaned_data['role']
+            target_profile.character_class = form.cleaned_data['character_class']
+            target_profile.save()
+            
+            target_user.is_active = form.cleaned_data['is_active']
+            target_user.save()
+            
+            messages.success(request, f'使用者 {target_user.username} 更新成功')
+            return redirect('engineer_rpg:user_management')
+    else:
+        initial_data = {
+            'role': target_profile.role,
+            'character_class': target_profile.character_class,
+            'is_active': target_user.is_active
+        }
+        form = AdminUserEditForm(initial=initial_data)
+        
+    return render(request, 'EngineerRPG/management/user_form.html', {
+        'profile': profile,
+        'form': form,
+        'target_user': target_user
+    })
 
 
 @login_required
@@ -1657,3 +1718,307 @@ def admin_whitelist_management(request):
     
     return render(request, 'EngineerRPG/admin_whitelist.html', context)
 
+
+# ==================== 圖鑑系統 ====================
+
+@login_required
+def codex_main(request):
+    """圖鑑主頁"""
+    profile = get_or_create_user_profile(request.user)
+
+    # 統計資訊
+    total_equipment = Equipment.objects.count()
+    owned_equipment = UserEquipment.objects.filter(user_profile=profile).count()
+
+    total_items = Item.objects.count()
+    owned_items = UserItem.objects.filter(user_profile=profile, quantity__gt=0).count()
+
+    total_skills = SkillNode.objects.count()
+    completed_skills = UserSkill.objects.filter(user_profile=profile, status='COMPLETED').count()
+
+    total_achievements = Achievement.objects.count()
+    earned_achievements = UserAchievement.objects.filter(user_profile=profile).count()
+
+    context = {
+        'profile': profile,
+        'stats': {
+            'equipment': {'owned': owned_equipment, 'total': total_equipment},
+            'items': {'owned': owned_items, 'total': total_items},
+            'skills': {'completed': completed_skills, 'total': total_skills},
+            'achievements': {'earned': earned_achievements, 'total': total_achievements},
+        }
+    }
+
+    return render(request, 'EngineerRPG/codex/codex_main.html', context)
+
+
+@login_required
+def codex_equipment(request):
+    """裝備圖鑑"""
+    profile = get_or_create_user_profile(request.user)
+
+    # 篩選條件
+    equipment_type = request.GET.get('type', 'all')
+    rarity = request.GET.get('rarity', 'all')
+    tier = request.GET.get('tier', 'all')
+    obtain_method = request.GET.get('obtain', 'all')
+
+    # 查詢裝備
+    equipments = Equipment.objects.all().order_by('tier', 'equipment_type', 'rarity', 'name')
+
+    if equipment_type != 'all':
+        equipments = equipments.filter(equipment_type=equipment_type)
+    if rarity != 'all':
+        equipments = equipments.filter(rarity=rarity)
+    if tier != 'all':
+        equipments = equipments.filter(tier=int(tier))
+    if obtain_method != 'all':
+        equipments = equipments.filter(obtain_method=obtain_method)
+
+    # 獲取使用者擁有的裝備 ID
+    owned_equipment_ids = set(
+        UserEquipment.objects.filter(user_profile=profile).values_list('equipment_id', flat=True)
+    )
+
+    # 為每個裝備添加擁有狀態
+    equipment_list = []
+    for eq in equipments:
+        equipment_list.append({
+            'equipment': eq,
+            'owned': eq.id in owned_equipment_ids,
+            'user_equipment': UserEquipment.objects.filter(
+                user_profile=profile, equipment=eq
+            ).first() if eq.id in owned_equipment_ids else None
+        })
+
+    # 統計
+    total = Equipment.objects.count()
+    owned = len(owned_equipment_ids)
+
+    context = {
+        'profile': profile,
+        'equipment_list': equipment_list,
+        'total': total,
+        'owned': owned,
+        'filters': {
+            'type': equipment_type,
+            'rarity': rarity,
+            'tier': tier,
+            'obtain': obtain_method,
+        },
+        'type_choices': Equipment.EQUIPMENT_TYPE_CHOICES,
+        'rarity_choices': Equipment.RARITY_CHOICES,
+        'tier_choices': [(1, 'Tier 1'), (2, 'Tier 2'), (3, 'Tier 3')],
+        'obtain_choices': Equipment.OBTAIN_METHOD_CHOICES,
+    }
+
+    return render(request, 'EngineerRPG/codex/codex_equipment.html', context)
+
+
+@login_required
+def codex_equipment_detail(request, equipment_id):
+    """裝備詳細頁面"""
+    profile = get_or_create_user_profile(request.user)
+    equipment = get_object_or_404(Equipment, id=equipment_id)
+
+    # 檢查使用者是否擁有
+    user_equipment = UserEquipment.objects.filter(
+        user_profile=profile, equipment=equipment
+    ).first()
+
+    # 獲取相關試煉（作為獎勵的試煉）
+    related_trials = Trial.objects.filter(equipment_reward=equipment)
+
+    # 如果有 obtain_trial，也加入
+    if equipment.obtain_trial:
+        related_trials = related_trials | Trial.objects.filter(id=equipment.obtain_trial.id)
+
+    context = {
+        'profile': profile,
+        'equipment': equipment,
+        'user_equipment': user_equipment,
+        'owned': user_equipment is not None,
+        'related_trials': related_trials.distinct(),
+    }
+
+    return render(request, 'EngineerRPG/codex/codex_equipment_detail.html', context)
+
+
+@login_required
+def codex_items(request):
+    """道具圖鑑"""
+    profile = get_or_create_user_profile(request.user)
+
+    # 篩選條件
+    item_type = request.GET.get('type', 'all')
+    rarity = request.GET.get('rarity', 'all')
+    effect_type = request.GET.get('effect', 'all')
+
+    # 查詢道具
+    items = Item.objects.all().order_by('item_type', 'rarity', 'name')
+
+    if item_type != 'all':
+        items = items.filter(item_type=item_type)
+    if rarity != 'all':
+        items = items.filter(rarity=rarity)
+    if effect_type != 'all':
+        items = items.filter(effect_type=effect_type)
+
+    # 獲取使用者擁有的道具
+    user_items = {
+        ui.item_id: ui for ui in UserItem.objects.filter(user_profile=profile, quantity__gt=0)
+    }
+
+    # 為每個道具添加擁有狀態
+    item_list = []
+    for item in items:
+        item_list.append({
+            'item': item,
+            'owned': item.id in user_items,
+            'quantity': user_items[item.id].quantity if item.id in user_items else 0
+        })
+
+    # 統計
+    total = Item.objects.count()
+    owned = len(user_items)
+
+    context = {
+        'profile': profile,
+        'item_list': item_list,
+        'total': total,
+        'owned': owned,
+        'filters': {
+            'type': item_type,
+            'rarity': rarity,
+            'effect': effect_type,
+        },
+        'type_choices': Item.ITEM_TYPE_CHOICES,
+        'rarity_choices': Item.RARITY_CHOICES,
+        'effect_choices': Item.EFFECT_TYPE_CHOICES,
+    }
+
+    return render(request, 'EngineerRPG/codex/codex_items.html', context)
+
+
+@login_required
+def codex_item_detail(request, item_id):
+    """道具詳細頁面"""
+    profile = get_or_create_user_profile(request.user)
+    item = get_object_or_404(Item, id=item_id)
+
+    # 檢查使用者是否擁有
+    user_item = UserItem.objects.filter(user_profile=profile, item=item).first()
+
+    # 獲取相關試煉（作為獎勵的試煉）
+    related_trials = Trial.objects.filter(item_reward=item)
+
+    context = {
+        'profile': profile,
+        'item': item,
+        'user_item': user_item,
+        'owned': user_item is not None and user_item.quantity > 0,
+        'quantity': user_item.quantity if user_item else 0,
+        'related_trials': related_trials,
+    }
+
+    return render(request, 'EngineerRPG/codex/codex_item_detail.html', context)
+
+
+@login_required
+def codex_skills(request):
+    """技能圖鑑"""
+    profile = get_or_create_user_profile(request.user)
+
+    # 篩選條件
+    node_type = request.GET.get('type', 'all')
+    char_class = request.GET.get('class', 'all')
+
+    # 查詢技能
+    skills = SkillNode.objects.all().order_by('node_type', 'min_level', 'name')
+
+    if node_type != 'all':
+        skills = skills.filter(node_type=node_type)
+    if char_class != 'all':
+        if char_class == 'common':
+            skills = skills.filter(character_class__isnull=True)
+        else:
+            skills = skills.filter(character_class__code=char_class)
+
+    # 獲取使用者技能狀態
+    user_skills = {
+        us.skill_node_id: us for us in UserSkill.objects.filter(user_profile=profile)
+    }
+
+    # 為每個技能添加狀態
+    skill_list = []
+    for skill in skills:
+        user_skill = user_skills.get(skill.id)
+        skill_list.append({
+            'skill': skill,
+            'status': user_skill.status if user_skill else 'LOCKED',
+            'progress': user_skill.progress if user_skill else 0,
+        })
+
+    # 統計
+    total = SkillNode.objects.count()
+    completed = UserSkill.objects.filter(user_profile=profile, status='COMPLETED').count()
+
+    # 職業選項
+    class_choices = list(CharacterClass.objects.values_list('code', 'name'))
+    class_choices.insert(0, ('common', '共通技能'))
+
+    context = {
+        'profile': profile,
+        'skill_list': skill_list,
+        'total': total,
+        'completed': completed,
+        'filters': {
+            'type': node_type,
+            'class': char_class,
+        },
+        'type_choices': SkillNode.NODE_TYPE_CHOICES,
+        'class_choices': class_choices,
+    }
+
+    return render(request, 'EngineerRPG/codex/codex_skills.html', context)
+
+
+@login_required
+def codex_obtain_guide(request):
+    """獲取指南 - 顯示所有裝備和道具的獲取方式"""
+    profile = get_or_create_user_profile(request.user)
+
+    # 依獲取方式分類裝備
+    equipment_by_method = {}
+    for method_code, method_name in Equipment.OBTAIN_METHOD_CHOICES:
+        equips = Equipment.objects.filter(obtain_method=method_code, is_obtainable=True)
+        if equips.exists():
+            equipment_by_method[method_code] = {
+                'name': method_name,
+                'items': equips.order_by('tier', 'rarity')
+            }
+
+    # 依獲取方式分類道具
+    items_by_method = {}
+    for method_code, method_name in Item.OBTAIN_METHOD_CHOICES:
+        itms = Item.objects.filter(obtain_method=method_code, is_obtainable=True)
+        if itms.exists():
+            items_by_method[method_code] = {
+                'name': method_name,
+                'items': itms.order_by('rarity')
+            }
+
+    # 試煉獎勵一覽
+    trials_with_rewards = Trial.objects.filter(
+        Q(equipment_reward__isnull=False) | Q(item_reward__isnull=False),
+        is_active=True
+    ).select_related('equipment_reward', 'item_reward', 'category').order_by('trial_type', 'required_level')
+
+    context = {
+        'profile': profile,
+        'equipment_by_method': equipment_by_method,
+        'items_by_method': items_by_method,
+        'trials_with_rewards': trials_with_rewards,
+    }
+
+    return render(request, 'EngineerRPG/codex/codex_obtain_guide.html', context)

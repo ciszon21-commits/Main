@@ -1,0 +1,283 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}獲取指南 - 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container" style="padding: 2rem 1rem;">
+    <!-- 頁面標題 -->
+    <div class="rpg-card" style="margin-bottom: 2rem;">
+        <div>
+            <a href="{% url 'engineer_rpg:codex_main' %}" style="color: var(--color-text-muted); text-decoration: none;">
+                <i class="fas fa-arrow-left"></i> 返回圖鑑
+            </a>
+            <h1 style="font-size: 1.8rem; margin: 0.5rem 0 0;">
+                <i class="fas fa-map-marked-alt" style="color: var(--color-info);"></i>
+                獲取指南
+            </h1>
+            <p style="color: var(--color-text-muted); margin-top: 0.5rem;">
+                查看所有裝備和道具的獲取方式
+            </p>
+        </div>
+    </div>
+
+    <!-- 快速導航 -->
+    <div class="rpg-card" style="margin-bottom: 2rem;">
+        <div class="flex gap-md" style="flex-wrap: wrap; justify-content: center;">
+            <a href="#equipment-section" class="rpg-btn">
+                <i class="fas fa-shield-alt"></i> 裝備獲取
+            </a>
+            <a href="#items-section" class="rpg-btn">
+                <i class="fas fa-flask"></i> 道具獲取
+            </a>
+            <a href="#trials-section" class="rpg-btn">
+                <i class="fas fa-dragon"></i> 試煉獎勵
+            </a>
+        </div>
+    </div>
+
+    <!-- 裝備獲取方式 -->
+    <section id="equipment-section" style="margin-bottom: 3rem;">
+        <h2 class="section-title">
+            <i class="fas fa-shield-alt" style="color: var(--color-secondary);"></i>
+            裝備獲取方式
+        </h2>
+
+        {% for method_code, method_data in equipment_by_method.items %}
+        <div class="rpg-card method-card">
+            <h3 class="method-title">
+                <i class="fas fa-{% if method_code == 'TRIAL' %}swords{% elif method_code == 'DUNGEON' %}dungeon{% elif method_code == 'DAILY' %}calendar-check{% elif method_code == 'ACHIEVEMENT' %}trophy{% elif method_code == 'SKILL' %}book{% elif method_code == 'PROMOTION' %}arrow-up{% elif method_code == 'SPECIAL' %}star{% else %}gift{% endif %}"></i>
+                {{ method_data.name }}
+            </h3>
+            <div class="items-grid">
+                {% for eq in method_data.items %}
+                <a href="{% url 'engineer_rpg:codex_equipment_detail' eq.id %}" class="item-link">
+                    <div class="item-icon">
+                        {% if eq.icon %}
+                        <img src="{% static eq.icon %}" alt="{{ eq.name }}">
+                        {% else %}
+                        <i class="fas fa-{% if eq.equipment_type == 'HELMET' %}hard-hat{% elif eq.equipment_type == 'ARMOR' %}vest{% elif eq.equipment_type == 'BOOTS' %}shoe-prints{% else %}tools{% endif %}"></i>
+                        {% endif %}
+                    </div>
+                    <div class="item-info">
+                        <div class="item-name">{{ eq.name }}</div>
+                        <div class="item-meta">
+                            <span class="rarity-{{ eq.rarity|lower }}">{{ eq.get_rarity_display }}</span>
+                            <span>T{{ eq.tier }}</span>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="rpg-card" style="text-align: center; padding: 2rem;">
+            <p style="color: var(--color-text-muted);">目前沒有可獲得的裝備資料</p>
+        </div>
+        {% endfor %}
+    </section>
+
+    <!-- 道具獲取方式 -->
+    <section id="items-section" style="margin-bottom: 3rem;">
+        <h2 class="section-title">
+            <i class="fas fa-flask" style="color: var(--color-success);"></i>
+            道具獲取方式
+        </h2>
+
+        {% for method_code, method_data in items_by_method.items %}
+        <div class="rpg-card method-card">
+            <h3 class="method-title">
+                <i class="fas fa-{% if method_code == 'TRIAL' %}swords{% elif method_code == 'DUNGEON' %}dungeon{% elif method_code == 'DAILY' %}calendar-check{% elif method_code == 'ACHIEVEMENT' %}trophy{% elif method_code == 'COMBO' %}fire{% elif method_code == 'SPECIAL' %}star{% else %}gift{% endif %}"></i>
+                {{ method_data.name }}
+            </h3>
+            <div class="items-grid">
+                {% for item in method_data.items %}
+                <a href="{% url 'engineer_rpg:codex_item_detail' item.id %}" class="item-link">
+                    <div class="item-icon item-icon-small">
+                        {% if item.icon %}
+                        <img src="{{ item.icon.url }}" alt="{{ item.name }}">
+                        {% else %}
+                        <i class="fas fa-{% if item.effect_type == 'HINT' %}lightbulb{% elif item.effect_type == 'HEAL' %}heart{% elif item.effect_type == 'REMOVE_OPTION' %}times-circle{% elif item.effect_type == 'SHIELD' %}shield-alt{% elif item.effect_type == 'TIME_EXTEND' %}clock{% else %}magic{% endif %}"></i>
+                        {% endif %}
+                    </div>
+                    <div class="item-info">
+                        <div class="item-name">{{ item.name }}</div>
+                        <div class="item-meta">
+                            <span class="rarity-{{ item.rarity|lower }}">{{ item.get_rarity_display }}</span>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="rpg-card" style="text-align: center; padding: 2rem;">
+            <p style="color: var(--color-text-muted);">目前沒有可獲得的道具資料</p>
+        </div>
+        {% endfor %}
+    </section>
+
+    <!-- 試煉獎勵一覽 -->
+    <section id="trials-section">
+        <h2 class="section-title">
+            <i class="fas fa-dragon" style="color: var(--color-warning);"></i>
+            試煉獎勵一覽
+        </h2>
+
+        {% if trials_with_rewards %}
+        <div class="rpg-card">
+            <div class="trials-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>試煉名稱</th>
+                            <th>類型</th>
+                            <th>需求等級</th>
+                            <th>經驗獎勵</th>
+                            <th>裝備獎勵</th>
+                            <th>道具獎勵</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for trial in trials_with_rewards %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'engineer_rpg:trial_detail' trial.id %}" style="color: var(--color-secondary); text-decoration: none;">
+                                    {{ trial.title }}
+                                </a>
+                            </td>
+                            <td>
+                                {{ trial.get_trial_type_display }}
+                                {% if trial.category %}<br><small style="color: var(--color-text-muted);">{{ trial.category.name }}</small>{% endif %}
+                            </td>
+                            <td>Lv.{{ trial.required_level }}+</td>
+                            <td>{{ trial.exp_reward }} EXP</td>
+                            <td>
+                                {% if trial.equipment_reward %}
+                                <a href="{% url 'engineer_rpg:codex_equipment_detail' trial.equipment_reward.id %}" style="color: var(--color-secondary); text-decoration: none;">
+                                    {{ trial.equipment_reward.name }}
+                                </a>
+                                {% else %}
+                                <span style="color: var(--color-text-muted);">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if trial.item_reward %}
+                                <a href="{% url 'engineer_rpg:codex_item_detail' trial.item_reward.id %}" style="color: var(--color-success); text-decoration: none;">
+                                    {{ trial.item_reward.name }}
+                                </a>
+                                {% else %}
+                                <span style="color: var(--color-text-muted);">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="rpg-card" style="text-align: center; padding: 2rem;">
+            <p style="color: var(--color-text-muted);">目前沒有設定獎勵的試煉</p>
+        </div>
+        {% endif %}
+    </section>
+</div>
+
+<style>
+.section-title {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--color-border);
+}
+
+.method-card {
+    margin-bottom: 1.5rem;
+}
+.method-title {
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    color: var(--color-info);
+}
+
+.items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.item-link {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.75rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.2s, transform 0.2s;
+}
+.item-link:hover {
+    background: rgba(0, 0, 0, 0.4);
+    transform: translateX(5px);
+}
+
+.item-icon {
+    width: 48px;
+    height: 48px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--color-secondary);
+}
+.item-icon-small {
+    color: var(--color-success);
+}
+.item-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.item-name {
+    font-weight: bold;
+}
+.item-meta {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    display: flex;
+    gap: 0.5rem;
+}
+
+.rarity-common { color: #9ca3af; }
+.rarity-rare { color: #60a5fa; }
+.rarity-epic { color: #a78bfa; }
+.rarity-legendary { color: #fbbf24; }
+
+.trials-table {
+    overflow-x: auto;
+}
+.trials-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.trials-table th,
+.trials-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+}
+.trials-table th {
+    background: rgba(0, 0, 0, 0.3);
+    font-weight: bold;
+    white-space: nowrap;
+}
+.trials-table tr:hover td {
+    background: rgba(0, 0, 0, 0.1);
+}
+</style>
+{% endblock %}
