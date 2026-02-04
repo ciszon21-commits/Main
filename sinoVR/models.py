@@ -27,6 +27,8 @@ class Panorama(models.Model):
 class InfoCard(models.Model):
     title = models.CharField(max_length=200, verbose_name="字卡標題")
     content = models.TextField(verbose_name="字卡內容")
+    bg_color = models.CharField(max_length=50, default='rgba(173, 216, 230, 0.95)', verbose_name="背景顏色")
+    content_font_size = models.IntegerField(default=50, verbose_name="內容字體大小(px)")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
 
     def __str__(self):

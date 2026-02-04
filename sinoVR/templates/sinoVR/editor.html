@@ -200,9 +200,9 @@
     <div class="viewport-panel">
         <div class="toolbar">
             <div class="d-flex gap-2">
-                <a href="{% url 'sinoVR:scene_list' %}" class="btn btn-sm btn-outline-light" title="返回場景列表">
+                <button onclick="saveAndExit()" class="btn btn-sm btn-outline-light" title="保存並返回場景列表">
                     <i class="fas fa-arrow-left"></i> 返回
-                </a>
+                </button>
                 <div class="border-start border-secondary mx-1"></div>
                 <button class="btn btn-sm btn-secondary" onclick="setTool('translate')" title="Move (T)"><i
                         class="fas fa-arrows-alt"></i></button>
@@ -216,10 +216,7 @@
                 <button class="btn btn-sm btn-light" id="btn-play-toggle" onclick="togglePlayMode()">
                     <i class="fas fa-play"></i> Play
                 </button>
-                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createCardModal">
-                    <i class="fas fa-plus-square"></i> 建立字卡
-                </button>
-                <button class="btn btn-sm btn-success" id="btn-save" onclick="saveScene()">
+                <button class="btn btn-sm btn-success" id="btn-save" onclick="saveScene(false)">
                     <i class="fas fa-save"></i> Save
                 </button>
                 <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#helpModal">
@@ -284,10 +281,76 @@
                             <textarea class="form-control bg-secondary text-white border-0" id="card-content" rows="4"
                                 placeholder="在高處作業時，必須配戴安全帶並檢查鷹架穩固性"></textarea>
                         </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="card-bg-color" class="form-label">背景顏色</label>
+                                <select class="form-select bg-secondary text-white border-0" id="card-bg-color">
+                                    <option value="rgba(173, 216, 230, 0.95)">淺藍色</option>
+                                    <option value="rgba(144, 238, 144, 0.95)">淺綠色</option>
+                                    <option value="rgba(255, 218, 185, 0.95)">淺橘色</option>
+                                    <option value="rgba(255, 182, 193, 0.95)">粉紅色</option>
+                                    <option value="rgba(255, 255, 224, 0.95)">淺黃色</option>
+                                    <option value="rgba(230, 230, 250, 0.95)">淡紫色</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="card-font-size" class="form-label">內容字體大小(px)</label>
+                                <input type="number" class="form-control bg-secondary text-white border-0"
+                                    id="card-font-size" value="50" min="30" max="80" step="5">
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer border-secondary">
                         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
                         <button type="button" class="btn btn-primary btn-sm" onclick="createInfoCard()">建立</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit InfoCard Modal -->
+        <div class="modal fade" id="editCardModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content bg-dark text-light border-secondary">
+                    <div class="modal-header border-secondary">
+                        <h5 class="modal-title"><i class="fas fa-edit"></i> 編輯資訊字卡</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="edit-card-id">
+                        <div class="mb-3">
+                            <label for="edit-card-title" class="form-label">標題</label>
+                            <input type="text" class="form-control bg-secondary text-white border-0"
+                                id="edit-card-title">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-card-content" class="form-label">內容</label>
+                            <textarea class="form-control bg-secondary text-white border-0" id="edit-card-content"
+                                rows="4"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="edit-card-bg-color" class="form-label">背景顏色</label>
+                                <select class="form-select bg-secondary text-white border-0" id="edit-card-bg-color">
+                                    <option value="rgba(173, 216, 230, 0.95)">淺藍色</option>
+                                    <option value="rgba(144, 238, 144, 0.95)">淺綠色</option>
+                                    <option value="rgba(255, 218, 185, 0.95)">淺橘色</option>
+                                    <option value="rgba(255, 182, 193, 0.95)">粉紅色</option>
+                                    <option value="rgba(255, 255, 224, 0.95)">淺黃色</option>
+                                    <option value="rgba(230, 230, 250, 0.95)">淡紫色</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="edit-card-font-size" class="form-label">內容字體大小(px)</label>
+                                <input type="number" class="form-control bg-secondary text-white border-0"
+                                    id="edit-card-font-size" value="50" min="30" max="80" step="5">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="updateInfoCard()">保存</button>
                     </div>
                 </div>
             </div>
@@ -331,6 +394,15 @@
             <div class="panel-content" id="hierarchy-tree">
                 <!-- Items injected via JS -->
                 <div class="text-muted small text-center">No objects</div>
+            </div>
+            <div class="p-2 d-flex gap-2 justify-content-center border-top border-secondary bg-dark">
+                <button class="btn btn-sm btn-primary w-100" data-bs-toggle="modal" data-bs-target="#createCardModal">
+                    <i class="fas fa-plus-square"></i> 建立字卡
+                </button>
+                <button class="btn btn-sm btn-warning w-100" id="btn-edit-card" onclick="editSelectedCard()"
+                    title="編輯選中的字卡">
+                    <i class="fas fa-edit"></i> 編輯
+                </button>
             </div>
         </div>
 
@@ -567,60 +639,59 @@
 
     function loadExistingObjects() {
         {% for obj in scene.objects.all %}
-            {% if obj.info_card %}
-            addInfoCard('{{ obj.info_card.pk }}', '{{ obj.info_card.title }}', '{{ obj.info_card.content|escapejs }}', {
-                position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }} },
-                rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }} },
-                scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} }
-                    });
-            {% elif obj.asset %}
-            loadModel('{{ obj.asset.pk }}', '{{ obj.asset.file.url }}', {
-                position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }}},
-                rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }}},
-                scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} }
-            }, '{{ obj.asset.title }}');
-            {% endif %}
+        {% if obj.info_card %}
+        addInfoCard('{{ obj.info_card.pk }}', '{{ obj.info_card.title }}', '{{ obj.info_card.content|escapejs }}', {
+            position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }} },
+            rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }} },
+            scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} }
+                    }, '{{ obj.info_card.bg_color }}', {{ obj.info_card.content_font_size }});
+        {% elif obj.asset %}
+        loadModel('{{ obj.asset.pk }}', '{{ obj.asset.file.url }}', {
+            position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }}},
+            rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }}},
+            scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }}}}, '{{ obj.asset.title }}');
+        {% endif %}
         {% endfor %}
     }
 
     // InfoCard Functions
-    function addInfoCard(id, title, content, transform = {}) {
+    function addInfoCard(id, title, content, transform = {}, bgColor = 'rgba(173, 216, 230, 0.95)', fontSize = 50) {
         // Create Canvas for card texture
         const canvas = document.createElement('canvas');
         canvas.width = 1024;
         canvas.height = 768;
         const ctx = canvas.getContext('2d');
 
-        // Background
-        ctx.fillStyle = '#FFD700';
+        // Background - use custom color
+        ctx.fillStyle = bgColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = '#000';
+        ctx.strokeStyle = 'rgba(70, 130, 180, 0.9)'; // Steel blue border
         ctx.lineWidth = 8;
         ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
         // Title text (bold and larger)
-        ctx.fillStyle = '#000';
-        ctx.font = 'bold 60px Arial';
+        ctx.fillStyle = 'rgba(25, 25, 112, 1)'; // Midnight blue
+        ctx.font = 'bold 72px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         ctx.fillText(title, canvas.width / 2, 40);
 
         // Separator line
-        ctx.strokeStyle = '#000';
+        ctx.strokeStyle = 'rgba(70, 130, 180, 0.7)';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(50, 130);
-        ctx.lineTo(canvas.width - 50, 130);
+        ctx.moveTo(50, 150);
+        ctx.lineTo(canvas.width - 50, 150);
         ctx.stroke();
 
-        // Content text (multi-line with word wrap)
-        ctx.fillStyle = '#000';
-        ctx.font = '32px Arial';
+        // Content text (multi-line with word wrap, custom font size)
+        ctx.fillStyle = 'rgba(25, 25, 112, 0.95)';
+        ctx.font = `${fontSize}px Arial`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
         const maxWidth = canvas.width - 100;
-        const lineHeight = 45;
-        let y = 180;
+        const lineHeight = fontSize + 15;
+        let y = 200;
 
         // Character-based word wrap for content
         const chars = content.split('');
@@ -646,7 +717,9 @@
         const geometry = new THREE.PlaneGeometry(3, 2.25);
         const material = new THREE.MeshBasicMaterial({
             map: texture,
-            side: THREE.DoubleSide
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.95
         });
 
         const mesh = new THREE.Mesh(geometry, material);
@@ -663,7 +736,16 @@
         mesh.userData.infoCardId = id;
         mesh.userData.cardTitle = title;
         mesh.userData.cardContent = content;
+        mesh.userData.cardBgColor = bgColor;
+        mesh.userData.cardFontSize = fontSize;
         mesh.name = `字卡: ${title}`;
+
+        // Add double-click event for editing (non-play mode)
+        mesh.userData.onDoubleClick = () => {
+            if (!isPlayMode) {
+                openEditCardModal(id, title, content, bgColor, fontSize);
+            }
+        };
 
         scene.add(mesh);
         objects.push(mesh);
@@ -679,6 +761,8 @@
     window.createInfoCard = function () {
         const title = document.getElementById('card-title').value;
         const content = document.getElementById('card-content').value;
+        const bgColor = document.getElementById('card-bg-color').value;
+        const fontSize = parseInt(document.getElementById('card-font-size').value);
 
         if (!title || !content) {
             alert('請輸入標題和內容');
@@ -696,14 +780,16 @@
             body: JSON.stringify({
                 type: 'info_card',
                 title: title,
-                content: content
+                content: content,
+                bg_color: bgColor,
+                content_font_size: fontSize
             })
         })
             .then(r => r.json())
             .then(data => {
                 document.getElementById('loading').style.display = 'none';
                 if (data.type === 'info_card') {
-                    addInfoCard(data.id, data.title, content);
+                    addInfoCard(data.id, data.title, content, {}, bgColor, fontSize);
                     // Close modal
                     const modal = bootstrap.Modal.getInstance(document.getElementById('createCardModal'));
                     if (modal) modal.hide();
@@ -717,6 +803,189 @@
                 alert('建立失敗: ' + e);
             });
     }
+
+    // Edit selected InfoCard
+    window.editSelectedCard = function () {
+        if (!selectedObject) {
+            alert('請先選取一個字卡');
+            return;
+        }
+
+        if (!selectedObject.userData.isInfoCard) {
+            alert('選取的物件不是字卡');
+            return;
+        }
+
+        const data = selectedObject.userData;
+        openEditCardModal(
+            data.infoCardId,
+            data.cardTitle,
+            data.cardContent,
+            data.cardBgColor || 'rgba(173, 216, 230, 0.95)',
+            data.cardFontSize || 50
+        );
+    }
+
+    // Open edit InfoCard modal
+    function openEditCardModal(cardId, title, content, bgColor, fontSize) {
+        document.getElementById('edit-card-id').value = cardId;
+        document.getElementById('edit-card-title').value = title;
+        document.getElementById('edit-card-content').value = content;
+        document.getElementById('edit-card-bg-color').value = bgColor;
+        document.getElementById('edit-card-font-size').value = fontSize;
+
+        const modal = new bootstrap.Modal(document.getElementById('editCardModal'));
+        modal.show();
+    }
+
+    // Update InfoCard
+    window.updateInfoCard = function () {
+        const cardId = document.getElementById('edit-card-id').value;
+        const title = document.getElementById('edit-card-title').value;
+        const content = document.getElementById('edit-card-content').value;
+        const bgColor = document.getElementById('edit-card-bg-color').value;
+        const fontSize = parseInt(document.getElementById('edit-card-font-size').value);
+
+        if (!title || !content) {
+            alert('請輸入標題和內容');
+            return;
+        }
+
+        document.getElementById('loading').style.display = 'flex';
+
+        fetch(`/sinoVR/api/info-card/${cardId}/update/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': CSRF_TOKEN
+            },
+            body: JSON.stringify({
+                title: title,
+                content: content,
+                bg_color: bgColor,
+                content_font_size: fontSize
+            })
+        })
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('loading').style.display = 'none';
+                if (data.status === 'success') {
+                    rerenderInfoCard(cardId, title, content, bgColor, fontSize);
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editCardModal'));
+                    if (modal) modal.hide();
+                } else {
+                    alert('更新失敗: ' + (data.message || ''));
+                }
+            })
+            .catch(e => {
+                document.getElementById('loading').style.display = 'none';
+                alert('更新失敗: ' + e);
+            });
+    }
+
+    // Re-render InfoCard with new properties
+    function rerenderInfoCard(cardId, title, content, bgColor, fontSize) {
+        const mesh = objects.find(obj => obj.userData.isInfoCard && obj.userData.infoCardId == cardId);
+        if (!mesh) return;
+
+        const transform = {
+            position: mesh.position.clone(),
+            rotation: mesh.rotation.clone(),
+            scale: mesh.scale.clone()
+        };
+
+        scene.remove(mesh);
+        const index = objects.indexOf(mesh);
+        if (index > -1) objects.splice(index, 1);
+
+        // Create new canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 768;
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = 'rgba(70, 130, 180, 0.9)';
+        ctx.lineWidth = 8;
+        ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = 'rgba(25, 25, 112, 1)';
+        ctx.font = 'bold 72px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(title, canvas.width / 2, 40);
+
+        ctx.strokeStyle = 'rgba(70, 130, 180, 0.7)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(50, 150);
+        ctx.lineTo(canvas.width - 50, 150);
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(25, 25, 112, 0.95)';
+        ctx.font = `${fontSize}px Arial`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        const maxWidth = canvas.width - 100;
+        const lineHeight = fontSize + 15;
+        let y = 200;
+
+        const chars = content.split('');
+        let line = '';
+        for (let i = 0; i < chars.length; i++) {
+            const testLine = line + chars[i];
+            const metrics = ctx.measureText(testLine);
+            if (metrics.width > maxWidth && line.length > 0) {
+                ctx.fillText(line, 50, y);
+                line = chars[i];
+                y += lineHeight;
+                if (y > canvas.height - 50) break;
+            } else {
+                line = testLine;
+            }
+        }
+        if (line) ctx.fillText(line, 50, y);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        const geometry = new THREE.PlaneGeometry(3, 2.25);
+        const material = new THREE.MeshBasicMaterial({
+            map: texture,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.95
+        });
+
+        const newMesh = new THREE.Mesh(geometry, material);
+        newMesh.position.copy(transform.position);
+        newMesh.rotation.copy(transform.rotation);
+        newMesh.scale.copy(transform.scale);
+
+        newMesh.userData.isInteractable = true;
+        newMesh.userData.isInfoCard = true;
+        newMesh.userData.infoCardId = cardId;
+        newMesh.userData.cardTitle = title;
+        newMesh.userData.cardContent = content;
+        newMesh.userData.cardBgColor = bgColor;
+        newMesh.userData.cardFontSize = fontSize;
+        newMesh.name = `字卡: ${title}`;
+
+        newMesh.userData.onDoubleClick = () => {
+            if (!isPlayMode) {
+                openEditCardModal(cardId, title, content, bgColor, fontSize);
+            }
+        };
+
+        scene.add(newMesh);
+        objects.push(newMesh);
+
+        if (selectedObject === mesh) {
+            selectObject(newMesh);
+        }
+
+        updateHierarchy();
+    }
+
 
     window.showCardDetail = function (title, content) {
         document.getElementById('card-detail-title').textContent = title;
@@ -774,12 +1043,12 @@
         }
     }
 
-    window.saveScene = function () {
+    window.saveScene = function (silent = false) {
         const dataToSave = objects.map(obj => {
             const data = {
                 transform: {
                     position: obj.position,
-                    rotation: obj.rotation,
+                    rotation: { x: obj.rotation.x, y: obj.rotation.y, z: obj.rotation.z },
                     scale: obj.scale
                 }
             };
@@ -793,13 +1062,31 @@
             return data;
         });
 
-        fetch(SAVE_URL, {
+        // Return the promise
+        return fetch(SAVE_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
             body: JSON.stringify({ objects: dataToSave })
         }).then(r => r.json()).then(d => {
-            if (d.status === 'success') alert('Saved!');
+            if (d.status === 'success') {
+                if (!silent) alert('Saved!');
+            }
             else alert('Error: ' + d.message);
+            return d;
+        });
+    }
+
+    window.saveAndExit = function () {
+        // Show lightweight loading indicator or just change button text
+        const btn = document.querySelector('button[title="保存並返回場景列表"]');
+        if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 保存中...';
+
+        saveScene(true).then(data => {
+            if (data && data.status === 'success') {
+                window.location.href = "{% url 'sinoVR:scene_list' %}";
+            } else {
+                if (btn) btn.innerHTML = '<i class="fas fa-arrow-left"></i> 返回';
+            }
         });
     }
 
@@ -970,7 +1257,7 @@
 
     function onKeyDown(event) {
         if (event.key === 'Escape' && isPlayMode) togglePlayMode();
-        if (event.target.tagName === 'INPUT') return;
+        if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return;
 
         if (isPlayMode) {
             switch (event.code) {

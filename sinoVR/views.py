@@ -121,9 +121,35 @@ class AssetUploadView(View):
                 if data.get('type') == 'info_card':
                     info_card = InfoCard.objects.create(
                         title=data.get('title', ''),
-                        content=data.get('content', '')
+                        content=data.get('content', ''),
+                        bg_color=data.get('bg_color', 'rgba(173, 216, 230, 0.95)'),
+                        content_font_size=data.get('content_font_size', 50)
                     )
                     return JsonResponse({'id': info_card.id, 'title': info_card.title, 'type': 'info_card'})
             except Exception as e:
                 return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
         return JsonResponse({'status': 'error'}, status=400)
+
+
+class InfoCardUpdateView(View):
+    """API to update existing InfoCard"""
+    def post(self, request, card_id):
+        try:
+            data = json.loads(request.body)
+            info_card = InfoCard.objects.get(id=card_id)
+            
+            info_card.title = data.get('title', info_card.title)
+            info_card.content = data.get('content', info_card.content)
+            info_card.bg_color = data.get('bg_color', info_card.bg_color)
+            info_card.content_font_size = data.get('content_font_size', info_card.content_font_size)
+            info_card.save()
+            
+            return JsonResponse({
+                'status': 'success',
+                'id': info_card.id,
+                'title': info_card.title
+            })
+        except InfoCard.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'InfoCard not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
