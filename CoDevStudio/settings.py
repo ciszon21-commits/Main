@@ -102,6 +102,7 @@ INSTALLED_APPS = [
     'GravityPipeCalc',  # 重力管水理計算器
     'SoilMove',
     'EngineerRPG',  # 現場監造工程師職涯冒險培訓系統
+    'FinanceInsight',  # 財經新聞與選股建議
 ] + local.STAGE_INSTALLED_APPS
 
 
