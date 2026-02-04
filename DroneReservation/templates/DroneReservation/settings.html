@@ -163,6 +163,55 @@
                 {% endif %}
             </div>
         </div>
+
+        <!-- 郵件模板設定 -->
+        <div class="card" style="margin-top: 24px;">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z" />
+                    </svg>
+                    郵件模板設定
+                </h2>
+            </div>
+            <div class="card-body">
+                <p class="help-text" style="margin-bottom: 16px; color: var(--text-secondary); font-size: 13px;">
+                    可用變數：<code>{applicant_name}</code>, <code>{start_time}</code>, <code>{end_time}</code>,
+                    <code>{location}</code>, <code>{project_number}</code>, <code>{reason}</code>,
+                    <code>{reviewer_name}</code>, <code>{rejection_reason}</code>, <code>{old_start_time}</code>,
+                    <code>{old_end_time}</code>
+                </p>
+                {% for template in email_templates %}
+                <div class="template-card"
+                    style="margin-bottom: 16px; padding: 16px; border: 1px solid var(--border-color); border-radius: var(--border-radius-sm);">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_template">
+                        <input type="hidden" name="template_id" value="{{ template.pk }}">
+                        <h4 style="margin-bottom: 12px; font-weight: 600;">{{ template.get_email_type_display }}</h4>
+                        <div class="form-group" style="margin-bottom: 12px;">
+                            <label for="subject_{{ template.pk }}">郵件主旨</label>
+                            <input type="text" name="subject_template" id="subject_{{ template.pk }}"
+                                class="form-control" value="{{ template.subject_template }}">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 12px;">
+                            <label for="body_{{ template.pk }}">郵件內容</label>
+                            <textarea name="body_template" id="body_{{ template.pk }}" class="form-control"
+                                rows="6">{{ template.body_template }}</textarea>
+                        </div>
+                        <div class="form-actions" style="justify-content: flex-end;">
+                            <button type="submit" class="btn btn-primary btn-sm">儲存模板</button>
+                        </div>
+                    </form>
+                </div>
+                {% empty %}
+                <div class="empty-state">
+                    <p>目前沒有郵件模板</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 
     <style>

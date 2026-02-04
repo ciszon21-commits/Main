@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django_ckeditor_5.widgets import CKEditor5Widget
-from .models import DroneReservation, Announcement, SiteSettings, DroneReviewer
+from .models import DroneReservation, Announcement, SiteSettings, DroneReviewer, EmailTemplate
 
 
 class ReservationForm(forms.ModelForm):
@@ -166,3 +166,66 @@ class ReviewerCancelForm(forms.Form):
         required=True,
         label="取消理由"
     )
+
+
+class ReviewerTimeEditForm(forms.ModelForm):
+    """審核人編輯預約時間表單"""
+
+    class Meta:
+        model = DroneReservation
+        fields = ['usage_start_datetime', 'usage_end_datetime']
+        widgets = {
+            'usage_start_datetime': forms.DateTimeInput(
+                attrs={
+                    'type': 'datetime-local',
+                    'class': 'form-control',
+                    'step': '60'
+                },
+                format='%Y-%m-%dT%H:%M'
+            ),
+            'usage_end_datetime': forms.DateTimeInput(
+                attrs={
+                    'type': 'datetime-local',
+                    'class': 'form-control',
+                    'step': '60'
+                },
+                format='%Y-%m-%dT%H:%M'
+            ),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_time = cleaned_data.get('usage_start_datetime')
+        end_time = cleaned_data.get('usage_end_datetime')
+
+        if start_time and end_time:
+            if end_time <= start_time:
+                raise ValidationError('結束時間必須在開始時間之後')
+
+        return cleaned_data
+
+
+class EmailTemplateForm(forms.ModelForm):
+    """郵件模板編輯表單"""
+
+    class Meta:
+        model = EmailTemplate
+        fields = ['subject_template', 'body_template']
+        widgets = {
+            'subject_template': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '郵件主旨'
+            }),
+            'body_template': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 8,
+                'placeholder': '郵件內容'
+            }),
+        }
+        labels = {
+            'subject_template': '郵件主旨',
+            'body_template': '郵件內容',
+        }
+        help_texts = {
+            'body_template': '可用變數：{applicant_name}, {start_time}, {end_time}, {location}, {project_number}, {reason}, {reviewer_name}, {rejection_reason}, {old_start_time}, {old_end_time}',
+        }
