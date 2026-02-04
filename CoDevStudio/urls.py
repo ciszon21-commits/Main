@@ -44,7 +44,7 @@ urlpatterns = [
     path('soilmove/', include('SoilMove.urls', namespace='SoilMove')),  # 土石方查詢
     path('rpg/', include('EngineerRPG.urls')),  # 現場監造工程師職涯冒險培訓系統
     path('finance/', include('FinanceInsight.urls')),  # 財經新聞與選股建議
-
+    path('carbon-plbc/', include('CarbonPLBC.urls', namespace='carbonplbc')),  # 外部碳排放計算系統 (PL-BC)
 ]
 
 # 條件載入 ClashClassifier API
