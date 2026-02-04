@@ -7,8 +7,8 @@ from django.utils.decorators import method_decorator
 from django.views import View
 import json
 
-from .models import Scene, SceneObject, Asset3D, Panorama
-from .forms import SceneForm, Asset3DForm, PanoramaForm
+from .models import Scene, SceneObject, Asset3D, Panorama, InfoCard
+from .forms import SceneForm, Asset3DForm, PanoramaForm, InfoCardForm
 
 class SceneListView(ListView):
     model = Scene
@@ -45,6 +45,7 @@ class SceneDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         context['assets'] = Asset3D.objects.all()
         context['panoramas'] = Panorama.objects.all()
+        context['info_cards'] = InfoCard.objects.all()
         return context
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -71,10 +72,13 @@ class SceneUpdateAPI(View):
             
             for obj_data in objects_data:
                 asset_id = obj_data.get('asset_id')
-                if not asset_id:
+                info_card_id = obj_data.get('info_card_id')
+                
+                if not asset_id and not info_card_id:
                     continue
-                    
-                asset = Asset3D.objects.get(pk=asset_id)
+                
+                asset = Asset3D.objects.get(pk=asset_id) if asset_id else None
+                info_card = InfoCard.objects.get(pk=info_card_id) if info_card_id else None
                 transform = obj_data.get('transform', {})
                 position = transform.get('position', {})
                 rotation = transform.get('rotation', {})
@@ -83,6 +87,7 @@ class SceneUpdateAPI(View):
                 SceneObject.objects.create(
                     scene=scene,
                     asset=asset,
+                    info_card=info_card,
                     position_x=position.get('x', 0),
                     position_y=position.get('y', 0),
                     position_z=position.get('z', 0),
@@ -109,4 +114,16 @@ class AssetUploadView(View):
             elif file.name.lower().endswith(('.jpg', '.jpeg', '.png')):
                  pano = Panorama.objects.create(title=file.name, image=file)
                  return JsonResponse({'id': pano.id, 'title': pano.title, 'url': pano.image.url, 'type': 'panorama'})
+        # Handle InfoCard creation via JSON
+        elif request.content_type == 'application/json':
+            try:
+                data = json.loads(request.body)
+                if data.get('type') == 'info_card':
+                    info_card = InfoCard.objects.create(
+                        title=data.get('title', ''),
+                        content=data.get('content', '')
+                    )
+                    return JsonResponse({'id': info_card.id, 'title': info_card.title, 'type': 'info_card'})
+            except Exception as e:
+                return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
         return JsonResponse({'status': 'error'}, status=400)

@@ -216,6 +216,9 @@
                 <button class="btn btn-sm btn-light" id="btn-play-toggle" onclick="togglePlayMode()">
                     <i class="fas fa-play"></i> Play
                 </button>
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createCardModal">
+                    <i class="fas fa-plus-square"></i> 建立字卡
+                </button>
                 <button class="btn btn-sm btn-success" id="btn-save" onclick="saveScene()">
                     <i class="fas fa-save"></i> Save
                 </button>
@@ -224,6 +227,7 @@
                 </button>
             </div>
         </div>
+
 
 
 
@@ -257,6 +261,46 @@
                         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">關閉</button>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- InfoCard Create Modal -->
+        <div class="modal fade" id="createCardModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content bg-dark text-light border-secondary">
+                    <div class="modal-header border-secondary">
+                        <h5 class="modal-title"><i class="fas fa-plus-square"></i> 建立資訊字卡</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="card-title" class="form-label">標題</label>
+                            <input type="text" class="form-control bg-secondary text-white border-0" id="card-title"
+                                placeholder="例如：注意高處作業">
+                        </div>
+                        <div class="mb-3">
+                            <label for="card-content" class="form-label">內容</label>
+                            <textarea class="form-control bg-secondary text-white border-0" id="card-content" rows="4"
+                                placeholder="在高處作業時，必須配戴安全帶並檢查鷹架穩固性"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="createInfoCard()">建立</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- InfoCard Detail Overlay (Play Mode) -->
+        <div id="card-detail-overlay"
+            style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); z-index:9999; justify-content:center; align-items:center;">
+            <div
+                style="background:#2d2d2d; padding:30px; border-radius:8px; max-width:600px; width:90%; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
+                <h3 id="card-detail-title" style="color:#fff; margin-bottom:15px;"></h3>
+                <p id="card-detail-content" style="color:#ddd; white-space:pre-wrap; line-height:1.6;"></p>
+                <button onclick="closeCardDetail()" class="btn btn-secondary mt-3">關閉</button>
             </div>
         </div>
 
@@ -523,12 +567,129 @@
 
     function loadExistingObjects() {
         {% for obj in scene.objects.all %}
-        loadModel('{{ obj.asset.pk }}', '{{ obj.asset.file.url }}', {
-            position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }} },
-            rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }} },
-            scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} }
-        }, '{{ obj.asset.title }}');
-        {% endfor %}
+        {% if obj.info_card %}
+        addInfoCard('{{ obj.info_card.pk }}', '{{ obj.info_card.title }}', '{{ obj.info_card.content|escapejs }}', {
+            position: { x: {{ obj.position_x }}, y: { { obj.position_y } }, z: { { obj.position_z } } },
+    rotation: { x: { { obj.rotation_x } }, y: { { obj.rotation_y } }, z: { { obj.rotation_z } } },
+    scale: { x: { { obj.scale_x } }, y: { { obj.scale_y } }, z: { { obj.scale_z } } }
+                });
+    {% elif obj.asset %}
+    loadModel('{{ obj.asset.pk }}', '{{ obj.asset.file.url }}', {
+        position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }} },
+        rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }} },
+        scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} }
+                }, '{{ obj.asset.title }}');
+    {% endif %}
+    {% endfor %}
+    }
+
+    // InfoCard Functions
+    function addInfoCard(id, title, content, transform = {}) {
+        // Create Canvas for card texture
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+
+        // Background
+        ctx.fillStyle = '#FFD700';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+        // Title text
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 40px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(title, canvas.width / 2, canvas.height / 2);
+
+        // Create material and geometry
+        const texture = new THREE.CanvasTexture(canvas);
+        const geometry = new THREE.PlaneGeometry(2, 1);
+        const material = new THREE.MeshBasicMaterial({
+            map: texture,
+            side: THREE.DoubleSide
+        });
+
+        const mesh = new THREE.Mesh(geometry, material);
+
+        // Apply transform
+        if (transform.position) mesh.position.set(transform.position.x, transform.position.y, transform.position.z);
+        else mesh.position.set(0, 1.5, 0);
+
+        if (transform.rotation) mesh.rotation.set(transform.rotation.x, transform.rotation.y, transform.rotation.z);
+        if (transform.scale) mesh.scale.set(transform.scale.x, transform.scale.y, transform.scale.z);
+
+        mesh.userData.isInteractable = true;
+        mesh.userData.isInfoCard = true;
+        mesh.userData.infoCardId = id;
+        mesh.userData.cardTitle = title;
+        mesh.userData.cardContent = content;
+        mesh.name = `字卡: ${title}`;
+
+        scene.add(mesh);
+        objects.push(mesh);
+
+        // Select if newly added (not loading existing)
+        if (Object.keys(transform).length === 0) {
+            selectObject(mesh);
+        }
+
+        updateHierarchy();
+    }
+
+    window.createInfoCard = function () {
+        const title = document.getElementById('card-title').value;
+        const content = document.getElementById('card-content').value;
+
+        if (!title || !content) {
+            alert('請輸入標題和內容');
+            return;
+        }
+
+        document.getElementById('loading').style.display = 'flex';
+
+        fetch(UPLOAD_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': CSRF_TOKEN
+            },
+            body: JSON.stringify({
+                type: 'info_card',
+                title: title,
+                content: content
+            })
+        })
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('loading').style.display = 'none';
+                if (data.type === 'info_card') {
+                    addInfoCard(data.id, data.title, content);
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('createCardModal'));
+                    if (modal) modal.hide();
+                    // Clear inputs
+                    document.getElementById('card-title').value = '';
+                    document.getElementById('card-content').value = '';
+                }
+            })
+            .catch(e => {
+                document.getElementById('loading').style.display = 'none';
+                alert('建立失敗: ' + e);
+            });
+    }
+
+    window.showCardDetail = function (title, content) {
+        document.getElementById('card-detail-title').textContent = title;
+        document.getElementById('card-detail-content').textContent = content;
+        document.getElementById('card-detail-overlay').style.display = 'flex';
+    }
+
+    window.closeCardDetail = function () {
+        document.getElementById('card-detail-overlay').style.display = 'none';
     }
 
     // Global exposed functions
@@ -578,14 +739,23 @@
     }
 
     window.saveScene = function () {
-        const dataToSave = objects.map(obj => ({
-            asset_id: obj.userData.assetId,
-            transform: {
-                position: obj.position,
-                rotation: obj.rotation,
-                scale: obj.scale
+        const dataToSave = objects.map(obj => {
+            const data = {
+                transform: {
+                    position: obj.position,
+                    rotation: obj.rotation,
+                    scale: obj.scale
+                }
+            };
+
+            if (obj.userData.isInfoCard) {
+                data.info_card_id = obj.userData.infoCardId;
+            } else {
+                data.asset_id = obj.userData.assetId;
             }
-        }));
+
+            return data;
+        });
 
         fetch(SAVE_URL, {
             method: 'POST',
@@ -685,6 +855,29 @@
 
     function onPointerDown(event) {
         if (isPlayMode) {
+            // Check if clicking on InfoCard
+            if (event.button === 0) { // Left click
+                const rect = renderer.domElement.getBoundingClientRect();
+                pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+                raycaster.setFromCamera(pointer, camera);
+                const intersects = raycaster.intersectObjects(objects, true);
+
+                if (intersects.length > 0) {
+                    let target = intersects[0].object;
+                    // Find the root object
+                    while (target.parent && target.parent !== scene) {
+                        target = target.parent;
+                    }
+
+                    if (target.userData.isInfoCard) {
+                        showCardDetail(target.userData.cardTitle, target.userData.cardContent);
+                        return;
+                    }
+                }
+            }
+
             // FPS Mode Check: Right Click holds to rotating
             if (event.button === 2) {
                 isFPSMode = true;
