@@ -567,47 +567,83 @@
 
     function loadExistingObjects() {
         {% for obj in scene.objects.all %}
-        {% if obj.info_card %}
-        addInfoCard('{{ obj.info_card.pk }}', '{{ obj.info_card.title }}', '{{ obj.info_card.content|escapejs }}', {
-            position: { x: {{ obj.position_x }}, y: { { obj.position_y } }, z: { { obj.position_z } } },
-    rotation: { x: { { obj.rotation_x } }, y: { { obj.rotation_y } }, z: { { obj.rotation_z } } },
-    scale: { x: { { obj.scale_x } }, y: { { obj.scale_y } }, z: { { obj.scale_z } } }
-                });
-    {% elif obj.asset %}
-    loadModel('{{ obj.asset.pk }}', '{{ obj.asset.file.url }}', {
-        position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }} },
-        rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }} },
-        scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} }
-                }, '{{ obj.asset.title }}');
-    {% endif %}
-    {% endfor %}
+            {% if obj.info_card %}
+            addInfoCard('{{ obj.info_card.pk }}', '{{ obj.info_card.title }}', '{{ obj.info_card.content|escapejs }}', {
+                position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }} },
+                rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }} },
+                scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} }
+                    });
+            {% elif obj.asset %}
+            loadModel('{{ obj.asset.pk }}', '{{ obj.asset.file.url }}', {
+                position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }}},
+                rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }}},
+                scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} }
+            }, '{{ obj.asset.title }}');
+            {% endif %}
+        {% endfor %}
     }
 
     // InfoCard Functions
     function addInfoCard(id, title, content, transform = {}) {
         // Create Canvas for card texture
         const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 256;
+        canvas.width = 1024;
+        canvas.height = 768;
         const ctx = canvas.getContext('2d');
 
         // Background
         ctx.fillStyle = '#FFD700';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.strokeStyle = '#000';
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 8;
         ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
-        // Title text
+        // Title text (bold and larger)
         ctx.fillStyle = '#000';
-        ctx.font = 'bold 40px Arial';
+        ctx.font = 'bold 60px Arial';
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(title, canvas.width / 2, canvas.height / 2);
+        ctx.textBaseline = 'top';
+        ctx.fillText(title, canvas.width / 2, 40);
+
+        // Separator line
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(50, 130);
+        ctx.lineTo(canvas.width - 50, 130);
+        ctx.stroke();
+
+        // Content text (multi-line with word wrap)
+        ctx.fillStyle = '#000';
+        ctx.font = '32px Arial';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        const maxWidth = canvas.width - 100;
+        const lineHeight = 45;
+        let y = 180;
+
+        // Character-based word wrap for content
+        const chars = content.split('');
+        let line = '';
+
+        for (let i = 0; i < chars.length; i++) {
+            const testLine = line + chars[i];
+            const metrics = ctx.measureText(testLine);
+
+            if (metrics.width > maxWidth && line.length > 0) {
+                ctx.fillText(line, 50, y);
+                line = chars[i];
+                y += lineHeight;
+                if (y > canvas.height - 50) break;
+            } else {
+                line = testLine;
+            }
+        }
+        if (line) ctx.fillText(line, 50, y);
 
         // Create material and geometry
         const texture = new THREE.CanvasTexture(canvas);
-        const geometry = new THREE.PlaneGeometry(2, 1);
+        const geometry = new THREE.PlaneGeometry(3, 2.25);
         const material = new THREE.MeshBasicMaterial({
             map: texture,
             side: THREE.DoubleSide
