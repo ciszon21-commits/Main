@@ -48,6 +48,11 @@ class SceneDetailView(DetailView):
         context['info_cards'] = InfoCard.objects.all()
         return context
 
+class SceneViewerView(DetailView):
+    model = Scene
+    template_name = 'sinoVR/viewer.html'
+    context_object_name = 'scene'
+
 @method_decorator(csrf_exempt, name='dispatch')
 class SceneUpdateAPI(View):
     def post(self, request, pk):
