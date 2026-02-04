@@ -1,0 +1,903 @@
+/* ==================== RPG 風格設計系統 ==================== */
+/* 中世紀奇幻風格 - 現場監造工程師職涯冒險培訓系統 */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=MedievalSharp&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+/* ==================== CSS 變數 ==================== */
+:root {
+    /* 中世紀配色 */
+    --color-primary: #8B4513;
+    /* 深棕色 */
+    --color-secondary: #D4AF37;
+    /* 金色 */
+    --color-accent: #B8860B;
+    /* 暗金色 */
+    --color-dark: #2C1810;
+    /* 深咖啡 */
+    --color-light: #F5E6D3;
+    /* 羊皮紙色 */
+    --color-stone: #6B6B6B;
+    /* 石板灰 */
+
+    /* 職業顏色 */
+    --color-civil: #4A90E2;
+    /* 土木戰士 - 藍色 */
+    --color-me: #E94B3C;
+    /* 機電法師 - 紅色 */
+    --color-safety: #50C878;
+    /* 職安僧侶 - 綠色 */
+
+    /* 稀有度顏色 */
+    --color-common: #9E9E9E;
+    /* 普通 - 灰色 */
+    --color-rare: #4A90E2;
+    /* 稀有 - 藍色 */
+    --color-epic: #9B59B6;
+    /* 史詩 - 紫色 */
+    --color-legendary: #F39C12;
+    /* 傳說 - 橙色 */
+
+    /* 字體 */
+    --font-title: 'Cinzel', serif;
+    --font-medieval: 'MedievalSharp', cursive;
+    --font-body: 'Crimson Text', serif;
+
+    /* 間距 */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+
+    /* 陰影 */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 20px rgba(212, 175, 55, 0.6);
+
+    /* 邊框 */
+    --border-width: 3px;
+    --border-radius: 8px;
+}
+
+/* ==================== 全域樣式 ==================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-body);
+    background: linear-gradient(135deg, #2C1810 0%, #4A3728 100%);
+    background-attachment: fixed;
+    color: var(--color-light);
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+/* 羊皮紙背景紋理 */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        repeating-linear-gradient(0deg,
+            rgba(0, 0, 0, 0.03) 0px,
+            transparent 1px,
+            transparent 2px,
+            rgba(0, 0, 0, 0.03) 3px);
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* ==================== 標題樣式 ==================== */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-title);
+    color: var(--color-secondary);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    margin-bottom: var(--spacing-md);
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+h2 {
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+/* ==================== 容器 ==================== */
+.rpg-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+}
+
+/* ==================== 卡片樣式 ==================== */
+.rpg-card {
+    background: linear-gradient(135deg, rgba(44, 24, 16, 0.95) 0%, rgba(74, 55, 40, 0.95) 100%);
+    border: var(--border-width) solid var(--color-secondary);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+}
+
+/* 卡片裝飾角 */
+.rpg-card::before,
+.rpg-card::after {
+    content: '';
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border: 2px solid var(--color-secondary);
+}
+
+.rpg-card::before {
+    top: 10px;
+    left: 10px;
+    border-right: none;
+    border-bottom: none;
+}
+
+.rpg-card::after {
+    bottom: 10px;
+    right: 10px;
+    border-left: none;
+    border-top: none;
+}
+
+/* 羊皮紙卡片 */
+.rpg-card-parchment {
+    background: linear-gradient(135deg, #F5E6D3 0%, #E8D4B8 100%);
+    border: var(--border-width) solid var(--color-primary);
+    color: var(--color-dark);
+    box-shadow: var(--shadow-md), inset 0 0 50px rgba(139, 69, 19, 0.1);
+}
+
+.rpg-card-parchment h1,
+.rpg-card-parchment h2,
+.rpg-card-parchment h3 {
+    color: var(--color-primary);
+}
+
+/* ==================== 按鈕樣式 ==================== */
+.rpg-btn {
+    font-family: var(--font-title);
+    font-size: 1rem;
+    font-weight: 600;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border: 2px solid var(--color-secondary);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+    color: var(--color-light);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+}
+
+.rpg-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s ease;
+}
+
+.rpg-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow);
+    border-color: var(--color-light);
+}
+
+.rpg-btn:hover::before {
+    left: 100%;
+}
+
+.rpg-btn:active {
+    transform: translateY(0);
+}
+
+/* 按鈕變體 */
+.rpg-btn-primary {
+    background: linear-gradient(135deg, var(--color-civil) 0%, #357ABD 100%);
+}
+
+.rpg-btn-danger {
+    background: linear-gradient(135deg, var(--color-me) 0%, #C23B2F 100%);
+}
+
+.rpg-btn-success {
+    background: linear-gradient(135deg, var(--color-safety) 0%, #3FA663 100%);
+}
+
+.rpg-btn-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* ==================== HP/MP 條 ==================== */
+.rpg-stat-bar {
+    width: 100%;
+    height: 30px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid var(--color-secondary);
+    border-radius: 15px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: var(--spacing-sm);
+}
+
+.rpg-stat-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-me) 0%, #F39C12 100%);
+    transition: width 0.5s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.rpg-stat-bar-fill::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.rpg-stat-bar-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: var(--font-title);
+    font-weight: 600;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    z-index: 1;
+}
+
+/* HP 條 */
+.rpg-hp-bar .rpg-stat-bar-fill {
+    background: linear-gradient(90deg, #E94B3C 0%, #F39C12 100%);
+}
+
+/* MP 條 */
+.rpg-mp-bar .rpg-stat-bar-fill {
+    background: linear-gradient(90deg, #4A90E2 0%, #50C878 100%);
+}
+
+/* 經驗值條 */
+.rpg-exp-bar .rpg-stat-bar-fill {
+    background: linear-gradient(90deg, #9B59B6 0%, #D4AF37 100%);
+}
+
+/* ==================== 技能樹樣式 ==================== */
+.skill-tree-container {
+    position: relative;
+    min-height: 600px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid var(--color-secondary);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-xl);
+    overflow: auto;
+}
+
+.skill-node {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid var(--color-secondary);
+    background: linear-gradient(135deg, var(--color-dark) 0%, var(--color-primary) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-md);
+}
+
+.skill-node:hover {
+    transform: scale(1.1);
+    box-shadow: var(--shadow-glow);
+}
+
+.skill-node.locked {
+    opacity: 0.4;
+    filter: grayscale(100%);
+    cursor: not-allowed;
+}
+
+.skill-node.available {
+    border-color: var(--color-safety);
+    animation: pulse 2s infinite;
+}
+
+.skill-node.in-progress {
+    border-color: var(--color-civil);
+}
+
+.skill-node.completed {
+    border-color: var(--color-secondary);
+    box-shadow: var(--shadow-glow);
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 10px var(--color-safety);
+    }
+
+    50% {
+        box-shadow: 0 0 20px var(--color-safety);
+    }
+}
+
+/* ==================== 裝備欄樣式 ==================== */
+.equipment-slot {
+    background: rgba(0, 0, 0, 0.3);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    border: 2px solid var(--color-primary);
+    min-height: 100px;
+    width: auto;
+    min-width: 220px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.equipment-slot:hover {
+    border-color: var(--color-secondary);
+    background: rgba(212, 175, 55, 0.1);
+}
+
+.equipment-slot.filled {
+    border-color: var(--color-secondary);
+    background: linear-gradient(135deg, rgba(74, 90, 226, 0.2) 0%, rgba(155, 89, 182, 0.2) 100%);
+}
+
+.equipment-item {
+    width: 80px;
+    height: 80px;
+    border-radius: var(--border-radius);
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    cursor: grab;
+}
+
+.equipment-item:active {
+    cursor: grabbing;
+}
+
+/* 裝備稀有度邊框 */
+.equipment-item.common {
+    border: 2px solid var(--color-common);
+}
+
+.equipment-item.rare {
+    border: 2px solid var(--color-rare);
+    box-shadow: 0 0 10px var(--color-rare);
+}
+
+.equipment-item.epic {
+    border: 2px solid var(--color-epic);
+    box-shadow: 0 0 15px var(--color-epic);
+}
+
+.equipment-item.legendary {
+    border: 2px solid var(--color-legendary);
+    box-shadow: 0 0 20px var(--color-legendary);
+    animation: legendary-glow 2s infinite;
+}
+
+@keyframes legendary-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px var(--color-legendary);
+    }
+
+    50% {
+        box-shadow: 0 0 30px var(--color-legendary);
+    }
+}
+
+/* 強化等級顯示 */
+.enhancement-level {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    background: var(--color-secondary);
+    color: var(--color-dark);
+    font-family: var(--font-title);
+    font-weight: 700;
+    font-size: 0.8rem;
+    padding: 2px 6px;
+    border-radius: 50%;
+    border: 2px solid var(--color-dark);
+}
+
+/* ==================== 角色展示 ==================== */
+.character-display {
+    width: 300px;
+    height: 400px;
+    margin: 0 auto;
+    position: relative;
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.2) 0%, transparent 70%);
+    border-radius: var(--border-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.character-avatar {
+    width: 250px;
+    height: 250px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
+}
+
+.level-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-accent) 100%);
+    color: var(--color-dark);
+    font-family: var(--font-title);
+    font-weight: 700;
+    font-size: 1.5rem;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: 50%;
+    border: 3px solid var(--color-dark);
+    box-shadow: var(--shadow-glow);
+    min-width: 60px;
+    text-align: center;
+}
+
+/* ==================== 導航列 ==================== */
+.rpg-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: linear-gradient(180deg, rgba(44, 24, 16, 0.95) 0%, rgba(74, 55, 40, 0.98) 100%);
+    border-top: 3px solid var(--color-secondary);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    padding: var(--spacing-sm) 0;
+}
+
+.rpg-nav-list {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    list-style: none;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.rpg-nav-item {
+    flex: 1;
+    text-align: center;
+}
+
+.rpg-nav-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    color: var(--color-light);
+    text-decoration: none;
+    font-family: var(--font-title);
+    font-size: 0.9rem;
+    padding: var(--spacing-sm);
+    transition: all 0.3s ease;
+}
+
+.rpg-nav-link:hover {
+    color: var(--color-secondary);
+    transform: translateY(-3px);
+}
+
+.rpg-nav-link.active {
+    color: var(--color-secondary);
+    text-shadow: 0 0 10px var(--color-secondary);
+}
+
+.rpg-nav-icon {
+    font-size: 1.5rem;
+}
+
+/* ==================== 試煉介面 ==================== */
+.trial-question {
+    background: var(--color-dark);
+    border: 2px solid var(--color-secondary);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.trial-option {
+    background: rgba(107, 107, 107, 0.3);
+    border: 2px solid var(--color-stone);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.trial-option:hover {
+    background: rgba(212, 175, 55, 0.2);
+    border-color: var(--color-secondary);
+}
+
+.trial-option.selected {
+    background: rgba(74, 90, 226, 0.3);
+    border-color: var(--color-civil);
+}
+
+.trial-option.correct {
+    background: rgba(80, 200, 120, 0.3);
+    border-color: var(--color-safety);
+}
+
+.trial-option.incorrect {
+    background: rgba(233, 75, 60, 0.3);
+    border-color: var(--color-me);
+}
+
+/* 計時器 */
+.trial-timer {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(44, 24, 16, 0.95);
+    border: 3px solid var(--color-secondary);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    font-family: var(--font-title);
+    font-size: 1.5rem;
+    color: var(--color-secondary);
+    box-shadow: var(--shadow-lg);
+    z-index: 999;
+}
+
+.trial-timer.warning {
+    border-color: var(--color-me);
+    color: var(--color-me);
+    animation: timer-pulse 1s infinite;
+}
+
+@keyframes timer-pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+/* ==================== 主管審核介面 ==================== */
+.manager-seal {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--color-me) 0%, var(--color-primary) 100%);
+    border: 5px solid var(--color-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-medieval);
+    font-size: 2rem;
+    color: var(--color-light);
+    cursor: grab;
+    box-shadow: var(--shadow-lg);
+    transition: all 0.3s ease;
+}
+
+.manager-seal:hover {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: var(--shadow-glow);
+}
+
+.manager-seal:active {
+    cursor: grabbing;
+    transform: scale(0.95);
+}
+
+/* 蓋章動畫 */
+@keyframes stamp-animation {
+    0% {
+        transform: scale(0) rotate(0deg);
+        opacity: 0;
+    }
+
+    50% {
+        transform: scale(1.2) rotate(10deg);
+    }
+
+    100% {
+        transform: scale(1) rotate(5deg);
+        opacity: 1;
+    }
+}
+
+.stamped {
+    animation: stamp-animation 0.5s ease-out;
+}
+
+/* ==================== 排行榜 ==================== */
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+    padding: var(--spacing-md);
+    text-align: left;
+    border-bottom: 1px solid var(--color-stone);
+}
+
+.leaderboard-table th {
+    background: var(--color-primary);
+    color: var(--color-secondary);
+    font-family: var(--font-title);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.leaderboard-table tr:hover {
+    background: rgba(212, 175, 55, 0.1);
+}
+
+.leaderboard-rank {
+    font-family: var(--font-title);
+    font-weight: 700;
+    font-size: 1.2rem;
+}
+
+.leaderboard-rank.top-1 {
+    color: var(--color-legendary);
+    text-shadow: 0 0 10px var(--color-legendary);
+}
+
+.leaderboard-rank.top-2 {
+    color: #C0C0C0;
+    text-shadow: 0 0 10px #C0C0C0;
+}
+
+.leaderboard-rank.top-3 {
+    color: #CD7F32;
+    text-shadow: 0 0 10px #CD7F32;
+}
+
+/* ==================== 響應式設計 ==================== */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2rem;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+    }
+
+    h3 {
+        font-size: 1.2rem;
+    }
+
+    .rpg-container {
+        padding: var(--spacing-md);
+    }
+
+    .rpg-card {
+        padding: var(--spacing-md);
+    }
+
+    .character-display {
+        width: 200px;
+        height: 300px;
+    }
+
+    .character-avatar {
+        width: 180px;
+        height: 250px;
+    }
+
+    .rpg-nav-link {
+        font-size: 0.75rem;
+    }
+
+    .rpg-nav-icon {
+        font-size: 1.2rem;
+    }
+}
+
+/* ==================== 工具類別 ==================== */
+.text-center {
+    text-align: center;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.text-left {
+    text-align: left;
+}
+
+.mt-sm {
+    margin-top: var(--spacing-sm);
+}
+
+.mt-md {
+    margin-top: var(--spacing-md);
+}
+
+.mt-lg {
+    margin-top: var(--spacing-lg);
+}
+
+.mb-sm {
+    margin-bottom: var(--spacing-sm);
+}
+
+.mb-md {
+    margin-bottom: var(--spacing-md);
+}
+
+.mb-lg {
+    margin-bottom: var(--spacing-lg);
+}
+
+.p-sm {
+    padding: var(--spacing-sm);
+}
+
+.p-md {
+    padding: var(--spacing-md);
+}
+
+.p-lg {
+    padding: var(--spacing-lg);
+}
+
+.flex {
+    display: flex;
+}
+
+.flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flex-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.flex-column {
+    flex-direction: column;
+}
+
+.gap-sm {
+    gap: var(--spacing-sm);
+}
+
+.gap-md {
+    gap: var(--spacing-md);
+}
+
+.gap-lg {
+    gap: var(--spacing-lg);
+}
+
+.grid {
+    display: grid;
+}
+
+.grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 768px) {
+
+    .grid-2,
+    .grid-3,
+    .grid-4 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==================== 表單樣式 ==================== */
+.rpg-input {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: rgba(255, 255, 255, 0.7);
+    border: 2px solid var(--color-primary);
+    border-radius: var(--border-radius);
+    color: var(--color-dark);
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.rpg-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 10px rgba(184, 134, 11, 0.5);
+    transform: translateY(-1px);
+}
+
+.rpg-input::placeholder {
+    color: rgba(44, 24, 16, 0.5);
+    font-style: italic;
+}
+
+.rpg-checkbox {
+    accent-color: var(--color-secondary);
+    width: 1.2rem;
+    height: 1.2rem;
+    cursor: pointer;
+    vertical-align: middle;
+}

@@ -1,0 +1,60 @@
+﻿{% extends 'EngineerRPG/management/base_management.html' %}
+
+{% block management_content %}
+<div class="rpg-card">
+    <div class="rpg-card-header flex justify-between items-center">
+        <h3 class="rpg-card-title"><i class="fas fa-dungeon"></i> 地下城管理</h3>
+        <a href="{% url 'engineer_rpg:create_dungeon' %}" class="rpg-btn rpg-btn-sm rpg-btn-primary">
+            <i class="fas fa-plus"></i> 新增地下城
+        </a>
+    </div>
+
+    <div class="table-container mt-md">
+        <table class="rpg-table w-full">
+            <thead>
+                <tr>
+                    <th>標題</th>
+                    <th>分類</th>
+                    <th>等級需求</th>
+                    <th>題目數</th>
+                    <th>狀態</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dungeon in dungeons %}
+                <tr>
+                    <td class="font-bold text-lg">{{ dungeon.title }}</td>
+                    <td>
+                        {% if dungeon.category %}
+                        <span class="badge bg-secondary/20 text-secondary">{{ dungeon.category.name }}</span>
+                        {% else %}
+                        <span class="text-stone text-xs">無分類</span>
+                        {% endif %}
+                    </td>
+                    <td>Lv. {{ dungeon.required_level }}</td>
+                    <td>{{ dungeon.question_count }} 題</td>
+                    <td>
+                        {% if dungeon.is_active %}
+                        <span class="text-success"><i class="fas fa-check-circle"></i> 啟用</span>
+                        {% else %}
+                        <span class="text-stone"><i class="fas fa-ban"></i> 停用</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'engineer_rpg:edit_dungeon' dungeon.id %}"
+                            class="rpg-btn rpg-btn-xs rpg-btn-secondary">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-lg text-stone">目前沒有地下城</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

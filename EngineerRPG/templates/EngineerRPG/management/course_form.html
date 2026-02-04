@@ -1,0 +1,219 @@
+﻿{% extends 'EngineerRPG/management/base_management.html' %}
+
+{% block management_content %}
+<div class="rpg-card">
+    <div class="rpg-card-header">
+        <h3 class="rpg-card-title">
+            <i class="fas fa-scroll"></i> {% if mode == 'edit' %}編輯課程{% else %}新增課程{% endif %}
+        </h3>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="p-lg">
+        {% csrf_token %}
+
+        <div class="space-y-md">
+            <!-- 課程基本資訊 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+                <div>
+                    <label class="form-label">課程名稱 <span class="text-danger">*</span></label>
+                    <input type="text" name="title" value="{{ course.title|default:'' }}" class="rpg-input w-full"
+                        required>
+                </div>
+                <div>
+                    <label class="form-label">內容類型</label>
+                    <select name="content_type" class="rpg-input w-full">
+                        <option value="PDF" {% if course.content_type == 'PDF' %}selected{% endif %}>PDF文件</option>
+                        <option value="LINK" {% if course.content_type == 'LINK' %}selected{% endif %}>外部連結</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 描述 -->
+            <div>
+                <label class="form-label">課程描述</label>
+                <textarea name="description" rows="3"
+                    class="rpg-input w-full">{{ course.description|default:'' }}</textarea>
+            </div>
+
+            <!-- 內容連結 -->
+            <div>
+                <label class="form-label">課程內容網址</label>
+                <input type="url" name="content_url" value="{{ course.content_url|default:'' }}"
+                    class="rpg-input w-full" placeholder="https://...">
+            </div>
+
+            <!-- 內容檔案 -->
+            <div>
+                <label class="form-label">或上傳內容檔案</label>
+                <input type="file" name="content_file" class="rpg-input w-full">
+                {% if course.content_file %}
+                <p class="text-xs text-stone mt-xs">目前檔案: <a href="{{ course.content_file.url }}" target="_blank"
+                        class="text-primary">{{ course.content_file.name }}</a></p>
+                {% endif %}
+            </div>
+
+            <div class="bg-black/20 p-md rounded border border-white/10">
+                <h4 class="text-secondary font-bold mb-sm"><i class="fas fa-edit"></i> 考試設定</h4>
+                <div class="grid grid-cols-2 gap-md">
+                    <!-- Exams Time Limit -->
+                    <div class="col-span-2">
+                        <label class="form-label">考試時限（分鐘）</label>
+                        <input type="number" name="exam_time_limit" value="{{ course.exam_time_limit|default:20 }}"
+                            min="1" max="120" class="rpg-input w-full">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 關聯題目 -->
+            <div>
+                <div class="flex justify-between items-center mb-xs gap-sm flex-wrap">
+                    <label class="form-label mb-0">關聯考試題目</label>
+                    <div class="flex gap-xs flex-1 justify-end items-center flex-wrap">
+                        <div class="flex gap-xs mr-sm">
+                            <button type="button" id="selectAllBtn"
+                                class="rpg-btn rpg-btn-outline text-xs py-xs px-sm">全選</button>
+                            <button type="button" id="clearBtn"
+                                class="rpg-btn rpg-btn-outline text-xs py-xs px-sm">清除</button>
+                        </div>
+                        <select id="categoryFilter" class="rpg-input text-sm py-xs px-sm w-32">
+                            <option value="">所有分類</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="text" id="questionSearch" class="rpg-input text-sm py-xs px-sm w-48"
+                            placeholder="搜尋題目...">
+                        <button type="button" id="searchBtn" class="rpg-btn rpg-btn-primary text-sm py-xs px-sm"
+                            title="搜尋">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-black/30 p-md rounded h-96 overflow-y-auto" id="questionList">
+                    {% regroup questions by category as category_list %}
+                    {% for category_group in category_list %}
+                    <div class="mb-md question-category-group"
+                        data-category-id="{{ category_group.grouper.id|default:'' }}">
+                        <div class="text-sm font-bold text-secondary mb-xs category-title">
+                            {{ category_group.grouper.name|default:"未分類" }}
+                        </div>
+                        {% for question in category_group.list %}
+                        <label
+                            class="flex items-start gap-sm p-xs hover:bg-white/5 rounded cursor-pointer question-item"
+                            data-content="{{ question.content|lower }}">
+                            <input type="checkbox" name="questions" value="{{ question.id }}" 
+                            {% if question.id in selected_question_ids %}checked{% endif %} class="mt-1">
+                            <span class="text-sm flex-1">{{ question.content|truncatewords:20 }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <script>
+                const searchInput = document.getElementById('questionSearch');
+                const categorySelect = document.getElementById('categoryFilter');
+                const searchBtn = document.getElementById('searchBtn');
+                const selectAllBtn = document.getElementById('selectAllBtn');
+                const clearBtn = document.getElementById('clearBtn');
+
+                function filterQuestions() {
+                    const searchText = searchInput.value.toLowerCase();
+                    const selectedCategory = categorySelect.value;
+                    const groups = document.querySelectorAll('.question-category-group');
+
+                    groups.forEach(group => {
+                        const groupCategoryId = group.dataset.categoryId;
+
+                        // Check if group matches selected category
+                        const isCategoryMatch = !selectedCategory || selectedCategory === groupCategoryId;
+
+                        if (!isCategoryMatch) {
+                            group.style.display = 'none';
+                            return; // Skip processing questions if category doesn't match
+                        }
+
+                        let hasVisibleQuestions = false;
+                        const questions = group.querySelectorAll('.question-item');
+
+                        questions.forEach(item => {
+                            const content = item.dataset.content;
+                            if (content.includes(searchText)) {
+                                item.style.display = 'flex';
+                                hasVisibleQuestions = true;
+                            } else {
+                                item.style.display = 'none';
+                            }
+                        });
+
+                        // Show/hide group based on visible questions
+                        if (hasVisibleQuestions) {
+                            group.style.display = 'block';
+                        } else {
+                            group.style.display = 'none';
+                        }
+                    });
+                }
+
+                function getVisibleQuestions() {
+                    const groups = document.querySelectorAll('.question-category-group');
+                    const visibleQuestions = [];
+
+                    groups.forEach(group => {
+                        if (group.style.display !== 'none') {
+                            const questions = group.querySelectorAll('.question-item');
+                            questions.forEach(item => {
+                                if (item.style.display !== 'flex' && item.style.display !== '') {
+                                    // Note: item.style.display might be empty if never toggled, assuming flex/block default
+                                    // But logic above sets it to 'flex' or 'none'. 
+                                    // If filter hasn't run, it is empty. Default CSS handling implies visible.
+                                    // Safer check: if it is explicitly 'none', skip.
+                                }
+
+                                // Better check:
+                                if (item.style.display !== 'none') {
+                                    visibleQuestions.push(item);
+                                }
+                            });
+                        }
+                    });
+                    return visibleQuestions;
+                }
+
+                selectAllBtn.addEventListener('click', () => {
+                    getVisibleQuestions().forEach(item => {
+                        item.querySelector('input[type="checkbox"]').checked = true;
+                    });
+                });
+
+                clearBtn.addEventListener('click', () => {
+                    getVisibleQuestions().forEach(item => {
+                        item.querySelector('input[type="checkbox"]').checked = false;
+                    });
+                });
+
+                searchBtn.addEventListener('click', filterQuestions);
+
+                searchInput.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        filterQuestions();
+                    }
+                });
+
+                categorySelect.addEventListener('change', filterQuestions);
+            </script>
+        </div>
+
+        <div class="flex gap-md mt-lg">
+            <button type="submit" class="rpg-btn rpg-btn-primary">
+                <i class="fas fa-save"></i> 儲存
+            </button>
+            <a href="{% url 'engineer_rpg:question_management' %}" class="rpg-btn rpg-btn-outline">
+                <i class="fas fa-times"></i> 取消
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

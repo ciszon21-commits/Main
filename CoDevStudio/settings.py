@@ -101,6 +101,7 @@ INSTALLED_APPS = [
     'InterviewAssessment',
     'GravityPipeCalc',  # 重力管水理計算器
     'SoilMove',
+    'EngineerRPG',  # 現場監造工程師職涯冒險培訓系統
 ] + local.STAGE_INSTALLED_APPS
 
 

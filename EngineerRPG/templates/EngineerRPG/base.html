@@ -1,0 +1,213 @@
+﻿{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}現場監造工程師職涯冒險培訓系統{% endblock %}</title>
+
+    <!-- RPG 風格 CSS -->
+    <link rel="stylesheet" href="{% static 'EngineerRPG/css/rpg-style.css' %}">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <!-- 頁首 -->
+    <header class="rpg-header"
+        style="padding: 1rem; background: linear-gradient(180deg, rgba(44, 24, 16, 0.95) 0%, rgba(74, 55, 40, 0.95) 100%); border-bottom: 3px solid var(--color-secondary);">
+        <div class="rpg-container">
+            <div class="flex flex-between">
+                <div>
+                    <h1 style="font-size: 1.5rem; margin: 0;">
+                        <a href="{% url 'engineer_rpg:index' %}"
+                            style="color: inherit; text-decoration: none; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-dragon"></i>
+                            監造冒險者公會
+                        </a>
+                    </h1>
+                </div>
+
+                {% if user.is_authenticated and user.rpg_profile %}
+                <div class="flex gap-md" style="align-items: center;">
+                    <!-- 使用者資訊 -->
+                    <div class="level-badge" style="position: static; min-width: auto;">
+                        Lv.{{ user.rpg_profile.level|default:1 }}
+                    </div>
+
+                    <div style="text-align: right;">
+                        <div style="font-family: var(--font-title); font-weight: 600;">
+                            {{ user.get_full_name|default:user.username }}
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--color-secondary);">
+                            {{ user.rpg_profile.character_class.name|default:"冒險者" }}
+                        </div>
+                    </div>
+
+                    <a href="{% url 'engineer_rpg:logout' %}" class="rpg-btn rpg-btn-sm rpg-btn-danger"
+                        style="margin-left: var(--spacing-sm);" title="登出">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </a>
+                </div>
+                {% else %}
+                <div class="flex gap-sm">
+                    <a href="{% url 'engineer_rpg:login' %}" class="rpg-btn">登入</a>
+                    <a href="{% url 'engineer_rpg:register' %}" class="rpg-btn rpg-btn-success">註冊</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要內容 -->
+    <main class="rpg-main" style="padding-bottom: 80px; min-height: calc(100vh - 200px);">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- 底部導航列 -->
+    {% if user.is_authenticated and user.rpg_profile %}
+    <nav class="rpg-nav">
+        <ul class="rpg-nav-list">
+            <li class="rpg-nav-item">
+                <a href="{% url 'engineer_rpg:dashboard' %}"
+                    class="rpg-nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <i class="rpg-nav-icon fas fa-home"></i>
+                    <span>大廳</span>
+                </a>
+            </li>
+            <li class="rpg-nav-item">
+                <a href="{% url 'engineer_rpg:skill_tree' %}"
+                    class="rpg-nav-link {% if request.resolver_match.url_name == 'skill_tree' %}active{% endif %}">
+                    <i class="rpg-nav-icon fas fa-tree"></i>
+                    <span>技能樹</span>
+                </a>
+            </li>
+            <li class="rpg-nav-item">
+                <a href="{% url 'engineer_rpg:equipment_inventory' %}"
+                    class="rpg-nav-link {% if request.resolver_match.url_name == 'equipment_inventory' %}active{% endif %}">
+                    <i class="rpg-nav-icon fas fa-shield-alt"></i>
+                    <span>裝備欄</span>
+                </a>
+            </li>
+            <li class="rpg-nav-item">
+                <a href="{% url 'engineer_rpg:item_inventory' %}"
+                    class="rpg-nav-link {% if request.resolver_match.url_name == 'item_inventory' %}active{% endif %}">
+                    <i class="rpg-nav-icon fas fa-briefcase"></i>
+                    <span>道具包</span>
+                </a>
+            </li>
+            <li class="rpg-nav-item">
+                <a href="{% url 'engineer_rpg:training_hub' %}"
+                    class="rpg-nav-link {% if 'training' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="rpg-nav-icon fas fa-khanda"></i>
+                    <span>試煉場</span>
+                </a>
+            </li>
+            <li class="rpg-nav-item">
+                <a href="{% url 'engineer_rpg:leaderboard' %}"
+                    class="rpg-nav-link {% if request.resolver_match.url_name == 'leaderboard' %}active{% endif %}">
+                    <i class="rpg-nav-icon fas fa-trophy"></i>
+                    <span>排行榜</span>
+                </a>
+            </li>
+
+
+            <!-- 隊伍管理 - 所有人都可見 -->
+            <li class="rpg-nav-item">
+                <a href="{% url 'engineer_rpg:team_dashboard' %}"
+                    class="rpg-nav-link {% if 'team' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="rpg-nav-icon fas fa-users"></i>
+                    <span>隊伍</span>
+                </a>
+            </li>
+
+            <!-- 公會 - 全員可見 -->
+            <li class="rpg-nav-item">
+                <a href="{% url 'engineer_rpg:guild_dashboard' %}"
+                    class="rpg-nav-link {% if 'guild' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="rpg-nav-icon fas fa-crown"></i>
+                    <span>公會</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+
+    <!-- 訊息通知 -->
+    {% if messages %}
+    <div class="rpg-messages" style="position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px;">
+        {% for message in messages %}
+        <div class="rpg-notification {{ message.tags }}" style="
+            background: linear-gradient(135deg, rgba(44, 24, 16, 0.98) 0%, rgba(74, 55, 40, 0.98) 100%);
+            border: 2px solid var(--color-secondary);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+            box-shadow: var(--shadow-lg);
+            animation: slideInRight 0.3s ease;
+        ">
+            <i
+                class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+
+    <style>
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+        }
+
+        .fade-out {
+            animation: fadeOut 0.5s ease forwards;
+        }
+    </style>
+
+    <script>
+        // 自動消失通知訊息
+        (function () {
+            const messages = document.querySelectorAll('.rpg-notification');
+            if (messages.length > 0) {
+                messages.forEach(function (msg, index) {
+                    setTimeout(function () {
+                        msg.classList.add('fade-out');
+                        setTimeout(function () {
+                            msg.remove();
+                        }, 500); // 等待動畫完成
+                    }, 3000 + (index * 200)); // 3秒後開始消失，多個訊息錯開
+                });
+            }
+        })();
+    </script>
+    {% endif %}
+
+    <!-- JavaScript -->
+    <script src="{% static 'EngineerRPG/js/rpg-effects.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

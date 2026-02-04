@@ -1,0 +1,124 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}{% if team %}編輯隊伍{% else %}創建隊伍{% endif %} | 管理中心{% endblock %}
+
+{% block content %}
+<div class="rpg-container fade-in">
+    <!-- 頁面標題 -->
+    <div class="text-center mb-xl">
+        <h2 class="rpg-title">
+            <i class="fas fa-{% if team %}edit{% else %}plus{% endif %}"></i>
+            {% if team %}編輯隊伍{% else %}創建隊伍{% endif %}
+        </h2>
+    </div>
+
+    <div class="rpg-card" style="max-width: 800px; margin: 0 auto;">
+        <div class="rpg-card-body">
+            <form method="post" class="rpg-form">
+                {% csrf_token %}
+
+                <div class="form-group mb-lg">
+                    <label for="name" class="form-label">
+                        <i class="fas fa-tag"></i> 隊伍名稱 <span class="text-danger">*</span>
+                    </label>
+                    <input type="text" id="name" name="name" class="form-control" value="{{ team.name|default:'' }}"
+                        placeholder="例如：工程第一分隊" required>
+                </div>
+
+                <div class="form-group mb-lg">
+                    <label for="description" class="form-label">
+                        <i class="fas fa-align-left"></i> 隊伍說明
+                    </label>
+                    <textarea id="description" name="description" class="form-control" rows="4"
+                        placeholder="簡單描述這個隊伍的職責或特色...">{{ team.description|default:'' }}</textarea>
+                </div>
+
+                {% if team %}
+                <div class="form-group mb-lg">
+                    <label for="leader" class="form-label">
+                        <i class="fas fa-crown"></i> 隊長
+                    </label>
+                    <select id="leader" name="leader" class="form-control">
+                        <option value="">未指派</option>
+                        {% for member in members %}
+                        <option value="{{ member.user.id }}" {% if team.leader and team.leader.id == member.user.id %}selected{% endif %}>
+                            {{ member.user.get_full_name|default:.user.get_full_name|default:.user.username }} (Lv.{{ member.level }} {{ member.character_class.name }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-stone">只能從隊伍成員中選擇隊長</small>
+                </div>
+                {% endif %}
+
+                <div class="form-actions">
+                    <button type="submit" class="rpg-btn rpg-btn-primary">
+                        <i class="fas fa-save"></i>
+                        {% if team %}儲存變更{% else %}創建隊伍{% endif %}
+                    </button>
+                    <a href="{% if team %}{% url 'engineer_rpg:manage_team_members' team.id %}{% else %}{% url 'engineer_rpg:team_management' %}{% endif %}"
+                        class="rpg-btn rpg-btn-outline">
+                        <i class="fas fa-times"></i> 取消
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .rpg-form {
+        padding: var(--spacing-md);
+    }
+
+    .form-group {
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: var(--spacing-xs);
+        color: var(--color-gold);
+        font-weight: bold;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: var(--spacing-sm);
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius);
+        color: var(--color-text);
+        font-size: 1rem;
+        transition: all 0.3s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 10px rgba(var(--rgb-primary), 0.3);
+    }
+
+    .form-control::placeholder {
+        color: var(--color-stone);
+    }
+
+    textarea.form-control {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: var(--spacing-md);
+        justify-content: center;
+        margin-top: var(--spacing-xl);
+        padding-top: var(--spacing-lg);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .text-danger {
+        color: var(--color-danger);
+    }
+</style>
+{% endblock %}
