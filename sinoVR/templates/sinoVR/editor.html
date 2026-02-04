@@ -200,6 +200,10 @@
     <div class="viewport-panel">
         <div class="toolbar">
             <div class="d-flex gap-2">
+                <a href="{% url 'sinoVR:scene_list' %}" class="btn btn-sm btn-outline-light" title="返回場景列表">
+                    <i class="fas fa-arrow-left"></i> 返回
+                </a>
+                <div class="border-start border-secondary mx-1"></div>
                 <button class="btn btn-sm btn-secondary" onclick="setTool('translate')" title="Move (T)"><i
                         class="fas fa-arrows-alt"></i></button>
                 <button class="btn btn-sm btn-secondary" onclick="setTool('rotate')" title="Rotate (R)"><i
@@ -519,12 +523,12 @@
 
     function loadExistingObjects() {
         {% for obj in scene.objects.all %}
-            loadModel('{{ obj.asset.pk }}', '{{ obj.asset.file.url }}', {
-                position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }} },
-                rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }} },
-                scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} }
-            }, '{{ obj.asset.title }}');
-         {% endfor %}
+        loadModel('{{ obj.asset.pk }}', '{{ obj.asset.file.url }}', {
+            position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }} },
+            rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }} },
+            scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} }
+        }, '{{ obj.asset.title }}');
+        {% endfor %}
     }
 
     // Global exposed functions
@@ -882,25 +886,40 @@
         const delta = clock.getDelta();
 
         if (isPlayMode) {
-            // Physics/Movement Logic
+            // Human FPS Movement (1.8m height, horizontal plane only)
             const actualSpeed = moveState.shift ? flySpeed * 2.0 : flySpeed;
-            const direction = new THREE.Vector3();
+            const moveDirection = new THREE.Vector3();
 
-            if (moveState.w) direction.z -= 1;
-            if (moveState.s) direction.z += 1;
-            if (moveState.a) direction.x -= 1;
-            if (moveState.d) direction.x += 1;
+            if (moveState.w) moveDirection.z -= 1;
+            if (moveState.s) moveDirection.z += 1;
+            if (moveState.a) moveDirection.x -= 1;
+            if (moveState.d) moveDirection.x += 1;
 
-            if (direction.lengthSq() > 0) {
-                direction.normalize();
-                direction.applyQuaternion(camera.quaternion); // Move in looking direction
-                // But typically FPS implies movement on XZ plane only? 
-                // User asked for "FPS style", usually means free fly or grounded. 
-                // Let's do Free Fly for now as it's easier for "Scene Inspection".
-                // Or stick to previous "Fly Mode" style.
+            if (moveDirection.lengthSq() > 0) {
+                moveDirection.normalize();
 
-                camera.position.addScaledVector(direction, actualSpeed * delta);
+                // Only apply horizontal rotation (Y-axis), ignore pitch
+                const horizontalRotation = new THREE.Quaternion();
+                horizontalRotation.setFromAxisAngle(new THREE.Vector3(0, 1, 0), euler.y);
+
+                // Apply rotation to movement direction
+                moveDirection.applyQuaternion(horizontalRotation);
+
+                // Only move on XZ plane (horizontal)
+                camera.position.x += moveDirection.x * actualSpeed * delta;
+                camera.position.z += moveDirection.z * actualSpeed * delta;
             }
+
+            // Boundary constraints (Grid is 20x20, centered at origin)
+            const gridSize = 10; // Grid extends from -10 to +10
+            const humanHeight = 1.8; // Fixed human eye height
+
+            // Clamp X and Z position within grid boundaries
+            camera.position.x = Math.max(-gridSize, Math.min(gridSize, camera.position.x));
+            camera.position.z = Math.max(-gridSize, Math.min(gridSize, camera.position.z));
+
+            // Lock camera height to human eye level
+            camera.position.y = humanHeight;
 
             // Disable OrbitControls update in PlayMode usually
         } else {
