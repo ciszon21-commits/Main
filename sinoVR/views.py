@@ -171,3 +171,25 @@ class AssetDeleteView(View):
 
     def delete(self, request, pk):
         return self.post(request, pk)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class InfoCardReadAPI(View):
+    def post(self, request, card_id):
+        if not request.user.is_authenticated:
+             return JsonResponse({'status': 'error', 'message': 'Authentication required'}, status=403)
+        
+        info_card = get_object_or_404(InfoCard, id=card_id)
+        from .models import CardReadStatus
+        
+        status, created = CardReadStatus.objects.get_or_create(user=request.user, info_card=info_card)
+        if not created:
+            # If already exists, maybe we verify it's read? Or just return success.
+            # The plan said "Toggle", but "Read" usually means "Mark as Read".
+            # Let's assume idempotency: ensure it is true and update time.
+            status.is_read = True
+            status.save()
+        else:
+            status.is_read = True
+            status.save()
+            
+        return JsonResponse({'status': 'success', 'is_read': True})

@@ -89,3 +89,17 @@ class SceneObject(models.Model):
     class Meta:
         verbose_name = "場景物件"
         verbose_name_plural = "場景物件"
+
+class CardReadStatus(models.Model):
+    user = models.ForeignKey('auth.User', on_delete=models.CASCADE, verbose_name="使用者")
+    info_card = models.ForeignKey(InfoCard, on_delete=models.CASCADE, verbose_name="資訊字卡")
+    is_read = models.BooleanField(default=False, verbose_name="已讀")
+    read_at = models.DateTimeField(auto_now=True, verbose_name="閱讀時間")
+
+    class Meta:
+        verbose_name = "字卡閱讀狀態"
+        verbose_name_plural = "字卡閱讀狀態"
+        unique_together = ('user', 'info_card')
+
+    def __str__(self):
+        return f"{self.user.username} read {self.info_card.title}"

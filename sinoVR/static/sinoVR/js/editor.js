@@ -219,7 +219,51 @@ function addInfoCard(id, title, content, transform = {}, bgColor = 'rgba(173, 21
         opacity: 0.95
     });
 
+    // Create Hide Button
+    const hideCanvas = document.createElement('canvas');
+    hideCanvas.width = 256;
+    hideCanvas.height = 128;
+    const hideCtx = hideCanvas.getContext('2d');
+    hideCtx.fillStyle = '#dc3545'; // Danger Red
+    hideCtx.fillRect(0, 0, 256, 128);
+    hideCtx.fillStyle = 'white';
+    hideCtx.font = 'bold 60px Arial';
+    hideCtx.textAlign = 'center';
+    hideCtx.textBaseline = 'middle';
+    hideCtx.fillText('Hide', 128, 64);
+
+    const hideTexture = new THREE.CanvasTexture(hideCanvas);
+    const hideMat = new THREE.MeshBasicMaterial({ map: hideTexture });
+    const hideMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.4), hideMat);
+    hideMesh.position.set(-0.8, -1.3, 0.05); // Bottom Left
+    hideMesh.userData.isInteractable = true;
+    hideMesh.userData.isHideBtn = true;
+    hideMesh.userData.parentCardId = id;
+
+    // Create Read Button
+    const readCanvas = document.createElement('canvas');
+    readCanvas.width = 256;
+    readCanvas.height = 128;
+    const readCtx = readCanvas.getContext('2d');
+    readCtx.fillStyle = '#28a745'; // Success Green
+    readCtx.fillRect(0, 0, 256, 128);
+    readCtx.fillStyle = 'white';
+    readCtx.font = 'bold 60px Arial';
+    readCtx.textAlign = 'center';
+    readCtx.textBaseline = 'middle';
+    readCtx.fillText('Read', 128, 64);
+
+    const readTexture = new THREE.CanvasTexture(readCanvas);
+    const readMat = new THREE.MeshBasicMaterial({ map: readTexture });
+    const readMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.4), readMat);
+    readMesh.position.set(0.8, -1.3, 0.05); // Bottom Right
+    readMesh.userData.isInteractable = true;
+    readMesh.userData.isReadBtn = true;
+    readMesh.userData.parentCardId = id;
+
     const mesh = new THREE.Mesh(geometry, material);
+    mesh.add(hideMesh);
+    mesh.add(readMesh);
 
     // Apply transform
     if (transform.position) mesh.position.set(transform.position.x, transform.position.y, transform.position.z);
@@ -246,6 +290,9 @@ function addInfoCard(id, title, content, transform = {}, bgColor = 'rgba(173, 21
 
     scene.add(mesh);
     objects.push(mesh);
+    // Also push buttons to objects? No, usually we raycast scene children recursively or handle specifically.
+    // The current raycaster uses `intersectObjects(objects, true)`. 
+    // `true` means recursive, so children are checked.
 
     // Select if newly added (not loading existing)
     if (Object.keys(transform).length === 0) {
@@ -684,6 +731,44 @@ function onPointerDown(event) {
             const intersects = raycaster.intersectObjects(objects, true);
 
             if (intersects.length > 0) {
+                // Check if we hit a button first
+                const hit = intersects[0].object;
+
+                if (hit.userData.isHideBtn) {
+                    // Hide the entire card group
+                    const card = hit.parent;
+                    if (card) card.visible = false;
+                    return;
+                }
+
+                if (hit.userData.isReadBtn) {
+                    const cardId = hit.userData.parentCardId;
+                    const btnMesh = hit;
+
+                    // Call API to mark as read
+                    fetch(`/sinoVR/api/info-card/${cardId}/read/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': CSRF_TOKEN
+                        }
+                    })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                // Visual feedback: Change button color to green/darker green or add checkmark
+                                // Simple way: redraw texture
+                                const canvas = btnMesh.material.map.image; // It's a canvas
+                                const ctx = canvas.getContext('2d');
+                                ctx.fillStyle = '#218838'; // Darker Green
+                                ctx.fillRect(0, 0, 256, 128);
+                                ctx.fillStyle = 'white';
+                                ctx.fillText('Read ✓', 128, 64);
+                                btnMesh.material.map.needsUpdate = true;
+                            }
+                        });
+                    return;
+                }
+
                 let target = intersects[0].object;
                 // Find the root object
                 while (target.parent && target.parent !== scene) {
