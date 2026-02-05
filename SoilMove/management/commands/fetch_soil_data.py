@@ -60,7 +60,15 @@ class Command(BaseCommand):
                             defaults[field] = float(val)
                         except ValueError:
                             defaults[field] = None
+                # Check for valid WGS84 coordinates
+                lat = defaults.get('latitude')
+                lon = defaults.get('longitude')
                 
+                if lat is not None and lon is not None:
+                    # Valid Lat: -90 to 90, Valid Lon: -180 to 180
+                    if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+                        defaults['latitude'] = None
+                        defaults['longitude'] = None
                 # Calculate status based on name
                 name = defaults.get('name', '')
                 if re.search(r'暫停|停止|停場|註銷|屆滿|封場|廢止|撤銷|終止', name):
