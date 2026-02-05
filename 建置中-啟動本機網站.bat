@@ -22,7 +22,7 @@ if exist "venv\Scripts\activate.bat" (
     exit /b
 )
 
-:: 2. 檢查 manage.py 是否存在
+:: 2. 檢查 manage.python 是否存在
 if not exist "manage.py" (
     echo.
     echo [錯誤] 找不到 manage.py！
@@ -42,8 +42,8 @@ echo ==========================================
 echo.
 
 :: 3. 執行 runserver
-:: 注意：啟動 venv 後，直接用 python 指令通常比 py 更能確保用到 venv 裡的解釋器
-py manage.py runserver
+:: 注意：啟動 venv 後，直接用 python 指令通常比 python 更能確保用到 venv 裡的解釋器
+python manage.py runserver
 
 :: 4. 如果伺服器意外崩潰或關閉，暫停視窗讓使用者看錯誤訊息
 echo.
