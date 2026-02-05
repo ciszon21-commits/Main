@@ -1,0 +1,129 @@
+{% extends 'EngineerRPG/base.html' %}
+
+{% block title %}{{ course.title }} - 測驗結果{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <!-- 主容器：左右分欄 -->
+    <div class="flex" style="min-height: 60vh; gap: 2rem; align-items: stretch; justify-content: center;">
+
+        <!-- 左側：成績總結 -->
+        <div class="rpg-card text-center p-md flex flex-column" style="flex: 1; justify-content: center;">
+            <div class="mb-lg">
+                {% if is_passed %}
+                <i class="fas fa-trophy text-6xl text-warning mb-md"
+                    style="font-size: 4rem; color: var(--color-secondary);"></i>
+                <h1 class="text-3xl font-bold text-success mb-sm" style="color: var(--color-safety);">恭喜通過！</h1>
+                <p class="text-stone">您已成功完成課程測驗。</p>
+                {% else %}
+                <div class="mb-md">
+                    <i class="fas fa-times-circle text-danger" style="font-size: 4rem; color: var(--color-me);"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-danger mb-sm" style="color: var(--color-me);">未通過</h1>
+                <p class="text-stone">請再接再厲，重新研讀後再次挑戰。</p>
+                {% endif %}
+            </div>
+
+            <!-- 分數網格 -->
+            <div class="grid grid-2 gap-md mb-xl">
+                <div class="bg-black/30 p-md rounded" style="background: rgba(0,0,0,0.3); border-radius: 8px;">
+                    <div class="text-stone mb-xs">得分</div>
+                    <div class="text-3xl font-bold"
+                        style="font-size: 2rem; color: {% if is_passed %}var(--color-safety){% else %}var(--color-me){% endif %};">
+                        {{ score }}
+                    </div>
+                </div>
+                <div class="bg-black/30 p-md rounded" style="background: rgba(0,0,0,0.3); border-radius: 8px;">
+                    <div class="text-stone mb-xs">及格分數</div>
+                    <div class="text-3xl font-bold" style="font-size: 2rem;">{{ passing_score }}</div>
+                </div>
+                <div class="bg-black/30 p-md rounded" style="background: rgba(0,0,0,0.3); border-radius: 8px;">
+                    <div class="text-stone mb-xs">答對題數</div>
+                    <div class="text-xl font-bold" style="font-size: 1.5rem;">
+                        {{ correct_count }} / {{ total_questions }}
+                    </div>
+                </div>
+                <div class="bg-black/30 p-md rounded" style="background: rgba(0,0,0,0.3); border-radius: 8px;">
+                    <div class="text-stone mb-xs">狀態</div>
+                    <div class="text-xl font-bold" style="font-size: 1.5rem;">
+                        {% if is_passed %}完成{% else %}未完成{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-center gap-md">
+                {% if is_passed %}
+                <a href="{% url 'engineer_rpg:skill_tree' %}" class="rpg-btn rpg-btn-primary">
+                    <i class="fas fa-tree"></i> 返回技能樹
+                </a>
+                <a href="{% url 'engineer_rpg:course_study' course.id %}" class="rpg-btn">
+                    <i class="fas fa-book"></i> 複習課程
+                </a>
+                {% else %}
+                <a href="{% url 'engineer_rpg:course_exam' course.id %}" class="rpg-btn rpg-btn-primary">
+                    <i class="fas fa-redo"></i> 重試測驗
+                </a>
+                <a href="{% url 'engineer_rpg:course_study' course.id %}" class="rpg-btn">
+                    <i class="fas fa-book-reader"></i> 重新研讀
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 右側：錯題檢討 (如果有錯誤題目) -->
+        {% if incorrect_questions %}
+        <div class="rpg-card" style="flex: 1.5; max-height: 80vh; overflow-y: auto;">
+            <h2 class="text-xl font-bold mb-lg border-b border-stone pb-sm"
+                style="border-bottom: 1px solid var(--color-stone);">
+                <i class="fas fa-exclamation-circle" style="color: var(--color-me);"></i> 錯題檢討
+            </h2>
+
+            <div class="flex flex-column gap-md">
+                {% for item in incorrect_questions %}
+                <div class="p-md rounded"
+                    style="background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(233, 75, 60, 0.3);">
+                    <div class="mb-sm font-bold text-lg" style="color: var(--color-secondary); margin-bottom: 0.5rem;">
+                        Q. {{ item.question.content }}
+                    </div>
+
+                    <div class="flex flex-column gap-sm">
+                        <div class="p-sm rounded"
+                            style="background: rgba(233, 75, 60, 0.1); border: 1px solid rgba(233, 75, 60, 0.2); color: var(--color-me);">
+                            <i class="fas fa-times"></i> 您的答案：
+                            <span class="font-bold">{{ item.user_answer }}. {{ item.user_option_text }}</span>
+                        </div>
+                        <div class="p-sm rounded"
+                            style="background: rgba(80, 200, 120, 0.1); border: 1px solid rgba(80, 200, 120, 0.2); color: var(--color-safety);">
+                            <i class="fas fa-check"></i> 正確答案：
+                            <span class="font-bold">{{ item.correct_answer }}. {{ item.correct_option_text }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<style>
+    /* 修正捲軸樣式 */
+    .rpg-card::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .rpg-card::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    .rpg-card::-webkit-scrollbar-thumb {
+        background: var(--color-primary);
+        border-radius: 4px;
+    }
+
+    .rpg-card::-webkit-scrollbar-thumb:hover {
+        background: var(--color-secondary);
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,245 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}裝備圖鑑 - 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container" style="padding: 2rem 1rem;">
+    <!-- 頁面標題 -->
+    <div class="rpg-card" style="margin-bottom: 1.5rem;">
+        <div class="flex flex-between" style="align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <a href="{% url 'engineer_rpg:codex_main' %}" style="color: var(--color-text-muted); text-decoration: none;">
+                    <i class="fas fa-arrow-left"></i> 返回圖鑑
+                </a>
+                <h1 style="font-size: 1.8rem; margin: 0.5rem 0 0;">
+                    <i class="fas fa-shield-alt" style="color: var(--color-secondary);"></i>
+                    裝備圖鑑
+                </h1>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 1.5rem; font-weight: bold; color: var(--color-secondary);">
+                    {{ owned }} / {{ total }}
+                </div>
+                <div style="font-size: 0.85rem; color: var(--color-text-muted);">已收集裝備</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 篩選器 -->
+    <div class="rpg-card" style="margin-bottom: 1.5rem;">
+        <form method="get" class="filter-form">
+            <div class="grid grid-4" style="gap: 1rem;">
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">裝備類型</label>
+                    <select name="type" class="rpg-input" onchange="this.form.submit()">
+                        <option value="all" {% if filters.type == 'all' %}selected{% endif %}>全部類型</option>
+                        {% for code, name in type_choices %}
+                        <option value="{{ code }}" {% if filters.type == code %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">稀有度</label>
+                    <select name="rarity" class="rpg-input" onchange="this.form.submit()">
+                        <option value="all" {% if filters.rarity == 'all' %}selected{% endif %}>全部稀有度</option>
+                        {% for code, name in rarity_choices %}
+                        <option value="{{ code }}" {% if filters.rarity == code %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">階級</label>
+                    <select name="tier" class="rpg-input" onchange="this.form.submit()">
+                        <option value="all" {% if filters.tier == 'all' %}selected{% endif %}>全部階級</option>
+                        {% for code, name in tier_choices %}
+                        <option value="{{ code }}" {% if filters.tier == code|stringformat:"s" %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">獲取方式</label>
+                    <select name="obtain" class="rpg-input" onchange="this.form.submit()">
+                        <option value="all" {% if filters.obtain == 'all' %}selected{% endif %}>全部方式</option>
+                        {% for code, name in obtain_choices %}
+                        <option value="{{ code }}" {% if filters.obtain == code %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- 裝備列表 -->
+    {% if equipment_list %}
+    <div class="grid grid-3" style="gap: 1rem;">
+        {% for item in equipment_list %}
+        <a href="{% url 'engineer_rpg:codex_equipment_detail' item.equipment.id %}"
+           class="rpg-card equipment-card {% if not item.owned %}not-owned{% endif %}"
+           style="text-decoration: none;">
+            <div class="equipment-header">
+                <div class="equipment-icon">
+                    {% if item.equipment.icon %}
+                    <img src="{% static item.equipment.icon %}" alt="{{ item.equipment.name }}" style="width: 48px; height: 48px; object-fit: contain;">
+                    {% else %}
+                    <i class="fas fa-{% if item.equipment.equipment_type == 'HELMET' %}hard-hat{% elif item.equipment.equipment_type == 'ARMOR' %}vest{% elif item.equipment.equipment_type == 'BOOTS' %}shoe-prints{% else %}tools{% endif %}" style="font-size: 2rem;"></i>
+                    {% endif %}
+                </div>
+                <div class="equipment-info">
+                    <div class="equipment-name">{{ item.equipment.name }}</div>
+                    <div class="equipment-type">T{{ item.equipment.tier }} {{ item.equipment.get_equipment_type_display }}</div>
+                </div>
+                <div class="rarity-badge rarity-{{ item.equipment.rarity|lower }}">
+                    {{ item.equipment.get_rarity_display }}
+                </div>
+            </div>
+
+            <div class="equipment-stats">
+                {% if item.equipment.hp_bonus > 0 %}
+                <span class="stat"><i class="fas fa-heart"></i> +{{ item.equipment.hp_bonus }} HP</span>
+                {% endif %}
+                {% if item.equipment.mp_bonus > 0 %}
+                <span class="stat"><i class="fas fa-bolt"></i> +{{ item.equipment.mp_bonus }} MP</span>
+                {% endif %}
+                {% if item.equipment.damage_reduction > 0 %}
+                <span class="stat"><i class="fas fa-shield-alt"></i> -{{ item.equipment.damage_reduction }} DR</span>
+                {% endif %}
+            </div>
+
+            <div class="equipment-obtain">
+                <i class="fas fa-map-marker-alt"></i>
+                {{ item.equipment.get_obtain_method_display }}
+            </div>
+
+            {% if item.owned %}
+            <div class="owned-badge">
+                <i class="fas fa-check-circle"></i> 已擁有
+                {% if item.user_equipment.enhancement_level > 0 %}
+                (+{{ item.user_equipment.enhancement_level }})
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="not-owned-badge">
+                <i class="fas fa-lock"></i> 未獲得
+            </div>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="rpg-card" style="text-align: center; padding: 3rem;">
+        <i class="fas fa-search" style="font-size: 3rem; color: var(--color-text-muted); margin-bottom: 1rem;"></i>
+        <p>沒有符合條件的裝備</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+}
+.grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 1024px) {
+    .grid-3 { grid-template-columns: repeat(2, 1fr); }
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+    .grid-3, .grid-4 { grid-template-columns: 1fr; }
+}
+
+.equipment-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+}
+.equipment-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+.equipment-card.not-owned {
+    opacity: 0.6;
+}
+.equipment-card.not-owned:hover {
+    opacity: 0.9;
+}
+
+.equipment-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.equipment-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-secondary);
+}
+.equipment-info {
+    flex: 1;
+}
+.equipment-name {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: var(--color-text);
+}
+.equipment-type {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.rarity-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+.rarity-common { background: #6b7280; color: white; }
+.rarity-rare { background: #3b82f6; color: white; }
+.rarity-epic { background: #8b5cf6; color: white; }
+.rarity-legendary { background: linear-gradient(135deg, #f59e0b, #ef4444); color: white; }
+
+.equipment-stats {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+.equipment-stats .stat {
+    font-size: 0.85rem;
+    color: var(--color-success);
+}
+
+.equipment-obtain {
+    font-size: 0.85rem;
+    color: var(--color-info);
+    margin-bottom: 0.75rem;
+}
+
+.owned-badge {
+    color: var(--color-success);
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+.not-owned-badge {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}
+
+.rpg-input {
+    width: 100%;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    color: var(--color-text);
+}
+</style>
+{% endblock %}

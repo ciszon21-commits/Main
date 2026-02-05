@@ -36,11 +36,16 @@ urlpatterns = [
     path('geodatahub/', include('GeoDataHub.urls')),  # 地圖導向資料管理平台
     path('geocoding/', include('GeoCoding.urls')),  # 地址編碼服務
     path('bidqa/', include('BidQA.urls')),  # 標案問答管理
+    path('circle-optimizer/', include('CircleOptimizer.urls')),  # 圓優化工具
     # path('consistency/', include('DesignConsistency.urls')),
     path('chat/', include('SinoChat.urls', namespace='sinochat')),  # Sinotech 聊天室
     path('interview/', include('InterviewAssessment.urls', namespace='interview_assessment')),
     path('gravity-pipe/', include('GravityPipeCalc.urls')),  # 重力管水理計算器
-    path('soilmove/', include('SoilMove.urls', namespace='soilmove')),  # 土石方查詢
+    path('soilmove/', include('SoilMove.urls', namespace='SoilMove')),  # 土石方查詢
+    path('rpg/', include('EngineerRPG.urls')),  # 現場監造工程師職涯冒險培訓系統
+    path('finance/', include('FinanceInsight.urls')),  # 財經新聞與選股建議
+    path('carbon-plbc/', include('CarbonPLBC.urls', namespace='carbonplbc')),  # 外部碳排放計算系統 (PL-BC)
+    path('expense/', include('FriendExpense.urls')),  # 朋友間記帳
 ]
 
 # 條件載入 ClashClassifier API

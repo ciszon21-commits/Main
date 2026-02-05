@@ -1,0 +1,249 @@
+﻿{% extends 'EngineerRPG/management/base_management.html' %}
+
+{% block management_content %}
+<div class="rpg-card">
+    <div class="rpg-card-header">
+        <h3 class="rpg-card-title">
+            <i class="fas fa-dungeon"></i> {% if dungeon %}編輯地下城{% else %}建立新地下城{% endif %}
+        </h3>
+        <a href="{% url 'engineer_rpg:dungeon_management' %}" class="text-stone text-sm hover:text-white">
+            <i class="fas fa-arrow-left"></i> 返回列表
+        </a>
+    </div>
+
+    {% if is_locked %}
+    <div class="bg-warning/20 border border-warning text-warning p-md mb-md rounded">
+        <i class="fas fa-lock"></i> 此地下城已有冒險者通關記錄，為確保公平性，無法修改內容或刪除。
+        <br>若需關閉此副本，請將狀態設為停用。
+    </div>
+    {% endif %}
+
+    <form method="post" class="mt-md">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-2 gap-md mb-md">
+            <div class="form-group">
+                <label class="form-label">地下城名稱</label>
+                <input type="text" name="title" value="{{ dungeon.title }}" class="rpg-input w-full" 
+                required {% if is_locked %}readonly{% endif %}>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">分類</label>
+                <select name="category" class="rpg-input w-full" {% if is_locked %}disabled{% endif %}>
+                    <option value="">-- 無分類 --</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if dungeon.category_id == cat.id %}selected{% endif %}>
+                        {{ cat.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% if is_locked %}<input type="hidden" name="category" value="{{ dungeon.category_id }}">{% endif %}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-md mb-md">
+            <div class="form-group">
+                <label class="form-label">需求等級</label>
+                <input type="number" name="required_level" value="{{ dungeon.required_level|default:1 }}" min="1"
+                    class="rpg-input w-full" {% if is_locked %}readonly{% endif %}>
+            </div>
+            <div class="form-group">
+                <label class="form-label flex items-center gap-sm">
+                    <input type="checkbox" name="is_active" value="1" 
+                    {% if not dungeon or dungeon.is_active %}checked{% endif %} class="w-5 h-5">
+                    <span>啟用此地下城（冒險者可見）</span>
+                </label>
+                <p class="text-xs text-stone mt-xs">停用後，冒險者將無法看到此地下城</p>
+            </div>
+        </div>
+
+        <div class="form-group mb-md">
+            <label class="form-label">描述</label>
+            <textarea name="description" class="rpg-input w-full" rows="3" 
+            {% if is_locked %}readonly{% endif %}>{{ dungeon.description }}</textarea>
+        </div>
+
+        <div class="form-group mb-md">
+            <label class="form-label">經驗值獎勵</label>
+            <input type="number" name="exp_reward" value="{{ dungeon.exp_reward|default:200 }}" min="0"
+                class="rpg-input w-full" {% if is_locked %}readonly{% endif %}>
+            <p class="text-xs text-stone mt-xs">重複通關僅獲得 1% 經驗值</p>
+        </div>
+
+        <div class="form-group mb-md">
+            <label class="form-label">限時（分鐘）</label>
+            <input type="number" name="time_limit" value="{{ dungeon.time_limit_minutes|default:60 }}" min="0"
+                class="rpg-input w-full" {% if is_locked %}readonly{% endif %}>
+            <p class="text-xs text-stone mt-xs">設為 0 表示不限時</p>
+        </div>
+
+        <div class="form-group mb-md">
+            <label class="form-label">道具獎勵（可選）</label>
+            <select name="equipment_reward" class="rpg-input w-full" {% if is_locked %}disabled{% endif %}>
+                <option value="">-- 無道具獎勵 --</option>
+                {% for item in equipments %}
+                <option value="{{ item.id }}" {% if dungeon.item_reward_id == item.id %}selected{% endif %}>
+                    {{ item.name }} ({{ item.get_item_type_display }})
+                </option>
+                {% endfor %}
+            </select>
+            <p class="text-xs text-stone mt-xs">首次通關獲得此道具，重複通關無法再獲得</p>
+        </div>
+
+        <div class="rpg-card bg-black/20 mb-lg border border-white/10">
+            <div class="flex justify-between items-center mb-xs gap-sm flex-wrap">
+                <h4 class="text-primary mb-0 font-bold">選擇挑戰題目</h4>
+                <div class="flex gap-xs flex-1 justify-end items-center flex-wrap">
+                    <div class="flex gap-xs mr-sm">
+                        <button type="button" id="selectAllBtn"
+                            class="rpg-btn rpg-btn-outline text-xs py-xs px-sm">全選</button>
+                        <button type="button" id="clearBtn"
+                            class="rpg-btn rpg-btn-outline text-xs py-xs px-sm">清除</button>
+                    </div>
+                    <select id="categoryFilter" class="rpg-input text-sm py-xs px-sm w-32">
+                        <option value="">所有分類</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="text" id="questionSearch" class="rpg-input text-sm py-xs px-sm w-48"
+                        placeholder="搜尋題目...">
+                    <button type="button" id="searchBtn" class="rpg-btn rpg-btn-primary text-sm py-xs px-sm" title="搜尋">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="h-96 overflow-y-auto pr-sm custom-scrollbar" id="questionList">
+                {% regroup questions by category as category_list %}
+                {% for category_group in category_list %}
+                <div class="mb-md question-category-group"
+                    data-category-id="{{ category_group.grouper.id|default:'' }}">
+                    <div class="text-sm font-bold text-secondary mb-xs category-title">
+                        {{ category_group.grouper.name|default:"未分類" }}
+                    </div>
+                    {% for q in category_group.list %}
+                    <label
+                        class="flex items-start gap-sm p-sm hover:bg-white/5 rounded cursor-pointer border-b border-white/5 question-item"
+                        data-content="{{ q.content|lower }}">
+                        <input type="checkbox" name="questions" value="{{ q.id }}" class="mt-1" 
+                        {% if dungeon and q in dungeon.questions.all %}checked{% endif %} {% if is_locked %}disabled{% endif %}>
+                        <div>
+                            <div class="font-bold">{{ q.content|truncatechars:50 }}</div>
+                            <div class="text-xs text-stone mt-xs">
+                                <span class="badge badge-xs text-xs">{{ q.get_difficulty_display }}</span>
+                                {% if q.category %}| {{ q.category.name }}{% endif %} | {{ q.get_question_type_display }}
+                            </div>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+            {% if is_locked %}
+            <!-- Keep existing questions if locked -->
+            {% for q in dungeon.questions.all %}
+            <input type="hidden" name="questions" value="{{ q.id }}">
+            {% endfor %}
+            {% endif %}
+        </div>
+
+</div>
+
+<script>
+    const searchInput = document.getElementById('questionSearch');
+    const categorySelect = document.getElementById('categoryFilter');
+    const searchBtn = document.getElementById('searchBtn');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    function filterQuestions() {
+        const searchText = searchInput.value.toLowerCase();
+        const selectedCategory = categorySelect.value;
+        const groups = document.querySelectorAll('.question-category-group');
+
+        groups.forEach(group => {
+            const groupCategoryId = group.dataset.categoryId;
+
+            // Check if group matches selected category
+            const isCategoryMatch = !selectedCategory || selectedCategory === groupCategoryId;
+
+            if (!isCategoryMatch) {
+                group.style.display = 'none';
+                return; // Skip processing questions if category doesn't match
+            }
+
+            let hasVisibleQuestions = false;
+            const questions = group.querySelectorAll('.question-item');
+
+            questions.forEach(item => {
+                const content = item.dataset.content;
+                if (content.includes(searchText)) {
+                    item.style.display = 'flex';
+                    hasVisibleQuestions = true;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            // Show/hide group based on visible questions
+            if (hasVisibleQuestions) {
+                group.style.display = 'block';
+            } else {
+                group.style.display = 'none';
+            }
+        });
+    }
+
+    function getVisibleQuestions() {
+        const groups = document.querySelectorAll('.question-category-group');
+        const visibleQuestions = [];
+
+        groups.forEach(group => {
+            if (group.style.display !== 'none') {
+                const questions = group.querySelectorAll('.question-item');
+                questions.forEach(item => {
+                    if (item.style.display !== 'none') {
+                        visibleQuestions.push(item);
+                    }
+                });
+            }
+        });
+        return visibleQuestions;
+    }
+
+    selectAllBtn.addEventListener('click', () => {
+        getVisibleQuestions().forEach(item => {
+            const checkbox = item.querySelector('input[type="checkbox"]');
+            if (!checkbox.disabled) checkbox.checked = true;
+        });
+    });
+
+    clearBtn.addEventListener('click', () => {
+        getVisibleQuestions().forEach(item => {
+            const checkbox = item.querySelector('input[type="checkbox"]');
+            if (!checkbox.disabled) checkbox.checked = false;
+        });
+    });
+
+    searchBtn.addEventListener('click', filterQuestions);
+
+    searchInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            filterQuestions();
+        }
+    });
+
+    categorySelect.addEventListener('change', filterQuestions);
+</script>
+
+<div class="flex justify-end gap-md">
+    <button type="button" onclick="history.back()" class="rpg-btn rpg-btn-secondary">取消</button>
+    {% if not is_locked %}
+    <button type="submit" class="rpg-btn rpg-btn-primary">儲存地下城</button>
+    {% endif %}
+</div>
+</form>
+</div>
+{% endblock %}

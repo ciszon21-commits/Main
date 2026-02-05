@@ -58,6 +58,154 @@ class SiteSettings(models.Model):
         return settings
 
 
+class EmailTemplate(models.Model):
+    """郵件模板設定"""
+    EMAIL_TYPE_CHOICES = [
+        ('new_application', '新申請待審核通知'),
+        ('approved', '核准通知'),
+        ('rejected', '拒絕通知'),
+        ('cancelled', '取消通知'),
+        ('time_changed', '時間變更通知'),
+    ]
+    
+    # 預設模板內容
+    DEFAULT_TEMPLATES = {
+        'new_application': {
+            'subject': '[無人機預約] 新申請待審核 - {applicant_name}',
+            'body': '''您好，
+
+有一筆新的無人機預約申請待審核：
+
+申請人：{applicant_name}
+使用時間：{start_time} ~ {end_time}
+地點：{location}
+計畫編號：{project_number}
+申請理由：{reason}
+
+請登入系統進行審核。
+
+此為系統自動發送郵件，請勿直接回覆。'''
+        },
+        'approved': {
+            'subject': '[無人機預約] 您的申請已核准',
+            'body': '''您好，
+
+您的無人機預約申請已核准：
+
+使用時間：{start_time} ~ {end_time}
+地點：{location}
+簽核人：{reviewer_name}
+
+請依照流程，聯繫簽核人(#07130)，確認行程安排。
+
+此為系統自動發送郵件，請勿直接回覆。'''
+        },
+        'rejected': {
+            'subject': '[無人機預約] 您的申請已被拒絕',
+            'body': '''您好，
+
+您的無人機預約申請已被拒絕：
+
+使用時間：{start_time} ~ {end_time}
+地點：{location}
+簽核人：{reviewer_name}
+拒絕理由：{rejection_reason}
+
+如有疑問，請聯繫簽核人(#07130)。
+
+此為系統自動發送郵件，請勿直接回覆。'''
+        },
+        'cancelled': {
+            'subject': '[無人機預約] 預約已取消 - {applicant_name}',
+            'body': '''您好，
+
+以下無人機預約已被取消：
+
+申請人：{applicant_name}
+使用時間：{start_time} ~ {end_time}
+地點：{location}
+
+此為系統自動發送郵件，請勿直接回覆。'''
+        },
+        'time_changed': {
+            'subject': '[無人機預約] 已核准預約時間變更 - {applicant_name}',
+            'body': '''您好，
+
+以下已核准的無人機預約時間已被修改：
+
+申請人：{applicant_name}
+地點：{location}
+計畫編號：{project_number}
+
+【時間變更】
+原時間：{old_start_time} ~ {old_end_time}
+新時間：{start_time} ~ {end_time}
+
+如有疑問，請聯繫相關人員。
+
+此為系統自動發送郵件，請勿直接回覆。'''
+        },
+    }
+
+    email_type = models.CharField(
+        max_length=30,
+        choices=EMAIL_TYPE_CHOICES,
+        unique=True,
+        verbose_name="郵件類型"
+    )
+    subject_template = models.CharField(
+        max_length=200,
+        verbose_name="郵件主旨模板"
+    )
+    body_template = models.TextField(
+        verbose_name="郵件內容模板"
+    )
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新時間")
+
+    class Meta:
+        verbose_name = "郵件模板"
+        verbose_name_plural = "郵件模板"
+
+    def __str__(self):
+        return self.get_email_type_display()
+
+    @classmethod
+    def get_template(cls, email_type):
+        """取得郵件模板，若不存在則使用預設值"""
+        try:
+            return cls.objects.get(email_type=email_type)
+        except cls.DoesNotExist:
+            # 使用預設模板
+            defaults = cls.DEFAULT_TEMPLATES.get(email_type, {})
+            return cls(
+                email_type=email_type,
+                subject_template=defaults.get('subject', ''),
+                body_template=defaults.get('body', '')
+            )
+
+    @classmethod
+    def ensure_all_templates(cls):
+        """確保所有模板都存在於資料庫中"""
+        for email_type, defaults in cls.DEFAULT_TEMPLATES.items():
+            cls.objects.get_or_create(
+                email_type=email_type,
+                defaults={
+                    'subject_template': defaults['subject'],
+                    'body_template': defaults['body']
+                }
+            )
+
+    def render(self, context):
+        """渲染模板，替換變數"""
+        subject = self.subject_template
+        body = self.body_template
+        for key, value in context.items():
+            placeholder = '{' + key + '}'
+            subject = subject.replace(placeholder, str(value))
+            body = body.replace(placeholder, str(value))
+        return subject, body
+
+
 class DroneReviewer(models.Model):
     """無人機簽核人（飛手）設定"""
     user = models.OneToOneField(
@@ -152,7 +300,7 @@ class DroneReservation(models.Model):
 
     def can_edit(self, user):
         """檢查使用者是否可以編輯此預約"""
-        # 只有申請人且狀態為申請中時可以編輯
+        # 申請人只能在申請中狀態下編輯（已核准後只有審核人可修改時間）
         return user == self.applicant and self.status == 'pending'
 
     def can_cancel(self, user):
@@ -162,6 +310,16 @@ class DroneReservation(models.Model):
 
     def can_reviewer_cancel(self, user):
         """檢查簽核人是否可以取消已核准的預約"""
+        if self.status != 'approved':
+            return False
+        try:
+            reviewer_profile = user.drone_reviewer_profile
+            return reviewer_profile.is_active
+        except DroneReviewer.DoesNotExist:
+            return False
+
+    def can_reviewer_edit(self, user):
+        """檢查審核人是否可以編輯已核准預約的時間"""
         if self.status != 'approved':
             return False
         try:

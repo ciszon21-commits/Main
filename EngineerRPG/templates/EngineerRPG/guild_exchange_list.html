@@ -1,0 +1,169 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}公會交流區 | 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container fade-in">
+    <!-- 頁面標題 -->
+    <div class="flex flex-between mb-lg" style="align-items: center;">
+        <div>
+            <h2 class="rpg-title mb-xs">
+                <i class="fas fa-comments"></i> 交流區
+            </h2>
+            <div class="rpg-breadcrumbs">
+                <a href="{% url 'engineer_rpg:guild_dashboard' %}"
+                    style="color: #FFD700; text-decoration: none;">公會大廳</a>
+                <span>>></span>
+                <span style="color: #CCCCCC;">交流區</span>
+            </div>
+        </div>
+
+        <a href="{% url 'engineer_rpg:guild_post_create' %}" class="rpg-btn rpg-btn-primary">
+            <i class="fas fa-pen"></i> 發表文章
+        </a>
+    </div>
+
+    <!-- 分類篩選 -->
+    <div class="rpg-card mb-lg">
+        <div class="rpg-card-body" style="padding: var(--spacing-sm);">
+            <div class="filter-tabs flex gap-sm" style="flex-wrap: wrap;">
+                <a href="?category=ALL"
+                    class="rpg-btn rpg-btn-sm {% if current_category == 'ALL' %}rpg-btn-active{% else %}rpg-btn-outline{% endif %}">
+                    全部看板
+                </a>
+                {% for code, name in categories %}
+                <a href="?category={{ code }}"
+                    class="rpg-btn rpg-btn-sm {% if current_category == code %}rpg-btn-active{% else %}rpg-btn-outline{% endif %}">
+                    {{ name }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="rpg-card">
+        <!-- 置頂文章 -->
+        {% if pinned_posts %}
+        <div class="p-md" style="border-bottom: 2px solid var(--color-border);">
+            <h4 class="text-gold mb-sm"><i class="fas fa-thumbtack"></i> 置頂公告</h4>
+            <div class="notification-list">
+                {% for post in pinned_posts %}
+                <div class="notification-item flex flex-between"
+                    style="align-items: center; padding: var(--spacing-sm);">
+                    <div class="flex gap-md" style="flex: 1; align-items: center;">
+                        <span class="badge" style="background: var(--color-danger);">
+                            {{ post.get_category_display }}
+                        </span>
+                        <div>
+                            <a href="{% url 'engineer_rpg:guild_post_detail' post.id %}"
+                                style="text-decoration: none; color: var(--color-text); font-weight: 600; font-size: 1.1rem;">
+                                {{ post.title }}
+                            </a>
+                            <div class="text-stone mt-xs" style="font-size: 0.85rem;">
+                                <i class="fas fa-user-shield"></i> {{ post.author.user.get_full_name|default:.user.get_full_name|default:.user.username }} · {{
+                                post.created_at|date:"Y-m-d H:i" }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-stone">
+                        <span class="mr-md"><i class="fas fa-eye"></i> {{ post.views }}</span>
+                        <span><i class="fas fa-comment"></i> {{ post.comments.count }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 文章列表 -->
+        <div class="p-md">
+            {% if page_obj %}
+            <div class="notification-list">
+                {% for post in page_obj %}
+                <div class="notification-item"
+                    style="padding: var(--spacing-sm) var(--spacing-md); border-bottom: 1px solid var(--color-border);">
+                    <div class="flex flex-between" style="align-items: center; gap: 16px;">
+                        <!-- 標題 -->
+                        <a href="{% url 'engineer_rpg:guild_post_detail' post.id %}"
+                            style="text-decoration: none; flex: 1; min-width: 0;">
+                            <span
+                                style="color: #FFFFFF; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">
+                                {{ post.title }}
+                                {% if post.is_locked %}
+                                <i class="fas fa-lock text-stone ml-xs" title="已鎖定"></i>
+                                {% endif %}
+                                {% if post.created_at|date:"Y-m-d" == now|date:"Y-m-d" %}
+                                <span
+                                    style="font-size: 0.7rem; color: var(--color-danger); margin-left: 5px;">NEW</span>
+                                {% endif %}
+                            </span>
+                        </a>
+                        <!-- 資訊區 -->
+                        <div class="text-stone"
+                            style="font-size: 0.85rem; white-space: nowrap; display: flex; gap: 16px; align-items: center;">
+                            <span class="badge" style="background: var(--color-bg-dark);">
+                                {{ post.get_category_display }}
+                            </span>
+                            <span><img src="{{ post.author.get_avatar_url }}"
+                                    style="width: 20px; height: 20px; border-radius: 50%; vertical-align: middle; margin-right: 5px;">
+                                {{ post.author.user.get_full_name|default:.user.get_full_name|default:.user.username }}</span>
+                            <span>{{ post.created_at|timesince }}前</span>
+                            <span title="瀏覽數"><i class="fas fa-eye"></i> {{ post.views }}</span>
+                            <span title="留言數"><i class="fas fa-comment"></i> {{ post.comments.count }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- 分頁導航 -->
+            {% if page_obj.has_other_pages %}
+            <div class="pagination flex gap-xs justify-center mt-lg">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&category={{ current_category }}"
+                    class="rpg-btn rpg-btn-sm rpg-btn-outline">&laquo; 上一頁</a>
+                {% endif %}
+
+                <span class="rpg-btn rpg-btn-sm"
+                    style="background: transparent; border: none; color: var(--color-text);">
+                    第 {{ page_obj.number }} 頁 / 共 {{ page_obj.paginator.num_pages }} 頁
+                </span>
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&category={{ current_category }}"
+                    class="rpg-btn rpg-btn-sm rpg-btn-outline">下一頁 &raquo;</a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-xl">
+                <div class="text-stone mb-md" style="font-size: 3rem;">
+                    <i class="fas fa-scroll"></i>
+                </div>
+                <h3>尚無文章</h3>
+                <p class="text-stone mb-lg">這裡還是一片荒蕪，快來發表第一篇文章吧！</p>
+                <a href="{% url 'engineer_rpg:guild_post_create' %}" class="rpg-btn rpg-btn-primary">
+                    <i class="fas fa-plus"></i> 發表文章
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .rpg-btn-active {
+        background: var(--color-primary);
+        color: white;
+        border-color: var(--color-primary);
+    }
+
+    .notification-item:hover {
+        background: rgba(255, 255, 255, 0.03);
+        transform: translateX(5px);
+        transition: all 0.3s;
+    }
+</style>
+{% endblock %}

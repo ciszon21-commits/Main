@@ -1,0 +1,29 @@
+{% extends 'FriendExpense/base.html' %}
+
+{% block title %}刪除群組 - 朋友記帳{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">⚠️ 刪除群組</h1>
+</div>
+
+<div class="card" style="max-width: 500px;">
+    <div style="text-align: center; margin-bottom: 24px;">
+        <div style="font-size: 4rem; margin-bottom: 16px;">🗑️</div>
+        <p style="font-size: 1.1rem; margin-bottom: 8px;">
+            確定要刪除群組 <strong>{{ object.name }}</strong> 嗎？
+        </p>
+        <p style="color: var(--text-subdued);">
+            此操作將會刪除所有相關的成員與記帳記錄，且無法復原。
+        </p>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button type="submit" class="btn btn-danger">確認刪除</button>
+            <a href="{% url 'friend_expense:group_detail' pk=object.pk %}" class="btn btn-outline">取消</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

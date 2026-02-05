@@ -1,0 +1,142 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}{{ post.title }} | 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container fade-in">
+    <!-- 頁面標題與麵包屑 -->
+    <div class="mb-lg">
+        <h2 class="rpg-title mb-xs">
+            <i class="fas fa-scroll"></i> 貼文詳情
+        </h2>
+        <div class="rpg-breadcrumbs">
+            <a href="{% url 'engineer_rpg:guild_dashboard' %}" style="color: #FFD700; text-decoration: none;">公會大廳</a>
+            <span>>></span>
+            <a href="{% url 'engineer_rpg:guild_exchange_list' %}" style="color: #FFD700; text-decoration: none;">交流區</a>
+            <span>>></span>
+            <span style="color: #CCCCCC;">{{ post.title|truncatechars:20 }}</span>
+        </div>
+    </div>
+
+    <!-- 貼文主體 -->
+    <div class="rpg-card mb-xl">
+        <div class="rpg-card-header p-md" style="border-bottom: 2px solid var(--color-border);">
+            <div class="flex flex-between align-center mb-md">
+                <span class="badge" style="background: var(--color-bg-dark); padding: 5px 12px; font-size: 0.9rem;">
+                    {{ post.get_category_display }}
+                </span>
+                <div class="text-stone" style="font-size: 0.9rem;">
+                    <span class="mr-md"><i class="fas fa-eye"></i> {{ post.views }} 瀏覽</span>
+                    <span><i class="fas fa-clock"></i> {{ post.created_at|date:"Y-m-d H:i" }}</span>
+                </div>
+            </div>
+            <h1 style="color: #FFFFFF; font-size: 1.8rem; margin-bottom: var(--spacing-md);">{{ post.title }}</h1>
+            
+            <div class="flex align-center gap-md">
+                <img src="{{ post.author.get_avatar_url }}" alt="avatar" 
+                     style="width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--color-primary);">
+                <div>
+                    <div style="color: var(--color-gold); font-weight: bold; font-size: 1.1rem;">
+                        {{ post.author.user.get_full_name|default:post.author.user.username }}
+                        {% if post.author.role == 'MANAGER' %}
+                        <i class="fas fa-crown" style="color: #FFD700; margin-left: 5px;" title="公會會長"></i>
+                        {% elif post.author.role == 'OFFICER' %}
+                        <i class="fas fa-shield-alt" style="color: #FFD700; margin-left: 5px;" title="公會幹部"></i>
+                        {% endif %}
+                    </div>
+                    <div class="text-stone" style="font-size:0.85rem;">
+                        Lv.{{ post.author.level }} {{ post.author.character_class.name }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="rpg-card-body p-xl" style="line-height: 1.8; font-size: 1.1rem; color: #e0e0e0; min-height: 200px; white-space: pre-wrap;">{{ post.content }}</div>
+        
+        <div class="rpg-card-footer p-md flex flex-between" style="background: rgba(0,0,0,0.2); border-top: 1px solid var(--color-border); align-items: center;">
+            <div class="flex gap-md">
+                <button class="rpg-btn rpg-btn-sm rpg-btn-outline hover-brightness">
+                    <i class="fas fa-thumbs-up"></i> 讚 ({{ post.likes.count }})
+                </button>
+            </div>
+            {% if post.author == profile or profile.role == 'ADMIN' or profile.role == 'MANAGER' %}
+            <div class="flex gap-sm">
+                <!-- 這裡可以預留編輯或刪除按鈕 -->
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 留言區 -->
+    <div class="rpg-card">
+        <div class="rpg-card-header">
+            <h3 class="rpg-card-title"><i class="fas fa-comments"></i> 留言交流 ({{ comments.count }})</h3>
+        </div>
+        <div class="rpg-card-body p-md">
+            <!-- 留言列表 -->
+            <div class="comment-list mb-xl">
+                {% for comment in comments %}
+                <div class="comment-item p-md mb-md" style="background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 3px solid var(--color-secondary);">
+                    <div class="flex flex-between align-center mb-sm">
+                        <div class="flex align-center gap-sm">
+                            <img src="{{ comment.author.get_avatar_url }}" style="width: 30px; height: 30px; border-radius: 50%;">
+                            <span style="color: var(--color-gold); font-weight: bold;">{{ comment.author.user.get_full_name|default:comment.author.user.username }}</span>
+                            <span class="text-stone" style="font-size: 0.8rem;">Lv.{{ comment.author.level }}</span>
+                        </div>
+                        <span class="text-stone" style="font-size: 0.85rem;">{{ comment.created_at|timesince }}前</span>
+                    </div>
+                    <div style="color: #DBDBDB; line-height: 1.5; padding-left: 38px;">{{ comment.content }}</div>
+                </div>
+                {% empty %}
+                <div class="text-center py-xl text-stone">
+                    <i class="fas fa-ghost" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i>
+                    目前尚無留言，快來搶沙發！
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- 發表留言 -->
+            {% if not post.is_locked %}
+            <div class="comment-form mt-lg" style="border-top: 1px solid var(--color-border); padding-top: var(--spacing-lg);">
+                <h4 class="mb-md" style="color: var(--color-gold);">發表留言</h4>
+                <form method="post" action="{% url 'engineer_rpg:guild_post_detail' post.id %}">
+                    {% csrf_token %}
+                    <div class="form-group mb-md">
+                        <textarea name="content" class="rpg-textarea" required rows="4" 
+                                  placeholder="我也想說點什麼..." 
+                                  style="width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--color-border); color: #FFF; border-radius: 6px;"></textarea>
+                    </div>
+                    <div class="flex flex-end">
+                        <button type="submit" class="rpg-btn rpg-btn-primary">
+                            <i class="fas fa-comment-dots"></i> 提交留言
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% else %}
+            <div class="text-center py-md text-stone" style="background: rgba(0,0,0,0.3); border-radius: 8px;">
+                <i class="fas fa-lock"></i> 此文章已鎖定，無法留言。
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .comment-item {
+        transition: background 0.3s ease;
+    }
+    .comment-item:hover {
+        background: rgba(255,255,255,0.06) !important;
+    }
+    .hover-brightness:hover {
+        filter: brightness(1.2);
+    }
+    .rpg-textarea:focus {
+        border-color: var(--color-secondary) !important;
+        outline: none;
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.2);
+    }
+</style>
+{% endblock %}

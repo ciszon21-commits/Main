@@ -1,0 +1,161 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}試煉詳情 - {{ trial.title }}{% endblock %}
+
+{% block content %}
+<div class="rpg-container fade-in">
+    <!-- Header/Breadcrumbs -->
+    <div class="mb-lg">
+        <h2 class="rpg-title mb-xs">
+            <i class="fas fa-scroll"></i> 試煉詳情
+        </h2>
+        <div class="rpg-breadcrumbs">
+            <a href="{% url 'engineer_rpg:training_hub' %}" style="color: #FFD700; text-decoration: none;">試煉中心</a>
+            <span>>></span>
+            <a href="{% url 'engineer_rpg:dungeon_list' %}" style="color: #FFD700; text-decoration: none;">地下城列表</a>
+            <span>>></span>
+            <span style="color: #CCCCCC;">{{ trial.title }}</span>
+        </div>
+    </div>
+
+    <div class="grid grid-2-1 gap-xl">
+        <!-- Left: Detail Info -->
+        <div>
+            <div class="rpg-card mb-lg">
+                <div class="rpg-card-header">
+                    <h3 class="rpg-card-title">{{ trial.title }}</h3>
+                </div>
+                <div class="rpg-card-body p-xl">
+                    <div class="mb-xl" style="font-size: 1.15rem; line-height: 1.8; color: #e0e0e0;">
+                        {{ trial.description|linebreaksbr }}
+                    </div>
+
+                    <div class="stats-overview grid grid-2 gap-md p-md" style="background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid var(--color-border);">
+                        <div class="stat-item flex align-center gap-md">
+                            <i class="fas fa-question-circle text-primary" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <div class="text-stone" style="font-size: 0.85rem;">題目數量</div>
+                                <div style="font-weight: bold; font-size: 1.2rem;">{{ trial.question_count }} 題</div>
+                            </div>
+                        </div>
+                        <div class="stat-item flex align-center gap-md">
+                            <i class="fas fa-hourglass-half text-warning" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <div class="text-stone" style="font-size: 0.85rem;">時間限制</div>
+                                <div style="font-weight: bold; font-size: 1.2rem;">
+                                    {% if trial.time_limit_minutes > 0 %}{{ trial.time_limit_minutes }} 分鐘{% else %}不限時{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rewards Section -->
+            <div class="rpg-card">
+                <div class="rpg-card-header">
+                    <h3 class="rpg-card-title"><i class="fas fa-gift"></i> 通關獎勵</h3>
+                </div>
+                <div class="rpg-card-body p-lg">
+                    <div class="grid grid-3 gap-md">
+                        <div class="reward-box text-center p-md" style="background: rgba(40, 167, 69, 0.1); border: 1px solid #28a745; border-radius: 8px;">
+                            <i class="fas fa-star text-success mb-xs" style="font-size: 1.8rem;"></i>
+                            <div class="text-stone" style="font-size: 0.8rem;">經驗值</div>
+                            <div style="font-weight: bold; color: #28a745;">+{{ trial.exp_reward }} EXP</div>
+                        </div>
+                        
+                        {% if trial.equipment_reward %}
+                        <div class="reward-box text-center p-md" style="background: rgba(102, 126, 234, 0.1); border: 1px solid #667eea; border-radius: 8px;">
+                            <i class="fas fa-shield-alt text-primary mb-xs" style="font-size: 1.8rem;"></i>
+                            <div class="text-stone" style="font-size: 0.8rem;">機率獲得裝備</div>
+                            <div style="font-weight: bold; color: #667eea; font-size: 0.9rem;">{{ trial.equipment_reward.name }}</div>
+                        </div>
+                        {% endif %}
+
+                        {% if trial.item_reward %}
+                        <div class="reward-box text-center p-md" style="background: rgba(255, 215, 0, 0.1); border: 1px solid #FFD700; border-radius: 8px;">
+                            <i class="fas fa-box text-gold mb-xs" style="font-size: 1.8rem;"></i>
+                            <div class="text-stone" style="font-size: 0.8rem;">道具獎勵</div>
+                            <div style="font-weight: bold; color: #FFD700; font-size: 0.9rem;">{{ trial.item_reward.name }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Requirements & Start -->
+        <div>
+            <div class="rpg-card">
+                <div class="rpg-card-header">
+                    <h3 class="rpg-card-title"><i class="fas fa-lock"></i> 進入門檻</h3>
+                </div>
+                <div class="rpg-card-body p-lg">
+                    <div class="requirement-item mb-xl p-md flex flex-between align-center" 
+                         style="background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid {% if can_start %}#28a745{% else %}#dc3545{% endif %};">
+                        <div class="flex align-center gap-md">
+                            <i class="fas fa-user-circle {% if can_start %}text-success{% else %}text-danger{% endif %}" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <div class="text-stone" style="font-size: 0.8rem;">等級需求</div>
+                                <div style="font-weight: bold;">Lv. {{ trial.required_level }}</div>
+                            </div>
+                        </div>
+                        {% if can_start %}
+                        <i class="fas fa-check-circle text-success" style="font-size: 1.2rem;"></i>
+                        {% else %}
+                        <span style="color: #dc3545; font-size: 0.8rem; font-weight: bold;">等級不足 (目前 Lv.{{ profile.level }})</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="action-block">
+                        {% if can_start %}
+                        <form action="{% url 'engineer_rpg:start_trial' trial.id %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="rpg-btn rpg-btn-primary w-full py-lg" style="font-size: 1.3rem; letter-spacing: 2px;">
+                                <i class="fas fa-sword"></i> 踏入戰場
+                            </button>
+                        </form>
+                        <p class="text-center text-stone mt-md" style="font-size: 0.85rem;">
+                            <i class="fas fa-info-circle"></i> 進入後將開始倒數計時，請謹慎應戰。
+                        </p>
+                        {% else %}
+                        <button class="rpg-btn rpg-btn-disabled w-full py-lg" disabled style="font-size: 1.3rem;">
+                            <i class="fas fa-lock"></i> 尚未解鎖
+                        </button>
+                        <p class="text-center text-danger mt-md" style="font-size: 0.85rem;">
+                            你需要達到 Lv.{{ trial.required_level }} 才能發起挑戰。
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <a href="{% url 'engineer_rpg:dungeon_list' %}" class="rpg-btn rpg-btn-outline w-full mt-lg text-center">
+                <i class="fas fa-reply"></i> 返回列表
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .grid-2-1 {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: var(--spacing-xl);
+    }
+    
+    @media (max-width: 768px) {
+        .grid-2-1 {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .reward-box {
+        transition: transform 0.3s ease;
+    }
+    .reward-box:hover {
+        transform: translateY(-5px);
+    }
+</style>
+{% endblock %}

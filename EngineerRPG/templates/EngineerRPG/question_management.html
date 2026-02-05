@@ -1,0 +1,109 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}題庫管理 - 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <div class="mb-lg">
+        <h1 class="text-center">
+            <i class="fas fa-book"></i>
+            題庫管理
+        </h1>
+    </div>
+
+    <div class="rpg-card">
+        <div class="flex justify-between items-center mb-lg">
+            <h2>題目列表</h2>
+            <div class="flex gap-sm">
+                <a href="{% url 'engineer_rpg:import_questions' %}" class="rpg-btn rpg-btn-primary">
+                    <i class="fas fa-file-import"></i> 批次匯入
+                </a>
+                <a href="{% url 'engineer_rpg:create_question' %}" class="rpg-btn rpg-btn-success">
+                    <i class="fas fa-plus"></i> 新增題目
+                </a>
+            </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--color-secondary);">
+                        <th style="padding: var(--spacing-sm); text-align: center; width: 60px;">ID</th>
+                        <th style="padding: var(--spacing-sm); text-align: left;">題目內容</th>
+                        <th style="padding: var(--spacing-sm); text-align: center; width: 100px;">類型</th>
+                        <th style="padding: var(--spacing-sm); text-align: center; width: 80px;">難度</th>
+                        <th style="padding: var(--spacing-sm); text-align: center; width: 80px;">狀態</th>
+                        <th style="padding: var(--spacing-sm); text-align: center; width: 100px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for question in page_obj %}
+                    <tr style="border-bottom: 1px solid var(--color-primary);">
+                        <td style="padding: var(--spacing-sm); text-align: center;">{{ question.id }}</td>
+                        <td style="padding: var(--spacing-sm);">
+                            <div style="font-weight: 600;">{{ question.content|truncatechars:50 }}</div>
+                            <div style="font-size: 0.85rem; color: var(--color-stone);">
+                                {% for tag in question.tags.all %}
+                                <span style="background: rgba(0,0,0,0.2); padding: 1px 5px; border-radius: 4px;">#{{
+                                    tag.name }}</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td style="padding: var(--spacing-sm); text-align: center;">
+                            {{ question.get_question_type_display }}
+                        </td>
+                        <td style="padding: var(--spacing-sm); text-align: center;">
+                            {% if question.difficulty == 'EASY' %}
+                            <span style="color: var(--color-safety);">簡單</span>
+                            {% elif question.difficulty == 'MEDIUM' %}
+                            <span style="color: var(--color-secondary);">中等</span>
+                            {% else %}
+                            <span style="color: var(--color-me);">困難</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: var(--spacing-sm); text-align: center;">
+                            {% if question.is_active %}
+                            <span style="color: var(--color-safety);"><i class="fas fa-check"></i></span>
+                            {% else %}
+                            <span style="color: var(--color-stone);"><i class="fas fa-times"></i></span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: var(--spacing-sm); text-align: center;">
+                            <a href="/admin/EngineerRPG/question/{{ question.id }}/change/" target="_blank"
+                                class="rpg-btn rpg-btn-sm">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center"
+                            style="padding: var(--spacing-xl); color: var(--color-stone);">
+                            尚無題目資料
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分頁 -->
+        {% if page_obj.has_other_pages %}
+        <div class="pagination mt-lg text-center">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}" class="rpg-btn rpg-btn-sm">&laquo; 上一頁</a>
+            {% endif %}
+
+            <span style="margin: 0 var(--spacing-md);">
+                第 {{ page_obj.number }} 頁，共 {{ page_obj.paginator.num_pages }} 頁
+            </span>
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="rpg-btn rpg-btn-sm">下一頁 &raquo;</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

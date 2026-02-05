@@ -96,11 +96,16 @@ INSTALLED_APPS = [
     'GeoDataHub',  # 地圖導向資料管理平台
     'GeoCoding',  # 地址編碼服務
     'BidQA',  # 標案問答管理
+    'CircleOptimizer',  # 圓優化工具
     # 'DesignConsistency',
     'SinoChat',  # Sinotech 內部聊天室
     'InterviewAssessment',
     'GravityPipeCalc',  # 重力管水理計算器
-    'soilmove',
+    'SoilMove',
+    'EngineerRPG',  # 現場監造工程師職涯冒險培訓系統
+    'FinanceInsight',  # 財經新聞與選股建議
+    'CarbonPLBC',  # 外部碳排放計算系統 (PL-BC)
+    'FriendExpense',  # 朋友間記帳
 ] + local.STAGE_INSTALLED_APPS
 
 

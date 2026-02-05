@@ -1,0 +1,480 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FinanceInsight{% endblock %}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Circular+Std:wght@400;500;700;900&family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            /* Spotify Color System */
+            --bg-base: #000000;
+            /* Sidebar */
+            --bg-main: #121212;
+            /* Main Content */
+            --bg-card: #181818;
+            /* Card Base */
+            --bg-card-hover: #282828;
+            /* Card Hover */
+            --text-base: #FFFFFF;
+            --text-subdued: #B3B3B3;
+            --brand-green: #1DB954;
+            --accent-green: #1ED760;
+            /* Hover Green */
+            --error-red: #E91429;
+            --financial-up: #1DB954;
+            /* Positive Change */
+            --financial-down: #F15E6C;
+            /* Negative Change */
+
+            --nav-width: 240px;
+            --top-bar-height: 64px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-base);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            /* Prevent body scroll, handle in main */
+        }
+
+        /* Layout Grid */
+        .app-layout {
+            display: grid;
+            grid-template-columns: var(--nav-width) 1fr;
+            grid-template-rows: 1fr;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background-color: var(--bg-base);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-base);
+            text-decoration: none;
+            font-size: 1.5rem;
+            font-weight: 700;
+            padding-bottom: 10px;
+        }
+
+        .logo-icon {
+            font-size: 2rem;
+        }
+
+        .nav-links {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .nav-item a {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: var(--text-subdued);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.95rem;
+            padding: 10px 16px;
+            border-radius: 4px;
+            transition: color 0.2s;
+        }
+
+        .nav-item a:hover,
+        .nav-item a.active {
+            color: var(--text-base);
+            background-color: rgba(255, 255, 255, 0.05);
+            /* User feedback on hover */
+        }
+
+        .nav-item a.active {
+            /* Spotify active state usually just bright white text, but we add bg for clarity */
+            background-color: #282828;
+        }
+
+        /* Main Content Area */
+        .main-view {
+            background-color: var(--bg-main);
+            border-radius: 8px;
+            /* Classic Spotify web rounded main view */
+            margin: 8px 8px 8px 0;
+            overflow-y: auto;
+            position: relative;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.5) 0, var(--bg-main) 100%);
+        }
+
+        .content-container {
+            padding: 20px 32px;
+            max-width: 1920px;
+            margin: 0 auto;
+        }
+
+        /* Top Bar (Optional, for search or user profile, currently mostly empty or title) */
+        .top-bar {
+            height: var(--top-bar-height);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            /* Align items right */
+            padding: 0 32px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background-color: rgba(18, 18, 18, 0.85);
+            /* Semi-transparent */
+            backdrop-filter: blur(10px);
+        }
+
+        /* Components */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 32px;
+            border-radius: 500px;
+            /* Pill shape */
+            font-weight: 700;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.1s, background-color 0.2s;
+        }
+
+        .btn:hover {
+            transform: scale(1.04);
+        }
+
+        .btn-success {
+            background-color: var(--brand-green);
+            color: #000;
+            /* Spotify uses black text on green buttons */
+        }
+
+        .btn-success:hover {
+            background-color: var(--accent-green);
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--bg-card);
+            border-radius: 6px;
+            padding: 16px;
+            transition: background-color 0.3s ease;
+            position: relative;
+            box-shadow: 0 4px 60px rgba(0, 0, 0, 0.5);
+            border: none;
+            /* Remove border from old design */
+            margin-bottom: 24px;
+        }
+
+        .card:hover {
+            background-color: var(--bg-card-hover);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            color: var(--text-base);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        /* News Items */
+        .news-item {
+            padding: 12px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .news-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .news-item a {
+            color: var(--text-base);
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 400;
+        }
+
+        .news-meta {
+            color: var(--text-subdued);
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+
+        /* Tables (Track List Style) */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            color: var(--text-subdued);
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 8px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 400;
+            background: transparent;
+            /* No bg for headers */
+            color: var(--text-subdued);
+        }
+
+        .data-table td {
+            padding: 10px 16px;
+            border-bottom: none;
+            /* Cleaner look */
+            color: var(--text-base);
+        }
+
+        .data-table tr {
+            transition: background-color 0.2s;
+            border-radius: 4px;
+            /* Need display block or similar for radius on tr, usually td radius */
+        }
+
+        .data-table tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Badges */
+        .badge {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-base);
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .badge-tw {
+            background-color: #2c3e50;
+            color: #fff;
+        }
+
+        /* Darker badges */
+        .badge-us {
+            background-color: #2c3e50;
+            color: #fff;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background-color: var(--brand-green);
+            color: #000;
+        }
+
+        .alert-error {
+            background-color: var(--error-red);
+            color: #fff;
+        }
+
+        .alert-warning {
+            background-color: #F1C40F;
+            color: #000;
+        }
+
+        .alert-info {
+            background-color: #2E77D0;
+            color: #fff;
+        }
+
+        /* Summaries */
+        .summary-box,
+        .conclusion-box {
+            background-color: rgba(255, 255, 255, 0.05);
+            /* Glassy */
+            border-left: 4px solid var(--brand-green);
+            border-radius: 4px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .conclusion-box {
+            border-left-color: #FFD700;
+        }
+
+        .summary-box h4,
+        .conclusion-box h4 {
+            color: var(--text-base);
+            margin-top: 0;
+        }
+
+        .summary-box p,
+        .conclusion-box p {
+            color: var(--text-subdued);
+        }
+
+        /* Price Colors */
+        .price-up {
+            color: var(--financial-up) !important;
+        }
+
+        .price-down {
+            color: var(--financial-down) !important;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-base);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #888;
+        }
+
+        @media (max-width: 768px) {
+            .app-layout {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+            }
+
+            .sidebar {
+                padding: 12px;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                height: 60px;
+            }
+
+            .main-view {
+                margin: 0;
+                border-radius: 0;
+            }
+
+            .nav-links {
+                flex-direction: row;
+                gap: 10px;
+            }
+
+            .nav-item a {
+                padding: 8px;
+                font-size: 0.8rem;
+            }
+
+            .logo span:last-child {
+                display: none;
+            }
+
+            /* Hide text logo on mobile */
+        }
+    </style>
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <a href="{% url 'finance_insight:news_list' %}" class="logo">
+                <span class="logo-icon">📈</span>
+                <span>FinanceInsight</span>
+            </a>
+
+            <ul class="nav-links">
+                <li class="nav-item">
+                    <a href="{% url 'home:home' %}">
+                        <span>🏠 返回首頁</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'finance_insight:news_list' %}" {% if request.resolver_match.url_name == 'news_list' %}class="active" {% endif %}>
+                        <span>📰 財經新聞</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'finance_insight:stock_list' %}" {% if request.resolver_match.url_name == 'stock_list' %}class="active" {% endif %}>
+                        <span>📊 選股建議</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-view">
+            <div class="top-bar">
+                {% if request.user.is_authenticated %}
+                <span style="color: white; font-weight: bold;">👤 {{ request.user.username }}</span>
+                {% else %}
+                <span style="color: white;">訪客</span>
+                {% endif %}
+            </div>
+
+            <div class="content-container">
+                {% if messages %}
+                <div>
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }}">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% block content %}{% endblock %}
+            </div>
+
+            <footer style="padding: 40px 0; text-align: center; color: var(--text-subdued); font-size: 0.8rem;">
+                &copy; {% now "Y" %} FinanceInsight | 資料來源: Yahoo Finance & Google News
+            </footer>
+        </main>
+    </div>
+
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

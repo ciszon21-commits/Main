@@ -1,0 +1,87 @@
+﻿{% extends 'EngineerRPG/management/base_management.html' %}
+
+{% block management_content %}
+<div class="rpg-card">
+    <div class="rpg-card-header">
+        <h3 class="rpg-card-title">
+            <i class="fas fa-scroll"></i> {% if trial %}編輯課程{% else %}新增課程{% endif %}
+        </h3>
+    </div>
+
+    <form method="post" class="p-lg">
+        {% csrf_token %}
+
+        <div class="space-y-md">
+            <!-- 課程名稱 -->
+            <div>
+                <label class="form-label">課程名稱 <span class="text-danger">*</span></label>
+                <input type="text" name="title" value="{{ trial.title|default:'' }}" class="rpg-input w-full" required>
+            </div>
+
+            <!-- 描述 -->
+            <div>
+                <label class="form-label">描述</label>
+                <textarea name="description" rows="3"
+                    class="rpg-input w-full">{{ trial.description|default:'' }}</textarea>
+            </div>
+
+            <div class="grid grid-cols-3 gap-md">
+                <!-- 難度 -->
+                <div>
+                    <label class="form-label">難度</label>
+                    <select name="difficulty" class="rpg-input w-full">
+                        <option value="EASY" {% if trial.difficulty=='EASY' %}selected{% endif %}>簡單</option>
+                        <option value="MEDIUM" {% if trial.difficulty=='MEDIUM' %}selected{% endif %}>中等</option>
+                        <option value="HARD" {% if trial.difficulty=='HARD' %}selected{% endif %}>困難</option>
+                    </select>
+                </div>
+
+                <!-- 時間限制 -->
+                <div>
+                    <label class="form-label">時間限制（分鐘）</label>
+                    <input type="number" name="time_limit_minutes" value="{{ trial.time_limit_minutes|default:20 }}"
+                        min="1" max="120" class="rpg-input w-full">
+                </div>
+
+                <!-- 經驗獎勵 -->
+                <div>
+                    <label class="form-label">經驗獎勵</label>
+                    <input type="number" name="exp_reward" value="{{ trial.exp_reward|default:100 }}" min="0"
+                        class="rpg-input w-full">
+                </div>
+            </div>
+
+            <!-- 關聯題目 -->
+            <div>
+                <label class="form-label">關聯題目</label>
+                <div class="bg-black/30 p-md rounded max-h-96 overflow-y-auto">
+                    {% regroup questions by category as category_list %}
+                    {% for category_group in category_list %}
+                    <div class="mb-md">
+                        <div class="text-sm font-bold text-secondary mb-xs">
+                            {{ category_group.grouper.name|default:"未分類" }}
+                        </div>
+                        {% for question in category_group.list %}
+                        <label class="flex items-start gap-sm p-xs hover:bg-white/5 rounded cursor-pointer">
+                            <input type="checkbox" name="questions" value="{{ question.id }}" {% if question.id in
+                                selected_question_ids %}checked{% endif %} class="mt-1">
+                            <span class="text-sm flex-1">{{ question.content|truncatewords:15 }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="flex gap-md mt-lg">
+            <button type="submit" class="rpg-btn rpg-btn-primary">
+                <i class="fas fa-save"></i> 儲存
+            </button>
+            <a href="{% url 'engineer_rpg:question_management' %}" class="rpg-btn rpg-btn-outline">
+                <i class="fas fa-times"></i> 取消
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

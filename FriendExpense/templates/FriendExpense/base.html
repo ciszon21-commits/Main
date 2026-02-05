@@ -1,0 +1,561 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}朋友記帳{% endblock %}</title>
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --bg-base: #0a0a0a;
+            --bg-main: #121212;
+            --bg-card: #1a1a2e;
+            --bg-card-hover: #252542;
+            --text-base: #FFFFFF;
+            --text-subdued: #a0a0a0;
+            --brand-primary: #6C63FF;
+            --brand-secondary: #FF6B6B;
+            --accent-green: #00D26A;
+            --accent-red: #FF4757;
+            --accent-gold: #FFD93D;
+            --nav-width: 260px;
+            --top-bar-height: 64px;
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-card: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-base);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-layout {
+            display: grid;
+            grid-template-columns: var(--nav-width) 1fr;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--gradient-card);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            border-right: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            padding: 16px;
+            background: var(--gradient-primary);
+            border-radius: 16px;
+            margin-bottom: 8px;
+        }
+
+        .logo-icon {
+            font-size: 2rem;
+        }
+
+        .logo-text {
+            color: white;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .nav-links {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .nav-item a {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            color: var(--text-subdued);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            padding: 14px 18px;
+            border-radius: 12px;
+            transition: all 0.25s ease;
+        }
+
+        .nav-item a:hover,
+        .nav-item a.active {
+            color: white;
+            background: rgba(108, 99, 255, 0.15);
+        }
+
+        .nav-item a.active {
+            background: var(--gradient-primary);
+            box-shadow: 0 4px 15px rgba(108, 99, 255, 0.4);
+        }
+
+        .nav-icon {
+            font-size: 1.2rem;
+        }
+
+        /* Main Content */
+        .main-view {
+            background: linear-gradient(180deg, var(--bg-main) 0%, var(--bg-base) 100%);
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .top-bar {
+            height: var(--top-bar-height);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 32px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(18, 18, 18, 0.9);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 50px;
+            font-weight: 500;
+        }
+
+        .content-container {
+            padding: 32px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Page Headers */
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            color: var(--text-subdued);
+            font-size: 1rem;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--gradient-card);
+            border-radius: 20px;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+            border-color: rgba(108, 99, 255, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: 0 4px 15px rgba(108, 99, 255, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(108, 99, 255, 0.5);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #00D26A 0%, #00A854 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #FF4757 0%, #FF3142 100%);
+            color: white;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .btn-outline:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.4);
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-base);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.25s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 4px rgba(108, 99, 255, 0.2);
+        }
+
+        .form-control::placeholder {
+            color: rgba(255,255,255,0.3);
+        }
+
+        /* Lists */
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .list-item:hover {
+            background: rgba(255,255,255,0.08);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge-amount {
+            background: rgba(108, 99, 255, 0.2);
+            color: #a5a0ff;
+        }
+
+        .badge-positive {
+            background: rgba(0, 210, 106, 0.2);
+            color: #00D26A;
+        }
+
+        .badge-negative {
+            background: rgba(255, 71, 87, 0.2);
+            color: #FF4757;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: rgba(0, 210, 106, 0.15);
+            color: #00D26A;
+            border: 1px solid rgba(0, 210, 106, 0.3);
+        }
+
+        .alert-error {
+            background: rgba(255, 71, 87, 0.15);
+            color: #FF4757;
+            border: 1px solid rgba(255, 71, 87, 0.3);
+        }
+
+        .alert-warning {
+            background: rgba(255, 217, 61, 0.15);
+            color: #FFD93D;
+            border: 1px solid rgba(255, 217, 61, 0.3);
+        }
+
+        /* Grid */
+        .grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+        /* Stats */
+        .stat-card {
+            background: var(--gradient-card);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: var(--text-subdued);
+            font-size: 0.9rem;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state-text {
+            color: var(--text-subdued);
+            margin-bottom: 20px;
+        }
+
+        /* Settlement */
+        .settlement-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            background: rgba(108, 99, 255, 0.1);
+            border-radius: 16px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(108, 99, 255, 0.2);
+        }
+
+        .settlement-arrow {
+            font-size: 1.5rem;
+            color: var(--brand-primary);
+            margin: 0 20px;
+        }
+
+        .settlement-amount {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent-gold);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .app-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .content-container {
+                padding: 20px;
+            }
+
+            .grid-2, .grid-3, .grid-4 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Checkbox styling */
+        .member-checkbox-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .member-checkbox-list label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .member-checkbox-list label:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .member-checkbox-list input[type="checkbox"]:checked + label,
+        .member-checkbox-list label:has(input:checked) {
+            background: rgba(108, 99, 255, 0.3);
+            border: 1px solid var(--brand-primary);
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <a href="{% url 'friend_expense:group_list' %}" class="logo">
+                <span class="logo-icon">💰</span>
+                <span class="logo-text">朋友記帳</span>
+            </a>
+
+            <ul class="nav-links">
+                <li class="nav-item">
+                    <a href="{% url 'home:home' %}">
+                        <span class="nav-icon">🏠</span>
+                        <span>返回首頁</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'friend_expense:group_list' %}" {% if request.resolver_match.url_name == 'group_list' %}class="active"{% endif %}>
+                        <span class="nav-icon">📁</span>
+                        <span>我的群組</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'friend_expense:group_create' %}">
+                        <span class="nav-icon">➕</span>
+                        <span>建立群組</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-view">
+            <div class="top-bar">
+                {% if request.user.is_authenticated %}
+                <div class="user-badge">
+                    <span>👤</span>
+                    <span>{{ request.user.username }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="content-container">
+                {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }}">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% block content %}{% endblock %}
+            </div>
+
+            <footer style="padding: 40px; text-align: center; color: var(--text-subdued); font-size: 0.85rem;">
+                &copy; {% now "Y" %} 朋友記帳 | Made with ❤️
+            </footer>
+        </main>
+    </div>
+
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

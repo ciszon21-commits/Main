@@ -1,0 +1,136 @@
+﻿{% extends 'EngineerRPG/management/base_management.html' %}
+
+{% block management_content %}
+<div class="rpg-card">
+    <div class="rpg-card-header flex justify-between items-center">
+        <h3 class="rpg-card-title"><i class="fas fa-question-circle"></i> 題庫管理</h3>
+        <div class="flex gap-sm items-center">
+            <form method="post" onsubmit="return confirm('確定要重置今日的試煉進度嗎？這將允許您重新挑戰今日任務。');">
+                {% csrf_token %}
+                <button type="submit" name="reset_trial" value="true" class="rpg-btn rpg-btn-sm rpg-btn-danger">
+                    <i class="fas fa-redo"></i> 重置試煉
+                </button>
+            </form>
+            <div class="w-1px h-6 bg-white/20 mx-xs"></div>
+            <a href="{% url 'engineer_rpg:import_questions' %}" class="rpg-btn rpg-btn-sm rpg-btn-secondary">
+                <i class="fas fa-file-upload"></i> 匯入
+            </a>
+            <a href="{% url 'engineer_rpg:create_question' %}" class="rpg-btn rpg-btn-sm rpg-btn-primary">
+                <i class="fas fa-plus"></i> 新增題目
+            </a>
+        </div>
+    </div>
+
+
+
+    <!-- Questions Section Header -->
+    <div class="rpg-card-header">
+        <h3 class="rpg-card-title"><i class="fas fa-question-circle"></i> 題目列表</h3>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-black/30 p-md rounded-lg mb-md flex gap-md items-end">
+        <form method="get" class="flex gap-md w-full items-end">
+            <div class="flex-1">
+                <label class="form-label text-xs mb-xs">關鍵字搜尋</label>
+                <input type="text" name="q" value="{{ search_query|default:'' }}" class="rpg-input w-full"
+                    placeholder="搜尋題目內容...">
+            </div>
+            <div>
+                <label class="form-label text-xs mb-xs">分類篩選</label>
+                <select name="category" class="rpg-input">
+                    <option value="">全部類別</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if selected_category == cat.id %}selected{% endif %}>
+                        {{ cat.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="rpg-btn rpg-btn-secondary">
+                <i class="fas fa-search"></i> 搜尋
+            </button>
+            <a href="{% url 'engineer_rpg:question_management' %}" class="rpg-btn rpg-btn-outline" title="清除篩選">
+                <i class="fas fa-times"></i>
+            </a>
+        </form>
+    </div>
+
+    <div class="table-container">
+        <table class="rpg-table w-full">
+            <thead>
+                <tr>
+                    <th style="width: 50%;">內容</th>
+                    <th>分類</th>
+                    <th>難度</th>
+                    <th>類型</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for question in page_obj %}
+                <tr>
+                    <td class="text-xs">
+                        <div class="line-clamp-2" title="{{ question.content }}">{{ question.content }}</div>
+                    </td>
+                    <td>
+                        {% if question.category %}
+                        <span class="badge bg-secondary/20 text-secondary">{{ question.category.name }}</span>
+                        {% else %}
+                        <span class="text-stone text-xs">無分類</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span
+                            class="badge {% if question.difficulty == 'S' %}bg-primary/20 text-primary{% elif question.difficulty == 'A' %}bg-warning/20 text-warning{% else %}bg-stone/20 text-stone{% endif %}">
+                            {{ question.get_difficulty_display }}
+                        </span>
+                    </td>
+                    <td>{{ question.get_question_type_display }}</td>
+                    <td>
+                        <a href="{% url 'engineer_rpg:edit_question' question.id %}"
+                            class="rpg-btn rpg-btn-xs rpg-btn-secondary">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <form action="{% url 'engineer_rpg:delete_question' question.id %}" method="post"
+                            style="display:inline;" onsubmit="return confirm('確定要刪除這道題目嗎？');">
+                            {% csrf_token %}
+                            <button type="submit" class="rpg-btn rpg-btn-xs rpg-btn-danger">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-lg text-stone">查無題目資料</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="flex justify-center mt-lg gap-sm">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+            class="rpg-btn rpg-btn-sm rpg-btn-secondary">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        {% endif %}
+
+        <span class="rpg-btn rpg-btn-sm rpg-btn-outline disabled">
+            {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+            class="rpg-btn rpg-btn-sm rpg-btn-secondary">
+            <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
