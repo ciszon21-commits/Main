@@ -1,0 +1,177 @@
+{% extends 'FriendExpense/base.html' %}
+{% load expense_filters %}
+
+{% block title %}{% if object %}編輯{% else %}新增{% endif %}記帳 - 朋友記帳{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">{% if object %}編輯記帳{% else %}新增記帳{% endif %}</h1>
+    <p class="page-subtitle">{{ group.name }}</p>
+</div>
+
+<div class="card" style="max-width: 700px;">
+    <form method="post" enctype="multipart/form-data" id="expenseForm">
+        {% csrf_token %}
+
+        <div class="grid grid-2">
+            <div class="form-group">
+                <label class="form-label" for="id_paid_by">付款人 *</label>
+                {{ form.paid_by }}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="id_amount">總金額 *</label>
+                {{ form.amount }}
+                <small class="form-text text-muted">由下方明細自動計算</small>
+            </div>
+        </div>
+
+        <!-- 商品明細區塊 -->
+        <div class="form-group"
+            style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+            <label class="form-label">🛒 商品明細</label>
+            <div id="items-container">
+                <!-- JS 動態生成項目 -->
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" onclick="addItemRow()"
+                style="margin-top: 10px; width: 100%;">+ 新增品項</button>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="id_category_name">分類</label>
+            {{ form.category_name }}
+            <small class="form-text text-muted">可選擇現有分類或輸入新名稱</small>
+            <datalist id="category-list">
+                {% for category in group.categories.all %}
+                <option value="{{ category.name }}">
+                    {% endfor %}
+            </datalist>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="id_description">品項說明 *</label>
+            {{ form.description }}
+            <small class="form-text text-muted">由下方明細自動合併</small>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="id_expense_date">消費時間</label>
+            {{ form.expense_date }}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="id_receipt">收據/照片</label>
+            {{ form.receipt }}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="id_notes">備註</label>
+            {{ form.notes }}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">分攤對象 *</label>
+            <div class="member-checkbox-list">
+                {% for checkbox in form.split_members %}
+                <label
+                    style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; background: rgba(255,255,255,0.05); border-radius: 8px; cursor: pointer;">
+                    {{ checkbox.tag }}
+                    {{ checkbox.choice_label }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                {{ form.split_equally }}
+                <span>平均分攤</span>
+            </label>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+            <button type="submit" class="btn btn-primary">
+                {% if object %}💾 儲存變更{% else %}💰 確認記帳{% endif %}
+            </button>
+            <a href="{% url 'friend_expense:group_detail' pk=group.pk %}" class="btn btn-outline">取消</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function addItemRow(name = '', price = '') {
+        const container = document.getElementById('items-container');
+        const row = document.createElement('div');
+        row.className = 'item-row';
+        row.style.display = 'flex';
+        row.style.gap = '8px';
+        row.style.marginBottom = '8px';
+
+        row.innerHTML = `
+            <input type="text" name="item_names[]" class="form-control item-name" placeholder="品項名稱" value="${name}" oninput="updateCalculations()" style="flex: 2;">
+            <input type="number" name="item_amounts[]" class="form-control item-price" placeholder="金額" value="${price}" oninput="updateCalculations()" style="flex: 1;">
+            <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove(); updateCalculations();" style="padding: 0 10px;">✕</button>
+        `;
+        container.appendChild(row);
+        updateCalculations();
+    }
+
+    function updateCalculations() {
+        const names = Array.from(document.querySelectorAll('.item-name')).map(i => i.value).filter(v => v.trim() !== '');
+        const prices = Array.from(document.querySelectorAll('.item-price')).map(i => parseFloat(i.value) || 0);
+
+        const totalAmount = prices.reduce((a, b) => a + b, 0);
+        const description = names.join(', ');
+
+        const amountInput = document.getElementById('id_amount');
+        const descInput = document.getElementById('id_description');
+
+        if (prices.length > 0) {
+            amountInput.value = totalAmount;
+            amountInput.setAttribute('readonly', true);
+            amountInput.classList.add('readonly-input');
+        } else {
+            // amountInput.removeAttribute('readonly'); // 不自動移除，避免誤操作
+            // amountInput.classList.remove('readonly-input');
+        }
+
+        if (names.length > 0) {
+            descInput.value = description;
+            descInput.setAttribute('readonly', true);
+            descInput.classList.add('readonly-input');
+        } else {
+            // descInput.removeAttribute('readonly');
+            // descInput.classList.remove('readonly-input');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        {% if expense_items %}
+        {% for item in expense_items %}
+        addItemRow('{{ item.name|escapejs }}', '{{ item.amount|stringformat:"f" }}');
+        {% endfor %}
+        {% else %}
+        const currentDesc = document.getElementById('id_description').value;
+        const currentAmount = document.getElementById('id_amount').value;
+
+        if (currentDesc && currentDesc.includes(',')) {
+            // 嘗試解析現有資料 (簡易嘗試)
+            // 這裡可能無法精確還原，所以保持原狀或新增空行
+        }
+
+        if (document.getElementById('items-container').children.length === 0) {
+            addItemRow();
+        }
+        {% endif %}
+    });
+</script>
+
+<style>
+    .readonly-input {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
