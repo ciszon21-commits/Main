@@ -45,6 +45,7 @@ urlpatterns = [
     path('rpg/', include('EngineerRPG.urls')),  # 現場監造工程師職涯冒險培訓系統
     path('finance/', include('FinanceInsight.urls')),  # 財經新聞與選股建議
     path('carbon-plbc/', include('CarbonPLBC.urls', namespace='carbonplbc')),  # 外部碳排放計算系統 (PL-BC)
+    path('lunch/', include('LunchOrder.urls', namespace='lunchorder')),  # 訂便當系統
 ]
 
 # 條件載入 ClashClassifier API

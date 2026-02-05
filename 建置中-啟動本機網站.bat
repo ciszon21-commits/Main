@@ -43,7 +43,7 @@ echo.
 
 :: 3. 執行 runserver
 :: 注意：啟動 venv 後，直接用 python 指令通常比 py 更能確保用到 venv 裡的解釋器
-py manage.py runserver
+python manage.py runserver
 
 :: 4. 如果伺服器意外崩潰或關閉，暫停視窗讓使用者看錯誤訊息
 echo.
