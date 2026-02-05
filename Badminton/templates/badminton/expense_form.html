@@ -1,0 +1,86 @@
+{% extends 'badminton/base.html' %}
+
+{% block title %}{{ title }} - 記帳系統{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">{{ title }}</h1>
+    <a href="{% url 'badminton:expense_list' %}" class="btn btn-secondary">← 返回列表</a>
+</div>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+            <div class="form-group">
+                <label class="form-label">日期 *</label>
+                {{ form.date }}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">時間 *</label>
+                {{ form.time }}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">類型</label>
+                {{ form.category }}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">金額 *</label>
+                {{ form.amount }}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">品項名稱 *</label>
+            {{ form.item_name }}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">付款人</label>
+            {{ form.paid_by }}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">分攤者（複選，平均分攤）</label>
+            <div class="checkbox-list">
+                {% for checkbox in form.split_participants %}
+                <label>
+                    {{ checkbox.tag }}
+                    {{ checkbox.choice_label }}
+                </label>
+                {% empty %}
+                <p style="color: var(--text-subdued);">尚無參與者,請先<a href="{% url 'badminton:participant_list' %}"
+                        style="color: var(--brand-primary);">新增參與者</a></p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">備註</label>
+            {{ form.note }}
+        </div>
+
+        {% if form.errors %}
+        <div class="alert alert-error">
+            {% for field in form %}
+            {% for error in field.errors %}
+            <p>{{ field.label }}: {{ error }}</p>
+            {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+            <button type="submit" class="btn btn-primary">💾 儲存</button>
+            <a href="{% url 'badminton:expense_list' %}" class="btn btn-secondary">取消</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 
-app_name = 'expense_tracker'
+app_name = 'badminton'
 
 urlpatterns = [
     # 記帳 CRUD

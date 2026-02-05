@@ -107,7 +107,7 @@ INSTALLED_APPS = [
     'CarbonPLBC',  # 外部碳排放計算系統 (PL-BC)
     'FriendExpense',  # 朋友間記帳
     'LunchOrder',  # 訂便當系統
-    'ExpenseTracker',  # 記帳系統
+    'Badminton',  # 記帳系統
 
 ] + local.STAGE_INSTALLED_APPS
 
