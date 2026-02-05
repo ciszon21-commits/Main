@@ -15,7 +15,7 @@ class DashboardView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['cities'] = SoilMove.objects.values_list('city', flat=True).distinct().order_by('city')
+        context['cities'] = SoilMove.objects.exclude(city='請選擇').values_list('city', flat=True).distinct().order_by('city')
         context['site_types'] = SoilMove.objects.values_list('site_type', flat=True).distinct().order_by('site_type')
         # Add status choices for filter
         context['statuses'] = ['正常', '停止']
