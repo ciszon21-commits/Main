@@ -47,7 +47,7 @@ urlpatterns = [
     path('carbon-plbc/', include('CarbonPLBC.urls', namespace='carbonplbc')),  # 外部碳排放計算系統 (PL-BC)
     path('expense/', include('FriendExpense.urls')),  # 朋友間記帳
     path('lunch/', include('LunchOrder.urls', namespace='lunchorder')),  # 訂便當系統
-    path('expense/', include('ExpenseTracker.urls')),  # 記帳系統
+    path('badminton/', include('ExpenseTracker.urls')),  # 記帳系統
 ]
 
 # 條件載入 ClashClassifier API
