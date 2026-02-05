@@ -24,7 +24,23 @@ if exist "venv\Scripts\activate.bat" (
     exit /b
 )
 
-python manage.py migrate
+:: 2. 偵測可用的 Python 指令
+set "PYTHON_CMD="
+py --version >nul 2>&1
+if %errorlevel% equ 0 (
+    set "PYTHON_CMD=py"
+) else (
+    python --version >nul 2>&1
+    if %errorlevel% equ 0 (
+        set "PYTHON_CMD=python"
+    )
+)
+
+if "%PYTHON_CMD%"=="" (
+    set "PYTHON_CMD=python"
+)
+
+%PYTHON_CMD% manage.py migrate
 
 :: 5. 結果判斷
 if %errorlevel% neq 0 (

@@ -11,11 +11,21 @@ echo ==========================================
 echo       正在建立 Python 虛擬環境 (venv)
 echo ==========================================
 
-:: 1. 檢查電腦是否有安裝 Python
-py --version
-if %errorlevel% neq 0 (
+:: 1. 偵測可用的 Python 指令
+set "PYTHON_CMD="
+py --version >nul 2>&1
+if %errorlevel% equ 0 (
+    set "PYTHON_CMD=py"
+) else (
+    python --version >nul 2>&1
+    if %errorlevel% equ 0 (
+        set "PYTHON_CMD=python"
+    )
+)
+
+if "%PYTHON_CMD%"=="" (
     echo.
-    echo [嚴重錯誤] 找不到 'py' 指令！
+    echo [嚴重錯誤] 找不到 'py' 或 'python' 指令！
     echo ------------------------------------------
     echo 請確認：
     echo 1. 您已安裝 Python
@@ -24,6 +34,9 @@ if %errorlevel% neq 0 (
     pause
     exit /b
 )
+
+echo [提示] 使用指令: %PYTHON_CMD%
+
 
 :: 2. 檢查是否已經存在 venv 資料夾
 if exist "venv\" (
@@ -38,10 +51,10 @@ if exist "venv\" (
 
 :: 3. 開始建立
 echo.
-echo 正在執行建立指令 (py -m venv venv)...
+echo 正在執行建立指令 (%PYTHON_CMD% -m venv venv)...
 echo 請稍候...
 
-py -m venv venv
+%PYTHON_CMD% -m venv venv
 
 if %errorlevel% neq 0 (
     echo.
