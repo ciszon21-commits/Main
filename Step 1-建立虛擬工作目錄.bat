@@ -11,7 +11,6 @@ echo ==========================================
 echo       正在建立 Python 虛擬環境 (venv)
 echo ==========================================
 
-
 :: 1. 偵測可用的 Python 指令
 set "PYTHON_CMD="
 py --version >nul 2>&1
@@ -27,6 +26,7 @@ if %errorlevel% equ 0 (
 if "%PYTHON_CMD%"=="" (
     echo.
     echo [嚴重錯誤] 找不到 'py' 或 'python' 指令！
+
 
     echo ------------------------------------------
     echo 請確認：
@@ -58,6 +58,7 @@ echo 正在執行建立指令 (%PYTHON_CMD% -m venv venv)...
 echo 請稍候...
 
 %PYTHON_CMD% -m venv venv
+
 
 if %errorlevel% neq 0 (
     echo.

@@ -41,11 +41,17 @@ echo       (若要停止伺服器，請按 Ctrl+C)
 echo ==========================================
 echo.
 
-:: 3. 執行 runserver
-:: 注意：啟動 venv 後，直接用 python 指令通常比 python 更能確保用到 venv 裡的解釋器
-python manage.py runserver
+:: 3. 偵測可用的 Python 指令
+set "PYTHON_CMD=python"
+py --version >nul 2>&1
+if %errorlevel% equ 0 (
+    set "PYTHON_CMD=py"
+)
 
-:: 4. 如果伺服器意外崩潰或關閉，暫停視窗讓使用者看錯誤訊息
+:: 4. 執行 runserver
+%PYTHON_CMD% manage.py runserver
+
+:: 5. 如果伺服器意外崩潰或關閉，暫停視窗讓使用者看錯誤訊息
 echo.
 echo Server 已停止。
 pause
