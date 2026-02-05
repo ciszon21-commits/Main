@@ -106,6 +106,7 @@ INSTALLED_APPS = [
     'FinanceInsight',  # 財經新聞與選股建議
     'CarbonPLBC',  # 外部碳排放計算系統 (PL-BC)
     'FriendExpense',  # 朋友間記帳
+    'LunchOrder',  # 訂便當系統
 ] + local.STAGE_INSTALLED_APPS
 
 
