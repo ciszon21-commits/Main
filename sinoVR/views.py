@@ -158,3 +158,16 @@ class InfoCardUpdateView(View):
             return JsonResponse({'status': 'error', 'message': 'InfoCard not found'}, status=404)
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class AssetDeleteView(View):
+    def post(self, request, pk):
+        asset = get_object_or_404(Asset3D, pk=pk)
+        try:
+            asset.delete()
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+    def delete(self, request, pk):
+        return self.post(request, pk)

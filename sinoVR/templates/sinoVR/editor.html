@@ -315,6 +315,9 @@
                     {% for asset in assets %}
                     <div class="asset-card"
                         onclick="addModel('{{ asset.pk }}', '{{ asset.file.url }}', '{{ asset.title }}')">
+                        <button class="asset-delete-btn" onclick="deleteAsset('{{ asset.pk }}', event)" title="刪除">
+                            <i class="fas fa-times"></i>
+                        </button>
                         <div class="asset-icon"><i class="fas fa-cube"></i></div>
                         <div class="text-truncate">{{ asset.title }}</div>
                     </div>
@@ -461,17 +464,16 @@
         {% for obj in scene.objects.all %}
         {% if obj.info_card %}
         addInfoCard('{{ obj.info_card.pk }}', '{{ obj.info_card.title }}', '{{ obj.info_card.content|escapejs }}', {
-            position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }} },
-            rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }} },
-            scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} }
-            }, '{{ obj.info_card.bg_color }}', {{ obj.info_card.content_font_size }});
-        {% elif obj.asset %}
-        loadModel('{{ obj.asset.pk }}', '{{ obj.asset.file.url }}', {
-            position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }}},
-            rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }}},
-            scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }}}}, '{{ obj.asset.title }}');
-        {% endif %}
-        {% endfor %}
+            position: { x: {{ obj.position_x }}, y: { { obj.position_y } }, z: { { obj.position_z } } },
+    rotation: { x: { { obj.rotation_x } }, y: { { obj.rotation_y } }, z: { { obj.rotation_z } } },
+    scale: { x: { { obj.scale_x } }, y: { { obj.scale_y } }, z: { { obj.scale_z } } }}, '{{ obj.info_card.bg_color }}', {{ obj.info_card.content_font_size }});
+    {% elif obj.asset %}
+    loadModel('{{ obj.asset.pk }}', '{{ obj.asset.file.url }}', {
+        position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }}},
+        rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }}},
+        scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }}}}, '{{ obj.asset.title }}');
+    {% endif %}
+    {% endfor %}
     }
 
     // InfoCard Functions
@@ -807,6 +809,7 @@
     }
 
 
+
     window.showCardDetail = function (title, content) {
         document.getElementById('card-detail-title').textContent = title;
         document.getElementById('card-detail-content').textContent = content;
@@ -930,6 +933,11 @@
 
             updateHierarchy();
             if (callback) callback(object);
+        }, undefined, (error) => {
+            console.warn('Error loading model:', url, error);
+            // Don't alert for every failed model to avoid spamming the user, 
+            // especially if they want to delete it.
+            // Just log it.
         });
     }
 
@@ -1263,6 +1271,33 @@
         }
 
         renderer.render(scene, camera);
+    }
+
+    // Delete Asset
+    window.deleteAsset = function (id, event) {
+        console.log('deleteAsset called for id:', id);
+        event.stopPropagation();
+        if (!confirm('確定要刪除此素材嗎？此操作無法復原。')) return;
+
+        // Find the button (target might be the icon inside)
+        const btn = event.currentTarget;
+        const card = btn.closest('.asset-card');
+
+        fetch(`/sinoVR/api/asset/${id}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': CSRF_TOKEN
+            }
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (card) card.remove();
+                } else {
+                    alert('刪除失敗: ' + data.message);
+                }
+            })
+            .catch(e => alert('刪除失敗: ' + e));
     }
 
     // Start Application
