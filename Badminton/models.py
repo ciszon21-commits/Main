@@ -19,6 +19,7 @@ class ExpenseCategory(models.Model):
         verbose_name = "支出類型"
         verbose_name_plural = "支出類型"
         ordering = ['name']
+        db_table = 'ExpenseTracker_expensecategory'
 
 
 class Participant(models.Model):
@@ -35,6 +36,7 @@ class Participant(models.Model):
         verbose_name = "參與者"
         verbose_name_plural = "參與者"
         ordering = ['name']
+        db_table = 'ExpenseTracker_participant'
 
 
 class Expense(models.Model):
@@ -74,6 +76,7 @@ class Expense(models.Model):
         verbose_name = "記帳紀錄"
         verbose_name_plural = "記帳紀錄"
         ordering = ['-date', '-time']
+        db_table = 'ExpenseTracker_expense'
 
 
 class ExpenseSplit(models.Model):
@@ -104,3 +107,4 @@ class ExpenseSplit(models.Model):
         verbose_name = "費用分攤"
         verbose_name_plural = "費用分攤"
         unique_together = ['expense', 'participant']
+        db_table = 'ExpenseTracker_expensesplit'

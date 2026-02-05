@@ -1,0 +1,81 @@
+{% extends 'badminton/base.html' %}
+
+{% block title %}分帳結算 - 記帳系統{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">💸 分帳結算</h1>
+</div>
+
+<!-- Settlement Results -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">💰 結算結果</h3>
+    </div>
+
+    {% if settlements %}
+    <div>
+        {% for item in settlements %}
+        <div class="settlement-item">
+            <span style="font-size: 1.1rem; font-weight: 600;">{{ item.from_name }}</span>
+            <span class="settlement-arrow">➡️</span>
+            <span style="font-size: 1.1rem; font-weight: 600;">{{ item.to_name }}</span>
+            <span class="settlement-amount">${{ item.amount|floatformat:0 }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: var(--text-subdued);">
+        <div style="font-size: 3rem; margin-bottom: 12px;">✅</div>
+        <p>完美平衡結算!帳務已平衡!</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Participant Summary -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">👥 各參與者消費摘要</h3>
+    </div>
+
+    {% if summaries %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>參與者</th>
+                <th>已付金額</th>
+                <th>應付金額</th>
+                <th>淨餘額</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in summaries %}
+            <tr>
+                <td><strong>{{ s.name }}</strong></td>
+                <td>${{ s.paid|floatformat:0 }}</td>
+                <td>${{ s.owed|floatformat:0 }}</td>
+                <td style="font-weight: 700; color: {% if s.balance >= 0 %}#22c55e{% else %}#ef4444{% endif %};">
+                    {% if s.balance >= 0 %}+{% endif %}${{ s.balance|floatformat:0 }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: var(--text-subdued);">
+        <p>尚無參與者</p>
+        <a href="{% url 'badminton:participant_list' %}" class="btn btn-primary"
+            style="margin-top: 12px;">新增參與者</a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card" style="background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);">
+    <h4 style="margin-bottom: 12px;">💡 使用說明</h4>
+    <ul style="color: var(--text-subdued); line-height: 1.8;">
+        <li>正數餘額表示該參與者已多付,其他人欠他</li>
+        <li>負數餘額表示該參與者付款不足,需補繳給其他人</li>
+        <li>結算結果會計算最簡化還款路徑</li>
+    </ul>
+</div>
+{% endblock %}

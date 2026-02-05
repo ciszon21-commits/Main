@@ -45,7 +45,7 @@ def expense_list(request):
         'page_obj': page_obj,
         'filter_form': filter_form,
     }
-    return render(request, 'expense_tracker/expense_list.html', context)
+    return render(request, 'badminton/expense_list.html', context)
 
 
 def expense_create(request):
@@ -66,8 +66,8 @@ def expense_create(request):
                         share_amount=share_amount
                     )
             
-            messages.success(request, f'已新增記帳：{expense.item_name}')
-            return redirect('expense_tracker:expense_list')
+            messages.success(request, f'已新增記帳:{expense.item_name}')
+            return redirect('badminton:expense_list')
     else:
         form = ExpenseForm()
     
@@ -75,7 +75,7 @@ def expense_create(request):
         'form': form,
         'title': '新增記帳',
     }
-    return render(request, 'expense_tracker/expense_form.html', context)
+    return render(request, 'badminton/expense_form.html', context)
 
 
 def expense_update(request, pk):
@@ -105,8 +105,8 @@ def expense_update(request, pk):
                         share_amount=share_amount
                     )
 
-            messages.success(request, f'已更新記帳：{expense.item_name}')
-            return redirect('expense_tracker:expense_list')
+            messages.success(request, f'已更新記帳:{expense.item_name}')
+            return redirect('badminton:expense_list')
     else:
         form = ExpenseForm(instance=expense)
         # 預設勾選已分攤的參與者
@@ -118,7 +118,7 @@ def expense_update(request, pk):
         'expense': expense,
         'title': '編輯記帳',
     }
-    return render(request, 'expense_tracker/expense_form.html', context)
+    return render(request, 'badminton/expense_form.html', context)
 
 
 def expense_delete(request, pk):
@@ -128,13 +128,13 @@ def expense_delete(request, pk):
     if request.method == 'POST':
         item_name = expense.item_name
         expense.delete()
-        messages.success(request, f'已刪除記帳：{item_name}')
-        return redirect('expense_tracker:expense_list')
+        messages.success(request, f'已刪除記帳:{item_name}')
+        return redirect('badminton:expense_list')
     
     context = {
         'expense': expense,
     }
-    return render(request, 'expense_tracker/expense_confirm_delete.html', context)
+    return render(request, 'badminton/expense_confirm_delete.html', context)
 
 
 def dashboard(request):
@@ -146,7 +146,7 @@ def dashboard(request):
         'stats': stats,
         'current_period': period,
     }
-    return render(request, 'expense_tracker/dashboard.html', context)
+    return render(request, 'badminton/dashboard.html', context)
 
 
 def dashboard_api(request):
@@ -165,7 +165,7 @@ def settlement(request):
         'settlements': settlements,
         'summaries': summaries,
     }
-    return render(request, 'expense_tracker/settlement.html', context)
+    return render(request, 'badminton/settlement.html', context)
 
 
 def category_list(request):
@@ -178,13 +178,13 @@ def category_list(request):
         if form.is_valid():
             form.save()
             messages.success(request, '已新增類型')
-            return redirect('expense_tracker:category_list')
+            return redirect('badminton:category_list')
     
     context = {
         'categories': categories,
         'form': form,
     }
-    return render(request, 'expense_tracker/category_list.html', context)
+    return render(request, 'badminton/category_list.html', context)
 
 
 def category_edit(request, pk):
@@ -195,8 +195,8 @@ def category_edit(request, pk):
         form = CategoryForm(request.POST, request.FILES, instance=category)
         if form.is_valid():
             form.save()
-            messages.success(request, f'已更新類型：{category.name}')
-            return redirect('expense_tracker:category_list')
+            messages.success(request, f'已更新類型:{category.name}')
+            return redirect('badminton:category_list')
     else:
         form = CategoryForm(instance=category)
 
@@ -204,7 +204,7 @@ def category_edit(request, pk):
         'form': form,
         'title': '編輯類型',
     }
-    return render(request, 'expense_tracker/category_form.html', context)
+    return render(request, 'badminton/category_form.html', context)
 
 
 def category_delete(request, pk):
@@ -213,7 +213,7 @@ def category_delete(request, pk):
     if request.method == 'POST':
         category.delete()
         messages.success(request, '已刪除類型')
-    return redirect('expense_tracker:category_list')
+    return redirect('badminton:category_list')
 
 
 def participant_list(request):
@@ -226,13 +226,13 @@ def participant_list(request):
         if form.is_valid():
             form.save()
             messages.success(request, '已新增參與者')
-            return redirect('expense_tracker:participant_list')
+            return redirect('badminton:participant_list')
     
     context = {
         'participants': participants,
         'form': form,
     }
-    return render(request, 'expense_tracker/participant_list.html', context)
+    return render(request, 'badminton/participant_list.html', context)
 
 
 def participant_delete(request, pk):
@@ -241,7 +241,7 @@ def participant_delete(request, pk):
     if request.method == 'POST':
         participant.delete()
         messages.success(request, '已刪除參與者')
-    return redirect('expense_tracker:participant_list')
+    return redirect('badminton:participant_list')
 
 
 def export_expenses_csv(request):

@@ -1,0 +1,87 @@
+{% extends 'badminton/base.html' %}
+
+{% block title %}類型管理 - 記帳系統{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">🏷️ 類型管理</h1>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px;">
+    <!-- Add Form -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">新增類型</h3>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label class="form-label">類型名稱 *</label>
+                {{ form.name }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">圖示 (Bootstrap Icons class)</label>
+                {{ form.icon }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">顏色</label>
+                {{ form.color }}
+            </div>
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 8px;">
+                    {{ form.is_default }}
+                    <span>設為預設類型</span>
+                </label>
+            </div>
+            <button type="submit" class="btn btn-primary">+ 新增</button>
+        </form>
+    </div>
+
+    <!-- Category List -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">現有類型</h3>
+        </div>
+        {% if categories %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>類型</th>
+                    <th>顏色</th>
+                    <th>預設</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cat in categories %}
+                <tr>
+                    <td>
+                        <span class="badge" style="background-color: {{ cat.color }}">
+                            {{ cat.name }}
+                        </span>
+                    </td>
+                    <td>
+                        <div style="width: 24px; height: 24px; background-color: {{ cat.color }}; border-radius: 4px;">
+                        </div>
+                    </td>
+                    <td>{% if cat.is_default %}✓{% else %}-{% endif %}</td>
+                    <td>
+                        <form method="post" action="{% url 'badminton:category_delete' cat.pk %}"
+                            style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm"
+                                onclick="return confirm('確定要刪除嗎?')">刪除</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: var(--text-subdued);">
+            <p>尚無類型,請新增</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
