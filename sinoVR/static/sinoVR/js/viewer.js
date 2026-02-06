@@ -171,72 +171,64 @@ function addInfoCard(id, title, content, pos, rot, scale, bgColor, fontSize) {
     const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 2.25), mat);
 
-    // Create Hide Button
+    // Create Hide Button (Full Width)
     const hideCanvas = document.createElement('canvas');
-    hideCanvas.width = 480;
+    hideCanvas.width = 960;
     hideCanvas.height = 128;
     const hideCtx = hideCanvas.getContext('2d');
     hideCtx.fillStyle = '#dc3545'; // Danger Red
-    hideCtx.fillRect(0, 0, 480, 128);
+    hideCtx.fillRect(0, 0, 960, 128);
     hideCtx.fillStyle = 'white';
     hideCtx.font = 'bold 60px Arial';
     hideCtx.textAlign = 'center';
     hideCtx.textBaseline = 'middle';
-    hideCtx.fillText('Hide', 240, 64);
+    hideCtx.fillText('Hide', 480, 64);
 
     const hideTexture = new THREE.CanvasTexture(hideCanvas);
     const hideMat = new THREE.MeshBasicMaterial({ map: hideTexture, side: THREE.DoubleSide });
-    const hideMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.4), hideMat);
-    hideMesh.position.set(-0.75, -1.3, 0.05); // Bottom Left, width 1.5
+    const hideMesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 0.4), hideMat);
+    hideMesh.position.set(0, -1.3, 0.05); // Center
     hideMesh.userData.isInteractable = true;
     hideMesh.userData.isHideBtn = true;
     hideMesh.userData.parentCardId = id;
 
-    // Create Read Button
-    const readCanvas = document.createElement('canvas');
-    readCanvas.width = 480;
-    readCanvas.height = 128;
-    const readCtx = readCanvas.getContext('2d');
-    readCtx.fillStyle = '#28a745'; // Success Green
-    readCtx.fillRect(0, 0, 480, 128);
-    readCtx.fillStyle = 'white';
-    readCtx.font = 'bold 60px Arial';
-    readCtx.textAlign = 'center';
-    readCtx.textBaseline = 'middle';
-    readCtx.fillText('Read', 240, 64);
-
-    const readTexture = new THREE.CanvasTexture(readCanvas);
-    const readMat = new THREE.MeshBasicMaterial({ map: readTexture, side: THREE.DoubleSide });
-    const readMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.4), readMat);
-    readMesh.position.set(0.75, -1.3, 0.05); // Bottom Right, width 1.5
-    readMesh.userData.isInteractable = true;
-    readMesh.userData.isReadBtn = true;
-    readMesh.userData.parentCardId = id;
-
     // Create Show Button (Restore) - Initially Hidden
     const showCanvas = document.createElement('canvas');
-    showCanvas.width = 512;
-    showCanvas.height = 128;
+    showCanvas.width = 1024;
+    showCanvas.height = 128; // Fixed height
     const showCtx = showCanvas.getContext('2d');
     showCtx.fillStyle = '#17a2b8'; // Info Cyan
-    showCtx.fillRect(0, 0, 512, 128);
+    showCtx.fillRect(0, 0, 1024, 128);
     showCtx.fillStyle = 'white';
     showCtx.font = 'bold 48px Arial';
     showCtx.textAlign = 'center';
     showCtx.textBaseline = 'middle';
-    showCtx.fillText(title, 256, 64);
+    showCtx.fillText(title, 512, 64);
 
     const showTexture = new THREE.CanvasTexture(showCanvas);
     const showMat = new THREE.MeshBasicMaterial({ map: showTexture, side: THREE.DoubleSide });
-    const showMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.4), showMat);
+    const showMesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 0.4), showMat); // Match card width
     showMesh.position.set(0, 0, 0.05); // Center
-    showMesh.visible = false; // Hidden by default
+    showMesh.visible = true; // Show visible by default (Reverse of Editor)
     showMesh.userData.isInteractable = true;
     showMesh.userData.isShowBtn = true;
     showMesh.userData.parentCardId = id;
 
+    // Default Hidden State for Body and Hide Button
+    hideMesh.visible = false;
+    // mesh.material.visible = false; // Main body
+
+    // However, if we hide the main mesh material, the children might still be visible??
+    // In Three.js, children inherit visibility only if parent.visible = false.
+    // If parent.visible = true, children decide their own visibility.
+    // We want the 'Show' button (child) to be VISIBLE.
+    // So parent (mesh) must be VISIBLE.
+    // We just hide the background plane material?
+    // But mesh.material = mat.
+    mat.visible = false;
+
     mesh.add(hideMesh);
-    mesh.add(readMesh);
+    // mesh.add(readMesh); // Removed
     mesh.add(showMesh);
 
     mesh.position.set(pos.x, pos.y, pos.z);
@@ -285,7 +277,7 @@ function onMouseDown(event) {
                 if (card) {
                     card.material.visible = false;
                     card.children.forEach(c => {
-                        if (c.userData.isHideBtn || c.userData.isReadBtn) c.visible = false;
+                        if (c.userData.isHideBtn) c.visible = false;
                         if (c.userData.isShowBtn) c.visible = true;
                     });
                 }
@@ -298,38 +290,21 @@ function onMouseDown(event) {
                 if (card) {
                     card.material.visible = true;
                     card.children.forEach(c => {
-                        if (c.userData.isHideBtn || c.userData.isReadBtn) c.visible = true;
+                        if (c.userData.isHideBtn) c.visible = true;
                         if (c.userData.isShowBtn) c.visible = false;
                     });
                 }
-                return;
-            }
 
-            if (hit.userData.isReadBtn) {
                 // Call Read API
                 const cardId = hit.userData.parentCardId;
                 console.log("Marking card as read:", cardId);
                 fetch(`/sinoVR/api/info-card/${cardId}/read/`, {
                     method: 'POST',
                     headers: {
-                        'X-CSRFToken': getCookie('csrftoken') // Need helper
+                        'X-CSRFToken': getCookie('csrftoken')
                     }
-                }).then(r => r.json()).then(d => {
-                    if (d.status === 'success') {
-                        // Visual feedback (Match Editor)
-                        const hit = intersects[0].object; // Ensure we have the button mesh
-                        const canvas = hit.material.map.image;
-                        const ctx = canvas.getContext('2d');
-                        ctx.fillStyle = '#218838'; // Darker Green
-                        ctx.fillRect(0, 0, 480, 128);
-                        ctx.fillStyle = 'white';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.font = 'bold 60px Arial'; // Ensure font properties are set as context state might not persist
-                        ctx.fillText('Read ✓', 240, 64);
-                        hit.material.map.needsUpdate = true;
-                    }
-                }).catch(e => console.error(e));
+                }).then(r => r.json()).then(console.log).catch(console.error);
+
                 return;
             }
 
