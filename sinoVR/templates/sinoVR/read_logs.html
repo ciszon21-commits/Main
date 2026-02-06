@@ -1,0 +1,68 @@
+{% extends 'sinoVR/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-clipboard-check text-success"></i> 字卡閱讀紀錄</h2>
+        <a href="{% url 'sinoVR:scene_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回列表
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">閱讀狀態列表</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">使用者</th>
+                            <th scope="col">資訊字卡標題</th>
+                            <th scope="col">閱讀時間</th>
+                            <th scope="col">狀態</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in object_list %}
+                        <tr>
+                            <th scope="row">{{ forloop.counter }}</th>
+                            <td>
+                                <i class="fas fa-user-circle text-muted me-1"></i>
+                                {{ log.user.username }}
+                            </td>
+                            <td>
+                                <i class="fas fa-info-circle text-info me-1"></i>
+                                {{ log.info_card.title }}
+                            </td>
+                            <td>{{ log.read_at|date:"Y-m-d H:i:s" }}</td>
+                            <td>
+                                {% if log.is_read %}
+                                <span class="badge bg-success rounded-pill">
+                                    <i class="fas fa-check"></i> 已讀
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary rounded-pill">未讀</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">
+                                <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                尚無閱讀紀錄
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer text-muted small">
+            共 {{ object_list.count }} 筆紀錄
+        </div>
+    </div>
+</div>
+{% endblock %}

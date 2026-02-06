@@ -99,7 +99,7 @@ class CardReadStatus(models.Model):
     class Meta:
         verbose_name = "字卡閱讀狀態"
         verbose_name_plural = "字卡閱讀狀態"
-        unique_together = ('user', 'info_card')
+        # unique_together = ('user', 'info_card')  <-- Removed to support history log
 
     def __str__(self):
         return f"{self.user.username} read {self.info_card.title}"

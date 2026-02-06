@@ -3,11 +3,13 @@ from django.views.generic import ListView, DetailView, CreateView
 from django.urls import reverse_lazy
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.contrib.auth.decorators import login_required
 from django.views import View
 import json
 
-from .models import Scene, SceneObject, Asset3D, Panorama, InfoCard
+from .models import Scene, SceneObject, Asset3D, Panorama, InfoCard, CardReadStatus
 from .forms import SceneForm, Asset3DForm, PanoramaForm, InfoCardForm
 
 class SceneListView(ListView):
@@ -181,15 +183,20 @@ class InfoCardReadAPI(View):
         info_card = get_object_or_404(InfoCard, id=card_id)
         from .models import CardReadStatus
         
-        status, created = CardReadStatus.objects.get_or_create(user=request.user, info_card=info_card)
-        if not created:
-            # If already exists, maybe we verify it's read? Or just return success.
-            # The plan said "Toggle", but "Read" usually means "Mark as Read".
-            # Let's assume idempotency: ensure it is true and update time.
-            status.is_read = True
-            status.save()
-        else:
-            status.is_read = True
-            status.save()
+        # Always create a new record for history tracking
+        CardReadStatus.objects.create(user=request.user, info_card=info_card, is_read=True)
             
         return JsonResponse({'status': 'success', 'is_read': True})
+
+class ReadStatusListView(ListView):
+    model = CardReadStatus
+    template_name = 'sinoVR/read_logs.html'
+    context_object_name = 'object_list'
+    ordering = ['-read_at']
+
+    def get_queryset(self):
+        return CardReadStatus.objects.all().order_by('-read_at')
+
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
