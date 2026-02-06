@@ -34,6 +34,9 @@
             </div>
 
             <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-info" onclick="showAllCards()" title="顯示所有字卡 (Show All Cards)">
+                    <i class="fas fa-eye"></i> Show All
+                </button>
                 <button class="btn btn-sm btn-light" id="btn-play-toggle" onclick="togglePlayMode()">
                     <i class="fas fa-play"></i> Play
                 </button>
@@ -195,12 +198,13 @@
                     <div class="mt-2 text-center" id="loading-text">Loading...</div>
                 </div>
             </div>
-            <div class="play-mode-overlay text-white d-flex flex-column align-items-center">
-                <div class="mb-2"><i class="fas fa-gamepad"></i> Play Mode Active (Press ESC to Exit)</div>
-                <button class="btn btn-outline-light btn-sm" onclick="showAllCards()" style="pointer-events: auto;">
-                    <i class="fas fa-eye"></i> 顯示所有字卡
-                </button>
-            </div>
+            {% comment %} <div class="play-mode-overlay text-white d-flex flex-column align-items-center justify-content-center p-3"
+                style="pointer-events: none;">
+                <div class="badge bg-dark border border-secondary p-3 shadow-lg">
+                    <h5 class="m-0"><i class="fas fa-gamepad"></i> Play Mode Active</h5>
+                    <div class="small text-muted mt-1">Press ESC to Exit</div>
+                </div>
+            </div> {% endcomment %}
         </div>
     </div>
 
@@ -1103,9 +1107,36 @@
                     const hit = intersects[0].object;
 
                     if (hit.userData.isHideBtn) {
-                        // Hide the entire card group
+                        // Hide the card content and buttons, show the restore button
+                        const card = hit.parent; // The main mesh
+                        if (card) {
+                            // We don't set card.visible = false because that hides children too (including Show button).
+                            // Instead, we hide the material of the card and the other buttons.
+                            // BUT, the Show button IS a child.
+                            // So we must toggle visibilities of children/material.
+
+                            // 1. Hide Card content (Material)
+                            card.material.visible = false;
+
+                            // 2. Hide Hide/Read buttons
+                            card.children.forEach(c => {
+                                if (c.userData.isHideBtn || c.userData.isReadBtn) c.visible = false;
+                                if (c.userData.isShowBtn) c.visible = true; // Show the Show button
+                            });
+                        }
+                        return;
+                    }
+
+                    if (hit.userData.isShowBtn) {
+                        // Restore card
                         const card = hit.parent;
-                        if (card) card.visible = false;
+                        if (card) {
+                            card.material.visible = true;
+                            card.children.forEach(c => {
+                                if (c.userData.isHideBtn || c.userData.isReadBtn) c.visible = true;
+                                if (c.userData.isShowBtn) c.visible = false;
+                            });
+                        }
                         return;
                     }
 
@@ -1192,15 +1223,30 @@
     window.showAllCards = function () {
         let count = 0;
         objects.forEach(obj => {
-            if (obj.userData.isInfoCard && obj.visible === false) {
-                obj.visible = true;
-                count++;
+            if (obj.userData.isInfoCard) {
+                // Check if it's in 'hidden' state (material invisible)
+                if (obj.material.visible === false) {
+                    obj.material.visible = true;
+                    obj.children.forEach(c => {
+                        if (c.userData.isHideBtn || c.userData.isReadBtn) c.visible = true;
+                        if (c.userData.isShowBtn) c.visible = false;
+                    });
+                    count++;
+                }
+                // Also ensure the object itself is visible (legacy check)
+                if (obj.visible === false) {
+                    obj.visible = true;
+                    // Ensure children state is correct too
+                    obj.material.visible = true;
+                    obj.children.forEach(c => {
+                        if (c.userData.isHideBtn || c.userData.isReadBtn) c.visible = true;
+                        if (c.userData.isShowBtn) c.visible = false;
+                    });
+                    count++;
+                }
             }
         });
         if (count > 0) {
-            // alert('已顯示 ' + count + ' 個隱藏的字卡');
-            // Use a toast or just quiet success? Let's give a small visual hint or nothing.
-            // Since we are in play mode, standard alert might break pointer lock if we had it (we don't here).
             console.log('Restored ' + count + ' cards');
         } else {
             console.log('No hidden cards found');
