@@ -14,5 +14,7 @@ urlpatterns = [
     path('api/info-card/<int:card_id>/update/', views.InfoCardUpdateView.as_view(), name='infocard_update'),
     path('api/info-card/<int:card_id>/read/', views.InfoCardReadAPI.as_view(), name='infocard_read'),
     path('api/asset/<int:pk>/delete/', views.AssetDeleteView.as_view(), name='asset_delete'),
+    path('api/panorama/<int:pk>/delete/', views.PanoramaDeleteView.as_view(), name='panorama_delete'),
+    path('assets/', views.AssetManagementView.as_view(), name='asset_list'),
     path('management/read-logs/', views.ReadStatusListView.as_view(), name='read_logs'),
 ]

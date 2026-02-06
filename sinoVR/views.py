@@ -197,6 +197,19 @@ class AssetDeleteView(View):
         return self.post(request, pk)
 
 @method_decorator(csrf_exempt, name='dispatch')
+class PanoramaDeleteView(View):
+    def post(self, request, pk):
+        pano = get_object_or_404(Panorama, pk=pk)
+        try:
+            pano.delete()
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+    def delete(self, request, pk):
+        return self.post(request, pk)
+
+@method_decorator(csrf_exempt, name='dispatch')
 class InfoCardReadAPI(View):
     def post(self, request, card_id):
         if not request.user.is_authenticated:
@@ -258,3 +271,34 @@ class ReadStatusListView(ListView):
     @method_decorator(login_required)
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
+
+class AssetManagementView(View):
+    template_name = 'sinoVR/asset_list.html'
+
+    @method_decorator(login_required)
+    def get(self, request):
+        assets_3d = Asset3D.objects.all().order_by('-uploaded_at')
+        panoramas = Panorama.objects.all().order_by('-uploaded_at')
+        return render(request, self.template_name, {
+            'assets_3d': assets_3d,
+            'panoramas': panoramas
+        })
+
+    @method_decorator(login_required)
+    def post(self, request):
+        upload_type = request.POST.get('upload_type')
+        
+        try:
+            if upload_type == 'model':
+                file = request.FILES.get('file')
+                if file:
+                    Asset3D.objects.create(title=file.name, file=file)
+            elif upload_type == 'panorama':
+                image = request.FILES.get('image')
+                if image:
+                    Panorama.objects.create(title=image.name, image=image)
+        except Exception as e:
+            # Simple error handling for now, maybe add messages later
+            pass
+            
+        return redirect('sinoVR:asset_list')
