@@ -198,7 +198,8 @@
                     <div class="mt-2 text-center" id="loading-text">Loading...</div>
                 </div>
             </div>
-            {% comment %} <div class="play-mode-overlay text-white d-flex flex-column align-items-center justify-content-center p-3"
+            {% comment %} <div
+                class="play-mode-overlay text-white d-flex flex-column align-items-center justify-content-center p-3"
                 style="pointer-events: none;">
                 <div class="badge bg-dark border border-secondary p-3 shadow-lg">
                     <h5 class="m-0"><i class="fas fa-gamepad"></i> Play Mode Active</h5>
@@ -609,9 +610,32 @@
         readMesh.userData.isReadBtn = true;
         readMesh.userData.parentCardId = id;
 
+        // Create Show Button (Restore) - Initially Hidden
+        const showCanvas = document.createElement('canvas');
+        showCanvas.width = 256;
+        showCanvas.height = 128;
+        const showCtx = showCanvas.getContext('2d');
+        showCtx.fillStyle = '#17a2b8'; // Info Cyan
+        showCtx.fillRect(0, 0, 256, 128);
+        showCtx.fillStyle = 'white';
+        showCtx.font = 'bold 60px Arial';
+        showCtx.textAlign = 'center';
+        showCtx.textBaseline = 'middle';
+        showCtx.fillText('Show', 128, 64);
+
+        const showTexture = new THREE.CanvasTexture(showCanvas);
+        const showMat = new THREE.MeshBasicMaterial({ map: showTexture, side: THREE.DoubleSide });
+        const showMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.4), showMat);
+        showMesh.position.set(0, 0, 0.05); // Center
+        showMesh.visible = false; // Hidden by default
+        showMesh.userData.isInteractable = true;
+        showMesh.userData.isShowBtn = true;
+        showMesh.userData.parentCardId = id;
+
         const mesh = new THREE.Mesh(geometry, material);
         mesh.add(hideMesh);
         mesh.add(readMesh);
+        mesh.add(showMesh);
 
         // Apply transform
         if (transform.position) mesh.position.set(transform.position.x, transform.position.y, transform.position.z);
