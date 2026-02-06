@@ -7,6 +7,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.views import View
+from django.db.models import Q
+from django.db.models.functions import Concat
 import json
 
 from .models import Scene, SceneObject, Asset3D, Panorama, InfoCard, CardReadStatus
@@ -214,8 +216,44 @@ class ReadStatusListView(ListView):
     context_object_name = 'object_list'
     ordering = ['-read_at']
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['scenes'] = Scene.objects.all()
+        return context
+
     def get_queryset(self):
-        return CardReadStatus.objects.all().order_by('-read_at')
+        queryset = CardReadStatus.objects.select_related('user', 'info_card').prefetch_related('info_card__sceneobject_set__scene').order_by('-read_at')
+        
+        # 1. Scene Filter (Dropdown)
+        scene_id = self.request.GET.get('scene')
+        if scene_id:
+            # Use subquery to avoid complex join issues
+            card_ids = SceneObject.objects.filter(scene_id=scene_id).values_list('info_card_id', flat=True)
+            queryset = queryset.filter(info_card_id__in=card_ids)
+
+        # 2. User Filter (Text)
+        user_query = self.request.GET.get('user')
+        if user_query:
+            queryset = queryset.annotate(
+                full_name_nospace=Concat('user__last_name', 'user__first_name'),
+                full_name_reverse=Concat('user__first_name', 'user__last_name')
+            ).filter(
+                Q(user__username__icontains=user_query) |
+                Q(user__first_name__icontains=user_query) |
+                Q(user__last_name__icontains=user_query) |
+                Q(full_name_nospace__icontains=user_query) |
+                Q(full_name_reverse__icontains=user_query)
+            )
+
+        # 3. Content/Keyword Filter (Text)
+        keyword = self.request.GET.get('keyword')
+        if keyword:
+            queryset = queryset.filter(
+                Q(info_card__title__icontains=keyword) |
+                Q(info_card__content__icontains=keyword)
+            )
+            
+        return queryset.distinct()
 
     @method_decorator(login_required)
     def dispatch(self, *args, **kwargs):

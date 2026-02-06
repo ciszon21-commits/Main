@@ -53,7 +53,7 @@ class Scene(models.Model):
         verbose_name_plural = "VR場景"
 
 class SceneObject(models.Model):
-    scene = models.ForeignKey(Scene, related_name='objects', on_delete=models.CASCADE, verbose_name="所屬場景")
+    scene = models.ForeignKey(Scene, related_name='scene_objects', on_delete=models.CASCADE, verbose_name="所屬場景")
     asset = models.ForeignKey(Asset3D, on_delete=models.CASCADE, null=True, blank=True, verbose_name="3D模型")
     info_card = models.ForeignKey(InfoCard, on_delete=models.CASCADE, null=True, blank=True, verbose_name="資訊字卡")
     
