@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.views.generic import ListView, DetailView, CreateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.urls import reverse_lazy
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -31,6 +31,26 @@ class SceneCreateView(CreateView):
             # Create Panorama
             try:
                 # Use scene title for panorama title if possible, or timestamp
+                pano = Panorama.objects.create(title=f"{form.cleaned_data['title']} - Background", image=image)
+                form.instance.background = pano
+            except Exception as e:
+                form.add_error('new_background_image', f"Upload failed: {e}")
+                return self.form_invalid(form)
+        return super().form_valid(form)
+
+class SceneUpdateView(UpdateView):
+    model = Scene
+    form_class = SceneForm
+    template_name = 'sinoVR/scene_form.html'
+    context_object_name = 'scene'
+
+    def get_success_url(self):
+        return reverse_lazy('sinoVR:scene_list')
+
+    def form_valid(self, form):
+        if form.cleaned_data.get('new_background_image'):
+            image = form.cleaned_data['new_background_image']
+            try:
                 pano = Panorama.objects.create(title=f"{form.cleaned_data['title']} - Background", image=image)
                 form.instance.background = pano
             except Exception as e:
