@@ -485,16 +485,16 @@
         {% for obj in scene.scene_objects.all %}
         {% if obj.info_card %}
         addInfoCard('{{ obj.info_card.pk }}', '{{ obj.info_card.title }}', '{{ obj.info_card.content|escapejs }}', {
-            position: { x: {{ obj.position_x }}, y: { { obj.position_y } }, z: { { obj.position_z } } },
-    rotation: { x: { { obj.rotation_x } }, y: { { obj.rotation_y } }, z: { { obj.rotation_z } } },
-    scale: { x: { { obj.scale_x } }, y: { { obj.scale_y } }, z: { { obj.scale_z } } }}, '{{ obj.info_card.bg_color }}', {{ obj.info_card.content_font_size }});
-    {% elif obj.asset %}
-    loadModel('{{ obj.asset.pk }}', '{{ obj.asset.file.url }}', {
-        position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }}},
-        rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }}},
-        scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }}}}, '{{ obj.asset.title }}');
-    {% endif %}
-    {% endfor %}
+            position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }} },
+            rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }} },
+            scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} }}, '{{ obj.info_card.bg_color }}', {{ obj.info_card.content_font_size }});
+        {% elif obj.asset %}
+        loadModel('{{ obj.asset.pk }}', '{{ obj.asset.file.url }}', {
+            position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }}},
+            rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }}},
+            scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }}}}, '{{ obj.asset.title }}');
+        {% endif %}
+        {% endfor %}
     }
 
     // InfoCard Functions
