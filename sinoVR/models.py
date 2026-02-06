@@ -1,8 +1,10 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 class Asset3D(models.Model):
     title = models.CharField(max_length=100, verbose_name="模型名稱")
     file = models.FileField(upload_to='sinoVR/assets/3d/', verbose_name="模型檔案 (.fbx)")
+    uploader = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="上傳者")
     uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="上傳時間")
 
     def __str__(self):
@@ -54,7 +56,7 @@ class Scene(models.Model):
 
 class SceneObject(models.Model):
     scene = models.ForeignKey(Scene, related_name='scene_objects', on_delete=models.CASCADE, verbose_name="所屬場景")
-    asset = models.ForeignKey(Asset3D, on_delete=models.CASCADE, null=True, blank=True, verbose_name="3D模型")
+    asset = models.ForeignKey(Asset3D, on_delete=models.PROTECT, null=True, blank=True, verbose_name="3D模型")
     info_card = models.ForeignKey(InfoCard, on_delete=models.CASCADE, null=True, blank=True, verbose_name="資訊字卡")
     
     # Transform

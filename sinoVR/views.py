@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.views import View
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.db.models.functions import Concat
 import json
 
@@ -277,7 +277,10 @@ class AssetManagementView(View):
 
     @method_decorator(login_required)
     def get(self, request):
-        assets_3d = Asset3D.objects.all().order_by('-uploaded_at')
+        assets_3d = Asset3D.objects.all().annotate(
+            usage_count=Count('sceneobject')
+        ).select_related('uploader').order_by('-uploaded_at')
+        
         panoramas = Panorama.objects.all().order_by('-uploaded_at')
         return render(request, self.template_name, {
             'assets_3d': assets_3d,
@@ -292,7 +295,11 @@ class AssetManagementView(View):
             if upload_type == 'model':
                 file = request.FILES.get('file')
                 if file:
-                    Asset3D.objects.create(title=file.name, file=file)
+                    Asset3D.objects.create(
+                        title=file.name, 
+                        file=file,
+                        uploader=request.user
+                    )
             elif upload_type == 'panorama':
                 image = request.FILES.get('image')
                 if image:
