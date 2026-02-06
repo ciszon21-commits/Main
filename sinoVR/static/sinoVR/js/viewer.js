@@ -104,6 +104,7 @@ function loadExistingObjects() {
     SCENE_OBJECTS_DATA.forEach(obj => {
         if (obj.type === 'info_card') {
             addInfoCard(
+                obj.id,
                 obj.title,
                 obj.content,
                 obj.position,
@@ -118,7 +119,7 @@ function loadExistingObjects() {
     });
 }
 
-function addInfoCard(title, content, pos, rot, scale, bgColor, fontSize) {
+function addInfoCard(id, title, content, pos, rot, scale, bgColor, fontSize) {
     const canvas = document.createElement('canvas');
     canvas.width = 1024;
     canvas.height = 768;
@@ -170,6 +171,74 @@ function addInfoCard(title, content, pos, rot, scale, bgColor, fontSize) {
     const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 2.25), mat);
 
+    // Create Hide Button
+    const hideCanvas = document.createElement('canvas');
+    hideCanvas.width = 480;
+    hideCanvas.height = 128;
+    const hideCtx = hideCanvas.getContext('2d');
+    hideCtx.fillStyle = '#dc3545'; // Danger Red
+    hideCtx.fillRect(0, 0, 480, 128);
+    hideCtx.fillStyle = 'white';
+    hideCtx.font = 'bold 60px Arial';
+    hideCtx.textAlign = 'center';
+    hideCtx.textBaseline = 'middle';
+    hideCtx.fillText('Hide', 240, 64);
+
+    const hideTexture = new THREE.CanvasTexture(hideCanvas);
+    const hideMat = new THREE.MeshBasicMaterial({ map: hideTexture, side: THREE.DoubleSide });
+    const hideMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.4), hideMat);
+    hideMesh.position.set(-0.75, -1.3, 0.05); // Bottom Left, width 1.5
+    hideMesh.userData.isInteractable = true;
+    hideMesh.userData.isHideBtn = true;
+    hideMesh.userData.parentCardId = id;
+
+    // Create Read Button
+    const readCanvas = document.createElement('canvas');
+    readCanvas.width = 480;
+    readCanvas.height = 128;
+    const readCtx = readCanvas.getContext('2d');
+    readCtx.fillStyle = '#28a745'; // Success Green
+    readCtx.fillRect(0, 0, 480, 128);
+    readCtx.fillStyle = 'white';
+    readCtx.font = 'bold 60px Arial';
+    readCtx.textAlign = 'center';
+    readCtx.textBaseline = 'middle';
+    readCtx.fillText('Read', 240, 64);
+
+    const readTexture = new THREE.CanvasTexture(readCanvas);
+    const readMat = new THREE.MeshBasicMaterial({ map: readTexture, side: THREE.DoubleSide });
+    const readMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.4), readMat);
+    readMesh.position.set(0.75, -1.3, 0.05); // Bottom Right, width 1.5
+    readMesh.userData.isInteractable = true;
+    readMesh.userData.isReadBtn = true;
+    readMesh.userData.parentCardId = id;
+
+    // Create Show Button (Restore) - Initially Hidden
+    const showCanvas = document.createElement('canvas');
+    showCanvas.width = 512;
+    showCanvas.height = 128;
+    const showCtx = showCanvas.getContext('2d');
+    showCtx.fillStyle = '#17a2b8'; // Info Cyan
+    showCtx.fillRect(0, 0, 512, 128);
+    showCtx.fillStyle = 'white';
+    showCtx.font = 'bold 48px Arial';
+    showCtx.textAlign = 'center';
+    showCtx.textBaseline = 'middle';
+    showCtx.fillText(title, 256, 64);
+
+    const showTexture = new THREE.CanvasTexture(showCanvas);
+    const showMat = new THREE.MeshBasicMaterial({ map: showTexture, side: THREE.DoubleSide });
+    const showMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.4), showMat);
+    showMesh.position.set(0, 0, 0.05); // Center
+    showMesh.visible = false; // Hidden by default
+    showMesh.userData.isInteractable = true;
+    showMesh.userData.isShowBtn = true;
+    showMesh.userData.parentCardId = id;
+
+    mesh.add(hideMesh);
+    mesh.add(readMesh);
+    mesh.add(showMesh);
+
     mesh.position.set(pos.x, pos.y, pos.z);
     mesh.rotation.set(rot.x, rot.y, rot.z);
     mesh.scale.set(scale.x, scale.y, scale.z);
@@ -177,6 +246,7 @@ function addInfoCard(title, content, pos, rot, scale, bgColor, fontSize) {
     mesh.userData.isInfoCard = true;
     mesh.userData.cardTitle = title;
     mesh.userData.cardContent = content;
+    mesh.userData.infoCardId = id;
 
     scene.add(mesh);
     objects.push(mesh);
@@ -206,12 +276,83 @@ function onMouseDown(event) {
         const intersects = raycaster.intersectObjects(objects);
 
         if (intersects.length > 0) {
-            const target = intersects[0].object;
-            if (target.userData.isInfoCard) {
+            const hit = intersects[0].object;
+            const target = hit.userData.isInfoCard ? hit : hit.parent;
+
+            if (hit.userData.isHideBtn) {
+                // Hide card content and buttons, show restore button
+                const card = hit.parent;
+                if (card) {
+                    card.material.visible = false;
+                    card.children.forEach(c => {
+                        if (c.userData.isHideBtn || c.userData.isReadBtn) c.visible = false;
+                        if (c.userData.isShowBtn) c.visible = true;
+                    });
+                }
+                return;
+            }
+
+            if (hit.userData.isShowBtn) {
+                // Restore card
+                const card = hit.parent;
+                if (card) {
+                    card.material.visible = true;
+                    card.children.forEach(c => {
+                        if (c.userData.isHideBtn || c.userData.isReadBtn) c.visible = true;
+                        if (c.userData.isShowBtn) c.visible = false;
+                    });
+                }
+                return;
+            }
+
+            if (hit.userData.isReadBtn) {
+                // Call Read API
+                const cardId = hit.userData.parentCardId;
+                console.log("Marking card as read:", cardId);
+                fetch(`/sinoVR/api/info-card/${cardId}/read/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken') // Need helper
+                    }
+                }).then(r => r.json()).then(d => {
+                    if (d.status === 'success') {
+                        // Visual feedback (Match Editor)
+                        const hit = intersects[0].object; // Ensure we have the button mesh
+                        const canvas = hit.material.map.image;
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = '#218838'; // Darker Green
+                        ctx.fillRect(0, 0, 480, 128);
+                        ctx.fillStyle = 'white';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.font = 'bold 60px Arial'; // Ensure font properties are set as context state might not persist
+                        ctx.fillText('Read ✓', 240, 64);
+                        hit.material.map.needsUpdate = true;
+                    }
+                }).catch(e => console.error(e));
+                return;
+            }
+
+            if (target && target.userData.isInfoCard) {
                 showCardDetail(target.userData.cardTitle, target.userData.cardContent);
             }
         }
     }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }
 
 function onMouseUp(event) {

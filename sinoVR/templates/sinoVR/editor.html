@@ -567,65 +567,65 @@
 
         // Create Hide Button
         const hideCanvas = document.createElement('canvas');
-        hideCanvas.width = 256;
+        hideCanvas.width = 480; // Adjusted for 1.5 width geometry (Aspect 3.75)
         hideCanvas.height = 128;
         const hideCtx = hideCanvas.getContext('2d');
         hideCtx.fillStyle = '#dc3545'; // Danger Red
-        hideCtx.fillRect(0, 0, 256, 128);
+        hideCtx.fillRect(0, 0, 480, 128);
         hideCtx.fillStyle = 'white';
         hideCtx.font = 'bold 60px Arial';
         hideCtx.textAlign = 'center';
         hideCtx.textBaseline = 'middle';
-        hideCtx.fillText('Hide', 128, 64);
+        hideCtx.fillText('Hide', 240, 64);
 
         // Debug Log
         console.log("Adding Hide/Read Buttons to card:", id);
 
         const hideTexture = new THREE.CanvasTexture(hideCanvas);
         const hideMat = new THREE.MeshBasicMaterial({ map: hideTexture, side: THREE.DoubleSide });
-        const hideMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.4), hideMat);
-        hideMesh.position.set(-0.8, -1.3, 0.05); // Bottom Left
+        const hideMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.4), hideMat);
+        hideMesh.position.set(-0.75, -1.3, 0.05); // Bottom Left, width 1.5
         hideMesh.userData.isInteractable = true;
         hideMesh.userData.isHideBtn = true;
         hideMesh.userData.parentCardId = id;
 
         // Create Read Button
         const readCanvas = document.createElement('canvas');
-        readCanvas.width = 256;
+        readCanvas.width = 480; // Adjusted for 1.5 width geometry
         readCanvas.height = 128;
         const readCtx = readCanvas.getContext('2d');
         readCtx.fillStyle = '#28a745'; // Success Green
-        readCtx.fillRect(0, 0, 256, 128);
+        readCtx.fillRect(0, 0, 480, 128);
         readCtx.fillStyle = 'white';
         readCtx.font = 'bold 60px Arial';
         readCtx.textAlign = 'center';
         readCtx.textBaseline = 'middle';
-        readCtx.fillText('Read', 128, 64);
+        readCtx.fillText('Read', 240, 64);
 
         const readTexture = new THREE.CanvasTexture(readCanvas);
         const readMat = new THREE.MeshBasicMaterial({ map: readTexture, side: THREE.DoubleSide });
-        const readMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.4), readMat);
-        readMesh.position.set(0.8, -1.3, 0.05); // Bottom Right
+        const readMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.4), readMat);
+        readMesh.position.set(0.75, -1.3, 0.05); // Bottom Right, width 1.5
         readMesh.userData.isInteractable = true;
         readMesh.userData.isReadBtn = true;
         readMesh.userData.parentCardId = id;
 
         // Create Show Button (Restore) - Initially Hidden
         const showCanvas = document.createElement('canvas');
-        showCanvas.width = 256;
+        showCanvas.width = 512; // Increase width for longer titles
         showCanvas.height = 128;
         const showCtx = showCanvas.getContext('2d');
         showCtx.fillStyle = '#17a2b8'; // Info Cyan
-        showCtx.fillRect(0, 0, 256, 128);
+        showCtx.fillRect(0, 0, 512, 128);
         showCtx.fillStyle = 'white';
-        showCtx.font = 'bold 60px Arial';
+        showCtx.font = 'bold 48px Arial'; // Slightly smaller font
         showCtx.textAlign = 'center';
         showCtx.textBaseline = 'middle';
-        showCtx.fillText('Show', 128, 64);
+        showCtx.fillText(title, 256, 64); // Center of 512 is 256
 
         const showTexture = new THREE.CanvasTexture(showCanvas);
         const showMat = new THREE.MeshBasicMaterial({ map: showTexture, side: THREE.DoubleSide });
-        const showMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.4), showMat);
+        const showMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.4), showMat);
         showMesh.position.set(0, 0, 0.05); // Center
         showMesh.visible = false; // Hidden by default
         showMesh.userData.isInteractable = true;
@@ -934,7 +934,7 @@
         if (isPlayMode) {
             btn.classList.replace('btn-light', 'btn-primary');
             btn.innerHTML = '<i class="fas fa-stop"></i> Stop';
-            overlay.style.display = 'block';
+            if (overlay) overlay.style.display = 'block';
 
             // Hide helpers
             transformControl.detach();
@@ -949,7 +949,7 @@
         } else {
             btn.classList.replace('btn-primary', 'btn-light');
             btn.innerHTML = '<i class="fas fa-play"></i> Play';
-            overlay.style.display = 'none';
+            if (overlay) overlay.style.display = 'none';
 
             controls.enabled = true;
             transformControl.visible = true;
@@ -1182,9 +1182,9 @@
                                     const canvas = btnMesh.material.map.image; // It's a canvas
                                     const ctx = canvas.getContext('2d');
                                     ctx.fillStyle = '#218838'; // Darker Green
-                                    ctx.fillRect(0, 0, 256, 128);
+                                    ctx.fillRect(0, 0, 480, 128);
                                     ctx.fillStyle = 'white';
-                                    ctx.fillText('Read ✓', 128, 64);
+                                    ctx.fillText('Read ✓', 240, 64);
                                     btnMesh.material.map.needsUpdate = true;
                                 }
                             });

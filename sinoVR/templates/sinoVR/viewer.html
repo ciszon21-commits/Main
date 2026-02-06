@@ -79,31 +79,32 @@
 
     const objectsData = [
         {% for obj in scene.objects.all %}
-            {% if obj.info_card %}
-            {
-                type: 'info_card',
-                title: '{{ obj.info_card.title }}',
-                content: '{{ obj.info_card.content|escapejs }}',
-                position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }} },
-                rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }} },
-                scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} },
-                bgColor: '{{ obj.info_card.bg_color }}',
-                fontSize: {{ obj.info_card.content_font_size }}
-            }
-            {% elif obj.asset %}
-            {
-                type: 'model',
-                url: '{{ obj.asset.file.url }}',
-                position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }} },
-                rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }} },
-                scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} }
-            }
-            {% endif %}
+    {% if obj.info_card %}
+    {
+        type: 'info_card',
+        id: '{{ obj.info_card.pk }}',
+        title: '{{ obj.info_card.title }}',
+        content: '{{ obj.info_card.content|escapejs }}',
+        position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }}},
+        rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }}},
+        scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }}},
+        bgColor: '{{ obj.info_card.bg_color }}',
+            fontSize: {{ obj.info_card.content_font_size }}
+    }
+    {% elif obj.asset %}
+    {
+        type: 'model',
+        url: '{{ obj.asset.file.url }}',
+        position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }}},
+        rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }}},
+        scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }}}
+    }
+    {% endif %}
 
-            {% if not forloop.last %}
+    {% if not forloop.last %}
                     ,
-            {% endif %}
-        {% endfor %}
+    {% endif %}
+    {% endfor %}
     ];
 
     // Initialize viewer
