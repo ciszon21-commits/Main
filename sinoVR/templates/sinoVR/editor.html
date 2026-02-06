@@ -925,6 +925,28 @@
         transformControl.attach(selectedObject);
     }
 
+    // Helper: Hide info card (show restore button)
+    function hideCard(card) {
+        if (!card || !card.userData.isInfoCard) return;
+        // Hide Card content (Material)
+        card.material.visible = false;
+        // Hide Hide/Read buttons
+        card.children.forEach(c => {
+            if (c.userData.isHideBtn || c.userData.isReadBtn) c.visible = false;
+            if (c.userData.isShowBtn) c.visible = true; // Show the Show button
+        });
+    }
+
+    // Helper: Show info card (restore full view)
+    function showCard(card) {
+        if (!card || !card.userData.isInfoCard) return;
+        card.material.visible = true;
+        card.children.forEach(c => {
+            if (c.userData.isHideBtn || c.userData.isReadBtn) c.visible = true;
+            if (c.userData.isShowBtn) c.visible = false;
+        });
+    }
+
     window.togglePlayMode = function () {
         isPlayMode = !isPlayMode;
 
@@ -946,6 +968,11 @@
             // capture initial rotation again just in case
             euler.setFromQuaternion(camera.quaternion);
 
+            // Auto-hide all InfoCards
+            objects.forEach(obj => {
+                if (obj.userData.isInfoCard) hideCard(obj);
+            });
+
         } else {
             btn.classList.replace('btn-primary', 'btn-light');
             btn.innerHTML = '<i class="fas fa-play"></i> Play';
@@ -954,6 +981,11 @@
             controls.enabled = true;
             transformControl.visible = true;
             if (selectedObject) transformControl.attach(selectedObject);
+
+            // Restore all InfoCards
+            objects.forEach(obj => {
+                if (obj.userData.isInfoCard) showCard(obj);
+            });
         }
     }
 
@@ -1133,34 +1165,14 @@
                     if (hit.userData.isHideBtn) {
                         // Hide the card content and buttons, show the restore button
                         const card = hit.parent; // The main mesh
-                        if (card) {
-                            // We don't set card.visible = false because that hides children too (including Show button).
-                            // Instead, we hide the material of the card and the other buttons.
-                            // BUT, the Show button IS a child.
-                            // So we must toggle visibilities of children/material.
-
-                            // 1. Hide Card content (Material)
-                            card.material.visible = false;
-
-                            // 2. Hide Hide/Read buttons
-                            card.children.forEach(c => {
-                                if (c.userData.isHideBtn || c.userData.isReadBtn) c.visible = false;
-                                if (c.userData.isShowBtn) c.visible = true; // Show the Show button
-                            });
-                        }
+                        hideCard(card);
                         return;
                     }
 
                     if (hit.userData.isShowBtn) {
                         // Restore card
                         const card = hit.parent;
-                        if (card) {
-                            card.material.visible = true;
-                            card.children.forEach(c => {
-                                if (c.userData.isHideBtn || c.userData.isReadBtn) c.visible = true;
-                                if (c.userData.isShowBtn) c.visible = false;
-                            });
-                        }
+                        showCard(card);
                         return;
                     }
 
@@ -1249,23 +1261,15 @@
         objects.forEach(obj => {
             if (obj.userData.isInfoCard) {
                 // Check if it's in 'hidden' state (material invisible)
+                // Check if it's in 'hidden' state (material invisible)
                 if (obj.material.visible === false) {
-                    obj.material.visible = true;
-                    obj.children.forEach(c => {
-                        if (c.userData.isHideBtn || c.userData.isReadBtn) c.visible = true;
-                        if (c.userData.isShowBtn) c.visible = false;
-                    });
+                    showCard(obj);
                     count++;
                 }
                 // Also ensure the object itself is visible (legacy check)
                 if (obj.visible === false) {
                     obj.visible = true;
-                    // Ensure children state is correct too
-                    obj.material.visible = true;
-                    obj.children.forEach(c => {
-                        if (c.userData.isHideBtn || c.userData.isReadBtn) c.visible = true;
-                        if (c.userData.isShowBtn) c.visible = false;
-                    });
+                    showCard(obj);
                     count++;
                 }
             }
