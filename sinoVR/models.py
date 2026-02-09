@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 
 class Asset3D(models.Model):
     title = models.CharField(max_length=100, verbose_name="模型名稱")
-    file = models.FileField(upload_to='sinoVR/assets/3d/', verbose_name="模型檔案 (.fbx)")
+    file = models.FileField(upload_to='sinoVR/assets/3d/', verbose_name="模型檔案 (.fbx, .obj, .glb, .gltf)")
     thumbnail = models.ImageField(upload_to='sinoVR/assets/thumbnails/', null=True, blank=True, verbose_name="縮圖")
     uploader = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="上傳者")
     uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="上傳時間")

@@ -139,7 +139,8 @@ class AssetUploadView(View):
         # Handle simple file upload
         if 'file' in request.FILES:
             file = request.FILES['file']
-            if file.name.lower().endswith('.fbx'):
+            ext = file.name.lower().split('.')[-1]
+            if ext in ['fbx', 'obj', 'glb', 'gltf']:
                  asset = Asset3D.objects.create(title=file.name, file=file)
                  return JsonResponse({'id': asset.id, 'title': asset.title, 'url': asset.file.url, 'type': 'model'})
             elif file.name.lower().endswith(('.jpg', '.jpeg', '.png')):
@@ -341,11 +342,15 @@ class AssetManagementView(View):
             if upload_type == 'model':
                 file = request.FILES.get('file')
                 if file:
-                    asset = Asset3D.objects.create(
-                        title=file.name, 
-                        file=file,
-                        uploader=request.user
-                    )
+                    # Basic validation or just let it pass (model field doesn't strictly validate extension by default unless validator added)
+                    # But good to check
+                    ext = file.name.lower().split('.')[-1]
+                    if ext in ['fbx', 'obj', 'glb', 'gltf']:
+                        asset = Asset3D.objects.create(
+                            title=file.name, 
+                            file=file,
+                            uploader=request.user
+                        )
                     
                     # Handle thumbnail
                     thumbnail_data = request.POST.get('thumbnail_data')
