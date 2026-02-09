@@ -1,4 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.core.files.base import ContentFile
+import base64
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.urls import reverse_lazy
 from django.http import JsonResponse
@@ -160,6 +162,42 @@ class AssetUploadView(View):
         return JsonResponse({'status': 'error'}, status=400)
 
 
+@method_decorator(csrf_exempt, name='dispatch')
+class AssetThumbnailUpdateView(View):
+    def post(self, request, pk):
+        if not request.user.is_authenticated:
+            return JsonResponse({'status': 'error', 'message': 'Authentication required'}, status=403)
+            
+        asset = get_object_or_404(Asset3D, pk=pk)
+        
+        try:
+            data = json.loads(request.body)
+            thumbnail_data = data.get('thumbnail_data')
+            
+            if thumbnail_data and ';base64,' in thumbnail_data:
+                format, imgstr = thumbnail_data.split(';base64,') 
+                ext = format.split('/')[-1] 
+                
+                # Delete old thumbnail if exists to save space? Django usually handles this or leaves it.
+                # Let's just overwrite.
+                
+                content = ContentFile(base64.b64decode(imgstr), name=f'{asset.id}_thumb_{json.dumps(request.POST).__hash__()}.{ext}')
+                # simple name is fine
+                content = ContentFile(base64.b64decode(imgstr), name=f'{asset.id}_thumb.{ext}')
+                
+                asset.thumbnail.save(f'{asset.id}_thumb.{ext}', content, save=True)
+                
+                return JsonResponse({
+                    'status': 'success', 
+                    'thumbnail_url': asset.thumbnail.url
+                })
+            else:
+                 return JsonResponse({'status': 'error', 'message': 'Invalid image data'}, status=400)
+                 
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
 class InfoCardUpdateView(View):
     """API to update existing InfoCard"""
     def post(self, request, card_id):
@@ -295,11 +333,25 @@ class AssetManagementView(View):
             if upload_type == 'model':
                 file = request.FILES.get('file')
                 if file:
-                    Asset3D.objects.create(
+                    asset = Asset3D.objects.create(
                         title=file.name, 
                         file=file,
                         uploader=request.user
                     )
+                    
+                    # Handle thumbnail
+                    thumbnail_data = request.POST.get('thumbnail_data')
+                    if thumbnail_data:
+                        try:
+                            # thumbnail_data format: "data:image/png;base64,....."
+                            if ';base64,' in thumbnail_data:
+                                format, imgstr = thumbnail_data.split(';base64,') 
+                                ext = format.split('/')[-1] 
+                                data = ContentFile(base64.b64decode(imgstr), name=f'{asset.id}_thumb.{ext}')
+                                asset.thumbnail = data
+                                asset.save()
+                        except Exception as e:
+                            print(f"Thumbnail upload error: {e}")
             elif upload_type == 'panorama':
                 image = request.FILES.get('image')
                 if image:
