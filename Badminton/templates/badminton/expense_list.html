@@ -1,0 +1,130 @@
+{% extends 'badminton/base.html' %}
+
+{% block title %}記帳列表 - 記帳系統{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">📝 記帳列表</h1>
+    <a href="{% url 'badminton:expense_create' %}" class="btn btn-primary">+ 新增記帳</a>
+</div>
+
+<!-- Filter Form -->
+<div class="card">
+    <form method="get" class="filter-form">
+        <div class="form-group">
+            <label class="form-label">起始日期</label>
+            {{ filter_form.start_date }}
+        </div>
+        <div class="form-group">
+            <label class="form-label">結束日期</label>
+            {{ filter_form.end_date }}
+        </div>
+        <div class="form-group">
+            <label class="form-label">類型</label>
+            {{ filter_form.category }}
+        </div>
+        <div class="form-group">
+            <label class="form-label">關鍵字</label>
+            {{ filter_form.keyword }}
+        </div>
+        <div class="form-group">
+            <label class="form-label">排序</label>
+            {{ filter_form.sort_by }}
+        </div>
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary">🔍 篩選</button>
+            <a href="{% url 'badminton:expense_list' %}" class="btn btn-secondary">清除</a>
+        </div>
+    </form>
+</div>
+
+<!-- Expense List -->
+<div class="card">
+    {% if page_obj %}
+    <div style="overflow-x: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>時間</th>
+                    <th>品項</th>
+                    <th>類型</th>
+                    <th>金額</th>
+                    <th>付款人</th>
+                    <th>備註</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in page_obj %}
+                <tr>
+                    <td>{{ expense.date|date:"Y/m/d" }}</td>
+                    <td>{{ expense.time|time:"H:i" }}</td>
+                    <td><strong>{{ expense.item_name }}</strong></td>
+                    <td>
+                        {% if expense.category %}
+                        <span class="badge" style="background-color: {{ expense.category.color }}">
+                            {{ expense.category.name }}
+                        </span>
+                        {% else %}
+                        <span class="badge">未分類</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-weight: 700; color: #ef4444;">
+                        ${{ expense.amount|floatformat:0 }}
+                    </td>
+                    <td>{{ expense.paid_by.name|default:"-" }}</td>
+                    <td
+                        style="color: var(--text-subdued); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {{ expense.note|default:"-" }}
+                    </td>
+                    <td>
+                        <a href="{% url 'badminton:expense_update' expense.pk %}"
+                            class="btn btn-secondary btn-sm">編輯</a>
+                        <a href="{% url 'badminton:expense_delete' expense.pk %}"
+                            class="btn btn-danger btn-sm">刪除</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a
+            href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">«</a>
+        <a
+            href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">‹</a>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+        <span class="current">{{ num }}</span>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %} <a
+            href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+            {{ num }}</a>
+            {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <a
+                href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">›</a>
+            <a
+                href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">»</a>
+            {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div style="text-align: center; padding: 60px 20px; color: var(--text-subdued);">
+        <div style="font-size: 4rem; margin-bottom: 16px;">📭</div>
+        <p style="font-size: 1.2rem;">尚無記帳資料</p>
+        <a href="{% url 'badminton:expense_create' %}" class="btn btn-primary" style="margin-top: 16px;">+
+            新增第一筆記帳</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

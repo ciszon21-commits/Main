@@ -1,0 +1,82 @@
+{% extends 'badminton/base.html' %}
+
+{% block title %}參與者管理 - 記帳系統{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">👥 參與者管理</h1>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px;">
+    <!-- Add Form -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">新增參與者</h3>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label class="form-label">姓名 *</label>
+                {{ form.name }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                {{ form.email }}
+            </div>
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 8px;">
+                    {{ form.is_active }}
+                    <span>啟用中</span>
+                </label>
+            </div>
+            <button type="submit" class="btn btn-primary">+ 新增</button>
+        </form>
+    </div>
+
+    <!-- Participant List -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">現有參與者</h3>
+        </div>
+        {% if participants %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>姓名</th>
+                    <th>Email</th>
+                    <th>狀態</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in participants %}
+                <tr>
+                    <td><strong>{{ p.name }}</strong></td>
+                    <td style="color: var(--text-subdued);">{{ p.email|default:"-" }}</td>
+                    <td>
+                        {% if p.is_active %}
+                        <span class="badge" style="background-color: #22c55e;">啟用</span>
+                        {% else %}
+                        <span class="badge" style="background-color: #6b7280;">停用</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form method="post" action="{% url 'badminton:participant_delete' p.pk %}"
+                            style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm"
+                                onclick="return confirm('確定要刪除嗎?')">刪除</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: var(--text-subdued);">
+            <p>尚無參與者,請新增</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

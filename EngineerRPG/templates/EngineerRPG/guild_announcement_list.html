@@ -1,0 +1,85 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}公告欄 | 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container fade-in">
+    <!-- 頁面標題 -->
+    <div class="mb-lg">
+        <h2 class="rpg-title mb-xs">
+            <i class="fas fa-bullhorn"></i> 公告欄
+        </h2>
+        <div class="rpg-breadcrumbs">
+            <a href="{% url 'engineer_rpg:guild_dashboard' %}" style="color: #FFD700; text-decoration: none;">公會大廳</a>
+            <span>>></span>
+            <span style="color: #CCCCCC;">公告欄</span>
+        </div>
+    </div>
+
+    <!-- 發布公告按鈕 -->
+    {% if is_manager %}
+    <div class="mb-md text-right">
+        <a href="{% url 'engineer_rpg:guild_announcement_create' %}" class="rpg-btn rpg-btn-primary">
+            <i class="fas fa-plus"></i> 發布公告
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- 公告列表 -->
+    <div class="rpg-card">
+        <div class="rpg-card-body">
+            {% if page_obj %}
+            <div class="post-list">
+                {% for announcement in page_obj %}
+                <div class="post-item"
+                    style="padding: var(--spacing-sm) var(--spacing-md); border-bottom: 1px solid var(--color-border);">
+                    <div class="flex flex-between" style="align-items: center; gap: 16px;">
+                        <a href="{% url 'engineer_rpg:guild_post_detail' announcement.id %}"
+                            style="text-decoration: none; flex: 1; min-width: 0;">
+                            <span
+                                style="color: #FFFFFF; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">
+                                {{ announcement.title }}
+                            </span>
+                        </a>
+                        <div class="text-stone"
+                            style="font-size: 0.85rem; white-space: nowrap; display: flex; gap: 16px;">
+                            <span>{{ announcement.author.user.get_full_name|default:.user.get_full_name|default:.user.username }}</span>
+                            <span><i class="fas fa-clock"></i> {{ announcement.created_at|date:"Y-m-d H:i" }}</span>
+                            <span><i class="fas fa-eye"></i> {{ announcement.views }} 瀏覽</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- 分頁 -->
+            {% if page_obj.has_other_pages %}
+            <div class="pagination mt-lg" style="text-align: center;">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="rpg-btn rpg-btn-sm rpg-btn-outline">
+                    <i class="fas fa-chevron-left"></i> 上一頁
+                </a>
+                {% endif %}
+
+                <span style="margin: 0 16px; color: var(--color-text);">
+                    第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 頁
+                </span>
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="rpg-btn rpg-btn-sm rpg-btn-outline">
+                    下一頁 <i class="fas fa-chevron-right"></i>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="text-center text-stone py-xl">
+                <i class="fas fa-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+                <p style="margin-top: 16px;">目前沒有公告</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

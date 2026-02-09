@@ -1,0 +1,379 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}{{ skill.name }} - 技能詳情{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <div class="mb-lg">
+        <a href="{% url 'engineer_rpg:skill_tree' %}" class="rpg-btn rpg-btn-secondary mb-md">
+            <i class="fas fa-arrow-left"></i> 返回技能樹
+        </a>
+    </div>
+
+    <div class="grid grid-2-1 gap-xl">
+        <!-- 左側：技能詳情與課程 -->
+        <div>
+            <!-- 技能頭部卡片 -->
+            <div class="rpg-card mb-lg skill-header-card skill-type-{{ skill.node_type }}">
+                <div class="skill-icon-large">
+                    {% if skill.icon_unlocked and user_skill.status == 'COMPLETED' %}
+                    <img src="{{ skill.icon_unlocked.url }}" alt="{{ skill.name }}">
+                    {% else %}
+                    {% if skill.node_type == 'ROOT' %}<i class="fas fa-seedling"></i>
+                    {% elif skill.node_type == 'CORE' %}<i class="fas fa-tree"></i>
+                    {% else %}<i class="fas fa-leaf"></i>{% endif %}
+                    {% endif %}
+                </div>
+                <div class="skill-info">
+                    <div class="skill-type-badge type-{{ skill.node_type }}">
+                        {% if skill.node_type == 'ROOT' %}共同必修{% elif skill.node_type == 'CORE' %}職業核心{% else %}進階選修{%
+                        endif %}
+                    </div>
+                    <h1>{{ skill.name }}</h1>
+                    <div class="skill-exp">
+                        <i class="fas fa-star"></i> 獎勵經驗值: {{ skill.exp_reward }}
+                    </div>
+                </div>
+                <div class="skill-status-badge status-{{ user_skill.status|default:'LOCKED' }}">
+                    {% if user_skill.status == 'COMPLETED' %}
+                    <i class="fas fa-check-circle"></i> 已習得
+                    {% elif user_skill.status == 'IN_PROGRESS' %}
+                    <i class="fas fa-spinner fa-spin"></i> 學習中
+                    {% elif is_unlocked %}
+                    <i class="fas fa-unlock"></i> 可學習
+                    {% else %}
+                    <i class="fas fa-lock"></i> 未解鎖
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 技能描述 -->
+            <div class="rpg-card mb-lg">
+                <h3 class="mb-md"><i class="fas fa-info-circle"></i> 技能說明</h3>
+                <p class="text-stone" style="line-height: 1.6; font-size: 1.1rem;">
+                    {{ skill.description|linebreaksbr }}
+                </p>
+            </div>
+
+            <!-- 課程列表 -->
+            <div class="rpg-card">
+                <h3 class="mb-md"><i class="fas fa-book"></i> 修練課程</h3>
+                {% if courses %}
+                <div class="course-list">
+                    {% for course in courses %}
+                    <div class="course-item">
+                        <div class="course-icon">
+                            {% if course.content_type == 'VIDEO' %}<i class="fas fa-video"></i>
+                            {% elif course.content_type == 'PDF' %}<i class="fas fa-file-pdf"></i>
+                            {% elif course.content_type == 'PPT' %}<i class="fas fa-file-powerpoint"></i>
+                            {% else %}<i class="fas fa-link"></i>{% endif %}
+                        </div>
+                        <div class="course-content">
+                            <h4>{{ course.title }}</h4>
+                            <p>{{ course.description|truncatechars:50 }}</p>
+                            <div class="course-meta">
+                                <span><i class="far fa-clock"></i> {{ course.duration_minutes }} 分鐘</span>
+                            </div>
+                        </div>
+                        <div class="course-action">
+                            {% if user_skill.status == 'LOCKED' %}
+                            <button class="rpg-btn rpg-btn-disabled" disabled><i class="fas fa-lock"></i> 鎖定</button>
+                            {% else %}
+                            <a href="{% url 'engineer_rpg:course_study' course.id %}" class="rpg-btn rpg-btn-primary"><i
+                                    class="fas fa-play"></i> 開始</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-stone text-center py-lg">目前沒有相關課程資料。</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 右側：前置與狀態 -->
+        <div>
+            <!-- 進度卡片 -->
+            <div class="rpg-card mb-lg text-center">
+                <h3 class="mb-md">修練進度</h3>
+                <div class="progress-circle-container mb-md">
+                    <div class="progress-circle" style="--percentage: {{ user_skill.progress|default:0 }}">
+                        <div class="progress-value">{{ user_skill.progress|default:0 }}%</div>
+                    </div>
+                </div>
+
+                {% if user_skill.status == 'AVAILABLE' %}
+                <form action="{% url 'engineer_rpg:start_learning' skill.id %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="rpg-btn rpg-btn-primary w-100 pulse-animation">
+                        <i class="fas fa-book-open"></i> 開始修練
+                    </button>
+                </form>
+                {% elif user_skill.status == 'IN_PROGRESS' %}
+                <button class="rpg-btn rpg-btn-civil w-100" disabled>
+                    <i class="fas fa-spinner fa-spin"></i>修練進行中
+                </button>
+                <p class="mt-sm text-sm text-stone">完成所有課程與測驗以習得技能</p>
+                {% elif user_skill.status == 'COMPLETED' %}
+                <button class="rpg-btn rpg-btn-success w-100" disabled>
+                    <i class="fas fa-check"></i> 已完全習得
+                </button>
+                {% else %}
+                <button class="rpg-btn rpg-btn-disabled w-100" disabled>
+                    <i class="fas fa-lock"></i> 條件未滿足
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- 前置條件 -->
+            <div class="rpg-card">
+                <h3 class="mb-md"><i class="fas fa-project-diagram"></i> 前置技能</h3>
+                {% if parents_with_status %}
+                <ul class="prerequisite-list">
+                    {% for item in parents_with_status %}
+                    <li class="prerequisite-item">
+                        <span class="prerequisite-status">
+                            {% if item.status == 'COMPLETED' %}
+                            <i class="fas fa-check-circle" style="color: var(--color-safety);"></i>
+                            {% elif item.status == 'IN_PROGRESS' %}
+                            <i class="fas fa-spinner fa-spin" style="color: var(--color-civil);"></i>
+                            {% elif item.status == 'AVAILABLE' %}
+                            <i class="fas fa-unlock" style="color: var(--color-secondary);"></i>
+                            {% else %}
+                            <i class="fas fa-lock" style="color: var(--color-stone);"></i>
+                            {% endif %}
+                        </span>
+                        <span
+                            class="prerequisite-name {% if item.status == 'COMPLETED' %}text-white{% else %}text-stone{% endif %}">
+                            {{ item.skill.name }}
+                        </span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <p class="text-sm text-stone mt-md">需習得所有前置技能才可解鎖此技能。</p>
+                {% else %}
+                <p class="text-stone"><i class="fas fa-check"></i> 無前置技能，可直接學習。</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .skill-type-ROOT .skill-icon-large {
+        color: var(--color-safety);
+        border-color: var(--color-safety);
+    }
+
+    .skill-type-CORE .skill-icon-large {
+        color: var(--color-civil);
+        border-color: var(--color-civil);
+    }
+
+    .skill-type-ADVANCED .skill-icon-large {
+        color: var(--color-me);
+        border-color: var(--color-me);
+    }
+
+    .skill-header-card {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-lg);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .skill-header-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, rgba(0, 0, 0, 0.4) 0%, transparent 100%);
+        z-index: 0;
+    }
+
+    .skill-icon-large {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        border: 4px solid var(--color-stone);
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        z-index: 1;
+        flex-shrink: 0;
+    }
+
+    .skill-info {
+        flex-grow: 1;
+        z-index: 1;
+    }
+
+    .skill-type-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        margin-bottom: var(--spacing-sm);
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .type-ROOT {
+        color: var(--color-safety);
+        border: 1px solid var(--color-safety);
+    }
+
+    .type-CORE {
+        color: var(--color-civil);
+        border: 1px solid var(--color-civil);
+    }
+
+    .type-ADVANCED {
+        color: var(--color-me);
+        border: 1px solid var(--color-me);
+    }
+
+    .skill-exp {
+        color: var(--color-secondary);
+        font-weight: bold;
+        margin-top: var(--spacing-sm);
+    }
+
+    .skill-status-badge {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-weight: bold;
+        z-index: 1;
+        background: rgba(0, 0, 0, 0.6);
+        border: 1px solid var(--color-stone);
+    }
+
+    .status-LOCKED {
+        color: var(--color-stone);
+    }
+
+    .status-AVAILABLE {
+        color: var(--color-secondary);
+        border-color: var(--color-secondary);
+        animation: pulse 2s infinite;
+    }
+
+    .status-IN_PROGRESS {
+        color: var(--color-civil);
+    }
+
+    .status-COMPLETED {
+        color: var(--color-safety);
+        border-color: var(--color-safety);
+    }
+
+    /* 課程列表樣式 */
+    .course-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+
+    .course-item {
+        display: flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius);
+        padding: var(--spacing-md);
+        transition: all 0.3s ease;
+    }
+
+    .course-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: var(--color-primary);
+    }
+
+    .course-icon {
+        width: 50px;
+        height: 50px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: var(--color-secondary);
+        margin-right: var(--spacing-md);
+    }
+
+    .course-content {
+        flex-grow: 1;
+    }
+
+    .course-content h4 {
+        margin-bottom: 4px;
+    }
+
+    .course-content p {
+        color: var(--color-stone);
+        font-size: 0.9rem;
+        margin-bottom: 4px;
+    }
+
+    .course-meta {
+        font-size: 0.8rem;
+        color: #888;
+    }
+
+    /* 進度圈 */
+    .progress-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: conic-gradient(var(--color-secondary) calc(var(--percentage) * 1%), #333 0);
+        margin: 0 auto;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .progress-circle::after {
+        content: '';
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: var(--color-card);
+    }
+
+    .progress-value {
+        position: relative;
+        z-index: 1;
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--color-text);
+    }
+
+    .prerequisite-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .prerequisite-item {
+        display: flex;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .prerequisite-status {
+        margin-right: 10px;
+        width: 20px;
+        text-align: center;
+    }
+</style>
+{% endblock %}

@@ -75,7 +75,12 @@
                         data-category-id="{{ cat_data.category.id }}"
                         data-carbon="{{ item.carbon_per_unit|default:'0' }}">
 
-                        <td class="col-item-no">{{ cat_data.category.name }}</td>
+                        <td class="col-item-no">
+                            {% with image_url="carbon_estimation/images/"|add:item.work_item|add:".png" %}
+                            <img src="{% static image_url %}" alt="{{ item.work_item }}" class="category-icon"
+                                onerror="this.parentElement.innerHTML='{{ cat_data.category.name }}';">
+                            {% endwith %}
+                        </td>
                         <td class="col-work-item">{{ item.work_item }}</td>
                         <td class="col-unit">{{ item.unit }}</td>
                         <td>

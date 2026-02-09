@@ -1,0 +1,123 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}圖鑑 - 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container" style="padding: 2rem 1rem;">
+    <!-- 頁面標題 -->
+    <div class="rpg-card" style="margin-bottom: 2rem; text-align: center;">
+        <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">
+            <i class="fas fa-book-open" style="color: var(--color-secondary);"></i>
+            冒險者圖鑑
+        </h1>
+        <p style="color: var(--color-text-muted);">記錄你在冒險中發現的裝備、道具與技能</p>
+    </div>
+
+    <!-- 收集進度總覽 -->
+    <div class="grid grid-4" style="gap: 1rem; margin-bottom: 2rem;">
+        <!-- 裝備 -->
+        <a href="{% url 'engineer_rpg:codex_equipment' %}" class="rpg-card hover-lift" style="text-decoration: none; text-align: center;">
+            <div style="font-size: 3rem; color: var(--color-secondary); margin-bottom: 0.5rem;">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h3 style="margin-bottom: 0.5rem;">裝備圖鑑</h3>
+            <div class="progress-bar" style="margin-bottom: 0.5rem;">
+                <div class="progress-fill" style="width: {% widthratio stats.equipment.owned stats.equipment.total 100 %}%;"></div>
+            </div>
+            <div style="font-size: 1.2rem; font-weight: bold; color: var(--color-secondary);">
+                {{ stats.equipment.owned }} / {{ stats.equipment.total }}
+            </div>
+            <div style="font-size: 0.85rem; color: var(--color-text-muted);">已收集裝備</div>
+        </a>
+
+        <!-- 道具 -->
+        <a href="{% url 'engineer_rpg:codex_items' %}" class="rpg-card hover-lift" style="text-decoration: none; text-align: center;">
+            <div style="font-size: 3rem; color: var(--color-success); margin-bottom: 0.5rem;">
+                <i class="fas fa-flask"></i>
+            </div>
+            <h3 style="margin-bottom: 0.5rem;">道具圖鑑</h3>
+            <div class="progress-bar" style="margin-bottom: 0.5rem;">
+                <div class="progress-fill bg-success" style="width: {% widthratio stats.items.owned stats.items.total 100 %}%;"></div>
+            </div>
+            <div style="font-size: 1.2rem; font-weight: bold; color: var(--color-success);">
+                {{ stats.items.owned }} / {{ stats.items.total }}
+            </div>
+            <div style="font-size: 0.85rem; color: var(--color-text-muted);">已收集道具</div>
+        </a>
+
+        <!-- 技能 -->
+        <a href="{% url 'engineer_rpg:codex_skills' %}" class="rpg-card hover-lift" style="text-decoration: none; text-align: center;">
+            <div style="font-size: 3rem; color: var(--color-info); margin-bottom: 0.5rem;">
+                <i class="fas fa-magic"></i>
+            </div>
+            <h3 style="margin-bottom: 0.5rem;">技能圖鑑</h3>
+            <div class="progress-bar" style="margin-bottom: 0.5rem;">
+                <div class="progress-fill bg-info" style="width: {% widthratio stats.skills.completed stats.skills.total 100 %}%;"></div>
+            </div>
+            <div style="font-size: 1.2rem; font-weight: bold; color: var(--color-info);">
+                {{ stats.skills.completed }} / {{ stats.skills.total }}
+            </div>
+            <div style="font-size: 0.85rem; color: var(--color-text-muted);">已習得技能</div>
+        </a>
+
+        <!-- 成就 -->
+        <div class="rpg-card" style="text-align: center; opacity: 0.7;">
+            <div style="font-size: 3rem; color: var(--color-warning); margin-bottom: 0.5rem;">
+                <i class="fas fa-trophy"></i>
+            </div>
+            <h3 style="margin-bottom: 0.5rem;">成就圖鑑</h3>
+            <div class="progress-bar" style="margin-bottom: 0.5rem;">
+                <div class="progress-fill bg-warning" style="width: {% widthratio stats.achievements.earned stats.achievements.total 100 %}%;"></div>
+            </div>
+            <div style="font-size: 1.2rem; font-weight: bold; color: var(--color-warning);">
+                {{ stats.achievements.earned }} / {{ stats.achievements.total }}
+            </div>
+            <div style="font-size: 0.85rem; color: var(--color-text-muted);">已獲得成就</div>
+        </div>
+    </div>
+
+    <!-- 獲取指南入口 -->
+    <div class="rpg-card" style="text-align: center;">
+        <a href="{% url 'engineer_rpg:codex_obtain_guide' %}" class="rpg-btn rpg-btn-lg" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-map-marked-alt"></i>
+            獲取指南 - 查看所有物品的獲取方式
+        </a>
+    </div>
+</div>
+
+<style>
+.hover-lift {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.hover-lift:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+.progress-bar {
+    height: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.progress-fill {
+    height: 100%;
+    background: var(--color-secondary);
+    border-radius: 4px;
+    transition: width 0.3s;
+}
+.progress-fill.bg-success { background: var(--color-success); }
+.progress-fill.bg-info { background: var(--color-info); }
+.progress-fill.bg-warning { background: var(--color-warning); }
+.grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 1024px) {
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+    .grid-4 { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}

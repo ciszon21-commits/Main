@@ -1,0 +1,177 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}晉升申請歷史 - 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <div class="mb-lg">
+        <h1 class="text-center">
+            <i class="fas fa-history"></i>
+            晉升申請歷史
+        </h1>
+        <p class="text-center" style="color: var(--color-secondary); font-size: 1.1rem;">
+            查看所有晉升申請記錄
+        </p>
+    </div>
+
+    <!-- 篩選器 -->
+    <div class="rpg-card mb-lg">
+        <form method="get" class="flex gap-md items-end">
+            <div class="flex-1">
+                <label style="display: block; margin-bottom: var(--spacing-xs); font-weight: 600;">狀態</label>
+                <select name="status" class="rpg-input" style="width: 100%;">
+                    <option value="">全部</option>
+                    <option value="PENDING" {% if request.GET.status=='PENDING' %}selected{% endif %}>待審核</option>
+                    <option value="APPROVED" {% if request.GET.status=='APPROVED' %}selected{% endif %}>已通過</option>
+                    <option value="REJECTED" {% if request.GET.status=='REJECTED' %}selected{% endif %}>已拒絕</option>
+                </select>
+            </div>
+            <div class="flex-1">
+                <label style="display: block; margin-bottom: var(--spacing-xs); font-weight: 600;">申請人</label>
+                <input type="text" name="applicant" class="rpg-input" placeholder="輸入使用者名稱"
+                    value="{{ request.GET.applicant }}" style="width: 100%;">
+            </div>
+            <div>
+                <button type="submit" class="rpg-btn rpg-btn-primary">
+                    <i class="fas fa-search"></i> 搜尋
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 申請列表 -->
+    <div class="rpg-card">
+        <h2 class="mb-lg">申請記錄</h2>
+
+        {% if requests %}
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--color-secondary);">
+                        <th style="padding: var(--spacing-sm); text-align: left;">申請人</th>
+                        <th style="padding: var(--spacing-sm); text-align: center;">職業</th>
+                        <th style="padding: var(--spacing-sm); text-align: center;">等級變化</th>
+                        <th style="padding: var(--spacing-sm); text-align: center;">申請日期</th>
+                        <th style="padding: var(--spacing-sm); text-align: center;">狀態</th>
+                        <th style="padding: var(--spacing-sm); text-align: center;">審核人</th>
+                        <th style="padding: var(--spacing-sm); text-align: center;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in requests %}
+                    <tr style="border-bottom: 1px solid var(--color-primary);">
+                        <td style="padding: var(--spacing-sm);">
+                            <div style="font-weight: 600;">{{ req.applicant.user.get_full_name|default:.user.get_full_name|default:.user.username }}</div>
+                            <div style="font-size: 0.85rem; color: var(--color-stone);">{{ req.applicant.employee_id }}
+                            </div>
+                        </td>
+                        <td style="padding: var(--spacing-sm); text-align: center;">
+                            {{ req.applicant.character_class.name }}
+                        </td>
+                        <td style="padding: var(--spacing-sm); text-align: center;">
+                            <div class="flex items-center justify-center gap-sm">
+                                <span>Lv.{{ req.current_level }}</span>
+                                <i class="fas fa-arrow-right" style="color: var(--color-secondary);"></i>
+                                <span style="color: var(--color-secondary); font-weight: 700;">Lv.{{ req.target_level
+                                    }}</span>
+                            </div>
+                        </td>
+                        <td style="padding: var(--spacing-sm); text-align: center;">
+                            {{ req.applied_at|date:"Y/m/d H:i" }}
+                        </td>
+                        <td style="padding: var(--spacing-sm); text-align: center;">
+                            {% if req.status == 'PENDING' %}
+                            <span class="badge badge-warning">待審核</span>
+                            {% elif req.status == 'APPROVED' %}
+                            <span class="badge badge-success">已通過</span>
+                            {% else %}
+                            <span class="badge badge-danger">已拒絕</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: var(--spacing-sm); text-align: center;">
+                            {% if req.reviewer %}
+                            <div>{{ req.reviewer.user.get_full_name|default:.user.get_full_name|default:.user.username }}</div>
+                            <div style="font-size: 0.8rem; color: var(--color-stone);">{{ req.reviewed_at|date:"m/d H:i"
+                                }}</div>
+                            {% else %}
+                            <span style="color: var(--color-stone);">-</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: var(--spacing-sm); text-align: center;">
+                            <a href="{% url 'engineer_rpg:review_request' req.id %}" class="rpg-btn rpg-btn-sm">
+                                <i class="fas fa-eye"></i> 查看
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分頁 -->
+        {% if page_obj.has_other_pages %}
+        <div class="pagination mt-lg text-center">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.applicant %}&applicant={{ request.GET.applicant }}{% endif %}"
+                class="rpg-btn rpg-btn-sm">&laquo; 上一頁</a>
+            {% endif %}
+
+            <span style="margin: 0 var(--spacing-md);">
+                第 {{ page_obj.number }} 頁，共 {{ page_obj.paginator.num_pages }} 頁
+            </span>
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.applicant %}&applicant={{ request.GET.applicant }}{% endif %}"
+                class="rpg-btn rpg-btn-sm">下一頁 &raquo;</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% else %}
+        <p class="text-center" style="padding: var(--spacing-xl); color: var(--color-stone);">
+            <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: var(--spacing-md);"></i><br>
+            尚無晉升申請記錄
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .rpg-input {
+        padding: var(--spacing-sm);
+        border: 2px solid var(--color-primary);
+        border-radius: var(--border-radius);
+        background: rgba(0, 0, 0, 0.3);
+        color: var(--color-text);
+        font-family: var(--font-body);
+    }
+
+    .rpg-input:focus {
+        outline: none;
+        border-color: var(--color-secondary);
+    }
+
+    .badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        display: inline-block;
+    }
+
+    .badge-warning {
+        background: var(--color-secondary);
+        color: black;
+    }
+
+    .badge-success {
+        background: var(--color-safety);
+        color: white;
+    }
+
+    .badge-danger {
+        background: var(--color-me);
+        color: white;
+    }
+</style>
+{% endblock %}
