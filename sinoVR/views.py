@@ -315,14 +315,22 @@ class AssetManagementView(View):
 
     @method_decorator(login_required)
     def get(self, request):
+        query = request.GET.get('q')
+        
         assets_3d = Asset3D.objects.all().annotate(
             usage_count=Count('sceneobject')
         ).select_related('uploader').order_by('-uploaded_at')
         
         panoramas = Panorama.objects.all().order_by('-uploaded_at')
+        
+        if query:
+            assets_3d = assets_3d.filter(title__icontains=query)
+            panoramas = panoramas.filter(title__icontains=query)
+
         return render(request, self.template_name, {
             'assets_3d': assets_3d,
-            'panoramas': panoramas
+            'panoramas': panoramas,
+            'query': query
         })
 
     @method_decorator(login_required)
