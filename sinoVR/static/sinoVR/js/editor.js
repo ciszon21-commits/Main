@@ -24,15 +24,9 @@ let clock = new THREE.Clock();
 
 const objects = [];
 let selectedObject = null;
-let isPlayMode = false;
 let isInspectorUpdating = false;
 
-// Fly Mode Variables
-let isFPSMode = false;
-const flySpeed = 5.0;
-const flyRotateSpeed = 2.0;
-const moveState = { w: false, a: false, s: false, d: false, q: false, e: false, shift: false };
-const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+
 
 // UI Inputs
 const inputs = {
@@ -93,7 +87,8 @@ export function init() {
     transformControl = new TransformControls(camera, renderer.domElement);
     transformControl.addEventListener('dragging-changed', (event) => controls.enabled = !event.value);
     transformControl.addEventListener('change', () => {
-        updateInspectorFromObject();
+        // Prevent updates if not initialized or if drag just started
+        if (selectedObject) updateInspectorFromObject();
     });
     scene.add(transformControl);
 
@@ -221,49 +216,27 @@ function addInfoCard(id, title, content, transform = {}, bgColor = 'rgba(173, 21
 
     // Create Hide Button
     const hideCanvas = document.createElement('canvas');
-    hideCanvas.width = 256;
+    hideCanvas.width = 960;
     hideCanvas.height = 128;
     const hideCtx = hideCanvas.getContext('2d');
     hideCtx.fillStyle = '#dc3545'; // Danger Red
-    hideCtx.fillRect(0, 0, 256, 128);
+    hideCtx.fillRect(0, 0, 960, 128);
     hideCtx.fillStyle = 'white';
     hideCtx.font = 'bold 60px Arial';
     hideCtx.textAlign = 'center';
     hideCtx.textBaseline = 'middle';
-    hideCtx.fillText('Hide', 128, 64);
+    hideCtx.fillText('Hide', 480, 64);
 
     const hideTexture = new THREE.CanvasTexture(hideCanvas);
     const hideMat = new THREE.MeshBasicMaterial({ map: hideTexture });
-    const hideMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.4), hideMat);
-    hideMesh.position.set(-0.8, -1.3, 0.05); // Bottom Left
+    const hideMesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 0.4), hideMat);
+    hideMesh.position.set(0, -1.3, 0.05); // Centered
     hideMesh.userData.isInteractable = true;
     hideMesh.userData.isHideBtn = true;
     hideMesh.userData.parentCardId = id;
 
-    // Create Read Button
-    const readCanvas = document.createElement('canvas');
-    readCanvas.width = 256;
-    readCanvas.height = 128;
-    const readCtx = readCanvas.getContext('2d');
-    readCtx.fillStyle = '#28a745'; // Success Green
-    readCtx.fillRect(0, 0, 256, 128);
-    readCtx.fillStyle = 'white';
-    readCtx.font = 'bold 60px Arial';
-    readCtx.textAlign = 'center';
-    readCtx.textBaseline = 'middle';
-    readCtx.fillText('Read', 128, 64);
-
-    const readTexture = new THREE.CanvasTexture(readCanvas);
-    const readMat = new THREE.MeshBasicMaterial({ map: readTexture });
-    const readMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.4), readMat);
-    readMesh.position.set(0.8, -1.3, 0.05); // Bottom Right
-    readMesh.userData.isInteractable = true;
-    readMesh.userData.isReadBtn = true;
-    readMesh.userData.parentCardId = id;
-
     const mesh = new THREE.Mesh(geometry, material);
     mesh.add(hideMesh);
-    mesh.add(readMesh);
 
     // Apply transform
     if (transform.position) mesh.position.set(transform.position.x, transform.position.y, transform.position.z);
@@ -283,9 +256,7 @@ function addInfoCard(id, title, content, transform = {}, bgColor = 'rgba(173, 21
 
     // Add double-click event for editing (non-play mode)
     mesh.userData.onDoubleClick = () => {
-        if (!isPlayMode) {
-            openEditCardModal(id, title, content, bgColor, fontSize);
-        }
+        openEditCardModal(id, title, content, bgColor, fontSize);
     };
 
     scene.add(mesh);
@@ -500,7 +471,27 @@ function rerenderInfoCard(cardId, title, content, bgColor, fontSize) {
         opacity: 0.95
     });
 
-    const newMesh = new THREE.Mesh(geometry, material);
+    // Create Hide Button
+    const hideCanvas = document.createElement('canvas');
+    hideCanvas.width = 960;
+    hideCanvas.height = 128;
+    const hideCtx = hideCanvas.getContext('2d');
+    hideCtx.fillStyle = '#dc3545';
+    hideCtx.fillRect(0, 0, 960, 128);
+    hideCtx.fillStyle = 'white';
+    hideCtx.font = 'bold 60px Arial';
+    hideCtx.textAlign = 'center';
+    hideCtx.textBaseline = 'middle';
+    hideCtx.fillText('Hide', 480, 64);
+    const hideTexture = new THREE.CanvasTexture(hideCanvas);
+    const hideMat = new THREE.MeshBasicMaterial({ map: hideTexture });
+    const hideMesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 0.4), hideMat);
+    hideMesh.position.set(0, -1.3, 0.05);
+    hideMesh.userData.isInteractable = true;
+    hideMesh.userData.isHideBtn = true;
+    hideMesh.userData.parentCardId = cardId;
+
+    newMesh.add(hideMesh);
     newMesh.position.copy(transform.position);
     newMesh.rotation.copy(transform.rotation);
     newMesh.scale.copy(transform.scale);
@@ -515,9 +506,7 @@ function rerenderInfoCard(cardId, title, content, bgColor, fontSize) {
     newMesh.name = `字卡: ${title}`;
 
     newMesh.userData.onDoubleClick = () => {
-        if (!isPlayMode) {
-            openEditCardModal(cardId, title, content, bgColor, fontSize);
-        }
+        openEditCardModal(cardId, title, content, bgColor, fontSize);
     };
 
     scene.add(newMesh);
@@ -541,7 +530,7 @@ window.closeCardDetail = function () {
     document.getElementById('card-detail-overlay').style.display = 'none';
 }
 
-// Global exposed functions
+
 window.addModel = function (id, url, title) {
     document.getElementById('loading').style.display = 'flex';
     loadModel(id, url, {}, title, () => {
@@ -555,37 +544,7 @@ window.setTool = function (mode) {
     transformControl.attach(selectedObject);
 }
 
-window.togglePlayMode = function () {
-    isPlayMode = !isPlayMode;
 
-    const btn = document.getElementById('btn-play-toggle');
-    const overlay = document.querySelector('.play-mode-overlay');
-
-    if (isPlayMode) {
-        btn.classList.replace('btn-light', 'btn-primary');
-        btn.innerHTML = '<i class="fas fa-stop"></i> Stop';
-        overlay.style.display = 'block';
-
-        // Hide helpers
-        transformControl.detach();
-        transformControl.visible = false;
-
-        // Disable Orbit Controls
-        controls.enabled = false;
-
-        // capture initial rotation again just in case
-        euler.setFromQuaternion(camera.quaternion);
-
-    } else {
-        btn.classList.replace('btn-primary', 'btn-light');
-        btn.innerHTML = '<i class="fas fa-play"></i> Play';
-        overlay.style.display = 'none';
-
-        controls.enabled = true;
-        transformControl.visible = true;
-        if (selectedObject) transformControl.attach(selectedObject);
-    }
-}
 
 window.saveScene = function (silent = false) {
     const dataToSave = objects.map(obj => {
@@ -660,8 +619,9 @@ function loadModel(assetId, url, transform = {}, title = 'Model', callback) {
 function selectObject(object) {
     selectedObject = object;
 
+
     if (object) {
-        if (!isPlayMode) transformControl.attach(object);
+        transformControl.attach(object);
         updateInspectorFromObject();
     } else {
         transformControl.detach();
@@ -720,76 +680,7 @@ window.scaleSelected = function () {
 // --- UI/Interaction ---
 
 function onPointerDown(event) {
-    if (isPlayMode) {
-        // Check if clicking on InfoCard
-        if (event.button === 0) { // Left click
-            const rect = renderer.domElement.getBoundingClientRect();
-            pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-            raycaster.setFromCamera(pointer, camera);
-            const intersects = raycaster.intersectObjects(objects, true);
-
-            if (intersects.length > 0) {
-                // Check if we hit a button first
-                const hit = intersects[0].object;
-
-                if (hit.userData.isHideBtn) {
-                    // Hide the entire card group
-                    const card = hit.parent;
-                    if (card) card.visible = false;
-                    return;
-                }
-
-                if (hit.userData.isReadBtn) {
-                    const cardId = hit.userData.parentCardId;
-                    const btnMesh = hit;
-
-                    // Call API to mark as read
-                    fetch(`/sinoVR/api/info-card/${cardId}/read/`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': CSRF_TOKEN
-                        }
-                    })
-                        .then(r => r.json())
-                        .then(data => {
-                            if (data.status === 'success') {
-                                // Visual feedback: Change button color to green/darker green or add checkmark
-                                // Simple way: redraw texture
-                                const canvas = btnMesh.material.map.image; // It's a canvas
-                                const ctx = canvas.getContext('2d');
-                                ctx.fillStyle = '#218838'; // Darker Green
-                                ctx.fillRect(0, 0, 256, 128);
-                                ctx.fillStyle = 'white';
-                                ctx.fillText('Read ✓', 128, 64);
-                                btnMesh.material.map.needsUpdate = true;
-                            }
-                        });
-                    return;
-                }
-
-                let target = intersects[0].object;
-                // Find the root object
-                while (target.parent && target.parent !== scene) {
-                    target = target.parent;
-                }
-
-                if (target.userData.isInfoCard) {
-                    showCardDetail(target.userData.cardTitle, target.userData.cardContent);
-                    return;
-                }
-            }
-        }
-
-        // FPS Mode Check: Right Click holds to rotating
-        if (event.button === 2) {
-            isFPSMode = true;
-            controls.enabled = false;
-            euler.setFromQuaternion(camera.quaternion);
-        }
-        return;
-    }
+    if (event.button === 2) return; // Ignore right click (was FPS mode)
 
     // Don't deselect if clicking on the Gizmo
     const rect = renderer.domElement.getBoundingClientRect();
@@ -810,41 +701,15 @@ function onPointerDown(event) {
 }
 
 function onPointerUp(event) {
-    if (event.button === 2) {
-        isFPSMode = false;
-        if (!isPlayMode) controls.enabled = true;
-    }
+    // Legacy onPointerUp removed
 }
 
 function onPointerMove(event) {
-    if (isFPSMode && isPlayMode) {
-        const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
-        const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
-
-        euler.y -= movementX * 0.002 * flyRotateSpeed;
-        euler.x -= movementY * 0.002 * flyRotateSpeed;
-
-        euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, euler.x));
-
-        camera.quaternion.setFromEuler(euler);
-    }
+    // Legacy onPointerMove removed
 }
 
 function onKeyDown(event) {
-    if (event.key === 'Escape' && isPlayMode) togglePlayMode();
     if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return;
-
-    if (isPlayMode) {
-        switch (event.code) {
-            case 'KeyW': moveState.w = true; break;
-            case 'KeyA': moveState.a = true; break;
-            case 'KeyS': moveState.s = true; break;
-            case 'KeyD': moveState.d = true; break;
-            case 'ShiftLeft':
-            case 'ShiftRight': moveState.shift = true; break;
-        }
-        return;
-    }
 
     switch (event.key.toLowerCase()) {
         case 't': setTool('translate'); break;
@@ -855,16 +720,7 @@ function onKeyDown(event) {
 }
 
 function onKeyUp(event) {
-    if (isPlayMode) {
-        switch (event.code) {
-            case 'KeyW': moveState.w = false; break;
-            case 'KeyA': moveState.a = false; break;
-            case 'KeyS': moveState.s = false; break;
-            case 'KeyD': moveState.d = false; break;
-            case 'ShiftLeft':
-            case 'ShiftRight': moveState.shift = false; break;
-        }
-    }
+    // Legacy onKeyUp removed
 }
 
 // Hierarchy System
@@ -904,33 +760,38 @@ function setupInspectorEvents() {
         inp.addEventListener('input', updateObjectFromInspector);
     });
 
-    document.getElementById('file-upload').addEventListener('change', (e) => {
-        if (!e.target.files[0]) return;
-        const formData = new FormData();
-        formData.append('file', e.target.files[0]);
+    const fileUpload = document.getElementById('file-upload');
+    if (fileUpload) {
+        fileUpload.addEventListener('change', (e) => {
+            if (!e.target.files[0]) return;
+            const formData = new FormData();
+            formData.append('file', e.target.files[0]);
 
-        document.getElementById('loading').style.display = 'flex';
-        fetch(UPLOAD_URL, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': CSRF_TOKEN },
-            body: formData
-        }).then(r => r.json()).then(d => {
-            document.getElementById('loading').style.display = 'none';
-            if (d.id && d.type === 'model') {
-                // Refresh assets list simply by appending
-                const grid = document.getElementById('asset-list');
-                const card = document.createElement('div');
-                card.className = 'asset-card';
-                card.onclick = () => addModel(d.id, d.url, d.title);
-                card.innerHTML = `<div class="asset-icon"><i class="fas fa-cube"></i></div><div class="text-truncate">${d.title}</div>`;
-                grid.prepend(card);
-                alert('Asset Uploaded');
-            } else {
-                alert('Uploaded!'); // Panoramas
-            }
+            document.getElementById('loading').style.display = 'flex';
+            fetch(UPLOAD_URL, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': CSRF_TOKEN },
+                body: formData
+            }).then(r => r.json()).then(d => {
+                document.getElementById('loading').style.display = 'none';
+                if (d.id && d.type === 'model') {
+                    // Refresh assets list simply by appending
+                    const grid = document.getElementById('asset-list');
+                    if (grid) {
+                        const card = document.createElement('div');
+                        card.className = 'asset-card';
+                        card.onclick = () => addModel(d.id, d.url, d.title);
+                        card.innerHTML = `<div class="asset-icon"><i class="fas fa-cube"></i></div><div class="text-truncate">${d.title}</div>`;
+                        grid.prepend(card);
+                    }
+                    alert('Asset Uploaded');
+                } else {
+                    alert('Uploaded!'); // Panoramas
+                }
+            });
+            e.target.value = '';
         });
-        e.target.value = '';
-    });
+    }
 }
 
 function updateInspectorFromObject() {
@@ -976,45 +837,7 @@ export function animate() {
 
     const delta = clock.getDelta();
 
-    if (isPlayMode) {
-        // Human FPS Movement (1.8m height, horizontal plane only)
-        const actualSpeed = moveState.shift ? flySpeed * 2.0 : flySpeed;
-        const moveDirection = new THREE.Vector3();
-
-        if (moveState.w) moveDirection.z -= 1;
-        if (moveState.s) moveDirection.z += 1;
-        if (moveState.a) moveDirection.x -= 1;
-        if (moveState.d) moveDirection.x += 1;
-
-        if (moveDirection.lengthSq() > 0) {
-            moveDirection.normalize();
-
-            // Only apply horizontal rotation (Y-axis), ignore pitch
-            const horizontalRotation = new THREE.Quaternion();
-            horizontalRotation.setFromAxisAngle(new THREE.Vector3(0, 1, 0), euler.y);
-
-            // Apply rotation to movement direction
-            moveDirection.applyQuaternion(horizontalRotation);
-
-            // Only move on XZ plane (horizontal)
-            camera.position.x += moveDirection.x * actualSpeed * delta;
-            camera.position.z += moveDirection.z * actualSpeed * delta;
-        }
-
-        // Boundary constraints (Grid is 20x20, centered at origin)
-        const gridSize = 10; // Grid extends from -10 to +10
-        const humanHeight = 1.8; // Fixed human eye height
-
-        // Clamp X and Z position within grid boundaries
-        camera.position.x = Math.max(-gridSize, Math.min(gridSize, camera.position.x));
-        camera.position.z = Math.max(-gridSize, Math.min(gridSize, camera.position.z));
-
-        // Lock camera height to human eye level
-        camera.position.y = humanHeight;
-
-    } else {
-        controls.update();
-    }
+    controls.update();
 
     renderer.render(scene, camera);
 }

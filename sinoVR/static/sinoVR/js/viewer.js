@@ -195,19 +195,27 @@ function addInfoCard(id, title, content, pos, rot, scale, bgColor, fontSize) {
     // Create Show Button (Restore) - Initially Hidden
     const showCanvas = document.createElement('canvas');
     showCanvas.width = 1024;
-    showCanvas.height = 128; // Fixed height
+    showCanvas.height = 256; // Increased height for hint
     const showCtx = showCanvas.getContext('2d');
     showCtx.fillStyle = '#17a2b8'; // Info Cyan
-    showCtx.fillRect(0, 0, 1024, 128);
+    showCtx.fillRect(0, 0, 1024, 256);
+
     showCtx.fillStyle = 'white';
-    showCtx.font = 'bold 48px Arial';
     showCtx.textAlign = 'center';
-    showCtx.textBaseline = 'middle';
-    showCtx.fillText(title, 512, 64);
+
+    // Title
+    showCtx.font = 'bold 60px Arial';
+    showCtx.textBaseline = 'bottom';
+    showCtx.fillText(title, 512, 120);
+
+    // Hint
+    showCtx.font = '40px Arial';
+    showCtx.textBaseline = 'top';
+    showCtx.fillText('(點擊開啟內容)', 512, 140);
 
     const showTexture = new THREE.CanvasTexture(showCanvas);
     const showMat = new THREE.MeshBasicMaterial({ map: showTexture, side: THREE.DoubleSide });
-    const showMesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 0.4), showMat); // Match card width
+    const showMesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 0.75), showMat); // 3 * (256/1024) = 0.75
     showMesh.position.set(0, 0, 0.05); // Center
     showMesh.visible = true; // Show visible by default (Reverse of Editor)
     showMesh.userData.isInteractable = true;
