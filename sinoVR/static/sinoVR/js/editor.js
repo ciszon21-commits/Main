@@ -154,36 +154,58 @@ function addInfoCard(id, title, content, transform = {}, bgColor = 'rgba(173, 21
     canvas.height = 768;
     const ctx = canvas.getContext('2d');
 
-    // Background - use custom color
-    ctx.fillStyle = bgColor;
+    // Hi-Tech Background (Tinted by bgColor)
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    const baseColor = bgColor || '#101830';
+    gradient.addColorStop(0, adjustOpacity(baseColor, 0.95));
+    gradient.addColorStop(1, 'rgba(10, 15, 30, 0.95)');
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = 'rgba(70, 130, 180, 0.9)'; // Steel blue border
-    ctx.lineWidth = 8;
-    ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
-    // Title text (bold and larger)
-    ctx.fillStyle = 'rgba(25, 25, 112, 1)'; // Midnight blue
-    ctx.font = 'bold 72px Arial';
+    // Tech Frame
+    ctx.strokeStyle = adjustOpacity(baseColor, 0.6);
+    ctx.lineWidth = 4;
+    ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+
+    // Corner Accents
+    ctx.strokeStyle = baseColor;
+    ctx.lineWidth = 12;
+    const cornerSize = 80;
+    // Top Left
+    ctx.beginPath(); ctx.moveTo(20, 20 + cornerSize); ctx.lineTo(20, 20); ctx.lineTo(20 + cornerSize, 20); ctx.stroke();
+    // Top Right
+    ctx.beginPath(); ctx.moveTo(canvas.width - 20 - cornerSize, 20); ctx.lineTo(canvas.width - 20, 20); ctx.lineTo(canvas.width - 20, 20 + cornerSize); ctx.stroke();
+    // Bottom Left
+    ctx.beginPath(); ctx.moveTo(20, canvas.height - 20 - cornerSize); ctx.lineTo(20, canvas.height - 20); ctx.lineTo(20 + cornerSize, canvas.height - 20); ctx.stroke();
+    // Bottom Right
+    ctx.beginPath(); ctx.moveTo(canvas.width - 20 - cornerSize, canvas.height - 20); ctx.lineTo(canvas.width - 20, canvas.height - 20); ctx.lineTo(canvas.width - 20, canvas.height - 20 - cornerSize); ctx.stroke();
+
+    // Title
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 76px "Segoe UI", Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillText(title, canvas.width / 2, 40);
+    ctx.shadowBlur = 25;
+    ctx.shadowColor = baseColor;
+    ctx.fillText(title, canvas.width / 2, 60);
+    ctx.shadowBlur = 0;
 
-    // Separator line
-    ctx.strokeStyle = 'rgba(70, 130, 180, 0.7)';
-    ctx.lineWidth = 3;
+    // Separator line with glow
+    ctx.strokeStyle = adjustOpacity(baseColor, 0.3);
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(50, 150);
-    ctx.lineTo(canvas.width - 50, 150);
+    ctx.moveTo(100, 165);
+    ctx.lineTo(canvas.width - 100, 165);
     ctx.stroke();
 
     // Content text (multi-line with word wrap, custom font size)
-    ctx.fillStyle = 'rgba(25, 25, 112, 0.95)';
-    ctx.font = `${fontSize}px Arial`;
+    ctx.fillStyle = 'rgba(230, 245, 255, 0.95)';
+    ctx.font = `${fontSize}px "Segoe UI", Arial`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    const maxWidth = canvas.width - 100;
-    const lineHeight = fontSize + 15;
-    let y = 200;
+    const maxWidth = canvas.width - 120;
+    const lineHeight = fontSize * 1.5;
+    let y = 220;
 
     // Character-based word wrap for content
     const chars = content.split('');
@@ -194,7 +216,7 @@ function addInfoCard(id, title, content, transform = {}, bgColor = 'rgba(173, 21
         const metrics = ctx.measureText(testLine);
 
         if (metrics.width > maxWidth && line.length > 0) {
-            ctx.fillText(line, 50, y);
+            ctx.fillText(line, 60, y);
             line = chars[i];
             y += lineHeight;
             if (y > canvas.height - 50) break;
@@ -202,7 +224,7 @@ function addInfoCard(id, title, content, transform = {}, bgColor = 'rgba(173, 21
             line = testLine;
         }
     }
-    if (line) ctx.fillText(line, 50, y);
+    if (line) ctx.fillText(line, 60, y);
 
     // Create material and geometry
     const texture = new THREE.CanvasTexture(canvas);
@@ -211,32 +233,101 @@ function addInfoCard(id, title, content, transform = {}, bgColor = 'rgba(173, 21
         map: texture,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.95
+        opacity: 0.9
     });
 
-    // Create Hide Button
+    // Create Close Button (Top Right "X")
     const hideCanvas = document.createElement('canvas');
-    hideCanvas.width = 960;
-    hideCanvas.height = 128;
+    hideCanvas.width = 120;
+    hideCanvas.height = 120;
     const hideCtx = hideCanvas.getContext('2d');
-    hideCtx.fillStyle = '#dc3545'; // Danger Red
-    hideCtx.fillRect(0, 0, 960, 128);
-    hideCtx.fillStyle = 'white';
-    hideCtx.font = 'bold 60px Arial';
-    hideCtx.textAlign = 'center';
-    hideCtx.textBaseline = 'middle';
-    hideCtx.fillText('Hide', 480, 64);
-
+    hideCtx.fillStyle = 'rgba(20, 25, 40, 0.8)';
+    hideCtx.beginPath();
+    hideCtx.arc(60, 60, 58, 0, Math.PI * 2);
+    hideCtx.fill();
+    hideCtx.strokeStyle = baseColor;
+    hideCtx.lineWidth = 4;
+    hideCtx.stroke();
+    hideCtx.strokeStyle = '#ffffff';
+    hideCtx.lineWidth = 8;
+    hideCtx.lineCap = 'round';
+    const closePadding = 35;
+    hideCtx.beginPath();
+    hideCtx.moveTo(closePadding, closePadding);
+    hideCtx.lineTo(120 - closePadding, 120 - closePadding);
+    hideCtx.moveTo(120 - closePadding, closePadding);
+    hideCtx.lineTo(closePadding, 120 - closePadding);
+    hideCtx.stroke();
     const hideTexture = new THREE.CanvasTexture(hideCanvas);
-    const hideMat = new THREE.MeshBasicMaterial({ map: hideTexture });
-    const hideMesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 0.4), hideMat);
-    hideMesh.position.set(0, -1.3, 0.05); // Centered
+    const hideMat = new THREE.MeshBasicMaterial({
+        map: hideTexture,
+        transparent: true,
+        opacity: 0.9
+    });
+    const hideMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.4), hideMat);
+    hideMesh.position.set(1.4, 1.05, 0.05);
     hideMesh.userData.isInteractable = true;
     hideMesh.userData.isHideBtn = true;
     hideMesh.userData.parentCardId = id;
 
+
+    // Create Show Button (Interactive Title Capsule) - Initially Hidden in Editor
+    const showCanvas = document.createElement('canvas');
+    showCanvas.width = 1024;
+    showCanvas.height = 256;
+    const showCtx = showCanvas.getContext('2d');
+    const themeColor = bgColor || '#17a2b8';
+    const rx = 512, ry = 128, rw = 800, rh = 160;
+    const sx = rx - rw / 2, sy = ry - rh / 2;
+    const btnGradient = showCtx.createLinearGradient(0, sy, 0, sy + rh);
+    btnGradient.addColorStop(0, adjustOpacity(themeColor, 0.4));
+    btnGradient.addColorStop(1, adjustOpacity(themeColor, 0.1));
+    showCtx.fillStyle = btnGradient;
+    const sRadius = 80;
+    showCtx.beginPath();
+    showCtx.moveTo(sx + sRadius, sy);
+    showCtx.lineTo(sx + rw - sRadius, sy);
+    showCtx.quadraticCurveTo(sx + rw, sy, sx + rw, sy + sRadius);
+    showCtx.lineTo(sx + rw, sy + rh - sRadius);
+    showCtx.quadraticCurveTo(sx + rw, sy + rh, sx + rw - sRadius, sy + rh);
+    showCtx.lineTo(sx + sRadius, sy + rh);
+    showCtx.quadraticCurveTo(sx, sy + rh, sx, sy + rh - sRadius);
+    showCtx.lineTo(sx, sy + sRadius);
+    showCtx.quadraticCurveTo(sx, sy, sx + sRadius, sy);
+    showCtx.closePath();
+    showCtx.fill();
+    showCtx.strokeStyle = themeColor;
+    showCtx.lineWidth = 10;
+    showCtx.stroke();
+    showCtx.shadowBlur = 15;
+    showCtx.shadowColor = themeColor;
+    showCtx.fillStyle = 'white';
+    showCtx.textAlign = 'center';
+    showCtx.font = 'bold 70px "Segoe UI", Arial';
+    showCtx.textBaseline = 'middle';
+    showCtx.fillText(title, 512, 110);
+    showCtx.shadowBlur = 0;
+    showCtx.font = '36px "Segoe UI", Arial';
+    showCtx.fillStyle = adjustOpacity('#ffffff', 0.8);
+    showCtx.fillText('(點擊開啟內容)', 512, 175);
+    const showTexture = new THREE.CanvasTexture(showCanvas);
+    const showMat = new THREE.MeshBasicMaterial({
+        map: showTexture,
+        transparent: true,
+        opacity: 0.95
+    });
+    const showMesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 0.75), showMat);
+    showMesh.position.set(0, 0, 0.1);
+    showMesh.visible = false; // Hidden by default in editor
+    showMesh.userData.isInteractable = true;
+    showMesh.userData.isShowBtn = true;
+    showMesh.userData.parentCardId = id;
+
+    showMesh.userData.parentCardId = id;
+
     const mesh = new THREE.Mesh(geometry, material);
     mesh.add(hideMesh);
+    mesh.add(showMesh);
 
     // Apply transform
     if (transform.position) mesh.position.set(transform.position.x, transform.position.y, transform.position.z);
@@ -419,32 +510,58 @@ function rerenderInfoCard(cardId, title, content, bgColor, fontSize) {
     canvas.height = 768;
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = bgColor;
+    // Hi-Tech Background (Tinted by bgColor)
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    const baseColor = bgColor || '#101830';
+    gradient.addColorStop(0, adjustOpacity(baseColor, 0.95));
+    gradient.addColorStop(1, 'rgba(10, 15, 30, 0.95)');
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = 'rgba(70, 130, 180, 0.9)';
-    ctx.lineWidth = 8;
-    ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = 'rgba(25, 25, 112, 1)';
-    ctx.font = 'bold 72px Arial';
+    // Tech Frame
+    ctx.strokeStyle = adjustOpacity(baseColor, 0.6);
+    ctx.lineWidth = 4;
+    ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+
+    // Corner Accents
+    ctx.strokeStyle = baseColor;
+    ctx.lineWidth = 12;
+    const cornerSize = 80;
+    // Top Left
+    ctx.beginPath(); ctx.moveTo(20, 20 + cornerSize); ctx.lineTo(20, 20); ctx.lineTo(20 + cornerSize, 20); ctx.stroke();
+    // Top Right
+    ctx.beginPath(); ctx.moveTo(canvas.width - 20 - cornerSize, 20); ctx.lineTo(canvas.width - 20, 20); ctx.lineTo(canvas.width - 20, 20 + cornerSize); ctx.stroke();
+    // Bottom Left
+    ctx.beginPath(); ctx.moveTo(20, canvas.height - 20 - cornerSize); ctx.lineTo(20, canvas.height - 20); ctx.lineTo(20 + cornerSize, canvas.height - 20); ctx.stroke();
+    // Bottom Right
+    ctx.beginPath(); ctx.moveTo(canvas.width - 20 - cornerSize, canvas.height - 20); ctx.lineTo(canvas.width - 20, canvas.height - 20); ctx.lineTo(canvas.width - 20, canvas.height - 20 - cornerSize); ctx.stroke();
+
+    // Title
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 76px "Segoe UI", Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillText(title, canvas.width / 2, 40);
+    ctx.shadowBlur = 25;
+    ctx.shadowColor = baseColor;
+    ctx.fillText(title, canvas.width / 2, 60);
+    ctx.shadowBlur = 0;
 
-    ctx.strokeStyle = 'rgba(70, 130, 180, 0.7)';
-    ctx.lineWidth = 3;
+    // Separator line with glow
+    ctx.strokeStyle = adjustOpacity(baseColor, 0.3);
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(50, 150);
-    ctx.lineTo(canvas.width - 50, 150);
+    ctx.moveTo(100, 165);
+    ctx.lineTo(canvas.width - 100, 165);
     ctx.stroke();
 
-    ctx.fillStyle = 'rgba(25, 25, 112, 0.95)';
-    ctx.font = `${fontSize}px Arial`;
+    // Content text (multi-line with word wrap, custom font size)
+    ctx.fillStyle = 'rgba(230, 245, 255, 0.95)';
+    ctx.font = `${fontSize}px "Segoe UI", Arial`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    const maxWidth = canvas.width - 100;
-    const lineHeight = fontSize + 15;
-    let y = 200;
+    const maxWidth = canvas.width - 120;
+    const lineHeight = fontSize * 1.5;
+    let y = 220;
 
     const chars = content.split('');
     let line = '';
@@ -452,7 +569,7 @@ function rerenderInfoCard(cardId, title, content, bgColor, fontSize) {
         const testLine = line + chars[i];
         const metrics = ctx.measureText(testLine);
         if (metrics.width > maxWidth && line.length > 0) {
-            ctx.fillText(line, 50, y);
+            ctx.fillText(line, 60, y);
             line = chars[i];
             y += lineHeight;
             if (y > canvas.height - 50) break;
@@ -460,7 +577,7 @@ function rerenderInfoCard(cardId, title, content, bgColor, fontSize) {
             line = testLine;
         }
     }
-    if (line) ctx.fillText(line, 50, y);
+    if (line) ctx.fillText(line, 60, y);
 
     const texture = new THREE.CanvasTexture(canvas);
     const geometry = new THREE.PlaneGeometry(3, 2.25);
@@ -471,27 +588,95 @@ function rerenderInfoCard(cardId, title, content, bgColor, fontSize) {
         opacity: 0.95
     });
 
-    // Create Hide Button
+    // Create Close Button (Top Right "X")
     const hideCanvas = document.createElement('canvas');
-    hideCanvas.width = 960;
-    hideCanvas.height = 128;
+    hideCanvas.width = 120;
+    hideCanvas.height = 120;
     const hideCtx = hideCanvas.getContext('2d');
-    hideCtx.fillStyle = '#dc3545';
-    hideCtx.fillRect(0, 0, 960, 128);
-    hideCtx.fillStyle = 'white';
-    hideCtx.font = 'bold 60px Arial';
-    hideCtx.textAlign = 'center';
-    hideCtx.textBaseline = 'middle';
-    hideCtx.fillText('Hide', 480, 64);
+    hideCtx.fillStyle = 'rgba(20, 25, 40, 0.8)';
+    hideCtx.beginPath();
+    hideCtx.arc(60, 60, 58, 0, Math.PI * 2);
+    hideCtx.fill();
+    hideCtx.strokeStyle = baseColor;
+    hideCtx.lineWidth = 4;
+    hideCtx.stroke();
+    hideCtx.strokeStyle = '#ffffff';
+    hideCtx.lineWidth = 8;
+    hideCtx.lineCap = 'round';
+    const closePadding = 35;
+    hideCtx.beginPath();
+    hideCtx.moveTo(closePadding, closePadding);
+    hideCtx.lineTo(120 - closePadding, 120 - closePadding);
+    hideCtx.moveTo(120 - closePadding, closePadding);
+    hideCtx.lineTo(closePadding, 120 - closePadding);
+    hideCtx.stroke();
     const hideTexture = new THREE.CanvasTexture(hideCanvas);
-    const hideMat = new THREE.MeshBasicMaterial({ map: hideTexture });
-    const hideMesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 0.4), hideMat);
-    hideMesh.position.set(0, -1.3, 0.05);
-    hideMesh.userData.isInteractable = true;
-    hideMesh.userData.isHideBtn = true;
-    hideMesh.userData.parentCardId = cardId;
+    const hideMat = new THREE.MeshBasicMaterial({
+        map: hideTexture,
+        transparent: true,
+        opacity: 0.9
+    });
+    const hideMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.4), hideMat);
+    hideMesh.position.set(1.4, 1.05, 0.05);
 
+
+    // Create Show Button (Interactive Title Capsule) - Initially Hidden in Editor
+    const showCanvas = document.createElement('canvas');
+    showCanvas.width = 1024;
+    showCanvas.height = 256;
+    const showCtx = showCanvas.getContext('2d');
+    const themeColor = bgColor || '#17a2b8';
+    const rx = 512, ry = 128, rw = 800, rh = 160;
+    const sx = rx - rw / 2, sy = ry - rh / 2;
+    const btnGradient = showCtx.createLinearGradient(0, sy, 0, sy + rh);
+    btnGradient.addColorStop(0, adjustOpacity(themeColor, 0.4));
+    btnGradient.addColorStop(1, adjustOpacity(themeColor, 0.1));
+    showCtx.fillStyle = btnGradient;
+    const sRadius = 80;
+    showCtx.beginPath();
+    showCtx.moveTo(sx + sRadius, sy);
+    showCtx.lineTo(sx + rw - sRadius, sy);
+    showCtx.quadraticCurveTo(sx + rw, sy, sx + rw, sy + sRadius);
+    showCtx.lineTo(sx + rw, sy + rh - sRadius);
+    showCtx.quadraticCurveTo(sx + rw, sy + rh, sx + rw - sRadius, sy + rh);
+    showCtx.lineTo(sx + sRadius, sy + rh);
+    showCtx.quadraticCurveTo(sx, sy + rh, sx, sy + rh - sRadius);
+    showCtx.lineTo(sx, sy + sRadius);
+    showCtx.quadraticCurveTo(sx, sy, sx + sRadius, sy);
+    showCtx.closePath();
+    showCtx.fill();
+    showCtx.strokeStyle = themeColor;
+    showCtx.lineWidth = 10;
+    showCtx.stroke();
+    showCtx.shadowBlur = 15;
+    showCtx.shadowColor = themeColor;
+    showCtx.fillStyle = 'white';
+    showCtx.textAlign = 'center';
+    showCtx.font = 'bold 70px "Segoe UI", Arial';
+    showCtx.textBaseline = 'middle';
+    showCtx.fillText(title, 512, 110);
+    showCtx.shadowBlur = 0;
+    showCtx.font = '36px "Segoe UI", Arial';
+    showCtx.fillStyle = adjustOpacity('#ffffff', 0.8);
+    showCtx.fillText('(點擊開啟內容)', 512, 175);
+    const showTexture = new THREE.CanvasTexture(showCanvas);
+    const showMat = new THREE.MeshBasicMaterial({
+        map: showTexture,
+        transparent: true,
+        opacity: 0.95
+    });
+    const showMesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 0.75), showMat);
+    showMesh.position.set(0, 0, 0.1);
+    showMesh.visible = false; // Hidden by default in editor
+    showMesh.userData.isInteractable = true;
+    showMesh.userData.isShowBtn = true;
+    showMesh.userData.parentCardId = cardId;
+
+    showMesh.userData.parentCardId = cardId;
+
+    const newMesh = new THREE.Mesh(geometry, material);
     newMesh.add(hideMesh);
+    newMesh.add(showMesh);
     newMesh.position.copy(transform.position);
     newMesh.rotation.copy(transform.rotation);
     newMesh.scale.copy(transform.scale);
@@ -520,10 +705,18 @@ function rerenderInfoCard(cardId, title, content, bgColor, fontSize) {
 }
 
 
-window.showCardDetail = function (title, content) {
+window.showCardDetail = function (title, content, themeColor) {
     document.getElementById('card-detail-title').textContent = title;
     document.getElementById('card-detail-content').textContent = content;
-    document.getElementById('card-detail-overlay').style.display = 'flex';
+    const overlay = document.getElementById('card-detail-overlay');
+    const box = overlay.querySelector('.card-detail-box');
+
+    if (themeColor) {
+        box.style.borderColor = adjustOpacity(themeColor, 0.5);
+        box.style.boxShadow = `0 0 40px rgba(0, 0, 0, 0.6), 0 0 20px ${adjustOpacity(themeColor, 0.3)}`;
+    }
+
+    overlay.style.display = 'flex';
 }
 
 window.closeCardDetail = function () {
@@ -691,7 +884,35 @@ function onPointerDown(event) {
     const intersects = raycaster.intersectObjects(objects, true);
 
     if (intersects.length > 0) {
-        let target = intersects[0].object;
+        let hit = intersects[0].object;
+
+        // Handle Hide/Show toggles in editor too for preview
+        if (hit.userData.isHideBtn) {
+            const card = hit.parent;
+            if (card) {
+                card.material.visible = false;
+                card.children.forEach(c => {
+                    if (c.userData.isHideBtn) c.visible = false;
+                    if (c.userData.isShowBtn) c.visible = true;
+                });
+                selectObject(card);
+            }
+            return;
+        }
+        if (hit.userData.isShowBtn) {
+            const card = hit.parent;
+            if (card) {
+                card.material.visible = true;
+                card.children.forEach(c => {
+                    if (c.userData.isHideBtn) c.visible = true;
+                    if (c.userData.isShowBtn) c.visible = false;
+                });
+                selectObject(card);
+            }
+            return;
+        }
+
+        let target = hit;
         while (target.parent && target.parent !== scene) target = target.parent;
 
         if (target !== selectedObject) {
@@ -840,4 +1061,20 @@ export function animate() {
     controls.update();
 
     renderer.render(scene, camera);
+}
+
+// Utility to adjust opacity of any color string
+function adjustOpacity(color, opacity) {
+    if (color.startsWith('rgba')) {
+        return color.replace(/[\d\.]+\)$/g, `${opacity})`);
+    } else if (color.startsWith('rgb')) {
+        return color.replace('rgb', 'rgba').replace(')', `, ${opacity})`);
+    } else if (color.startsWith('#')) {
+        // Simple hex to rgba
+        let r = parseInt(color.slice(1, 3), 16);
+        let g = parseInt(color.slice(3, 5), 16);
+        let b = parseInt(color.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+    return color;
 }

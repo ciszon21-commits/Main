@@ -13,29 +13,34 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #333;
-            /* Darker background for VR feel */
-            color: #eee;
+            font-family: 'Segoe UI', "Microsoft JhengHei", Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0d1117;
+            color: #d1d7e0;
         }
 
         .navbar-brand {
             font-weight: bold;
+            color: #00f2ff !important;
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
         }
 
         .card {
-            border: none;
-            transition: transform 0.2s;
-            background-color: #444;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(30, 39, 50, 0.8);
+            backdrop-filter: blur(8px);
             color: #fff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
 
         .card:hover {
             transform: translateY(-5px);
+            border-color: rgba(0, 242, 255, 0.4);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 15px rgba(0, 191, 255, 0.2);
         }
 
         .text-muted {
-            color: #aaa !important;
+            color: #8b949e !important;
         }
     </style>
     {% block extra_head %}{% endblock %}
@@ -62,7 +67,8 @@
                     </li>
                     <li class="nav-item">
                         {% if user.is_authenticated %}
-                        <span class="nav-link text-light"><i class="fas fa-user-circle"></i> {{ user.username|after_underscore }} {{ user.get_full_name|default:"" }}</span>
+                        <span class="nav-link text-light"><i class="fas fa-user-circle"></i> {{
+                            user.username|after_underscore }} {{ user.get_full_name|default:"" }}</span>
                         {% else %}
                         <span class="nav-link text-danger"><i class="fas fa-exclamation-circle"></i> 未登入狀態</span>
                         {% endif %}
