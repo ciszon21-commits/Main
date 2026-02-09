@@ -34,7 +34,8 @@
             </div>
 
             <div class="d-flex gap-2">
-                {% comment %} <button class="btn btn-sm btn-outline-info" onclick="showAllCards()" title="顯示所有字卡 (Show All Cards)">
+                {% comment %} <button class="btn btn-sm btn-outline-info" onclick="showAllCards()"
+                    title="顯示所有字卡 (Show All Cards)">
                     <i class="fas fa-eye"></i> Show All
                 </button> {% endcomment %}
                 <a href="{% url 'sinoVR:scene_view' scene.pk %}" class="btn btn-sm btn-light" id="btn-play-toggle"
@@ -273,7 +274,7 @@
     <div class="sidebar-panel">
 
         <!-- Hierarchy Panel -->
-        <div class="panel-section" style="flex: 1; max-height: 30%;">
+        <div class="panel-section" style="flex: 1; max-height: 50%;">
             <div class="panel-header">
                 <span><i class="fas fa-sitemap small"></i> Hierarchy</span>
                 <button class="btn btn-xs btn-outline-light py-0" onclick="updateHierarchy()"><i
@@ -425,24 +426,24 @@
     loadExistingObject({
         isInfoCard: true,
         id: '{{ obj.info_card.pk }}',
-        title: '{{ obj.info_card.title }}',
+        title: '{{ obj.info_card.title|escapejs }}',
         content: '{{ obj.info_card.content|escapejs }}',
         bgColor: '{{ obj.info_card.bg_color }}',
         fontSize: {{ obj.info_card.content_font_size }},
         position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }} },
         rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }} },
         scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} }
-        });
+    });
     {% elif obj.asset %}
     loadExistingObject({
         isInfoCard: false,
         assetId: '{{ obj.asset.pk }}',
         url: '{{ obj.asset.file.url }}',
-        title: '{{ obj.asset.title }}',
+        title: '{{ obj.asset.title|escapejs }}',
         position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }} },
         rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }} },
         scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} }
-        });
+    });
     {% endif %}
     {% endfor %}
 
