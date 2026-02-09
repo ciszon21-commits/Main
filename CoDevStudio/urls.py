@@ -39,6 +39,7 @@ urlpatterns = [
     path('circle-optimizer/', include('CircleOptimizer.urls')),  # 圓優化工具
     # path('consistency/', include('DesignConsistency.urls')),
     path('chat/', include('SinoChat.urls', namespace='sinochat')),  # Sinotech 聊天室
+    path('sinoVR/', include('sinoVR.urls')),  # sinoVR 虛擬實境
     path('interview/', include('InterviewAssessment.urls', namespace='interview_assessment')),
     path('gravity-pipe/', include('GravityPipeCalc.urls')),  # 重力管水理計算器
     path('soilmove/', include('SoilMove.urls', namespace='SoilMove')),  # 土石方查詢
@@ -54,6 +55,7 @@ urlpatterns = [
 if getattr(settings, 'ENABLE_CLASH_CLASSIFIER', False):
     urlpatterns.append(path('api/clash/', include('ClashClassifier.urls')))  # 碰撞報告分類 API
 
-# 開發環境下提供 media 檔案服務
+# 開發環境下提供 media 和 static 檔案服務
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

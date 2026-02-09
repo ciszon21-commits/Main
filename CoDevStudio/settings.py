@@ -99,6 +99,7 @@ INSTALLED_APPS = [
     'CircleOptimizer',  # 圓優化工具
     # 'DesignConsistency',
     'SinoChat',  # Sinotech 內部聊天室
+    'sinoVR',
     'InterviewAssessment',
     'GravityPipeCalc',  # 重力管水理計算器
     'SoilMove',
@@ -108,7 +109,6 @@ INSTALLED_APPS = [
     'FriendExpense',  # 朋友間記帳
     'LunchOrder',  # 訂便當系統
     'Badminton',  # 記帳系統
-
 ] + local.STAGE_INSTALLED_APPS
 
 
