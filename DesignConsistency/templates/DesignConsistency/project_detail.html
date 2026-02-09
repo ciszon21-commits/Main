@@ -1,0 +1,1119 @@
+{% extends "DesignConsistency/base.html" %}
+
+{% block title %}{{ project.name }}｜工程設計資料一致性比對{% endblock %}
+
+{% block extra_css %}
+    .project-hero {
+        display: grid;
+        gap: 16px;
+    }
+
+    .project-title {
+        font-family: "Orbitron", "IBM Plex Sans TC", sans-serif;
+        font-size: 24px;
+        letter-spacing: 0.08em;
+    }
+
+    .project-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        font-size: 12px;
+        color: var(--ink-soft);
+    }
+
+    .compare-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .compare-options select {
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(12, 21, 32, 0.2);
+        background: rgba(255, 255, 255, 0.9);
+        min-width: 200px;
+    }
+
+    .upload-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
+    }
+
+    .upload-card {
+        display: grid;
+        gap: 14px;
+    }
+
+    .upload-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .upload-title {
+        font-weight: 600;
+        font-size: 16px;
+    }
+
+    .upload-badge {
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        background: rgba(31, 228, 193, 0.15);
+        border: 1px solid rgba(31, 228, 193, 0.4);
+    }
+
+    .dropzone {
+        border-radius: 16px;
+        border: 1px dashed rgba(12, 21, 32, 0.24);
+        background: rgba(255, 255, 255, 0.7);
+        padding: 18px;
+        display: grid;
+        gap: 8px;
+        cursor: pointer;
+        transition: border 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .dropzone:hover {
+        border-color: rgba(31, 228, 193, 0.6);
+        box-shadow: var(--glow);
+    }
+
+    .dropzone input[type="file"] {
+        display: none;
+    }
+
+    .dropzone-title {
+        font-weight: 600;
+    }
+
+    .dropzone-sub {
+        font-size: 12px;
+        color: var(--ink-soft);
+    }
+
+    .file-name {
+        font-size: 12px;
+        color: #0f6b61;
+    }
+
+    .file-list {
+        display: grid;
+        gap: 8px;
+        font-size: 13px;
+    }
+
+    .file-item {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(12, 21, 32, 0.12);
+    }
+
+    .file-meta {
+        font-size: 11px;
+        color: var(--ink-soft);
+    }
+
+    .locked {
+        opacity: 0.6;
+        position: relative;
+    }
+
+    .locked::after {
+        content: "Coming Soon";
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        background: rgba(255, 184, 92, 0.2);
+        border: 1px solid rgba(255, 184, 92, 0.6);
+    }
+
+    .btn-preview {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        background: rgba(31, 228, 193, 0.1);
+        border: 1px solid rgba(31, 228, 193, 0.4);
+        color: #0f6b61;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-preview:hover {
+        background: rgba(31, 228, 193, 0.2);
+        box-shadow: var(--glow);
+    }
+
+    .btn-preview:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .upload-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+    }
+
+    /* Modal styles */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(12, 21, 32, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: var(--cream);
+        border-radius: 20px;
+        max-width: 900px;
+        width: 100%;
+        max-height: 85vh;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(12, 21, 32, 0.3);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid rgba(12, 21, 32, 0.12);
+    }
+
+    .modal-title {
+        font-weight: 600;
+        font-size: 16px;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 8px;
+        transition: background 0.2s;
+    }
+
+    .modal-close:hover {
+        background: rgba(12, 21, 32, 0.1);
+    }
+
+    .modal-body {
+        padding: 20px;
+        overflow-y: auto;
+        max-height: calc(85vh - 60px);
+    }
+
+    .preview-loading {
+        text-align: center;
+        padding: 40px;
+        color: var(--ink-soft);
+    }
+
+    .preview-error {
+        padding: 20px;
+        background: rgba(255, 92, 92, 0.1);
+        border-radius: 10px;
+        color: #8a1414;
+    }
+
+    .preview-summary {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .summary-item {
+        padding: 12px;
+        background: rgba(31, 228, 193, 0.08);
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    .summary-label {
+        display: block;
+        font-size: 11px;
+        color: var(--ink-soft);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+
+    .summary-value {
+        display: block;
+        font-size: 20px;
+        font-weight: 600;
+        margin-top: 4px;
+    }
+
+    .sheet-list, .hierarchy-list {
+        display: grid;
+        gap: 8px;
+    }
+
+    .sheet-item, .hierarchy-item {
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 10px;
+        border: 1px solid rgba(12, 21, 32, 0.12);
+    }
+
+    .sheet-item.parseable {
+        border-left: 3px solid rgba(31, 228, 193, 0.8);
+    }
+
+    .sheet-item.unparseable {
+        border-left: 3px solid rgba(255, 184, 92, 0.8);
+        opacity: 0.7;
+    }
+
+    .sheet-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .sheet-name {
+        font-weight: 600;
+        flex: 1;
+    }
+
+    .sheet-badge {
+        font-size: 10px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        text-transform: uppercase;
+    }
+
+    .sheet-badge.success {
+        background: rgba(31, 228, 193, 0.2);
+        color: #0f6b61;
+    }
+
+    .sheet-badge.warning {
+        background: rgba(255, 184, 92, 0.2);
+        color: #8a6914;
+    }
+
+    .sheet-meta {
+        font-size: 12px;
+        color: var(--ink-soft);
+        margin-top: 4px;
+    }
+
+    .contract-info {
+        padding: 12px;
+        background: rgba(31, 228, 193, 0.05);
+        border-radius: 10px;
+        margin-bottom: 16px;
+        border: 1px solid rgba(31, 228, 193, 0.2);
+    }
+
+    .contract-title-label {
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .contract-grid {
+        display: grid;
+        gap: 6px;
+    }
+
+    .contract-row {
+        display: flex;
+        gap: 8px;
+        font-size: 13px;
+    }
+
+    .contract-label {
+        min-width: 70px;
+        color: var(--ink-soft);
+        font-size: 12px;
+    }
+
+    .type-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .type-chip {
+        display: flex;
+        gap: 6px;
+        padding: 6px 12px;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 8px;
+        border: 1px solid rgba(12, 21, 32, 0.12);
+        font-size: 12px;
+    }
+
+    .type-count {
+        font-weight: 600;
+        color: #0f6b61;
+    }
+
+    .section-title {
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    .hierarchy-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .hierarchy-no {
+        font-weight: 600;
+        background: rgba(31, 228, 193, 0.2);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+
+    .hierarchy-desc {
+        flex: 1;
+        font-size: 13px;
+    }
+
+    .hierarchy-count {
+        font-size: 11px;
+        color: var(--ink-soft);
+    }
+
+    @media (max-width: 700px) {
+        .preview-summary {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .pipeline {
+        display: grid;
+        gap: 12px;
+    }
+
+    .pipeline-steps {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+    }
+
+    .pipeline-step {
+        padding: 12px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.75);
+        border: 1px solid rgba(12, 21, 32, 0.12);
+        text-align: center;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .insight-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+
+    .insight-card {
+        padding: 14px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(12, 21, 32, 0.12);
+        display: grid;
+        gap: 6px;
+    }
+
+    .insight-label {
+        font-size: 12px;
+        color: var(--ink-soft);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .stats-card {
+        padding: 14px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(12, 21, 32, 0.12);
+        display: grid;
+        gap: 6px;
+    }
+
+    .stats-label {
+        font-size: 12px;
+        color: var(--ink-soft);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+    }
+
+    .stats-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+
+    .stats-table th,
+    .stats-table td {
+        padding: 6px 8px;
+        border: 1px solid rgba(12, 21, 32, 0.12);
+        text-align: left;
+        vertical-align: top;
+    }
+
+    .stats-table th {
+        background: rgba(31, 228, 193, 0.08);
+        font-weight: 600;
+    }
+
+    @media (max-width: 1100px) {
+        .upload-grid {
+            grid-template-columns: 1fr;
+        }
+        .pipeline-steps {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .insight-grid {
+            grid-template-columns: 1fr;
+        }
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+{% endblock %}
+
+{% block content %}
+    <section class="panel project-hero">
+        <div class="project-title">{{ project.name }}</div>
+        <div class="project-meta">
+            {% if project.code %}<span>代碼：{{ project.code }}</span>{% endif %}
+            <span>建立：{{ project.created_at|date:"Y-m-d H:i" }}</span>
+            <span>更新：{{ project.updated_at|date:"Y-m-d H:i" }}</span>
+            <span>檔案數：{{ files.count }}</span>
+        </div>
+        {% if project.description %}
+            <div class="panel-subtitle">{{ project.description }}</div>
+        {% endif %}
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="run_compare">
+            <div class="compare-options">
+                <label>
+                    比對模式
+                    <select name="compare_mode">
+                        <option value="balanced" {% if compare_suggestion and compare_suggestion.mode == 'balanced' %}selected{% endif %}>平衡（預設）</option>
+                        <option value="classic" {% if compare_suggestion and compare_suggestion.mode == 'classic' %}selected{% endif %}>經典（原始方法）</option>
+                        <option value="strict" {% if compare_suggestion and compare_suggestion.mode == 'strict' %}selected{% endif %}>嚴格（高精準）</option>
+                        <option value="lenient" {% if compare_suggestion and compare_suggestion.mode == 'lenient' %}selected{% endif %}>寬鬆（高召回）</option>
+                    </select>
+                </label>
+                <label>
+                    預算篩選
+                    <select name="budget_filter">
+                        <option value="" {% if not compare_suggestion or not compare_suggestion.budget_filter %}selected{% endif %}>不篩選（全部項目）</option>
+                        <option value="quantity_only" {% if compare_suggestion and compare_suggestion.budget_filter == 'quantity_only' %}selected{% endif %}>只比對有數量（略過主項/小計）</option>
+                        <option value="analysis_only" {% if compare_suggestion and compare_suggestion.budget_filter == 'analysis_only' %}selected{% endif %}>僅分析/一般項且有數量</option>
+                    </select>
+                </label>
+                <button class="btn btn-primary" type="submit">啟動一致性比對流程</button>
+            </div>
+            <div class="panel-subtitle" style="margin-top:8px;">
+                比對模式：影響匹配嚴格度；預算篩選：決定納入比對的 XML 項目類型。
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <div class="panel-title">檔案項目統計</div>
+        <div class="panel-subtitle">先確認各來源的項目數量（名稱去重不重複顯示），協助選擇適合的比對層級與模式。</div>
+        {% if stats_error %}
+            <div class="message warning">統計失敗：{{ stats_error }}</div>
+        {% endif %}
+        <div class="stats-grid">
+            <div class="stats-card">
+                <div class="stats-label">預算書（XML）項目數</div>
+                <div>{% if budget_stats %}{{ budget_stats.total }}{% else %}-{% endif %}</div>
+                {% if budget_stats %}
+                    <div class="file-meta">
+                        名稱去重：{{ budget_stats.unique_total }}（{{ budget_stats.unique_ratio|floatformat:2 }}%）
+                    </div>
+                    <div class="file-meta">
+                        只比對有數量：{{ budget_stats.quantity_only }}
+                        （{{ budget_stats.quantity_only_ratio|floatformat:2 }}%）
+                    </div>
+                    <div class="file-meta">
+                        分析/一般項且有數量：{{ budget_stats.analysis_only }}
+                        （{{ budget_stats.analysis_only_ratio|floatformat:2 }}%）
+                    </div>
+                {% endif %}
+            </div>
+            <div class="stats-card">
+                <div class="stats-label">數量計算書項目數</div>
+                <div>{% if quantity_stats %}{{ quantity_stats.total }}{% else %}-{% endif %}</div>
+                {% if quantity_stats %}
+                    <div class="file-meta">
+                        名稱去重：{{ quantity_stats.unique_total }}（{{ quantity_stats.unique_ratio|floatformat:2 }}%）
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+            <a class="btn btn-ghost" href="{% url 'design_consistency:export_stats' project.id %}?kind=budget&format=csv">匯出預算統計（CSV）</a>
+            <a class="btn btn-ghost" href="{% url 'design_consistency:export_stats' project.id %}?kind=budget&format=xlsx">匯出預算統計（Excel）</a>
+            <a class="btn btn-ghost" href="{% url 'design_consistency:export_stats' project.id %}?kind=quantity&format=csv">匯出數量統計（CSV）</a>
+            <a class="btn btn-ghost" href="{% url 'design_consistency:export_stats' project.id %}?kind=quantity&format=xlsx">匯出數量統計（Excel）</a>
+        </div>
+        <div class="stats-grid" style="margin-top:12px;">
+            <div class="stats-card">
+                <div class="stats-label">預算項目類型分佈</div>
+                {% if budget_stats %}
+                    <table class="stats-table">
+                        <thead>
+                            <tr>
+                                <th>類型</th>
+                                <th>項目數</th>
+                                <th>名稱去重</th>
+                                <th>去重佔比</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in budget_stats.by_kind_cn %}
+                                <tr>
+                                    <td>{{ item.label }}</td>
+                                    <td>{{ item.count }}</td>
+                                    <td>{{ item.unique_count }}</td>
+                                    <td>{{ item.unique_ratio|floatformat:2 }}%</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="file-meta">尚無預算書資料</div>
+                {% endif %}
+            </div>
+            <div class="stats-card">
+                <div class="stats-label">數量計算書工作表分佈</div>
+                {% if quantity_stats %}
+                    <table class="stats-table">
+                        <thead>
+                            <tr>
+                                <th>工作表</th>
+                                <th>項目數</th>
+                                <th>名稱去重</th>
+                                <th>去重佔比</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in quantity_stats.by_sheet_cn %}
+                                <tr>
+                                    <td>{{ item.sheet }}</td>
+                                    <td>{{ item.count }}</td>
+                                    <td>{{ item.unique_count }}</td>
+                                    <td>{{ item.unique_ratio|floatformat:2 }}%</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="file-meta">尚無數量計算書資料</div>
+                {% endif %}
+            </div>
+        </div>
+        {% if compare_suggestion %}
+            <div class="panel-subtitle" style="margin-top:12px;">
+                建議模式：{{ compare_suggestion.mode_label }} · 建議預算篩選：{{ compare_suggestion.filter_label }}
+                <div class="file-meta">{{ compare_suggestion.reason }}</div>
+            </div>
+        {% endif %}
+    </section>
+
+    <section class="upload-grid">
+        <div class="panel upload-card">
+            <div class="upload-header">
+                <div>
+                    <div class="upload-title">預算書（XML）</div>
+                    <div class="panel-subtitle">解析預算書內部語彙，擷取主條目與材料關鍵字。</div>
+                </div>
+                <span class="upload-badge">Primary</span>
+            </div>
+            <form method="post" enctype="multipart/form-data" id="form-xml">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="upload_file">
+                <input type="hidden" name="file_type" value="budget_xml">
+                <label class="dropzone">
+                    <input type="file" name="file" accept=".xml" data-file-input id="input-xml">
+                    <div class="dropzone-title">拖曳 XML 或點擊上傳</div>
+                    <div class="dropzone-sub">支援單檔案上傳，將自動建立版本。</div>
+                    <div class="file-name" data-file-name>尚未選擇檔案</div>
+                </label>
+                <div class="upload-actions">
+                    <button class="btn btn-primary" type="submit">上傳預算書</button>
+                    <button type="button" class="btn-preview" id="btn-preview-xml" disabled>
+                        🔍 預覽檔案結構
+                    </button>
+                </div>
+            </form>
+            <div class="file-list">
+                {% for file in files_by_type.budget_xml %}
+                    <div class="file-item">
+                        <div>
+                            <div>{{ file.original_name }}</div>
+                            <div class="file-meta">上傳：{{ file.uploaded_at|date:"Y-m-d H:i" }}</div>
+                        </div>
+                        <div class="file-meta">{{ file.get_file_type_display }}</div>
+                    </div>
+                {% empty %}
+                    <div class="panel-subtitle">尚未上傳預算書。</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="panel upload-card">
+            <div class="upload-header">
+                <div>
+                    <div class="upload-title">數量計算書（XLS / XLSX）</div>
+                    <div class="panel-subtitle">解析數量計算書中的項目名稱與單位字彙。</div>
+                </div>
+                <span class="upload-badge">Primary</span>
+            </div>
+            <form method="post" enctype="multipart/form-data" id="form-xls">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="upload_file">
+                <input type="hidden" name="file_type" value="quantity_xls">
+                <label class="dropzone">
+                    <input type="file" name="file" accept=".xls,.xlsx" data-file-input id="input-xls">
+                    <div class="dropzone-title">拖曳 XLS/XLSX 或點擊上傳</div>
+                    <div class="dropzone-sub">支援多版本與異動紀錄。</div>
+                    <div class="file-name" data-file-name>尚未選擇檔案</div>
+                </label>
+                <div class="upload-actions">
+                    <button class="btn btn-primary" type="submit">上傳數量計算書</button>
+                    <button type="button" class="btn-preview" id="btn-preview-xls" disabled>
+                        🔍 預覽檔案結構
+                    </button>
+                </div>
+            </form>
+            <div class="file-list">
+                {% for file in files_by_type.quantity_xls %}
+                    <div class="file-item">
+                        <div>
+                            <div>{{ file.original_name }}</div>
+                            <div class="file-meta">上傳：{{ file.uploaded_at|date:"Y-m-d H:i" }}</div>
+                        </div>
+                        <div class="file-meta">{{ file.get_file_type_display }}</div>
+                    </div>
+                {% empty %}
+                    <div class="panel-subtitle">尚未上傳數量計算書。</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="panel upload-card locked">
+            <div class="upload-header">
+                <div>
+                    <div class="upload-title">施工規範（PDF / DOC）</div>
+                    <div class="panel-subtitle">後續版本將支援施工規範文字擷取與比對。</div>
+                </div>
+                <span class="upload-badge">Phase 2</span>
+            </div>
+            <label class="dropzone">
+                <div class="dropzone-title">尚未開放上傳</div>
+                <div class="dropzone-sub">施工規範解析將於下一階段導入。</div>
+            </label>
+        </div>
+    </section>
+
+    <section class="panel pipeline">
+        <div class="panel-title">一致性解析流程</div>
+        <div class="panel-subtitle">已可解析 XML / XLSX 文字並生成初步比對清單。</div>
+        <div class="pipeline-steps">
+            <div class="pipeline-step">Ingest</div>
+            <div class="pipeline-step">Extract</div>
+            <div class="pipeline-step">Normalize</div>
+            <div class="pipeline-step">Compare</div>
+            <div class="pipeline-step">Report</div>
+        </div>
+
+        {% if latest_run %}
+            <div class="panel-subtitle">最新比對時間：{{ latest_run.created_at|date:"Y-m-d H:i" }} • 狀態：{{ latest_run.get_status_display }}</div>
+            <div style="margin-bottom: 12px;">
+                <a class="btn btn-ghost" href="{% url 'design_consistency:matrix' %}?project={{ project.id }}">查看一致性矩陣</a>
+            </div>
+            {% if latest_run.status == 'failed' %}
+                <div class="message warning">解析失敗：{{ latest_run.notes }}</div>
+            {% elif latest_run.result %}
+                <div class="insight-grid">
+                    <div class="insight-card">
+                        <div class="insight-label">預算書關鍵詞數量</div>
+                        <div>{{ latest_run.result.budget_terms.total_terms }}</div>
+                        <div class="file-meta">Top：{{ latest_run.result.budget_terms.top_terms.0.term }}</div>
+                    </div>
+                    <div class="insight-card">
+                        <div class="insight-label">數量計算書關鍵詞數量</div>
+                        <div>{{ latest_run.result.quantity_terms.total_terms }}</div>
+                        <div class="file-meta">Top：{{ latest_run.result.quantity_terms.top_terms.0.term }}</div>
+                    </div>
+                    <div class="insight-card">
+                        <div class="insight-label">比對摘要</div>
+                        <div>匹配：{{ latest_run.result.summary.matched_rows }}</div>
+                        <div class="file-meta">預算缺漏：{{ latest_run.result.summary.unmatched_budget }}</div>
+                        <div class="file-meta">單位不一致：{{ latest_run.result.summary.unit_mismatch }}</div>
+                        <div class="file-meta">數量不一致：{{ latest_run.result.summary.qty_mismatch }}</div>
+                    </div>
+                </div>
+
+                <div class="insight-grid" style="margin-top: 12px;">
+                    <div class="insight-card">
+                        <div class="insight-label">僅出現在預算書</div>
+                        <div class="file-meta">{{ latest_run.result.only_in_budget|slice:":8"|join:"、" }}</div>
+                    </div>
+                    <div class="insight-card">
+                        <div class="insight-label">僅出現在數量計算書</div>
+                        <div class="file-meta">{{ latest_run.result.only_in_quantity|slice:":8"|join:"、" }}</div>
+                    </div>
+                    <div class="insight-card">
+                        <div class="insight-label">報表與線上檢視</div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <a class="btn btn-ghost" href="{% url 'design_consistency:report_detail' latest_run.id %}">線上檢視</a>
+                            {% if latest_run.report_file %}
+                                <a class="btn btn-ghost" href="{{ latest_run.report_file.url }}">下載報表</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="panel-subtitle">尚未產生比對結果。</div>
+            {% endif %}
+        {% else %}
+            <div class="insight-grid">
+                <div class="insight-card">
+                    <div class="insight-label">疑似不一致</div>
+                    <div>預算書：鋼筋混凝土</div>
+                    <div>數量計算書：RC</div>
+                </div>
+                <div class="insight-card">
+                    <div class="insight-label">待建立標準</div>
+                    <div>預算書：人孔</div>
+                    <div>數量計算書：檢修孔</div>
+                </div>
+                <div class="insight-card">
+                    <div class="insight-label">命名衝突</div>
+                    <div>預算書：污水管線</div>
+                    <div>數量計算書：排水管</div>
+                </div>
+            </div>
+        {% endif %}
+    </section>
+
+    <!-- Preview Modal -->
+    <div class="modal-overlay" id="preview-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modal-title">檔案結構預覽</div>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <div class="preview-loading">載入中...</div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+
+{% block extra_js %}
+    <script>
+        // File input handling
+        const uploadInputs = document.querySelectorAll('[data-file-input]');
+        uploadInputs.forEach((input) => {
+            const fileName = input.closest('label').querySelector('[data-file-name]');
+            input.addEventListener('change', () => {
+                fileName.textContent = input.files.length ? input.files[0].name : '尚未選擇檔案';
+            });
+        });
+
+        // Preview button enable/disable based on file selection
+        const inputXls = document.getElementById('input-xls');
+        const inputXml = document.getElementById('input-xml');
+        const btnPreviewXls = document.getElementById('btn-preview-xls');
+        const btnPreviewXml = document.getElementById('btn-preview-xml');
+
+        if (inputXls && btnPreviewXls) {
+            inputXls.addEventListener('change', () => {
+                btnPreviewXls.disabled = !inputXls.files.length;
+            });
+        }
+
+        if (inputXml && btnPreviewXml) {
+            inputXml.addEventListener('change', () => {
+                btnPreviewXml.disabled = !inputXml.files.length;
+            });
+        }
+
+        // Modal handling
+        const modal = document.getElementById('preview-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+        const modalClose = document.getElementById('modal-close');
+
+        function openModal(title) {
+            modalTitle.textContent = title;
+            modalBody.innerHTML = '<div class="preview-loading">解析中，請稍候...</div>';
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+        }
+
+        modalClose.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // XLS Preview
+        if (btnPreviewXls) {
+            btnPreviewXls.addEventListener('click', async () => {
+                const file = inputXls.files[0];
+                if (!file) return;
+
+                openModal('📊 數量計算書結構預覽');
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+                try {
+                    const response = await fetch('{% url "design_consistency:preview_xls" %}', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    
+                    if (result.error) {
+                        modalBody.innerHTML = `<div class="preview-error">${result.error}</div>`;
+                        return;
+                    }
+
+                    const data = result.data;
+                    modalBody.innerHTML = renderXlsPreview(data);
+                } catch (err) {
+                    modalBody.innerHTML = `<div class="preview-error">請求失敗：${err.message}</div>`;
+                }
+            });
+        }
+
+        // XML Preview
+        if (btnPreviewXml) {
+            btnPreviewXml.addEventListener('click', async () => {
+                const file = inputXml.files[0];
+                if (!file) return;
+
+                openModal('📄 預算書結構預覽');
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+                try {
+                    const response = await fetch('{% url "design_consistency:preview_xml" %}', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    
+                    if (result.error) {
+                        modalBody.innerHTML = `<div class="preview-error">${result.error}</div>`;
+                        return;
+                    }
+
+                    const data = result.data;
+                    modalBody.innerHTML = renderXmlPreview(data);
+                } catch (err) {
+                    modalBody.innerHTML = `<div class="preview-error">請求失敗：${err.message}</div>`;
+                }
+            });
+        }
+
+        // Render XLS Preview
+        function renderXlsPreview(data) {
+            const summary = data.summary || {};
+            let html = `
+                <div style="font-size: 12px; color: var(--ink-soft); margin-bottom: 12px;">
+                    檔案：${data.filename || ''}
+                </div>
+                <div class="preview-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">工作表數量</span>
+                        <span class="summary-value">${data.total_sheets || 0}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">總列數</span>
+                        <span class="summary-value">${summary.total_rows || 0}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">可解析</span>
+                        <span class="summary-value">${summary.parseable_sheets || 0}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">估計項目</span>
+                        <span class="summary-value">${summary.total_estimated_items || 0}</span>
+                    </div>
+                </div>
+                <div class="section-title">📁 工作表清單</div>
+                <div class="sheet-list">
+            `;
+
+            (data.sheets || []).forEach(sheet => {
+                const badge = sheet.has_structure 
+                    ? '<span class="sheet-badge success">可解析</span>'
+                    : '<span class="sheet-badge warning">無標準結構</span>';
+                const itemInfo = sheet.estimated_items > 0 
+                    ? ` · 估計 ${sheet.estimated_items} 項目` 
+                    : '';
+                html += `
+                    <div class="sheet-item ${sheet.has_structure ? 'parseable' : 'unparseable'}">
+                        <div class="sheet-header">
+                            <span>📁</span>
+                            <span class="sheet-name">${sheet.name}</span>
+                            ${badge}
+                        </div>
+                        <div class="sheet-meta">${sheet.rows} 列 × ${sheet.cols} 欄${itemInfo}</div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            return html;
+        }
+
+        // Render XML Preview
+        function renderXmlPreview(data) {
+            const summary = data.summary || {};
+            const contract = data.contract_info || {};
+            
+            let html = `
+                <div style="font-size: 12px; color: var(--ink-soft); margin-bottom: 12px;">
+                    檔案：${data.filename || ''}
+                </div>
+            `;
+
+            // Contract info
+            if (Object.keys(contract).length > 0) {
+                html += `
+                    <div class="contract-info">
+                        <div class="contract-title-label">📋 合約資訊</div>
+                        <div class="contract-grid">
+                `;
+                if (contract.contract_no) {
+                    html += `<div class="contract-row"><span class="contract-label">標案編號</span><span>${contract.contract_no}</span></div>`;
+                }
+                if (contract.contract_title) {
+                    html += `<div class="contract-row"><span class="contract-label">工程名稱</span><span>${contract.contract_title}</span></div>`;
+                }
+                if (contract.procuring_entity) {
+                    html += `<div class="contract-row"><span class="contract-label">機關</span><span>${contract.procuring_entity}</span></div>`;
+                }
+                if (contract.contract_location) {
+                    html += `<div class="contract-row"><span class="contract-label">地點</span><span>${contract.contract_location}</span></div>`;
+                }
+                html += '</div></div>';
+            }
+
+            // Summary
+            html += `
+                <div class="preview-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">總項目數</span>
+                        <span class="summary-value">${summary.total_items || 0}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">有數量項目</span>
+                        <span class="summary-value">${summary.items_with_quantity || 0}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">大項數量</span>
+                        <span class="summary-value">${summary.top_level_items || 0}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">最大層級</span>
+                        <span class="summary-value">${summary.max_depth || 0}</span>
+                    </div>
+                </div>
+            `;
+
+            // Type distribution
+            if (data.item_type_distribution && data.item_type_distribution.length > 0) {
+                html += '<div class="section-title">📊 項目類型分佈</div><div class="type-grid">';
+                data.item_type_distribution.forEach(item => {
+                    html += `<div class="type-chip"><span>${item.label}</span><span class="type-count">${item.count}</span></div>`;
+                });
+                html += '</div>';
+            }
+
+            // Hierarchy
+            if (data.hierarchy && data.hierarchy.length > 0) {
+                html += '<div class="section-title">📑 層級結構</div><div class="hierarchy-list">';
+                data.hierarchy.forEach(item => {
+                    html += `
+                        <div class="hierarchy-item">
+                            <div class="hierarchy-header">
+                                <span class="hierarchy-no">${item.item_no}</span>
+                                <span class="hierarchy-desc">${item.description}</span>
+                                <span class="hierarchy-count">${item.total_descendants} 子項目</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+
+            return html;
+        }
+    </script>
+{% endblock %}

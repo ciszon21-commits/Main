@@ -236,32 +236,27 @@ class UserRegistrationForm(forms.Form):
     """使用者註冊表單"""
     username = forms.CharField(
         label='使用者名稱',
+        min_length=3,
+        max_length=30,
         widget=forms.TextInput(attrs={
             'class': 'rpg-input',
-            'placeholder': '請輸入使用者名稱'
+            'placeholder': '請輸入使用者名稱 (3-30字元)'
         })
     )
     email = forms.EmailField(
         label='電子郵件',
+        required=False,
         widget=forms.EmailInput(attrs={
             'class': 'rpg-input',
-            'placeholder': '請輸入電子郵件'
+            'placeholder': '請輸入電子郵件 (選填)'
         })
-    )
-
-    character_class = forms.ModelChoiceField(
-        queryset=CharacterClass.objects.all(),
-        label='選擇職業',
-        widget=forms.RadioSelect(attrs={
-            'class': 'rpg-input'
-        }),
-        empty_label=None
     )
     password = forms.CharField(
         label='密碼',
+        min_length=6,
         widget=forms.PasswordInput(attrs={
             'class': 'rpg-input',
-            'placeholder': '請輸入密碼'
+            'placeholder': '請輸入密碼 (至少6字元)'
         })
     )
     confirm_password = forms.CharField(
@@ -271,46 +266,64 @@ class UserRegistrationForm(forms.Form):
             'placeholder': '請再次輸入密碼'
         })
     )
-    
+    character_class = forms.ModelChoiceField(
+        label='選擇職業',
+        queryset=CharacterClass.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={'class': 'rpg-input'})
+    )
+
+    def clean_username(self):
+        from django.contrib.auth.models import User
+        username = self.cleaned_data.get('username')
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError('此使用者名稱已被使用')
+        return username
+
     def clean(self):
         cleaned_data = super().clean()
-        password = cleaned_data.get("password")
-        confirm_password = cleaned_data.get("confirm_password")
+        password = cleaned_data.get('password')
+        confirm_password = cleaned_data.get('confirm_password')
 
         if password and confirm_password and password != confirm_password:
-            raise forms.ValidationError("兩次輸入的密碼不符")
-        
+            raise forms.ValidationError('兩次輸入的密碼不符')
+
         return cleaned_data
-        
+
     def save(self):
-        """儲存使用者與個人檔案"""
         from django.contrib.auth.models import User
-        from .models import UserProfile
-        
-        # 建立使用者
+        username = self.cleaned_data['username']
+        email = self.cleaned_data.get('email', '')
+        password = self.cleaned_data['password']
+        character_class = self.cleaned_data.get('character_class')
+
         user = User.objects.create_user(
-            username=self.cleaned_data['username'],
-            email=self.cleaned_data['email'],
-            password=self.cleaned_data['password']
+            username=username,
+            email=email,
+            password=password
         )
-        
-        # 自動生成員工編號 (取 username 中的數字)
-        import re
-        digits = ''.join(re.findall(r'\d+', user.username))
-        if digits:
-            employee_id = digits
-        else:
-            employee_id = f'EMP{user.id:05d}'
-        
-        # 更新個人檔案 (由 signal 自動建立，這裡更新職業與確認員編)
-        # Note: signal 已經建立了 profile，我們這裡主要是更新使用者選擇的職業
-        profile = UserProfile.objects.get(user=user)
-        profile.employee_id = employee_id
-        profile.character_class = self.cleaned_data['character_class']
-        profile.is_class_selected = True
-        profile.save()
-        
+
+        # 創建 UserProfile
+        default_class = character_class or CharacterClass.objects.first()
+        if not default_class:
+            default_class = CharacterClass.objects.create(
+                code='CIVIL',
+                name='土木戰士',
+                description='專精土木工程的職業'
+            )
+
+        UserProfile.objects.create(
+            user=user,
+            employee_id=f'EMP{user.id:05d}',
+            character_class=default_class,
+            role='ADVENTURER'
+        )
+
         return user
+
+
+
+
 
 
 class UserProfileEditForm(forms.Form):

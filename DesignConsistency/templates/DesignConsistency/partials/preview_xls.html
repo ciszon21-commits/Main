@@ -1,0 +1,173 @@
+{% comment %}
+XLS Preview Partial Template - Rendered via JavaScript from JSON response
+This template is for reference; actual rendering is done client-side.
+{% endcomment %}
+
+<div class="preview-container">
+    <div class="preview-header">
+        <h3>📊 數量計算書結構預覽</h3>
+        <div class="preview-filename">{{ filename }}</div>
+    </div>
+    
+    <div class="preview-summary">
+        <div class="summary-item">
+            <span class="summary-label">工作表數量</span>
+            <span class="summary-value">{{ total_sheets }}</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">總列數</span>
+            <span class="summary-value">{{ total_rows }}</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">可解析工作表</span>
+            <span class="summary-value">{{ parseable_sheets }}</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">估計項目數</span>
+            <span class="summary-value">{{ total_estimated_items }}</span>
+        </div>
+    </div>
+    
+    <div class="preview-sheets">
+        {% for sheet in sheets %}
+        <div class="sheet-item {% if sheet.has_structure %}parseable{% else %}unparseable{% endif %}">
+            <div class="sheet-header">
+                <span class="sheet-icon">📁</span>
+                <span class="sheet-name">{{ sheet.name }}</span>
+                {% if sheet.has_structure %}
+                <span class="sheet-badge success">可解析</span>
+                {% else %}
+                <span class="sheet-badge warning">無標準結構</span>
+                {% endif %}
+            </div>
+            <div class="sheet-meta">
+                {{ sheet.rows }} 列 × {{ sheet.cols }} 欄
+                {% if sheet.estimated_items > 0 %}
+                · 估計 {{ sheet.estimated_items }} 項目
+                {% endif %}
+            </div>
+            {% if sheet.detected_columns %}
+            <div class="sheet-columns">
+                偵測到欄位：{{ sheet.detected_columns|join:"、" }}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.preview-container {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.preview-header {
+    margin-bottom: 16px;
+}
+
+.preview-header h3 {
+    margin: 0 0 4px 0;
+    font-size: 18px;
+}
+
+.preview-filename {
+    font-size: 12px;
+    color: var(--ink-soft);
+}
+
+.preview-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.summary-item {
+    padding: 12px;
+    background: rgba(31, 228, 193, 0.08);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.summary-label {
+    display: block;
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.summary-value {
+    display: block;
+    font-size: 20px;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+.preview-sheets {
+    display: grid;
+    gap: 8px;
+}
+
+.sheet-item {
+    padding: 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(12, 21, 32, 0.12);
+}
+
+.sheet-item.parseable {
+    border-left: 3px solid rgba(31, 228, 193, 0.8);
+}
+
+.sheet-item.unparseable {
+    border-left: 3px solid rgba(255, 184, 92, 0.8);
+    opacity: 0.7;
+}
+
+.sheet-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sheet-icon {
+    font-size: 16px;
+}
+
+.sheet-name {
+    font-weight: 600;
+    flex: 1;
+}
+
+.sheet-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.sheet-badge.success {
+    background: rgba(31, 228, 193, 0.2);
+    color: #0f6b61;
+}
+
+.sheet-badge.warning {
+    background: rgba(255, 184, 92, 0.2);
+    color: #8a6914;
+}
+
+.sheet-meta {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 4px;
+}
+
+.sheet-columns {
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-top: 4px;
+}
+</style>
