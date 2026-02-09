@@ -1,0 +1,114 @@
+{% extends 'sinoVR/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<!-- Import Map for Three.js -->
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+</script>
+<link rel="stylesheet" href="{% static 'sinoVR/css/viewer.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="viewer-container">
+    <div class="ui-overlay">
+        <a href="{% url 'sinoVR:scene_list' %}" class="btn btn-outline-light">
+            <i class="fas fa-arrow-left"></i> 返回場景列表
+        </a>
+        <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#helpModal">
+            <i class="fas fa-question-circle"></i> 操作說明
+        </button>
+    </div>
+
+    <div class="play-mode-overlay">
+        <i class="fas fa-gamepad"></i> 瀏覽模式 (WASD 移動, 按住滑鼠右鍵轉動視角)
+    </div>
+
+    <div id="vr-container"></div>
+
+    <div id="loading" class="loading-overlay">
+        <div class="text-white text-center">
+            <div class="spinner-border" role="status"></div>
+            <div class="mt-2 text-center">Loading Scene...</div>
+        </div>
+    </div>
+
+    <!-- InfoCard Detail Overlay -->
+    <div id="card-detail-overlay">
+        <div class="card-detail-box">
+            <h3 id="card-detail-title" style="color:white; margin-bottom:15px;"></h3>
+            <p id="card-detail-content" style="white-space:pre-wrap; line-height:1.6;"></p>
+            <button onclick="closeCardDetail()" class="btn btn-secondary mt-3">關閉</button>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title"><i class="fas fa-gamepad"></i> 操作說明</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="mb-0">
+                        <li><strong>W / A / S / D：</strong> 移動 (前後左右)</li>
+                        <li><strong>按住滑鼠右鍵：</strong> 轉動視角</li>
+                        <li><strong>滑鼠左鍵點擊字卡：</strong> 查看詳細內容</li>
+                        <li><strong>Shift：</strong> 加速移動</li>
+                        <li><strong>空白鍵 (Space)：</strong> 跳躍</li>
+                    </ul>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initViewer } from "{% static 'sinoVR/js/viewer.js' %}";
+    const sceneId = {{ scene.pk }};
+    const backgroundUrl = {% if scene.background %}'{{ scene.background.image.url }}'{% else %} null{% endif %};
+
+    const objectsData = [
+        {% for obj in scene.scene_objects.all %}
+    {% if obj.info_card %}
+    {
+        type: 'info_card',
+        id: '{{ obj.info_card.pk }}',
+        title: '{{ obj.info_card.title }}',
+        content: '{{ obj.info_card.content|escapejs }}',
+        position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }} },
+        rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }} },
+        scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} },
+        bgColor: '{{ obj.info_card.bg_color }}',
+            fontSize: {{ obj.info_card.content_font_size }}
+    }
+    {% elif obj.asset %}
+    {
+        type: 'model',
+        url: '{{ obj.asset.file.url }}',
+        position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }} },
+        rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }} },
+        scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} }
+    }
+    {% endif %}
+
+    {% if not forloop.last %}
+                ,
+    {% endif %}
+    {% endfor %}
+    ];
+
+    // Initialize viewer
+    initViewer(sceneId, backgroundUrl, objectsData);
+</script>
+{% endblock %}

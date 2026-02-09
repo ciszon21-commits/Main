@@ -1,0 +1,881 @@
+{% extends 'sinoVR/base.html' %}
+
+{% block content %}
+{% block extra_head %}
+<!-- Import Map for Three.js -->
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+</script>
+<style>
+    .nav-link.active {
+        background-color: #444 !important;
+        border-color: #444 #444 transparent !important;
+        color: #ffc107 !important;
+    }
+
+    .nav-link {
+        color: #ccc;
+    }
+
+    .nav-link:hover {
+        color: #fff;
+    }
+
+    .asset-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .asset-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .asset-card .card-img-wrapper {
+        height: 180px;
+        overflow: hidden;
+        position: relative;
+        background-color: #eee;
+    }
+
+    .asset-card .card-img-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .asset-card .actions {
+        position: absolute;
+        top: 0;
+        right: 0;
+        padding: 5px;
+        opacity: 0;
+        transition: opacity 0.2s;
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+    .asset-card:hover .actions {
+        opacity: 1;
+    }
+</style>
+{% endblock %}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-cubes text-warning"></i> 專案素材管理</h2>
+        <div class="d-flex gap-3 align-items-center">
+            <form class="d-flex" method="get" action="">
+                <input class="form-control me-2" type="search" name="q" placeholder="搜尋素材..." aria-label="Search"
+                    value="{{ query|default:'' }}">
+                <button class="btn btn-outline-light" type="submit"><i class="fas fa-search"></i></button>
+            </form>
+            <a href="{% url 'sinoVR:scene_list' %}" class="btn btn-secondary text-nowrap">
+                <i class="fas fa-arrow-left"></i> 返回場景列表
+            </a>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div class="modal fade" id="previewModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">調整預覽縮圖 (Adjust Thumbnail)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0" style="position: relative;">
+                    <div id="preview-container" style="width: 100%; height: 400px; background: #333;"></div>
+
+                    <!-- Tools for User -->
+                    <div class="position-absolute top-0 end-0 p-2 d-flex flex-column gap-2">
+                        <button class="btn btn-sm btn-info" id="btn-fix-pivot" title="重設中心點 (Fix Pivot)">
+                            <i class="fas fa-compress-arrows-alt"></i> Fix Pivot
+                        </button>
+                        <button class="btn btn-sm btn-success" id="btn-auto-scale" title="自動縮放 (Auto Scale)">
+                            <i class="fas fa-expand"></i> Auto Scale
+                        </button>
+                        <button class="btn btn-sm btn-light" id="btn-reset-cam" title="重置攝影機 (Reset Camera)">
+                            <i class="fas fa-video"></i> Reset Cam
+                        </button>
+                    </div>
+
+                    <div class="position-absolute bottom-0 start-0 w-100 p-3 bg-gradient-dark d-flex justify-content-between align-items-center"
+                        style="background: rgba(0,0,0,0.5);">
+                        <small class="text-light"><i class="fas fa-mouse"></i> 左鍵旋轉 / 右鍵平移 / 滾輪縮放</small>
+                        <button class="btn btn-warning" id="captureBtn">
+                            <i class="fas fa-camera"></i> 擷取並保存 (Capture & Save)
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="cancelPreviewBtn">取消 /
+                        關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Viewer Modal -->
+    <div class="modal fade" id="imageViewerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content bg-transparent border-0 shadow-none">
+                <div class="modal-body p-0 position-relative text-center">
+                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3 z-3"
+                        data-bs-dismiss="modal" aria-label="Close"
+                        style="background-color: rgba(0,0,0,0.5); border-radius: 50%; padding: 10px;"></button>
+
+                    <div id="image-viewer-container"
+                        style="overflow: hidden; max-height: 90vh; display: inline-block; position: relative; cursor: grab;">
+                        <img id="image-viewer-img" src="" alt="Full View"
+                            style="max-width: 100%; max-height: 90vh; transition: transform 0.1s ease-out;">
+                    </div>
+
+                    <div
+                        class="position-absolute bottom-0 start-50 translate-middle-x mb-3 bg-dark rounded-pill px-3 py-1 bg-opacity-75 text-white">
+                        <small><i class="fas fa-search-plus"></i> 滾輪縮放 / 拖曳平移</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <ul class="nav nav-tabs card-header-tabs" id="assetTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active text-light" id="models-tab" data-bs-toggle="tab"
+                        data-bs-target="#models" type="button" role="tab" aria-controls="models" aria-selected="true">
+                        <i class="fas fa-cube me-1"></i> 3D 模型
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link text-light" id="panoramas-tab" data-bs-toggle="tab"
+                        data-bs-target="#panoramas" type="button" role="tab" aria-controls="panoramas"
+                        aria-selected="false">
+                        <i class="fas fa-globe me-1"></i> 全景圖
+                    </button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content" id="assetTabsContent">
+                <!-- 3D Models Tab -->
+                <div class="tab-pane fade show active" id="models" role="tabpanel" aria-labelledby="models-tab">
+                    <div class="mb-4 p-3 bg-dark text-white rounded border border-secondary">
+                        <h6 class="mb-3"><i class="fas fa-upload"></i> 上傳 3D 模型 (.fbx)</h6>
+                        <form method="post" enctype="multipart/form-data" class="d-flex align-items-center"
+                            id="uploadModelForm">
+                            {% csrf_token %}
+                            <input type="hidden" name="upload_type" value="model">
+                            <input type="hidden" name="thumbnail_data" id="id_thumbnail_data">
+                            <input type="file" name="file" id="id_model_file" class="form-control me-2"
+                                accept=".fbx,.obj,.glb,.gltf" required>
+
+                            <!-- Small preview container -->
+                            <div id="thumbnail-preview-container" class="me-2 position-relative"
+                                style="width: 50px; height: 50px; display: none;">
+                                <div id="thumbnail-preview" style="width: 100%; height: 100%;"></div>
+                                <div class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success"
+                                    style="font-size: 0.5rem;">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary text-nowrap" id="modelSubmitBtn">
+                                <i class="fas fa-cloud-upload-alt"></i> 上傳
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- View Toggles -->
+                    <div class="d-flex justify-content-end mb-3">
+                        <div class="btn-group" role="group" aria-label="View Mode">
+                            <button type="button" class="btn btn-outline-secondary active" id="btn-view-list"
+                                title="列表模式">
+                                <i class="fas fa-list"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="btn-view-grid" title="圖卡模式">
+                                <i class="fas fa-th-large"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- List View -->
+                    <div id="view-list" class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-secondary">
+                                <tr>
+                                    <th>預覽</th>
+                                    <th>名稱</th>
+                                    <th>上傳者</th>
+                                    <th>引用次數</th>
+                                    <th>檔案大小</th>
+                                    <th>上傳時間</th>
+                                    <th class="text-end">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for asset in assets_3d %}
+                                <tr>
+                                    <td>
+                                        <div class="position-relative" style="width: 50px; height: 50px;">
+                                            {% if asset.thumbnail %}
+                                            <img src="{{ asset.thumbnail.url }}" alt="thumb"
+                                                id="thumb-img-{{ asset.id }}"
+                                                style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px; cursor: zoom-in;"
+                                                class="bg-light thumbnail-trigger">
+                                            {% else %}
+                                            <i
+                                                class="fas fa-cube fa-2x text-muted d-flex align-items-center justify-content-center h-100 w-100 bg-light rounded"></i>
+                                            {% endif %}
+
+                                            <!-- Update Thumb Button (Mini) -->
+                                            <button
+                                                class="btn btn-xs btn-warning position-absolute bottom-0 end-0 p-0 update-thumb-btn"
+                                                style="width: 20px; height: 20px; font-size: 10px; line-height: 1;"
+                                                data-id="{{ asset.id }}" data-url="{{ asset.file.url }}" title="更新縮圖">
+                                                <i class="fas fa-camera"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <td>{{ asset.title }}</td>
+                                    <td>
+                                        {% if asset.uploader %}
+                                        <span class="badge bg-info text-dark">{{ asset.uploader.username }}</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if asset.usage_count > 0 %}
+                                        <span class="badge bg-success">{{ asset.usage_count }}</span>
+                                        {% else %}
+                                        <span class="text-muted">0</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ asset.file.size|filesizeformat }}</td>
+                                    <td>{{ asset.uploaded_at|date:"Y-m-d H:i" }}</td>
+                                    <td class="text-end">
+                                        {% if asset.usage_count > 0 %}
+                                        <button class="btn btn-sm btn-secondary" disabled title="此模型正在使用中，無法刪除">
+                                            <i class="fas fa-lock"></i>
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-sm btn-danger delete-btn" data-type="asset"
+                                            data-id="{{ asset.id }}" data-name="{{ asset.title }}">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-4 text-muted">尚無 3D 模型</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Grid View (Hidden by default) -->
+                    <div id="view-grid" class="row g-4 d-none">
+                        {% for asset in assets_3d %}
+                        <div class="col-xl-3 col-lg-4 col-md-6">
+                            <div class="card asset-card h-100 border-0 shadow-sm">
+                                <div class="card-img-wrapper">
+                                    {% if asset.thumbnail %}
+                                    <img src="{{ asset.thumbnail.url }}" alt="thumb" id="thumb-grid-{{ asset.id }}"
+                                        style="cursor: zoom-in;" class="thumbnail-trigger">
+                                    {% else %}
+                                    <div
+                                        class="d-flex align-items-center justify-content-center h-100 bg-light text-muted">
+                                        <i class="fas fa-cube fa-3x"></i>
+                                    </div>
+                                    {% endif %}
+
+                                    <div class="actions">
+                                        <button class="btn btn-sm btn-warning update-thumb-btn" data-id="{{ asset.id }}"
+                                            data-url="{{ asset.file.url }}" title="更新縮圖">
+                                            <i class="fas fa-camera"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body p-3">
+                                    <h6 class="card-title text-truncate mb-1" title="{{ asset.title }}">{{ asset.title }}</h6>
+                                    <div
+                                        class="d-flex justify-content-between align-items-center small text-muted mb-2">
+                                        <span><i class="fas fa-user me-1"></i>{{ asset.uploader.username|default:"-" }}</span>
+                                        <span><i class="far fa-clock me-1"></i>{{ asset.uploaded_at|date:"m/d H:i" }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="badge bg-secondary">{{ asset.file.size|filesizeformat }}</span>
+
+                                        {% if asset.usage_count > 0 %}
+                                        <span class="badge bg-success" title="引用次數">引用次數: {{ asset.usage_count }}</span>
+                                        {% else %}
+                                        <button class="btn btn-sm btn-outline-danger delete-btn" data-type="asset"
+                                            data-id="{{ asset.id }}" data-name="{{ asset.title }}">
+                                            <i class="fas fa-trash-alt"></i> 刪除
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12 text-center py-5 text-muted">
+                            <i class="fas fa-cube fa-3x mb-3 d-block"></i>
+                            尚無 3D 模型
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Panoramas Tab -->
+                <div class="tab-pane fade" id="panoramas" role="tabpanel" aria-labelledby="panoramas-tab">
+                    <div class="mb-4 p-3 bg-dark text-white rounded border border-secondary">
+                        <h6 class="mb-3"><i class="fas fa-upload"></i> 上傳全景圖 (.jpg, .png)</h6>
+                        <form method="post" enctype="multipart/form-data" class="d-flex align-items-center">
+                            {% csrf_token %}
+                            <input type="hidden" name="upload_type" value="panorama">
+                            <input type="file" name="image" class="form-control me-2" accept="image/*" required>
+                            <button type="submit" class="btn btn-primary text-nowrap">
+                                <i class="fas fa-cloud-upload-alt"></i> 上傳
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="row g-4">
+                        {% for pano in panoramas %}
+                        <div class="col-md-4 col-sm-6">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="position-relative" style="height: 200px; overflow: hidden;">
+                                    <img src="{{ pano.image.url }}" class="card-img-top w-100 h-100"
+                                        style="object-fit: cover;" alt="{{ pano.title }}">
+                                </div>
+                                <div class="card-body">
+                                    <h6 class="card-title text-truncate" title="{{ pano.title }}">{{ pano.title }}</h6>
+                                    <small class="text-muted d-block mb-2">{{ pano.uploaded_at|date:"Y-m-d H:i" }}</small>
+                                    <button class="btn btn-sm btn-outline-danger w-100 delete-btn" data-type="asset"
+                                        data-id="{{ pano.id }}" data-name="{{ pano.title }}">
+                                        <i class="fas fa-trash-alt"></i> 刪除
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12 text-center py-5 text-muted">
+                            <i class="fas fa-images fa-3x mb-3 d-block"></i>
+                            尚無全景圖
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content text-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">確認刪除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                確定要刪除 <strong id="deleteTargetName"></strong> 嗎？此動作無法復原。
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">刪除</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script type="module">
+    import * as THREE from 'three';
+    import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+    import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    let scene, camera, renderer, controls;
+    let animationId;
+    let currentObject;
+    let activeMode = 'upload'; // 'upload' or 'update'
+    let currentUpdateId = null; // ID of asset being updated
+
+    const container = document.getElementById('preview-container');
+    const modalEl = document.getElementById('previewModal');
+    const modal = new bootstrap.Modal(modalEl);
+
+    // --- View Toggle Logic ---
+    const btnList = document.getElementById('btn-view-list');
+    const btnGrid = document.getElementById('btn-view-grid');
+    const viewList = document.getElementById('view-list');
+    const viewGrid = document.getElementById('view-grid');
+
+    function setViewMode(mode) {
+        if (mode === 'grid') {
+            viewList.classList.add('d-none');
+            viewGrid.classList.remove('d-none');
+            btnList.classList.remove('active');
+            btnGrid.classList.add('active');
+            localStorage.setItem('modelViewMode', 'grid');
+        } else {
+            viewGrid.classList.add('d-none');
+            viewList.classList.remove('d-none');
+            btnGrid.classList.remove('active');
+            btnList.classList.add('active');
+            localStorage.setItem('modelViewMode', 'list');
+        }
+    }
+
+    btnList.addEventListener('click', () => setViewMode('list'));
+    btnGrid.addEventListener('click', () => setViewMode('grid'));
+
+    // Init View Mode
+    const savedMode = localStorage.getItem('modelViewMode');
+    if (savedMode === 'grid') {
+        setViewMode('grid');
+    }
+
+    // --- Image Viewer Logic ---
+    const imageModal = new bootstrap.Modal(document.getElementById('imageViewerModal'));
+    const viewerImg = document.getElementById('image-viewer-img');
+    const viewerContainer = document.getElementById('image-viewer-container');
+    let scale = 1;
+    let isDragging = false;
+    let startX, startY, translateX = 0, translateY = 0;
+
+    // Open Viewer on Thumbnail Click (Delegated for Grid items)
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('thumbnail-trigger')) {
+            viewerImg.src = e.target.src;
+            scale = 1;
+            translateX = 0;
+            translateY = 0;
+            updateTransform();
+            imageModal.show();
+        }
+    });
+
+    // Zoom
+    viewerContainer.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY * -0.001;
+        scale += delta;
+        scale = Math.min(Math.max(0.5, scale), 5); // Limit zoom 0.5x to 5x
+        updateTransform();
+    });
+
+    // Pan
+    viewerContainer.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startX = e.clientX - translateX;
+        startY = e.clientY - translateY;
+        viewerContainer.style.cursor = 'grabbing';
+        e.preventDefault();
+    });
+
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+        viewerContainer.style.cursor = 'grab';
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        translateX = e.clientX - startX;
+        translateY = e.clientY - startY;
+        updateTransform();
+    });
+
+    function updateTransform() {
+        viewerImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    }
+
+
+    // --- Upload Flow ---
+    document.getElementById('id_model_file').addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        activeMode = 'upload';
+
+        // Open Modal
+        modal.show();
+
+        // Wait for modal to show before rendering
+        modalEl.addEventListener('shown.bs.modal', () => {
+            initPreview(file, true); // true = autoCapture
+        }, { once: true });
+    });
+
+    // --- Update Existing Flow ---
+    // Use Delegation because buttons are in both Views
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.update-thumb-btn');
+        if (btn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const url = btn.dataset.url;
+            currentUpdateId = btn.dataset.id;
+            activeMode = 'update';
+
+            modal.show();
+            modalEl.addEventListener('shown.bs.modal', () => {
+                initPreview(url, false);
+            }, { once: true });
+        }
+    });
+
+    // Cleanup when modal closes
+    modalEl.addEventListener('hidden.bs.modal', () => {
+        cleanup();
+        // Only clear input if we are in upload mode and NO thumbnail was generated (cancelled)
+        const thumbInput = document.getElementById('id_thumbnail_data');
+        const fileInput = document.getElementById('id_model_file');
+
+        if (activeMode === 'upload' && !thumbInput.value) {
+            fileInput.value = '';
+            document.getElementById('thumbnail-preview-container').style.display = 'none';
+        }
+
+        currentUpdateId = null;
+    });
+
+    document.getElementById('cancelPreviewBtn').addEventListener('click', () => {
+        if (activeMode === 'upload') {
+            document.getElementById('id_thumbnail_data').value = '';
+        }
+        // Close handled by data-bs-dismiss
+    });
+
+    document.getElementById('captureBtn').addEventListener('click', () => {
+        captureAndSave();
+    });
+
+    function captureAndSave() {
+        if (!renderer) return;
+
+        renderer.render(scene, camera);
+        const dataURL = renderer.domElement.toDataURL('image/jpeg', 0.85);
+
+        if (activeMode === 'upload') {
+            // Update hidden input
+            document.getElementById('id_thumbnail_data').value = dataURL;
+
+            // Update UI preview
+            const previewDiv = document.getElementById('thumbnail-preview');
+            previewDiv.innerHTML = `<img src="${dataURL}" style="width:100%; height:100%; object-fit:cover; border-radius:4px; border:1px solid #ccc;">`;
+            document.getElementById('thumbnail-preview-container').style.display = 'block';
+
+            // User can click small preview to re-open if they want
+            document.getElementById('thumbnail-preview-container').onclick = () => {
+                modal.show();
+                modalEl.addEventListener('shown.bs.modal', () => {
+                    const file = document.getElementById('id_model_file').files[0];
+                    if (file) initPreview(file, false);
+                }, { once: true });
+            };
+
+            modal.hide();
+
+        } else if (activeMode === 'update' && currentUpdateId) {
+            // AJAX Post to update
+            const btn = document.getElementById('captureBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            btn.disabled = true;
+
+            fetch(`/sinoVR/api/asset/${currentUpdateId}/update_thumbnail/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ thumbnail_data: dataURL })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Update images in both List and Grid
+                        const listImg = document.getElementById(`thumb-img-${currentUpdateId}`);
+                        const gridImg = document.getElementById(`thumb-grid-${currentUpdateId}`);
+
+                        if (listImg) listImg.src = data.thumbnail_url;
+                        if (gridImg) {
+                            gridImg.src = data.thumbnail_url;
+                            // Remove placeholder if present
+                            if (gridImg.parentElement.querySelector('.bg-light.text-muted')) {
+                                location.reload(); // Simple reload to fix layout structure
+                            }
+                        }
+
+                        // Also reload if list view had placeholder icon
+                        const cell = document.querySelector(`.update-thumb-btn[data-id="${currentUpdateId}"]`)?.parentElement;
+                        if (cell && cell.querySelector('i.fa-cube')) {
+                            location.reload();
+                        }
+
+                        modal.hide();
+                    } else {
+                        alert('Save failed: ' + data.message);
+                    }
+                })
+                .catch(e => alert('Error: ' + e))
+                .finally(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
+        }
+    }
+
+    // --- Buttons ---
+    document.getElementById('btn-fix-pivot').addEventListener('click', () => {
+        if (currentObject) fixPivot(currentObject);
+    });
+
+    document.getElementById('btn-auto-scale').addEventListener('click', () => {
+        if (currentObject) autoScale(currentObject);
+    });
+
+    document.getElementById('btn-reset-cam').addEventListener('click', () => {
+        const aspect = container.clientWidth / container.clientHeight;
+        camera.position.set(0, 5, 10);
+        controls.target.set(0, 0, 0);
+        controls.update();
+    });
+
+
+    function initPreview(source, autoCapture) {
+        // Cleanup previous
+        cleanup();
+
+        // Scene Support
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x333333);
+        const grid = new THREE.GridHelper(500, 50, 0x555555, 0x444444);
+        scene.add(grid);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+        scene.add(ambientLight);
+        const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        mainLight.position.set(10, 10, 10);
+        scene.add(mainLight);
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        fillLight.position.set(-10, 0, -10);
+        scene.add(fillLight);
+
+        // Camera
+        const aspect = container.clientWidth / container.clientHeight;
+        camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 100000);
+        camera.position.set(0, 5, 10);
+
+        // Renderer
+        renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: false });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // Loading Manager
+        const manager = new THREE.LoadingManager();
+        manager.onLoad = function () {
+            console.log('Loading complete!');
+
+            // Allow a brief moment for renderer to upload textures to GPU and render a frame
+            if (autoCapture) {
+                // Wait for stable frame
+                setTimeout(() => {
+                    requestAnimationFrame(() => {
+                        renderer.render(scene, camera);
+                        captureAndSave();
+                    });
+                }, 500); // 500ms delay to ensure textures are visible
+            }
+        };
+
+        // Determine extension
+        let ext = '';
+        if (source instanceof File) {
+            ext = source.name.split('.').pop().toLowerCase();
+        } else {
+            // Handle URL with query params if any
+            ext = source.split('?')[0].split('.').pop().toLowerCase();
+        }
+
+        let url = '';
+        if (source instanceof File) {
+            url = URL.createObjectURL(source);
+        } else {
+            url = source;
+        }
+
+        const onLoad = (data) => {
+            let object;
+            if (data.scene) {
+                object = data.scene; // GLTF/GLB
+            } else {
+                object = data; // FBX/OBJ
+            }
+
+            scene.add(object);
+            currentObject = object;
+
+            object.updateMatrixWorld(true);
+
+            // Auto Logic
+            fixPivot(object);
+            autoScale(object);
+        };
+
+        const onError = (err) => {
+            console.error(err);
+            alert("載入模型失敗，請確認檔案格式");
+        };
+
+        if (ext === 'fbx') {
+            new FBXLoader(manager).load(url, onLoad, undefined, onError);
+        } else if (ext === 'obj') {
+            new OBJLoader(manager).load(url, onLoad, undefined, onError);
+        } else if (ext === 'glb' || ext === 'gltf') {
+            new GLTFLoader(manager).load(url, onLoad, undefined, onError);
+        } else {
+            // Fallback
+            new FBXLoader(manager).load(url, onLoad, undefined, onError);
+        }
+
+        animate();
+    }
+
+    function fixPivot(obj) {
+        const box = new THREE.Box3().setFromObject(obj);
+        const center = box.getCenter(new THREE.Vector3());
+        const offset = obj.position.clone().sub(center);
+        const inverseRot = obj.quaternion.clone().invert();
+        const localOffset = offset.applyQuaternion(inverseRot).divide(obj.scale);
+        obj.children.forEach(c => c.position.add(localOffset));
+        obj.position.set(0, 0, 0);
+        controls.target.set(0, 0, 0);
+        controls.update();
+    }
+
+    function autoScale(obj) {
+        const box = new THREE.Box3().setFromObject(obj);
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+
+        if (maxDim > 0) {
+            const targetSize = 4.0;
+            const scaleFactor = targetSize / maxDim;
+            obj.scale.multiplyScalar(scaleFactor);
+            // Camera adjust
+            camera.position.set(3, 3, 5);
+            controls.target.set(0, 0, 0);
+            controls.update();
+        }
+    }
+
+    function animate() {
+        animationId = requestAnimationFrame(animate);
+        if (controls) controls.update();
+        if (renderer && scene && camera) renderer.render(scene, camera);
+    }
+
+    function cleanup() {
+        if (animationId) cancelAnimationFrame(animationId);
+        if (renderer) {
+            renderer.dispose();
+            container.innerHTML = '';
+        }
+        scene = null;
+        camera = null;
+        renderer = null;
+        controls = null;
+        currentObject = null;
+    }
+
+    window.addEventListener('resize', () => {
+        if (camera && renderer && modalEl.classList.contains('show')) {
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+    });
+
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Tab Persistence
+        var triggerTabList = [].slice.call(document.querySelectorAll('#assetTabs button'))
+        triggerTabList.forEach(function (triggerEl) {
+            var tabTrigger = new bootstrap.Tab(triggerEl)
+            triggerEl.addEventListener('click', function (event) {
+                event.preventDefault()
+                tabTrigger.show()
+                localStorage.setItem('activeAssetTab', event.target.id);
+            })
+        })
+
+        var activeTab = localStorage.getItem('activeAssetTab');
+        if (activeTab) {
+            var triggerEl = document.querySelector('#' + activeTab);
+            if (triggerEl) {
+                bootstrap.Tab.getInstance(triggerEl).show();
+                new bootstrap.Tab(triggerEl).show();
+            }
+        }
+
+        // Delete Logic (Delegated)
+        let deleteId = null;
+        let deleteType = null;
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.delete-btn');
+            if (btn) {
+                deleteId = btn.dataset.id;
+                deleteType = btn.dataset.type;
+                document.getElementById('deleteTargetName').textContent = btn.dataset.name;
+                deleteModal.show();
+            }
+        });
+
+        document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
+            if (!deleteId) return;
+
+            fetch(`/sinoVR/api/asset/${deleteId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            }).then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        location.reload();
+                    } else {
+                        alert('刪除失敗: ' + (data.message || '未知錯誤'));
+                    }
+                });
+        });
+    });
+</script>
+{% endblock %}
