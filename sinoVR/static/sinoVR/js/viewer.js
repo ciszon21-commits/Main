@@ -14,7 +14,11 @@ let clock = new THREE.Clock();
 let objects = [];
 
 // Movement & Rotation
-const moveState = { w: false, a: false, s: false, d: false, shift: false };
+const moveState = { w: false, a: false, s: false, d: false, shift: false, space: false };
+let yVelocity = 0;
+const gravity = -25.0;
+const jumpForce = 10.0;
+const groundHeight = 1.8;
 const flySpeed = 5.0;
 const rotateSpeed = 0.002;
 let isRotating = false;
@@ -56,9 +60,9 @@ function init() {
     container.appendChild(renderer.domElement);
     document.body.appendChild(VRButton.createButton(renderer));
 
-    // Create Grid (Visual Reference)
-    const gridHelper = new THREE.GridHelper(20, 20, 0x333333, 0x111111);
-    scene.add(gridHelper);
+    // Create Grid (Visual Reference) - Hidden in preview mode as requested
+    // const gridHelper = new THREE.GridHelper(20, 20, 0x333333, 0x111111);
+    // scene.add(gridHelper);
 
     // Raycaster
     raycaster = new THREE.Raycaster();
@@ -475,11 +479,25 @@ function animate() {
         camera.position.add(velocity);
     }
 
-    // Match Editor Play Mode Constraints (Grid 20x20, Height 1.8)
+    // Jump logic
+    if (moveState.space && camera.position.y <= groundHeight + 0.01) {
+        yVelocity = jumpForce;
+    }
+
+    // Apply Gravity
+    yVelocity += gravity * delta;
+    camera.position.y += yVelocity * delta;
+
+    // Ground Collision
+    if (camera.position.y < groundHeight) {
+        camera.position.y = groundHeight;
+        yVelocity = 0;
+    }
+
+    // Match Editor Play Mode Constraints (Grid 20x20)
     const gridSize = 10;
     camera.position.x = Math.max(-gridSize, Math.min(gridSize, camera.position.x));
     camera.position.z = Math.max(-gridSize, Math.min(gridSize, camera.position.z));
-    camera.position.y = 1.8;
 
     renderer.render(scene, camera);
 }
@@ -491,6 +509,7 @@ function onKeyDown(e) {
         case 'KeyS': moveState.s = true; break;
         case 'KeyD': moveState.d = true; break;
         case 'ShiftLeft': moveState.shift = true; break;
+        case 'Space': moveState.space = true; e.preventDefault(); break;
     }
 }
 
@@ -501,6 +520,7 @@ function onKeyUp(e) {
         case 'KeyS': moveState.s = false; break;
         case 'KeyD': moveState.d = false; break;
         case 'ShiftLeft': moveState.shift = false; break;
+        case 'Space': moveState.space = false; break;
     }
 }
 
