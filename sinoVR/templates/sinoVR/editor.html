@@ -179,6 +179,64 @@
             </div>
         </div>
 
+        <!-- Asset Selection Modal -->
+        <div class="modal fade" id="assetSelectionModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content bg-dark text-light border-secondary">
+                    <div class="modal-header border-secondary">
+                        <h5 class="modal-title"><i class="fas fa-cubes"></i> 選擇素材庫模型</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Search Bar -->
+                        <div class="mb-3">
+                            <input type="text" id="asset-search-input"
+                                class="form-control bg-secondary text-white border-0" placeholder="搜尋素材名稱..."
+                                onkeyup="filterAssets()">
+                        </div>
+
+                        <div class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3" id="asset-grid-container">
+                            {% for asset in assets %}
+                            <div class="col asset-item-col" data-title="{{ asset.title|lower }}">
+                                <div class="card h-100 bg-secondary text-white border-secondary asset-item position-relative"
+                                    style="cursor: pointer; transition: all 0.2s;"
+                                    onclick="addModel('{{ asset.pk }}', '{{ asset.file.url }}', '{{ asset.title }}');">
+                                    <div
+                                        class="card-body text-center p-3 d-flex flex-column align-items-center justify-content-center">
+                                        {% if asset.thumbnail %}
+                                        <img src="{{ asset.thumbnail.url }}" class="img-fluid mb-2 rounded"
+                                            style="max-height: 100px; object-fit: contain;">
+                                        {% else %}
+                                        <i class="fas fa-cube fa-3x mb-2 text-info"></i>
+                                        {% endif %}
+                                        <div class="small text-truncate w-100 fw-bold" title="{{ asset.title }}">{{ asset.title }}</div>
+                                    </div>
+                                    <!-- Hover effect could be added via CSS, keeping inline simple for now -->
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="col-12 text-center text-muted py-5">
+                                <i class="fas fa-box-open fa-3x mb-3"></i>
+                                <p>目前沒有可用的專案素材，請先至素材管理頁面新增。</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="modal-footer border-secondary justify-content-between">
+                        <div class="text-muted small">
+                            <i class="fas fa-info-circle"></i> 想要上傳新的模型？請前往
+                            <a href="{% url 'sinoVR:asset_list' %}" class="text-info text-decoration-none"
+                                target="_blank">
+                                素材管理頁面 <i class="fas fa-external-link-alt"></i>
+                            </a>
+                        </div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- InfoCard Detail Overlay (Play Mode) -->
         <div id="card-detail-overlay"
             style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); z-index:9999; justify-content:center; align-items:center;">
@@ -323,27 +381,17 @@
         </div>
 
         <!-- Project / Assets Panel -->
-        <div class="panel-section" style="flex: 1;">
+        <div class="panel-section" style="flex: 0 0 auto;">
             <div class="panel-header">
-                <span><i class="fas fa-folder small"></i> Project Assets</span>
-                <label class="btn btn-xs btn-outline-success py-0" style="cursor: pointer;">
-                    <i class="fas fa-plus"></i>
-                    <input type="file" id="file-upload" hidden accept=".fbx,.jpg,.png">
-                </label>
+                <span><i class="fas fa-folder small"></i> 專案素材庫</span>
             </div>
-            <div class="panel-content">
-                <div class="asset-grid" id="asset-list">
-                    {% for asset in assets %}
-                    <div class="asset-card"
-                        onclick="addModel('{{ asset.pk }}', '{{ asset.file.url }}', '{{ asset.title }}')">
-                        <button class="asset-delete-btn" onclick="deleteAsset('{{ asset.pk }}', event)" title="刪除">
-                            <i class="fas fa-times"></i>
-                        </button>
-                        <div class="asset-icon"><i class="fas fa-cube"></i></div>
-                        <div class="text-truncate">{{ asset.title }}</div>
-                    </div>
-                    {% endfor %}
-                </div>
+            <div class="panel-content p-2">
+                <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#assetSelectionModal">
+                    <i class="fas fa-cubes"></i> 瀏覽專案素材
+                </button>
+                <small class="text-muted d-block mt-2 text-center" style="font-size: 0.8rem;">
+                    點擊按鈕開啟素材庫視窗，選擇並將模型加入場景。
+                </small>
             </div>
         </div>
 
@@ -895,6 +943,7 @@
         document.getElementById('loading').style.display = 'flex';
         loadModel(id, url, {}, title, () => {
             document.getElementById('loading').style.display = 'none';
+            alert(`模型 "${title}" 已成功加入場景！`);
         });
     };
 
@@ -1331,33 +1380,14 @@
             inp.addEventListener('input', updateObjectFromInspector);
         });
 
-        document.getElementById('file-upload').addEventListener('change', (e) => {
-            if (!e.target.files[0]) return;
-            const formData = new FormData();
-            formData.append('file', e.target.files[0]);
-
-            document.getElementById('loading').style.display = 'flex';
-            fetch(UPLOAD_URL, {
-                method: 'POST',
-                headers: { 'X-CSRFToken': CSRF_TOKEN },
-                body: formData
-            }).then(r => r.json()).then(d => {
-                document.getElementById('loading').style.display = 'none';
-                if (d.id && d.type === 'model') {
-                    // Refresh assets list simply by appending (or reload page needed for clean sync, but append is better UX)
-                    const grid = document.getElementById('asset-list');
-                    const card = document.createElement('div');
-                    card.className = 'asset-card';
-                    card.onclick = () => addModel(d.id, d.url, d.title);
-                    card.innerHTML = `<div class="asset-icon"><i class="fas fa-cube"></i></div><div class="text-truncate">${d.title}</div>`;
-                    grid.prepend(card);
-                    alert('Asset Uploaded');
-                } else {
-                    alert('Uploaded!'); // Panoramas
-                }
+        // Create card modal event - No specific setup needed for bootstrap modal usually
+        // Unless we want to reset forms.
+        const createCardModalEl = document.getElementById('createCardModal');
+        if (createCardModalEl) {
+            createCardModalEl.addEventListener('show.bs.modal', function (event) {
+                // Optional: Clear form if needed
             });
-            e.target.value = '';
-        });
+        }
     }
 
     function updateInspectorFromObject() {
@@ -1472,6 +1502,23 @@
                 }
             })
             .catch(e => alert('刪除失敗: ' + e));
+    }
+
+    // Asset Filtering
+    window.filterAssets = function () {
+        const input = document.getElementById('asset-search-input');
+        const filter = input.value.toLowerCase();
+        const grid = document.getElementById('asset-grid-container');
+        const items = grid.getElementsByClassName('asset-item-col');
+
+        for (let i = 0; i < items.length; i++) {
+            const title = items[i].getAttribute('data-title');
+            if (title.indexOf(filter) > -1) {
+                items[i].style.display = "";
+            } else {
+                items[i].style.display = "none";
+            }
+        }
     }
 
     // Start Application
