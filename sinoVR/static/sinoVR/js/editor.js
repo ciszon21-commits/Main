@@ -147,12 +147,77 @@ export function loadExistingObject(obj) {
 }
 
 // InfoCard Functions
-function addInfoCard(id, title, content, transform = {}, bgColor = 'rgba(173, 216, 230, 0.95)', fontSize = 50) {
+// Helper to calculate wrapping and optimal font size
+function getOptimalFontSize(ctx, text, maxWidth, maxHeight, initialFontSize) {
+    let fontSize = initialFontSize;
+    const minFontSize = 20; // Minimum readable size
+
+    while (fontSize >= minFontSize) {
+        ctx.font = `${fontSize}px "Segoe UI", Arial`;
+        const lineHeight = fontSize * 1.5;
+        let y = 0; // Relative height accumulator
+        const chars = text.split('');
+        let line = '';
+
+        // Simulate wrapping
+        for (let i = 0; i < chars.length; i++) {
+            const testLine = line + chars[i];
+            const metrics = ctx.measureText(testLine);
+
+            if (metrics.width > maxWidth && line.length > 0) {
+                y += lineHeight;
+                line = chars[i];
+            } else {
+                line = testLine;
+            }
+        }
+        y += lineHeight; // Add last line
+
+        if (y <= maxHeight) {
+            return fontSize;
+        }
+
+        fontSize -= 2; // Reduce and try again
+    }
+    return minFontSize;
+}
+
+// InfoCard Functions
+function addInfoCard(id, title, content, transform = {}, bgColor = 'rgba(173, 216, 230, 0.95)', fontSize = 50, showResizeAlert = false) {
     // Create Canvas for card texture
     const canvas = document.createElement('canvas');
     canvas.width = 1024;
     canvas.height = 768;
     const ctx = canvas.getContext('2d');
+
+    // Available height for text: Canvas Height - Top Offset (220) - Bottom Padding (50)
+    const maxTextHeight = canvas.height - 220 - 50;
+    const maxWidth = canvas.width - 120;
+
+    // Calculate optimal font size
+    const optimalFontSize = getOptimalFontSize(ctx, content, maxWidth, maxTextHeight, fontSize);
+
+    // Check if resize happened and alert if requested
+    if (showResizeAlert && optimalFontSize < fontSize) {
+        alert(`您設定的字體大小 (${fontSize}px) 過大，系統將自動調整為 ${optimalFontSize}px 以確保內容完整顯示。`);
+
+        // Auto-save the optimized font size to DB
+        fetch(`/sinoVR/api/info-card/${id}/update/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': CSRF_TOKEN
+            },
+            body: JSON.stringify({
+                content_font_size: optimalFontSize
+            })
+        }).then(r => r.json()).then(d => {
+            console.log('Auto-saved font size:', optimalFontSize, d);
+        }).catch(e => console.error('Auto-save failed:', e));
+    }
+
+    // Update the input fontSize to the optimal one for rendering
+    fontSize = optimalFontSize;
 
     // Hi-Tech Background (Tinted by bgColor)
     const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -203,7 +268,7 @@ function addInfoCard(id, title, content, transform = {}, bgColor = 'rgba(173, 21
     ctx.font = `${fontSize}px "Segoe UI", Arial`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    const maxWidth = canvas.width - 120;
+
     const lineHeight = fontSize * 1.5;
     let y = 220;
 
@@ -219,7 +284,7 @@ function addInfoCard(id, title, content, transform = {}, bgColor = 'rgba(173, 21
             ctx.fillText(line, 60, y);
             line = chars[i];
             y += lineHeight;
-            if (y > canvas.height - 50) break;
+            // if (y > canvas.height - 50) break; // Should not happen with optimal size
         } else {
             line = testLine;
         }
@@ -342,7 +407,7 @@ function addInfoCard(id, title, content, transform = {}, bgColor = 'rgba(173, 21
     mesh.userData.cardTitle = title;
     mesh.userData.cardContent = content;
     mesh.userData.cardBgColor = bgColor;
-    mesh.userData.cardFontSize = fontSize;
+    mesh.userData.cardFontSize = fontSize; // Store optimal font size
     mesh.name = `字卡: ${title}`;
 
     // Add double-click event for editing (non-play mode)
@@ -395,7 +460,7 @@ window.createInfoCard = function () {
         .then(data => {
             document.getElementById('loading').style.display = 'none';
             if (data.type === 'info_card') {
-                addInfoCard(data.id, data.title, content, {}, bgColor, fontSize);
+                addInfoCard(data.id, data.title, content, {}, bgColor, fontSize, true); // True for alert
                 // Close modal
                 const modal = bootstrap.Modal.getInstance(document.getElementById('createCardModal'));
                 if (modal) modal.hide();
@@ -476,7 +541,7 @@ window.updateInfoCard = function () {
         .then(data => {
             document.getElementById('loading').style.display = 'none';
             if (data.status === 'success') {
-                rerenderInfoCard(cardId, title, content, bgColor, fontSize);
+                rerenderInfoCard(cardId, title, content, bgColor, fontSize, true);
                 const modal = bootstrap.Modal.getInstance(document.getElementById('editCardModal'));
                 if (modal) modal.hide();
             } else {
@@ -490,7 +555,7 @@ window.updateInfoCard = function () {
 }
 
 // Re-render InfoCard with new properties
-function rerenderInfoCard(cardId, title, content, bgColor, fontSize) {
+function rerenderInfoCard(cardId, title, content, bgColor, fontSize, showResizeAlert = false) {
     const mesh = objects.find(obj => obj.userData.isInfoCard && obj.userData.infoCardId == cardId);
     if (!mesh) return;
 
@@ -509,6 +574,20 @@ function rerenderInfoCard(cardId, title, content, bgColor, fontSize) {
     canvas.width = 1024;
     canvas.height = 768;
     const ctx = canvas.getContext('2d');
+
+    // Available height for text: Canvas Height - Top Offset (220) - Bottom Padding (50)
+    const maxTextHeight = canvas.height - 220 - 50;
+    const maxWidth = canvas.width - 120;
+
+    // Calculate optimal font size
+    const optimalFontSize = getOptimalFontSize(ctx, content, maxWidth, maxTextHeight, fontSize);
+
+    // Update the input fontSize to the optimal one for rendering
+    // Check if resize happened and alert if requested
+    if (showResizeAlert && optimalFontSize < fontSize) {
+        alert(`您設定的字體大小 (${fontSize}px) 過大，系統將自動調整為 ${optimalFontSize}px 以確保內容完整顯示。`);
+    }
+    fontSize = optimalFontSize;
 
     // Hi-Tech Background (Tinted by bgColor)
     const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -559,7 +638,7 @@ function rerenderInfoCard(cardId, title, content, bgColor, fontSize) {
     ctx.font = `${fontSize}px "Segoe UI", Arial`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    const maxWidth = canvas.width - 120;
+
     const lineHeight = fontSize * 1.5;
     let y = 220;
 
@@ -572,7 +651,7 @@ function rerenderInfoCard(cardId, title, content, bgColor, fontSize) {
             ctx.fillText(line, 60, y);
             line = chars[i];
             y += lineHeight;
-            if (y > canvas.height - 50) break;
+            // if (y > canvas.height - 50) break;
         } else {
             line = testLine;
         }
@@ -868,6 +947,12 @@ window.scaleSelected = function () {
         updateInspectorFromObject();
         alert('Scaled to 2m');
     }
+}
+
+window.quickScale = function (factor) {
+    if (!selectedObject) return alert('Select model first');
+    selectedObject.scale.multiplyScalar(factor);
+    updateInspectorFromObject();
 }
 
 // --- UI/Interaction ---

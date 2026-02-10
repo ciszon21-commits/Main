@@ -1,0 +1,161 @@
+{% extends 'sinoVR/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-history text-info"></i> 使用者操作紀錄</h2>
+        <a href="{% url 'sinoVR:scene_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回列表
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0">操作紀錄列表</h5>
+            </div>
+            <form method="get" class="row g-2 align-items-center">
+                <div class="col-md-3">
+                    <input type="text" name="user" class="form-control form-control-sm" placeholder="搜尋使用者..."
+                        value="{{ request.GET.user }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="action" class="form-select form-select-sm">
+                        <option value="">-- 所有動作 --</option>
+                        <option value="ENTER_VR" {% if request.GET.action == 'ENTER_VR' %}selected{% endif %}>進入 VR
+                        </option>
+                        <option value="EXIT_VR" {% if request.GET.action == 'EXIT_VR' %}selected{% endif %}>離開 VR</option>
+                        <option value="CLICK_OBJECT" {% if request.GET.action == 'CLICK_OBJECT' %}selected{% endif %}>點擊物件
+                        </option>
+                        <option value="TELEPORT" {% if request.GET.action == 'TELEPORT' %}selected{% endif %}>移動
+                            (Teleport)</option>
+                        <option value="VIEW_SCENE_LIST" {% if request.GET.action == 'VIEW_SCENE_LIST' %}selected{% endif %}>瀏覽場景列表</option>
+                        <option value="VIEW_SCENE_DETAIL" {% if request.GET.action == 'VIEW_SCENE_DETAIL' %}selected{% endif %}>瀏覽場景詳情</option>
+                        <option value="VIEW_SCENE_VIEWER" {% if request.GET.action == 'VIEW_SCENE_VIEWER' %}selected{% endif %}>瀏覽 VR 模式</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <input type="text" name="target" class="form-control form-control-sm" placeholder="搜尋目標 (模型/ID)..."
+                        value="{{ request.GET.target }}">
+                </div>
+                <div class="col-md-2 d-flex">
+                    <button type="submit" class="btn btn-sm btn-primary w-100 me-2"><i
+                            class="fas fa-search"></i></button>
+                    {% if request.GET.user or request.GET.action or request.GET.target %}
+                    <a href="{% url 'sinoVR:user_activity_list' %}" class="btn btn-sm btn-outline-secondary w-50">清除</a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-dark table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">時間</th>
+                            <th scope="col">使用者</th>
+                            <th scope="col">動作</th>
+                            <th scope="col">目標</th>
+                            <th scope="col">IP</th>
+                            <th scope="col">詳細資訊</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td>{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+                            <td>
+                                {% if log.user %}
+                                <i class="fas fa-user-circle text-muted me-1"></i>
+                                {{ log.user.username }}
+                                {% if log.user.get_full_name %}
+                                <span class="text-muted small">({{ log.user.get_full_name }})</span>
+                                {% endif %}
+                                {% else %}
+                                <span class="text-muted">Anonymous</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ log.action }}</span>
+                            </td>
+                            <td>
+                                {% if log.target_model %}
+                                <small class="text-info">[{{ log.target_model }}]</small>
+                                {% endif %}
+                                {{ log.target_object_str|default:log.target_object_id|truncatechars:30 }}
+                            </td>
+                            <td>{{ log.ip_address|default:"-" }}</td>
+                            <td>
+                                <small class="text-muted">{{ log.details }}</small>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                <i class="fas fa-history fa-3x mb-3 d-block"></i>
+                                尚無操作紀錄
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-between align-items-center">
+            <div class="text-muted small">
+                第 {{ page_obj.number }} 頁，共 {{ paginator.num_pages }} 頁 (共 {{ paginator.count }} 筆紀錄)
+            </div>
+            {% if is_paginated %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-sm mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link"
+                            href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                            aria-label="First">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link"
+                            href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                            aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %} <li class="page-item">
+                        <a class="page-link"
+                            href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{
+                            num }}</a>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link"
+                                href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                                aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link"
+                                href="?page={{ paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                                aria-label="Last">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
