@@ -13,13 +13,45 @@ from django.db.models import Q, Count
 from django.db.models.functions import Concat
 import json
 
-from .models import Scene, SceneObject, Asset3D, Panorama, InfoCard, CardReadStatus
+from .models import Scene, SceneObject, Asset3D, Panorama, InfoCard, CardReadStatus, UserActivityLog
 from .forms import SceneForm, Asset3DForm, PanoramaForm, InfoCardForm
+
+def log_activity(request, action, target_model='', target_object_id='', target_object_str='', details=None):
+    """
+    Helper function to log user activity.
+    """
+    try:
+        if not request.user.is_authenticated:
+            # Optionally log anonymous actions if needed, or skip
+            # For now, we allow null user in model, so we can log anonymously
+            pass
+
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+
+        UserActivityLog.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            action=action,
+            target_model=target_model,
+            target_object_id=str(target_object_id),
+            target_object_str=str(target_object_str)[:200],
+            details=details or {},
+            ip_address=ip
+        )
+    except Exception as e:
+        print(f"Logging error: {e}")
 
 class SceneListView(ListView):
     model = Scene
     template_name = 'sinoVR/scene_list.html'
     context_object_name = 'scenes'
+
+    def get(self, request, *args, **kwargs):
+        log_activity(request, 'VIEW_SCENE_LIST', target_model='Scene', details={'view': 'list'})
+        return super().get(request, *args, **kwargs)
 
 class SceneCreateView(CreateView):
     model = Scene
@@ -67,6 +99,12 @@ class SceneDetailView(DetailView):
     template_name = 'sinoVR/editor.html'
     context_object_name = 'scene'
 
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        log_activity(request, 'VIEW_SCENE_DETAIL', target_model='Scene', target_object_id=self.object.pk, target_object_str=self.object.title)
+        context = self.get_context_data(object=self.object)
+        return self.render_to_response(context)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['assets'] = Asset3D.objects.all()
@@ -78,6 +116,12 @@ class SceneViewerView(DetailView):
     model = Scene
     template_name = 'sinoVR/viewer.html'
     context_object_name = 'scene'
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        log_activity(request, 'VIEW_SCENE_VIEWER', target_model='Scene', target_object_id=self.object.pk, target_object_str=self.object.title)
+        context = self.get_context_data(object=self.object)
+        return self.render_to_response(context)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class SceneUpdateAPI(View):
@@ -259,7 +303,9 @@ class InfoCardReadAPI(View):
         
         # Always create a new record for history tracking
         CardReadStatus.objects.create(user=request.user, info_card=info_card, is_read=True)
-            
+        
+        log_activity(request, 'READ_CARD', target_model='InfoCard', target_object_id=info_card.id, target_object_str=info_card.title)
+
         return JsonResponse({'status': 'success', 'is_read': True})
 
 class ReadStatusListView(ListView):
@@ -375,3 +421,64 @@ class AssetManagementView(View):
             pass
             
         return redirect('sinoVR:asset_list')
+
+@method_decorator(csrf_exempt, name='dispatch')
+class UserActivityLogAPI(View):
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            action = data.get('action')
+            details = data.get('details', {})
+            
+            # Allow frontend to specify target
+            target_model = data.get('target_model', '')
+            target_object_id = data.get('target_object_id', '')
+            target_object_str = data.get('target_object_str', '')
+
+            log_activity(
+                request, 
+                action, 
+                target_model=target_model,
+                target_object_id=target_object_id,
+                target_object_str=target_object_str,
+                details=details
+            )
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+class UserActivityLogListView(ListView):
+    model = UserActivityLog
+    template_name = 'sinoVR/user_activity_list.html'
+    context_object_name = 'logs'
+    ordering = ['-timestamp']
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = UserActivityLog.objects.select_related('user').order_by('-timestamp')
+        
+        # Filters
+        user_query = self.request.GET.get('user')
+        if user_query:
+            queryset = queryset.filter(
+                Q(user__username__icontains=user_query) |
+                Q(user__first_name__icontains=user_query) |
+                Q(user__last_name__icontains=user_query)
+            )
+            
+        action = self.request.GET.get('action')
+        if action:
+            queryset = queryset.filter(action__icontains=action)
+            
+        target = self.request.GET.get('target')
+        if target:
+            queryset = queryset.filter(
+                Q(target_model__icontains=target) |
+                Q(target_object_str__icontains=target)
+            )
+
+        return queryset
+
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)

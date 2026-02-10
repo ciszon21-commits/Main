@@ -106,3 +106,22 @@ class CardReadStatus(models.Model):
 
     def __str__(self):
         return f"{self.user.username} read {self.info_card.title}"
+
+class UserActivityLog(models.Model):
+    user = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="使用者")
+    action = models.CharField(max_length=50, verbose_name="動作")
+    target_model = models.CharField(max_length=50, blank=True, verbose_name="目標模型")
+    target_object_id = models.CharField(max_length=50, blank=True, verbose_name="目標ID")
+    target_object_str = models.CharField(max_length=200, blank=True, verbose_name="目標描述")
+    details = models.JSONField(default=dict, blank=True, verbose_name="詳細資訊")
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="IP位址")
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="時間")
+
+    class Meta:
+        verbose_name = "使用者操作紀錄"
+        verbose_name_plural = "使用者操作紀錄"
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        user_str = self.user.username if self.user else "Anonymous"
+        return f"[{self.timestamp}] {user_str} - {self.action}"
