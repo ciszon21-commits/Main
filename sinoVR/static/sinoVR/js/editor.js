@@ -870,6 +870,12 @@ window.scaleSelected = function () {
     }
 }
 
+window.quickScale = function (factor) {
+    if (!selectedObject) return alert('Select model first');
+    selectedObject.scale.multiplyScalar(factor);
+    updateInspectorFromObject();
+}
+
 // --- UI/Interaction ---
 
 function onPointerDown(event) {
