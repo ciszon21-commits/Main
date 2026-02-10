@@ -12,6 +12,7 @@ let container, camera, scene, renderer;
 let raycaster;
 let clock = new THREE.Clock();
 let objects = [];
+let boundaryMat;
 
 // Movement & Rotation
 const moveState = { w: false, a: false, s: false, d: false, shift: false, space: false };
@@ -60,9 +61,49 @@ function init() {
     container.appendChild(renderer.domElement);
     document.body.appendChild(VRButton.createButton(renderer));
 
-    // Create Grid (Visual Reference) - Hidden in preview mode as requested
-    // const gridHelper = new THREE.GridHelper(20, 20, 0x333333, 0x111111);
-    // scene.add(gridHelper);
+    // Create Boundary (Visual Reference) - Techno Fluorescent (Thick Lines using Mesh)
+    console.log("Creating VR Boundary...");
+    const boundarySize = 20; // Total width/depth
+    const halfSize = boundarySize / 2;
+    const thickness = 0.3; // Increased to 30cm thick
+    const boundaryY = 0.1; // Raised to 10cm to avoid Z-fighting
+
+    // Neon Cyan Material
+    boundaryMat = new THREE.MeshBasicMaterial({
+        color: 0x00ffff,
+        transparent: true,
+        opacity: 0.0,
+        side: THREE.DoubleSide
+    });
+
+    const boundaryGroup = new THREE.Group();
+
+    // Top (Back)
+    const b1 = new THREE.Mesh(new THREE.PlaneGeometry(boundarySize, thickness), boundaryMat);
+    b1.rotation.x = -Math.PI / 2;
+    b1.position.set(0, boundaryY, -halfSize);
+    boundaryGroup.add(b1);
+
+    // Bottom (Front)
+    const b2 = new THREE.Mesh(new THREE.PlaneGeometry(boundarySize, thickness), boundaryMat);
+    b2.rotation.x = -Math.PI / 2;
+    b2.position.set(0, boundaryY, halfSize);
+    boundaryGroup.add(b2);
+
+    // Left
+    const b3 = new THREE.Mesh(new THREE.PlaneGeometry(thickness, boundarySize), boundaryMat);
+    b3.rotation.x = -Math.PI / 2;
+    b3.position.set(-halfSize, boundaryY, 0);
+    boundaryGroup.add(b3);
+
+    // Right
+    const b4 = new THREE.Mesh(new THREE.PlaneGeometry(thickness, boundarySize), boundaryMat);
+    b4.rotation.x = -Math.PI / 2;
+    b4.position.set(halfSize, boundaryY, 0);
+    boundaryGroup.add(b4);
+
+    scene.add(boundaryGroup);
+    console.log("VR Boundary added to scene");
 
     // Raycaster
     raycaster = new THREE.Raycaster();
@@ -498,6 +539,25 @@ function animate() {
     const gridSize = 10;
     camera.position.x = Math.max(-gridSize, Math.min(gridSize, camera.position.x));
     camera.position.z = Math.max(-gridSize, Math.min(gridSize, camera.position.z));
+
+    // Dynamic Boundary Opacity
+    if (boundaryMat) {
+        const distX = gridSize - Math.abs(camera.position.x);
+        const distZ = gridSize - Math.abs(camera.position.z);
+        const minDist = Math.min(distX, distZ);
+
+        const fadeDist = 2.0; // Show when within 2 meters
+        let opacity = 0;
+
+        if (minDist < fadeDist) {
+            opacity = 1.0 - (minDist / fadeDist);
+            // Non-linear fade for smoother effect (optional, linear is fine)
+            opacity = Math.pow(opacity, 1.5);
+            opacity = Math.max(0, Math.min(1, opacity));
+        }
+
+        boundaryMat.opacity = opacity;
+    }
 
     renderer.render(scene, camera);
 }
