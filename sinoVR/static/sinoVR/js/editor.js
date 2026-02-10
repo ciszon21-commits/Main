@@ -200,6 +200,20 @@ function addInfoCard(id, title, content, transform = {}, bgColor = 'rgba(173, 21
     // Check if resize happened and alert if requested
     if (showResizeAlert && optimalFontSize < fontSize) {
         alert(`您設定的字體大小 (${fontSize}px) 過大，系統將自動調整為 ${optimalFontSize}px 以確保內容完整顯示。`);
+
+        // Auto-save the optimized font size to DB
+        fetch(`/sinoVR/api/info-card/${id}/update/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': CSRF_TOKEN
+            },
+            body: JSON.stringify({
+                content_font_size: optimalFontSize
+            })
+        }).then(r => r.json()).then(d => {
+            console.log('Auto-saved font size:', optimalFontSize, d);
+        }).catch(e => console.error('Auto-save failed:', e));
     }
 
     // Update the input fontSize to the optimal one for rendering
