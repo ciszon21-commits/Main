@@ -1,0 +1,709 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任務地圖 - 園路無人機預約</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'DroneReservation/css/drone.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 650px;
+            width: 100%;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+        }
+
+        .drone-map-marker {
+            background: var(--primary-color, #3b82f6);
+            border-radius: 50%;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+            border: 2px solid #fff;
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+
+        .drone-map-marker:hover {
+            transform: scale(1.2);
+        }
+
+        .drone-map-marker.marker-highlight {
+            background: #f59e0b;
+            border-color: #fbbf24;
+            transform: scale(1.3);
+            z-index: 9999 !important;
+        }
+
+        .map-card {
+            margin-bottom: 24px;
+        }
+
+        .legend-count {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        /* 縮放等級輸入控制項 */
+        .leaflet-control-zoom-input {
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #555;
+        }
+
+        .leaflet-control-zoom-input label {
+            white-space: nowrap;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .leaflet-control-zoom-input input {
+            width: 48px;
+            padding: 3px 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            text-align: center;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .leaflet-control-zoom-input input:focus {
+            border-color: var(--primary-color, #3b82f6);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+        }
+
+        /* 搜尋列 - 地圖內控制項 */
+        .leaflet-control-search {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .leaflet-control-search .map-search-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+        }
+
+        .leaflet-control-search input {
+            width: 240px;
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .leaflet-control-search input:focus {
+            border-color: var(--primary-color, #3b82f6);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+        }
+
+        .map-search-count {
+            font-size: 12px;
+            color: #888;
+            white-space: nowrap;
+        }
+
+        .map-search-clear {
+            background: none;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            display: none;
+            color: #555;
+        }
+
+        .map-search-clear:hover {
+            background: #f3f4f6;
+        }
+
+        /* 搜尋結果下拉 */
+        .search-results-dropdown {
+            max-height: 200px;
+            overflow-y: auto;
+            border-top: 1px solid #eee;
+            display: none;
+        }
+
+        .search-results-dropdown.show {
+            display: block;
+        }
+
+        .search-result-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            border-bottom: 1px solid #f3f4f6;
+            transition: background 0.15s;
+        }
+
+        .search-result-item:hover {
+            background: #f3f4f6;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item .result-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .search-result-item .result-meta {
+            color: #888;
+        }
+
+        /* 任務詳情側邊欄 (Side Panel) */
+        .mission-detail-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            bottom: 10px;
+            width: 340px;
+            background: white;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideInRight 0.3s ease;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .mission-detail-panel.show {
+            display: flex;
+        }
+
+        .mission-modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #eee;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mission-modal-header h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #333;
+            margin: 0;
+        }
+
+        .mission-modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            transition: color 0.2s;
+        }
+
+        .mission-modal-close:hover {
+            color: #333;
+        }
+
+        .mission-modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .mission-detail-row {
+            display: flex;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+        }
+
+        .mission-detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .mission-detail-row svg {
+            flex-shrink: 0;
+            color: var(--primary-color);
+            margin-top: 2px;
+            width: 16px;
+            height: 16px;
+        }
+
+        .mission-detail-label {
+            font-weight: 600;
+            color: #666;
+            min-width: 90px;
+        }
+
+        .mission-detail-value {
+            color: #333;
+            word-break: break-all;
+        }
+
+        .mission-modal-footer {
+            padding: 12px 20px;
+            border-top: 1px solid #eee;
+            background: #fff;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Banner Section -->
+    <div class="banner banner-sm">
+        <div class="banner-content">
+            <div class="banner-info">
+                <h1 class="banner-title">
+                    <a href="{% url 'drone:dashboard' %}" class="back-link">
+                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd"
+                                d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+                        </svg>
+                    </a>
+                    飛行任務地圖
+                </h1>
+            </div>
+            <div class="banner-actions">
+                <a href="{% url 'drone:dashboard' %}" class="btn-nav">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4.5a.5.5 0 0 0 .5-.5v-4h2v4a.5.5 0 0 0 .5.5H14a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146z" />
+                    </svg>
+                    回首頁
+                </a>
+                <a href="{% url 'drone:mission_list' %}" class="btn-nav">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M3 4.5h10a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2zm0 1a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1H3z" />
+                    </svg>
+                    任務列表
+                </a>
+                <a href="{% url 'drone:mission_create' %}" class="btn-nav btn-nav-highlight">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                    </svg>
+                    新增紀錄
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card map-card">
+            <div class="card-header">
+                <h2>
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" />
+                    </svg>
+                    任務位置總覽
+                </h2>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span class="legend-count">共 {{ missions.count }} 筆紀錄</span>
+                    <button id="exportMapBtn" class="btn btn-sm btn-secondary"
+                        style="display: inline-flex; align-items: center; gap: 4px;">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M4.406 1.342A5.53 5.53 0 0 1 8 0c2.69 0 4.923 2 5.166 4.579C14.758 4.804 16 6.137 16 7.773 16 9.569 14.502 11 12.687 11H10a.5.5 0 0 1 0-1h2.688C13.979 10 15 8.988 15 7.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 2.825 10.328 1 8 1a4.53 4.53 0 0 0-2.941 1.1c-.757.652-1.153 1.438-1.153 2.055v.448l-.445.049C2.064 4.805 1 5.952 1 7.318 1 8.785 2.23 10 3.781 10H6a.5.5 0 0 1 0 1H3.781C1.708 11 0 9.366 0 7.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383z" />
+                            <path
+                                d="M7.646 15.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 14.293V5.5a.5.5 0 0 0-1 0v8.793l-2.146-2.147a.5.5 0 0 0-.708.708l3 3z" />
+                        </svg>
+                        匯出圖片
+                    </button>
+                </div>
+            </div>
+            <div class="card-body" style="position:relative;">
+                <div id="map"></div>
+
+                <!-- 任務詳情側邊欄 -->
+                <div id="missionDetailPanel" class="mission-detail-panel">
+                    <div class="mission-modal-header">
+                        <h3 id="modalTitle">任務詳情</h3>
+                        <button class="mission-modal-close" onclick="closeMissionModal()">&times;</button>
+                    </div>
+                    <div class="mission-modal-body" id="modalBody">
+                        <!-- 內容由 JS 動態生成 -->
+                    </div>
+                    <div class="mission-modal-footer">
+                        <button class="btn btn-sm btn-primary" id="modalZoomBtn" title="縮放至此地點">定位至此</button>
+                        <button class="btn btn-sm btn-secondary" onclick="closeMissionModal()">關閉</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- html2canvas for map export -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script>
+        // ========== 全域變數 ==========
+        let map, allFeatures = [], allLayers = [], currentModalProps = null;
+        let searchControl, boxSelectControl;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // ========== 底圖定義 ==========
+            const osmStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                maxZoom: 19
+            });
+            const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '&copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
+                maxZoom: 18
+            });
+            const openTopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+                maxZoom: 17
+            });
+            const cartoLight = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+                maxZoom: 20
+            });
+
+            // ========== 初始化地圖 ==========
+            map = L.map('map', {
+                center: [24.0, 121.0],
+                zoom: 7.5,
+                zoomSnap: 0.5,
+                zoomDelta: 0.5,
+                layers: [osmStreet],
+                // boxZoom: true, // 預設為 true (Shift+拖曳可縮放)
+                zoomControl: false // 隱藏預設縮放控制項，稍後重新加入以調整順序
+            });
+
+            // ========== 控制項佈局 ==========
+            // 1. 搜尋控制項 (左上)
+            L.Control.Search = L.Control.extend({
+                onAdd: function (map) {
+                    const container = L.DomUtil.create('div', 'leaflet-control-search leaflet-bar');
+                    L.DomEvent.disableClickPropagation(container);
+
+                    container.innerHTML = `
+                        <div class="map-search-wrap">
+                            <svg width="14" height="14" fill="#666" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>
+                            <input type="text" id="mapSearchInput" placeholder="搜尋計畫、地點、飛手..." autocomplete="off">
+                            <span id="mapSearchCount" class="map-search-count"></span>
+                            <button id="mapSearchClear" class="map-search-clear">✕</button>
+                        </div>
+                        <div id="searchResultsDropdown" class="search-results-dropdown"></div>
+                    `;
+                    return container;
+                }
+            });
+            searchControl = new L.Control.Search({ position: 'topleft' }).addTo(map);
+
+            // 2. 縮放控制項 (左上，搜尋下方)
+            L.control.zoom({ position: 'topleft' }).addTo(map);
+
+            // 2.5 縮放等級輸入控制項 (左上，縮放下方)
+            L.Control.ZoomInput = L.Control.extend({
+                onAdd: function (map) {
+                    const container = L.DomUtil.create('div', 'leaflet-control-zoom-input leaflet-bar');
+                    L.DomEvent.disableClickPropagation(container);
+                    container.innerHTML = '<label>比例尺</label><input type="number" id="zoomLevelInput" min="1" max="19" step="0.5" value="' + map.getZoom() + '">';
+                    return container;
+                }
+            });
+            new L.Control.ZoomInput({ position: 'topleft' }).addTo(map);
+
+            // 監聽 zoom 變化同步輸入框
+            map.on('zoomend', function () {
+                const input = document.getElementById('zoomLevelInput');
+                if (input) input.value = map.getZoom();
+            });
+
+            // 監聽輸入框變化設定 zoom
+            document.addEventListener('change', function (e) {
+                if (e.target && e.target.id === 'zoomLevelInput') {
+                    let val = parseInt(e.target.value, 10);
+                    if (val >= 1 && val <= 19) {
+                        map.setZoom(val);
+                    } else {
+                        e.target.value = map.getZoom();
+                    }
+                }
+            });
+
+            // 3. 全區檢視控制項 (左上，縮放下方)
+            // 3. 底圖切換 (右上)
+            L.control.layers({
+                "街道地圖": osmStreet,
+                "衛星影像": esriSatellite,
+                "地形圖": openTopo,
+                "淺色地圖": cartoLight
+            }, null, { position: 'topright' }).addTo(map);
+
+            // ========== Drone 圖標 ==========
+            const droneIconSvg = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="5" r="2.5" fill="#fff" opacity="0.3" stroke="#fff"/><circle cx="19" cy="5" r="2.5" fill="#fff" opacity="0.3" stroke="#fff"/><circle cx="5" cy="19" r="2.5" fill="#fff" opacity="0.3" stroke="#fff"/><circle cx="19" cy="19" r="2.5" fill="#fff" opacity="0.3" stroke="#fff"/><line x1="7" y1="6.5" x2="10" y2="10"/><line x1="17" y1="6.5" x2="14" y2="10"/><line x1="7" y1="17.5" x2="10" y2="14"/><line x1="17" y1="17.5" x2="14" y2="14"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="#fff" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="#3b82f6" stroke="none"/></svg>';
+            const missionIcon = L.divIcon({
+                html: droneIconSvg,
+                className: 'drone-map-marker',
+                iconSize: [36, 36],
+                iconAnchor: [18, 18]
+            });
+
+            // ========== 載入任務資料 ==========
+            fetch('{% url "drone:mission_api" %}')
+                .then(r => r.json())
+                .then(geojson => {
+                    if (!geojson.features || geojson.features.length === 0) return;
+
+                    const markersLayer = L.geoJSON(geojson, {
+                        pointToLayer: (feature, latlng) => L.marker(latlng, { icon: missionIcon }),
+                        onEachFeature: (feature, layer) => {
+                            const props = feature.properties;
+                            layer._missionProps = props;
+                            layer._missionCoords = feature.geometry.coordinates;
+                            allFeatures.push({ props, layer, coords: feature.geometry.coordinates });
+                            allLayers.push(layer);
+
+                            layer.on('click', () => openMissionModal(props, feature.geometry.coordinates));
+                        }
+                    }).addTo(map);
+
+                    map.fitBounds(markersLayer.getBounds(), { padding: [50, 50] });
+                })
+                .catch(err => console.error('Error loading mission data:', err));
+
+
+
+            // ========== 搜尋功能實作 ==========
+            const searchInput = document.getElementById('mapSearchInput');
+            const searchCountEl = document.getElementById('mapSearchCount');
+            const clearBtn = document.getElementById('mapSearchClear');
+            const resultsDropdown = document.getElementById('searchResultsDropdown');
+            let searchTimeout = null;
+
+            searchInput.addEventListener('input', function () {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => performSearch(this.value.trim()), 200);
+            });
+
+            searchInput.addEventListener('focus', function () {
+                if (this.value.trim()) resultsDropdown.classList.add('show');
+            });
+
+            // 點擊外部關閉下拉
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest('.leaflet-control-search')) {
+                    resultsDropdown.classList.remove('show');
+                }
+            });
+
+            clearBtn.addEventListener('click', function () {
+                searchInput.value = '';
+                clearSearch();
+                searchInput.focus();
+            });
+
+            function performSearch(q) {
+                // 重置高亮
+                allLayers.forEach(l => {
+                    if (l._icon) l._icon.classList.remove('marker-highlight');
+                });
+
+                if (!q) { clearSearch(); return; }
+
+                const qLower = q.toLowerCase();
+                const matched = allFeatures.filter(f => {
+                    const p = f.props;
+                    return (p.project_short_name || '').toLowerCase().includes(qLower) ||
+                        (p.project_number || '').toLowerCase().includes(qLower) ||
+                        (p.location_name || '').toLowerCase().includes(qLower) ||
+                        (p.drone_payload || '').toLowerCase().includes(qLower) ||
+                        (p.pilot || '').toLowerCase().includes(qLower) ||
+                        (p.mission_description || '').toLowerCase().includes(qLower) ||
+                        (p.result_location || '').toLowerCase().includes(qLower);
+                });
+
+                searchCountEl.textContent = `${matched.length} 筆`;
+                clearBtn.style.display = 'block';
+
+                // 高亮 markers
+                matched.forEach(f => {
+                    if (f.layer._icon) f.layer._icon.classList.add('marker-highlight');
+                });
+
+                // 產生下拉選單
+                if (matched.length > 0) {
+                    resultsDropdown.innerHTML = matched.map((f, i) => `
+                        <div class="search-result-item" onclick="onSearchResultClick(${i})">
+                            <svg width="12" height="12" fill="#666" viewBox="0 0 16 16"><path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
+                            <div>
+                                <div class="result-name">${f.props.project_short_name}</div>
+                                <div class="result-meta">${f.props.location_name}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                    resultsDropdown.classList.add('show');
+                    window._searchResults = matched;
+                } else {
+                    resultsDropdown.innerHTML = '<div style="padding:10px 12px;color:#888;font-size:12px;">無符合結果</div>';
+                    resultsDropdown.classList.add('show');
+                }
+
+                // 若結果少於 20 筆，自動縮放
+                if (matched.length > 0 && matched.length <= 20) {
+                    const group = L.featureGroup(matched.map(f => f.layer));
+                    map.fitBounds(group.getBounds(), { padding: [50, 50], maxZoom: 14 });
+                }
+            }
+
+            function clearSearch() {
+                searchCountEl.textContent = '';
+                clearBtn.style.display = 'none';
+                resultsDropdown.classList.remove('show');
+
+                allLayers.forEach(l => {
+                    if (l._icon) l._icon.classList.remove('marker-highlight');
+                });
+
+                if (allLayers.length > 0) {
+                    const group = L.featureGroup(allLayers);
+                    map.fitBounds(group.getBounds(), { padding: [50, 50] });
+                }
+            }
+
+            // 綁定全域搜尋點擊函式
+            window.onSearchResultClick = function (index) {
+                const item = window._searchResults[index];
+                if (!item) return;
+                const coords = item.coords;
+                map.setView([coords[1], coords[0]], 16);
+                openMissionModal(item.props, coords);
+                resultsDropdown.classList.remove('show');
+            };
+        });
+
+        // ========== 任務詳情側邊欄 (Side Panel) ==========
+        function openMissionModal(props, coords) {
+            currentModalProps = { props, coords };
+            document.getElementById('modalTitle').textContent = props.project_short_name;
+
+            const dateStr = props.start_date + (props.start_date !== props.end_date ? ' ~ ' + props.end_date : '');
+            const rows = [
+                { icon: 'M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z', label: '任務日期', value: dateStr },
+                { icon: 'M4 3.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z', label: '計畫編號', value: props.project_number },
+                { icon: 'M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z', label: '任務地點', value: props.location_name },
+                { icon: 'M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z', label: '飛手', value: props.pilot || '-' },
+            ];
+            // 無人機/酬載
+            rows.push({ icon: '', label: '無人機/酬載', value: props.drone_payload, useDroneIcon: true });
+            // 任務說明
+            rows.push({ icon: 'M2 2.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm2 3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5z', label: '任務說明', value: props.mission_description });
+            // 成果位置
+            if (props.result_location) {
+                rows.push({ icon: 'M9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.825a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31L.5 3.5A2 2 0 0 1 2.5 2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3zm-8.322.12C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 1v.12z', label: '成果位置', value: props.result_location });
+            }
+            // 座標
+            rows.push({ icon: 'M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm7.5-6.923c-.67.204-1.335.82-1.887 1.855A7.97 7.97 0 0 0 5.145 4H7.5V1.077zM4.09 4a9.267 9.267 0 0 1 .64-1.539 6.7 6.7 0 0 1 .597-.933A7.025 7.025 0 0 0 2.255 4H4.09z', label: '座標', value: `${coords[1].toFixed(6)}, ${coords[0].toFixed(6)}` });
+
+            document.getElementById('modalBody').innerHTML = rows.map(r => `
+                <div class="mission-detail-row">
+                    ${r.useDroneIcon ?
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" stroke-width="1.5"><circle cx="5" cy="5" r="2.5" fill="var(--primary-color)" opacity="0.3"/><circle cx="19" cy="5" r="2.5" fill="var(--primary-color)" opacity="0.3"/><circle cx="5" cy="19" r="2.5" fill="var(--primary-color)" opacity="0.3"/><circle cx="19" cy="19" r="2.5" fill="var(--primary-color)" opacity="0.3"/><line x1="7" y1="6.5" x2="10" y2="10"/><line x1="17" y1="6.5" x2="14" y2="10"/><line x1="7" y1="17.5" x2="10" y2="14"/><line x1="17" y1="17.5" x2="14" y2="14"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="var(--primary-color)" stroke="none"/></svg>'
+                    : `<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="color:var(--primary-color)"><path d="${r.icon}"/></svg>`
+                }
+                    <span class="mission-detail-label">${r.label}</span>
+                    <span class="mission-detail-value">${r.value}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('modalZoomBtn').onclick = () => {
+                map.setView([coords[1], coords[0]], 16);
+            };
+
+            document.getElementById('missionDetailPanel').classList.add('show');
+        }
+
+        function closeMissionModal() {
+            document.getElementById('missionDetailPanel').classList.remove('show');
+        }
+
+        // ESC 關閉 Modal
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeMissionModal();
+        });
+
+        // ========== 匯出地圖為圖片 ==========
+        document.getElementById('exportMapBtn').addEventListener('click', function () {
+            const btn = this;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M8 3a5 5 0 0 0-5 5h2a3 3 0 0 1 3-3V3z"/></svg> 匯出中...';
+            btn.disabled = true;
+
+            const mapEl = document.getElementById('map');
+            html2canvas(mapEl, {
+                useCORS: true,
+                allowTaint: true,
+                scale: 2,
+                backgroundColor: '#ffffff'
+            }).then(function (canvas) {
+                const link = document.createElement('a');
+                const now = new Date();
+                const dateStr = now.getFullYear() +
+                    String(now.getMonth() + 1).padStart(2, '0') +
+                    String(now.getDate()).padStart(2, '0') + '_' +
+                    String(now.getHours()).padStart(2, '0') +
+                    String(now.getMinutes()).padStart(2, '0');
+                link.download = '任務地圖_' + dateStr + '.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }).catch(function (err) {
+                console.error('匯出地圖失敗:', err);
+                alert('匯出地圖失敗，請稍後再試。');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+        });
+    </script>
+</body>
+
+</html>
