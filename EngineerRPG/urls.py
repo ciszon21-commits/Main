@@ -128,12 +128,12 @@ urlpatterns = [
     # 成員詳細資料（公會會長專用）
     path('member/<int:member_id>/profile/', views.member_profile_detail, name='member_profile_detail'),
 
-    # 圖鑑系統
-    path('codex/', views.codex_main, name='codex_main'),
-    path('codex/equipment/', views.codex_equipment, name='codex_equipment'),
-    path('codex/equipment/<int:equipment_id>/', views.codex_equipment_detail, name='codex_equipment_detail'),
-    path('codex/items/', views.codex_items, name='codex_items'),
-    path('codex/items/<int:item_id>/', views.codex_item_detail, name='codex_item_detail'),
-    path('codex/skills/', views.codex_skills, name='codex_skills'),
-    path('codex/obtain-guide/', views.codex_obtain_guide, name='codex_obtain_guide'),
+    # 圖鑑系統 (已隱藏)
+    # path('codex/', views.codex_main, name='codex_main'),
+    # path('codex/equipment/', views.codex_equipment, name='codex_equipment'),
+    # path('codex/equipment/<int:equipment_id>/', views.codex_equipment_detail, name='codex_equipment_detail'),
+    # path('codex/items/', views.codex_items, name='codex_items'),
+    # path('codex/items/<int:item_id>/', views.codex_item_detail, name='codex_item_detail'),
+    # path('codex/skills/', views.codex_skills, name='codex_skills'),
+    # path('codex/obtain-guide/', views.codex_obtain_guide, name='codex_obtain_guide'),
 ]

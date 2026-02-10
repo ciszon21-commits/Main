@@ -69,80 +69,33 @@ def check_skill_unlocked(user_profile, skill_node):
     return True
 
 
-# ==================== 權限輔助函數 ====================
 
-PRIVILEGE_RANK = {
-    'ADVENTURER': 0,
-    'OFFICER': 1,
-    'MANAGER': 2,
-    'ADMIN': 3
-}
+from .utils.permissions import has_whitelist_permission, get_whitelist_role, PRIVILEGE_RANK
 
-def get_whitelist_role(user):
-    """獲取使用者的白名單角色（最高權限）"""
-    if not user.is_authenticated:
-        return 'ADVENTURER'
-    if user.is_superuser:
-        return 'ADMIN'
-        
-    # 檢查是否有 UserProfile
-    try:
-        if hasattr(user, 'rpg_profile'):
-            profile_role = user.rpg_profile.role
-        else:
-            profile_role = 'ADVENTURER'
-    except:
-        profile_role = 'ADVENTURER'
-        
-    # 檢查白名單
-    if hasattr(user, 'admin_whitelist'):
-        whitelist_role = user.admin_whitelist.role
-    else:
-        whitelist_role = 'ADVENTURER'
-        
-    # 回傳權限比較高的那個
-    p_rank = PRIVILEGE_RANK.get(profile_role, 0)
-    w_rank = PRIVILEGE_RANK.get(whitelist_role, 0)
+
+# # ==================== 使用者註冊與登入 ====================
+
+# def user_register(request):
+#     """使用者註冊"""
+#     if request.user.is_authenticated:
+#         return redirect('engineer_rpg:dashboard')
     
-    return whitelist_role if w_rank > p_rank else profile_role
-
-def has_whitelist_permission(user, required_role):
-    """檢查是否有指定權限（包含白名單）"""
-    if not user.is_authenticated:
-        return False
-    if user.is_superuser:
-        return True
-        
-    user_role = get_whitelist_role(user)
-    user_rank = PRIVILEGE_RANK.get(user_role, 0)
-    req_rank = PRIVILEGE_RANK.get(required_role, 0)
+#     if request.method == 'POST':
+#         form = UserRegistrationForm(request.POST)
+#         if form.is_valid():
+#             user = form.save()
+#             user.backend = 'django.contrib.auth.backends.ModelBackend'
+#             login(request, user)
+#             messages.success(request, f'歡迎加入監造冒險者公會！您已成為 {user.rpg_profile.character_class.name}')
+#             return redirect('engineer_rpg:dashboard')
+#     else:
+#         form = UserRegistrationForm()
     
-    return user_rank >= req_rank
-
-
-# ==================== 使用者註冊與登入 ====================
-
-def user_register(request):
-    """使用者註冊"""
-    if request.user.is_authenticated:
-        return redirect('engineer_rpg:dashboard')
+#     context = {
+#         'form': form,
+#     }
     
-    if request.method == 'POST':
-        form = UserRegistrationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            user.backend = 'django.contrib.auth.backends.ModelBackend'
-            login(request, user)
-            messages.success(request, f'歡迎加入監造冒險者公會！您已成為 {user.rpg_profile.character_class.name}')
-            return redirect('engineer_rpg:dashboard')
-    else:
-        form = UserRegistrationForm()
-    
-    context = {
-        'form': form,
-    }
-    
-    return render(request, 'EngineerRPG/register.html', context)
+#     return render(request, 'EngineerRPG/register.html', context)
 
 
 def user_login(request):
@@ -372,7 +325,7 @@ def skill_detail(request, skill_id):
         'courses': skill.courses.all(),
         'parents': skill.parent_skills.all(),
     }
-    return render(request, 'EngineerRPG/skill_detail_fixed.html', context)
+    return render(request, 'EngineerRPG/skill_detail.html', context)
 
 
 @login_required
@@ -440,7 +393,7 @@ def equipment_inventory(request):
             'tools': [getattr(profile, f'equipped_tool_{i}') for i in range(1, 6)]
         }
     }
-    return render(request, 'EngineerRPG/equipment.html', context)
+    return render(request, 'EngineerRPG/equipment_inventory.html', context)
 
 
 @login_required
@@ -520,7 +473,7 @@ def item_inventory(request):
     """道具背包"""
     profile = get_or_create_user_profile(request.user)
     user_items = UserItem.objects.filter(user_profile=profile, quantity__gt=0).select_related('item')
-    return render(request, 'EngineerRPG/inventory.html', {'user_items': user_items, 'profile': profile})
+    return render(request, 'EngineerRPG/item_inventory.html', {'user_items': user_items, 'profile': profile})
 
 
 @login_required
@@ -556,7 +509,7 @@ def training_hub(request):
 
 @login_required
 def daily_trial_list(request):
-    """每日試煉首頁"""
+    """?????????"""
     profile = get_or_create_user_profile(request.user)
     today = timezone.now().date()
     
@@ -564,15 +517,35 @@ def daily_trial_list(request):
     tasks = DailyTrialTask.objects.filter(date=today, is_active=True).order_by('task_number')
     if not tasks.exists():
         tasks = generate_daily_tasks(date=today)
-        
-    task_data = []
+    
+    task_progress_list = []
+    total_passed = 0
+    total_exp_earned = 0
     for t in tasks:
         progress = DailyTrialProgress.objects.filter(user_profile=profile, daily_task=t).first()
-        task_data.append({'task': t, 'progress': progress})
-        
+        if progress and progress.is_completed and progress.is_passed:
+            total_passed += 1
+            total_exp_earned += t.trial.exp_reward
+        task_progress_list.append({
+            'task': t,
+            'progress': progress,
+            'question_count': t.questions.count(),
+        })
+    
+    now = timezone.now()
+    tomorrow = timezone.datetime.combine(
+        today + timezone.timedelta(days=1),
+        timezone.datetime.min.time()
+    )
+    tomorrow = timezone.make_aware(tomorrow)
+    time_until_refresh = tomorrow - now
+    
     context = {
         'profile': profile,
-        'task_data': task_data,
+        'task_progress_list': task_progress_list,
+        'time_until_refresh': time_until_refresh,
+        'total_passed': total_passed,
+        'total_exp_earned': total_exp_earned,
         'today': today
     }
     return render(request, 'EngineerRPG/daily_trial.html', context)
@@ -659,7 +632,7 @@ def start_trial(request, trial_id):
     request.session['trial_questions'] = [q.id for q in selected]
     request.session['current_question_index'] = 0
     request.session['trial_answers'] = {}
-    request.session['trial_hp'] = 3
+    request.session['trial_hp'] = profile.get_total_hp()
     request.session['trial_start_time'] = timezone.now().isoformat()
     
     context = {
@@ -668,8 +641,8 @@ def start_trial(request, trial_id):
         'question': selected[0],
         'total': len(selected),
         'current': 0,
-        'hp': 3,
-        'mp': 100,
+        'hp': profile.get_total_hp(),
+        'mp': profile.get_total_mp(),
         'items': UserItem.objects.filter(user_profile=profile, quantity__gt=0)
     }
     return render(request, 'EngineerRPG/trial_exam.html', context)
@@ -714,7 +687,7 @@ def submit_answer(request, trial_id):
         progress.save()
         curr_hp = progress.current_hp
     else:
-        curr_hp = request.session.get('trial_hp', 3)
+        curr_hp = request.session.get('trial_hp', profile.get_total_hp())
         if not is_correct:
             curr_hp = max(0, curr_hp - 1)
             request.session['trial_hp'] = curr_hp
@@ -913,7 +886,28 @@ def guild_dashboard(request):
     profile = get_or_create_user_profile(request.user)
     ann = GuildPost.objects.filter(category='ANNOUNCEMENT').order_by('-created_at')[:5]
     posts = GuildPost.objects.exclude(category='ANNOUNCEMENT').order_by('-created_at')[:10]
-    return render(request, 'EngineerRPG/guild_dashboard.html', {'profile': profile, 'announcements': ann, 'recent_posts': posts})
+
+    # 熱門話題：依留言數 + 瀏覽數排序
+    hot_posts = (GuildPost.objects.exclude(category='ANNOUNCEMENT')
+                 .annotate(comment_count=Count('comments'))
+                 .order_by('-comment_count', '-views')[:5])
+
+    # 成員名錄：有隊伍的團隊 & 自由冒險者
+    teams = RPGTeam.objects.filter(is_active=True).select_related('leader')
+    members_in_teams = RPGTeamMember.objects.values_list('user_profile_id', flat=True)
+    free_members = UserProfile.objects.exclude(id__in=members_in_teams).select_related('user', 'character_class')
+
+    is_manager = profile.role in ('OFFICER', 'MANAGER', 'ADMIN')
+
+    return render(request, 'EngineerRPG/guild_dashboard.html', {
+        'profile': profile,
+        'announcements': ann,
+        'recent_posts': posts,
+        'hot_posts': hot_posts,
+        'teams': teams,
+        'free_members': free_members,
+        'is_manager': is_manager,
+    })
 
 
 @login_required
@@ -921,11 +915,22 @@ def guild_exchange_list(request):
     """冒險者交流板"""
     profile = get_or_create_user_profile(request.user)
     cat = request.GET.get('category')
-    posts = GuildPost.objects.all().select_related('author__user')
-    if cat: posts = posts.filter(category=cat)
-    
+    posts = GuildPost.objects.exclude(category='ANNOUNCEMENT').select_related('author__user')
+    if cat and cat != 'ALL':
+        posts = posts.filter(category=cat)
+    posts = posts.order_by('-created_at')
+
+    pinned_posts = GuildPost.objects.filter(is_pinned=True).exclude(category='ANNOUNCEMENT').select_related('author__user')
     page = Paginator(posts, 20).get_page(request.GET.get('page'))
-    return render(request, 'EngineerRPG/guild_exchange_list.html', {'profile': profile, 'page_obj': page, 'categories': GuildPost.CATEGORY_CHOICES})
+
+    return render(request, 'EngineerRPG/guild_exchange_list.html', {
+        'profile': profile,
+        'page_obj': page,
+        'categories': GuildPost.CATEGORY_CHOICES,
+        'pinned_posts': pinned_posts,
+        'current_category': cat or 'ALL',
+        'now': timezone.now(),
+    })
 
 
 @login_required
@@ -961,12 +966,19 @@ def guild_post_detail(request, post_id):
 @login_required
 def guild_announcement_create(request):
     """發布系統級公告"""
-    p = request.user.rpg_profile
-    if p.role not in ['OFFICER', 'MANAGER', 'ADMIN']: return redirect('engineer_rpg:guild_dashboard')
-    if request.method == 'POST':
-        GuildPost.objects.create(author=p, title=request.POST.get('title'), content=request.POST.get('content'), category='ANNOUNCEMENT')
+    profile = get_or_create_user_profile(request.user)
+    if profile.role not in ('OFFICER', 'MANAGER', 'ADMIN'):
         return redirect('engineer_rpg:guild_dashboard')
-    return render(request, 'EngineerRPG/guild_announcement_form.html', {'profile': p})
+    if request.method == 'POST':
+        GuildPost.objects.create(
+            author=profile,
+            title=request.POST.get('title'),
+            content=request.POST.get('content'),
+            category='ANNOUNCEMENT',
+        )
+        messages.success(request, '公告已發布')
+        return redirect('engineer_rpg:guild_announcement_list')
+    return render(request, 'EngineerRPG/guild_announcement_create.html', {'profile': profile})
 
 
 # ==================== 主管與管理員後台 ====================
@@ -978,8 +990,8 @@ def manager_dashboard(request):
     if not has_whitelist_permission(request.user, 'MANAGER'):
         return redirect('engineer_rpg:dashboard')
         
-    pending = PromotionRequest.objects.filter(status='PENDING').count()
-    return render(request, 'EngineerRPG/manager_dashboard.html', {'profile': profile, 'pending': pending})
+    pending_requests = PromotionRequest.objects.filter(status='PENDING').order_by('created_at')
+    return render(request, 'EngineerRPG/manager_dashboard.html', {'profile': profile, 'pending_requests': pending_requests})
 
 
 
@@ -997,24 +1009,9 @@ def leaderboard(request):
 
 @login_required
 @csrf_exempt
-def api_save_skill_layout(request):
-    """AJAX: 儲存技能樹座標"""
-    if request.method != 'POST' or not has_whitelist_permission(request.user, 'ADMIN'):
-        return JsonResponse({'success': False}, status=403)
-    try:
-        data = json.loads(request.body)
-        for s in data.get('skills', []):
-            SkillNode.objects.filter(id=s['id']).update(position_x=s['x'], position_y=s['y'])
-        return JsonResponse({'success': True})
-    except:
-        return JsonResponse({'success': False}, status=400)
-
-
-@login_required
-@csrf_exempt
 def api_auto_layout_skill_tree(request):
     """AJAX: 自動排版算法"""
-    if not has_whitelist_permission(request.user, 'ADMIN'):
+    if not has_whitelist_permission(request.user, 'MANAGER'):
         return JsonResponse({'success': False}, status=403)
     # ==================== 管理員與後台系統 ====================
 
@@ -1028,10 +1025,11 @@ def admin_dashboard(request):
         
     context = {
         'profile': profile,
-        'user_count': UserProfile.objects.count(),
-        'skill_count': SkillNode.objects.count(),
-        'question_count': Question.objects.count(),
-        'dungeon_count': Trial.objects.filter(trial_type='DUNGEON').count(),
+        'total_users': UserProfile.objects.count(),
+        'total_skills': SkillNode.objects.count(),
+        'total_questions': Question.objects.count(),
+        'total_equipment': Equipment.objects.count(),
+        'total_items': Item.objects.count(),
     }
     return render(request, 'EngineerRPG/admin_dashboard.html', context)
 
@@ -1051,7 +1049,7 @@ def user_management(request):
 def question_management(request):
     """題目管理列表"""
     profile = get_or_create_user_profile(request.user)
-    if not has_whitelist_permission(request.user, 'ADMIN'):
+    if not has_whitelist_permission(request.user, 'MANAGER'):
         return redirect('engineer_rpg:dashboard')
         
     category_id = request.GET.get('category')
@@ -1247,7 +1245,7 @@ def reject_request(request, request_id):
 def skill_tree_editor(request):
     """技能樹編輯器頁面"""
     profile = get_or_create_user_profile(request.user)
-    if not has_whitelist_permission(request.user, 'ADMIN'):
+    if not has_whitelist_permission(request.user, 'MANAGER'):
         return redirect('engineer_rpg:dashboard')
         
     classes = CharacterClass.objects.all()
@@ -1264,7 +1262,7 @@ def skill_tree_editor(request):
 @csrf_exempt
 def api_save_skill_layout(request):
     """API: 儲存技能座標"""
-    if request.method != 'POST' or request.user.rpg_profile.role != 'ADMIN':
+    if request.method != 'POST' or not has_whitelist_permission(request.user, 'MANAGER'):
         return JsonResponse({'success': False}, status=403)
     try:
         data = json.loads(request.body)
@@ -1283,7 +1281,7 @@ def api_save_skill_layout(request):
 @csrf_exempt
 def api_save_skill_node(request):
     """API: 儲存/新增技能節點"""
-    if request.method != 'POST' or not has_whitelist_permission(request.user, 'ADMIN'):
+    if request.method != 'POST' or not has_whitelist_permission(request.user, 'MANAGER'):
         return JsonResponse({'success': False}, status=403)
     try:
         data = json.loads(request.body)
@@ -1318,7 +1316,7 @@ def api_save_skill_node(request):
 @csrf_exempt
 def api_delete_skill_node(request):
     """API: 刪除技能節點"""
-    if request.method != 'POST' or not has_whitelist_permission(request.user, 'ADMIN'):
+    if request.method != 'POST' or not has_whitelist_permission(request.user, 'MANAGER'):
         return JsonResponse({'success': False}, status=403)
     try:
         data = json.loads(request.body)
@@ -1434,35 +1432,59 @@ def start_daily_trial_task(request, task_id):
 @login_required
 def manage_skill_tree(request):
     """主管技能樹管理"""
-    messages.info(request, '此功能正在開發中')
-    return redirect('engineer_rpg:manager_dashboard')
+    return redirect('engineer_rpg:skill_tree_editor')
 
 
 @login_required
 def manage_questions(request):
     """主管題目管理"""
-    messages.info(request, '此功能正在開發中')
     return redirect('engineer_rpg:question_management')
 
 
 @login_required
 def guild_announcement_list(request):
     """公告列表"""
-    return redirect('engineer_rpg:guild_dashboard')
+    profile = get_or_create_user_profile(request.user)
+    announcements = GuildPost.objects.filter(category='ANNOUNCEMENT').order_by('-is_pinned', '-created_at')
+    page_obj = Paginator(announcements, 20).get_page(request.GET.get('page'))
+    is_manager = profile.role in ('OFFICER', 'MANAGER', 'ADMIN')
+    return render(request, 'EngineerRPG/guild_announcement_list.html', {
+        'profile': profile,
+        'page_obj': page_obj,
+        'is_manager': is_manager,
+    })
 
 
 @login_required
 def guild_announcement_edit(request, post_id):
     """編輯公會公告"""
-    messages.info(request, '此功能正在開發中')
-    return redirect('engineer_rpg:guild_dashboard')
+    profile = get_or_create_user_profile(request.user)
+    if profile.role not in ('OFFICER', 'MANAGER', 'ADMIN'):
+        return redirect('engineer_rpg:guild_dashboard')
+    post = get_object_or_404(GuildPost, id=post_id, category='ANNOUNCEMENT')
+    if request.method == 'POST':
+        post.title = request.POST.get('title', post.title)
+        post.content = request.POST.get('content', post.content)
+        post.save()
+        messages.success(request, '公告已更新')
+        return redirect('engineer_rpg:guild_announcement_list')
+    return render(request, 'EngineerRPG/guild_announcement_edit.html', {
+        'profile': profile,
+        'post': post,
+    })
 
 
 @login_required
 def guild_announcement_delete(request, post_id):
     """刪除公會公告"""
-    messages.info(request, '此功能正在開發中')
-    return redirect('engineer_rpg:guild_dashboard')
+    profile = get_or_create_user_profile(request.user)
+    if profile.role not in ('OFFICER', 'MANAGER', 'ADMIN'):
+        return redirect('engineer_rpg:guild_dashboard')
+    post = get_object_or_404(GuildPost, id=post_id, category='ANNOUNCEMENT')
+    if request.method == 'POST':
+        post.delete()
+        messages.success(request, '公告已刪除')
+    return redirect('engineer_rpg:guild_announcement_list')
 
 
 @login_required
@@ -2034,4 +2056,3 @@ def codex_obtain_guide(request):
         'items_by_method': items_by_method,
         'trials_with_rewards': trials_with_rewards,
     })
-
