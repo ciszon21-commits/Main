@@ -26,6 +26,35 @@ document.addEventListener('DOMContentLoaded', function () {
 
     initializeCardVisibility();
     updateResultsCount();
+    updateBentoLayout(); // Initial layout
+
+    // Update Bento Grid layout based on visible items
+    function updateBentoLayout() {
+        if (window.innerWidth < 1024) return; // Desktop only
+
+        const visibleCards = Array.from(document.querySelectorAll('.achievement-card')).filter(card =>
+            card.style.display !== 'none' && !card.classList.contains('hidden')
+        );
+
+        visibleCards.forEach((card, index) => {
+            // Reset classes
+            card.classList.remove('span-2x2', 'span-2x1');
+
+            // Pattern: 1(Big), 4(Wide), 8(Wide) every 10 items
+            const position = index % 10;
+
+            if (position === 0) {
+                card.classList.add('span-2x2');
+            } else if (position === 3 || position === 7) {
+                card.classList.add('span-2x1');
+            }
+        });
+    }
+
+    // Re-calculate layout on window resize
+    window.addEventListener('resize', debounce(function () {
+        updateBentoLayout();
+    }, 200));
 
     // Search functionality
     if (searchInput) {
@@ -84,6 +113,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 this.innerHTML = `收合 <svg fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708l6-6z"/></svg>`;
                 this.classList.add('expanded');
             }
+            updateBentoLayout(); // Recalculate layout
         });
     });
 
@@ -152,6 +182,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (noResultsEl) {
             noResultsEl.classList.toggle('visible', visibleCount === 0);
         }
+
+        updateBentoLayout(); // Recalculate layout after filtering
     }
 
     function updateResultsCount() {

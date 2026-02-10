@@ -1,0 +1,226 @@
+{% extends "DesignConsistency/base.html" %}
+
+{% block title %}專案總覽｜工程設計資料一致性比對{% endblock %}
+
+{% block extra_css %}
+    .hero-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 20px;
+    }
+
+    .hero-panel h1 {
+        font-family: "Orbitron", "IBM Plex Sans TC", sans-serif;
+        font-size: 28px;
+        letter-spacing: 0.08em;
+        margin-bottom: 12px;
+    }
+
+    .hero-panel p {
+        color: var(--ink-soft);
+        line-height: 1.6;
+        margin-bottom: 18px;
+    }
+
+    .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .tag {
+        padding: 6px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(12, 21, 32, 0.18);
+        background: rgba(255, 255, 255, 0.65);
+        font-size: 12px;
+    }
+
+    .stats-panel {
+        display: grid;
+        gap: 12px;
+    }
+
+    .stat-card {
+        padding: 16px;
+        border-radius: 16px;
+        background: var(--panel-strong);
+        border: 1px solid var(--line);
+        display: grid;
+        gap: 4px;
+    }
+
+    .stat-label {
+        font-size: 12px;
+        color: var(--ink-soft);
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+    }
+
+    .stat-value {
+        font-family: "Orbitron", "IBM Plex Sans TC", sans-serif;
+        font-size: 20px;
+    }
+
+    .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1.2fr;
+        gap: 20px;
+    }
+
+    .form-grid {
+        display: grid;
+        gap: 16px;
+    }
+
+    .form-field {
+        display: grid;
+        gap: 6px;
+    }
+
+    .form-field label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--ink-soft);
+    }
+
+    .form-field input,
+    .form-field textarea {
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(12, 21, 32, 0.18);
+        background: rgba(255, 255, 255, 0.7);
+        font-family: "Space Grotesk", "IBM Plex Sans TC", sans-serif;
+    }
+
+    .form-field textarea {
+        min-height: 110px;
+        resize: vertical;
+    }
+
+    .project-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .project-card {
+        display: grid;
+        gap: 8px;
+        padding: 16px;
+        border-radius: 16px;
+        border: 1px solid rgba(12, 21, 32, 0.14);
+        background: rgba(255, 255, 255, 0.82);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .project-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .project-title {
+        font-weight: 600;
+        font-size: 16px;
+    }
+
+    .project-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        font-size: 12px;
+        color: var(--ink-soft);
+    }
+
+    .empty-state {
+        padding: 24px;
+        text-align: center;
+        color: var(--ink-soft);
+        border: 1px dashed rgba(12, 21, 32, 0.2);
+        border-radius: 16px;
+    }
+
+    @media (max-width: 1100px) {
+        .hero-grid,
+        .grid-2 {
+            grid-template-columns: 1fr;
+        }
+    }
+{% endblock %}
+
+{% block content %}
+    <div class="hero-grid">
+        <section class="panel hero-panel">
+            <h1>工程設計資料一致性比對中控台</h1>
+            <p>針對預算書（XML）與數量計算書（XLS/XLSX）建立語彙交叉比對。先上傳、再解析、最後鎖定不一致名詞。</p>
+            <div class="tag-row">
+                <div class="tag">Budget XML Pipeline</div>
+                <div class="tag">Quantity XLS/XLSX</div>
+                <div class="tag">Keyword Radar</div>
+                <div class="tag">Cross-Compare Matrix</div>
+            </div>
+        </section>
+        <section class="panel stats-panel">
+            <div class="stat-card">
+                <div class="stat-label">Active Projects</div>
+                <div class="stat-value">{{ project_count }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Uploaded Files</div>
+                <div class="stat-value">{{ file_count }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Latest Sync</div>
+                <div class="stat-value">
+                    {% if latest_project %}{{ latest_project.updated_at|date:"Y-m-d H:i" }}{% else %}--{% endif %}
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="grid-2">
+        <section class="panel">
+            <div class="panel-title">建立新專案</div>
+            <div class="panel-subtitle">每個專案會獨立管理比對檔案與比對結果。</div>
+            <form method="post" class="form-grid">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_project">
+                <div class="form-field">
+                    <label for="id_name">專案名稱</label>
+                    <input type="text" name="name" id="id_name" placeholder="例如：桃園捷運A段設計一致性" required>
+                </div>
+                <div class="form-field">
+                    <label for="id_code">專案代碼</label>
+                    <input type="text" name="code" id="id_code" placeholder="A1-2026-EST">
+                </div>
+                <div class="form-field">
+                    <label for="id_description">任務摘要</label>
+                    <textarea name="description" id="id_description" placeholder="紀錄專案範圍、目標、篩選規則"></textarea>
+                </div>
+                <button class="btn btn-primary" type="submit">建立專案節點</button>
+            </form>
+        </section>
+
+        <section class="panel">
+            <div class="panel-title">專案清單</div>
+            <div class="panel-subtitle">點選進入專案，開始上傳預算書與數量計算書。</div>
+            <div class="project-list">
+                {% for project in projects %}
+                    <a class="project-card" href="{% url 'design_consistency:project_detail' project.id %}">
+                        <div class="project-title">{{ project.name }}</div>
+                        <div class="project-meta">
+                            {% if project.code %}<span>代碼：{{ project.code }}</span>{% endif %}
+                            <span>更新：{{ project.updated_at|date:"Y-m-d H:i" }}</span>
+                            <span>檔案：{{ project.files.count }}</span>
+                        </div>
+                        {% if project.description %}
+                            <div class="panel-subtitle">{{ project.description|truncatechars:60 }}</div>
+                        {% endif %}
+                    </a>
+                {% empty %}
+                    <div class="empty-state">目前沒有專案。先建立第一個專案節點。</div>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+{% endblock %}
