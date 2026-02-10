@@ -30,6 +30,11 @@
                             監造冒險者公會 (測試中)
                         </a>
                     </h1>
+                     {% if user.is_superuser %}
+                        <a href="{% url 'engineer_rpg:admin_dashboard' %}" style="font-size: 0.8rem; color: rgba(255,255,255,0.3); text-decoration: none; margin-left: 10px;">
+                            <i class="fas fa-cogs"></i>
+                        </a>
+                    {% endif %}
                 </div>
 
                 {% if user.is_authenticated and user.rpg_profile %}
@@ -50,9 +55,7 @@
 
                 </div>
                 {% else %}
-                <div class="flex gap-sm">
                     <a href="{% url 'engineer_rpg:login' %}" class="rpg-btn">登入</a>
-                    <a href="{% url 'engineer_rpg:register' %}" class="rpg-btn rpg-btn-success">註冊</a>
                 </div>
                 {% endif %}
             </div>
@@ -111,14 +114,7 @@
                 </a>
             </li>
 
-            <!-- 圖鑑 -->
-            <li class="rpg-nav-item">
-                <a href="{% url 'engineer_rpg:codex_main' %}"
-                    class="rpg-nav-link {% if 'codex' in request.resolver_match.url_name %}active{% endif %}">
-                    <i class="rpg-nav-icon fas fa-book-open"></i>
-                    <span>圖鑑</span>
-                </a>
-            </li>
+
 
             <!-- 隊伍管理 - 所有人都可見 -->
             <li class="rpg-nav-item">

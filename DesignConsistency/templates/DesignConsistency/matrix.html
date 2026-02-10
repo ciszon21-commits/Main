@@ -1,0 +1,203 @@
+{% extends "DesignConsistency/base.html" %}
+{% load design_consistency_extras %}
+
+{% block title %}一致性矩陣｜工程設計資料一致性比對{% endblock %}
+
+{% block extra_css %}
+    .matrix-header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .matrix-header select {
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(12, 21, 32, 0.2);
+        background: rgba(255, 255, 255, 0.8);
+        min-width: 240px;
+    }
+
+    .matrix-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .matrix-table th,
+    .matrix-table td {
+        padding: 12px;
+        text-align: center;
+        border: 1px solid rgba(12, 21, 32, 0.12);
+    }
+
+    .matrix-table th {
+        background: rgba(31, 228, 193, 0.08);
+        font-weight: 600;
+    }
+
+    .matrix-table td.label {
+        text-align: left;
+        background: rgba(255, 255, 255, 0.8);
+        font-weight: 600;
+    }
+
+    .matrix-total {
+        background: rgba(255, 184, 92, 0.15);
+        font-weight: 600;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+    }
+
+    .summary-card {
+        padding: 14px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(12, 21, 32, 0.12);
+        display: grid;
+        gap: 6px;
+    }
+
+    .summary-label {
+        font-size: 12px;
+        color: var(--ink-soft);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+    }
+
+    .recent-issues {
+        display: grid;
+        gap: 12px;
+    }
+
+    .issue-card {
+        padding: 14px;
+        border-radius: 14px;
+        border: 1px solid rgba(12, 21, 32, 0.12);
+        background: rgba(255, 255, 255, 0.92);
+    }
+
+    .issue-meta {
+        font-size: 12px;
+        color: var(--ink-soft);
+    }
+
+    @media (max-width: 1100px) {
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 720px) {
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+{% endblock %}
+
+{% block content %}
+    <section class="panel">
+        <div class="matrix-header">
+            <div>
+                <div class="panel-title">一致性矩陣</div>
+                <div class="panel-subtitle">彙整最新比對批次的問題分佈與審核狀態。</div>
+            </div>
+            <form method="get">
+                <select name="project" onchange="this.form.submit()">
+                    {% for proj in projects %}
+                        <option value="{{ proj.id }}" {% if project and proj.id == project.id %}selected{% endif %}>
+                            {{ proj.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+    </section>
+
+    {% if latest_run %}
+        <section class="panel">
+            <div class="panel-title">比對摘要</div>
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-label">比對時間</div>
+                    <div>{{ latest_run.created_at|date:"Y-m-d H:i" }}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">預算項目</div>
+                    <div>{{ latest_run.result.summary.budget_rows }}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">數量項目</div>
+                    <div>{{ latest_run.result.summary.quantity_rows }}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">成功比對</div>
+                    <div>{{ latest_run.result.summary.matched_rows }}</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-title">問題矩陣</div>
+            <div class="panel-subtitle">行＝問題類型、列＝審核狀態。點擊線上報表可逐筆確認。</div>
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th>問題類型</th>
+                        {% for status_code, status_label in statuses %}
+                            <th>{{ status_label }}</th>
+                        {% endfor %}
+                        <th>合計</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for type_code, type_label in issue_types %}
+                        <tr>
+                            <td class="label">{{ type_label }}</td>
+                            {% for status_code, status_label in statuses %}
+                                <td>{{ matrix_counts|get_item:type_code|get_item:status_code }}</td>
+                            {% endfor %}
+                            <td class="matrix-total">{{ total_by_type|get_item:type_code }}</td>
+                        </tr>
+                    {% endfor %}
+                    <tr class="matrix-total">
+                        <td class="label">狀態合計</td>
+                        {% for status_code, status_label in statuses %}
+                            <td>{{ total_by_status|get_item:status_code }}</td>
+                        {% endfor %}
+                        <td class="matrix-total">{{ total_issues }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="panel">
+            <div class="panel-title">最新問題（前 10 筆）</div>
+            <div class="panel-subtitle">點擊報表可進一步檢視與註記。</div>
+            <div class="recent-issues">
+                {% for issue in recent_issues %}
+                    <div class="issue-card">
+                        <div><strong>{{ issue.get_issue_type_display }}</strong> · {{ issue.summary }}</div>
+                        <div class="issue-meta">狀態：{{ issue.get_status_display }} · {{ issue.created_at|date:"Y-m-d H:i" }}</div>
+                    </div>
+                {% empty %}
+                    <div class="panel-subtitle">目前尚無問題紀錄。</div>
+                {% endfor %}
+            </div>
+            <div style="margin-top:16px;">
+                <a class="btn btn-ghost" href="{% url 'design_consistency:report_detail' latest_run.id %}">前往線上報表</a>
+            </div>
+        </section>
+    {% else %}
+        <section class="panel">
+            <div class="panel-title">尚無比對結果</div>
+            <div class="panel-subtitle">請先在專案內上傳檔案並啟動比對。</div>
+        </section>
+    {% endif %}
+{% endblock %}

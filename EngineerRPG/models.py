@@ -68,6 +68,13 @@ class RPGTeam(models.Model):
         """檢查團隊是否已滿"""
         return self.get_member_count() >= self.max_members
 
+    @property
+    def current_members(self):
+        """回傳團隊中所有成員的 UserProfile QuerySet"""
+        return UserProfile.objects.filter(
+            rpg_team_memberships__team=self
+        ).select_related('user', 'character_class')
+
 
 class RPGTeamMember(models.Model):
     """RPG 團隊成員"""
