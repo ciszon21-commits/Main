@@ -61,6 +61,14 @@ function init() {
     container.appendChild(renderer.domElement);
     document.body.appendChild(VRButton.createButton(renderer));
 
+    // VR Session Logging
+    renderer.xr.addEventListener('sessionstart', () => {
+        logUserActivity('ENTER_VR', { method: 'VRButton' });
+    });
+    renderer.xr.addEventListener('sessionend', () => {
+        logUserActivity('EXIT_VR', { duration: 'unknown' });
+    });
+
     // Create Boundary (Visual Reference) - Techno Fluorescent (Thick Lines using Mesh)
     console.log("Creating VR Boundary...");
     const boundarySize = 20; // Total width/depth
@@ -453,6 +461,11 @@ function onMouseDown(event) {
             }
 
             if (target && target.userData.isInfoCard) {
+                logUserActivity('CLICK_OBJECT', {
+                    target_model: 'InfoCard',
+                    target_object_id: target.userData.infoCardId,
+                    target_object_str: target.userData.cardTitle
+                });
                 showCardDetail(target.userData.cardTitle, target.userData.cardContent);
             }
         }
@@ -617,4 +630,25 @@ function adjustOpacity(color, opacity) {
         return `rgba(${r}, ${g}, ${b}, ${opacity})`;
     }
     return color;
+}
+
+function logUserActivity(action, details = {}) {
+    // Only log if we have a valid CSRF token (meaning we are likely authenticated or at least in a session)
+    const csrftoken = getCookie('csrftoken');
+    if (!csrftoken) return;
+
+    fetch('/sinoVR/api/log/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({
+            action: action,
+            details: details,
+            target_model: details.target_model || '',
+            target_object_id: details.target_object_id || '',
+            target_object_str: details.target_object_str || ''
+        })
+    }).catch(err => console.error("Logging failed:", err));
 }

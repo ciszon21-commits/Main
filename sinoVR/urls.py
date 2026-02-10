@@ -18,4 +18,6 @@ urlpatterns = [
     path('api/panorama/<int:pk>/delete/', views.PanoramaDeleteView.as_view(), name='panorama_delete'),
     path('assets/', views.AssetManagementView.as_view(), name='asset_list'),
     path('management/read-logs/', views.ReadStatusListView.as_view(), name='read_logs'),
+    path('api/log/', views.UserActivityLogAPI.as_view(), name='log_activity'),
+    path('management/activity-logs/', views.UserActivityLogListView.as_view(), name='user_activity_list'),
 ]
