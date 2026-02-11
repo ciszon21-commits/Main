@@ -16,7 +16,8 @@ from .models import (
     CharacterClass, UserProfile, SkillNode, Course, UserSkill,
     PromotionRequest, EnhancementScroll, Achievement, UserAchievement,
     Team, TeamMembership, GuildPost, GuildComment, UserCourseProgress,
-    DailyTrialTask, AdminWhitelist, Trial, Question, QuestionCategory, TrialRecord
+    DailyTrialTask, AdminWhitelist, Trial, Question, QuestionCategory, TrialRecord,
+    Equipment, UserEquipment, Item, UserItem
 )
 
 from .forms import (
@@ -1022,7 +1023,7 @@ def promotion_requests(request):
         messages.error(request, '權限不足')
         return redirect('engineer_rpg:dashboard')
         
-    requests = PromotionRequest.objects.filter(status='PENDING').select_related('user_profile__user')
+    requests = PromotionRequest.objects.filter(status='PENDING').select_related('applicant__user')
     context = {
         'profile': profile,
         'requests': requests,
@@ -2075,10 +2076,25 @@ def skill_tree_editor(request):
     classes = CharacterClass.objects.all()
     selected_class = request.GET.get('class', 'CIVIL')
     
+    
+    # Filter skills by class
+    if selected_class:
+        skills = SkillNode.objects.filter(
+            Q(character_class__code=selected_class) | 
+            Q(character_class__isnull=True)
+        )
+    else:
+        skills = SkillNode.objects.all()
+
     return render(request, 'EngineerRPG/skill_tree_editor.html', {
         'profile': profile,
         'classes': classes,
-        'selected_class': selected_class
+        'selected_class': selected_class,
+        'skills': skills,
+        'courses': Course.objects.all(), # Also needed for courses checkbox list
+        # Budget calculation (simplified placeholders for now)
+        'root_xp_current': 0, 'root_xp_limit': 1000,
+        'core_xp_current': 0, 'core_xp_limit': 2000,
     })
 
 
@@ -2372,13 +2388,70 @@ def api_user_stats(request):
 
 def api_skill_tree_data(request):
     """API: 技能樹資料"""
-    return JsonResponse({'skills': []})
-
+    profile = get_or_create_user_profile(request.user)
+    
+    # 根據職業篩選技能
+    if profile.character_class:
+        skills = SkillNode.objects.filter(
+            Q(character_class=profile.character_class) | 
+            Q(character_class__isnull=True)
+        )
+    else:
+        skills = SkillNode.objects.none()
+        
+    data = []
+    for skill in skills:
+        # Check status
+        try:
+            user_skill = UserSkill.objects.get(user_profile=profile, skill_node=skill)
+            status = user_skill.status
+        except UserSkill.DoesNotExist:
+            status = 'LOCKED'
+            
+        data.append({
+            'id': skill.id,
+            'name': skill.name,
+            'description': skill.description,
+            'type': skill.node_type,
+            'x': skill.position_x,
+            'y': skill.position_y,
+            'status': status,
+            'parents': list(skill.parent_skills.values_list('id', flat=True)),
+            'level_required': skill.level_required,
+        })
+        
+    return JsonResponse({'skills': data})
 
 
 def api_skill_editor_data(request):
     """API: 技能編輯器資料"""
-    return JsonResponse({'skills': []})
+    if not has_whitelist_permission(request.user, 'MANAGER'):
+        return JsonResponse({'success': False}, status=403)
+        
+    class_code = request.GET.get('class')
+    if class_code:
+        skills = SkillNode.objects.filter(
+            Q(character_class__code=class_code) | 
+            Q(character_class__isnull=True)
+        )
+    else:
+        skills = SkillNode.objects.all()
+        
+    data = []
+    for skill in skills:
+        data.append({
+            'id': skill.id,
+            'name': skill.name,
+            'description': skill.description,
+            'type': skill.node_type,
+            'x': skill.position_x,
+            'y': skill.position_y,
+            'parents': list(skill.parent_skills.values_list('id', flat=True)),
+            'courses': list(skill.courses.values_list('id', flat=True)),
+            'class_code': skill.character_class.code if skill.character_class else None,
+        })
+        
+    return JsonResponse({'skills': data})
 
 
 

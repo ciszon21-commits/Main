@@ -694,10 +694,10 @@
     }
 
     function editSkill(skillId) {
-        fetch(`/rpg/api/skill-editor/data/?class=${currentClass}`)
+        fetch(`{% url 'engineer_rpg:api_skill_editor_data' %}?class=${currentClass}`)
             .then(res => res.json())
             .then(data => {
-                const skill = data.nodes.find(n => n.id === skillId);
+                const skill = data.skills.find(n => n.id === skillId);
                 if (skill) {
                     document.getElementById('modalTitle').textContent = '編輯技能';
                     document.getElementById('skillId').value = skill.id;
