@@ -1158,20 +1158,34 @@ def promotion_trial(request, request_id):
 @login_required
 def leaderboard(request):
     """排行榜"""
+    from StudioBase.constants import SINO_DEPT_DB
+    from datetime import timedelta
+
     profile = get_or_create_user_profile(request.user)
 
+    def _enrich(profiles):
+        """為每個 profile 附加 full_name 與 dept_display"""
+        for p in profiles:
+            p.full_name = p.user.get_full_name() or p.user.username
+            try:
+                emp_profile = p.user.profile  # UserProfile app 的 profile
+                p.dept_display = SINO_DEPT_DB.get(
+                    emp_profile.emp_dept, emp_profile.emp_dept or '') if emp_profile.emp_dept else ''
+            except Exception:
+                p.dept_display = ''
+        return profiles
+
     # 等級排行榜：有選擇職業的使用者，依等級＋經驗值排序，取前 20 名
-    level_ranking = (
+    level_ranking = _enrich(list(
         UserProfile.objects
         .filter(character_class__isnull=False)
         .select_related('user', 'character_class')
         .order_by('-level', '-experience')[:20]
-    )
+    ))
 
     # 本週試煉排行：依本週試煉次數排序
-    from datetime import timedelta
     week_start = timezone.now() - timedelta(days=7)
-    trial_ranking_qs = (
+    trial_ranking = _enrich(list(
         UserProfile.objects
         .filter(
             character_class__isnull=False,
@@ -1180,7 +1194,7 @@ def leaderboard(request):
         .select_related('user', 'character_class')
         .annotate(trial_count=Count('trial_records'))
         .order_by('-trial_count')[:20]
-    )
+    ))
 
     # 個人通過次數
     passed_trials_count = TrialRecord.objects.filter(
@@ -1190,7 +1204,7 @@ def leaderboard(request):
     context = {
         'profile': profile,
         'level_ranking': level_ranking,
-        'trial_ranking': trial_ranking_qs,
+        'trial_ranking': trial_ranking,
         'passed_trials_count': passed_trials_count,
     }
     return render(request, 'EngineerRPG/leaderboard.html', context)
