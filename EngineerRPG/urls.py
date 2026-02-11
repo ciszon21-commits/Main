@@ -4,10 +4,14 @@ from . import views
 app_name = 'engineer_rpg'
 
 urlpatterns = [
-    # 註冊與登入
-    path('register/', views.user_register, name='register'),
-    path('login/', views.user_login, name='login'),
-    path('logout/', views.user_logout, name='logout'),
+    # 註冊與登入 (已移除，改由外部與白名單管理)
+    # path('register/', views.user_register, name='register'),
+    # path('login/', views.user_login, name='login'),
+    
+    # 白名單管理
+    path('admin-panel/whitelist/', views.admin_whitelist_view, name='admin_whitelist'),
+    path('admin-panel/whitelist/add/', views.admin_whitelist_add, name='admin_whitelist_add'),
+    path('admin-panel/whitelist/<int:whitelist_id>/delete/', views.admin_whitelist_delete, name='admin_whitelist_delete'),
     
     # 首頁與儀表板
     path('', views.index, name='index'),

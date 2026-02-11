@@ -207,6 +207,26 @@ class UserProfile(models.Model):
             return f'/static/EngineerRPG/img/avatars/default_avatar_{avatar_index}.png'
 
 
+class AdminWhitelist(models.Model):
+    """管理員白名單"""
+    ROLE_CHOICES = [
+        ('OFFICER', '公會幹部'),
+        ('MANAGER', '公會會長'),
+    ]
+    
+    username = models.CharField('使用者帳號', max_length=150, unique=True, help_text='對應 User.username')
+    role = models.CharField('授予角色', max_length=20, choices=ROLE_CHOICES)
+    created_at = models.DateTimeField('建立時間', auto_now_add=True)
+    updated_at = models.DateTimeField('更新時間', auto_now=True)
+
+    class Meta:
+        verbose_name = '管理員白名單'
+        verbose_name_plural = '管理員白名單'
+
+    def __str__(self):
+        return f"{self.username} - {self.get_role_display()}"
+
+
 
 class SkillNode(models.Model):
     """技能節點 - 技能樹系統"""
