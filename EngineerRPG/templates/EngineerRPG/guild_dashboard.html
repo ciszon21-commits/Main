@@ -6,7 +6,6 @@
 {% block content %}
 <div class="rpg-container fade-in">
     <!-- 頁面標題 -->
-    <!-- 頁面標題 -->
     <div class="text-center mb-xl" style="position: relative;">
         <h2 class="rpg-title">
             <i class="fas fa-crown"></i> 公會大廳
@@ -83,7 +82,7 @@
                             {{ post.title }}</div>
                         <div style="font-size: 0.75rem; color: #FFD700;">
                             <i class="fas fa-comment"></i> {{ post.comments.count }} ·
-                            <i class="fas fa-user"></i> {{ post.author.user.username }}
+                            <i class="fas fa-user"></i> {{ post.author.display_name|default:post.author.user.username }}
                         </div>
                     </a>
                     {% endfor %}
@@ -96,43 +95,40 @@
 
     </div>
 
-    <!-- 下方：公會成員名錄 -->
+    <!-- 下方：公會成員名錄（按部門分組） -->
     <div class="rpg-card">
         <div class="rpg-card-header flex flex-between" style="align-items: center;">
             <h3 class="rpg-card-title"><i class="fas fa-users"></i> 公會成員名錄</h3>
         </div>
 
         <div class="rpg-card-body">
-            <!-- 冒險隊伍成員 -->
-            {% for team in teams %}
+            <!-- 各部門冒險者 -->
+            {% for dept in dept_groups.departments %}
             <div class="team-section mb-lg">
                 <h4 class="flex flex-between p-sm mb-sm"
                     style="background: rgba(var(--rgb-primary), 0.1); border-left: 4px solid var(--color-primary); color: var(--color-gold);">
-                    <span><i class="fas fa-shield-alt"></i> {{ team.name }}</span>
-                    <span class="text-stone" style="font-size: 0.9rem;">{{ team.current_members.count }} 人</span>
+                    <span><i class="fas fa-building"></i> {{ dept.name }}</span>
+                    <span class="text-stone" style="font-size: 0.9rem;">{{ dept.count }} 人</span>
                 </h4>
 
                 <div class="member-grid">
-                    {% for member in team.current_members.all %}
+                    {% for member in dept.members %}
                     <a href="{% url 'engineer_rpg:member_profile_detail' member.id %}?from=guild"
                         class="member-card-link">
                         <div class="member-card">
-                            <img src="{{ member.get_avatar_url }}" alt="{{ member.user.username }}"
+                            <img src="{{ member.get_avatar_url }}" alt="{{ member.display_name|default:member.user.username }}"
                                 class="member-avatar"
                                 style="border-color: {% if member.role == 'ADMIN' %}var(--color-danger){% elif member.role == 'MANAGER' %}var(--color-mech){% else %}var(--color-border){% endif %};">
 
                             <div class="member-info">
                                 <div class="member-name">
-                                    {{ member.user.username }}
+                                    {{ member.display_name|default:member.user.username }}
                                     {% if member.role == 'MANAGER' %}
                                     <i class="fas fa-crown" style="color: #FFD700; margin-left: 8px; font-size: 0.9rem;"
                                         title="公會會長"></i>
                                     {% elif member.role == 'OFFICER' %}
                                     <i class="fas fa-shield-alt"
                                         style="color: #FFD700; margin-left: 8px; font-size: 0.9rem;" title="公會幹部"></i>
-                                    {% elif team.leader == member.user %}
-                                    <i class="fas fa-star" style="color: #FFD700; margin-left: 8px; font-size: 0.9rem;"
-                                        title="隊長"></i>
                                     {% endif %}
                                 </div>
                                 <div class="member-meta">
@@ -147,26 +143,26 @@
             </div>
             {% endfor %}
 
-            <!-- 自由冒險者 -->
-            {% if free_members %}
+            <!-- 自由冒險者（無部門） -->
+            {% if dept_groups.free_members %}
             <div class="team-section">
                 <h4 class="flex flex-between p-sm mb-sm"
                     style="background: rgba(var(--rgb-stone), 0.1); border-left: 4px solid var(--color-stone); color: var(--color-stone);">
                     <span><i class="fas fa-user-tag"></i> 自由冒險者</span>
-                    <span class="text-stone" style="font-size: 0.9rem;">{{ free_members.count }} 人</span>
+                    <span class="text-stone" style="font-size: 0.9rem;">{{ dept_groups.free_count }} 人</span>
                 </h4>
 
                 <div class="member-grid">
-                    {% for member in free_members %}
+                    {% for member in dept_groups.free_members %}
                     <a href="{% url 'engineer_rpg:member_profile_detail' member.id %}?from=guild"
                         class="member-card-link">
                         <div class="member-card">
-                            <img src="{{ member.get_avatar_url }}" alt="{{ member.user.username }}"
+                            <img src="{{ member.get_avatar_url }}" alt="{{ member.display_name|default:member.user.username }}"
                                 class="member-avatar" style="border-color: var(--color-border);">
 
                             <div class="member-info">
                                 <div class="member-name">
-                                    {{ member.user.username }}
+                                    {{ member.display_name|default:member.user.username }}
                                     {% if member.role == 'MANAGER' %}
                                     <i class="fas fa-crown" style="color: #FFD700; margin-left: 8px; font-size: 0.9rem;"
                                         title="公會會長"></i>

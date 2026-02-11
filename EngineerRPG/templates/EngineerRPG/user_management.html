@@ -38,7 +38,7 @@
                         <td style="padding: var(--spacing-sm);">
                             <a href="{% url 'engineer_rpg:member_profile_detail' u_profile.id %}"
                                 style="color: var(--color-secondary); text-decoration: none; font-weight: 500;">
-                                {{ u_profile.user.username }}
+                                {{ u_profile.display_name|default:u_profile.user.username }}
                             </a>
                         </td>
                         <td style="padding: var(--spacing-sm);">{{ u_profile.character_class.name }}</td>
@@ -64,7 +64,7 @@
                                     <i class="fas fa-edit"></i>
                                 </a>
                                 <button
-                                    onclick="confirmDelete({{ u_profile.id }}, '{{ u_profile.user.username }}'); event.stopPropagation();"
+                                    onclick="confirmDelete({{ u_profile.id }}, '{{ u_profile.display_name|default:u_profile.user.username|escapejs }}'); event.stopPropagation();"
                                     class="rpg-btn rpg-btn-sm rpg-btn-danger" title="刪除">
                                     <i class="fas fa-trash"></i>
                                 </button>

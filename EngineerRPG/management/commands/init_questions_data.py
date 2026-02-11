@@ -40,7 +40,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "施工架之工作台，其寬度不得小於多少公分？",
@@ -56,7 +56,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "高度在多少公尺以上之高處作業，應設置護欄、護蓋或安全網等防護設備？",
@@ -72,7 +72,7 @@ QUESTIONS = [
         "difficulty": "A",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "關於合梯之使用，下列何者「錯誤」？",
@@ -88,7 +88,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "移動式起重機在作業前，應確實檢核何種安全裝置功能正常？",
@@ -104,7 +104,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "施工現場臨時用電，其分路開關應裝設何種設備以防止感電？",
@@ -120,7 +120,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "使用氧乙炔從事切斷作業時，氧氣瓶應與乙炔瓶保持距離或以何種設施隔離？",
@@ -136,7 +136,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "雇主對於進入營造工地之勞工，應使其確實佩戴何種防護具？",
@@ -152,7 +152,7 @@ QUESTIONS = [
         "difficulty": "A",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "於隧道、坑道內作業，若發現有甲烷、硫化氫等有害氣體之虞時，應採取何種措施？",
@@ -168,7 +168,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "吊裝鋼骨結構時，為防止作業人員墜落，應於下方裝設？",
@@ -184,7 +184,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "在公共工程三級品管體系中，第一級品管指的是什麼？",
@@ -200,7 +200,7 @@ QUESTIONS = [
         "difficulty": "A",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "監造計畫書應於工程開工前，由哪一個單位負責編製？",
@@ -216,7 +216,7 @@ QUESTIONS = [
         "difficulty": "A",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "監造單位對於施工廠商提送之「施工計畫」，應執行何種動作？",
@@ -232,7 +232,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "下列何者不屬於監造日報應填寫之內容？",
@@ -248,7 +248,7 @@ QUESTIONS = [
         "difficulty": "A",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "混凝土澆置作業前，監造工程師應現場檢驗何種項目以確保工作性？",
@@ -264,7 +264,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "當監造單位發現施工品質缺失時，應核發何種表單要求廠商改善？",
@@ -280,7 +280,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "材料檢驗之試體取樣，原則上應由誰在場監督並進行封樣？",
@@ -296,7 +296,7 @@ QUESTIONS = [
         "difficulty": "A",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "公共工程施工品質管理作業要點規定，監造單位應設置監造人員數額，係依據？",
@@ -312,7 +312,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "鋼筋進場檢驗時，除了核對數量外，最重要的是核對何種證明文件？",
@@ -328,7 +328,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "施工品質查驗紀錄中，若發現「不合格」，則下一動作為何？",
@@ -344,7 +344,7 @@ QUESTIONS = [
         "difficulty": "A",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "業主審查專案工程之品質政策與目標的時機應在何時？",
@@ -360,7 +360,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "工務行政",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "為達成工程品質目標，公共工程施工承包商應建立何種系統？",
@@ -376,7 +376,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "為確認工程品質管理執行之成效，工程主管機關可採用何種方式督促主辦單位及承包商落實品質管理？",
@@ -392,7 +392,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "行政院暨所屬機關辦理工程採購，其施工品質管理作業，除法令另有規定外，應依行政院頒定之何項法規辦理？",
@@ -408,7 +408,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "工務行政",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "根據公共工程施工品質管理作業要點之規定，機關應於何處明定廠商應提出品質計畫書送交業主審核？",
@@ -424,7 +424,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "工務行政",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "依據「公共工程施工品質管理作業要點」規定，承包商之品管組織及人員之資料應以書面於何時向主辦工程機關報核？",
@@ -440,7 +440,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "公共工程施工品質管理作業要點中的品管人員工作重點為何？",
@@ -456,7 +456,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "工程經施工品質評鑑列為待改善者，其何種人員應於機關通知廠商文到後兩週內完成更換？",
@@ -472,7 +472,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "工務行政",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "依據「公共工程施工品質評鑑作業要點」規定，查核金額以上之公共工程施工品質評鑑，以施工進度多少為主要對象？",
@@ -488,7 +488,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "工務行政",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "依據施工品質管理制度規定，廠商品質計畫之內容，除機關及監造單位另有規定外，應包括下列何者？",
@@ -504,7 +504,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "依據施工品質管理制度規定，廠商品質計畫之內容，應包括下列何項表單？",
@@ -520,7 +520,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "依據施工品質管理制度規定，廠商品質計畫之內容，應包括下列何項程序？",
@@ -536,7 +536,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "依據施工品質管理制度規定，廠商應擬定何種文件並落實執行？",
@@ -552,7 +552,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "品管人員應定期充實品管相關技能，取得結業證書逾期四年者，應再取得最近幾年品管人回訓證明，始得擔任品管人員？",
@@ -568,7 +568,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "工務行政",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "品質管理組織中之監造單位之主要工作項目，下列敘述何者有誤？",
@@ -584,7 +584,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "關於公共工程採購制度之擬議及督導是何者單位掌理事項？",
@@ -600,7 +600,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "工務行政",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "關於公共工程執行品質管理制度之研議及督導事項是何者單位掌理事項？",
@@ -616,7 +616,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "工務行政",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "關於公共工程法令規章及相關規範之研究、擬議事項是何者單位掌理事項？",
@@ -632,7 +632,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "工務行政",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "行政院頒布「公共工程施工品質管理制度」於民國幾年？",
@@ -648,7 +648,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "工務行政",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "何者代表全國公共工程品質的最高榮譽？",
@@ -664,7 +664,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "工務行政",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "優良工程必要條件推薦之工程施工進度需達多少以上，且進度落後幅度在5%以內？",
@@ -680,7 +680,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "工務行政",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "個人貢獻獎具備條件為推動公共工程品質，執行成效優良，近年內獲得工程主管機關評鑑為何種等級？",
@@ -696,7 +696,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "工務行政",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "品管人員應定期充實品管相關技能，取得結業證書逾四年者，應再取得回訓證明，其回訓總時數至少為多少小時？",
@@ -712,7 +712,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "工務行政",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "「公共工程品質躍升方案」除制度面研修並訂定相關品質管理法規外，並於執行上採取及全力推展之，以下何項為錯誤？",
@@ -728,7 +728,7 @@ QUESTIONS = [
         "difficulty": "A",
         "category_name": "工務行政",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "技師簽證報告內容不包括下列何者？",
@@ -744,7 +744,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "工務行政",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "各類公共工程，應實施技師簽證有幾種？",
@@ -760,7 +760,7 @@ QUESTIONS = [
         "difficulty": "A",
         "category_name": "工務行政",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "達成使命所運用的方法形成什麼？",
@@ -776,7 +776,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "多層次的重複檢驗並不足保障品質的觀念，是從何種角度探討品質？",
@@ -792,7 +792,7 @@ QUESTIONS = [
         "difficulty": "A",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "從管理品質的角度，達成外部品質需求之先決條件，是必須有一健全的什麼？",
@@ -808,7 +808,7 @@ QUESTIONS = [
         "difficulty": "A",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "檢驗製造階段的品管組織主要功能為何？",
@@ -824,7 +824,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "當進入管理品質的階段後，品管組織的功能就是在做什麼？",
@@ -840,7 +840,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "對成果實施檢驗只能達到何種效果？",
@@ -856,7 +856,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "以下何者屬於品質組織規劃功能之工作？",
@@ -872,7 +872,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "專案組織之品質成效應由何者認定？",
@@ -888,7 +888,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "專案品質組織之功能為何？",
@@ -904,7 +904,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "品管人員工作重點為依據工程契約、設計圖說、規範及相關技術法規等，訂定什麼？",
@@ -920,7 +920,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "依契約規定提報之品質計畫通常是指什麼？",
@@ -936,7 +936,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "CNS 12684-1 (ISO9004-1)對於品質計畫之規定，品質計畫須界定什麼？",
@@ -952,7 +952,7 @@ QUESTIONS = [
         "difficulty": "A",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "「編寫計畫書時所引用之公司品質系統文件、法規」應在品質計畫書的哪一部分加以說明？",
@@ -968,7 +968,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "「專案特色與特殊性」應在品質計畫書的哪一部分加以說明？",
@@ -984,7 +984,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "專案工作中進行「合約審查」的目的是什麼？",
@@ -1000,7 +1000,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "施工過程中為有效確認階段性之成果品質應實施什麼？",
@@ -1016,7 +1016,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "施工管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "發現缺失管制或處理是屬於哪方面的工作？",
@@ -1032,7 +1032,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "分包計畫、分包廠商品質能力的鑑定等規定，應在品質計畫哪一章節說明？",
@@ -1048,7 +1048,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "確認履行合約規定與承諾的工作是誰的品質系統規劃目標？",
@@ -1064,7 +1064,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "由認證委員會對於驗證機構或稽核員訓練機構所實施評鑑及稽核之程序稱之為什麼？",
@@ -1080,7 +1080,7 @@ QUESTIONS = [
         "difficulty": "A",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "營建相關產業廠商導入 ISO9000 之基本模式的第一步是什麼？",
@@ -1096,7 +1096,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "擬定各種計畫常用的方法是什麼？",
@@ -1112,7 +1112,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "品質管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "巨額採購於工程採購為新台幣多少金額？",
@@ -1128,7 +1128,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "工務行政",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "對於核計勞工所得有無低於基本工資，下列敘述何者有誤？",
@@ -1144,7 +1144,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "下列何者之工資日數得列入計算平均工資？",
@@ -1160,7 +1160,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "下列何者，非屬法定之勞工？",
@@ -1176,7 +1176,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "以下對於「例假」之敘述，何者有誤？",
@@ -1192,7 +1192,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "勞動基準法第84條之1規定之工作者，其工作時間下列何者正確？",
@@ -1208,7 +1208,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "依勞動基準法規定，雇主應置備勞工工資清冊並應保存幾年？",
@@ -1224,7 +1224,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "事業單位僱用勞工多少人以上者，應訂立工作規則？",
@@ -1240,7 +1240,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "職業安全衛生法之立法意旨為保障工作者安全與健康，防止下列何種災害？",
@@ -1256,7 +1256,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "事業單位之勞工代表如何產生？",
@@ -1272,7 +1272,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "對於職業災害之受領補償規定，下列敘述何者正確？",
@@ -1288,7 +1288,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "職業安全衛生委員會應每幾個月舉行會議1次？",
@@ -1304,7 +1304,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "預防職業病最根本的措施為何？",
@@ -1320,7 +1320,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "工作場所化學性有害物進入人體最常見路徑為下列何者？",
@@ -1336,7 +1336,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "雇主對低壓電氣設備，應多久定期實施檢查1次？",
@@ -1352,7 +1352,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "石綿最可能引起下列何種疾病？",
@@ -1368,7 +1368,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "下列何者不屬於職場暴力？",
@@ -1384,7 +1384,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "依勞工健康保護規則，多少人以上之事業單位應僱用或特約醫護人員？",
@@ -1400,7 +1400,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "安全標示中紅色代表下列何種意義？",
@@ -1416,7 +1416,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "對於高架作業，下列何種高度定義為具墜落危險？",
@@ -1432,7 +1432,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "施工管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "營造工程中，對於高度2公尺以上之工作場所，應設置下列何者？",
@@ -1448,7 +1448,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "施工管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "鋼管施工架之立柱，其垂直間隔應在多少公尺以下？",
@@ -1464,7 +1464,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "施工管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "雇主對於經由起重機具吊卸之載物，下列敘述何者正確？",
@@ -1480,7 +1480,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "使用手壓刨窗機作業，應裝設下列何種防護設備？",
@@ -1496,7 +1496,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "進入侷限空間作業前，應先進行下列何種程序？",
@@ -1512,7 +1512,7 @@ QUESTIONS = [
         "difficulty": "A",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "營造場所中，挖土機在挖掘時，下列何者正確？",
@@ -1528,7 +1528,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "施工管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "勞工遭遇職災死亡，雇主除喪葬費外應給予多少個月平均工資之死亡補償？",
@@ -1544,7 +1544,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "依規定，職業安全衛生管理計畫應多久修訂一次？",
@@ -1560,7 +1560,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "進行焊接作業時，為防護眼睛應配戴何種防護具？",
@@ -1576,7 +1576,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "下列何者為防止感電事故最直接有效的硬體設施？",
@@ -1592,7 +1592,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "一般營造工程中，露天開挖深度在多少公尺以上者應設置支撐？",
@@ -1608,7 +1608,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "施工管理",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "雇主對新進勞工應實施之檢查為下列何者？",
@@ -1624,7 +1624,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "搬運重物時，最正確的姿勢為何？",
@@ -1640,7 +1640,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "關於安全衛生自動檢查，下列何者為雇主責任？",
@@ -1656,7 +1656,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "化學性危害中，GHS 標示之「火焰」符號代表？",
@@ -1672,7 +1672,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "下列何種作業屬於高氣壓作業？",
@@ -1688,7 +1688,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "對於勞工在夏日戶外作業，為防止熱中暑，雇主應提供下列何者？",
@@ -1704,7 +1704,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "機器之傳動帶、齒輪等應裝設何種設施？",
@@ -1720,7 +1720,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "職業災害發生後，事業單位應於幾小時內通報檢查機構？",
@@ -1736,7 +1736,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "下列何者不是個人防護具(PPE)？",
@@ -1752,7 +1752,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "使用移動式起重機，應每幾年實施定期檢查？",
@@ -1768,7 +1768,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "長期暴露於高分貝噪音下，最易導致何種職業病？",
@@ -1784,7 +1784,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "依勞動基準法，產假應給予幾星期？",
@@ -1800,7 +1800,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "在電氣作業中，下列何者為良好的絕緣體？",
@@ -1816,7 +1816,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "發生火災時，使用滅火器的正確口訣為何？",
@@ -1832,7 +1832,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "所謂「危害告知」，雇主應在何時進行？",
@@ -1848,7 +1848,7 @@ QUESTIONS = [
         "difficulty": "C",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "對於女性勞工從事夜間工作，雇主應提供下列何者？",
@@ -1864,7 +1864,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "下列哪一種粉塵最容易引起塵肺症？",
@@ -1880,7 +1880,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "所謂 ISO 45001 是關於何種管理系統的標準？",
@@ -1896,7 +1896,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "電焊作業產生的「電光性眼炎」主要由何種射線引起？",
@@ -1912,7 +1912,7 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     },
     {
         "content": "使用階梯作業時，梯子與地面之傾斜角度應保持多少度較安全？",
@@ -1928,6 +1928,6 @@ QUESTIONS = [
         "difficulty": "B",
         "category_name": "職安衛",
         "tags": "",
-        "is_active": true
+        "is_active": True
     }
 ]

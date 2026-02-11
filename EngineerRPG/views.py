@@ -33,17 +33,13 @@ from .views_team_management import edit_team, manage_team_members, create_team
 def get_or_create_user_profile(user):
     """Get or create user profile"""
     try:
-        return user.rpg_profile
+        profile = user.rpg_profile
     except UserProfile.DoesNotExist:
-        # Create default profile
-        default_class = CharacterClass.objects.first()
-        if not default_class:
-            raise Exception("No character class available")
-        
+        # Create profile without a class — user must select one on first visit
         profile = UserProfile.objects.create(
             user=user,
             employee_id=f"EMP{user.id:04d}",
-            character_class=default_class
+            character_class=None
         )
     
     # Sync Roles from Whitelist or Superuser status
@@ -59,9 +55,6 @@ def get_or_create_user_profile(user):
                 profile.role = whitelist.role
                 profile.save(update_fields=['role'])
         else:
-            # If not in whitelist, ensure role is not privileged (unless we want to keep manual asignments? 
-            # User said "whitelist allows setting roles", implying exclusion -> default)
-            # Downgrade if they have privileged role but no longer in whitelist
             if profile.role in ['ADMIN', 'MANAGER', 'OFFICER']:
                 profile.role = 'ADVENTURER'
                 profile.save(update_fields=['role'])
@@ -80,13 +73,47 @@ def index(request):
     """Index page"""
     return render(request, 'EngineerRPG/index.html')
 
+
+@login_required
+def select_class(request):
+    """首次進入 RPG 模組時選擇職業"""
+    profile = get_or_create_user_profile(request.user)
+
+    # 已選過職業 → 直接回大廳
+    if profile.character_class is not None:
+        return redirect('engineer_rpg:dashboard')
+
+    classes = CharacterClass.objects.all()
+
+    if request.method == 'POST':
+        class_id = request.POST.get('class_id')
+        try:
+            chosen = CharacterClass.objects.get(id=class_id)
+            profile.character_class = chosen
+            profile.hp = chosen.base_hp
+            profile.mp = chosen.base_mp
+            profile.save(update_fields=['character_class', 'hp', 'mp'])
+            messages.success(request, f'你選擇了「{chosen.name}」！冒險旅程正式開始！')
+            return redirect('engineer_rpg:dashboard')
+        except CharacterClass.DoesNotExist:
+            messages.error(request, '請選擇有效的職業。')
+
+    context = {
+        'profile': profile,
+        'classes': classes,
+    }
+    return render(request, 'EngineerRPG/select_class.html', context)
+
+
 @login_required
 def dashboard(request):
     """冒險者大廳"""
     profile = get_or_create_user_profile(request.user)
-    if not profile:
-        return redirect('engineer_rpg:setup_profile')
-    
+
+    # 尚未選擇職業 → 導向職業選擇頁
+    if profile.character_class is None:
+        return redirect('engineer_rpg:select_class')
+
     # 獲取統計資訊
     total_skills = UserSkill.objects.filter(user_profile=profile).count()
     completed_skills = UserSkill.objects.filter(user_profile=profile, status='COMPLETED').count()
@@ -125,47 +152,43 @@ def dashboard(request):
 
 @login_required
 def profile_edit(request):
-    """編輯個人檔案"""
+    """編輯個人檔案 - 僅提供頭像選擇功能"""
     profile = get_or_create_user_profile(request.user)
-    if not profile:
-        return redirect('engineer_rpg:setup_profile')
 
     if request.method == 'POST':
-        form = UserProfileEditForm(request.POST, request.FILES)
-        if form.is_valid():
-            # 更新基本資訊
-            user = request.user
-            user.username = form.cleaned_data['username']
-            if form.cleaned_data['email']:
-                user.email = form.cleaned_data['email']
-            
-            # 密碼修改邏輯
-            new_password = form.cleaned_data.get('new_password')
-            old_password = form.cleaned_data.get('old_password')
-            
-            if new_password:
-                if not user.check_password(old_password):
-                    form.add_error('old_password', '原密碼輸入不正確')
-                else:
-                    user.set_password(new_password)
-                    user.save()
-                    from django.contrib.auth import update_session_auth_hash
-                    update_session_auth_hash(request, user)
-            
-            user.save()
-            messages.success(request, '個人檔案已更新！')
-            return redirect('engineer_rpg:dashboard')
-    else:
-        # 初始資料
-        initial_data = {
-            'username': request.user.username,
-            'email': request.user.email,
-        }
-        form = UserProfileEditForm(initial=initial_data)
-        
+        avatar_index = request.POST.get('avatar_index', '0')
+        avatar_image = request.FILES.get('avatar_image')
+
+        if avatar_image:
+            # 上傳自訂頭像
+            profile.avatar_image = avatar_image
+            profile.avatar_index = 0
+            profile.save()
+            messages.success(request, '頭像已更新！')
+        elif avatar_index and int(avatar_index) > 0:
+            # 選擇預設頭像
+            profile.avatar_index = int(avatar_index)
+            profile.avatar_image = None  # 清除上傳的頭像
+            profile.save()
+            messages.success(request, '頭像已更新！')
+        else:
+            messages.warning(request, '請選擇一個頭像。')
+
+        return redirect('engineer_rpg:profile_edit')
+
+    # 預設頭像資料 (1~20)
+    avatar_titles = [
+        '人類戰士', '人類法師', '人類弓手', '人類牧師',
+        '矮人戰士', '矮人工匠', '矮人守衛', '矮人獵人',
+        '精靈遊俠', '精靈賢者', '精靈刺客', '精靈吟遊',
+        '獸人狂戰', '獸人薩滿', '獸人獵手', '獸人鬥士',
+        '魔族術士', '魔族暗殺', '魔族召喚', '魔族領主',
+    ]
+    avatar_data = [(i + 1, avatar_titles[i]) for i in range(20)]
+
     context = {
         'profile': profile,
-        'form': form,
+        'avatar_data': avatar_data,
     }
     return render(request, 'EngineerRPG/profile_edit.html', context)
 
@@ -176,9 +199,7 @@ def profile_edit(request):
 def skill_tree(request):
     """技能樹主頁面"""
     profile = get_or_create_user_profile(request.user)
-    if not profile:
-        return redirect('engineer_rpg:setup_profile')
-    
+
     # 獲取職業與技能資料
     classes = CharacterClass.objects.all()
     selected_class_code = request.GET.get('class', profile.character_class.code)
@@ -315,28 +336,87 @@ def complete_skill(request, skill_id):
 def equipment_inventory(request):
     """個人裝備清單"""
     profile = get_or_create_user_profile(request.user)
+
+    # 自動為該使用者建立所有裝備記錄（若尚未建立）
+    all_equipment = Equipment.objects.all()
+    existing_ids = set(
+        UserEquipment.objects.filter(user_profile=profile).values_list('equipment_id', flat=True)
+    )
+    new_records = [
+        UserEquipment(user_profile=profile, equipment=eq, enhancement_level=0, is_equipped=False)
+        for eq in all_equipment if eq.id not in existing_ids
+    ]
+    if new_records:
+        UserEquipment.objects.bulk_create(new_records)
+
     user_equipments = UserEquipment.objects.filter(user_profile=profile).select_related('equipment')
+
+    # 建立當前裝備 dict
+    equipped = {
+        'helmet': profile.equipped_helmet,
+        'armor': profile.equipped_armor,
+        'boots': profile.equipped_boots,
+        'tool_1': profile.equipped_tool_1,
+        'tool_2': profile.equipped_tool_2,
+        'tool_3': profile.equipped_tool_3,
+    }
+
+    # 依類型分組，並加上解鎖狀態
+    def build_item_list(eq_type):
+        items = []
+        for ue in user_equipments.filter(equipment__equipment_type=eq_type).order_by('equipment__tier', 'equipment__required_level'):
+            items.append({
+                'user_equipment': ue,
+                'is_unlocked': profile.level >= ue.equipment.required_level,
+            })
+        return items
+
     context = {
         'profile': profile,
-        'user_equipments': user_equipments
+        'equipped': equipped,
+        'helmets': build_item_list('HELMET'),
+        'armors': build_item_list('ARMOR'),
+        'boots': build_item_list('BOOTS'),
+        'tools': build_item_list('TOOL'),
+        'enhancement_tickets': profile.enhancement_tickets,
     }
     return render(request, 'EngineerRPG/equipment_inventory.html', context)
 
 @login_required
 def equip_item(request, user_equipment_id):
     """穿戴裝備"""
+    if request.method != 'POST':
+        return redirect('engineer_rpg:equipment_inventory')
+
     profile = get_or_create_user_profile(request.user)
     user_equip = get_object_or_404(UserEquipment, id=user_equipment_id, user_profile=profile)
-    
-    # 卸下同部位裝備
-    UserEquipment.objects.filter(
-        user_profile=profile, 
-        equipment__slot=user_equip.equipment.slot,
-        is_equipped=True
-    ).update(is_equipped=False)
-    
+    eq_type = user_equip.equipment.equipment_type
+
+    if eq_type == 'TOOL':
+        # 工具類裝備需要指定欄位 (1~3)
+        slot = request.POST.get('slot', '1')
+        slot_field = f'equipped_tool_{slot}'
+        # 卸下該欄位原有裝備
+        old_equip = getattr(profile, slot_field, None)
+        if old_equip:
+            old_equip.is_equipped = False
+            old_equip.save()
+        # 設定新裝備
+        setattr(profile, slot_field, user_equip)
+    else:
+        # 防具類：根據 equipment_type 對應欄位
+        slot_map = {'HELMET': 'equipped_helmet', 'ARMOR': 'equipped_armor', 'BOOTS': 'equipped_boots'}
+        slot_field = slot_map.get(eq_type)
+        # 卸下同部位原有裝備
+        old_equip = getattr(profile, slot_field, None)
+        if old_equip:
+            old_equip.is_equipped = False
+            old_equip.save()
+        setattr(profile, slot_field, user_equip)
+
     user_equip.is_equipped = True
     user_equip.save()
+    profile.save()
     messages.success(request, f'已裝備：{user_equip.equipment.name}')
     return redirect('engineer_rpg:equipment_inventory')
 
@@ -347,6 +427,15 @@ def unequip_item(request, user_equipment_id):
     user_equip = get_object_or_404(UserEquipment, id=user_equipment_id, user_profile=profile)
     user_equip.is_equipped = False
     user_equip.save()
+
+    # 清除 profile 上的 FK 欄位
+    fk_fields = ['equipped_helmet', 'equipped_armor', 'equipped_boots',
+                 'equipped_tool_1', 'equipped_tool_2', 'equipped_tool_3']
+    for field in fk_fields:
+        if getattr(profile, f'{field}_id', None) == user_equip.id:
+            setattr(profile, field, None)
+    profile.save()
+
     messages.success(request, f'已卸下：{user_equip.equipment.name}')
     return redirect('engineer_rpg:equipment_inventory')
 
@@ -488,6 +577,9 @@ def start_trial(request, trial_id):
         'initial_mp': profile.get_total_mp(),
         'heart_range': range(1, max(profile.get_total_hp(), 5) + 1),
         'user_items': UserItem.objects.filter(user_profile=profile, quantity__gt=0).select_related('item'),
+        'time_limit': trial.time_limit_minutes,
+        'start_time': request.session['trial_start_time'],
+        'remaining_seconds': trial.time_limit_minutes * 60,
     }
     return render(request, 'EngineerRPG/trial_exam.html', context)
 
@@ -580,7 +672,23 @@ def next_question(request, trial_id):
         return redirect('engineer_rpg:submit_trial', trial_id=trial_id)
         
     next_question_obj = get_object_or_404(Question, id=question_ids[next_index])
-    
+
+    # 計算剩餘時間與 HP/MP
+    if daily_task_id:
+        from .models import DailyTrialProgress
+        progress = DailyTrialProgress.objects.get(user_profile=profile, daily_task_id=daily_task_id)
+        current_hp = progress.current_hp
+        current_mp = progress.current_mp
+        start_time = progress.started_at
+    else:
+        current_hp = request.session.get('trial_hp', 3)
+        current_mp = request.session.get('trial_mp', 100)
+        start_time_str = request.session.get('trial_start_time')
+        start_time = timezone.datetime.fromisoformat(start_time_str) if start_time_str else timezone.now()
+
+    elapsed = (timezone.now() - start_time).total_seconds()
+    remaining_seconds = max(0, int(trial.time_limit_minutes * 60 - elapsed))
+
     # 渲染下一題
     context = {
         'profile': profile,
@@ -588,10 +696,15 @@ def next_question(request, trial_id):
         'question': next_question_obj,
         'current_index': next_index,
         'total_questions': len(question_ids),
-        'remaining_hp': request.session.get('trial_hp'),
-        'remaining_mp': request.session.get('trial_mp'),
+        'base_hp': profile.get_total_hp(),
+        'initial_hp': current_hp,
+        'initial_mp': current_mp,
+        'heart_range': range(1, max(profile.get_total_hp(), 5) + 1),
         'is_daily_task': bool(daily_task_id),
         'user_items': UserItem.objects.filter(user_profile=profile, quantity__gt=0).select_related('item'),
+        'time_limit': trial.time_limit_minutes,
+        'start_time': start_time.isoformat(),
+        'remaining_seconds': remaining_seconds,
     }
     return render(request, 'EngineerRPG/trial_exam.html', context)
 
@@ -701,7 +814,7 @@ def daily_trial_list(request):
         'profile': profile,
         'task_progress_list': task_progress_list,
     }
-    return render(request, 'EngineerRPG/daily_trial_list.html', context)
+    return render(request, 'EngineerRPG/daily_trial.html', context)
 
 @login_required
 def start_daily_trial(request, task_id):
@@ -722,6 +835,8 @@ def start_daily_trial(request, task_id):
             'started_at': timezone.now(),
             'current_hp': profile.hp,
             'current_mp': profile.mp,
+            'initial_hp': profile.hp,
+            'initial_mp': profile.mp,
             'current_question_index': 0
         }
     )
@@ -749,7 +864,7 @@ def start_daily_trial(request, task_id):
     request.session['daily_task_id'] = daily_task.id  # 標記為每日任務
     request.session['trial_questions'] = [q.id for q in selected_questions]
     request.session['trial_start_time'] = progress.started_at.isoformat()
-    request.session['trial_answers'] = progress.answer_details
+    request.session['trial_answers'] = progress.answers
     request.session['current_question_index'] = progress.current_question_index
     request.session['trial_hp'] = progress.current_hp
     request.session['trial_mp'] = progress.current_mp
@@ -761,6 +876,9 @@ def start_daily_trial(request, task_id):
          
     current_question = selected_questions[progress.current_question_index]
     
+    elapsed = (timezone.now() - progress.started_at).total_seconds()
+    remaining_seconds = max(0, int(trial.time_limit_minutes * 60 - elapsed))
+
     context = {
         'profile': profile,
         'trial': trial,
@@ -775,6 +893,7 @@ def start_daily_trial(request, task_id):
         'is_daily_task': True,
         'time_limit': trial.time_limit_minutes,
         'start_time': progress.started_at.isoformat(),
+        'remaining_seconds': remaining_seconds,
     }
     return render(request, 'EngineerRPG/trial_exam.html', context)
         
@@ -825,55 +944,82 @@ def trial_record_detail(request, record_id):
 @login_required
 def submit_trial(request, trial_id):
     """提交試煉並結算"""
-    if request.method != 'POST':
-        return redirect('engineer_rpg:trial_detail', trial_id=trial_id)
-        
     profile = get_or_create_user_profile(request.user)
     trial = get_object_or_404(Trial, id=trial_id)
-    
+
     # 獲取題組
     question_ids = request.session.get('trial_questions', [])
-    questions = Question.objects.filter(id__in=question_ids)
-    
-    # 統計得分
-    correct_count = 0
+    if not question_ids:
+        messages.error(request, '找不到試煉資料，請重新開始。')
+        return redirect('engineer_rpg:dashboard')
+
+    questions = list(Question.objects.filter(id__in=question_ids))
     total_count = len(questions)
+
+    # 統計得分：優先使用 session 中逐題紀錄的答案（每日試煉/地下城逐題模式）
+    session_answers = request.session.get('trial_answers', {})
+    correct_count = 0
     answer_details = {}
-    
-    for question in questions:
-        user_answer = request.POST.get(f'question_{question.id}')
-        correct_answer = question.correct_answer
-        
-        if question.question_type == 'MULTIPLE':
-            user_answer_list = request.POST.getlist(f'question_{question.id}')
-            is_correct = set(user_answer_list) == set(correct_answer)
-        else:
-            is_correct = user_answer == correct_answer
-            
-        if is_correct:
-            correct_count += 1
-            
-        answer_details[str(question.id)] = {
-            'user_answer': user_answer,
-            'correct_answer': correct_answer,
-            'is_correct': is_correct,
-        }
-    
+
+    if session_answers:
+        # 逐題模式：答案已在 submit_answer 中記錄於 session
+        for question in questions:
+            qid = str(question.id)
+            ans = session_answers.get(qid, {})
+            is_correct = ans.get('is_correct', False)
+            user_answer = ans.get('user_answer', '')
+            if is_correct:
+                correct_count += 1
+            answer_details[qid] = {
+                'user_answer': user_answer,
+                'correct_answer': question.correct_answer,
+                'is_correct': is_correct,
+            }
+    else:
+        # 整頁提交模式（備用）
+        if request.method != 'POST':
+            return redirect('engineer_rpg:trial_detail', trial_id=trial_id)
+        for question in questions:
+            user_answer = request.POST.get(f'question_{question.id}')
+            correct_answer = question.correct_answer
+            if question.question_type == 'MULTIPLE':
+                user_answer_list = request.POST.getlist(f'question_{question.id}')
+                is_correct = set(user_answer_list) == set(correct_answer)
+            else:
+                is_correct = user_answer == str(correct_answer)
+            if is_correct:
+                correct_count += 1
+            answer_details[str(question.id)] = {
+                'user_answer': user_answer,
+                'correct_answer': correct_answer,
+                'is_correct': is_correct,
+            }
+
     # 計算時間
     start_time_str = request.session.get('trial_start_time')
     time_spent = 0
     if start_time_str:
         start_time = timezone.datetime.fromisoformat(start_time_str)
         time_spent = (timezone.now() - start_time).total_seconds()
-    
+
     # 計算血量
-    initial_hp = request.session.get('trial_hp', 3)
-    wrong_answers = total_count - correct_count
-    remaining_hp = max(0, initial_hp - (wrong_answers if not request.session.get('daily_task_id') else 0))
-    # 注意：每日試煉的 HP 已在 submit_answer 扣除，這裡處理的一般試煉
-    
+    daily_task_id = request.session.get('daily_task_id')
+    if daily_task_id:
+        # 每日試煉：HP 已在 submit_answer 中即時扣減，從 DailyTrialProgress 讀取
+        from .models import DailyTrialProgress
+        try:
+            progress = DailyTrialProgress.objects.get(user_profile=profile, daily_task_id=daily_task_id)
+            remaining_hp = progress.current_hp
+        except DailyTrialProgress.DoesNotExist:
+            remaining_hp = 1
+    else:
+        # 一般試煉
+        initial_hp = request.session.get('trial_hp', 3)
+        wrong_answers = total_count - correct_count
+        remaining_hp = max(0, initial_hp - wrong_answers)
+
     score = int((correct_count / total_count) * 100) if total_count > 0 else 0
-    is_passed = score >= 60 and (remaining_hp > 0 or request.session.get('daily_task_id'))
+    is_passed = score >= 60 and remaining_hp > 0
     
     # 經驗值與重複挑戰檢查
     is_dungeon_repeat = False
@@ -899,7 +1045,6 @@ def submit_trial(request, trial_id):
     )
     
     # 處理每日試煉相關
-    daily_task_id = request.session.get('daily_task_id')
     if daily_task_id:
         from .models import DailyTrialTask, DailyTrialProgress
         try:
@@ -951,28 +1096,36 @@ def submit_trial(request, trial_id):
 def apply_promotion(request):
     """晉升申請頁面"""
     profile = get_or_create_user_profile(request.user)
-    
-    # 檢查是否具備晉升資格 (例如 Intern -> Assistant 需要特定課程完成)
+
+    # 檢查是否具備晉升資格
     eligible = False
+    target_level = profile.level
     if profile.rank == 'INTERN' and profile.level >= 10:
         eligible = True
+        target_level = 10
     elif profile.rank == 'ASSISTANT' and profile.level >= 50:
         eligible = True
-        
-    if request.method == 'POST' and eligible:
+        target_level = 50
+
+    # 檢查是否已有待審核的申請
+    pending_request = PromotionRequest.objects.filter(
+        applicant=profile, status='PENDING'
+    ).first()
+
+    if request.method == 'POST' and eligible and not pending_request:
         # 建立申請紀錄
-        PromotionRequest.objects.get_or_create(
-            user_profile=profile,
-            current_rank=profile.rank,
-            target_rank='ASSISTANT' if profile.rank == 'INTERN' else 'ENGINEER',
-            status='PENDING'
+        PromotionRequest.objects.create(
+            applicant=profile,
+            current_level=profile.level,
+            target_level=target_level,
         )
         messages.success(request, '晉升申請已提交，請等待管理員審核。')
         return redirect('engineer_rpg:dashboard')
-        
+
     context = {
         'profile': profile,
         'eligible': eligible,
+        'pending_request': pending_request,
     }
     return render(request, 'EngineerRPG/apply_promotion.html', context)
 
@@ -1240,26 +1393,75 @@ def skill_tree_editor(request):
 
 # ==================== Guild Views ====================
 
+
+def _build_dept_groups(SINO_DEPT_DB, EmpProfile):
+    """建立按部門分組的冒險者列表"""
+    from collections import OrderedDict
+
+    # 建立 emp_dept → [user_id, ...] 的映射
+    emp_profiles = EmpProfile.objects.filter(
+        emp_dept__isnull=False
+    ).exclude(emp_dept='').values_list('user_id', 'emp_dept')
+
+    dept_user_map = {}   # dept_code → set(user_ids)
+    for uid, dept_code in emp_profiles:
+        dept_user_map.setdefault(dept_code, set()).add(uid)
+
+    # 取得所有 RPG UserProfile
+    all_rpg = (
+        UserProfile.objects
+        .select_related('user', 'character_class')
+        .order_by('-level')
+    )
+    rpg_by_user = {p.user_id: p for p in all_rpg}
+
+    dept_groups = []
+    for code in sorted(dept_user_map.keys(), key=lambda c: SINO_DEPT_DB.get(c, c)):
+        name = SINO_DEPT_DB.get(code, code)
+        members = [rpg_by_user[uid] for uid in dept_user_map[code] if uid in rpg_by_user]
+        members.sort(key=lambda m: -m.level)
+        if members:
+            dept_groups.append({
+                'code': code,
+                'name': name,
+                'members': members,
+                'count': len(members),
+            })
+
+    # 找出沒有部門的 RPG 成員
+    all_dept_user_ids = set()
+    for uids in dept_user_map.values():
+        all_dept_user_ids |= uids
+    free_members = [p for uid, p in rpg_by_user.items() if uid not in all_dept_user_ids]
+    free_members.sort(key=lambda m: -m.level)
+
+    return {
+        'departments': dept_groups,
+        'free_members': free_members,
+        'free_count': len(free_members),
+    }
+
+
 @login_required
 def guild_dashboard(request):
-    """冒險者公會儀表板"""
+    """公會大廳 — 以部門分組顯示所有冒險者"""
+    from collections import OrderedDict
+    from StudioBase.constants import SINO_DEPT_DB
+    from UserProfile.models import UserProfile as EmpProfile
+
     profile = get_or_create_user_profile(request.user)
-    
-    # 檢查主管權限
     is_manager = profile.role in ['OFFICER', 'MANAGER', 'ADMIN']
-    
-    # 獲取團隊與成員資料
-    teams = Team.objects.all().prefetch_related('current_members__user', 'current_members__character_class')
-    free_members = UserProfile.objects.filter(current_team__isnull=True).select_related('user', 'character_class')
-    
+
     # 布告欄摘要
     announcements = GuildPost.objects.filter(category='ANNOUNCEMENT').order_by('-created_at')[:5]
     hot_posts = GuildPost.objects.exclude(category='ANNOUNCEMENT').order_by('-views', '-created_at')[:5]
-    
+
+    # 建立部門分組
+    dept_groups = _build_dept_groups(SINO_DEPT_DB, EmpProfile)
+
     context = {
         'profile': profile,
-        'teams': teams,
-        'free_members': free_members,
+        'dept_groups': dept_groups,
         'announcements': announcements,
         'hot_posts': hot_posts,
         'is_manager': is_manager,
@@ -1574,9 +1776,27 @@ def team_remove_member(request, team_id, member_id):
 
 @login_required
 def member_profile_detail(request, member_id):
-    """Member profile detail"""
+    """成員個人檔案詳情"""
+    from StudioBase.constants import SINO_DEPT_DB
     profile = get_or_create_user_profile(request.user)
-    context = {'profile': profile}
+    member = get_object_or_404(UserProfile, id=member_id)
+
+    # 取得成員的部門資訊
+    dept_name = None
+    try:
+        emp_profile = member.user.profile
+        if emp_profile.emp_dept:
+            dept_name = SINO_DEPT_DB.get(emp_profile.emp_dept, emp_profile.emp_dept)
+    except Exception:
+        pass
+
+    from_page = request.GET.get('from', 'guild')
+    context = {
+        'profile': profile,
+        'member': member,
+        'dept_name': dept_name,
+        'from_page': from_page,
+    }
     return render(request, 'EngineerRPG/member_profile_detail.html', context)
 
 
@@ -1752,27 +1972,82 @@ def manage_team_members(request, team_id):
 
 @login_required
 def team_dashboard(request):
-    """Team dashboard - show user's team"""
-    profile = get_or_create_user_profile(request.user)
-    
-    if not profile.current_team:
+    """隊伍儀表板 — 顯示使用者所屬部門的成員"""
+    from StudioBase.constants import SINO_DEPT_DB
+    from UserProfile.models import UserProfile as EmpProfile
+
+    rpg_profile = get_or_create_user_profile(request.user)
+
+    # 取得使用者的部門代碼（來自 UserProfile app）
+    emp_dept = None
+    dept_name = None
+    try:
+        emp_profile = request.user.profile  # UserProfile app 的 profile
+        emp_dept = emp_profile.emp_dept
+        dept_name = SINO_DEPT_DB.get(emp_dept, emp_dept) if emp_dept else None
+    except Exception:
+        pass
+
+    if not emp_dept:
         context = {
-            'profile': profile,
-            'has_team': False,
+            'profile': rpg_profile,
+            'has_dept': False,
         }
     else:
-        team = profile.current_team
-        members = team.current_members.all().select_related('user', 'character_class').order_by('-level')
-        
+        # 找出同部門的所有使用者
+        same_dept_user_ids = (
+            EmpProfile.objects.filter(emp_dept=emp_dept)
+            .values_list('user_id', flat=True)
+        )
+        # 取得這些使用者的 RPG profile
+        dept_members = (
+            UserProfile.objects.filter(user_id__in=same_dept_user_ids)
+            .select_related('user', 'character_class')
+            .order_by('-level')
+        )
+
         context = {
-            'profile': profile,
-            'has_team': True,
-            'team': team,
-            'members': members,
-            'is_leader': team.is_leader(request.user),
+            'profile': rpg_profile,
+            'has_dept': True,
+            'dept_name': dept_name,
+            'dept_code': emp_dept,
+            'dept_members': dept_members,
         }
-    
+
     return render(request, 'EngineerRPG/team_dashboard.html', context)
+
+
+@login_required
+def api_search_users(request):
+    """API: 搜尋使用者（供白名單等功能的 autocomplete 使用）"""
+    from django.db.models import Q
+    from UserProfile.models import UserProfile as EmpProfile
+
+    profile = get_or_create_user_profile(request.user)
+    if not (request.user.is_superuser or profile.role == 'ADMIN'):
+        return JsonResponse({'results': []})
+
+    q = request.GET.get('q', '').strip()
+    if len(q) < 1:
+        return JsonResponse({'results': []})
+
+    # 搜尋 User.username 或 UserProfile.emp_name
+    emp_matches = (
+        EmpProfile.objects.filter(
+            Q(user__username__icontains=q) | Q(emp_name__icontains=q)
+        )
+        .select_related('user')[:20]
+    )
+
+    results = []
+    for ep in emp_matches:
+        results.append({
+            'username': ep.user.username,
+            'emp_name': ep.emp_name or '',
+            'display': f"{ep.emp_name} ({ep.user.username})" if ep.emp_name else ep.user.username,
+        })
+
+    return JsonResponse({'results': results})
 
 
 # ==================== Whitelist Management ====================
@@ -1878,31 +2153,28 @@ def has_whitelist_permission(user, required_role='MANAGER'):
 # ==================== Restored Missing Views ====================
 
 def guild_dashboard(request):
-    """公會概覽頁面"""
+    """公會大廳 — 以部門分組顯示所有冒險者 (Restored)"""
+    from collections import OrderedDict
+    from StudioBase.constants import SINO_DEPT_DB
+    from UserProfile.models import UserProfile as EmpProfile
+
     profile = get_or_create_user_profile(request.user)
     ann = GuildPost.objects.filter(category='ANNOUNCEMENT').order_by('-created_at')[:5]
-    posts = GuildPost.objects.exclude(category='ANNOUNCEMENT').order_by('-created_at')[:10]
 
-    # 熱門話題：依留言數 + 瀏覽數排序
     hot_posts = (GuildPost.objects.exclude(category='ANNOUNCEMENT')
                  .annotate(comment_count=Count('comments'))
                  .order_by('-comment_count', '-views')[:5])
 
-    # 成員名錄：有隊伍的團隊 & 自由冒險者
-    # 成員名錄：由 UserProfile 關聯查找
-    teams = Team.objects.all().select_related('leader')
-    members_users = TeamMembership.objects.values_list('user_id', flat=True)
-    free_members = UserProfile.objects.exclude(user_id__in=members_users).select_related('user', 'character_class')
-
     is_manager = profile.role in ('OFFICER', 'MANAGER', 'ADMIN')
+
+    # 建立部門分組
+    dept_groups = _build_dept_groups(SINO_DEPT_DB, EmpProfile)
 
     return render(request, 'EngineerRPG/guild_dashboard.html', {
         'profile': profile,
         'announcements': ann,
-        'recent_posts': posts,
         'hot_posts': hot_posts,
-        'teams': teams,
-        'free_members': free_members,
+        'dept_groups': dept_groups,
         'is_manager': is_manager,
     })
 

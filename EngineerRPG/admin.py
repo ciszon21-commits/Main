@@ -1,7 +1,20 @@
+import os
 from django.contrib import admin
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
+from django.templatetags.static import static
+
+
+def _equipment_icon_static_url(icon_value):
+    """將 media 路徑轉換為 static URL"""
+    if not icon_value:
+        return ''
+    icon_str = str(icon_value)
+    if icon_str.startswith('EngineerRPG/img/equipment_icons/'):
+        return static(icon_str)
+    filename = os.path.basename(icon_str)
+    return static(f'EngineerRPG/img/equipment_icons/{filename}')
 from .models import (
     CharacterClass, UserProfile, SkillNode, Course, UserSkill,
     Equipment, UserEquipment, Item, UserItem, Question, Trial, TrialRecord,
@@ -123,34 +136,38 @@ class UserSkillAdmin(admin.ModelAdmin):
 
 @admin.register(Equipment)
 class EquipmentAdmin(admin.ModelAdmin):
-    list_display = ['name', 'equipment_type', 'rarity', 'hp_bonus', 'mp_bonus', 'required_level', 'icon_preview']
-    list_filter = ['equipment_type', 'rarity', 'required_level']
+    list_display = ['name', 'equipment_type', 'tier', 'rarity', 'hp_bonus', 'mp_bonus', 'required_level', 'icon_preview']
+    list_filter = ['equipment_type', 'tier', 'rarity', 'required_level']
     search_fields = ['name', 'description']
-    
+
     fieldsets = (
         ('基本資訊', {
-            'fields': ('name', 'description', 'equipment_type', 'rarity')
+            'fields': ('name', 'description', 'equipment_type', 'rarity', 'tier')
         }),
         ('屬性加成', {
-            'fields': ('hp_bonus', 'mp_bonus')
+            'fields': ('hp_bonus', 'mp_bonus', 'damage_reduction')
         }),
         ('技能效果', {
             'fields': ('skill_effect', 'skill_description', 'mp_cost')
+        }),
+        ('+9 特殊能力', {
+            'fields': ('special_ability_name', 'special_ability_description')
         }),
         ('解鎖條件', {
             'fields': ('required_skill', 'required_level')
         }),
         ('強化', {
-            'fields': ('max_enhancement',)
+            'fields': ('max_enhancement', 'enhancement_rules')
         }),
         ('視覺', {
             'fields': ('icon',)
         }),
     )
-    
+
     def icon_preview(self, obj):
         if obj.icon:
-            return format_html('<img src="{}" width="50" height="50" />', obj.icon.url)
+            url = _equipment_icon_static_url(obj.icon)
+            return format_html('<img src="{}" width="50" height="50" />', url)
         return '-'
     icon_preview.short_description = '圖示'
 
@@ -167,7 +184,7 @@ class ItemAdmin(admin.ModelAdmin):
     list_display = ['name', 'item_type', 'rarity', 'effect_type', 'effect_value', 'icon_preview']
     list_filter = ['item_type', 'rarity', 'effect_type']
     search_fields = ['name', 'description']
-    
+
     fieldsets = (
         ('基本資訊', {
             'fields': ('name', 'description', 'item_type', 'rarity')
@@ -179,10 +196,11 @@ class ItemAdmin(admin.ModelAdmin):
             'fields': ('icon',)
         }),
     )
-    
+
     def icon_preview(self, obj):
         if obj.icon:
-            return format_html('<img src="{}" width="50" height="50" />', obj.icon.url)
+            url = _equipment_icon_static_url(obj.icon)
+            return format_html('<img src="{}" width="50" height="50" />', url)
         return '-'
     icon_preview.short_description = '圖示'
 

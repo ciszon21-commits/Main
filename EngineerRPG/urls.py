@@ -12,10 +12,12 @@ urlpatterns = [
     path('admin-panel/whitelist/', views.admin_whitelist_view, name='admin_whitelist'),
     path('admin-panel/whitelist/add/', views.admin_whitelist_add, name='admin_whitelist_add'),
     path('admin-panel/whitelist/<int:whitelist_id>/delete/', views.admin_whitelist_delete, name='admin_whitelist_delete'),
+    path('api/search-users/', views.api_search_users, name='api_search_users'),
     
     # 首頁與儀表板
     path('', views.index, name='index'),
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('select-class/', views.select_class, name='select_class'),
     path('profile/edit/', views.profile_edit, name='profile_edit'),
     
     # 技能樹

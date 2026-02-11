@@ -94,7 +94,7 @@ class UserProfile(models.Model):
     
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='rpg_profile')
     employee_id = models.CharField('員工編號', max_length=20, unique=True)
-    character_class = models.ForeignKey(CharacterClass, on_delete=models.PROTECT, verbose_name='職業')
+    character_class = models.ForeignKey(CharacterClass, on_delete=models.PROTECT, verbose_name='職業', null=True, blank=True)
     role = models.CharField('角色權限', max_length=20, choices=ROLE_CHOICES, default='ADVENTURER')
     
     # 角色屬性
@@ -148,7 +148,12 @@ class UserProfile(models.Model):
         verbose_name_plural = '使用者檔案'
         
     def __str__(self):
-        return f"{self.user.username} - {self.character_class.name} Lv.{self.level}"
+        return f"{self.user.username} ({self.get_role_display()})"
+
+    @property
+    def display_name(self):
+        """回傳使用者的全名，若無則回傳使用者名稱"""
+        return self.user.get_full_name() or self.user.username
     
     def get_total_hp(self):
         """計算總 HP（基礎隨等級成長 + 裝備加成）
@@ -401,7 +406,8 @@ class Equipment(models.Model):
     max_enhancement = models.IntegerField('最大強化等級', default=9)
     
     # 視覺
-    icon = models.ImageField('裝備圖示', upload_to='rpg/equipment_icons/', null=True, blank=True)
+    # 視覺
+    icon = models.CharField('裝備圖示路徑', max_length=255, default='', blank=True, help_text='請輸入 static 資料夾下的相對路徑')
     
     created_at = models.DateTimeField('建立時間', auto_now_add=True)
     
@@ -508,7 +514,8 @@ class Item(models.Model):
     effect_value = models.IntegerField('效果數值', default=0, help_text='例如：回復10% HP則填10，延長30秒則填30')
     
     # 視覺
-    icon = models.ImageField('道具圖示', upload_to='rpg/item_icons/', null=True, blank=True)
+    # 視覺
+    icon = models.CharField('道具圖示路徑', max_length=255, default='', blank=True, help_text='請輸入 static 資料夾下的相對路徑')
     
     created_at = models.DateTimeField('建立時間', auto_now_add=True)
     
