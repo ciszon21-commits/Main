@@ -11,9 +11,8 @@ class Command(BaseCommand):
         # Artifact directory where AI images are saved
         ARTIFACT_DIR = r"C:\Users\07729\.gemini\antigravity\brain\7c95bff2-3df4-4c3c-a6ac-41da9887f44e"
         
-        # Target directory - 使用 APP 內的 static 目錄
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        TARGET_DIR = os.path.join(app_dir, 'static', 'EngineerRPG', 'img', 'equipment_icons')
+        # Target directory
+        TARGET_DIR = os.path.join(settings.MEDIA_ROOT, 'rpg', 'equipment_icons')
         os.makedirs(TARGET_DIR, exist_ok=True)
 
         # Mapping: prefix -> (Type, Tier, NameKeyword)
@@ -68,8 +67,8 @@ class Command(BaseCommand):
                     
                     shutil.copy2(source_path, target_path)
                     
-                    # Update DB - 儲存相對於 static 的路徑
-                    equipment.icon = f"EngineerRPG/img/equipment_icons/{target_filename}"
+                    # Update DB
+                    equipment.icon = f"rpg/equipment_icons/{target_filename}"
                     equipment.save()
                     
                     self.stdout.write(self.style.SUCCESS(f"Updated {equipment.name} (ID {equipment.id}) from {source_filename}"))
@@ -78,4 +77,3 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR(f"Error updating {prefix}: {str(e)}"))
 
         self.stdout.write(self.style.SUCCESS('Icon update complete.'))
-

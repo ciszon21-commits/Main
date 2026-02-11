@@ -1,186 +1,186 @@
-{% extends 'EngineerRPG/base.html' %}
-{% load static %}
-
-{% block title %}{{ record.trial.title }} - 挑戰結果{% endblock %}
-
-{% block content %}
-<div class="rpg-container">
-    <div class="result-header text-center mb-xl">
-        <div class="result-badge {% if record.is_passed %}passed pulse-animation{% else %}failed{% endif %}">
-            {% if record.is_passed %}
-            <i class="fas fa-trophy"></i> 挑戰成功
-            {% else %}
-            <i class="fas fa-times-circle"></i> 挑戰失敗
-            {% endif %}
-        </div>
-        <h1 class="result-title">{{ record.trial.title }}</h1>
-        <div class="result-score">
-            得分: <span class="score-value {% if record.is_passed %}text-success{% else %}text-danger{% endif %}">{{
-                record.score }}</span> / 100
-        </div>
-    </div>
-
-    <div class="grid grid-2-1 gap-xl">
-        <div class="result-stats">
-            <div class="rpg-card mb-lg">
-                <h3 class="mb-lg"><i class="fas fa-chart-bar"></i> 成績統計</h3>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-label">答對題數</div>
-                        <div class="stat-value">{{ record.correct_answers }} / {{ record.total_questions }}</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">耗時</div>
-                        <div class="stat-value">{{ record.time_spent_seconds }} 秒</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">獲得經驗</div>
-                        <div class="stat-value text-warning">+{{ record.exp_gained }} XP</div>
-                    </div>
-                    {% if record.equipment_gained %}
-                    <div class="stat-item">
-                        <div class="stat-label">獲得裝備</div>
-                        <div class="stat-value text-primary">{{ record.equipment_gained.name }}</div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="rpg-card">
-                <h3 class="mb-lg"><i class="fas fa-list-alt"></i> 答題詳情</h3>
-                <div class="answer-details">
-                    {% for q_id, detail in record.answer_details.items %}
-                    <div class="answer-item {% if detail.is_correct %}correct{% else %}incorrect{% endif %}">
-                        <div class="answer-status">
-                            {% if detail.is_correct %}
-                            <i class="fas fa-check text-success"></i>
-                            {% else %}
-                            <i class="fas fa-times text-danger"></i>
-                            {% endif %}
-                        </div>
-                        <div class="answer-info">
-                            <div class="answer-question">第 {{ forloop.counter }} 題</div>
-                            <div class="answer-compare">
-                                <span class="user-ans">您的答案: {{ detail.user_answer }}</span>
-                                {% if not detail.is_correct %}
-                                <span class="correct-ans">正確答案: {{ detail.correct_answer }}</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-
-        <div class="result-actions">
-            <div class="rpg-card text-center">
-                <h3 class="mb-lg">下一步</h3>
-                <a href="{% url 'engineer_rpg:daily_trial_list' %}" class="rpg-btn rpg-btn-primary w-100 mb-md">
-                    <i class="fas fa-undo"></i> 返回試煉列表
-                </a>
-                <a href="{% url 'engineer_rpg:dashboard' %}" class="rpg-btn rpg-btn-secondary w-100">
-                    <i class="fas fa-home"></i> 回首頁
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<style>
-    .result-badge {
-        font-size: 3rem;
-        margin-bottom: var(--spacing-md);
-        display: inline-block;
-        padding: 20px 40px;
-        border-radius: 50px;
-        border: 4px solid currentColor;
-        background: rgba(0, 0, 0, 0.5);
-    }
-
-    .result-badge.passed {
-        color: var(--color-success);
-        box-shadow: 0 0 30px var(--color-success);
-    }
-
-    .result-badge.failed {
-        color: var(--color-danger);
-        box-shadow: 0 0 30px var(--color-danger);
-    }
-
-    .result-title {
-        font-size: 2.5rem;
-        margin-bottom: var(--spacing-md);
-    }
-
-    .result-score {
-        font-size: 2rem;
-        color: var(--color-stone);
-    }
-
-    .score-value {
-        font-weight: bold;
-        font-size: 3rem;
-    }
-
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: var(--spacing-lg);
-    }
-
-    .stat-item {
-        background: rgba(255, 255, 255, 0.05);
-        padding: var(--spacing-md);
-        border-radius: 8px;
-        text-align: center;
-    }
-
-    .stat-label {
-        color: var(--color-stone);
-        font-size: 0.9rem;
-        margin-bottom: 5px;
-    }
-
-    .stat-value {
-        font-size: 1.5rem;
-        font-weight: bold;
-    }
-
-    .answer-item {
-        display: flex;
-        align-items: center;
-        padding: 10px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .answer-item:last-child {
-        border-bottom: none;
-    }
-
-    .answer-status {
-        width: 30px;
-        font-size: 1.2rem;
-        text-align: center;
-        margin-right: 15px;
-    }
-
-    .answer-info {
-        flex-grow: 1;
-    }
-
-    .answer-compare {
-        font-size: 0.9rem;
-        color: #ddd;
-        margin-top: 4px;
-    }
-
-    .user-ans {
-        margin-right: 15px;
-    }
-
-    .correct-ans {
-        color: var(--color-success);
-    }
-</style>
-{% endblock %}
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}{{ record.trial.title }} - 挑戰結果{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <div class="result-header text-center mb-xl">
+        <div class="result-badge {% if record.is_passed %}passed pulse-animation{% else %}failed{% endif %}">
+            {% if record.is_passed %}
+            <i class="fas fa-trophy"></i> 挑戰成功
+            {% else %}
+            <i class="fas fa-times-circle"></i> 挑戰失敗
+            {% endif %}
+        </div>
+        <h1 class="result-title">{{ record.trial.title }}</h1>
+        <div class="result-score">
+            得分: <span class="score-value {% if record.is_passed %}text-success{% else %}text-danger{% endif %}">{{
+                record.score }}</span> / 100
+        </div>
+    </div>
+
+    <div class="grid grid-2-1 gap-xl">
+        <div class="result-stats">
+            <div class="rpg-card mb-lg">
+                <h3 class="mb-lg"><i class="fas fa-chart-bar"></i> 成績統計</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">答對題數</div>
+                        <div class="stat-value">{{ record.correct_answers }} / {{ record.total_questions }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">耗時</div>
+                        <div class="stat-value">{{ record.time_spent_seconds }} 秒</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">獲得經驗</div>
+                        <div class="stat-value text-warning">+{{ record.exp_gained }} XP</div>
+                    </div>
+                    {% if record.equipment_gained %}
+                    <div class="stat-item">
+                        <div class="stat-label">獲得裝備</div>
+                        <div class="stat-value text-primary">{{ record.equipment_gained.name }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="rpg-card">
+                <h3 class="mb-lg"><i class="fas fa-list-alt"></i> 答題詳情</h3>
+                <div class="answer-details">
+                    {% for q_id, detail in record.answer_details.items %}
+                    <div class="answer-item {% if detail.is_correct %}correct{% else %}incorrect{% endif %}">
+                        <div class="answer-status">
+                            {% if detail.is_correct %}
+                            <i class="fas fa-check text-success"></i>
+                            {% else %}
+                            <i class="fas fa-times text-danger"></i>
+                            {% endif %}
+                        </div>
+                        <div class="answer-info">
+                            <div class="answer-question">第 {{ forloop.counter }} 題</div>
+                            <div class="answer-compare">
+                                <span class="user-ans">您的答案: {{ detail.user_answer }}</span>
+                                {% if not detail.is_correct %}
+                                <span class="correct-ans">正確答案: {{ detail.correct_answer }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="result-actions">
+            <div class="rpg-card text-center">
+                <h3 class="mb-lg">下一步</h3>
+                <a href="{% url 'engineer_rpg:daily_trial_list' %}" class="rpg-btn rpg-btn-primary w-100 mb-md">
+                    <i class="fas fa-undo"></i> 返回試煉列表
+                </a>
+                <a href="{% url 'engineer_rpg:dashboard' %}" class="rpg-btn rpg-btn-secondary w-100">
+                    <i class="fas fa-home"></i> 回首頁
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .result-badge {
+        font-size: 3rem;
+        margin-bottom: var(--spacing-md);
+        display: inline-block;
+        padding: 20px 40px;
+        border-radius: 50px;
+        border: 4px solid currentColor;
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+    .result-badge.passed {
+        color: var(--color-success);
+        box-shadow: 0 0 30px var(--color-success);
+    }
+
+    .result-badge.failed {
+        color: var(--color-danger);
+        box-shadow: 0 0 30px var(--color-danger);
+    }
+
+    .result-title {
+        font-size: 2.5rem;
+        margin-bottom: var(--spacing-md);
+    }
+
+    .result-score {
+        font-size: 2rem;
+        color: var(--color-stone);
+    }
+
+    .score-value {
+        font-weight: bold;
+        font-size: 3rem;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-lg);
+    }
+
+    .stat-item {
+        background: rgba(255, 255, 255, 0.05);
+        padding: var(--spacing-md);
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    .stat-label {
+        color: var(--color-stone);
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
+    .answer-item {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .answer-item:last-child {
+        border-bottom: none;
+    }
+
+    .answer-status {
+        width: 30px;
+        font-size: 1.2rem;
+        text-align: center;
+        margin-right: 15px;
+    }
+
+    .answer-info {
+        flex-grow: 1;
+    }
+
+    .answer-compare {
+        font-size: 0.9rem;
+        color: #ddd;
+        margin-top: 4px;
+    }
+
+    .user-ans {
+        margin-right: 15px;
+    }
+
+    .correct-ans {
+        color: var(--color-success);
+    }
+</style>
+{% endblock %}

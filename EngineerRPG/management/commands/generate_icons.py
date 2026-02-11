@@ -39,18 +39,15 @@ class Command(BaseCommand):
         # Simple centered text (rudimentary centering)
         d.text((40, 50), initials, fill="white")
         
-        # Save to static directory
+        # Save
         filename = f"icon_{equipment.id}_{equipment.equipment_type}.png"
-        # 使用 APP 內的 static 目錄
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        save_dir = os.path.join(app_dir, 'static', 'EngineerRPG', 'img', 'equipment_icons')
+        save_dir = os.path.join(settings.MEDIA_ROOT, 'rpg', 'equipment_icons')
         os.makedirs(save_dir, exist_ok=True)
         
         file_path = os.path.join(save_dir, filename)
         img.save(file_path)
         
-        # Update model - 儲存相對於 static 的路徑
-        equipment.icon = f"EngineerRPG/img/equipment_icons/{filename}"
+        # Update model
+        equipment.icon = f"rpg/equipment_icons/{filename}"
         equipment.save()
         print(f"Generated icon for {equipment.name}: {file_path}")
-

@@ -4,17 +4,23 @@ from . import views
 app_name = 'engineer_rpg'
 
 urlpatterns = [
-    # 註冊與登入
-    path('login/', views.user_login, name='login'),
-    path('logout/', views.user_logout, name='logout'),
+    # 註冊與登入 (已移除，改由外部與白名單管理)
+    # path('register/', views.user_register, name='register'),
+    # path('login/', views.user_login, name='login'),
+    
+    # 白名單管理
+    path('admin-panel/whitelist/', views.admin_whitelist_view, name='admin_whitelist'),
+    path('admin-panel/whitelist/add/', views.admin_whitelist_add, name='admin_whitelist_add'),
+    path('admin-panel/whitelist/<int:whitelist_id>/delete/', views.admin_whitelist_delete, name='admin_whitelist_delete'),
+    path('api/search-users/', views.api_search_users, name='api_search_users'),
     
     # 首頁與儀表板
     path('', views.index, name='index'),
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('select-class/', views.select_class, name='select_class'),
     path('profile/edit/', views.profile_edit, name='profile_edit'),
-    path('profile/select-class/', views.select_character_class, name='select_character_class'),
     
-    # 技能樹與課程系統
+    # 技能樹
     path('skill-tree/', views.skill_tree, name='skill_tree'),
     path('skill/<int:skill_id>/', views.skill_detail, name='skill_detail'),
     path('skill/<int:skill_id>/start/', views.start_learning, name='start_learning'),
@@ -64,7 +70,6 @@ urlpatterns = [
     # 管理員介面（創世神）
     path('admin-panel/', views.admin_dashboard, name='admin_dashboard'),
     path('admin-panel/users/', views.user_management, name='user_management'),
-    path('admin-panel/whitelist/', views.admin_whitelist_management, name='admin_whitelist_management'),
 
     # 公會系統
     path('guild/', views.guild_dashboard, name='guild_dashboard'),  # 公會大廳
@@ -127,13 +132,4 @@ urlpatterns = [
     
     # 成員詳細資料（公會會長專用）
     path('member/<int:member_id>/profile/', views.member_profile_detail, name='member_profile_detail'),
-
-    # 圖鑑系統 (已隱藏)
-    # path('codex/', views.codex_main, name='codex_main'),
-    # path('codex/equipment/', views.codex_equipment, name='codex_equipment'),
-    # path('codex/equipment/<int:equipment_id>/', views.codex_equipment_detail, name='codex_equipment_detail'),
-    # path('codex/items/', views.codex_items, name='codex_items'),
-    # path('codex/items/<int:item_id>/', views.codex_item_detail, name='codex_item_detail'),
-    # path('codex/skills/', views.codex_skills, name='codex_skills'),
-    # path('codex/obtain-guide/', views.codex_obtain_guide, name='codex_obtain_guide'),
 ]

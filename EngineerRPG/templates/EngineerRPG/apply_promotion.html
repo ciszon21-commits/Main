@@ -5,164 +5,166 @@
 
 {% block content %}
 <div class="rpg-container">
-    <div class="mb-lg">
+    <div class="mb-xl">
         <h1 class="text-center">
-            <i class="fas fa-level-up-alt"></i>
-            申請晉升
+            <i class="fas fa-level-up-alt"></i> 申請晉升
         </h1>
         <p class="text-center" style="color: var(--color-secondary); font-size: 1.1rem;">
-            提升您的角色等級，解鎖更多技能
+            達成條件即可申請職銜晉升
         </p>
     </div>
 
-    <!-- 當前狀態卡片 -->
-    <div class="rpg-card mb-lg" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(0, 0, 0, 0.3));">
-        <h2 class="mb-md">
-            <i class="fas fa-user-circle"></i> 當前狀態
-        </h2>
+    <!-- 目前狀態 -->
+    <div class="rpg-card mb-lg">
+        <h2 class="mb-lg"><i class="fas fa-user-shield"></i> 目前狀態</h2>
         <div class="grid grid-3 gap-md">
             <div class="stat-box">
-                <div class="stat-label">當前等級</div>
-                <div class="stat-value">Lv.{{ profile.level }}</div>
+                <i class="fas fa-medal"></i>
+                <div style="font-size: 0.85rem; color: var(--color-stone); margin-bottom: 4px;">目前職銜</div>
+                <div style="font-size: 1.3rem; font-weight: 700; color: var(--color-secondary);">
+                    {{ profile.get_rank_display }}
+                </div>
             </div>
             <div class="stat-box">
-                <div class="stat-label">經驗值</div>
-                <div class="stat-value">{{ profile.experience }} XP</div>
+                <i class="fas fa-star"></i>
+                <div style="font-size: 0.85rem; color: var(--color-stone); margin-bottom: 4px;">目前等級</div>
+                <div style="font-size: 1.3rem; font-weight: 700; color: var(--color-secondary);">
+                    Lv.{{ profile.level }}
+                </div>
             </div>
             <div class="stat-box">
-                <div class="stat-label">職業</div>
-                <div class="stat-value">{{ profile.character_class.name }}</div>
+                <i class="fas fa-briefcase"></i>
+                <div style="font-size: 0.85rem; color: var(--color-stone); margin-bottom: 4px;">職業</div>
+                <div style="font-size: 1.3rem; font-weight: 700; color: var(--color-secondary);">
+                    {{ profile.character_class.name|default:"未選擇" }}
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- 晉升試煉卡片 -->
-    {% if available_trials %}
+    <!-- 晉升條件 -->
     <div class="rpg-card mb-lg">
-        <h2 class="mb-md">
-            <i class="fas fa-scroll"></i> 選擇晉升試煉
-        </h2>
-        <p class="mb-lg" style="color: var(--color-stone);">
-            完成試煉後，您的晉升申請將被提交給管理員審核
-        </p>
+        <h2 class="mb-lg"><i class="fas fa-scroll"></i> 晉升條件</h2>
 
-        <div class="grid grid-2 gap-md">
-            {% for trial in available_trials %}
-            <div class="trial-card">
-                <h3 class="mb-sm">{{ trial.title }}</h3>
-                <div class="mb-sm" style="color: var(--color-secondary);">
-                    <i class="fas fa-arrow-right"></i> 
-                    Lv.{{ profile.level }} → Lv.{{ profile.level|add:1 }}
-                </div>
-                <p class="mb-md" style="color: var(--color-stone); font-size: 0.9rem;">
-                    {{ trial.description|truncatewords:20 }}
-                </p>
-                
-                <div class="mb-md" style="border-top: 1px solid var(--color-primary); padding-top: var(--spacing-sm);">
-                    <div class="flex justify-between items-center mb-xs">
-                        <span style="color: var(--color-stone);">題目數量</span>
-                        <span>{{ trial.question_count }} 題</span>
-                    </div>
-                    <div class="flex justify-between items-center mb-xs">
-                        <span style="color: var(--color-stone);">時間限制</span>
-                        <span>{{ trial.time_limit_minutes }} 分鐘</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span style="color: var(--color-stone);">獎勵經驗</span>
-                        <span style="color: var(--color-secondary);">{{ trial.exp_reward }} XP</span>
-                    </div>
-                </div>
-
-                <a href="{% url 'engineer_rpg:start_trial' trial.id %}?promotion=true" 
-                   class="rpg-btn rpg-btn-primary w-full">
-                    <i class="fas fa-play"></i> 開始試煉
-                </a>
-            </div>
-            {% endfor %}
+        {% if profile.rank == 'ENGINEER' %}
+        <div style="text-align: center; padding: var(--spacing-xl); color: var(--color-secondary);">
+            <i class="fas fa-crown" style="font-size: 3rem; margin-bottom: var(--spacing-md);"></i>
+            <p style="font-size: 1.2rem; font-weight: 700;">你已達到最高職銜！</p>
         </div>
-    </div>
-    {% else %}
-    <!-- 無可用試煉 -->
-    <div class="rpg-card text-center" style="padding: var(--spacing-xl);">
-        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--color-secondary); margin-bottom: var(--spacing-md);"></i>
-        <h2 class="mb-md">目前沒有可用的晉升試煉</h2>
-        <p class="mb-lg" style="color: var(--color-stone);">
-            {% if profile.level >= 100 %}
-            您已達到最高等級！
-            {% else %}
-            請聯繫管理員設置適合您當前等級的晉升試煉。
-            {% endif %}
-        </p>
-        <a href="{% url 'engineer_rpg:dashboard' %}" class="rpg-btn rpg-btn-secondary">
-            <i class="fas fa-home"></i> 返回首頁
-        </a>
-    </div>
-    {% endif %}
 
-    <!-- 注意事項 -->
-    <div class="rpg-card" style="background: rgba(212, 175, 55, 0.1); border-color: var(--color-secondary);">
-        <h3 class="mb-md">
-            <i class="fas fa-info-circle"></i> 注意事項
-        </h3>
-        <ul style="list-style: none; padding: 0; margin: 0;">
-            <li class="mb-sm">
-                <i class="fas fa-check" style="color: var(--color-safety); margin-right: var(--spacing-xs);"></i>
-                完成試煉後，系統會自動提交晉升申請
-            </li>
-            <li class="mb-sm">
-                <i class="fas fa-check" style="color: var(--color-safety); margin-right: var(--spacing-xs);"></i>
-                管理員將審核您的試煉成績和整體表現
-            </li>
-            <li class="mb-sm">
-                <i class="fas fa-check" style="color: var(--color-safety); margin-right: var(--spacing-xs);"></i>
-                晉升通過後，您的等級將自動提升
-            </li>
-            <li>
-                <i class="fas fa-exclamation-triangle" style="color: var(--color-secondary); margin-right: var(--spacing-xs);"></i>
-                試煉期間請確保網路穩定，避免中途斷線
-            </li>
-        </ul>
+        {% else %}
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--color-secondary);">
+                    <th style="padding: var(--spacing-sm); text-align: left;">晉升路線</th>
+                    <th style="padding: var(--spacing-sm); text-align: center;">等級需求</th>
+                    <th style="padding: var(--spacing-sm); text-align: center;">狀態</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if profile.rank == 'INTERN' %}
+                <tr style="border-bottom: 1px solid var(--color-primary);">
+                    <td style="padding: var(--spacing-sm);">
+                        <span>實習生</span>
+                        <i class="fas fa-arrow-right" style="color: var(--color-secondary); margin: 0 8px;"></i>
+                        <span style="color: var(--color-secondary); font-weight: 700;">助理工程師</span>
+                    </td>
+                    <td style="padding: var(--spacing-sm); text-align: center;">Lv.10</td>
+                    <td style="padding: var(--spacing-sm); text-align: center;">
+                        {% if profile.level >= 10 %}
+                        <span style="color: var(--color-safety); font-weight: 700;">
+                            <i class="fas fa-check-circle"></i> 已達成
+                        </span>
+                        {% else %}
+                        <span style="color: var(--color-stone);">
+                            <i class="fas fa-times-circle"></i> {{ profile.level }}/10
+                        </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% elif profile.rank == 'ASSISTANT' %}
+                <tr style="border-bottom: 1px solid var(--color-primary);">
+                    <td style="padding: var(--spacing-sm);">
+                        <span>助理工程師</span>
+                        <i class="fas fa-arrow-right" style="color: var(--color-secondary); margin: 0 8px;"></i>
+                        <span style="color: var(--color-secondary); font-weight: 700;">工程師</span>
+                    </td>
+                    <td style="padding: var(--spacing-sm); text-align: center;">Lv.50</td>
+                    <td style="padding: var(--spacing-sm); text-align: center;">
+                        {% if profile.level >= 50 %}
+                        <span style="color: var(--color-safety); font-weight: 700;">
+                            <i class="fas fa-check-circle"></i> 已達成
+                        </span>
+                        {% else %}
+                        <span style="color: var(--color-stone);">
+                            <i class="fas fa-times-circle"></i> {{ profile.level }}/50
+                        </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+
+    <!-- 申請操作 -->
+    <div class="rpg-card">
+        {% if pending_request %}
+        <div style="text-align: center; padding: var(--spacing-lg);">
+            <i class="fas fa-hourglass-half" style="font-size: 2.5rem; color: var(--color-secondary); margin-bottom: var(--spacing-md);"></i>
+            <p style="font-size: 1.1rem; font-weight: 700; margin-bottom: var(--spacing-sm);">你已有一筆待審核的晉升申請</p>
+            <p style="color: var(--color-stone);">
+                申請時間：{{ pending_request.applied_at|date:"Y/m/d H:i" }}
+            </p>
+        </div>
+
+        {% elif eligible %}
+        <div style="text-align: center; padding: var(--spacing-lg);">
+            <i class="fas fa-check-circle" style="font-size: 2.5rem; color: var(--color-safety); margin-bottom: var(--spacing-md);"></i>
+            <p style="font-size: 1.1rem; font-weight: 700; margin-bottom: var(--spacing-md);">你已符合晉升資格！</p>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="rpg-btn rpg-btn-success" style="font-size: 1.1rem; padding: var(--spacing-md) var(--spacing-xl);">
+                    <i class="fas fa-level-up-alt"></i> 提交晉升申請
+                </button>
+            </form>
+        </div>
+
+        {% elif profile.rank == 'ENGINEER' %}
+        <div style="text-align: center; padding: var(--spacing-lg); color: var(--color-stone);">
+            <p>目前已是最高職銜，無需申請晉升。</p>
+        </div>
+
+        {% else %}
+        <div style="text-align: center; padding: var(--spacing-lg);">
+            <i class="fas fa-lock" style="font-size: 2.5rem; color: var(--color-stone); margin-bottom: var(--spacing-md);"></i>
+            <p style="font-size: 1.1rem; font-weight: 700; color: var(--color-stone); margin-bottom: var(--spacing-sm);">尚未達到晉升條件</p>
+            <p style="color: var(--color-stone);">請繼續提升等級以解鎖晉升資格。</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="text-center mt-lg">
+        <a href="{% url 'engineer_rpg:dashboard' %}" class="rpg-btn">
+            <i class="fas fa-arrow-left"></i> 返回冒險者大廳
+        </a>
     </div>
 </div>
 
 <style>
     .stat-box {
         text-align: center;
-        background: rgba(0, 0, 0, 0.3);
         padding: var(--spacing-md);
-        border-radius: var(--border-radius);
-        border: 1px solid var(--color-primary);
-    }
-
-    .stat-label {
-        font-size: 0.9rem;
-        color: var(--color-stone);
-        margin-bottom: var(--spacing-xs);
-    }
-
-    .stat-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--color-secondary);
-    }
-
-    .trial-card {
         background: rgba(0, 0, 0, 0.3);
-        padding: var(--spacing-lg);
         border-radius: var(--border-radius);
-        border: 2px solid var(--color-primary);
-        transition: all 0.3s ease;
     }
 
-    .trial-card:hover {
-        border-color: var(--color-secondary);
-        transform: translateY(-5px);
-        box-shadow: var(--shadow-lg);
-    }
-
-    .trial-card h3 {
+    .stat-box i {
+        display: block;
+        font-size: 2rem;
         color: var(--color-secondary);
-        margin: 0;
+        margin-bottom: var(--spacing-sm);
     }
 </style>
 {% endblock %}

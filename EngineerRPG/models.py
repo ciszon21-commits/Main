@@ -30,77 +30,56 @@ class CharacterClass(models.Model):
         return self.name
 
 
-# ==================== RPG Team System Models ====================
-# 獨立的 RPG 團隊系統，不與 TeamKnowledgeHub 衝突
+# ==================== Team System Models ====================
 
-class RPGTeam(models.Model):
-    """RPG 遊戲團隊系統 - 完全獨立於 TeamKnowledgeHub"""
-    
-    name = models.CharField('團隊名稱', max_length=200)
-    description = models.TextField('團隊說明', blank=True)
+class Team(models.Model):
+    name = models.CharField(max_length=200, verbose_name='隊伍名稱')
+    description = models.TextField(blank=True, verbose_name='隊伍說明')
     leader = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
-                               related_name='led_rpg_teams', verbose_name='隊長')
+                               related_name='led_teams', verbose_name='隊長')
     created_by = models.ForeignKey(User, on_delete=models.CASCADE,
-                                   related_name='created_rpg_teams', verbose_name='建立者')
-    max_members = models.IntegerField('最大成員數', default=6)
-    is_active = models.BooleanField('啟用', default=True)
-    
-    created_at = models.DateTimeField('建立時間', auto_now_add=True)
-    updated_at = models.DateTimeField('更新時間', auto_now=True)
+                                   related_name='created_teams', verbose_name='建立者')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
     
     class Meta:
-        verbose_name = 'RPG團隊'
-        verbose_name_plural = 'RPG團隊列表'
-        ordering = ['-created_at']
-    
+        managed = False
+        db_table = 'TeamKnowledgeHub_knowledgeteam'
+        verbose_name = '隊伍'
+        verbose_name_plural = '隊伍列表'
+
     def __str__(self):
         return self.name
     
     def get_member_count(self):
-        """獲取團隊成員數量"""
-        return self.members.count()
+        """獲取隊伍成員數量"""
+        return self.current_members.count()
     
     def is_leader(self, user):
         """檢查使用者是否為隊長"""
         return self.leader == user
-    
-    def is_full(self):
-        """檢查團隊是否已滿"""
-        return self.get_member_count() >= self.max_members
 
-    @property
-    def current_members(self):
-        """回傳團隊中所有成員的 UserProfile QuerySet"""
-        return UserProfile.objects.filter(
-            rpg_team_memberships__team=self
-        ).select_related('user', 'character_class')
-
-
-class RPGTeamMember(models.Model):
-    """RPG 團隊成員"""
-    
+class TeamMembership(models.Model):
     ROLE_CHOICES = [
+        ('MEMBER', '成員'),
         ('LEADER', '隊長'),
         ('VICE_LEADER', '副隊長'),
-        ('MEMBER', '成員'),
     ]
     
-    team = models.ForeignKey(RPGTeam, on_delete=models.CASCADE, 
-                            related_name='members', verbose_name='團隊')
-    user_profile = models.ForeignKey('UserProfile', on_delete=models.CASCADE,
-                                    related_name='rpg_team_memberships', 
-                                    verbose_name='成員')
-    role = models.CharField('角色', max_length=20, choices=ROLE_CHOICES, default='MEMBER')
-    joined_at = models.DateTimeField('加入時間', auto_now_add=True)
-    
+    team = models.ForeignKey(Team, on_delete=models.DO_NOTHING)
+    user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
+    role = models.CharField(max_length=20)
+    joined_at = models.DateTimeField()
+
     class Meta:
-        verbose_name = 'RPG團隊成員'
-        verbose_name_plural = 'RPG團隊成員列表'
-        unique_together = [['team', 'user_profile']]
-        ordering = ['joined_at']
-    
+        managed = False
+        db_table = 'TeamKnowledgeHub_knowledgeteammember'
+        unique_together = (('team', 'user'),)
+        verbose_name = '隊伍成員'
+        verbose_name_plural = '隊伍成員列表'
+        
     def __str__(self):
-        return f"{self.user_profile.user.username} - {self.team.name}"
+        return f"{self.user.username} - {self.team.name}"
 
 
 class UserProfile(models.Model):
@@ -115,8 +94,7 @@ class UserProfile(models.Model):
     
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='rpg_profile')
     employee_id = models.CharField('員工編號', max_length=20, unique=True)
-    character_class = models.ForeignKey(CharacterClass, on_delete=models.PROTECT, verbose_name='職業')
-    is_class_selected = models.BooleanField('已選擇職業', default=False)
+    character_class = models.ForeignKey(CharacterClass, on_delete=models.PROTECT, verbose_name='職業', null=True, blank=True)
     role = models.CharField('角色權限', max_length=20, choices=ROLE_CHOICES, default='ADVENTURER')
     
     # 角色屬性
@@ -152,9 +130,9 @@ class UserProfile(models.Model):
     equipped_tool_5 = models.ForeignKey('UserEquipment', on_delete=models.SET_NULL, null=True, blank=True,
                                        related_name='equipped_as_tool_5', verbose_name='工具欄5')
     
-    
-    # 團隊成員關係現在通過 RPGTeamMember 模型管理
-    
+    # 隊伍歸屬
+    current_team = models.ForeignKey('Team', on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name='current_members', verbose_name='當前隊伍', db_constraint=False)
     
     # 強化券
     enhancement_tickets = models.IntegerField('強化券數量', default=0, validators=[MinValueValidator(0)])
@@ -170,7 +148,12 @@ class UserProfile(models.Model):
         verbose_name_plural = '使用者檔案'
         
     def __str__(self):
-        return f"{self.user.username} - {self.character_class.name} Lv.{self.level}"
+        return f"{self.user.username} ({self.get_role_display()})"
+
+    @property
+    def display_name(self):
+        """回傳使用者的全名，若無則回傳使用者名稱"""
+        return self.user.get_full_name() or self.user.username
     
     def get_total_hp(self):
         """計算總 HP（基礎隨等級成長 + 裝備加成）
@@ -227,6 +210,26 @@ class UserProfile(models.Model):
             # 共有 20 個預設頭像 (4人類 + 4矮人 + 4精靈 + 4獸人 + 4魔族)
             avatar_index = (self.user.id % 20) + 1
             return f'/static/EngineerRPG/img/avatars/default_avatar_{avatar_index}.png'
+
+
+class AdminWhitelist(models.Model):
+    """管理員白名單"""
+    ROLE_CHOICES = [
+        ('OFFICER', '公會幹部'),
+        ('MANAGER', '公會會長'),
+    ]
+    
+    username = models.CharField('使用者帳號', max_length=150, unique=True, help_text='對應 User.username')
+    role = models.CharField('授予角色', max_length=20, choices=ROLE_CHOICES)
+    created_at = models.DateTimeField('建立時間', auto_now_add=True)
+    updated_at = models.DateTimeField('更新時間', auto_now=True)
+
+    class Meta:
+        verbose_name = '管理員白名單'
+        verbose_name_plural = '管理員白名單'
+
+    def __str__(self):
+        return f"{self.username} - {self.get_role_display()}"
 
 
 
@@ -403,44 +406,17 @@ class Equipment(models.Model):
     max_enhancement = models.IntegerField('最大強化等級', default=9)
     
     # 視覺
-    icon = models.CharField('裝備圖示路徑', max_length=200, blank=True, null=True,
-                           help_text='Static 路徑，例如: EngineerRPG/img/equipment_icons/helmet.png')
-
-    # 獲取方式說明
-    OBTAIN_METHOD_CHOICES = [
-        ('TRIAL', '試煉獎勵'),
-        ('DUNGEON', '地下城掉落'),
-        ('DAILY', '每日任務'),
-        ('ACHIEVEMENT', '成就獎勵'),
-        ('SKILL', '技能解鎖'),
-        ('PROMOTION', '晉升獎勵'),
-        ('SPECIAL', '特殊活動'),
-        ('STARTER', '初始裝備'),
-    ]
-    obtain_method = models.CharField('主要獲取方式', max_length=20, choices=OBTAIN_METHOD_CHOICES,
-                                     default='TRIAL', help_text='此裝備的主要獲取途徑')
-    obtain_description = models.TextField('獲取說明', blank=True,
-                                          help_text='詳細說明如何獲得此裝備，例如：通過職安地下城第3層可獲得')
-    obtain_trial = models.ForeignKey('Trial', on_delete=models.SET_NULL, null=True, blank=True,
-                                     related_name='droppable_equipment', verbose_name='關聯試煉',
-                                     help_text='可從哪個試煉獲得此裝備')
-    is_obtainable = models.BooleanField('可獲得', default=True, help_text='此裝備目前是否可以被獲得')
-
+    # 視覺
+    icon = models.CharField('裝備圖示路徑', max_length=255, default='', blank=True, help_text='請輸入 static 資料夾下的相對路徑')
+    
     created_at = models.DateTimeField('建立時間', auto_now_add=True)
-
+    
     class Meta:
         verbose_name = '裝備'
         verbose_name_plural = '裝備列表'
         
     def __str__(self):
         return f"{self.name} (T{self.tier} {self.get_equipment_type_display()})"
-    
-    def get_icon_url(self):
-        """回傳裝備圖示的 URL，使用 static 路徑"""
-        if self.icon:
-            from django.templatetags.static import static
-            return static(self.icon)
-        return None
 
 
 class UserEquipment(models.Model):
@@ -538,30 +514,15 @@ class Item(models.Model):
     effect_value = models.IntegerField('效果數值', default=0, help_text='例如：回復10% HP則填10，延長30秒則填30')
     
     # 視覺
-    icon = models.ImageField('道具圖示', upload_to='rpg/item_icons/', null=True, blank=True)
-
-    # 獲取方式說明
-    OBTAIN_METHOD_CHOICES = [
-        ('TRIAL', '試煉獎勵'),
-        ('DUNGEON', '地下城掉落'),
-        ('DAILY', '每日任務'),
-        ('ACHIEVEMENT', '成就獎勵'),
-        ('COMBO', '連勝獎勵'),
-        ('SPECIAL', '特殊活動'),
-        ('STARTER', '初始道具'),
-    ]
-    obtain_method = models.CharField('主要獲取方式', max_length=20, choices=OBTAIN_METHOD_CHOICES,
-                                     default='TRIAL', help_text='此道具的主要獲取途徑')
-    obtain_description = models.TextField('獲取說明', blank=True,
-                                          help_text='詳細說明如何獲得此道具')
-    is_obtainable = models.BooleanField('可獲得', default=True, help_text='此道具目前是否可以被獲得')
-
+    # 視覺
+    icon = models.CharField('道具圖示路徑', max_length=255, default='', blank=True, help_text='請輸入 static 資料夾下的相對路徑')
+    
     created_at = models.DateTimeField('建立時間', auto_now_add=True)
-
+    
     class Meta:
         verbose_name = '道具'
         verbose_name_plural = '道具列表'
-
+        
     def __str__(self):
         return self.name
 
@@ -957,48 +918,4 @@ class GuildComment(models.Model):
     def __str__(self):
         return f"{self.author.user.username} 留言於 {self.post.title}"
 
-
-# ==================== 管理者白名單系統 ====================
-
-class AdminWhitelist(models.Model):
-    """管理者白名單 - 由 superuser 管理
-    
-    允許 superuser 將特定使用者設置為管理員角色
-    當白名單項目被創建或更新時，自動同步到 UserProfile.role
-    """
-    
-    user = models.OneToOneField(User, on_delete=models.CASCADE, 
-                               related_name='admin_whitelist', 
-                               verbose_name='使用者')
-    role = models.CharField('指定角色', max_length=20, 
-                           choices=UserProfile.ROLE_CHOICES,
-                           default='OFFICER',
-                           help_text='為此使用者指定的管理角色')
-    granted_by = models.ForeignKey(User, on_delete=models.SET_NULL, 
-                                   null=True, blank=True,
-                                   related_name='granted_admin_rights',
-                                   verbose_name='授權者')
-    granted_at = models.DateTimeField('授權時間', auto_now_add=True)
-    notes = models.TextField('備註', blank=True, 
-                            help_text='授權原因或其他說明')
-    
-    class Meta:
-        verbose_name = '管理者白名單'
-        verbose_name_plural = '管理者白名單'
-        ordering = ['-granted_at']
-    
-    def __str__(self):
-        return f"{self.user.username} - {self.get_role_display()}"
-    
-    def save(self, *args, **kwargs):
-        """儲存時同步更新 UserProfile 的 role"""
-        super().save(*args, **kwargs)
-        try:
-            profile = self.user.rpg_profile
-            if profile.role != self.role:
-                profile.role = self.role
-                profile.save(update_fields=['role'])
-        except UserProfile.DoesNotExist:
-            # 如果 UserProfile 不存在，將在下次登入時創建
-            pass
 

@@ -1,255 +1,255 @@
-{% extends 'EngineerRPG/base.html' %}
-{% load static %}
-
-{% block title %}{{ team.name }} - 成員管理 | 管理中心{% endblock %}
-
-{% block content %}
-<div class="rpg-container fade-in">
-    <!-- 頁面標題 -->
-    <div class="text-center mb-xl">
-        <h2 class="rpg-title">
-            <i class="fas fa-users"></i> {{ team.name }}
-        </h2>
-        <p class="text-stone">{{ team.description|default:"管理隊伍成員" }}</p>
-    </div>
-
-    <!-- 操作按鈕 -->
-    <div class="mb-lg text-right">
-        <a href="{% url 'engineer_rpg:edit_team' team.id %}" class="rpg-btn rpg-btn-outline">
-            <i class="fas fa-edit"></i> 編輯隊伍資訊
-        </a>
-        <a href="{% url 'engineer_rpg:team_management' %}" class="rpg-btn rpg-btn-outline">
-            <i class="fas fa-arrow-left"></i> 返回隊伍列表
-        </a>
-    </div>
-
-    <div class="grid-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-lg);">
-        <!-- 左側：當前成員 -->
-        <div class="rpg-card">
-            <div class="rpg-card-header">
-                <h3 class="rpg-card-title">
-                    <i class="fas fa-user-check"></i> 當前成員 ({{ members.count }})
-                </h3>
-            </div>
-            <div class="rpg-card-body">
-                {% if members %}
-                <div class="member-list">
-                    {% for member in members %}
-                    <div class="member-item">
-                        <div class="member-info-section">
-                            {% if member.avatar_image %}
-                            <img src="{{ member.avatar_image.url }}" class="member-avatar-sm">
-                            {% else %}
-                            <div class="member-avatar-sm flex flex-center"
-                                style="background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-user text-stone"></i>
-                            </div>
-                            {% endif %}
-
-                            <div class="member-details">
-                                <div class="member-name-row">
-                                    <strong>{{ member.user.get_full_name|default:.user.get_full_name|default:.user.username }}</strong>
-                                    {% if team.leader and team.leader.id == member.user.id %}
-                                    <i class="fas fa-star text-gold ml-xs" title="隊長"></i>
-                                    {% endif %}
-                                </div>
-                                <div class="member-meta-row">
-                                    <span>Lv.{{ member.level }}</span>
-                                    <span>{{ member.character_class.name }}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="member-actions">
-                            {% if not team.leader or team.leader.id != member.user.id %}
-                            <form method="post" style="display: inline;">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="set_leader">
-                                <input type="hidden" name="user_id" value="{{ member.user.id }}">
-                                <button type="submit" class="action-btn action-btn-primary" title="設為隊長">
-                                    <i class="fas fa-star"></i>
-                                </button>
-                            </form>
-                            {% endif %}
-
-                            <form method="post" style="display: inline;">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="remove_member">
-                                <input type="hidden" name="user_id" value="{{ member.id }}">
-                                <button type="submit" class="action-btn action-btn-danger" title="移出隊伍"
-                                    onclick="return confirm('確定要將 {{ member.user.get_full_name|default:.user.get_full_name|default:.user.username }} 移出隊伍嗎？');">
-                                    <i class="fas fa-user-minus"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="text-center py-lg text-stone">
-                    <i class="fas fa-users-slash" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-                    <p>尚無成員</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- 右側：可加入成員 -->
-        <div class="rpg-card">
-            <div class="rpg-card-header">
-                <h3 class="rpg-card-title">
-                    <i class="fas fa-user-plus"></i> 可加入成員 ({{ available_members.count }})
-                </h3>
-            </div>
-            <div class="rpg-card-body">
-                {% if available_members %}
-                <div class="member-list">
-                    {% for member in available_members %}
-                    <div class="member-item">
-                        <div class="member-info-section">
-                            {% if member.avatar_image %}
-                            <img src="{{ member.avatar_image.url }}" class="member-avatar-sm">
-                            {% else %}
-                            <div class="member-avatar-sm flex flex-center"
-                                style="background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-user text-stone"></i>
-                            </div>
-                            {% endif %}
-
-                            <div class="member-details">
-                                <div class="member-name-row">
-                                    <strong>{{ member.user.get_full_name|default:.user.get_full_name|default:.user.username }}</strong>
-                                </div>
-                                <div class="member-meta-row">
-                                    <span>Lv.{{ member.level }}</span>
-                                    <span>{{ member.character_class.name }}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="member-actions">
-                            <form method="post" style="display: inline;">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="add_member">
-                                <input type="hidden" name="user_id" value="{{ member.id }}">
-                                <button type="submit" class="action-btn action-btn-success" title="加入隊伍">
-                                    <i class="fas fa-plus"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="text-center py-lg text-stone">
-                    <i class="fas fa-check-circle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-                    <p>所有冒險者都已分配隊伍</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<style>
-    .member-list {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-sm);
-    }
-
-    .member-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: var(--spacing-sm);
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: var(--border-radius);
-        transition: all 0.3s;
-    }
-
-    .member-item:hover {
-        background: rgba(255, 255, 255, 0.08);
-        transform: translateX(5px);
-    }
-
-    .member-info-section {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-sm);
-        flex: 1;
-    }
-
-    .member-avatar-sm {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        border: 2px solid var(--color-border);
-        object-fit: cover;
-    }
-
-    .member-details {
-        flex: 1;
-    }
-
-    .member-name-row {
-        color: var(--color-text);
-        margin-bottom: 2px;
-    }
-
-    .member-meta-row {
-        display: flex;
-        gap: var(--spacing-xs);
-        font-size: 0.85rem;
-        color: var(--color-stone);
-    }
-
-    .member-actions {
-        display: flex;
-        gap: var(--spacing-xs);
-    }
-
-    .action-btn {
-        padding: 6px 10px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: all 0.3s;
-        font-size: 0.9rem;
-    }
-
-    .action-btn-primary {
-        background: rgba(255, 215, 0, 0.2);
-        color: var(--color-gold);
-        border: 1px solid var(--color-gold);
-    }
-
-    .action-btn-primary:hover {
-        background: var(--color-gold);
-        color: var(--color-background);
-    }
-
-    .action-btn-success {
-        background: rgba(76, 175, 80, 0.2);
-        color: #4CAF50;
-        border: 1px solid #4CAF50;
-    }
-
-    .action-btn-success:hover {
-        background: #4CAF50;
-        color: white;
-    }
-
-    .action-btn-danger {
-        background: rgba(244, 67, 54, 0.2);
-        color: var(--color-danger);
-        border: 1px solid var(--color-danger);
-    }
-
-    .action-btn-danger:hover {
-        background: var(--color-danger);
-        color: white;
-    }
-</style>
-{% endblock %}
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}{{ team.name }} - 成員管理 | 管理中心{% endblock %}
+
+{% block content %}
+<div class="rpg-container fade-in">
+    <!-- 頁面標題 -->
+    <div class="text-center mb-xl">
+        <h2 class="rpg-title">
+            <i class="fas fa-users"></i> {{ team.name }}
+        </h2>
+        <p class="text-stone">{{ team.description|default:"管理隊伍成員" }}</p>
+    </div>
+
+    <!-- 操作按鈕 -->
+    <div class="mb-lg text-right">
+        <a href="{% url 'engineer_rpg:edit_team' team.id %}" class="rpg-btn rpg-btn-outline">
+            <i class="fas fa-edit"></i> 編輯隊伍資訊
+        </a>
+        <a href="{% url 'engineer_rpg:team_management' %}" class="rpg-btn rpg-btn-outline">
+            <i class="fas fa-arrow-left"></i> 返回隊伍列表
+        </a>
+    </div>
+
+    <div class="grid-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-lg);">
+        <!-- 左側：當前成員 -->
+        <div class="rpg-card">
+            <div class="rpg-card-header">
+                <h3 class="rpg-card-title">
+                    <i class="fas fa-user-check"></i> 當前成員 ({{ members.count }})
+                </h3>
+            </div>
+            <div class="rpg-card-body">
+                {% if members %}
+                <div class="member-list">
+                    {% for member in members %}
+                    <div class="member-item">
+                        <div class="member-info-section">
+                            {% if member.avatar_image %}
+                            <img src="{{ member.avatar_image.url }}" class="member-avatar-sm">
+                            {% else %}
+                            <div class="member-avatar-sm flex flex-center"
+                                style="background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-user text-stone"></i>
+                            </div>
+                            {% endif %}
+
+                            <div class="member-details">
+                                <div class="member-name-row">
+                                    <strong>{{ member.user.username }}</strong>
+                                    {% if team.leader and team.leader.id == member.user.id %}
+                                    <i class="fas fa-star text-gold ml-xs" title="隊長"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="member-meta-row">
+                                    <span>Lv.{{ member.level }}</span>
+                                    <span>{{ member.character_class.name }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="member-actions">
+                            {% if not team.leader or team.leader.id != member.user.id %}
+                            <form method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="set_leader">
+                                <input type="hidden" name="user_id" value="{{ member.user.id }}">
+                                <button type="submit" class="action-btn action-btn-primary" title="設為隊長">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+
+                            <form method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="remove_member">
+                                <input type="hidden" name="user_id" value="{{ member.id }}">
+                                <button type="submit" class="action-btn action-btn-danger" title="移出隊伍"
+                                    onclick="return confirm('確定要將 {{ member.user.username }} 移出隊伍嗎？');">
+                                    <i class="fas fa-user-minus"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-lg text-stone">
+                    <i class="fas fa-users-slash" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                    <p>尚無成員</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 右側：可加入成員 -->
+        <div class="rpg-card">
+            <div class="rpg-card-header">
+                <h3 class="rpg-card-title">
+                    <i class="fas fa-user-plus"></i> 可加入成員 ({{ available_members.count }})
+                </h3>
+            </div>
+            <div class="rpg-card-body">
+                {% if available_members %}
+                <div class="member-list">
+                    {% for member in available_members %}
+                    <div class="member-item">
+                        <div class="member-info-section">
+                            {% if member.avatar_image %}
+                            <img src="{{ member.avatar_image.url }}" class="member-avatar-sm">
+                            {% else %}
+                            <div class="member-avatar-sm flex flex-center"
+                                style="background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-user text-stone"></i>
+                            </div>
+                            {% endif %}
+
+                            <div class="member-details">
+                                <div class="member-name-row">
+                                    <strong>{{ member.user.username }}</strong>
+                                </div>
+                                <div class="member-meta-row">
+                                    <span>Lv.{{ member.level }}</span>
+                                    <span>{{ member.character_class.name }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="member-actions">
+                            <form method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="add_member">
+                                <input type="hidden" name="user_id" value="{{ member.id }}">
+                                <button type="submit" class="action-btn action-btn-success" title="加入隊伍">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-lg text-stone">
+                    <i class="fas fa-check-circle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                    <p>所有冒險者都已分配隊伍</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .member-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+
+    .member-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--spacing-sm);
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: var(--border-radius);
+        transition: all 0.3s;
+    }
+
+    .member-item:hover {
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateX(5px);
+    }
+
+    .member-info-section {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        flex: 1;
+    }
+
+    .member-avatar-sm {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 2px solid var(--color-border);
+        object-fit: cover;
+    }
+
+    .member-details {
+        flex: 1;
+    }
+
+    .member-name-row {
+        color: var(--color-text);
+        margin-bottom: 2px;
+    }
+
+    .member-meta-row {
+        display: flex;
+        gap: var(--spacing-xs);
+        font-size: 0.85rem;
+        color: var(--color-stone);
+    }
+
+    .member-actions {
+        display: flex;
+        gap: var(--spacing-xs);
+    }
+
+    .action-btn {
+        padding: 6px 10px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.9rem;
+    }
+
+    .action-btn-primary {
+        background: rgba(255, 215, 0, 0.2);
+        color: var(--color-gold);
+        border: 1px solid var(--color-gold);
+    }
+
+    .action-btn-primary:hover {
+        background: var(--color-gold);
+        color: var(--color-background);
+    }
+
+    .action-btn-success {
+        background: rgba(76, 175, 80, 0.2);
+        color: #4CAF50;
+        border: 1px solid #4CAF50;
+    }
+
+    .action-btn-success:hover {
+        background: #4CAF50;
+        color: white;
+    }
+
+    .action-btn-danger {
+        background: rgba(244, 67, 54, 0.2);
+        color: var(--color-danger);
+        border: 1px solid var(--color-danger);
+    }
+
+    .action-btn-danger:hover {
+        background: var(--color-danger);
+        color: white;
+    }
+</style>
+{% endblock %}

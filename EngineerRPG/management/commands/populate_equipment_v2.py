@@ -1,6 +1,9 @@
 from django.core.management.base import BaseCommand
 from EngineerRPG.models import Equipment, SkillNode
 
+# 圖示路徑前綴
+ICON_DIR = 'EngineerRPG/img/equipment_icons'
+
 class Command(BaseCommand):
     help = 'Populates the equipment database with the new 13 items'
 
@@ -13,6 +16,7 @@ class Command(BaseCommand):
                 "name": "標準工地帽",
                 "tier": 1,
                 "type": "HELMET",
+                "icon": f"{ICON_DIR}/icon_1_HELMET.png",
                 "description": "基本的工地防護裝備。",
                 "hp_bonus": 0, "mp_bonus": 10, "dr": 0,
                 "rules": {
@@ -25,6 +29,7 @@ class Command(BaseCommand):
                 "name": "透氣型探照盔",
                 "tier": 2,
                 "type": "HELMET",
+                "icon": f"{ICON_DIR}/icon_2_HELMET.png",
                 "description": "附帶照明功能的進階頭盔。",
                 "hp_bonus": 0, "mp_bonus": 25, "dr": 0,
                 "rules": {
@@ -37,6 +42,7 @@ class Command(BaseCommand):
                 "name": "AR 智慧工安盔",
                 "tier": 3,
                 "type": "HELMET",
+                "icon": f"{ICON_DIR}/icon_3_HELMET.png",
                 "description": "結合AR技術的高科技頭盔。",
                 "hp_bonus": 0, "mp_bonus": 50, "dr": 0,
                 "rules": {
@@ -53,11 +59,12 @@ class Command(BaseCommand):
                 "name": "反光背心",
                 "tier": 1,
                 "type": "ARMOR",
+                "icon": f"{ICON_DIR}/icon_2_ARMOR.png",
                 "description": "基本的反光背心，聊勝於無。",
                 "hp_bonus": 10, "mp_bonus": 0, "dr": 0,
                 "rules": {
                     "0": {"hp": 10, "dr": 0}, "3": {"hp": 15, "dr": 0}, 
-                    "6": {"hp": 20, "dr": 0}, "9": {"hp": 30, "dr": 1} # Requirement says DR -1, model help text says positive is reduction
+                    "6": {"hp": 20, "dr": 0}, "9": {"hp": 30, "dr": 1}
                 },
                 "special_name": "【舊衣哲學】",
                 "special_desc": "終於獲得減傷 -1 的效果。"
@@ -66,6 +73,7 @@ class Command(BaseCommand):
                 "name": "監工戰術背心",
                 "tier": 2,
                 "type": "ARMOR",
+                "icon": f"{ICON_DIR}/icon_3_ARMOR.png",
                 "description": "多功能戰術背心，提供不錯的防護。",
                 "hp_bonus": 20, "mp_bonus": 0, "dr": 2,
                 "rules": {
@@ -79,6 +87,7 @@ class Command(BaseCommand):
                 "name": "外骨骼省力套裝",
                 "tier": 3,
                 "type": "ARMOR",
+                "icon": f"{ICON_DIR}/icon_6_ARMOR.png",
                 "description": "動力外骨骼，大幅減輕負擔。",
                 "hp_bonus": 30, "mp_bonus": 0, "dr": 4,
                 "rules": {
@@ -90,19 +99,16 @@ class Command(BaseCommand):
             }
         ]
 
-        # 2.3 腿部裝備 (Leg Gear) - Logic Descriptions (MP Regen logic is handled in code/frontend not pure stats)
-        # We will store the descriptions in the 'description' or maybe special ability?
-        # The prompt implies these have passive effects. I'll put the effect description in description for now.
+        # 2.3 腿部裝備 (Leg Gear)
         leg_gear = [
             {
                 "name": "鋼頭安全鞋",
                 "tier": 1,
                 "type": "BOOTS",
+                "icon": f"{ICON_DIR}/icon_9_BOOTS.png",
                 "description": "保護腳趾的鋼頭鞋。(基礎步伐: 3連對回5MP)",
                 "hp_bonus": 0, "mp_bonus": 0, "dr": 0,
                 "rules": {
-                    # Rules for logical effects might need a different field or just strictly strictly UI/Code logic
-                    # Storing the upgraded effect numericals if needed, or just text
                     "0": {"desc": "3 連對 回 5 MP"},
                     "3": {"desc": "3 連對 回 6 MP"},
                     "6": {"desc": "3 連對 回 7 MP"},
@@ -115,6 +121,7 @@ class Command(BaseCommand):
                 "name": "防穿刺工靴",
                 "tier": 2,
                 "type": "BOOTS",
+                "icon": f"{ICON_DIR}/icon_10_BOOTS.png",
                 "description": "防穿刺底板。(穩健推進: 一般回1 困難回3)",
                 "hp_bonus": 0, "mp_bonus": 0, "dr": 0,
                 "rules": {
@@ -130,6 +137,7 @@ class Command(BaseCommand):
                 "name": "動力樣板護腿",
                 "tier": 3,
                 "type": "BOOTS",
+                "icon": f"{ICON_DIR}/icon_11_BOOTS.png",
                 "description": "提供額外動力的護腿。(動能回收: 技能後持續3題)",
                 "hp_bonus": 0, "mp_bonus": 0, "dr": 0,
                 "rules": {
@@ -149,9 +157,10 @@ class Command(BaseCommand):
                 "name": "工程查驗 APP",
                 "tier": 1,
                 "type": "TOOL",
+                "icon": f"{ICON_DIR}/icon_8_TOOL_APP.png",
                 "description": "標準化稽核工具。",
                 "skill_effect": "SHIELD",
-                "skill_desc": "傷害護盾 (Shield)", # Mapping to simplified logic
+                "skill_desc": "傷害護盾 (Shield)",
                 "mp_cost": 20,
                 "rules": {
                     "0": {"shield": 20, "cost": 20},
@@ -166,6 +175,7 @@ class Command(BaseCommand):
                 "name": "UAV 監造無人機",
                 "tier": 3,
                 "type": "TOOL",
+                "icon": f"{ICON_DIR}/icon_5_TOOL_UAV.png",
                 "description": "全域掃描與選項刪去。",
                 "skill_effect": "ELIMINATION",
                 "skill_desc": "選項刪去 (Elimination)",
@@ -183,6 +193,7 @@ class Command(BaseCommand):
                 "name": "360 環景相機",
                 "tier": 3,
                 "type": "TOOL",
+                "icon": f"{ICON_DIR}/icon_6_TOOL_CAMERA.png",
                 "description": "存檔與回溯。",
                 "skill_effect": "TIME_REWIND",
                 "skill_desc": "存檔與回溯 (Save & Load)",
@@ -200,6 +211,7 @@ class Command(BaseCommand):
                 "name": "VR 虛擬實境眼鏡",
                 "tier": 3,
                 "type": "TOOL",
+                "icon": f"{ICON_DIR}/icon_7_TOOL_GLASSES.png",
                 "description": "絕對解答。",
                 "skill_effect": "ABSOLUTE_ANSWER",
                 "skill_desc": "絕對解答 (Absolute Answer)",
@@ -224,6 +236,7 @@ class Command(BaseCommand):
                     "equipment_type": item_data["type"],
                     "tier": item_data.get("tier", 1),
                     "description": item_data["description"],
+                    "icon": item_data.get("icon", ""),
                     "hp_bonus": item_data.get("hp_bonus", 0),
                     "mp_bonus": item_data.get("mp_bonus", 0),
                     "damage_reduction": item_data.get("dr", 0),
@@ -237,6 +250,7 @@ class Command(BaseCommand):
                 }
             )
             action = "Created" if created else "Updated"
-            self.stdout.write(f"{action} {obj.name}")
+            icon_status = "✔ icon" if item_data.get("icon") else "✘ no icon"
+            self.stdout.write(f"{action} {obj.name} ({icon_status})")
 
         self.stdout.write(self.style.SUCCESS('Successfully populated equipment data'))
