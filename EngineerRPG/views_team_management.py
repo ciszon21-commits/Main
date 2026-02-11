@@ -1,156 +1,235 @@
+# Team Management Views
+# 隊伍管理相關的 view 函數
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
-from django.utils import timezone
-from .models import RPGTeam, UserProfile, RPGTeamMember
-from .utils.permissions import has_whitelist_permission
+from .models import Team, UserProfile, TeamMembership
 
+# Helper function
 def get_or_create_user_profile(user):
+    """Get or create user profile"""
     try:
         return user.rpg_profile
     except UserProfile.DoesNotExist:
         return None
 
+# ==================== Team Management Views ====================
+
 @login_required
 def team_management(request):
     """隊伍管理列表"""
-    if not has_whitelist_permission(request.user, 'OFFICER'):
+    profile = get_or_create_user_profile(request.user)
+    if profile.role not in ['OFFICER', 'MANAGER', 'ADMIN']:
         messages.error(request, '權限不足！')
         return redirect('engineer_rpg:dashboard')
     
-    teams = RPGTeam.objects.all().prefetch_related('members__user_profile__user').order_by('-created_at')
+    teams = Team.objects.all().prefetch_related('current_members').order_by('-created_at')
     
-    return render(request, 'EngineerRPG/admin_team_list.html', {
-        'profile': get_or_create_user_profile(request.user),
+    context = {
+        'profile': profile,
         'teams': teams,
-    })
+    }
+    return render(request, 'EngineerRPG/admin_team_list.html', context)
+
 
 @login_required
 def create_team(request):
     """創建隊伍"""
-    if not has_whitelist_permission(request.user, 'OFFICER'):
+    profile = get_or_create_user_profile(request.user)
+    if profile.role not in ['OFFICER', 'MANAGER', 'ADMIN']:
         messages.error(request, '權限不足！')
         return redirect('engineer_rpg:dashboard')
-        
+    
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
         description = request.POST.get('description', '').strip()
         
         if not name:
-            messages.error(request, '隊伍名稱不能為空')
+            messages.error(request, '隊伍名稱不能為空！')
             return redirect('engineer_rpg:create_team')
-            
-        team = RPGTeam.objects.create(
+        
+        # 創建隊伍
+        team = Team.objects.create(
             name=name,
             description=description,
             created_by=request.user
         )
-        messages.success(request, f'隊伍 {name} 建立成功')
-        return redirect('engineer_rpg:manage_team_members', team_id=team.id)
         
-    return render(request, 'EngineerRPG/admin_team_form.html', {
-        'profile': get_or_create_user_profile(request.user)
-    })
+        messages.success(request, f'隊伍「{name}」創建成功！')
+        return redirect('engineer_rpg:manage_team_members', team_id=team.id)
+    
+    context = {
+        'profile': profile,
+    }
+    return render(request, 'EngineerRPG/admin_team_form.html', context)
+
 
 @login_required
 def edit_team(request, team_id):
     """編輯隊伍"""
-    if not has_whitelist_permission(request.user, 'OFFICER'):
+    profile = get_or_create_user_profile(request.user)
+    if profile.role not in ['OFFICER', 'MANAGER', 'ADMIN']:
+        messages.error(request, '權限不足！')
         return redirect('engineer_rpg:dashboard')
-        
-    team = get_object_or_404(RPGTeam, id=team_id)
+    
+    team = get_object_or_404(Team, id=team_id)
+    
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
-        if name:
+        description = request.POST.get('description', '').strip()
+        leader_id = request.POST.get('leader')
+        
+        if not name:
+            messages.error(request, '隊伍名稱不能為空！')
+        else:
             team.name = name
-            team.description = request.POST.get('description', '').strip()
-            team.save()
-            messages.success(request, '隊伍資訊已更新')
-            return redirect('engineer_rpg:team_management')
+            team.description = description
             
-    return render(request, 'EngineerRPG/admin_team_form.html', {
-        'profile': get_or_create_user_profile(request.user),
-        'team': team
-    })
+            if leader_id:
+                try:
+                    leader_user = User.objects.get(id=leader_id)
+                    team.leader = leader_user
+                except User.DoesNotExist:
+                    pass
+            else:
+                team.leader = None
+            
+            team.save()
+            messages.success(request, '隊伍資訊已更新！')
+            return redirect('engineer_rpg:manage_team_members', team_id=team.id)
+    
+    # 獲取隊伍成員作為可選隊長
+    members = team.current_members.all().select_related('user')
+    
+    context = {
+        'profile': profile,
+        'team': team,
+        'members': members,
+    }
+    return render(request, 'EngineerRPG/admin_team_form.html', context)
+
 
 @login_required
 def manage_team_members(request, team_id):
     """管理隊伍成員"""
-    if not has_whitelist_permission(request.user, 'OFFICER'):
+    profile = get_or_create_user_profile(request.user)
+    if profile.role not in ['OFFICER', 'MANAGER', 'ADMIN']:
+        messages.error(request, '權限不足！')
         return redirect('engineer_rpg:dashboard')
-        
-    team = get_object_or_404(RPGTeam, id=team_id)
+    
+    team = get_object_or_404(Team, id=team_id)
     
     if request.method == 'POST':
         action = request.POST.get('action')
-        user_id = request.POST.get('user_id')
         
-        try:
-            if action == 'add_member':
-                profile = UserProfile.objects.get(id=user_id)
-                # Check if already in ANY team?
-                if RPGTeamMember.objects.filter(user_profile=profile).exists():
-                    messages.error(request, '該成員已在其他隊伍中')
-                else:
-                    RPGTeamMember.objects.create(team=team, user_profile=profile)
-                    messages.success(request, f'{profile.user.username} 加入成功')
-                    
-            elif action == 'remove_member':
-                profile = UserProfile.objects.get(id=user_id)
-                RPGTeamMember.objects.filter(team=team, user_profile=profile).delete()
-                # Check if leader
-                if team.leader == profile.user:
-                    team.leader = None
-                    team.save()
-                messages.success(request, '成員已移除')
+        if action == 'add_member':
+            user_id = request.POST.get('user_id')
+            try:
+                user_profile = UserProfile.objects.get(id=user_id)
                 
-            elif action == 'set_leader':
+                # 同時創建 TeamMembership 記錄和更新 UserProfile
+                from django.utils import timezone
+                
+                # 創建 TeamMembership 記錄
+                membership, created = TeamMembership.objects.get_or_create(
+                    team=team,
+                    user=user_profile.user,
+                    defaults={
+                        'role': 'MEMBER',
+                        'joined_at': timezone.now()
+                    }
+                )
+                
+                # 更新 UserProfile
+                user_profile.current_team = team
+                user_profile.save()
+                
+                messages.success(request, f'已將 {user_profile.user.username} 加入隊伍！')
+            except UserProfile.DoesNotExist:
+                messages.error(request, '使用者不存在！')
+            except Exception as e:
+                messages.error(request, f'加入隊伍失敗：{str(e)}')
+        
+        elif action == 'remove_member':
+            user_id = request.POST.get('user_id')
+            try:
+                user_profile = UserProfile.objects.get(id=user_id)
+                if user_profile.current_team == team:
+                    # 同時刪除 TeamMembership 記錄和更新 UserProfile
+                    TeamMembership.objects.filter(
+                        team=team,
+                        user=user_profile.user
+                    ).delete()
+                    
+                    user_profile.current_team = None
+                    user_profile.save()
+                    
+                    messages.success(request, f'已將 {user_profile.user.username} 移出隊伍！')
+            except UserProfile.DoesNotExist:
+                messages.error(request, '使用者不存在！')
+            except Exception as e:
+                messages.error(request, f'移出隊伍失敗：{str(e)}')
+        
+        elif action == 'set_leader':
+            user_id = request.POST.get('user_id')
+            try:
                 user = User.objects.get(id=user_id)
+                
+                # 更新隊長
                 team.leader = user
                 team.save()
-                # Update member roles if using Role field
-                RPGTeamMember.objects.filter(team=team).update(role='MEMBER')
-                try:
-                    m = RPGTeamMember.objects.get(team=team, user_profile__user=user)
-                    m.role = 'LEADER'
-                    m.save()
-                except RPGTeamMember.DoesNotExist:
-                    pass
-                messages.success(request, f'隊長已設定為 {user.username}')
                 
-        except Exception as e:
-            messages.error(request, f'操作失敗: {e}')
-            
+                # 更新 TeamMembership 中的角色
+                TeamMembership.objects.filter(team=team, role='LEADER').update(role='MEMBER')
+                TeamMembership.objects.filter(team=team, user=user).update(role='LEADER')
+                
+                messages.success(request, f'已將 {user.username} 設為隊長！')
+            except User.DoesNotExist:
+                messages.error(request, '使用者不存在！')
+            except Exception as e:
+                messages.error(request, f'設定隊長失敗：{str(e)}')
+        
         return redirect('engineer_rpg:manage_team_members', team_id=team.id)
-
-    # Members
-    members = RPGTeamMember.objects.filter(team=team).select_related('user_profile__user', 'user_profile__character_class')
     
-    # Available users (not in any team)
-    joined_ids = RPGTeamMember.objects.values_list('user_profile_id', flat=True)
-    available_members = UserProfile.objects.exclude(id__in=joined_ids).select_related('user', 'character_class')
+    # 獲取隊伍成員
+    members = team.current_members.all().select_related('user', 'character_class')
     
-    return render(request, 'EngineerRPG/admin_team_members.html', {
-        'profile': get_or_create_user_profile(request.user),
+    # 獲取所有未分配隊伍的冒險者
+    available_members = UserProfile.objects.filter(current_team__isnull=True).select_related('user', 'character_class')
+    
+    context = {
+        'profile': profile,
         'team': team,
         'members': members,
-        'available_members': available_members
-    })
+        'available_members': available_members,
+    }
+    return render(request, 'EngineerRPG/admin_team_members.html', context)
 
-@login_required
-def delete_team(request, team_id):
-    """刪除隊伍"""
-    if not has_whitelist_permission(request.user, 'OFFICER'):
-        return redirect('engineer_rpg:dashboard')
-    
-    if request.method == 'POST':
-        RPGTeam.objects.filter(id=team_id).delete()
-        messages.success(request, '隊伍已刪除')
-        
-    return redirect('engineer_rpg:team_management')
 
 @login_required
 def team_dashboard(request):
-    """隊伍頁面 - 顯示使用者所屬隊伍 (Placeholder, use views.py version usually)"""
-    return redirect('engineer_rpg:team_dashboard')
+    """隊伍頁面 - 顯示使用者所屬隊伍"""
+    profile = get_or_create_user_profile(request.user)
+    
+    if not profile.current_team:
+        # 沒有隊伍
+        context = {
+            'profile': profile,
+            'has_team': False,
+        }
+    else:
+        # 有隊伍，顯示隊伍資訊
+        team = profile.current_team
+        members = team.current_members.all().select_related('user', 'character_class').order_by('-level')
+        
+        context = {
+            'profile': profile,
+            'has_team': True,
+            'team': team,
+            'members': members,
+            'is_leader': team.is_leader(request.user),
+        }
+    
+    return render(request, 'EngineerRPG/team_dashboard.html', context)

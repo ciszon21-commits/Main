@@ -1,165 +1,247 @@
 {% extends 'EngineerRPG/base.html' %}
 {% load static %}
 
-{% block title %}管理者白名單 - EngineerRPG{% endblock %}
+{% block title %}白名單管理 - 創世神介面{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-shield-alt"></i> 管理者白名單管理</h2>
-                <a href="{% url 'engineer_rpg:admin_dashboard' %}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> 返回管理面板
-                </a>
-            </div>
+<div class="rpg-container">
+    <div class="mb-lg">
+        <h1><i class="fas fa-users-cog"></i> 管理員白名單</h1>
+        <p class="text-secondary">設定特定使用者的角色權限（公會會長、幹部）。創世神 (Superuser) 自動擁有最高權限。</p>
+    </div>
 
-            <!-- 添加管理員表單 -->
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-user-plus"></i> 添加管理員</h5>
+    <!-- 新增白名單 -->
+    <div class="rpg-card mb-lg">
+        <div class="rpg-card-header">
+            <h3><i class="fas fa-user-plus"></i> 新增授權</h3>
+        </div>
+        <div class="rpg-card-body">
+            <form method="post" action="{% url 'engineer_rpg:admin_whitelist_add' %}" class="d-flex gap-md align-items-end">
+                {% csrf_token %}
+                <div class="form-group flex-grow-1" style="position: relative;">
+                    <label>使用者（搜尋姓名或帳號）</label>
+                    <input type="text" id="user-search" class="rpg-input" placeholder="輸入姓名或帳號搜尋..." autocomplete="off">
+                    <input type="hidden" name="username" id="selected-username">
+                    <div id="search-results" class="search-dropdown" style="display: none;"></div>
+                    <div id="selected-user-badge" class="selected-badge" style="display: none;"></div>
                 </div>
-                <div class="card-body">
-                    <form method="POST" class="row g-3">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="add">
-                        
-                        <div class="col-md-4">
-                            <label for="user_id" class="form-label">選擇使用者</label>
-                            <select name="user_id" id="user_id" class="form-select" required>
-                                <option value="">-- 請選擇 --</option>
-                                {% for user in available_users %}
-                                <option value="{{ user.id }}">
-                                    {{ user.username }} ({{ user.rpg_profile.employee_id }})
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-3">
-                            <label for="role" class="form-label">指定角色</label>
-                            <select name="role" id="role" class="form-select" required>
-                                {% for role_code, role_name in role_choices %}
-                                    {% if role_code != 'ADVENTURER' %}
-                                    <option value="{{ role_code }}">{{ role_name }}</option>
-                                    {% endif %}
-                                {% endfor %}
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-3">
-                            <label for="notes" class="form-label">備註（選填）</label>
-                            <input type="text" name="notes" id="notes" class="form-control" 
-                                   placeholder="授權原因或說明">
-                        </div>
-                        
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button type="submit" class="btn btn-success w-100">
-                                <i class="fas fa-plus"></i> 添加
-                            </button>
-                        </div>
-                    </form>
+                <div class="form-group flex-grow-1">
+                    <label>授予角色</label>
+                    <select name="role" class="rpg-input">
+                        {% for code, name in role_choices %}
+                        <option value="{{ code }}">{{ name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-            </div>
+                <div class="form-group">
+                    <button type="submit" class="rpg-btn rpg-btn-primary" id="submit-btn" disabled>
+                        <i class="fas fa-plus"></i> 新增
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-            <!-- 當前白名單 -->
-            <div class="card">
-                <div class="card-header bg-dark text-white">
-                    <h5 class="mb-0"><i class="fas fa-list"></i> 當前管理者白名單 ({{ whitelist.count }} 人)</h5>
-                </div>
-                <div class="card-body">
-                    {% if whitelist %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>使用者名稱</th>
-                                    <th>員工編號</th>
-                                    <th>當前角色</th>
-                                    <th>指定角色</th>
-                                    <th>授權者</th>
-                                    <th>授權時間</th>
-                                    <th>備註</th>
-                                    <th class="text-center">操作</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for entry in whitelist %}
-                                <tr>
-                                    <td>
-                                        <strong>{{ entry.user.username }}</strong>
-                                    </td>
-                                    <td>{{ entry.user.rpg_profile.employee_id }}</td>
-                                    <td>
-                                        <span class="badge bg-info">
-                                            {{ entry.user.rpg_profile.get_role_display }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-primary">
-                                            {{ entry.get_role_display }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        {% if entry.granted_by %}
-                                        {{ entry.granted_by.username }}
-                                        {% else %}
-                                        <em class="text-muted">系統</em>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ entry.granted_at|date:"Y-m-d H:i" }}</td>
-                                    <td>
-                                        {% if entry.notes %}
-                                        <small>{{ entry.notes|truncatewords:10 }}</small>
-                                        {% else %}
-                                        <em class="text-muted">-</em>
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-center">
-                                        <form method="POST" style="display: inline;" 
-                                              onsubmit="return confirm('確定要移除 {{ entry.user.username }} 的管理權限嗎？');">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="action" value="remove">
-                                            <input type="hidden" name="whitelist_id" value="{{ entry.id }}">
-                                            <button type="submit" class="btn btn-sm btn-danger">
-                                                <i class="fas fa-trash"></i> 移除
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> 目前沒有任何使用者在白名單中
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- 說明 -->
-            <div class="card mt-4">
-                <div class="card-header bg-secondary text-white">
-                    <h6 class="mb-0"><i class="fas fa-question-circle"></i> 使用說明</h6>
-                </div>
-                <div class="card-body">
-                    <ul class="mb-0">
-                        <li><strong>添加管理員</strong>：選擇使用者並指定角色後，該使用者將自動獲得對應的管理權限</li>
-                        <li><strong>角色說明</strong>：
-                            <ul>
-                                <li><span class="badge bg-warning text-dark">公會幹部 (OFFICER)</span>：基本管理權限</li>
-                                <li><span class="badge bg-danger">公會會長 (MANAGER)</span>：高階管理權限</li>
-                                <li><span class="badge bg-dark">創世神 (ADMIN)</span>：最高管理權限</li>
-                            </ul>
-                        </li>
-                        <li><strong>移除權限</strong>：移除後，該使用者將重置為「冒險者」角色</li>
-                        <li><strong>系統超級管理員</strong>：Django superuser 會自動獲得「創世神」角色，無需加入白名單</li>
-                    </ul>
-                </div>
+    <!-- 白名單列表 -->
+    <div class="rpg-card">
+        <div class="rpg-card-header">
+            <h3><i class="fas fa-list"></i> 目前名單</h3>
+        </div>
+        <div class="rpg-card-body p-0">
+            <div class="table-responsive">
+                <table class="rpg-table">
+                    <thead>
+                        <tr>
+                            <th>使用者帳號</th>
+                            <th>角色</th>
+                            <th>建立時間</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in whitelists %}
+                        <tr>
+                            <td>{{ item.username }}</td>
+                            <td>
+                                <span class="badge badge-info">{{ item.get_role_display }}</span>
+                            </td>
+                            <td>{{ item.created_at|date:"Y-m-d H:i" }}</td>
+                            <td>
+                                <form method="post" action="{% url 'engineer_rpg:admin_whitelist_delete' item.id %}" onsubmit="return confirm('確定要移除此權限設定嗎？');" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="rpg-btn rpg-btn-danger rpg-btn-sm">
+                                        <i class="fas fa-trash"></i> 移除
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-md">目前沒有設定任何白名單</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
+    
+    <div class="mt-lg">
+        <a href="{% url 'engineer_rpg:admin_dashboard' %}" class="rpg-btn rpg-btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回管理面板
+        </a>
+    </div>
 </div>
+
+<style>
+    .search-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: rgba(30, 15, 10, 0.98);
+        border: 1px solid var(--color-secondary);
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+        max-height: 250px;
+        overflow-y: auto;
+        z-index: 100;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .search-item {
+        padding: 10px 14px;
+        cursor: pointer;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        transition: background 0.15s;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .search-item:hover {
+        background: rgba(255, 215, 0, 0.1);
+    }
+
+    .search-item .name {
+        color: var(--color-text);
+        font-weight: bold;
+    }
+
+    .search-item .username {
+        color: var(--color-stone);
+        font-size: 0.85rem;
+    }
+
+    .search-no-result {
+        padding: 12px 14px;
+        color: var(--color-stone);
+        text-align: center;
+        font-size: 0.9rem;
+    }
+
+    .selected-badge {
+        margin-top: 8px;
+        padding: 6px 12px;
+        background: rgba(255, 215, 0, 0.15);
+        border: 1px solid var(--color-gold);
+        border-radius: var(--border-radius);
+        color: var(--color-gold);
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .selected-badge .clear-btn {
+        cursor: pointer;
+        color: var(--color-stone);
+        font-size: 0.8rem;
+    }
+
+    .selected-badge .clear-btn:hover {
+        color: var(--color-danger);
+    }
+</style>
+
+<script>
+(function() {
+    const searchInput = document.getElementById('user-search');
+    const hiddenInput = document.getElementById('selected-username');
+    const resultsDiv = document.getElementById('search-results');
+    const badgeDiv = document.getElementById('selected-user-badge');
+    const submitBtn = document.getElementById('submit-btn');
+    let debounceTimer = null;
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        const query = this.value.trim();
+
+        if (query.length < 1) {
+            resultsDiv.style.display = 'none';
+            return;
+        }
+
+        debounceTimer = setTimeout(function() {
+            fetch(`{% url 'engineer_rpg:api_search_users' %}?q=${encodeURIComponent(query)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.results.length === 0) {
+                        resultsDiv.innerHTML = '<div class="search-no-result">找不到符合的使用者</div>';
+                    } else {
+                        resultsDiv.innerHTML = data.results.map(u =>
+                            `<div class="search-item" data-username="${u.username}" data-display="${u.display}">
+                                <span class="name">${u.emp_name || u.username}</span>
+                                <span class="username">${u.username}</span>
+                            </div>`
+                        ).join('');
+
+                        resultsDiv.querySelectorAll('.search-item').forEach(item => {
+                            item.addEventListener('click', function() {
+                                selectUser(this.dataset.username, this.dataset.display);
+                            });
+                        });
+                    }
+                    resultsDiv.style.display = 'block';
+                });
+        }, 250);
+    });
+
+    function selectUser(username, display) {
+        hiddenInput.value = username;
+        searchInput.value = '';
+        searchInput.style.display = 'none';
+        resultsDiv.style.display = 'none';
+
+        badgeDiv.innerHTML = `<i class="fas fa-user-check"></i> ${display}
+            <span class="clear-btn" title="清除"><i class="fas fa-times"></i></span>`;
+        badgeDiv.style.display = 'inline-flex';
+
+        badgeDiv.querySelector('.clear-btn').addEventListener('click', clearSelection);
+        submitBtn.disabled = false;
+    }
+
+    function clearSelection() {
+        hiddenInput.value = '';
+        searchInput.value = '';
+        searchInput.style.display = '';
+        badgeDiv.style.display = 'none';
+        submitBtn.disabled = true;
+        searchInput.focus();
+    }
+
+    // 點擊其他地方關閉下拉
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+            resultsDiv.style.display = 'none';
+        }
+    });
+
+    // 聚焦時若有內容則顯示
+    searchInput.addEventListener('focus', function() {
+        if (resultsDiv.innerHTML && this.value.trim().length >= 1) {
+            resultsDiv.style.display = 'block';
+        }
+    });
+})();
+</script>
 {% endblock %}

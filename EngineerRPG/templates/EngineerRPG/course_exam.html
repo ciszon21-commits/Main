@@ -1,107 +1,107 @@
-{% extends 'EngineerRPG/base.html' %}
-
-{% block title %}{{ course.title }} - 測驗{% endblock %}
-
-{% block content %}
-<div class="rpg-container">
-    <div class="mb-lg">
-        <a href="{% url 'engineer_rpg:course_study' course.id %}" class="rpg-btn rpg-btn-secondary mb-md">
-            <i class="fas fa-arrow-left"></i> 放棄測驗
-        </a>
-    </div>
-
-    <div class="rpg-card">
-        <div class="rpg-card-header mb-lg">
-            <h1 class="text-2xl font-bold mb-sm"><i class="fas fa-scroll"></i> {{ course.title }} - 結業測驗</h1>
-            <div class="flex gap-md text-stone">
-                <span><i class="fas fa-tasks"></i> 題目數: {{ questions|length }}</span>
-                <span><i class="fas fa-clock"></i> 限時: {{ course.exam_time_limit }} 分鐘</span>
-                <span><i class="fas fa-check-circle"></i> 及格分數: {{ course.passing_score }}分</span>
-            </div>
-        </div>
-
-        <form method="post" action="{% url 'engineer_rpg:submit_course_exam' course.id %}" id="examForm">
-            {% csrf_token %}
-
-            {% for question in questions %}
-            <div class="mb-xl p-md bg-black/30 rounded border border-white/10">
-                <div class="flex gap-sm mb-md">
-                    <span class="text-secondary font-bold text-lg">Q{{ forloop.counter }}.</span>
-                    <div class="text-lg">
-                        {{ question.content }}
-                        <span class="text-sm text-stone ml-sm">(配分: {{ points_per_question }}分)</span>
-                    </div>
-                </div>
-
-                <div class="grid gap-sm pl-lg">
-                    <label
-                        class="flex items-center gap-md cursor-pointer p-sm hover:bg-white/5 rounded transition-colors">
-                        <input type="radio" name="question_{{ question.id }}" value="A" required class="rpg-radio">
-                        <span class="font-bold text-secondary">A.</span>
-                        <span>{{ question.options.A }}</span>
-                    </label>
-                    <label
-                        class="flex items-center gap-md cursor-pointer p-sm hover:bg-white/5 rounded transition-colors">
-                        <input type="radio" name="question_{{ question.id }}" value="B" required class="rpg-radio">
-                        <span class="font-bold text-secondary">B.</span>
-                        <span>{{ question.options.B }}</span>
-                    </label>
-                    {% if question.options.C %}
-                    <label
-                        class="flex items-center gap-md cursor-pointer p-sm hover:bg-white/5 rounded transition-colors">
-                        <input type="radio" name="question_{{ question.id }}" value="C" required class="rpg-radio">
-                        <span class="font-bold text-secondary">C.</span>
-                        <span>{{ question.options.C }}</span>
-                    </label>
-                    {% endif %}
-                    {% if question.options.D %}
-                    <label
-                        class="flex items-center gap-md cursor-pointer p-sm hover:bg-white/5 rounded transition-colors">
-                        <input type="radio" name="question_{{ question.id }}" value="D" required class="rpg-radio">
-                        <span class="font-bold text-secondary">D.</span>
-                        <span>{{ question.options.D }}</span>
-                    </label>
-                    {% endif %}
-                </div>
-            </div>
-            {% endfor %}
-
-            <div class="flex justify-center mt-xl">
-                <button type="submit" class="rpg-btn rpg-btn-primary rpg-btn-xl pulse-animation"
-                    onclick="return confirm('確定要交卷嗎？');">
-                    <i class="fas fa-paper-plane"></i> 提交試卷
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<style>
-    .rpg-radio {
-        appearance: none;
-        width: 20px;
-        height: 20px;
-        border: 2px solid var(--color-stone);
-        border-radius: 50%;
-        outline: none;
-        position: relative;
-        flex-shrink: 0;
-    }
-
-    .rpg-radio:checked {
-        border-color: var(--color-primary);
-    }
-
-    .rpg-radio:checked::after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 10px;
-        height: 10px;
-        background-color: var(--color-primary);
-        border-radius: 50%;
-    }
-</style>
-{% endblock %}
+{% extends 'EngineerRPG/base.html' %}
+
+{% block title %}{{ course.title }} - 測驗{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <div class="mb-lg">
+        <a href="{% url 'engineer_rpg:course_study' course.id %}" class="rpg-btn rpg-btn-secondary mb-md">
+            <i class="fas fa-arrow-left"></i> 放棄測驗
+        </a>
+    </div>
+
+    <div class="rpg-card">
+        <div class="rpg-card-header mb-lg">
+            <h1 class="text-2xl font-bold mb-sm"><i class="fas fa-scroll"></i> {{ course.title }} - 結業測驗</h1>
+            <div class="flex gap-md text-stone">
+                <span><i class="fas fa-tasks"></i> 題目數: {{ questions|length }}</span>
+                <span><i class="fas fa-clock"></i> 限時: {{ course.exam_time_limit }} 分鐘</span>
+                <span><i class="fas fa-check-circle"></i> 及格分數: {{ course.passing_score }}分</span>
+            </div>
+        </div>
+
+        <form method="post" action="{% url 'engineer_rpg:submit_course_exam' course.id %}" id="examForm">
+            {% csrf_token %}
+
+            {% for question in questions %}
+            <div class="mb-xl p-md bg-black/30 rounded border border-white/10">
+                <div class="flex gap-sm mb-md">
+                    <span class="text-secondary font-bold text-lg">Q{{ forloop.counter }}.</span>
+                    <div class="text-lg">
+                        {{ question.content }}
+                        <span class="text-sm text-stone ml-sm">(配分: {{ points_per_question }}分)</span>
+                    </div>
+                </div>
+
+                <div class="grid gap-sm pl-lg">
+                    <label
+                        class="flex items-center gap-md cursor-pointer p-sm hover:bg-white/5 rounded transition-colors">
+                        <input type="radio" name="question_{{ question.id }}" value="A" required class="rpg-radio">
+                        <span class="font-bold text-secondary">A.</span>
+                        <span>{{ question.options.A }}</span>
+                    </label>
+                    <label
+                        class="flex items-center gap-md cursor-pointer p-sm hover:bg-white/5 rounded transition-colors">
+                        <input type="radio" name="question_{{ question.id }}" value="B" required class="rpg-radio">
+                        <span class="font-bold text-secondary">B.</span>
+                        <span>{{ question.options.B }}</span>
+                    </label>
+                    {% if question.options.C %}
+                    <label
+                        class="flex items-center gap-md cursor-pointer p-sm hover:bg-white/5 rounded transition-colors">
+                        <input type="radio" name="question_{{ question.id }}" value="C" required class="rpg-radio">
+                        <span class="font-bold text-secondary">C.</span>
+                        <span>{{ question.options.C }}</span>
+                    </label>
+                    {% endif %}
+                    {% if question.options.D %}
+                    <label
+                        class="flex items-center gap-md cursor-pointer p-sm hover:bg-white/5 rounded transition-colors">
+                        <input type="radio" name="question_{{ question.id }}" value="D" required class="rpg-radio">
+                        <span class="font-bold text-secondary">D.</span>
+                        <span>{{ question.options.D }}</span>
+                    </label>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="flex justify-center mt-xl">
+                <button type="submit" class="rpg-btn rpg-btn-primary rpg-btn-xl pulse-animation"
+                    onclick="return confirm('確定要交卷嗎？');">
+                    <i class="fas fa-paper-plane"></i> 提交試卷
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .rpg-radio {
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--color-stone);
+        border-radius: 50%;
+        outline: none;
+        position: relative;
+        flex-shrink: 0;
+    }
+
+    .rpg-radio:checked {
+        border-color: var(--color-primary);
+    }
+
+    .rpg-radio:checked::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 10px;
+        height: 10px;
+        background-color: var(--color-primary);
+        border-radius: 50%;
+    }
+</style>
+{% endblock %}

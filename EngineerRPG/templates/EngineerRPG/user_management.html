@@ -1,512 +1,253 @@
 {% extends 'EngineerRPG/base.html' %}
-
 {% load static %}
-
-
 
 {% block title %}使用者管理 - 監造冒險者公會{% endblock %}
 
-
-
 {% block content %}
-
 <div class="rpg-container">
-
     <div class="mb-lg">
-
         <h1 class="text-center">
-
             <i class="fas fa-users-cog"></i>
-
             使用者管理
-
         </h1>
-
     </div>
-
-
 
     <div class="rpg-card">
-
         <div class="flex justify-between items-center mb-lg">
-
             <h2>冒險者列表</h2>
-
-            <a href="{% url 'engineer_rpg:create_user' %}" class="rpg-btn rpg-btn-primary">
-
-                <i class="fas fa-plus"></i> 新增使用者
-
-            </a>
-
         </div>
-
-
 
         <div style="overflow-x: auto;">
-
             <table style="width: 100%; border-collapse: collapse;">
-
                 <thead>
-
                     <tr style="border-bottom: 2px solid var(--color-secondary);">
-
                         <th style="padding: var(--spacing-sm); text-align: left;">員工編號</th>
-
                         <th style="padding: var(--spacing-sm); text-align: left;">使用者名稱</th>
-
                         <th style="padding: var(--spacing-sm); text-align: left;">職業</th>
-
                         <th style="padding: var(--spacing-sm); text-align: center;">等級</th>
-
                         <th style="padding: var(--spacing-sm); text-align: center;">角色</th>
-
                         <th style="padding: var(--spacing-sm); text-align: center;">狀態</th>
-
                         <th style="padding: var(--spacing-sm); text-align: center;">操作</th>
-
                     </tr>
-
                 </thead>
-
                 <tbody>
-
                     {% for u_profile in users %}
-
                     <tr style="border-bottom: 1px solid var(--color-primary); cursor: pointer;"
-
                         onclick="window.location.href='{% url 'engineer_rpg:member_profile_detail' u_profile.id %}'">
-
                         <td style="padding: var(--spacing-sm);">{{ u_profile.employee_id }}</td>
-
                         <td style="padding: var(--spacing-sm);">
-
                             <a href="{% url 'engineer_rpg:member_profile_detail' u_profile.id %}"
-
                                 style="color: var(--color-secondary); text-decoration: none; font-weight: 500;">
-
-                                {{ u_profile.user.get_full_name|default:u_profile.user.username }}
-
+                                {{ u_profile.display_name|default:u_profile.user.username }}
                             </a>
-
                         </td>
-
                         <td style="padding: var(--spacing-sm);">{{ u_profile.character_class.name }}</td>
-
                         <td style="padding: var(--spacing-sm); text-align: center;">Lv.{{ u_profile.level }}</td>
-
                         <td style="padding: var(--spacing-sm); text-align: center;">
-
                             <span
-
                                 class="badge badge-{% if u_profile.role == 'ADMIN' %}danger{% elif u_profile.role == 'MANAGER' %}warning{% else %}success{% endif %}">
-
                                 {{ u_profile.get_role_display }}
-
                             </span>
-
                         </td>
-
                         <td style="padding: var(--spacing-sm); text-align: center;">
-
                             {% if u_profile.user.is_active %}
-
                             <span style="color: var(--color-safety);"><i class="fas fa-check-circle"></i> 啟用</span>
-
                             {% else %}
-
                             <span style="color: var(--color-me);"><i class="fas fa-times-circle"></i> 停用</span>
-
                             {% endif %}
-
                         </td>
-
                         <td style="padding: var(--spacing-sm); text-align: center;">
-
                             <div class="action-buttons">
-
                                 <a href="{% url 'engineer_rpg:edit_user' u_profile.id %}"
-
                                     class="rpg-btn rpg-btn-sm rpg-btn-warning" onclick="event.stopPropagation();"
-
                                     title="編輯">
-
                                     <i class="fas fa-edit"></i>
-
                                 </a>
-
                                 <button
-
-                                    onclick="confirmDelete({{ u_profile.id }}, '{{ u_profile.user.get_full_name|default:u_profile.user.username }}'); event.stopPropagation();"
-
+                                    onclick="confirmDelete({{ u_profile.id }}, '{{ u_profile.display_name|default:u_profile.user.username|escapejs }}'); event.stopPropagation();"
                                     class="rpg-btn rpg-btn-sm rpg-btn-danger" title="刪除">
-
                                     <i class="fas fa-trash"></i>
-
                                 </button>
-
                             </div>
-
                         </td>
-
                     </tr>
-
                     {% endfor %}
-
                 </tbody>
-
             </table>
-
         </div>
-
     </div>
-
 </div>
-
-
 
 <style>
-
     .badge {
-
         padding: 2px 8px;
-
         border-radius: 10px;
-
         font-size: 0.8rem;
-
         font-weight: 600;
-
     }
-
-
 
     .badge-danger {
-
         background: var(--color-me);
-
         color: white;
-
     }
-
-
 
     .badge-warning {
-
         background: var(--color-secondary);
-
         color: black;
-
     }
-
-
 
     .badge-success {
-
         background: var(--color-safety);
-
         color: white;
-
     }
-
-
 
     /* 表格行 hover 效果 */
-
     tbody tr:hover {
-
         background: rgba(255, 255, 255, 0.05);
-
         transition: background 0.2s ease;
-
     }
-
-
 
     /* 使用者名稱連結 hover 效果 */
-
     tbody tr td a:hover {
-
         color: var(--color-primary) !important;
-
         text-decoration: underline;
-
     }
-
-
 
     /* 操作按鈕容器 */
-
     .action-buttons {
-
         display: flex;
-
         gap: var(--spacing-xs);
-
         justify-content: center;
-
         align-items: center;
-
     }
-
-
 
     /* 警告按鈕樣式 */
-
     .rpg-btn-warning {
-
         background: var(--color-secondary);
-
         color: black;
-
     }
-
-
 
     .rpg-btn-warning:hover {
-
         background: var(--color-gold);
-
         transform: translateY(-2px);
-
     }
-
-
 
     /* 危險按鈕樣式 */
-
     .rpg-btn-danger {
-
         background: var(--color-me);
-
         color: white;
-
         border: none;
-
         cursor: pointer;
-
     }
-
-
 
     .rpg-btn-danger:hover {
-
         background: #c0392b;
-
         transform: translateY(-2px);
-
     }
-
-
 
     /* 確認對話框樣式 */
-
     .delete-modal {
-
         display: none;
-
         position: fixed;
-
         top: 0;
-
         left: 0;
-
         width: 100%;
-
         height: 100%;
-
         background: rgba(0, 0, 0, 0.8);
-
         z-index: 9999;
-
         justify-content: center;
-
         align-items: center;
-
     }
-
-
 
     .delete-modal.active {
-
         display: flex;
-
     }
-
-
 
     .delete-modal-content {
-
         background: var(--color-bg-dark);
-
         border: 2px solid var(--color-primary);
-
         border-radius: 8px;
-
         padding: var(--spacing-xl);
-
         max-width: 500px;
-
         text-align: center;
-
     }
-
-
 
     .delete-modal-content h3 {
-
         color: var(--color-me);
-
         margin-bottom: var(--spacing-md);
-
     }
-
-
 
     .delete-modal-content p {
-
         margin-bottom: var(--spacing-lg);
-
         color: var(--color-text);
-
     }
-
-
 
     .delete-modal-buttons {
-
         display: flex;
-
         gap: var(--spacing-md);
-
         justify-content: center;
-
     }
-
 </style>
 
-
-
 <!-- 刪除確認對話框 -->
-
 <div id="deleteModal" class="delete-modal">
-
     <div class="delete-modal-content">
-
         <h3><i class="fas fa-exclamation-triangle"></i> 確認刪除</h3>
-
         <p id="deleteMessage"></p>
-
         <div class="delete-modal-buttons">
-
             <button onclick="cancelDelete()" class="rpg-btn rpg-btn-secondary">
-
                 <i class="fas fa-times"></i> 取消
-
             </button>
-
             <button onclick="executeDelete()" class="rpg-btn rpg-btn-danger">
-
                 <i class="fas fa-trash"></i> 確認刪除
-
             </button>
-
         </div>
-
     </div>
-
 </div>
 
-
-
 <script>
-
     let deleteUserId = null;
 
-
-
     function confirmDelete(userId, username) {
-
         deleteUserId = userId;
-
         document.getElementById('deleteMessage').textContent =
-
             `確定要刪除使用者「${username}」嗎？此操作無法復原。`;
-
         document.getElementById('deleteModal').classList.add('active');
-
     }
-
-
 
     function cancelDelete() {
-
         deleteUserId = null;
-
         document.getElementById('deleteModal').classList.remove('active');
-
     }
-
-
 
     function executeDelete() {
-
         if (!deleteUserId) return;
 
-
-
         fetch(`/rpg/admin-panel/users/${deleteUserId}/delete/`, {
-
             method: 'POST',
-
             headers: {
-
                 'X-CSRFToken': '{{ csrf_token }}',
-
                 'Content-Type': 'application/json',
-
             },
-
         })
-
             .then(response => response.json())
-
             .then(data => {
-
                 if (data.success) {
-
                     // 顯示成功訊息
-
                     alert(data.message || '使用者已成功刪除');
-
                     // 重新載入頁面
-
                     window.location.reload();
-
                 } else {
-
                     // 顯示錯誤訊息
-
                     alert(data.message || '刪除失敗，請稍後再試');
-
                     cancelDelete();
-
                 }
-
             })
-
             .catch(error => {
-
                 console.error('Error:', error);
-
                 alert('刪除失敗，請稍後再試');
-
                 cancelDelete();
-
             });
-
     }
-
 </script>
-
 {% endblock %}
-

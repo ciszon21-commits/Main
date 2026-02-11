@@ -1,204 +1,204 @@
-{% extends 'EngineerRPG/base.html' %}
-{% load static %}
-
-{% block title %}編輯使用者 | 管理中心{% endblock %}
-
-{% block content %}
-<div class="rpg-container fade-in">
-    <!-- 頁面標題 -->
-    <div class="text-center mb-xl">
-        <h2 class="rpg-title">
-            <i class="fas fa-user-edit"></i> 編輯使用者
-        </h2>
-        <p class="text-stone">修改冒險者帳號資訊</p>
-    </div>
-
-    <!-- 返回按鈕 -->
-    <div class="mb-lg">
-        <a href="{% url 'engineer_rpg:user_management' %}" class="rpg-btn rpg-btn-secondary">
-            <i class="fas fa-arrow-left"></i> 返回使用者列表
-        </a>
-    </div>
-
-    <!-- 表單 -->
-    <div class="rpg-card">
-        <div class="rpg-card-header">
-            <h3 class="rpg-card-title"><i class="fas fa-edit"></i> 使用者資訊</h3>
-        </div>
-        <div class="rpg-card-body">
-            <form method="post" action="{% url 'engineer_rpg:edit_user' user_profile.id %}">
-                {% csrf_token %}
-
-                <div class="form-grid">
-                    <!-- 使用者名稱 -->
-                    <div class="form-group">
-                        <label for="username" class="form-label">
-                            使用者名稱 <span class="text-danger">*</span>
-                        </label>
-                        <input type="text" id="username" name="username" class="form-input" required
-                            value="{{ user_profile.user.get_full_name|default:.user.get_full_name|default:.user.username }}" placeholder="請輸入使用者名稱">
-                        <small class="form-hint">用於登入系統，不可重複</small>
-                    </div>
-
-                    <!-- 密碼 -->
-                    <div class="form-group">
-                        <label for="password" class="form-label">
-                            密碼 <span class="text-muted">(選填)</span>
-                        </label>
-                        <input type="password" id="password" name="password" class="form-input" placeholder="留空表示不變更密碼">
-                        <small class="form-hint">如需變更密碼，請輸入新密碼</small>
-                    </div>
-
-                    <!-- 員工編號 -->
-                    <div class="form-group">
-                        <label for="employee_id" class="form-label">
-                            員工編號 <span class="text-danger">*</span>
-                        </label>
-                        <input type="text" id="employee_id" name="employee_id" class="form-input" required
-                            value="{{ user_profile.employee_id }}" placeholder="請輸入員工編號">
-                        <small class="form-hint">唯一識別碼，不可重複</small>
-                    </div>
-
-                    <!-- Email -->
-                    <div class="form-group">
-                        <label for="email" class="form-label">
-                            Email
-                        </label>
-                        <input type="email" id="email" name="email" class="form-input"
-                            value="{{ user_profile.user.email }}" placeholder="請輸入 Email（選填）">
-                    </div>
-
-                    <!-- 職業 -->
-                    <div class="form-group">
-                        <label for="character_class" class="form-label">
-                            職業 <span class="text-danger">*</span>
-                        </label>
-                        <select id="character_class" name="character_class" class="form-select" required>
-                            <option value="">請選擇職業</option>
-                            {% for char_class in character_classes %}
-                            <option value="{{ char_class.id }}" {% if char_class.id  ==  user_profile.character_class.id %}selected{% endif %}>{{ char_class.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- 角色 -->
-                    <div class="form-group">
-                        <label for="role" class="form-label">
-                            角色 <span class="text-danger">*</span>
-                        </label>
-                        <select id="role" name="role" class="form-select" required>
-                            {% for value, label in role_choices %}
-                            <option value="{{ value }}" {% if value  ==  user_profile.role %}selected{% endif %}>{{ label }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- 帳號狀態 -->
-                    <div class="form-group">
-                        <label for="is_active" class="form-label">
-                            帳號狀態
-                        </label>
-                        <div class="checkbox-wrapper">
-                            <input type="checkbox" id="is_active" name="is_active" {% if user_profile.user.is_active %}checked{% endif %}>
-                            <label for="is_active" class="checkbox-label">啟用帳號</label>
-                        </div>
-                        <small class="form-hint">取消勾選將停用此帳號</small>
-                    </div>
-                </div>
-
-                <!-- 提交按鈕 -->
-                <div class="form-actions">
-                    <button type="submit" class="rpg-btn rpg-btn-primary">
-                        <i class="fas fa-save"></i> 更新使用者
-                    </button>
-                    <a href="{% url 'engineer_rpg:user_management' %}" class="rpg-btn rpg-btn-outline">
-                        <i class="fas fa-times"></i> 取消
-                    </a>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<style>
-    .form-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: var(--spacing-lg);
-        margin-bottom: var(--spacing-xl);
-    }
-
-    .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-xs);
-    }
-
-    .form-label {
-        font-weight: bold;
-        color: var(--color-gold);
-        font-size: 0.95rem;
-    }
-
-    .form-input,
-    .form-select {
-        padding: var(--spacing-sm);
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid var(--color-border);
-        border-radius: 4px;
-        color: var(--color-text);
-        font-size: 1rem;
-        transition: border-color 0.3s;
-    }
-
-    .form-input:focus,
-    .form-select:focus {
-        outline: none;
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 2px rgba(var(--rgb-primary), 0.2);
-    }
-
-    .form-hint {
-        color: var(--color-stone);
-        font-size: 0.85rem;
-    }
-
-    .text-danger {
-        color: var(--color-danger, #e74c3c);
-    }
-
-    .text-muted {
-        color: var(--color-stone);
-        font-weight: normal;
-    }
-
-    .checkbox-wrapper {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-xs);
-        padding: var(--spacing-sm) 0;
-    }
-
-    .checkbox-wrapper input[type="checkbox"] {
-        width: 20px;
-        height: 20px;
-        cursor: pointer;
-    }
-
-    .checkbox-label {
-        color: var(--color-text);
-        cursor: pointer;
-        margin: 0;
-        font-weight: normal;
-    }
-
-    .form-actions {
-        display: flex;
-        gap: var(--spacing-md);
-        justify-content: flex-start;
-        padding-top: var(--spacing-lg);
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
-</style>
-{% endblock %}
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}編輯使用者 | 管理中心{% endblock %}
+
+{% block content %}
+<div class="rpg-container fade-in">
+    <!-- 頁面標題 -->
+    <div class="text-center mb-xl">
+        <h2 class="rpg-title">
+            <i class="fas fa-user-edit"></i> 編輯使用者
+        </h2>
+        <p class="text-stone">修改冒險者帳號資訊</p>
+    </div>
+
+    <!-- 返回按鈕 -->
+    <div class="mb-lg">
+        <a href="{% url 'engineer_rpg:user_management' %}" class="rpg-btn rpg-btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回使用者列表
+        </a>
+    </div>
+
+    <!-- 表單 -->
+    <div class="rpg-card">
+        <div class="rpg-card-header">
+            <h3 class="rpg-card-title"><i class="fas fa-edit"></i> 使用者資訊</h3>
+        </div>
+        <div class="rpg-card-body">
+            <form method="post" action="{% url 'engineer_rpg:edit_user' user_profile.id %}">
+                {% csrf_token %}
+
+                <div class="form-grid">
+                    <!-- 使用者名稱 -->
+                    <div class="form-group">
+                        <label for="username" class="form-label">
+                            使用者名稱 <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" id="username" name="username" class="form-input" required
+                            value="{{ user_profile.user.username }}" placeholder="請輸入使用者名稱">
+                        <small class="form-hint">用於登入系統，不可重複</small>
+                    </div>
+
+                    <!-- 密碼 -->
+                    <div class="form-group">
+                        <label for="password" class="form-label">
+                            密碼 <span class="text-muted">(選填)</span>
+                        </label>
+                        <input type="password" id="password" name="password" class="form-input" placeholder="留空表示不變更密碼">
+                        <small class="form-hint">如需變更密碼，請輸入新密碼</small>
+                    </div>
+
+                    <!-- 員工編號 -->
+                    <div class="form-group">
+                        <label for="employee_id" class="form-label">
+                            員工編號 <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" id="employee_id" name="employee_id" class="form-input" required
+                            value="{{ user_profile.employee_id }}" placeholder="請輸入員工編號">
+                        <small class="form-hint">唯一識別碼，不可重複</small>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="form-group">
+                        <label for="email" class="form-label">
+                            Email
+                        </label>
+                        <input type="email" id="email" name="email" class="form-input"
+                            value="{{ user_profile.user.email }}" placeholder="請輸入 Email（選填）">
+                    </div>
+
+                    <!-- 職業 -->
+                    <div class="form-group">
+                        <label for="character_class" class="form-label">
+                            職業 <span class="text-danger">*</span>
+                        </label>
+                        <select id="character_class" name="character_class" class="form-select" required>
+                            <option value="">請選擇職業</option>
+                            {% for char_class in character_classes %}
+                            <option value="{{ char_class.id }}" {% if char_class.id  ==  user_profile.character_class.id %}selected{% endif %}>{{ char_class.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- 角色 -->
+                    <div class="form-group">
+                        <label for="role" class="form-label">
+                            角色 <span class="text-danger">*</span>
+                        </label>
+                        <select id="role" name="role" class="form-select" required>
+                            {% for value, label in role_choices %}
+                            <option value="{{ value }}" {% if value  ==  user_profile.role %}selected{% endif %}>{{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- 帳號狀態 -->
+                    <div class="form-group">
+                        <label for="is_active" class="form-label">
+                            帳號狀態
+                        </label>
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="is_active" name="is_active" {% if user_profile.user.is_active %}checked{% endif %}>
+                            <label for="is_active" class="checkbox-label">啟用帳號</label>
+                        </div>
+                        <small class="form-hint">取消勾選將停用此帳號</small>
+                    </div>
+                </div>
+
+                <!-- 提交按鈕 -->
+                <div class="form-actions">
+                    <button type="submit" class="rpg-btn rpg-btn-primary">
+                        <i class="fas fa-save"></i> 更新使用者
+                    </button>
+                    <a href="{% url 'engineer_rpg:user_management' %}" class="rpg-btn rpg-btn-outline">
+                        <i class="fas fa-times"></i> 取消
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: var(--spacing-lg);
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+
+    .form-label {
+        font-weight: bold;
+        color: var(--color-gold);
+        font-size: 0.95rem;
+    }
+
+    .form-input,
+    .form-select {
+        padding: var(--spacing-sm);
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        color: var(--color-text);
+        font-size: 1rem;
+        transition: border-color 0.3s;
+    }
+
+    .form-input:focus,
+    .form-select:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 2px rgba(var(--rgb-primary), 0.2);
+    }
+
+    .form-hint {
+        color: var(--color-stone);
+        font-size: 0.85rem;
+    }
+
+    .text-danger {
+        color: var(--color-danger, #e74c3c);
+    }
+
+    .text-muted {
+        color: var(--color-stone);
+        font-weight: normal;
+    }
+
+    .checkbox-wrapper {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-sm) 0;
+    }
+
+    .checkbox-wrapper input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .checkbox-label {
+        color: var(--color-text);
+        cursor: pointer;
+        margin: 0;
+        font-weight: normal;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: var(--spacing-md);
+        justify-content: flex-start;
+        padding-top: var(--spacing-lg);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+</style>
+{% endblock %}
