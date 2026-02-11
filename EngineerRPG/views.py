@@ -62,6 +62,22 @@ def get_or_create_user_profile(user):
     return profile
 
 
+def check_skill_unlocked(user_profile, skill_node):
+    """檢查技能是否已解鎖（等級足夠且前置技能皆已完成）"""
+    if user_profile.level < skill_node.min_level:
+        return False
+
+    parent_skills = skill_node.parent_skills.all()
+    if parent_skills.exists():
+        completed_parents = UserSkill.objects.filter(
+            user_profile=user_profile,
+            skill_node__in=parent_skills,
+            status='COMPLETED'
+        ).count()
+        return completed_parents == parent_skills.count()
+    return True
+
+
 # ==================== Authentication Views ====================
 # Authentication is now handled upstream or via standard Django admin login.
 # Local registration and login views have been removed.
@@ -1141,9 +1157,42 @@ def promotion_trial(request, request_id):
 
 @login_required
 def leaderboard(request):
-    """Leaderboard"""
+    """排行榜"""
     profile = get_or_create_user_profile(request.user)
-    context = {'profile': profile}
+
+    # 等級排行榜：有選擇職業的使用者，依等級＋經驗值排序，取前 20 名
+    level_ranking = (
+        UserProfile.objects
+        .filter(character_class__isnull=False)
+        .select_related('user', 'character_class')
+        .order_by('-level', '-experience')[:20]
+    )
+
+    # 本週試煉排行：依本週試煉次數排序
+    from datetime import timedelta
+    week_start = timezone.now() - timedelta(days=7)
+    trial_ranking_qs = (
+        UserProfile.objects
+        .filter(
+            character_class__isnull=False,
+            trial_records__completed_at__gte=week_start,
+        )
+        .select_related('user', 'character_class')
+        .annotate(trial_count=Count('trial_records'))
+        .order_by('-trial_count')[:20]
+    )
+
+    # 個人通過次數
+    passed_trials_count = TrialRecord.objects.filter(
+        user_profile=profile, is_passed=True
+    ).count()
+
+    context = {
+        'profile': profile,
+        'level_ranking': level_ranking,
+        'trial_ranking': trial_ranking_qs,
+        'passed_trials_count': passed_trials_count,
+    }
     return render(request, 'EngineerRPG/leaderboard.html', context)
 
 
