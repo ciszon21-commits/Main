@@ -27,8 +27,13 @@
                 </div>
                 <div class="skill-info">
                     <div class="skill-type-badge type-{{ skill.node_type }}">
-                        {% if skill.node_type == 'ROOT' %}共同必修{% elif skill.node_type == 'CORE' %}職業核心{% else %}進階選修{%
-                        endif %}
+                        {% if skill.node_type == 'ROOT' %}
+                        共同必修
+                        {% elif skill.node_type == 'CORE' %}
+                        職業核心
+                        {% else %}
+                        進階選修
+                        {% endif %}
                     </div>
                     <h1>{{ skill.name }}</h1>
                     <div class="skill-exp">
@@ -154,8 +159,28 @@
                 </ul>
                 <p class="text-sm text-stone mt-md">需習得所有前置技能才可解鎖此技能。</p>
                 {% else %}
-                <p class="text-stone"><i class="fas fa-check"></i> 無前置技能，可直接學習。</p>
                 {% endif %}
+            </div>
+
+            <!-- 等級需求 -->
+            <div class="rpg-card mt-lg">
+                <h3 class="mb-md"><i class="fas fa-layer-group"></i> 等級需求</h3>
+                <div class="flex flex-between align-center">
+                    <span class="text-stone">最低需求等級</span>
+                    <span
+                        class="skill-level-req {% if profile.level < skill.min_level %}text-danger{% else %}text-success{% endif %}"
+                        style="font-size: 1.2rem; font-weight: bold;">
+                        Lv.{{ skill.min_level }}
+                    </span>
+                </div>
+                {% if profile.level < skill.min_level %} <p class="text-sm text-danger mt-sm">
+                    <i class="fas fa-exclamation-circle"></i> 您的等級不足，請先提升等級。
+                    </p>
+                    {% else %}
+                    <p class="text-sm text-success mt-sm">
+                        <i class="fas fa-check-circle"></i> 符合等級需求
+                    </p>
+                    {% endif %}
             </div>
         </div>
     </div>

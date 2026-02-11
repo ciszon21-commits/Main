@@ -1,197 +1,197 @@
-{% extends 'EngineerRPG/base.html' %}
-{% load static %}
-
-{% block title %}管理員儀表板 - 監造冒險者公會{% endblock %}
-
-{% block content %}
-<div class="rpg-container">
-    <div class="mb-lg">
-        <h1 class="text-center">
-            <i class="fas fa-crown"></i>
-            公會管理中心
-        </h1>
-        <p class="text-center" style="color: var(--color-secondary); font-size: 1.1rem;">
-            管理公會成員、發布試煉、審核晉升
-        </p>
-    </div>
-
-    <!-- 統計概覽 -->
-    <div class="grid grid-3 gap-lg mb-lg">
-        <div class="stat-card">
-            <div class="stat-icon">
-                <i class="fas fa-users"></i>
-            </div>
-            <div class="stat-value">{{ total_users }}</div>
-            <div class="stat-label">冒險者總數</div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon">
-                <i class="fas fa-scroll"></i>
-            </div>
-            <div class="stat-value">{{ total_questions }}</div>
-            <div class="stat-label">題庫總數</div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon">
-                <i class="fas fa-tree"></i>
-            </div>
-            <div class="stat-value">{{ total_skills }}</div>
-            <div class="stat-label">技能節點</div>
-        </div>
-    </div>
-
-    <div class="grid grid-2 gap-lg mb-xl">
-        <div class="stat-card">
-            <div class="stat-icon">
-                <i class="fas fa-shield-alt"></i>
-            </div>
-            <div class="stat-value">{{ total_equipment }}</div>
-            <div class="stat-label">裝備總數</div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon">
-                <i class="fas fa-briefcase"></i>
-            </div>
-            <div class="stat-value">{{ total_items }}</div>
-            <div class="stat-label">道具總數</div>
-        </div>
-    </div>
-
-    <!-- 管理功能選單 -->
-    <div class="grid grid-3 gap-lg">
-        <!-- 人員管理 -->
-        <div class="rpg-card">
-            <div class="text-center mb-md">
-                <i class="fas fa-users-cog" style="font-size: 3rem; color: var(--color-primary);"></i>
-            </div>
-            <h2 class="text-center mb-md">人員管理</h2>
-            <p class="text-center mb-lg" style="color: var(--color-stone);">
-                管理冒險者資料、重置密碼、調整角色
-            </p>
-            <div class="text-center">
-                <a href="{% url 'engineer_rpg:user_management' %}" class="rpg-btn rpg-btn-primary">
-                    <i class="fas fa-cog"></i> 進入管理
-                </a>
-            </div>
-        </div>
-
-        <!-- 課程與題庫管理 -->
-        <div class="rpg-card">
-            <div class="text-center mb-md">
-                <i class="fas fa-book" style="font-size: 3rem; color: var(--color-primary);"></i>
-            </div>
-            <h2 class="text-center mb-md">課程與題庫管理</h2>
-            <p class="text-center mb-lg" style="color: var(--color-stone);">
-                管理課程文件、題目編輯、批次匯入
-            </p>
-            <div class="text-center">
-                <a href="{% url 'engineer_rpg:question_management' %}" class="rpg-btn rpg-btn-primary">
-                    <i class="fas fa-edit"></i> 進入管理
-                </a>
-            </div>
-        </div>
-
-        <!-- 審核中心 -->
-        <div class="rpg-card">
-            <div class="text-center mb-md">
-                <i class="fas fa-clipboard-check" style="font-size: 3rem; color: var(--color-primary);"></i>
-            </div>
-            <h2 class="text-center mb-md">審核中心</h2>
-            <p class="text-center mb-lg" style="color: var(--color-stone);">
-                審核晉升申請、查看審核歷史
-            </p>
-            <div class="text-center">
-                <a href="{% url 'engineer_rpg:manager_dashboard' %}" class="rpg-btn rpg-btn-primary">
-                    <i class="fas fa-check-double"></i> 進入審核
-                </a>
-            </div>
-        </div>
-
-        <!-- 技能樹編輯器 -->
-        <div class="rpg-card">
-            <div class="text-center mb-md">
-                <i class="fas fa-sitemap" style="font-size: 3rem; color: var(--color-primary);"></i>
-            </div>
-            <h2 class="text-center mb-md">技能樹編輯器</h2>
-            <p class="text-center mb-lg" style="color: var(--color-stone);">
-                管理三種職業的技能樹與課程
-            </p>
-            <div class="text-center">
-                <a href="{% url 'engineer_rpg:skill_tree_editor' %}" class="rpg-btn rpg-btn-primary">
-                    <i class="fas fa-tree"></i> 進入編輯
-                </a>
-            </div>
-        </div>
-
-        <!-- 隊伍管理 -->
-        <div class="rpg-card">
-            <div class="text-center mb-md">
-                <i class="fas fa-users" style="font-size: 3rem; color: var(--color-primary);"></i>
-            </div>
-            <h2 class="text-center mb-md">隊伍管理</h2>
-            <p class="text-center mb-lg" style="color: var(--color-stone);">
-                創建隊伍、指派隊長與成員
-            </p>
-            <div class="text-center">
-                <a href="{% url 'engineer_rpg:team_management' %}" class="rpg-btn rpg-btn-primary">
-                    <i class="fas fa-users-cog"></i> 進入管理
-                </a>
-            </div>
-        </div>
-
-        <!-- Django Admin -->
-        <div class="rpg-card">
-            <div class="text-center mb-md">
-                <i class="fas fa-cogs" style="font-size: 3rem; color: var(--color-primary);"></i>
-            </div>
-            <h2 class="text-center mb-md">系統後台</h2>
-            <p class="text-center mb-lg" style="color: var(--color-stone);">
-                進入 Django 原生管理介面
-            </p>
-            <div class="text-center">
-                <a href="/admin/" target="_blank" class="rpg-btn rpg-btn-danger">
-                    <i class="fas fa-tools"></i> 進入後台
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<style>
-    .stat-card {
-        background: rgba(0, 0, 0, 0.3);
-        padding: var(--spacing-lg);
-        border-radius: var(--border-radius);
-        border: 2px solid var(--color-primary);
-        text-align: center;
-        transition: all 0.3s ease;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-5px);
-        border-color: var(--color-secondary);
-        box-shadow: var(--shadow-lg);
-    }
-
-    .stat-icon {
-        font-size: 2.5rem;
-        color: var(--color-secondary);
-        margin-bottom: var(--spacing-sm);
-    }
-
-    .stat-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: var(--color-text);
-        margin-bottom: var(--spacing-xs);
-    }
-
-    .stat-label {
-        font-size: 0.9rem;
-        color: var(--color-stone);
-    }
-</style>
-{% endblock %}
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}管理員儀表板 - 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <div class="mb-lg">
+        <h1 class="text-center">
+            <i class="fas fa-crown"></i>
+            公會管理中心
+        </h1>
+        <p class="text-center" style="color: var(--color-secondary); font-size: 1.1rem;">
+            管理公會成員、發布試煉、審核晉升
+        </p>
+    </div>
+
+    <!-- 統計概覽 -->
+    <div class="grid grid-3 gap-lg mb-lg">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-value">{{ total_users }}</div>
+            <div class="stat-label">冒險者總數</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-scroll"></i>
+            </div>
+            <div class="stat-value">{{ total_questions }}</div>
+            <div class="stat-label">題庫總數</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-tree"></i>
+            </div>
+            <div class="stat-value">{{ total_skills }}</div>
+            <div class="stat-label">技能節點</div>
+        </div>
+    </div>
+
+    <div class="grid grid-2 gap-lg mb-xl">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div class="stat-value">{{ total_equipment }}</div>
+            <div class="stat-label">裝備總數</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-briefcase"></i>
+            </div>
+            <div class="stat-value">{{ total_items }}</div>
+            <div class="stat-label">道具總數</div>
+        </div>
+    </div>
+
+    <!-- 管理功能選單 -->
+    <div class="grid grid-3 gap-lg">
+        <!-- 人員管理 -->
+        <div class="rpg-card">
+            <div class="text-center mb-md">
+                <i class="fas fa-users-cog" style="font-size: 3rem; color: var(--color-primary);"></i>
+            </div>
+            <h2 class="text-center mb-md">人員管理</h2>
+            <p class="text-center mb-lg" style="color: var(--color-stone);">
+                管理冒險者資料、重置密碼、調整角色
+            </p>
+            <div class="text-center">
+                <a href="{% url 'engineer_rpg:user_management' %}" class="rpg-btn rpg-btn-primary">
+                    <i class="fas fa-cog"></i> 進入管理
+                </a>
+            </div>
+        </div>
+
+        <!-- 課程與題庫管理 -->
+        <div class="rpg-card">
+            <div class="text-center mb-md">
+                <i class="fas fa-book" style="font-size: 3rem; color: var(--color-primary);"></i>
+            </div>
+            <h2 class="text-center mb-md">課程與題庫管理</h2>
+            <p class="text-center mb-lg" style="color: var(--color-stone);">
+                管理課程文件、題目編輯、批次匯入
+            </p>
+            <div class="text-center">
+                <a href="{% url 'engineer_rpg:question_management' %}" class="rpg-btn rpg-btn-primary">
+                    <i class="fas fa-edit"></i> 進入管理
+                </a>
+            </div>
+        </div>
+
+        <!-- 審核中心 -->
+        <div class="rpg-card">
+            <div class="text-center mb-md">
+                <i class="fas fa-clipboard-check" style="font-size: 3rem; color: var(--color-primary);"></i>
+            </div>
+            <h2 class="text-center mb-md">審核中心</h2>
+            <p class="text-center mb-lg" style="color: var(--color-stone);">
+                審核晉升申請、查看審核歷史
+            </p>
+            <div class="text-center">
+                <a href="{% url 'engineer_rpg:manager_dashboard' %}" class="rpg-btn rpg-btn-primary">
+                    <i class="fas fa-check-double"></i> 進入審核
+                </a>
+            </div>
+        </div>
+
+        <!-- 技能樹編輯器 -->
+        <div class="rpg-card">
+            <div class="text-center mb-md">
+                <i class="fas fa-sitemap" style="font-size: 3rem; color: var(--color-primary);"></i>
+            </div>
+            <h2 class="text-center mb-md">技能樹編輯器</h2>
+            <p class="text-center mb-lg" style="color: var(--color-stone);">
+                管理三種職業的技能樹與課程
+            </p>
+            <div class="text-center">
+                <a href="{% url 'engineer_rpg:skill_tree_editor' %}" class="rpg-btn rpg-btn-primary">
+                    <i class="fas fa-tree"></i> 進入編輯
+                </a>
+            </div>
+        </div>
+
+        <!-- 隊伍管理 -->
+        <div class="rpg-card">
+            <div class="text-center mb-md">
+                <i class="fas fa-users" style="font-size: 3rem; color: var(--color-primary);"></i>
+            </div>
+            <h2 class="text-center mb-md">隊伍管理</h2>
+            <p class="text-center mb-lg" style="color: var(--color-stone);">
+                創建隊伍、指派隊長與成員
+            </p>
+            <div class="text-center">
+                <a href="{% url 'engineer_rpg:team_management' %}" class="rpg-btn rpg-btn-primary">
+                    <i class="fas fa-users-cog"></i> 進入管理
+                </a>
+            </div>
+        </div>
+
+        <!-- Django Admin -->
+        <div class="rpg-card">
+            <div class="text-center mb-md">
+                <i class="fas fa-cogs" style="font-size: 3rem; color: var(--color-primary);"></i>
+            </div>
+            <h2 class="text-center mb-md">系統後台</h2>
+            <p class="text-center mb-lg" style="color: var(--color-stone);">
+                進入 Django 原生管理介面
+            </p>
+            <div class="text-center">
+                <a href="/admin/" target="_blank" class="rpg-btn rpg-btn-danger">
+                    <i class="fas fa-tools"></i> 進入後台
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .stat-card {
+        background: rgba(0, 0, 0, 0.3);
+        padding: var(--spacing-lg);
+        border-radius: var(--border-radius);
+        border: 2px solid var(--color-primary);
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--color-secondary);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .stat-icon {
+        font-size: 2.5rem;
+        color: var(--color-secondary);
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--color-text);
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: var(--color-stone);
+    }
+</style>
+{% endblock %}

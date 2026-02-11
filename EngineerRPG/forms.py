@@ -4,7 +4,7 @@ EngineerRPG Forms - 更新版本
 """
 
 from django import forms
-from .models import Question, SkillNode, Course, CharacterClass, UserProfile
+from .models import Question, SkillNode, Course, CharacterClass
 
 
 class QuestionForm(forms.ModelForm):
@@ -236,27 +236,38 @@ class UserRegistrationForm(forms.Form):
     """使用者註冊表單"""
     username = forms.CharField(
         label='使用者名稱',
-        min_length=3,
-        max_length=30,
         widget=forms.TextInput(attrs={
             'class': 'rpg-input',
-            'placeholder': '請輸入使用者名稱 (3-30字元)'
+            'placeholder': '請輸入使用者名稱'
         })
     )
     email = forms.EmailField(
         label='電子郵件',
-        required=False,
         widget=forms.EmailInput(attrs={
             'class': 'rpg-input',
-            'placeholder': '請輸入電子郵件 (選填)'
+            'placeholder': '請輸入電子郵件'
         })
+    )
+    employee_id = forms.CharField(
+        label='員工編號',
+        widget=forms.TextInput(attrs={
+            'class': 'rpg-input',
+            'placeholder': '請輸入員工編號'
+        })
+    )
+    character_class = forms.ModelChoiceField(
+        queryset=CharacterClass.objects.all(),
+        label='選擇職業',
+        widget=forms.RadioSelect(attrs={
+            'class': 'rpg-input'
+        }),
+        empty_label=None
     )
     password = forms.CharField(
         label='密碼',
-        min_length=6,
         widget=forms.PasswordInput(attrs={
             'class': 'rpg-input',
-            'placeholder': '請輸入密碼 (至少6字元)'
+            'placeholder': '請輸入密碼'
         })
     )
     confirm_password = forms.CharField(
@@ -266,64 +277,37 @@ class UserRegistrationForm(forms.Form):
             'placeholder': '請再次輸入密碼'
         })
     )
-    character_class = forms.ModelChoiceField(
-        label='選擇職業',
-        queryset=CharacterClass.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={'class': 'rpg-input'})
-    )
-
-    def clean_username(self):
-        from django.contrib.auth.models import User
-        username = self.cleaned_data.get('username')
-        if User.objects.filter(username=username).exists():
-            raise forms.ValidationError('此使用者名稱已被使用')
-        return username
-
+    
     def clean(self):
         cleaned_data = super().clean()
-        password = cleaned_data.get('password')
-        confirm_password = cleaned_data.get('confirm_password')
+        password = cleaned_data.get("password")
+        confirm_password = cleaned_data.get("confirm_password")
 
         if password and confirm_password and password != confirm_password:
-            raise forms.ValidationError('兩次輸入的密碼不符')
-
+            raise forms.ValidationError("兩次輸入的密碼不符")
+        
         return cleaned_data
-
+        
     def save(self):
+        """儲存使用者與個人檔案"""
         from django.contrib.auth.models import User
-        username = self.cleaned_data['username']
-        email = self.cleaned_data.get('email', '')
-        password = self.cleaned_data['password']
-        character_class = self.cleaned_data.get('character_class')
-
+        from .models import UserProfile
+        
+        # 建立使用者
         user = User.objects.create_user(
-            username=username,
-            email=email,
-            password=password
+            username=self.cleaned_data['username'],
+            email=self.cleaned_data['email'],
+            password=self.cleaned_data['password']
         )
-
-        # 創建 UserProfile
-        default_class = character_class or CharacterClass.objects.first()
-        if not default_class:
-            default_class = CharacterClass.objects.create(
-                code='CIVIL',
-                name='土木戰士',
-                description='專精土木工程的職業'
-            )
-
+        
+        # 建立個人檔案
         UserProfile.objects.create(
             user=user,
-            employee_id=f'EMP{user.id:05d}',
-            character_class=default_class,
-            role='ADVENTURER'
+            employee_id=self.cleaned_data['employee_id'],
+            character_class=self.cleaned_data['character_class']
         )
-
+        
         return user
-
-
-
-
 
 
 class UserProfileEditForm(forms.Form):
@@ -404,39 +388,3 @@ class UserProfileEditForm(forms.Form):
                 self.add_error('old_password', "變更密碼時必須輸入舊密碼")
 
         return cleaned_data
-
-
-class AvatarEditForm(forms.Form):
-    """頭像編輯表單 - 僅允許修改頭像"""
-    avatar_image = forms.ImageField(
-        label='大頭照',
-        required=False,
-        widget=forms.FileInput(attrs={
-            'class': 'rpg-input'
-        })
-    )
-    avatar_index = forms.IntegerField(
-        label='預設頭像索引',
-        required=False,
-        widget=forms.HiddenInput()
-    )
-
-
-class AdminUserEditForm(forms.Form):
-    """管理員編輯使用者表單"""
-    role = forms.ChoiceField(
-        label='角色權限',
-        choices=UserProfile.ROLE_CHOICES,
-        widget=forms.Select(attrs={'class': 'rpg-input'})
-    )
-    character_class = forms.ModelChoiceField(
-        label='職業',
-        queryset=CharacterClass.objects.all(),
-        widget=forms.Select(attrs={'class': 'rpg-input'})
-    )
-    is_active = forms.BooleanField(
-        label='帳號啟用',
-        required=False,
-        widget=forms.CheckboxInput(attrs={'class': 'rpg-checkbox'})
-    )
-

@@ -1,161 +1,218 @@
 {% extends 'EngineerRPG/base.html' %}
 {% load static %}
 
-{% block title %}試煉詳情 - {{ trial.title }}{% endblock %}
+{% block title %}{{ trial.title }} - 試煉詳情{% endblock %}
 
 {% block content %}
-<div class="rpg-container fade-in">
-    <!-- Header/Breadcrumbs -->
+<div class="rpg-container">
     <div class="mb-lg">
-        <h2 class="rpg-title mb-xs">
-            <i class="fas fa-scroll"></i> 試煉詳情
-        </h2>
-        <div class="rpg-breadcrumbs">
-            <a href="{% url 'engineer_rpg:training_hub' %}" style="color: #FFD700; text-decoration: none;">試煉中心</a>
-            <span>>></span>
-            <a href="{% url 'engineer_rpg:dungeon_list' %}" style="color: #FFD700; text-decoration: none;">地下城列表</a>
-            <span>>></span>
-            <span style="color: #CCCCCC;">{{ trial.title }}</span>
-        </div>
+        {% if trial.trial_type == 'DUNGEON' %}
+        <a href="{% url 'engineer_rpg:dungeon_list' %}" class="rpg-btn rpg-btn-secondary mb-md">
+            <i class="fas fa-arrow-left"></i> 返回地下城列表
+        </a>
+        {% else %}
+        <a href="{% url 'engineer_rpg:daily_trial_list' %}" class="rpg-btn rpg-btn-secondary mb-md">
+            <i class="fas fa-arrow-left"></i> 返回試煉列表
+        </a>
+        {% endif %}
     </div>
 
-    <div class="grid grid-2-1 gap-xl">
-        <!-- Left: Detail Info -->
-        <div>
-            <div class="rpg-card mb-lg">
-                <div class="rpg-card-header">
-                    <h3 class="rpg-card-title">{{ trial.title }}</h3>
-                </div>
-                <div class="rpg-card-body p-xl">
-                    <div class="mb-xl" style="font-size: 1.15rem; line-height: 1.8; color: #e0e0e0;">
-                        {{ trial.description|linebreaksbr }}
-                    </div>
-
-                    <div class="stats-overview grid grid-2 gap-md p-md" style="background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid var(--color-border);">
-                        <div class="stat-item flex align-center gap-md">
-                            <i class="fas fa-question-circle text-primary" style="font-size: 1.5rem;"></i>
-                            <div>
-                                <div class="text-stone" style="font-size: 0.85rem;">題目數量</div>
-                                <div style="font-weight: bold; font-size: 1.2rem;">{{ trial.question_count }} 題</div>
-                            </div>
-                        </div>
-                        <div class="stat-item flex align-center gap-md">
-                            <i class="fas fa-hourglass-half text-warning" style="font-size: 1.5rem;"></i>
-                            <div>
-                                <div class="text-stone" style="font-size: 0.85rem;">時間限制</div>
-                                <div style="font-weight: bold; font-size: 1.2rem;">
-                                    {% if trial.time_limit_minutes > 0 %}{{ trial.time_limit_minutes }} 分鐘{% else %}不限時{% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    <div class="rpg-card trial-detail-card mb-xl">
+        <div class="trial-header">
+            <div class="trial-type-badge type-{{ trial.trial_type }}">
+                {{ trial.get_trial_type_display }}
             </div>
-
-            <!-- Rewards Section -->
-            <div class="rpg-card">
-                <div class="rpg-card-header">
-                    <h3 class="rpg-card-title"><i class="fas fa-gift"></i> 通關獎勵</h3>
-                </div>
-                <div class="rpg-card-body p-lg">
-                    <div class="grid grid-3 gap-md">
-                        <div class="reward-box text-center p-md" style="background: rgba(40, 167, 69, 0.1); border: 1px solid #28a745; border-radius: 8px;">
-                            <i class="fas fa-star text-success mb-xs" style="font-size: 1.8rem;"></i>
-                            <div class="text-stone" style="font-size: 0.8rem;">經驗值</div>
-                            <div style="font-weight: bold; color: #28a745;">+{{ trial.exp_reward }} EXP</div>
-                        </div>
-                        
-                        {% if trial.equipment_reward %}
-                        <div class="reward-box text-center p-md" style="background: rgba(102, 126, 234, 0.1); border: 1px solid #667eea; border-radius: 8px;">
-                            <i class="fas fa-shield-alt text-primary mb-xs" style="font-size: 1.8rem;"></i>
-                            <div class="text-stone" style="font-size: 0.8rem;">機率獲得裝備</div>
-                            <div style="font-weight: bold; color: #667eea; font-size: 0.9rem;">{{ trial.equipment_reward.name }}</div>
-                        </div>
-                        {% endif %}
-
-                        {% if trial.item_reward %}
-                        <div class="reward-box text-center p-md" style="background: rgba(255, 215, 0, 0.1); border: 1px solid #FFD700; border-radius: 8px;">
-                            <i class="fas fa-box text-gold mb-xs" style="font-size: 1.8rem;"></i>
-                            <div class="text-stone" style="font-size: 0.8rem;">道具獎勵</div>
-                            <div style="font-weight: bold; color: #FFD700; font-size: 0.9rem;">{{ trial.item_reward.name }}</div>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
+            <h1 class="trial-title">{{ trial.title }}</h1>
+            <div class="trial-meta">
+                <span><i class="far fa-clock"></i> 限時: {{ trial.time_limit_minutes }} 分鐘</span>
+                <span><i class="fas fa-question-circle"></i> 題數: {{ trial.question_count }} 題</span>
             </div>
         </div>
 
-        <!-- Right: Requirements & Start -->
-        <div>
-            <div class="rpg-card">
-                <div class="rpg-card-header">
-                    <h3 class="rpg-card-title"><i class="fas fa-lock"></i> 進入門檻</h3>
-                </div>
-                <div class="rpg-card-body p-lg">
-                    <div class="requirement-item mb-xl p-md flex flex-between align-center" 
-                         style="background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid {% if can_start %}#28a745{% else %}#dc3545{% endif %};">
-                        <div class="flex align-center gap-md">
-                            <i class="fas fa-user-circle {% if can_start %}text-success{% else %}text-danger{% endif %}" style="font-size: 1.5rem;"></i>
-                            <div>
-                                <div class="text-stone" style="font-size: 0.8rem;">等級需求</div>
-                                <div style="font-weight: bold;">Lv. {{ trial.required_level }}</div>
-                            </div>
+        <div class="trial-body">
+            <div class="grid grid-2-1 gap-lg">
+                <div class="trial-info-section">
+                    <h3 class="section-title"><i class="fas fa-scroll"></i> 試煉內容</h3>
+                    <p class="trial-description text-lg mb-lg">
+                        {{ trial.description|linebreaksbr }}
+                    </p>
+
+                    <h3 class="section-title"><i class="fas fa-gift"></i> 通關獎勵</h3>
+                    <div class="rewards-container">
+                        <div class="reward-item">
+                            <div class="reward-icon exp-icon"><i class="fas fa-star"></i></div>
+                            <div class="reward-text">經驗值 +{{ trial.exp_reward }}</div>
                         </div>
-                        {% if can_start %}
-                        <i class="fas fa-check-circle text-success" style="font-size: 1.2rem;"></i>
-                        {% else %}
-                        <span style="color: #dc3545; font-size: 0.8rem; font-weight: bold;">等級不足 (目前 Lv.{{ profile.level }})</span>
+                        {% if trial.equipment_reward %}
+                        <div class="reward-item">
+                            <div class="reward-icon equip-icon"><i class="fas fa-shield-alt"></i></div>
+                            <div class="reward-text">裝備: {{ trial.equipment_reward.name }}</div>
+                        </div>
                         {% endif %}
                     </div>
+                </div>
 
-                    <div class="action-block">
+                <div class="trial-requirements-section">
+                    <h3 class="section-title"><i class="fas fa-exclamation-triangle"></i> 挑戰條件</h3>
+                    <ul class="requirements-list">
+                        <li
+                            class="requirement-item {% if profile.level >= trial.required_level %}met{% else %}unmet{% endif %}">
+                            <i
+                                class="fas {% if profile.level >= trial.required_level %}fa-check{% else %}fa-times{% endif %}"></i>
+                            需要等級: Lv.{{ trial.required_level }} (目前: Lv.{{ profile.level }})
+                        </li>
+                        <!-- 可以在這裡添加技能需求顯示 -->
+                    </ul>
+
+                    <div class="action-area mt-xl">
                         {% if can_start %}
                         <form action="{% url 'engineer_rpg:start_trial' trial.id %}" method="post">
                             {% csrf_token %}
-                            <button type="submit" class="rpg-btn rpg-btn-primary w-full py-lg" style="font-size: 1.3rem; letter-spacing: 2px;">
-                                <i class="fas fa-sword"></i> 踏入戰場
+                            <button type="submit" class="rpg-btn rpg-btn-primary w-100 btn-large pulse-animation">
+                                <i class="fas fa-dungeon"></i> 開始挑戰
                             </button>
                         </form>
-                        <p class="text-center text-stone mt-md" style="font-size: 0.85rem;">
-                            <i class="fas fa-info-circle"></i> 進入後將開始倒數計時，請謹慎應戰。
-                        </p>
+                        <p class="text-sm text-stone text-center mt-sm">挑戰開始後將開始計時，請確保網路穩定。</p>
                         {% else %}
-                        <button class="rpg-btn rpg-btn-disabled w-full py-lg" disabled style="font-size: 1.3rem;">
-                            <i class="fas fa-lock"></i> 尚未解鎖
+                        <button class="rpg-btn rpg-btn-disabled w-100 btn-large" disabled>
+                            <i class="fas fa-lock"></i> 條件未滿足
                         </button>
-                        <p class="text-center text-danger mt-md" style="font-size: 0.85rem;">
-                            你需要達到 Lv.{{ trial.required_level }} 才能發起挑戰。
-                        </p>
+                        <p class="text-sm text-danger text-center mt-sm">請先提升等級以解鎖此試煉。</p>
                         {% endif %}
                     </div>
                 </div>
             </div>
-
-            <a href="{% url 'engineer_rpg:dungeon_list' %}" class="rpg-btn rpg-btn-outline w-full mt-lg text-center">
-                <i class="fas fa-reply"></i> 返回列表
-            </a>
         </div>
     </div>
 </div>
 
 <style>
-    .grid-2-1 {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        gap: var(--spacing-xl);
-    }
-    
-    @media (max-width: 768px) {
-        .grid-2-1 {
-            grid-template-columns: 1fr;
-        }
+    .trial-detail-card {
+        background: linear-gradient(135deg, rgba(20, 20, 30, 0.95) 0%, rgba(30, 30, 40, 0.95) 100%);
+        border: 2px solid var(--color-border);
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     }
 
-    .reward-box {
-        transition: transform 0.3s ease;
+    .trial-header {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: var(--spacing-lg);
+        margin-bottom: var(--spacing-lg);
+        text-align: center;
     }
-    .reward-box:hover {
-        transform: translateY(-5px);
+
+    .trial-type-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: bold;
+        margin-bottom: var(--spacing-md);
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .type-DAILY {
+        color: var(--color-secondary);
+        border: 1px solid var(--color-secondary);
+    }
+
+    .type-PROMOTION {
+        color: var(--color-primary);
+        border: 1px solid var(--color-primary);
+    }
+
+    .type-SPECIAL {
+        color: var(--color-warning);
+        border: 1px solid var(--color-warning);
+    }
+
+    .type-DUNGEON {
+        color: #a855f7;
+        border: 1px solid #a855f7;
+        box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+    }
+
+    .trial-title {
+        font-size: 2.5rem;
+        color: var(--color-text);
+        margin-bottom: var(--spacing-md);
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .trial-meta {
+        display: flex;
+        justify-content: center;
+        gap: var(--spacing-xl);
+        color: var(--color-stone);
+        font-size: 1.1rem;
+    }
+
+    .section-title {
+        color: var(--color-secondary);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: var(--spacing-sm);
+        margin-bottom: var(--spacing-md);
+        font-size: 1.3rem;
+    }
+
+    .rewards-container {
+        display: flex;
+        gap: var(--spacing-lg);
+        flex-wrap: wrap;
+    }
+
+    .reward-item {
+        display: flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.05);
+        padding: var(--spacing-md);
+        border-radius: 8px;
+        border: 1px solid var(--color-border);
+    }
+
+    .reward-icon {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-right: var(--spacing-md);
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.3);
+    }
+
+    .exp-icon {
+        color: var(--color-warning);
+    }
+
+    .equip-icon {
+        color: var(--color-primary);
+    }
+
+    .requirements-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .requirement-item {
+        padding: var(--spacing-sm) 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .requirement-item.met {
+        color: var(--color-success);
+    }
+
+    .requirement-item.unmet {
+        color: var(--color-danger);
+    }
+
+    .btn-large {
+        font-size: 1.2rem;
+        padding: 15px 30px;
     }
 </style>
 {% endblock %}

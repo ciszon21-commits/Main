@@ -6,10 +6,8 @@ from .models import (
     CharacterClass, UserProfile, SkillNode, Course, UserSkill,
     Equipment, UserEquipment, Item, UserItem, Question, Trial, TrialRecord,
     PromotionRequest, EnhancementScroll, Achievement, UserAchievement,
-    RPGTeam, RPGTeamMember, DailyTrialTask, DailyTrialProgress, AdminWhitelist
+    Team, TeamMembership, DailyTrialTask, DailyTrialProgress
 )
-
-
 
 
 # 重新註冊 User 模型以支援自動完成
@@ -42,8 +40,8 @@ class CharacterClassAdmin(admin.ModelAdmin):
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'employee_id', 'character_class', 'level', 'experience', 'role', 'created_at']
-    list_filter = ['character_class', 'role', 'level']
+    list_display = ['user', 'employee_id', 'character_class', 'current_team', 'level', 'experience', 'role', 'created_at']
+    list_filter = ['character_class', 'role', 'level', 'current_team']
     search_fields = ['user__username', 'employee_id', 'user__email']
     readonly_fields = ['created_at', 'updated_at']
     
@@ -54,7 +52,9 @@ class UserProfileAdmin(admin.ModelAdmin):
         ('角色屬性', {
             'fields': ('level', 'experience', 'hp', 'mp')
         }),
-
+        ('隊伍', {
+            'fields': ('current_team',)
+        }),
         ('裝備', {
             'fields': ('equipped_helmet', 'equipped_armor', 'equipped_boots', 
                        'equipped_tool_1', 'equipped_tool_2', 'equipped_tool_3', 
@@ -354,44 +354,46 @@ class UserAchievementAdmin(admin.ModelAdmin):
     readonly_fields = ['unlocked_at']
 
 
-# ==================== RPG Team Admin ====================
+class CurrentMemberInline(admin.TabularInline):
+    """在隊伍管理頁面顯示當前隊員"""
+    model = UserProfile
+    fk_name = 'current_team'
+    extra = 1  # 顯示一個空白欄位供新增
+    fields = ['user', 'employee_id', 'character_class', 'level', 'experience']
+    readonly_fields = ['employee_id', 'character_class', 'level', 'experience']
+    autocomplete_fields = ['user']  # 使用自動完成搜尋使用者
+    verbose_name = '當前隊員'
+    verbose_name_plural = '當前隊員列表'
+    
+    def get_formset(self, request, obj=None, **kwargs):
+        """自訂表單集，只顯示尚未加入隊伍的使用者"""
+        formset = super().get_formset(request, obj, **kwargs)
+        # 可以在這裡過濾可選擇的使用者
+        return formset
 
-@admin.register(RPGTeam)
-class RPGTeamAdmin(admin.ModelAdmin):
-    """RPG 團隊管理"""
-    list_display = ['name', 'leader', 'get_member_count', 'max_members', 'is_active', 'created_at']
-    list_filter = ['is_active', 'created_at']
-    search_fields = ['name', 'description', 'leader__username']
-    readonly_fields = ['created_at', 'updated_at']
+
+@admin.register(Team)
+class TeamAdmin(admin.ModelAdmin):
+    list_display = ['name', 'description']
+    search_fields = ['name', 'description']
+    inlines = [CurrentMemberInline]
     
     fieldsets = (
         ('基本資訊', {
-            'fields': ('name', 'description', 'max_members', 'is_active')
-        }),
-        ('管理', {
-            'fields': ('leader', 'created_by')
-        }),
-        ('時間', {
-            'fields': ('created_at', 'updated_at')
+            'fields': ('name', 'description')
         }),
     )
-    
-    def get_member_count(self, obj):
-        return obj.get_member_count()
-    get_member_count.short_description = '成員數'
 
 
-@admin.register(RPGTeamMember)
-class RPGTeamMemberAdmin(admin.ModelAdmin):
-    """RPG 團隊成員管理"""
-    list_display = ['user_profile', 'team', 'role', 'joined_at']
-    list_filter = ['role', 'team']
-    search_fields = ['user_profile__user__username', 'team__name']
-    readonly_fields = ['joined_at']
+@admin.register(TeamMembership)
+class TeamMembershipAdmin(admin.ModelAdmin):
+    list_display = ['user', 'team', 'role', 'joined_at']
+    list_filter = ['role', 'joined_at']
+    search_fields = ['user__username', 'team__name']
     
     fieldsets = (
         ('成員資訊', {
-            'fields': ('user_profile', 'team', 'role')
+            'fields': ('user', 'team', 'role')
         }),
         ('時間記錄', {
             'fields': ('joined_at',)
@@ -440,24 +442,3 @@ class DailyTrialProgressAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-
-@admin.register(AdminWhitelist)
-class AdminWhitelistAdmin(admin.ModelAdmin):
-    list_display = ['user', 'role', 'granted_by', 'granted_at']
-    list_filter = ['role', 'granted_at']
-    search_fields = ['user__username', 'granted_by__username', 'notes']
-    readonly_fields = ['granted_at']
-    
-    fieldsets = (
-        ('基本資訊', {
-            'fields': ('user', 'role')
-        }),
-        ('授權資訊', {
-            'fields': ('granted_by', 'granted_at', 'notes')
-        }),
-    )
-    
-    def save_model(self, request, obj, form, change):
-        if not change:
-            obj.granted_by = request.user
-        super().save_model(request, obj, form, change)

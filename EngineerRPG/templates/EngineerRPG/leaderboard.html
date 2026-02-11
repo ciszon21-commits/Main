@@ -1,282 +1,282 @@
-{% extends 'EngineerRPG/base.html' %}
-{% load static %}
-
-{% block title %}排行榜 - 監造冒險者公會{% endblock %}
-
-{% block content %}
-<div class="rpg-container">
-    <div class="mb-lg">
-        <h1 class="text-center">
-            <i class="fas fa-trophy"></i>
-            冒險者排行榜
-        </h1>
-        <p class="text-center" style="color: var(--color-secondary); font-size: 1.1rem;">
-            與其他冒險者一較高下！
-        </p>
-    </div>
-
-    <div class="grid grid-2 gap-xl">
-        <!-- 等級排行榜 -->
-        <div class="rpg-card">
-            <h2>
-                <i class="fas fa-level-up-alt"></i>
-                等級排行榜
-            </h2>
-
-            {% if level_ranking %}
-            <div class="leaderboard-table mt-md">
-                {% for user_profile in level_ranking %}
-                <div
-                    class="leaderboard-row {% if user_profile == profile %}current-user{% endif %} {% if forloop.counter <= 3 %}top-{{ forloop.counter }}{% endif %}">
-                    <div class="rank">
-                        {% if forloop.counter == 1 %}
-                        <i class="fas fa-crown" style="color: #FFD700;"></i>
-                        {% elif forloop.counter == 2 %}
-                        <i class="fas fa-medal" style="color: #C0C0C0;"></i>
-                        {% elif forloop.counter == 3 %}
-                        <i class="fas fa-medal" style="color: #CD7F32;"></i>
-                        {% else %}
-                        {{ forloop.counter }}
-                        {% endif %}
-                    </div>
-                    <div class="avatar">
-                        <img src="{{ user_profile.get_avatar_url }}" alt="{{ user_profile.user.get_full_name|default:.user.get_full_name|default:.user.username }}">
-                    </div>
-                    <div class="info">
-                        <div class="username">{{ user_profile.user.get_full_name|default:.user.get_full_name|default:.user.username }}</div>
-                        <div class="class">{{ user_profile.character_class.name }}</div>
-                    </div>
-                    <div class="stats">
-                        <div class="level">Lv.{{ user_profile.level }}</div>
-                        <div class="exp">{{ user_profile.experience }} EXP</div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="text-center" style="color: var(--color-stone); padding: var(--spacing-xl);">
-                <i class="fas fa-info-circle"></i><br>
-                尚無排行資料
-            </p>
-            {% endif %}
-        </div>
-
-        <!-- 試煉排行榜 -->
-        <div class="rpg-card">
-            <h2>
-                <i class="fas fa-fire"></i>
-                本週試煉排行
-            </h2>
-
-            {% if trial_ranking %}
-            <div class="leaderboard-table mt-md">
-                {% for user_profile in trial_ranking %}
-                <div
-                    class="leaderboard-row {% if user_profile == profile %}current-user{% endif %} {% if forloop.counter <= 3 %}top-{{ forloop.counter }}{% endif %}">
-                    <div class="rank">
-                        {% if forloop.counter == 1 %}
-                        <i class="fas fa-crown" style="color: #FFD700;"></i>
-                        {% elif forloop.counter == 2 %}
-                        <i class="fas fa-medal" style="color: #C0C0C0;"></i>
-                        {% elif forloop.counter == 3 %}
-                        <i class="fas fa-medal" style="color: #CD7F32;"></i>
-                        {% else %}
-                        {{ forloop.counter }}
-                        {% endif %}
-                    </div>
-                    <div class="avatar">
-                        <img src="{{ user_profile.get_avatar_url }}" alt="{{ user_profile.user.get_full_name|default:.user.get_full_name|default:.user.username }}">
-                    </div>
-                    <div class="info">
-                        <div class="username">{{ user_profile.user.get_full_name|default:.user.get_full_name|default:.user.username }}</div>
-                        <div class="class">{{ user_profile.character_class.name }}</div>
-                    </div>
-                    <div class="stats">
-                        <div class="level">Lv.{{ user_profile.level }}</div>
-                        <div class="exp">{{ user_profile.trial_count }} 次試煉</div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="text-center" style="color: var(--color-stone); padding: var(--spacing-xl);">
-                <i class="fas fa-info-circle"></i><br>
-                尚無排行資料
-            </p>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- 個人統計 -->
-    <div class="rpg-card mt-xl">
-        <h2>
-            <i class="fas fa-chart-bar"></i>
-            我的統計
-        </h2>
-
-        <div class="grid grid-4 gap-lg mt-md">
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-level-up-alt"></i>
-                </div>
-                <div class="stat-value">{{ profile.level }}</div>
-                <div class="stat-label">等級</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-star"></i>
-                </div>
-                <div class="stat-value">{{ profile.experience }}</div>
-                <div class="stat-label">經驗值</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-dungeon"></i>
-                </div>
-                <div class="stat-value">{{ profile.trial_records.count }}</div>
-                <div class="stat-label">試煉次數</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <div class="stat-value">{{ passed_trials_count }}</div>
-                <div class="stat-label">通過次數</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<style>
-    .leaderboard-table {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-sm);
-    }
-
-    .leaderboard-row {
-        display: grid;
-        grid-template-columns: 50px 60px 1fr auto;
-        gap: var(--spacing-md);
-        align-items: center;
-        padding: var(--spacing-md);
-        background: rgba(0, 0, 0, 0.3);
-        border-radius: var(--border-radius);
-        border: 2px solid var(--color-primary);
-        transition: all 0.3s ease;
-    }
-
-    .leaderboard-row:hover {
-        transform: translateX(5px);
-        border-color: var(--color-secondary);
-    }
-
-    .leaderboard-row.current-user {
-        background: linear-gradient(90deg, rgba(212, 175, 55, 0.2) 0%, rgba(0, 0, 0, 0.3) 100%);
-        border-color: var(--color-secondary);
-    }
-
-    .leaderboard-row.top-1 {
-        background: linear-gradient(90deg, rgba(255, 215, 0, 0.2) 0%, rgba(0, 0, 0, 0.3) 100%);
-        border-color: #FFD700;
-    }
-
-    .leaderboard-row.top-2 {
-        background: linear-gradient(90deg, rgba(192, 192, 192, 0.2) 0%, rgba(0, 0, 0, 0.3) 100%);
-        border-color: #C0C0C0;
-    }
-
-    .leaderboard-row.top-3 {
-        background: linear-gradient(90deg, rgba(205, 127, 50, 0.2) 0%, rgba(0, 0, 0, 0.3) 100%);
-        border-color: #CD7F32;
-    }
-
-    .rank {
-        font-size: 1.5rem;
-        font-weight: 700;
-        text-align: center;
-        color: var(--color-secondary);
-    }
-
-    .avatar {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        overflow: hidden;
-        background: var(--color-primary);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 2rem;
-        color: var(--color-secondary);
-    }
-
-    .avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .info .username {
-        font-weight: 700;
-        font-size: 1.1rem;
-        color: var(--color-text);
-    }
-
-    .info .class {
-        font-size: 0.85rem;
-        color: var(--color-stone);
-    }
-
-    .stats {
-        text-align: right;
-    }
-
-    .stats .level {
-        font-weight: 700;
-        font-size: 1.2rem;
-        color: var(--color-secondary);
-    }
-
-    .stats .exp {
-        font-size: 0.85rem;
-        color: var(--color-stone);
-    }
-
-    .stat-card {
-        background: rgba(0, 0, 0, 0.3);
-        padding: var(--spacing-lg);
-        border-radius: var(--border-radius);
-        border: 2px solid var(--color-primary);
-        text-align: center;
-        transition: all 0.3s ease;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-5px);
-        border-color: var(--color-secondary);
-        box-shadow: var(--shadow-lg);
-    }
-
-    .stat-icon {
-        font-size: 2.5rem;
-        color: var(--color-secondary);
-        margin-bottom: var(--spacing-sm);
-    }
-
-    .stat-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: var(--color-text);
-        margin-bottom: var(--spacing-xs);
-    }
-
-    .stat-label {
-        font-size: 0.9rem;
-        color: var(--color-stone);
-    }
-</style>
-{% endblock %}
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}排行榜 - 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <div class="mb-lg">
+        <h1 class="text-center">
+            <i class="fas fa-trophy"></i>
+            冒險者排行榜
+        </h1>
+        <p class="text-center" style="color: var(--color-secondary); font-size: 1.1rem;">
+            與其他冒險者一較高下！
+        </p>
+    </div>
+
+    <div class="grid grid-2 gap-xl">
+        <!-- 等級排行榜 -->
+        <div class="rpg-card">
+            <h2>
+                <i class="fas fa-level-up-alt"></i>
+                等級排行榜
+            </h2>
+
+            {% if level_ranking %}
+            <div class="leaderboard-table mt-md">
+                {% for user_profile in level_ranking %}
+                <div
+                    class="leaderboard-row {% if user_profile == profile %}current-user{% endif %} {% if forloop.counter <= 3 %}top-{{ forloop.counter }}{% endif %}">
+                    <div class="rank">
+                        {% if forloop.counter == 1 %}
+                        <i class="fas fa-crown" style="color: #FFD700;"></i>
+                        {% elif forloop.counter == 2 %}
+                        <i class="fas fa-medal" style="color: #C0C0C0;"></i>
+                        {% elif forloop.counter == 3 %}
+                        <i class="fas fa-medal" style="color: #CD7F32;"></i>
+                        {% else %}
+                        {{ forloop.counter }}
+                        {% endif %}
+                    </div>
+                    <div class="avatar">
+                        <img src="{{ user_profile.get_avatar_url }}" alt="{{ user_profile.user.username }}">
+                    </div>
+                    <div class="info">
+                        <div class="username">{{ user_profile.user.username }}</div>
+                        <div class="class">{{ user_profile.character_class.name }}</div>
+                    </div>
+                    <div class="stats">
+                        <div class="level">Lv.{{ user_profile.level }}</div>
+                        <div class="exp">{{ user_profile.experience }} EXP</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-center" style="color: var(--color-stone); padding: var(--spacing-xl);">
+                <i class="fas fa-info-circle"></i><br>
+                尚無排行資料
+            </p>
+            {% endif %}
+        </div>
+
+        <!-- 試煉排行榜 -->
+        <div class="rpg-card">
+            <h2>
+                <i class="fas fa-fire"></i>
+                本週試煉排行
+            </h2>
+
+            {% if trial_ranking %}
+            <div class="leaderboard-table mt-md">
+                {% for user_profile in trial_ranking %}
+                <div
+                    class="leaderboard-row {% if user_profile == profile %}current-user{% endif %} {% if forloop.counter <= 3 %}top-{{ forloop.counter }}{% endif %}">
+                    <div class="rank">
+                        {% if forloop.counter == 1 %}
+                        <i class="fas fa-crown" style="color: #FFD700;"></i>
+                        {% elif forloop.counter == 2 %}
+                        <i class="fas fa-medal" style="color: #C0C0C0;"></i>
+                        {% elif forloop.counter == 3 %}
+                        <i class="fas fa-medal" style="color: #CD7F32;"></i>
+                        {% else %}
+                        {{ forloop.counter }}
+                        {% endif %}
+                    </div>
+                    <div class="avatar">
+                        <img src="{{ user_profile.get_avatar_url }}" alt="{{ user_profile.user.username }}">
+                    </div>
+                    <div class="info">
+                        <div class="username">{{ user_profile.user.username }}</div>
+                        <div class="class">{{ user_profile.character_class.name }}</div>
+                    </div>
+                    <div class="stats">
+                        <div class="level">Lv.{{ user_profile.level }}</div>
+                        <div class="exp">{{ user_profile.trial_count }} 次試煉</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-center" style="color: var(--color-stone); padding: var(--spacing-xl);">
+                <i class="fas fa-info-circle"></i><br>
+                尚無排行資料
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 個人統計 -->
+    <div class="rpg-card mt-xl">
+        <h2>
+            <i class="fas fa-chart-bar"></i>
+            我的統計
+        </h2>
+
+        <div class="grid grid-4 gap-lg mt-md">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-level-up-alt"></i>
+                </div>
+                <div class="stat-value">{{ profile.level }}</div>
+                <div class="stat-label">等級</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="stat-value">{{ profile.experience }}</div>
+                <div class="stat-label">經驗值</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-dungeon"></i>
+                </div>
+                <div class="stat-value">{{ profile.trial_records.count }}</div>
+                <div class="stat-label">試煉次數</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-value">{{ passed_trials_count }}</div>
+                <div class="stat-label">通過次數</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .leaderboard-table {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+
+    .leaderboard-row {
+        display: grid;
+        grid-template-columns: 50px 60px 1fr auto;
+        gap: var(--spacing-md);
+        align-items: center;
+        padding: var(--spacing-md);
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: var(--border-radius);
+        border: 2px solid var(--color-primary);
+        transition: all 0.3s ease;
+    }
+
+    .leaderboard-row:hover {
+        transform: translateX(5px);
+        border-color: var(--color-secondary);
+    }
+
+    .leaderboard-row.current-user {
+        background: linear-gradient(90deg, rgba(212, 175, 55, 0.2) 0%, rgba(0, 0, 0, 0.3) 100%);
+        border-color: var(--color-secondary);
+    }
+
+    .leaderboard-row.top-1 {
+        background: linear-gradient(90deg, rgba(255, 215, 0, 0.2) 0%, rgba(0, 0, 0, 0.3) 100%);
+        border-color: #FFD700;
+    }
+
+    .leaderboard-row.top-2 {
+        background: linear-gradient(90deg, rgba(192, 192, 192, 0.2) 0%, rgba(0, 0, 0, 0.3) 100%);
+        border-color: #C0C0C0;
+    }
+
+    .leaderboard-row.top-3 {
+        background: linear-gradient(90deg, rgba(205, 127, 50, 0.2) 0%, rgba(0, 0, 0, 0.3) 100%);
+        border-color: #CD7F32;
+    }
+
+    .rank {
+        font-size: 1.5rem;
+        font-weight: 700;
+        text-align: center;
+        color: var(--color-secondary);
+    }
+
+    .avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        overflow: hidden;
+        background: var(--color-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: var(--color-secondary);
+    }
+
+    .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .info .username {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: var(--color-text);
+    }
+
+    .info .class {
+        font-size: 0.85rem;
+        color: var(--color-stone);
+    }
+
+    .stats {
+        text-align: right;
+    }
+
+    .stats .level {
+        font-weight: 700;
+        font-size: 1.2rem;
+        color: var(--color-secondary);
+    }
+
+    .stats .exp {
+        font-size: 0.85rem;
+        color: var(--color-stone);
+    }
+
+    .stat-card {
+        background: rgba(0, 0, 0, 0.3);
+        padding: var(--spacing-lg);
+        border-radius: var(--border-radius);
+        border: 2px solid var(--color-primary);
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--color-secondary);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .stat-icon {
+        font-size: 2.5rem;
+        color: var(--color-secondary);
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--color-text);
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: var(--color-stone);
+    }
+</style>
+{% endblock %}
