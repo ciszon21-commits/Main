@@ -79,6 +79,38 @@
                         </div>
                         {% endif %}
                     </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label fw-bold text-light">
+                            {{ form.name.label }}
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                        <div class="text-danger mt-1">
+                            {{ form.name.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.phone.id_for_label }}" class="form-label fw-bold text-light">
+                                {{ form.phone.label }}
+                            </label>
+                            {{ form.phone }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.address.id_for_label }}" class="form-label fw-bold text-light">
+                                {{ form.address.label }}
+                            </label>
+                            {{ form.address }}
+                        </div>
+                    </div>
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sync-alt me-2"></i>更新圖片/資訊
+                        </button>
+                    </div>
                 </div>
 
                 <!-- 菜單項目編輯區塊 (獨立於 formset，使用 AJAX) -->
@@ -123,6 +155,14 @@
                                     <span class="badge bg-secondary">✗</span>
                                     {% endif %}
                                 </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-info edit-btn"
+                                        data-id="{{ form.instance.pk }}" data-name="{{ form.instance.name }}"
+                                        data-price="{{ form.instance.price }}"
+                                        data-category="{{ form.instance.category }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </td>
                             </tr>
                             {% endif %}
                             {% endfor %}
@@ -130,9 +170,10 @@
                     </table>
                 </div>
 
-                <!-- 新增品項表單 -->
+                <!-- 新增/編輯品項表單 -->
                 <div class="card mt-3 p-3"
                     style="background: rgba(99, 102, 241, 0.05); border: 1px dashed var(--border-color); border-radius: 12px;">
+                    <input type="hidden" id="edit-item-id" value="">
                     <div class="row g-2 align-items-end">
                         <div class="col-md-3">
                             <label class="form-label small text-muted">品項名稱</label>
@@ -150,9 +191,12 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-4 d-flex gap-2">
                             <button type="button" class="btn btn-primary w-100" id="add-item-btn">
-                                <i class="fas fa-plus me-1"></i>新增
+                                <i class="fas fa-plus me-1"></i><span>新增</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary w-50 d-none" id="cancel-edit-btn">
+                                取消
                             </button>
                         </div>
                     </div>
@@ -171,6 +215,21 @@
                     <i class="fas fa-arrow-left me-2"></i>返回所有便當店
                 </a>
             </div>
+
+            <!-- 危險區域：刪除餐廳 -->
+            <div class="card border-danger mb-5" style="background: rgba(220, 53, 69, 0.05);">
+                <div class="card-body text-center p-4">
+                    <h5 class="text-danger fw-bold"><i class="fas fa-exclamation-triangle me-2"></i>危險區域</h5>
+                    <p class="text-muted small">刪除餐廳將無法復原，並會一併刪除所有關聯的菜單與圖片。</p>
+                    <form action="{% url 'lunchorder:restaurant_delete' restaurant.id %}" method="post"
+                        onsubmit="return confirm('確定要刪除「{{ restaurant.name }}」嗎？此動作無法復原！');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger px-4 rounded-pill">
+                            <i class="fas fa-trash-alt me-2"></i>刪除此餐廳
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -178,7 +237,7 @@
 
 {% block extra_js %}
 <script>
-    const restaurantId = {{ restaurant.id }};
+    const restaurantId = parseInt("{{ restaurant.id }}");
     const csrfToken = '{{ csrf_token }}';
 
     // 全選/取消
@@ -186,18 +245,68 @@
         document.querySelectorAll('.delete-check').forEach(cb => cb.checked = this.checked);
     });
 
-    // 新增品項
+    // 處理編輯按鈕點擊 (使用事件委派)
+    document.getElementById('menu-tbody').addEventListener('click', function (e) {
+        const btn = e.target.closest('.edit-btn');
+        if (btn) {
+            const id = btn.dataset.id;
+            const name = btn.dataset.name;
+            const price = btn.dataset.price;
+            const category = btn.dataset.category;
+
+            document.getElementById('edit-item-id').value = id;
+            document.getElementById('new-name').value = name;
+            document.getElementById('new-price').value = price;
+            document.getElementById('new-category').value = category;
+
+            const addBtn = document.getElementById('add-item-btn');
+            addBtn.innerHTML = '<i class="fas fa-save me-1"></i><span>更新</span>';
+            addBtn.classList.replace('btn-primary', 'btn-success');
+
+            document.getElementById('cancel-edit-btn').classList.remove('d-none');
+
+            // Scroll to form
+            document.getElementById('new-name').focus();
+        }
+    });
+
+    // 取消編輯
+    document.getElementById('cancel-edit-btn').addEventListener('click', function () {
+        resetForm();
+    });
+
+    function resetForm() {
+        document.getElementById('edit-item-id').value = '';
+        document.getElementById('new-name').value = '';
+        document.getElementById('new-price').value = '';
+        document.getElementById('new-category').value = 'single'; // Default to first/single
+
+        const addBtn = document.getElementById('add-item-btn');
+        addBtn.innerHTML = '<i class="fas fa-plus me-1"></i><span>新增</span>';
+        addBtn.classList.replace('btn-success', 'btn-primary');
+
+        document.getElementById('cancel-edit-btn').classList.add('d-none');
+    }
+
+    // 新增/更新品項
     document.getElementById('add-item-btn').addEventListener('click', function () {
         const name = document.getElementById('new-name').value.trim();
         const price = document.getElementById('new-price').value || 0;
         const category = document.getElementById('new-category').value;
+        const editId = document.getElementById('edit-item-id').value;
 
         if (!name) {
             alert('請輸入品項名稱');
             return;
         }
 
-        fetch(`/lunch/api/restaurants/${restaurantId}/menu-item/add/`, {
+        let url = `/lunch/api/restaurants/${restaurantId}/menu-item/add/`;
+        // 如果有 editId 則改為 edit URL (需注意 URL 結構)
+        if (editId) {
+            url = `/lunch/api/restaurants/${restaurantId}/menu-item/${editId}/edit/`;
+        }
+
+        fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -209,27 +318,63 @@
             .then(data => {
                 if (data.success) {
                     const tbody = document.getElementById('menu-tbody');
-                    const tr = document.createElement('tr');
-                    tr.setAttribute('data-id', data.item.id);
-                    tr.innerHTML = `
-                    <td class="text-center">
-                        <input type="checkbox" class="form-check-input delete-check" value="${data.item.id}">
-                    </td>
-                    <td><strong>${data.item.name}</strong></td>
-                    <td>$${data.item.price}</td>
-                    <td>${data.item.category_display}</td>
-                    <td class="text-center"><span class="badge bg-success">✓</span></td>
-                `;
-                    tbody.appendChild(tr);
+                    const item = data.item;
 
-                    // 清空輸入
-                    document.getElementById('new-name').value = '';
-                    document.getElementById('new-price').value = '';
+                    if (editId) {
+                        // 更新現有 row
+                        const tr = document.querySelector(`tr[data-id="${editId}"]`);
+                        if (tr) {
+                            tr.innerHTML = `
+                                <td class="text-center">
+                                    <input type="checkbox" class="form-check-input delete-check" value="${item.id}">
+                                </td>
+                                <td><strong>${item.name}</strong></td>
+                                <td>$${item.price}</td>
+                                <td>${item.category_display}</td>
+                                <td class="text-center"><span class="badge bg-success">✓</span></td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-info edit-btn"
+                                        data-id="${item.id}"
+                                        data-name="${item.name}"
+                                        data-price="${item.price}"
+                                        data-category="${item.category}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </td>
+                            `;
+                        }
+                    } else {
+                        // 新增 row
+                        const tr = document.createElement('tr');
+                        tr.setAttribute('data-id', item.id);
+                        tr.innerHTML = `
+                        <td class="text-center">
+                            <input type="checkbox" class="form-check-input delete-check" value="${item.id}">
+                        </td>
+                        <td><strong>${item.name}</strong></td>
+                        <td>$${item.price}</td>
+                        <td>${item.category_display}</td>
+                        <td class="text-center"><span class="badge bg-success">✓</span></td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-outline-info edit-btn"
+                                data-id="${item.id}"
+                                data-name="${item.name}"
+                                data-price="${item.price}"
+                                data-category="${item.category}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </td>
+                    `;
+                        tbody.appendChild(tr);
+                    }
+
+                    // 重置表單
+                    resetForm();
                 } else {
                     alert(data.error);
                 }
             })
-            .catch(err => alert('新增失敗: ' + err));
+            .catch(err => alert('操作失敗: ' + err));
     });
 
     // 刪除勾選品項

@@ -58,6 +58,21 @@ class MenuImageForm(forms.Form):
         widget=forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
         required=False  # 允許只更新菜單項目而不換圖
     )
+    name = forms.CharField(
+        label="餐廳名稱",
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '餐廳名稱'})
+    )
+    phone = forms.CharField(
+        label="電話",
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '電話號碼'})
+    )
+    address = forms.CharField(
+        label="地址",
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '餐廳地址'})
+    )
 
 
 class MenuItemForm(forms.ModelForm):

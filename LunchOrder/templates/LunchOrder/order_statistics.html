@@ -227,6 +227,51 @@
     </div>
     {% endif %}
 
+    <!-- Item Statistics -->
+    {% if item_stats %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                <div class="card-header bg-white border-bottom-0 py-3" style="border-radius: 12px 12px 0 0;">
+                    <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-list-ol me-2"></i>品項統計</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">品項名稱</th>
+                                    <th>單價</th>
+                                    <th>總數量</th>
+                                    <th class="text-end pe-4">總金額</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in item_stats %}
+                                <tr>
+                                    <td class="ps-4">
+                                        <strong>{{ item.menu_item__name }}</strong>
+                                        <span class="badge bg-light text-dark ms-2">{{ item.menu_item__category
+                                            }}</span>
+                                    </td>
+                                    <td>${{ item.menu_item__price }}</td>
+                                    <td>
+                                        <span class="badge bg-primary rounded-pill px-3">{{ item.total_qty }}</span>
+                                    </td>
+                                    <td class="text-end pe-4 fw-bold text-success">
+                                        ${{ item.total_price }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Orders Table -->
     <div class="table-stats">
         <table class="table table-hover mb-0">

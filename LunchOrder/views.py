@@ -459,6 +459,17 @@ def order_statistics(request):
         'order_date', flat=True
     ).distinct().order_by('-order_date')[:30]
     
+    # 品項統計
+    item_stats = orders.values(
+        'menu_item__name', 
+        'menu_item__price', 
+        'menu_item__category',
+        'menu_item__restaurant__name' # 如果當日有多家餐廳混訂，這會很有用
+    ).annotate(
+        total_qty=Sum('quantity'),
+        total_price=Sum(F('quantity') * F('menu_item__price'), output_field=DecimalField())
+    ).order_by('-total_qty')
+    
     # 前一天/後一天導航
     prev_date = selected_date - datetime.timedelta(days=1)
     next_date = selected_date + datetime.timedelta(days=1)
@@ -469,6 +480,7 @@ def order_statistics(request):
         'orders': orders,
         'total_amount': total_amount,
         'total_quantity': total_quantity,
+        'item_stats': item_stats,
         'order_dates': order_dates,
         'today': today,
         'prev_date': prev_date,
@@ -506,7 +518,16 @@ def restaurant_update_menu(request, restaurant_id):
         form = MenuImageForm(request.POST, request.FILES)
         formset = MenuItemFormSet(request.POST, instance=restaurant)
         
-        if form.is_valid() and formset.is_valid():
+        # 優先處理圖片/電話/地址/名稱更新 (與 FormSet 分開驗證)
+        if form.is_valid():
+            # 更新基本資料
+            if form.cleaned_data.get('name'):
+                restaurant.name = form.cleaned_data['name']
+            if form.cleaned_data.get('phone'):
+                restaurant.phone = form.cleaned_data['phone']
+            if form.cleaned_data.get('address'):
+                restaurant.address = form.cleaned_data['address']
+            
             # 處理圖片上傳 (如果有)
             if request.FILES.get('image'):
                 image_file = request.FILES['image']
@@ -532,15 +553,42 @@ def restaurant_update_menu(request, restaurant_id):
                         destination.write(chunk)
                 
                 restaurant.image_file = new_filename
-                restaurant.save()
             
+            restaurant.save()
+            
+            # 如果是點擊「更新圖片/資訊」按鈕 (檢查是否只有基本資料更新)
+            # 這裡簡單判斷：只要 form valid 且沒有 formset errors，就視為基本資料更新成功
+            # 為了避免與 formset 衝突，我們可以在這裡直接回應，除非 formset 也有提交
+            
+            # 但為了讓使用者可以同時更新，我們繼續檢查 formset
+            # 如果這次請求主要是為了更新圖片/資訊 (通常是點擊了上面的按鈕)
+            if 'image' in request.FILES or form.cleaned_data.get('phone') != restaurant.phone or form.cleaned_data.get('address') != restaurant.address or form.cleaned_data.get('name') != restaurant.name:
+                 # 如果真的有變更，就提示
+                 pass
+
+            # 為了確保「更新圖片」按鈕的體驗，如果有點擊該按鈕 (通常會是 submit)，
+            # 我們假設使用者可能只改了這邊。
+            # 但因為是一個 form，我們統一處理。
+            
+            # 為了符合之前的修復邏輯 (優先處理上方區塊)，我們檢查是否有上傳圖片或修改資料
+            if request.FILES.get('image') or form.has_changed():
+                 messages.success(request, f'已更新 {restaurant.name} 的基本資料與圖片！')
+                 # 若不return，會繼續處理 formset，可能會覆蓋 message 或有其他邏輯
+                 # 為了簡單，若有更動上方，就先 redirect
+                 return redirect('lunchorder:restaurant_update_menu', restaurant_id=restaurant.id)
+            
+        if formset.is_valid():
             # 儲存菜單項目
             formset.save()
             
             messages.success(request, f'已更新 {restaurant.name} 的菜單與品項！')
-            return redirect('lunchorder:restaurant_list')
+            return redirect('lunchorder:restaurant_update_menu', restaurant_id=restaurant.id)
     else:
-        form = MenuImageForm()
+        form = MenuImageForm(initial={
+            'name': restaurant.name,
+            'phone': restaurant.phone,
+            'address': restaurant.address
+        })
         formset = MenuItemFormSet(instance=restaurant)
         
     context = {
@@ -587,6 +635,45 @@ def menu_item_add(request, restaurant_id):
     return JsonResponse({'success': False, 'error': '無效請求'})
 
 
+
+def menu_item_edit(request, restaurant_id, item_id):
+    """API: 編輯菜單品項"""
+    if request.method == 'POST':
+        restaurant = get_object_or_404(Restaurant, id=restaurant_id)
+        menu_item = get_object_or_404(MenuItem, id=item_id, restaurant=restaurant)
+        
+        import json
+        try:
+            data = json.loads(request.body)
+            
+            name = data.get('name', '').strip()
+            price = data.get('price')
+            category = data.get('category')
+            
+            if not name:
+                return JsonResponse({'success': False, 'error': '品項名稱不能為空'})
+                
+            menu_item.name = name
+            menu_item.price = price
+            menu_item.category = category
+            menu_item.save()
+            
+            return JsonResponse({
+                'success': True,
+                'item': {
+                    'id': menu_item.id,
+                    'name': menu_item.name,
+                    'price': str(menu_item.price),
+                    'category_display': menu_item.get_category_display(),
+                    'category': menu_item.category
+                }
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+            
+    return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+
 def menu_item_delete(request, restaurant_id):
     """API: 刪除菜單品項"""
     if request.method == 'POST':
@@ -607,3 +694,28 @@ def menu_item_delete(request, restaurant_id):
             'deleted_count': deleted_count
         })
     return JsonResponse({'success': False, 'error': '無效請求'})
+
+
+def restaurant_delete(request, restaurant_id):
+    """刪除便當店 (包含圖片與菜單)"""
+    restaurant = get_object_or_404(Restaurant, id=restaurant_id)
+    
+    if request.method == 'POST':
+        # 刪除圖片檔案
+        if restaurant.image_file:
+            import os
+            from django.conf import settings
+            image_path = os.path.join(settings.BASE_DIR, 'LunchOrder', 'static', 'LunchOrder', restaurant.image_file)
+            if os.path.exists(image_path):
+                try:
+                    os.remove(image_path)
+                except OSError:
+                    pass
+        
+        name = restaurant.name
+        restaurant.delete()
+        messages.success(request, f'已刪除餐廳：{name}')
+        return redirect('lunchorder:restaurant_list')
+    
+    # 如果不是 POST，導回更新頁面 (雖然前端應該只送 POST)
+    return redirect('lunchorder:restaurant_update_menu', restaurant_id=restaurant_id)
