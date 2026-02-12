@@ -2514,22 +2514,116 @@ def course_exam(request, course_id):
     """課程測驗"""
     profile = get_or_create_user_profile(request.user)
     course = get_object_or_404(Course, id=course_id)
-    questions = course.questions.all()
+    questions = course.questions.filter(is_active=True)
+    question_count = questions.count()
+    points_per_question = round(100 / question_count) if question_count > 0 else 0
     return render(request, 'EngineerRPG/course_exam.html', {
         'profile': profile, 
         'course': course, 
-        'questions': questions
+        'questions': questions,
+        'points_per_question': points_per_question,
     })
 
 
 
 def submit_course_exam(request, course_id):
-    """提交課程測驗"""
-    if request.method == 'POST':
-        # 結算邏輯...
-        messages.success(request, '課程測驗已提交')
-        return redirect('engineer_rpg:skill_tree')
-    return redirect('engineer_rpg:dashboard')
+    """提交課程測驗 — 批改、記分、獎勵"""
+    if request.method != 'POST':
+        return redirect('engineer_rpg:dashboard')
+
+    profile = get_or_create_user_profile(request.user)
+    course = get_object_or_404(Course, id=course_id)
+    questions = course.questions.filter(is_active=True)
+    question_count = questions.count()
+
+    if question_count == 0:
+        messages.warning(request, '此課程尚無題目，無法測驗')
+        return redirect('engineer_rpg:course_study', course_id=course.id)
+
+    # ── 批改答案 ──
+    correct_count = 0
+    answer_details = {}
+
+    for question in questions:
+        field_name = f'question_{question.id}'
+        user_answer = request.POST.get(field_name, '')
+
+        # 取得正確答案（JSON: 單選 "A", 多選 ["A","B"], 是非 "T"/"F"）
+        correct = question.correct_answer
+        if isinstance(correct, list):
+            is_correct = user_answer in correct
+        else:
+            is_correct = (user_answer == str(correct))
+
+        if is_correct:
+            correct_count += 1
+
+        answer_details[str(question.id)] = {
+            'user_answer': user_answer,
+            'correct_answer': correct,
+            'is_correct': is_correct,
+        }
+
+    # ── 計算分數 ──
+    score = round(correct_count / question_count * 100)
+    is_passed = score >= course.passing_score
+
+    # ── 建立 / 更新 UserCourseProgress ──
+    progress, created = UserCourseProgress.objects.get_or_create(
+        user_profile=profile,
+        course=course,
+    )
+
+    # 保留最高分
+    if score > progress.score:
+        progress.score = score
+
+    if is_passed and not progress.is_completed:
+        progress.is_completed = True
+        progress.completed_at = timezone.now()
+
+        # ── 經驗值獎勵（僅首次通過） ──
+        exp_reward = 0
+        for skill_node in course.skill_nodes.all():
+            exp_reward += skill_node.exp_reward
+
+            # 更新關聯的 UserSkill 進度
+            user_skill, _ = UserSkill.objects.get_or_create(
+                user_profile=profile,
+                skill_node=skill_node,
+                defaults={'status': 'IN_PROGRESS', 'started_at': timezone.now()}
+            )
+            if user_skill.status not in ('COMPLETED',):
+                user_skill.status = 'COMPLETED'
+                user_skill.progress = 100
+                user_skill.completed_at = timezone.now()
+                user_skill.save()
+
+        if exp_reward > 0:
+            profile.experience += exp_reward
+            # 檢查升級
+            while profile.experience >= profile.experience_to_next_level():
+                profile.experience -= profile.experience_to_next_level()
+                profile.level += 1
+            profile.save()
+            messages.info(request, f'🎉 獲得 {exp_reward} 經驗值！')
+
+    progress.save()
+
+    # ── 回饋訊息 ──
+    if is_passed:
+        messages.success(
+            request,
+            f'✅ 測驗通過！得分 {score} 分（答對 {correct_count}/{question_count} 題）'
+        )
+    else:
+        messages.warning(
+            request,
+            f'❌ 測驗未通過。得分 {score} 分（答對 {correct_count}/{question_count} 題，'
+            f'及格分數 {course.passing_score} 分），請再接再厲！'
+        )
+
+    return redirect('engineer_rpg:skill_tree')
 
 
 
