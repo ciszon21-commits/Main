@@ -35,6 +35,7 @@ class CharacterClass(models.Model):
 class Team(models.Model):
     name = models.CharField(max_length=200, verbose_name='隊伍名稱')
     description = models.TextField(blank=True, verbose_name='隊伍說明')
+    emp_dept = models.CharField(max_length=20, verbose_name='所屬部門', blank=True, null=True)
     leader = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
                                related_name='led_teams', verbose_name='隊長')
     created_by = models.ForeignKey(User, on_delete=models.CASCADE,
@@ -57,6 +58,11 @@ class Team(models.Model):
     def is_leader(self, user):
         """檢查使用者是否為隊長"""
         return self.leader == user
+    
+    def get_dept_display(self):
+        """取得部門顯示名稱"""
+        from StudioBase.constants import SINO_DEPT_DB
+        return SINO_DEPT_DB.get(self.emp_dept, self.emp_dept) if self.emp_dept else '未設定'
 
 class TeamMembership(models.Model):
     ROLE_CHOICES = [
