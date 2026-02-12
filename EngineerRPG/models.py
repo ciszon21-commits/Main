@@ -193,6 +193,15 @@ class UserProfile(models.Model):
         
         return base_mp + equipment_bonus
 
+    def get_total_damage_reduction(self):
+        """計算總減傷值（所有裝備的減傷加總）"""
+        total_dr = 0
+        for slot in [self.equipped_helmet, self.equipped_armor, self.equipped_boots,
+                     self.equipped_tool_1, self.equipped_tool_2, self.equipped_tool_3]:
+            if slot:
+                total_dr += slot.get_damage_reduction()
+        return total_dr
+
     def update_stats(self):
         """更新並儲存最新的 HP 和 MP 數值"""
         self.hp = self.get_total_hp()

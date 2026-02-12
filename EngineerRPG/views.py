@@ -651,20 +651,33 @@ def submit_answer(request, trial_id):
         from .models import DailyTrialProgress, DailyTrialTask
         progress = DailyTrialProgress.objects.get(user_profile=profile, daily_task_id=daily_task_id)
         if not is_correct:
-            damage = 10
-            if question.difficulty == 'C': damage = 5
-            elif question.difficulty in ['A', 'S']: damage = 15
-            hp_damage = damage
-            progress.current_hp = max(0, progress.current_hp - damage)
+            # 基礎傷害
+            base_damage = 10
+            if question.difficulty == 'C': 
+                base_damage = 5
+            elif question.difficulty in ['A', 'S']: 
+                base_damage = 15
+            
+            # 套用減傷
+            damage_reduction = profile.get_total_damage_reduction()
+            actual_damage = max(1, base_damage - damage_reduction)  # 至少扣1點
+            
+            hp_damage = actual_damage
+            progress.current_hp = max(0, progress.current_hp - actual_damage)
         progress.current_mp = current_mp
         progress.save()
         current_hp = progress.current_hp
     else:
         current_hp = request.session.get('trial_hp', 3)
         if not is_correct:
-            damage = 1
-            hp_damage = damage
-            current_hp = max(0, current_hp - damage)
+            base_damage = 1
+            
+            # 套用減傷
+            damage_reduction = profile.get_total_damage_reduction()
+            actual_damage = max(1, base_damage - damage_reduction)  # 至少扣1點
+            
+            hp_damage = actual_damage
+            current_hp = max(0, current_hp - actual_damage)
         request.session['trial_hp'] = current_hp
         request.session['trial_mp'] = current_mp
 
