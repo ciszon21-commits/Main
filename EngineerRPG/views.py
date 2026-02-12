@@ -729,6 +729,7 @@ def next_question(request, trial_id):
         'current_index': next_index,
         'total_questions': len(question_ids),
         'base_hp': profile.get_total_hp(),
+        'base_mp': profile.get_total_mp(),
         'initial_hp': current_hp,
         'initial_mp': current_mp,
         'heart_range': range(1, max(profile.get_total_hp(), 5) + 1),
@@ -860,15 +861,20 @@ def start_daily_trial(request, task_id):
         
     # Check if already completed
     from .models import DailyTrialProgress
+    
+    # 計算包含裝備加成的總 HP/MP
+    total_hp = profile.get_total_hp()
+    total_mp = profile.get_total_mp()
+    
     progress, created = DailyTrialProgress.objects.get_or_create(
         user_profile=profile,
         daily_task=daily_task,
         defaults={
             'started_at': timezone.now(),
-            'current_hp': profile.hp,
-            'current_mp': profile.mp,
-            'initial_hp': profile.hp,
-            'initial_mp': profile.mp,
+            'current_hp': total_hp,
+            'current_mp': total_mp,
+            'initial_hp': total_hp,
+            'initial_mp': total_mp,
             'current_question_index': 0
         }
     )
@@ -918,6 +924,7 @@ def start_daily_trial(request, task_id):
         'current_index': progress.current_question_index,
         'total_questions': len(selected_questions),
         'base_hp': profile.get_total_hp(),
+        'base_mp': profile.get_total_mp(),
         'initial_hp': progress.current_hp,
         'initial_mp': progress.current_mp,
         'heart_range': range(1, max(profile.get_total_hp(), 5) + 1),
