@@ -43,8 +43,7 @@ class Team(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
     
     class Meta:
-        managed = False
-        db_table = 'TeamKnowledgeHub_knowledgeteam'
+        db_table = 'EngineerRPG_rpgteam'
         verbose_name = '隊伍'
         verbose_name_plural = '隊伍列表'
 
@@ -66,14 +65,13 @@ class TeamMembership(models.Model):
         ('VICE_LEADER', '副隊長'),
     ]
     
-    team = models.ForeignKey(Team, on_delete=models.DO_NOTHING)
-    user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
+    team = models.ForeignKey(Team, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     role = models.CharField(max_length=20)
-    joined_at = models.DateTimeField()
+    joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        managed = False
-        db_table = 'TeamKnowledgeHub_knowledgeteammember'
+        db_table = 'EngineerRPG_rpgteammembership'
         unique_together = (('team', 'user'),)
         verbose_name = '隊伍成員'
         verbose_name_plural = '隊伍成員列表'

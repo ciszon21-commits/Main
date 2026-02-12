@@ -1898,8 +1898,7 @@ def create_team(request):
             messages.error(request, 'Team name cannot be empty')
             return redirect('engineer_rpg:create_team')
         
-        from TeamKnowledgeHub.models import KnowledgeTeam
-        team = KnowledgeTeam.objects.create(
+        team = Team.objects.create(
             name=name,
             description=description,
             created_by=request.user
