@@ -1,0 +1,270 @@
+{% extends "LunchOrder/base.html" %}
+{% load static %}
+
+{% block title %}南工中心訂便當系統 | 更新菜單 - {{ restaurant.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .order-card {
+        background: var(--bg-card);
+        border-radius: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+        padding: 40px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 24px;
+    }
+
+    .card-header-custom {
+        text-align: center;
+        margin-bottom: 32px;
+    }
+
+    .card-header-custom h3 {
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 800;
+        font-size: 2rem;
+        margin-bottom: 8px;
+    }
+
+    .preview-image {
+        max-width: 100%;
+        border-radius: 12px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--border-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <!-- 圖片上傳區塊 -->
+                <div class="order-card">
+                    <div class="card-header-custom">
+                        <h3><i class="fas fa-camera me-2"></i>更新菜單圖片 - {{ restaurant.name }}</h3>
+                        <p class="text-muted">上傳新的菜單圖片以供參考</p>
+                    </div>
+
+                    {% if restaurant.image_file %}
+                    <div class="text-center mb-4">
+                        <img src="{% static 'LunchOrder/' %}{{ restaurant.image_file }}" alt="目前菜單"
+                            class="preview-image">
+                        <div class="text-muted mt-2 small">目前設定的圖片</div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-4">
+                        <i class="fas fa-info-circle me-2"></i>目前沒有設定圖片
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.image.id_for_label }}" class="form-label fw-bold text-light">
+                            {{ form.image.label }}
+                        </label>
+                        {{ form.image }}
+                        {% if form.image.help_text %}
+                        <div class="form-text text-muted">{{ form.image.help_text }}</div>
+                        {% endif %}
+                        {% if form.image.errors %}
+                        <div class="text-danger mt-1">
+                            {{ form.image.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 菜單項目編輯區塊 (獨立於 formset，使用 AJAX) -->
+            </form>
+
+            <div class="order-card">
+                <div class="card-header-custom">
+                    <h3><i class="fas fa-list me-2"></i>編輯菜單項目</h3>
+                    <p class="text-muted">設定可供點餐的品項與價格</p>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle" id="menu-table"
+                        style="--bs-table-bg: transparent;">
+                        <thead>
+                            <tr class="text-uppercase text-muted fs-7"
+                                style="border-bottom: 2px solid var(--border-color);">
+                                <th style="width: 5%" class="text-center">
+                                    <input type="checkbox" id="select-all" class="form-check-input">
+                                </th>
+                                <th style="width: 30%">品項名稱</th>
+                                <th style="width: 15%">價格</th>
+                                <th style="width: 25%">分類</th>
+                                <th style="width: 10%" class="text-center">供應中</th>
+                            </tr>
+                        </thead>
+                        <tbody id="menu-tbody">
+                            {% for form in formset %}
+                            {% if form.instance.pk %}
+                            <tr data-id="{{ form.instance.pk }}">
+                                <td class="text-center">
+                                    <input type="checkbox" class="form-check-input delete-check"
+                                        value="{{ form.instance.pk }}">
+                                </td>
+                                <td><strong>{{ form.instance.name }}</strong></td>
+                                <td>${{ form.instance.price }}</td>
+                                <td>{{ form.instance.get_category_display }}</td>
+                                <td class="text-center">
+                                    {% if form.instance.is_available %}
+                                    <span class="badge bg-success">✓</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">✗</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 新增品項表單 -->
+                <div class="card mt-3 p-3"
+                    style="background: rgba(99, 102, 241, 0.05); border: 1px dashed var(--border-color); border-radius: 12px;">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">品項名稱</label>
+                            <input type="text" id="new-name" class="form-control" placeholder="餐點名稱">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">價格</label>
+                            <input type="number" id="new-price" class="form-control" placeholder="0" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">分類</label>
+                            <select id="new-category" class="form-select">
+                                {% for value, label in category_choices %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-primary w-100" id="add-item-btn">
+                                <i class="fas fa-plus me-1"></i>新增
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-center mt-3">
+                    <button type="button" class="btn btn-outline-danger rounded-pill px-4" id="delete-btn">
+                        <i class="fas fa-trash-alt me-2"></i>刪除勾選項目
+                    </button>
+                </div>
+            </div>
+
+            <div class="text-center mb-5">
+                <a href="{% url 'lunchorder:restaurant_list' %}"
+                    class="btn btn-outline-secondary px-4 py-2 rounded-pill fw-bold">
+                    <i class="fas fa-arrow-left me-2"></i>返回所有便當店
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const restaurantId = {{ restaurant.id }};
+    const csrfToken = '{{ csrf_token }}';
+
+    // 全選/取消
+    document.getElementById('select-all').addEventListener('change', function () {
+        document.querySelectorAll('.delete-check').forEach(cb => cb.checked = this.checked);
+    });
+
+    // 新增品項
+    document.getElementById('add-item-btn').addEventListener('click', function () {
+        const name = document.getElementById('new-name').value.trim();
+        const price = document.getElementById('new-price').value || 0;
+        const category = document.getElementById('new-category').value;
+
+        if (!name) {
+            alert('請輸入品項名稱');
+            return;
+        }
+
+        fetch(`/lunch/api/restaurants/${restaurantId}/menu-item/add/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ name, price: parseFloat(price), category })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const tbody = document.getElementById('menu-tbody');
+                    const tr = document.createElement('tr');
+                    tr.setAttribute('data-id', data.item.id);
+                    tr.innerHTML = `
+                    <td class="text-center">
+                        <input type="checkbox" class="form-check-input delete-check" value="${data.item.id}">
+                    </td>
+                    <td><strong>${data.item.name}</strong></td>
+                    <td>$${data.item.price}</td>
+                    <td>${data.item.category_display}</td>
+                    <td class="text-center"><span class="badge bg-success">✓</span></td>
+                `;
+                    tbody.appendChild(tr);
+
+                    // 清空輸入
+                    document.getElementById('new-name').value = '';
+                    document.getElementById('new-price').value = '';
+                } else {
+                    alert(data.error);
+                }
+            })
+            .catch(err => alert('新增失敗: ' + err));
+    });
+
+    // 刪除勾選品項
+    document.getElementById('delete-btn').addEventListener('click', function () {
+        const checked = document.querySelectorAll('.delete-check:checked');
+        if (checked.length === 0) {
+            alert('請先勾選要刪除的品項');
+            return;
+        }
+
+        if (!confirm(`確定要刪除 ${checked.length} 個品項嗎？`)) return;
+
+        const itemIds = Array.from(checked).map(cb => parseInt(cb.value));
+
+        fetch(`/lunch/api/restaurants/${restaurantId}/menu-item/delete/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ item_ids: itemIds })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    itemIds.forEach(id => {
+                        const row = document.querySelector(`tr[data-id="${id}"]`);
+                        if (row) row.remove();
+                    });
+                    document.getElementById('select-all').checked = false;
+                } else {
+                    alert(data.error);
+                }
+            })
+            .catch(err => alert('刪除失敗: ' + err));
+    });
+</script>
+{% endblock %}

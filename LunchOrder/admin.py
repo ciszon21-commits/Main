@@ -1,7 +1,15 @@
 from django.contrib import admin
 from django.db.models import Sum, F, DecimalField
 from django.db.models.functions import Coalesce
-from .models import Restaurant, MenuItem, LunchOrder
+from .models import Restaurant, MenuItem, LunchOrder, RestaurantSchedule
+
+
+@admin.register(RestaurantSchedule)
+class RestaurantScheduleAdmin(admin.ModelAdmin):
+    """便當店排程管理"""
+    list_display = ['date', 'restaurant', 'created_at']
+    list_filter = ['restaurant', 'date']
+    date_hierarchy = 'date'
 
 
 class MenuItemInline(admin.TabularInline):
