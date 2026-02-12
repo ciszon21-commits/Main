@@ -367,7 +367,11 @@ def equipment_inventory(request):
 
     user_equipments = UserEquipment.objects.filter(user_profile=profile).select_related('equipment')
 
-    # 建立當前裝備 dict
+    # 同步 is_equipped 狀態：先將所有裝備設為未裝備
+    user_equipments.update(is_equipped=False)
+    
+    # 建立當前裝備 dict，並標記真正裝備的項目
+    equipped_ids = []
     equipped = {
         'helmet': profile.equipped_helmet,
         'armor': profile.equipped_armor,
@@ -376,6 +380,18 @@ def equipment_inventory(request):
         'tool_2': profile.equipped_tool_2,
         'tool_3': profile.equipped_tool_3,
     }
+    
+    # 收集所有已裝備的 ID
+    for slot_name, user_equip in equipped.items():
+        if user_equip:
+            equipped_ids.append(user_equip.id)
+    
+    # 批量更新已裝備的項目
+    if equipped_ids:
+        UserEquipment.objects.filter(id__in=equipped_ids).update(is_equipped=True)
+    
+    # 重新查詢以獲取更新後的狀態
+    user_equipments = UserEquipment.objects.filter(user_profile=profile).select_related('equipment')
 
     # 依類型分組，並加上解鎖狀態
     def build_item_list(eq_type):
@@ -1893,6 +1909,7 @@ def create_team(request):
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
         description = request.POST.get('description', '').strip()
+        emp_dept = request.POST.get('emp_dept', '').strip()
         
         if not name:
             messages.error(request, 'Team name cannot be empty')
@@ -1901,14 +1918,29 @@ def create_team(request):
         team = Team.objects.create(
             name=name,
             description=description,
+            emp_dept=emp_dept,
             created_by=request.user
         )
         
         messages.success(request, f'Team "{name}" created successfully')
         return redirect('engineer_rpg:edit_team', team_id=team.id)
     
+    # 取得建立者的部門資訊
+    from UserProfile.models import UserProfile as EmpProfile
+    try:
+        emp_profile = EmpProfile.objects.get(user=request.user)
+        default_dept = emp_profile.emp_dept
+    except EmpProfile.DoesNotExist:
+        default_dept = ''
+    
+    # 取得所有部門選項
+    from StudioBase.constants import SINO_DEPT_DB
+    dept_choices = sorted(SINO_DEPT_DB.items(), key=lambda x: x[1])
+    
     context = {
         'profile': profile,
+        'default_dept': default_dept,
+        'dept_choices': dept_choices,
     }
     return render(request, 'EngineerRPG/admin_team_form.html', context)
 
@@ -1926,6 +1958,7 @@ def edit_team(request, team_id):
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
         description = request.POST.get('description', '').strip()
+        emp_dept = request.POST.get('emp_dept', '').strip()
         leader_id = request.POST.get('leader')
         
         if not name:
@@ -1933,6 +1966,7 @@ def edit_team(request, team_id):
         else:
             team.name = name
             team.description = description
+            team.emp_dept = emp_dept
             
             if leader_id:
                 try:
@@ -1949,10 +1983,15 @@ def edit_team(request, team_id):
     
     members = team.current_members.all().select_related('user')
     
+    # 取得所有部門選項
+    from StudioBase.constants import SINO_DEPT_DB
+    dept_choices = sorted(SINO_DEPT_DB.items(), key=lambda x: x[1])
+    
     context = {
         'profile': profile,
         'team': team,
         'members': members,
+        'dept_choices': dept_choices,
     }
     return render(request, 'EngineerRPG/admin_team_form.html', context)
 
@@ -2043,12 +2082,18 @@ def team_dashboard(request):
     # 取得使用者的部門代碼（來自 UserProfile app）
     emp_dept = None
     dept_name = None
-    try:
-        emp_profile = request.user.profile  # UserProfile app 的 profile
-        emp_dept = emp_profile.emp_dept
-        dept_name = SINO_DEPT_DB.get(emp_dept, emp_dept) if emp_dept else None
-    except Exception:
-        pass
+    
+    # 使用 get_or_create 確保 UserProfile 存在
+    emp_profile, created = EmpProfile.objects.get_or_create(
+        user=request.user,
+        defaults={
+            'emp_name': request.user.get_full_name() or request.user.username,
+            'emp_email': request.user.email,
+        }
+    )
+    
+    emp_dept = emp_profile.emp_dept
+    dept_name = SINO_DEPT_DB.get(emp_dept, emp_dept) if emp_dept else None
 
     if not emp_dept:
         context = {
