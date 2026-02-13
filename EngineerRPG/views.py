@@ -621,75 +621,245 @@ def submit_answer(request, trial_id):
     if request.method != 'POST':
         return JsonResponse({'error': 'Invalid method'}, status=400)
         
-    profile = get_or_create_user_profile(request.user)
-    question_ids = request.session.get('trial_questions', [])
-    current_index = request.session.get('current_question_index', 0)
-    
-    if current_index >= len(question_ids):
-        return JsonResponse({'error': 'No more questions'}, status=400)
+    try:
+        profile = get_or_create_user_profile(request.user)
+        question_ids = request.session.get('trial_questions', [])
+        current_index = request.session.get('current_question_index', 0)
         
-    question = get_object_or_404(Question, id=question_ids[current_index])
-    user_answer = request.POST.get('answer', '')
-    current_mp = int(request.POST.get('current_mp', 100))
-    hp_damage = 0
-    
-    # 判斷正確性
-    if question.question_type == 'MULTIPLE':
-        user_answer_list = request.POST.getlist('answer')
-        is_correct = set(user_answer_list) == set(question.correct_answer)
-    else:
-        is_correct = user_answer == str(question.correct_answer)
+        if current_index >= len(question_ids):
+            return JsonResponse({'error': 'No more questions'}, status=400)
+            
+        question = get_object_or_404(Question, id=question_ids[current_index])
+        user_answer = request.POST.get('answer', '')
+        current_mp = int(request.POST.get('current_mp', 100))
+        hp_damage = 0
         
-    # 紀錄 Session
-    trial_answers = request.session.get('trial_answers', {})
-    trial_answers[str(question.id)] = {'user_answer': user_answer, 'is_correct': is_correct}
-    request.session['trial_answers'] = trial_answers
-    
-    # 處理血量扣減
-    daily_task_id = request.session.get('daily_task_id')
-    if daily_task_id:
-        from .models import DailyTrialProgress, DailyTrialTask
-        progress = DailyTrialProgress.objects.get(user_profile=profile, daily_task_id=daily_task_id)
-        if not is_correct:
-            # 基礎傷害
-            base_damage = 10
-            if question.difficulty == 'C': 
-                base_damage = 5
-            elif question.difficulty in ['A', 'S']: 
-                base_damage = 15
+        # 判斷正確性
+        if question.question_type == 'MULTIPLE':
+            user_answer_list = request.POST.getlist('answer')
+            is_correct = set(user_answer_list) == set(question.correct_answer)
+        else:
+            is_correct = user_answer == str(question.correct_answer)
             
-            # 套用減傷
-            damage_reduction = profile.get_total_damage_reduction()
-            actual_damage = max(1, base_damage - damage_reduction)  # 至少扣1點
+        # 紀錄 Session
+        trial_answers = request.session.get('trial_answers', {})
+        trial_answers[str(question.id)] = {'user_answer': user_answer, 'is_correct': is_correct}
+        request.session['trial_answers'] = trial_answers
+        
+        # 處理血量扣減
+        daily_task_id = request.session.get('daily_task_id')
+        boots_messages = []  # 收集靴子效果訊息
+        
+        is_game_over_flag = False
+
+        if daily_task_id:
+            from .models import DailyTrialProgress, DailyTrialTask
+            import random
+            progress = DailyTrialProgress.objects.get(user_profile=profile, daily_task_id=daily_task_id)
             
-            hp_damage = actual_damage
-            progress.current_hp = max(0, progress.current_hp - actual_damage)
-        progress.current_mp = current_mp
-        progress.save()
-        current_hp = progress.current_hp
-    else:
-        current_hp = request.session.get('trial_hp', 3)
-        if not is_correct:
-            base_damage = 1
+            # 更新答題紀錄到資料庫
+            current_answers = progress.answers or {}
+            current_answers[str(question.id)] = {
+                'user_answer': user_answer, 
+                'is_correct': is_correct,
+                'question_text': question.content,
+                'correct_answer_text': question.correct_answer,
+                'explanation': question.explanation
+            }
+            progress.answers = current_answers
+            print(f"DEBUG: Saving answer for Q{question.id}. Progress Answers keys: {progress.answers.keys()}")
             
-            # 套用減傷
-            damage_reduction = profile.get_total_damage_reduction()
-            actual_damage = max(1, base_damage - damage_reduction)  # 至少扣1點
+            if not is_correct:
+                # 基礎傷害
+                base_damage = 10
+                if question.difficulty == 'C': 
+                    base_damage = 5
+                elif question.difficulty in ['A', 'S']: 
+                    base_damage = 15
+                
+                # 3. [Lighting Optimization] (Helmet +9): -1 damage on bad visibility/hard questions
+                if profile.equipped_helmet and profile.equipped_helmet.has_special_ability():
+                     if profile.equipped_helmet.special_ability_name == '【照明優化】':
+                         # Hard questions: Difficulty A or S
+                         if question.difficulty in ['A', 'S']:
+                             base_damage = max(1, base_damage - 1)
+                             boots_messages.append('💡 照明優化: 困難題傷害 -1')
+
+                # 套用減傷
+                damage_reduction = profile.get_total_damage_reduction()
+                
+                # 5. [Crisis Protection] (Armor +9): Double DR when HP < 20%
+                if profile.equipped_armor and profile.equipped_armor.has_special_ability():
+                     if profile.equipped_armor.special_ability_name == '【危機防護】':
+                         total_hp = profile.get_total_hp()
+                         if progress.current_hp < total_hp * 0.2:
+                             damage_reduction *= 2
+                             boots_messages.append(f'🛡️ 危機防護: HP < 20%, 減傷翻倍! ({damage_reduction})')
+
+                actual_damage = max(1, base_damage - damage_reduction)  # 至少扣1點
+                
+                # 減傷效果訊息
+                if damage_reduction > 0:
+                    boots_messages.append(f'💪 裝備減傷: {base_damage} - {damage_reduction} = {actual_damage} 點傷害')
+                
+                hp_damage = actual_damage
+                progress.current_hp = max(0, progress.current_hp - actual_damage)
+                
+                # 4. [Emergency Bandage] (Armor +9): Heal 15 HP when HP < 30% (once)
+                if profile.equipped_armor and profile.equipped_armor.has_special_ability():
+                     if profile.equipped_armor.special_ability_name == '【緊急包紮】':
+                         # Check if used
+                         used = request.session.get('emergency_bandage_used', False)
+                         total_hp = profile.get_total_hp()
+                         if not used and progress.current_hp > 0 and progress.current_hp < total_hp * 0.3:
+                             heal_amount = 15
+                             old_hp = progress.current_hp
+                             progress.current_hp = min(total_hp, progress.current_hp + heal_amount)
+                             request.session['emergency_bandage_used'] = True
+                             boots_messages.append(f'🩹 緊急包紮: HP<30% 自動回復 {progress.current_hp - old_hp} HP!')
+                
+                # 答錯時重置連續答對計數
+                progress.boots_correct_streak = 0
+            else:
+                # 答對時處理靴子被動效果
+                if profile.equipped_boots:
+                    boots = profile.equipped_boots
+                    boots_name = boots.equipment.name
+                    boots_level = boots.enhancement_level
+                    
+                    # 1. 鋼頭安全鞋 - HP回復
+                    if '鋼頭安全鞋' in boots_name:
+                        progress.boots_total_correct += 1
+                        trigger_count = 2 if boots_level >= 9 else 3
+                        
+                        boots_messages.append(f'【鋼頭安全鞋】累積答對: {progress.boots_total_correct}/{trigger_count}')
+                        
+                        if progress.boots_total_correct >= trigger_count:
+                            if boots_level >= 9:
+                                heal_amount = 25
+                            elif boots_level >= 6:
+                                heal_amount = 15
+                            elif boots_level >= 3:
+                                heal_amount = 10
+                            else:
+                                heal_amount = 5
+                            
+                            max_hp = profile.get_total_hp()
+                            progress.current_hp = min(max_hp, progress.current_hp + heal_amount)
+                            progress.boots_total_correct = 0
+                            boots_messages.append(f'【鋼頭安全鞋】回復 {heal_amount} HP!')
+                    
+                    # 2. 防穿刺工靴 - 強化券獲得
+                    elif '防穿刺工靴' in boots_name:
+                        progress.boots_correct_streak += 1
+                        
+                        if boots_level >= 9:
+                            probability = 0.60
+                        elif boots_level >= 6:
+                            probability = 0.20
+                        elif boots_level >= 3:
+                            probability = 0.15
+                        else:
+                            probability = 0.10
+                        
+                        # 顯示連續答對進度 (只在+9時顯示)
+                        if boots_level >= 9:
+                            boots_messages.append(f'【防穿刺工靴】連續答對: {progress.boots_correct_streak}/5')
+                        
+                        # 機率判定
+                        if random.random() < probability:
+                            profile.enhancement_tickets += 1
+                            boots_messages.append('【防穿刺工靴】獲得 1 張強化券!')
+                        else:
+                            boots_messages.append('【防穿刺工靴】未發現強化券')
+                        
+                        if boots_level >= 9 and progress.boots_correct_streak >= 5:
+                            profile.enhancement_tickets += 2
+                            boots_messages.append('【防穿刺工靴】連續答對5題!額外獲得 2 張強化券!')
+                            progress.boots_correct_streak = 0
+                    
+                    # 3. 動力樣板護腿 - MP回復
+                    elif '動力' in boots_name and '護腿' in boots_name:
+                        progress.boots_correct_streak += 1
+                        
+                        difficulty_threshold = 'B' if boots_level >= 6 else 'A'
+                        should_restore = False
+                        
+                        if difficulty_threshold == 'B':
+                            should_restore = question.difficulty in ['B', 'A', 'S']
+                        else:
+                            should_restore = question.difficulty in ['A', 'S']
+                        
+                        # 顯示連續答對進度 (只在+9時顯示)
+                        if boots_level >= 9:
+                            boots_messages.append(f'【動力樣板護腿】連續答對: {progress.boots_correct_streak}/2')
+                        
+                        if should_restore:
+                            if boots_level >= 9:
+                                restore_amount = 30
+                            elif boots_level >= 6:
+                                restore_amount = 20
+                            elif boots_level >= 3:
+                                restore_amount = 15
+                            else:
+                                restore_amount = 10
+                            
+                            max_mp = profile.get_total_mp()
+                            progress.current_mp = min(max_mp, progress.current_mp + restore_amount)
+                            current_mp = progress.current_mp
+                            boots_messages.append(f'【動力樣板護腿】回復 {restore_amount} MP!')
+                        
+                        if boots_level >= 9 and progress.boots_correct_streak >= 2:
+                            max_mp = profile.get_total_mp()
+                            progress.current_mp = min(max_mp, progress.current_mp + 5)
+                            current_mp = progress.current_mp
+                            boots_messages.append('【動力樣板護腿】連續答對2題!額外回復 5 MP!')
+                            progress.boots_correct_streak = 0
             
-            hp_damage = actual_damage
-            current_hp = max(0, current_hp - actual_damage)
-        request.session['trial_hp'] = current_hp
-        request.session['trial_mp'] = current_mp
+            # 檢查 HP 是否歸零
+            if progress.current_hp <= 0:
+                progress.is_completed = True
+                progress.is_passed = False
+            
+            progress.current_mp = current_mp
+            progress.save()
+            profile.save()  # 儲存強化券變更
+            current_hp = progress.current_hp
+        else:
+            current_hp = request.session.get('trial_hp', 3)
+            if not is_correct:
+                base_damage = 1
+                
+                # 套用減傷
+                damage_reduction = profile.get_total_damage_reduction()
+                actual_damage = max(1, base_damage - damage_reduction)  # 至少扣1點
+                
+                hp_damage = actual_damage
+                current_hp = max(0, current_hp - actual_damage)
+            request.session['trial_hp'] = current_hp
+            request.session['trial_mp'] = current_mp
+            is_game_over_flag = current_hp <= 0 # Set flag for non-daily task
+
+    except Exception as e:
+        import traceback
+        print(f"Error in submit_answer: {str(e)}")
+        traceback.print_exc()
+        return JsonResponse({'error': f'提交失敗: {str(e)}'}, status=500)
 
     return JsonResponse({
+        'success': True,  # Add success flag
         'is_correct': is_correct,
         'correct_answer': question.correct_answer,
         'explanation': question.explanation,
         'remaining_hp': current_hp,
+        'max_hp': profile.get_total_hp(),
+        'remaining_mp': current_mp,
+        'max_mp': profile.get_total_mp(),
         'hp_damage': hp_damage,
-        'is_game_over': current_hp <= 0,
+        'is_game_over': is_game_over_flag,  # Check if completed
         'current_index': current_index,
         'total_questions': len(question_ids),
+        'boots_messages': boots_messages,  # 靴子效果訊息
     })
 
 @login_required
@@ -710,11 +880,29 @@ def next_question(request, trial_id):
         from .models import DailyTrialProgress
         progress = DailyTrialProgress.objects.get(user_profile=profile, daily_task_id=daily_task_id)
         progress.current_question_index = next_index
+        
+        # 檢查是否答完所有題目
+        if next_index >= len(question_ids):
+            progress.is_completed = True
+            progress.is_passed = progress.current_hp > 0  # HP > 0 才算通過
+        
         progress.save()
     
     if next_index >= len(question_ids):
-        # 結算邏輯
-        return redirect('engineer_rpg:submit_trial', trial_id=trial_id)
+        # 答完所有題目, 重導向回每日試煉頁面(會自動顯示結算)
+        if daily_task_id:
+             print(f"DEBUG: Completing daily trial {daily_task_id}. Current answers: {progress.answers}")
+             progress.is_completed = True
+             progress.current_question_index = len(question_ids)
+             progress.save()
+             return redirect('engineer_rpg:start_daily_trial', task_id=daily_task_id)
+        
+        # 非每日試煉的情況(這部分代碼可能暫時用不到,但保持健壯性)
+        return JsonResponse({
+            'success': True,
+            'message': '已完成所有題目',
+            'is_completed': True
+        })
         
     next_question_obj = get_object_or_404(Question, id=question_ids[next_index])
 
@@ -879,6 +1067,20 @@ def start_daily_trial(request, task_id):
     total_hp = profile.get_total_hp()
     total_mp = profile.get_total_mp()
     
+    # 應用頭盔 +9 特殊能力 (試煉開始觸發)
+    if profile.equipped_helmet and profile.equipped_helmet.has_special_ability():
+        ability_name = profile.equipped_helmet.special_ability_name
+        if ability_name == '【工頭威嚴】':
+            # 進場初始 MP 額外 +10%
+            total_mp = int(total_mp * 1.1)
+            messages.success(request, '👑 工頭威嚴: 初始 MP +10%!')
+        elif ability_name == '【新手運】':
+            # 試煉開始隨機獲得 10~30 MP
+            import random
+            bonus_mp = random.randint(10, 30)
+            total_mp += bonus_mp
+            messages.success(request, f'🍀 新手運: 隨機獲得 +{bonus_mp} MP!')
+    
     progress, created = DailyTrialProgress.objects.get_or_create(
         user_profile=profile,
         daily_task=daily_task,
@@ -888,21 +1090,72 @@ def start_daily_trial(request, task_id):
             'current_mp': total_mp,
             'initial_hp': total_hp,
             'initial_mp': total_mp,
-            'current_question_index': 0
+            'current_question_index': 0,
+            'boots_correct_streak': 0,
+            'boots_total_correct': 0,
         }
     )
     
-    if progress.is_completed:
-        messages.info(request, '此任務已完成')
-        return redirect('engineer_rpg:daily_trial_list')
+    # 檢查是否已完成或超時
+    elapsed_minutes = (timezone.now() - progress.started_at).total_seconds() / 60
+    is_timeout = elapsed_minutes > daily_task.trial.time_limit_minutes
+    
+    if progress.is_completed or is_timeout or progress.current_hp <= 0:
+        # 顯示結算畫面
+        trial = daily_task.trial
+        all_questions = list(daily_task.questions.all())
+        
+        # 計算統計數據
+        answers = progress.answers
+        print(f"DEBUG: DailyTrialProgress ID {progress.id} answers: {answers}") # Debug print
+        
+        correct_count = sum(1 for ans in answers.values() if ans.get('is_correct', False))
+        total_count = len(answers)
+        accuracy = (correct_count / total_count * 100) if total_count > 0 else 0
+        
+        # 收集錯題列表
+        wrong_answers_list = []
+        for q_id, ans_data in answers.items():
+            if not ans_data.get('is_correct', False):
+                wrong_answers_list.append({
+                    'question_text': ans_data.get('question_text', '題目內容缺失'),
+                    'user_answer': ans_data.get('user_answer', ''),
+                    'correct_answer': ans_data.get('correct_answer_text', ''),
+                    'explanation': ans_data.get('explanation', '無解析')
+                })
+        print(f"DEBUG: Wrong answers list size: {len(wrong_answers_list)}") # Debug print
+        
+        # 判斷結束原因和是否通過
+        if is_timeout:
+            is_passed = False
+            exp_reward = 0  # 時間到不給獎勵
+        elif progress.current_hp <= 0:
+            is_passed = False
+            exp_reward = trial.exp_reward if correct_count > 0 else 0
+        else:
+            is_passed = True
+            exp_reward = trial.exp_reward
+        
+        context = {
+            'profile': profile,
+            'trial': trial,
+            'is_completed': True,
+            'is_passed': is_passed,
+            'is_timeout': is_timeout,
+            'correct_count': correct_count,
+            'total_count': total_count,
+            'accuracy': accuracy,
+            'exp_reward': exp_reward,
+            'final_hp': progress.current_hp,
+            'initial_hp': progress.initial_hp,
+            'wrong_answers_list': wrong_answers_list,  # 傳遞錯題列表
+        }
+        return render(request, 'EngineerRPG/trial_exam.html', context)
         
     # 重置或繼續
     if not created:
-         # Check timeout
-         time_diff = (timezone.now() - progress.started_at).total_seconds() / 60
-         if time_diff > daily_task.trial.time_limit_minutes:
-             messages.error(request, '任務已超時，無法繼續')
-             return redirect('engineer_rpg:daily_trial_list')
+         # Check timeout (這裡已經在上面檢查過了,這段可以移除)
+         pass
 
     # 初始化 Session
     trial = daily_task.trial
@@ -919,6 +1172,7 @@ def start_daily_trial(request, task_id):
     request.session['current_question_index'] = progress.current_question_index
     request.session['trial_hp'] = progress.current_hp
     request.session['trial_mp'] = progress.current_mp
+    request.session['emergency_bandage_used'] = False  # Reset Emergency Bandage flag
     
     # 決定從哪題開始
     if progress.current_question_index >= len(selected_questions):
@@ -1114,6 +1368,46 @@ def submit_trial(request, trial_id):
     # 結算獎勵
     if is_passed:
         profile.experience += exp_reward
+        
+        # 強化券獎勵
+        tickets_earned = 0
+        
+        # 判斷試煉類型
+        if daily_task_id:
+            # 每日副本
+            tickets_earned = 2
+            if score >= 100:
+                tickets_earned += 1
+        else:
+            # 地下城
+            if trial.trial_type == 'DUNGEON':
+                if is_dungeon_repeat:
+                    # 重複挑戰:檢查是否首次未滿分,這次滿分
+                    if score >= 100:
+                        # 檢查過去是否有滿分記錄
+                        has_perfect_score = TrialRecord.objects.filter(
+                            user_profile=profile,
+                            trial=trial,
+                            score=100,
+                            is_passed=True
+                        ).exists()
+                        
+                        if not has_perfect_score:
+                            # 首次獲得滿分,給予滿分追溯獎勵
+                            tickets_earned = 5
+                            messages.info(request, '首次滿分通過!獲得滿分追溯獎勵!')
+                    # 否則重複遊玩不給獎勵
+                else:
+                    # 首次通過
+                    tickets_earned = 10
+                    if score >= 100:
+                        tickets_earned += 5
+        
+        # 給予強化券
+        if tickets_earned > 0:
+            profile.enhancement_tickets += tickets_earned
+            messages.success(request, f'獲得 {tickets_earned} 張強化券！')
+        
         # 升級邏輯
         while profile.experience >= profile.experience_to_next_level() and profile.level < 100:
             profile.experience -= profile.experience_to_next_level()
@@ -2403,6 +2697,15 @@ def question_management(request):
     profile = get_or_create_user_profile(request.user)
     if not has_whitelist_permission(request.user, 'MANAGER'):
         return redirect('engineer_rpg:dashboard')
+    
+    # 處理重置試煉按鈕
+    if request.method == 'POST' and 'reset_trial' in request.POST:
+        from .models import DailyTrialProgress
+        deleted_count = DailyTrialProgress.objects.filter(
+            user_profile=profile
+        ).delete()[0]
+        messages.success(request, f'已重置 {deleted_count} 個每日試煉進度!(獎勵已保留)')
+        return redirect('engineer_rpg:question_management')
         
     category_id = request.GET.get('category')
     search_query = request.GET.get('q')
@@ -2960,3 +3263,19 @@ def api_auto_distribute_xp(request):
 
 
 # ==================== 管理者白名單管理 ====================
+
+@login_required
+def reset_daily_trials(request):
+    """重置所有每日試煉進度 (用於測試)"""
+    profile = get_or_create_user_profile(request.user)
+    
+    # 刪除所有每日試煉進度 (包含已完成的)
+    # 獎勵已經給予,所以可以安全刪除進度記錄
+    from .models import DailyTrialProgress
+    deleted_count = DailyTrialProgress.objects.filter(
+        user_profile=profile
+    ).delete()[0]
+    
+    messages.success(request, f'已重置 {deleted_count} 個每日試煉進度!(獎勵已保留)')
+    return redirect(request.META.get('HTTP_REFERER', 'engineer_rpg:daily_trial_list'))
+

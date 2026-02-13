@@ -102,6 +102,7 @@ urlpatterns = [
     path('admin-panel/dungeons/<int:dungeon_id>/edit/', views.edit_dungeon, name='edit_dungeon'),
     path('admin-panel/questions/import/', views.import_questions_view, name='import_questions'),
     path('admin-panel/questions/template/<str:format>/', views.download_template, name='download_template'),
+    path('admin-panel/reset-daily-trials/', views.reset_daily_trials, name='reset_daily_trials'),
     path('admin-panel/skill-tree-editor/', views.skill_tree_editor, name='skill_tree_editor'),
     
     # 隊伍管理（管理中心）

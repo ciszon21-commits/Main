@@ -487,6 +487,32 @@ class UserEquipment(models.Model):
             return self._get_stat_from_rules('dr', 0)
         return self.equipment.damage_reduction
 
+    def has_special_ability(self):
+        """判斷是否有特殊能力 (+9以上)"""
+        return self.enhancement_level >= 9
+
+    @property
+    def special_ability_name(self):
+        """獲取特殊能力名稱"""
+        if not self.has_special_ability():
+            return None
+            
+        # 根據裝備名稱返回對應的特殊能力
+        name = self.equipment.name
+        if '標準工地帽' in name:
+            return '【新手運】'
+        elif '透氣型探照盔' in name:
+            return '【照明優化】'
+        elif 'AR 智慧工安盔' in name:
+            return '【工頭威嚴】'
+        elif '反光背心' in name:
+            return None # Tier 1 Armor 無特殊能力? (根據文檔)
+        elif '監工戰術背心' in name:
+            return '【緊急包紮】'
+        elif '外骨骼省力套裝' in name:
+            return '【危機防護】'
+        return None
+
 
 # ==================== 道具系統 ====================
 
@@ -873,6 +899,10 @@ class DailyTrialProgress(models.Model):
     
     # 當前題目索引（用於狀態保持）
     current_question_index = models.IntegerField('當前題目索引', default=0)
+    
+    # 靴子被動效果追蹤
+    boots_correct_streak = models.IntegerField('連續答對次數', default=0, help_text='用於追蹤連續答對,答錯時重置')
+    boots_total_correct = models.IntegerField('累積答對次數', default=0, help_text='用於追蹤累積答對,不會重置')
     
     class Meta:
         verbose_name = '每日試煉進度'
