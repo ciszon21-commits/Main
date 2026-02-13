@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全臺土石方資源堆置處理場地圖</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+        integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Light Biophilic Theme */
+            --bg-dark: #F5F7F5;
+            /* Almost White */
+            --bg-sidebar: #FFFFFF;
+            /* White Sidebar */
+            --text-main: #1B5E20;
+            /* Dark Forest Green */
+            --text-body: #333333;
+            /* Dark Grey */
+            --text-muted: #666666;
+            /* Medium Grey */
+            --accent-color: #4CAF50;
+            /* Material Green */
+            --border-color: #E0E0E0;
+            /* Light Grey Border */
+            --table-header-bg: #4CAF50;
+            /* Green Header */
+            --table-row-hover: #E8F5E9;
+            /* Very Light Green */
+            --card-bg: #FFFFFF;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            /* Softer shadow */
+            --radius-soft: 16px;
+            --radius-pill: 50px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Nunito", "Segoe UI", sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-body);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #F1F1F1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #A5D6A7;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #66BB6A;
+        }
+
+        #sidebar {
+            min-width: 320px;
+            width: 25vw;
+            max-width: 450px;
+            background: var(--bg-sidebar);
+            color: var(--text-main);
+            padding: 25px;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.05);
+            /* Lighter shadow */
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000;
+            flex-shrink: 0;
+            border-right: 1px solid var(--border-color);
+            height: 100vh;
+            overflow-y: auto;
+            position: static;
+            top: auto;
+            left: auto;
+            bottom: auto;
+            border-radius: 0;
+        }
+
+        #content-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+            inset: auto;
+            z-index: auto;
+        }
+
+        #map {
+            flex-grow: 1;
+            min-height: 50%;
+            z-index: 1;
+        }
+
+        #result-table-container {
+            height: 35%;
+            overflow-y: auto;
+            border-top: 1px solid var(--border-color);
+            background: var(--card-bg);
+            padding: 0;
+            position: static;
+            bottom: auto;
+            left: auto;
+            right: auto;
+            border-radius: 0;
+            box-shadow: none;
+            z-index: auto;
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.95rem;
+            color: var(--text-body);
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid #EEEEEE;
+            padding: 15px 15px;
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        th {
+            background-color: var(--table-header-bg);
+            color: #fff;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #388E3C;
+        }
+
+        td.col-name {
+            white-space: normal;
+            word-break: break-all;
+            min-width: 200px;
+            max-width: 300px;
+            line-height: 1.5;
+            font-weight: 600;
+            color: #2E7D32;
+        }
+
+        tr:nth-child(even) {
+            background-color: #FAFAFA;
+        }
+
+        tr:hover {
+            background-color: var(--table-row-hover);
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            margin-bottom: 5px;
+            color: var(--text-main);
+            /* Dark Green */
+            line-height: 1.3;
+            font-weight: 800;
+            white-space: normal;
+            letter-spacing: -0.5px;
+            word-break: keep-all;
+        }
+
+        .update-info {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #F5F5F5;
+            padding: 10px 15px;
+            border-radius: var(--radius-soft);
+            border: 1px solid #E0E0E0;
+        }
+
+        .update-icon {
+            cursor: pointer;
+            color: #4CAF50;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+        }
+
+        .update-icon:hover {
+            color: #2E7D32;
+            transform: rotate(180deg);
+        }
+
+        .update-icon.rotating {
+            animation: spin 1s linear infinite;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 8px;
+            font-weight: 700;
+            color: #2E7D32;
+            /* Dark Green Label */
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        select,
+        input[type="file"] {
+            padding: 10px 15px;
+            background-color: #F9F9F9 !important;
+            border: 1px solid #E0E0E0 !important;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            color: #333 !important;
+            outline: none;
+            transition: all 0.3s;
+            font-family: "Nunito", sans-serif;
+            box-shadow: none;
+            width: auto;
+        }
+
+        select option {
+            background-color: #fff;
+            color: #333;
+        }
+
+        select:focus,
+        input[type="file"]:focus {
+            border-color: #4CAF50 !important;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+            background-color: #fff !important;
+        }
+
+        /* File input styling specific */
+        input[type="file"] {
+            background-color: #F9F9F9 !important;
+            color: #333 !important;
+        }
+
+        hr {
+            border: 0;
+            border-top: 1px solid #E0E0E0;
+            margin: 10px 0;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .btn {
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            color: #fff;
+            flex: 1;
+            border: none;
+            padding: 12px;
+            border-radius: var(--radius-pill);
+            font-weight: 700;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            font-size: 0.9rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            font-family: "Nunito", sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+            border-color: transparent;
+            color: #fff;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(56, 142, 60, 0.3);
+            color: #fff;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #039BE5 0%, #0277BD 100%);
+            border-color: transparent;
+            color: #fff;
+        }
+
+        .btn-info:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(2, 119, 189, 0.3);
+            color: #fff;
+        }
+
+        .footer {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: #9E9E9E;
+            text-align: center;
+            border-top: 1px solid #E0E0E0;
+            padding-top: 10px;
+            line-height: 1.6;
+        }
+
+        .footer a {
+            color: #4CAF50;
+            text-decoration: none;
+            font-weight: 600;
+            border-bottom: 1px dotted #4CAF50;
+        }
+
+        .footer a:hover {
+            color: #2E7D32;
+            border-bottom: 1px solid #2E7D32;
+        }
+
+        .leaflet-control-layers {
+            color: #1B5E20 !important;
+            /* Dark Green Text for Layer Control */
+            font-weight: 600;
+        }
+
+        /* Ensure layer labels are readable */
+        .leaflet-control-layers-base label,
+        .leaflet-control-layers-overlays label {
+            margin-bottom: 3px;
+        }
+
+        .leaflet-popup-content-wrapper,
+        .leaflet-popup-tip {
+            background: #fff;
+            color: #3E2723;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            border-radius: 12px;
+            backdrop-filter: none;
+            border: none;
+        }
+
+        .leaflet-popup-content h3 {
+            margin-top: 5px;
+            color: #2E7D32;
+            border-bottom: 2px solid #A5D6A7;
+            padding-bottom: 8px;
+            font-family: "Nunito", sans-serif;
+            font-weight: 800;
+        }
+
+        .marker-pin {
+            width: 32px;
+            height: 32px;
+            border-radius: 50% 50% 50% 0;
+            position: absolute;
+            transform: rotate(-45deg);
+            left: 50%;
+            top: 50%;
+            margin: -15px 0 0 -15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            border: 2px solid #fff;
+        }
+
+        .marker-pin::after {
+            content: '';
+            width: 12px;
+            height: 12px;
+            margin: 10px 0 0 10px;
+            background: #fff;
+            position: absolute;
+            border-radius: 50%;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .marker-pin.normal {
+            background: #43A047;
+            background: radial-gradient(circle at 30% 30%, #66BB6A, #2E7D32);
+        }
+
+        .marker-pin.stopped {
+            background: #795548;
+            background: radial-gradient(circle at 30% 30%, #A1887F, #5D4037);
+        }
+
+        .leaflet-top.leaflet-right .leaflet-control {
+            margin-top: 10px !important;
+            background: #fff !important;
+            border: 2px solid rgba(0, 0, 0, 0.2) !important;
+            border-radius: 4px !important;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4) !important;
+            backdrop-filter: none !important;
+        }
+
+        .leaflet-bar a,
+        .leaflet-control-layers-toggle,
+        .leaflet-control-custom {
+            width: 34px !important;
+            height: 34px !important;
+            line-height: 34px !important;
+            font-size: 14px !important;
+            color: #333 !important;
+            background-color: #fff !important;
+        }
+
+        .leaflet-bar a:hover {
+            background: #f4f4f4 !important;
+            color: #333 !important;
+        }
+
+        .leaflet-control-layers {
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="sidebar">
+        <h1><i class="fas fa-map-marked-alt"></i> 全臺土石方資源堆置處理場查詢地圖</h1>
+
+        <div class="update-info">
+            <i class="far fa-clock"></i>
+            <span id="last-updated">{{ last_updated|date:"Y-m-d H:i"|default:"尚未更新" }}</span>
+            <div style="flex-grow:1;"></div>
+            <i id="btn-update-data" class="fas fa-sync-alt update-icon" title="立即更新資料"></i>
+        </div>
+        <div id="update-status" style="display:none; color: #f1c40f; font-size: 0.85rem; text-align:right;">
+            <i class="fas fa-spinner fa-spin"></i> 資料同步中...
+        </div>
+
+        <hr>
+
+        <div class="form-group">
+            <label for="kml-upload"><i class="fas fa-layer-group"></i> KML 範圍疊加</label>
+            <input type="file" id="kml-upload" accept=".kml">
+        </div>
+
+        <div class="form-group" style="margin-top: 5px;">
+            <label for="city-filter"><i class="fas fa-city"></i> 縣市篩選</label>
+            <select id="city-filter">
+                <option value="">所有縣市</option>
+                {% for city in cities %}
+                <option value="{{ city }}">{{ city }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group" style="margin-top: 5px;">
+            <label for="type-filter"><i class="fas fa-warehouse"></i> 場地類型</label>
+            <select id="type-filter">
+                <option value="">所有類型</option>
+                {% for type in site_types %}
+                <option value="{{ type }}">{{ type }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group" style="margin-top: 5px;">
+            <label for="status-filter"><i class="fas fa-info-circle"></i> 營運狀態</label>
+            <select id="status-filter">
+                <option value="">全部狀態</option>
+                {% for s in statuses %}
+                <option value="{{ s }}">{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div
+            style="margin-top: 10px; border: 1px solid #C8E6C9; padding: 10px; border-radius: 4px; background: #F1F8E9;">
+            <p style="margin:0; font-size: 0.8rem; color: #2E7D32;">監控據點總數</p>
+            <p style="margin:0; font-size: 1.5rem; font-weight: bold; color: #1B5E20;" id="count">Computing...</p>
+        </div>
+
+        <div class="btn-group">
+            <button id="btn-export-excel" class="btn btn-success"><i class="fas fa-file-excel"></i> 匯出 Excel</button>
+            <button id="btn-export-kml" class="btn btn-info"><i class="fas fa-globe"></i> 匯出 KML</button>
+        </div>
+
+        <div class="footer">
+            <p style="margin-bottom: 5px;">資料來源: <a href="https://www.soilmove.tw/" target="_blank">營建剩餘土石方資訊服務中心</a>
+            </p>
+            <p>© 2026 中興工程顧問股份有限公司園路部</p>
+        </div>
+    </div>
+
+    <div id="content-wrapper">
+        <div id="map"></div>
+        <div id="result-table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>名稱</th>
+                        <th>縣市</th>
+                        <th>類型</th>
+                        <th>狀態</th>
+                        <th>剩餘容量</th>
+                        <th>核准容量</th>
+                        <th>面積</th>
+                    </tr>
+                </thead>
+                <tbody id="result-tbody">
+                    <!-- Rows will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Leaflet Omnivore -->
+    <script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js'></script>
+    <!-- Leaflet PolylineMeasure -->
+    <link rel="stylesheet" href="https://ppete2.github.io/Leaflet.PolylineMeasure/Leaflet.PolylineMeasure.css" />
+    <script src="https://ppete2.github.io/Leaflet.PolylineMeasure/Leaflet.PolylineMeasure.js"></script>
+
+    <script>
+        // Initialize Layers
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        });
+
+        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        });
+
+        const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        });
+
+        // Light Theme Layer (CartoDB Positron)
+        const lightLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        });
+
+        // Initialize Map with Electronic Map (OSM) as default
+        const map = L.map('map', {
+            center: [23.7, 121],
+            zoom: 7,
+            layers: [osmLayer],
+            zoomControl: false
+        });
+
+        let markers = L.featureGroup().addTo(map);
+        let kmlLayer = L.featureGroup().addTo(map);
+        let allMarkers = {};
+
+        // Layer Control
+        const baseMaps = {
+            "電子地圖": osmLayer,
+            "航照圖": satelliteLayer,
+            "淡色地圖": lightLayer,
+            "深色地圖": darkLayer
+        };
+
+        const overlayMaps = {
+            "監控據點 (點位)": markers,
+            "KML 範圍": kmlLayer
+        };
+
+        // Add Layer Control FIRST (Positioned Top Right)
+        L.control.layers(baseMaps, overlayMaps, { position: 'topright' }).addTo(map);
+
+        // Add Zoom Control SECOND (so it is below Layers)
+        L.control.zoom({ position: 'topright' }).addTo(map);
+
+        // Scale Control
+        L.control.scale({ metric: true, imperial: false }).addTo(map);
+
+        // Polyline Measure Control
+        L.control.polylineMeasure({
+            position: 'topright',
+            unit: 'kilometres',
+            showBearings: false,
+            clearMeasurementsOnStop: false,
+            showClearControl: true,
+            showUnitControl: true
+        }).addTo(map);
+
+        // Reset View Control
+        L.Control.ResetView = L.Control.extend({
+            onAdd: function (map) {
+                const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                const btn = L.DomUtil.create('a', '', container);
+
+                btn.href = '#';
+                btn.innerHTML = '<i class="fas fa-expand-arrows-alt"></i>';
+                btn.title = "回全台視角";
+
+                // Styling handled by CSS (.leaflet-bar a), just adding icon specifics
+                btn.style.display = 'flex';
+                btn.style.alignItems = 'center';
+                btn.style.justifyContent = 'center';
+                btn.style.cursor = 'pointer';
+                btn.style.color = '#4CAF50';
+                btn.style.fontSize = '1.2rem';
+
+                // Prevent default behavior and propagation
+                L.DomEvent
+                    .on(btn, 'click', L.DomEvent.stop)
+                    .on(btn, 'click', function () {
+                        map.setView([23.7, 121], 7);
+                    });
+
+                return container;
+            },
+            onRemove: function (map) {
+                // Nothing to do here
+            }
+        });
+
+        L.control.resetView = function (opts) {
+            return new L.Control.ResetView(opts);
+        }
+
+        L.control.resetView({ position: 'topright' }).addTo(map);
+
+        function getTechIcon(status) {
+            let cssClass = 'marker-pin';
+            // Logic for class based on status
+            if (status === '停止') {
+                cssClass += ' stopped';
+            } else {
+                cssClass += ' normal'; // Default to normal if not stopped
+            }
+
+            return L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div class="${cssClass}"></div>`,
+                iconSize: [30, 42],
+                iconAnchor: [15, 42],
+                popupAnchor: [0, -30]
+            });
+        }
+
+        // Elements
+        const cityFilter = document.getElementById('city-filter');
+        const typeFilter = document.getElementById('type-filter');
+        const statusFilter = document.getElementById('status-filter');
+        const countDisplay = document.getElementById('count');
+        const btnExcel = document.getElementById('btn-export-excel');
+        const btnKml = document.getElementById('btn-export-kml');
+        const btnUpdate = document.getElementById('btn-update-data');
+        const updateStatus = document.getElementById('update-status');
+        const lastUpdatedSpan = document.getElementById('last-updated');
+        const kmlUpload = document.getElementById('kml-upload');
+        const resultTableBody = document.getElementById('result-tbody');
+
+        // Fetch Data Function
+        async function loadData() {
+            const city = cityFilter.value;
+            const type = typeFilter.value;
+            const status = statusFilter.value;
+
+            countDisplay.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            let url = `/soilmove/api/data/?city=${encodeURIComponent(city)}&type=${encodeURIComponent(type)}&status=${encodeURIComponent(status)}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                updateMap(data);
+                updateTable(data);
+                countDisplay.textContent = data.length;
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                countDisplay.textContent = 'Err';
+            }
+        }
+
+        function updateMap(data) {
+            markers.clearLayers();
+            allMarkers = {};
+
+            data.forEach(item => {
+                if (item.lat && item.lng) {
+                    const icon = getTechIcon(item.status);
+                    const marker = L.marker([item.lat, item.lng], { icon: icon });
+
+                    const popupContent = `
+                    <div class="leaflet-popup-content">
+                        <h3>${item.name}</h3>
+                        <p><b>縣市:</b> ${item.city}</p>
+                        <p><b>類型:</b> ${item.type}</p>
+                        <p><b>狀態:</b> ${item.status}</p>
+                        <p><b>剩餘:</b> ${item.remain} m³</p>
+                        <p><b>核准:</b> ${item.max_capacity || '-'} m³</p>
+                        <p><b>面積:</b> ${item.area || '-'} ㎡</p>
+                        <p style="font-size:0.8rem; color:#666;">${item.apply_date || ''}</p>
+                    </div>
+                `;
+
+                    marker.bindPopup(popupContent);
+                    markers.addLayer(marker);
+
+                    allMarkers[item.id] = marker;
+                }
+            });
+
+            // Auto-zoom logic
+            const currentCity = document.getElementById('city-filter').value;
+            if (markers.getLayers().length > 0) {
+                if (currentCity) {
+                    map.fitBounds(markers.getBounds());
+                } else {
+                    map.setView([23.7, 121], 7);
+                }
+            }
+        }
+
+        function updateTable(data) {
+            const tbody = document.getElementById('result-tbody');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:#666;">無符合篩選條件的資料</td></tr>';
+                return;
+            }
+
+            data.forEach(item => {
+                const row = document.createElement('tr');
+
+                // Status coloring in table
+                const statusColor = item.status === '停止' ? '#795548' : '#2E7D32';
+                const statusText = item.status === '停止' ? '停止' : '正常';
+                const statusFontWeight = '700';
+
+                // Check if coordinates exist
+                const hasCoords = item.lat && item.lng;
+                const nameDisplay = hasCoords ? item.name : `${item.name} <span style="color:#d32f2f; font-size:0.8em; margin-left:4px;">(無座標)</span>`;
+
+                row.innerHTML = `
+                <td class="col-name" title="${item.name}">${nameDisplay}</td>
+                <td>${item.city}</td>
+                <td>${item.type}</td>
+                <td style="color:${statusColor}; font-weight:${statusFontWeight};">${statusText}</td>
+                <td>${item.remain}</td>
+                <td>${item.max_capacity || '-'}</td>
+                <td>${item.area || '-'}</td>
+            `;
+
+                if (hasCoords) {
+                    row.addEventListener('click', () => {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        if (allMarkers && allMarkers[item.id]) {
+                            map.setView([item.lat, item.lng], 15);
+                            allMarkers[item.id].openPopup();
+                        }
+                    });
+                } else {
+                    row.style.cursor = 'default';
+                    row.title = "無座標資料，無法在地圖上顯示";
+                }
+
+                tbody.appendChild(row);
+            });
+        }
+
+        // KML Upload
+        kmlUpload.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            kmlLayer.clearLayers();
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const kmlText = e.target.result;
+                const runLayer = omnivore.kml.parse(kmlText);
+
+                runLayer.eachLayer(function (layer) {
+                    if (layer.setStyle) {
+                        layer.setStyle({
+                            color: '#e74c3c',
+                            weight: 2,
+                            fillColor: '#e74c3c',
+                            fillOpacity: 0.15
+                        });
+                    }
+                    kmlLayer.addLayer(layer);
+                });
+
+                if (runLayer.getLayers().length > 0) {
+                    map.fitBounds(kmlLayer.getBounds());
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        // Update Data
+        btnUpdate.addEventListener('click', async () => {
+            if (confirm('確定要從遠端伺服器更新資料嗎？')) {
+                if (btnUpdate.classList.contains('rotating')) return;
+
+                btnUpdate.classList.add('rotating');
+                updateStatus.style.display = 'block';
+
+                try {
+                    const response = await fetch('/soilmove/update_data/', { method: 'POST' });
+                    const result = await response.json();
+
+                    if (result.status === 'success') {
+                        lastUpdatedSpan.textContent = formatDateTime(result.last_updated);
+                        loadData();
+                    } else {
+                        alert('更新失敗: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error(error);
+                } finally {
+                    btnUpdate.classList.remove('rotating');
+                    updateStatus.style.display = 'none';
+                }
+            }
+        });
+
+        function formatDateTime(isoString) {
+            if (!isoString) return '-';
+            const date = new Date(isoString);
+            return date.toLocaleString('zh-TW', { hour12: false });
+        }
+
+        // Export
+        function getExportUrl(format) {
+            const city = cityFilter.value;
+            const type = typeFilter.value;
+            const status = statusFilter.value;
+            return `/soilmove/export/${format}/?city=${encodeURIComponent(city)}&type=${encodeURIComponent(type)}&status=${encodeURIComponent(status)}`;
+        }
+
+        btnExcel.addEventListener('click', () => { window.location.href = getExportUrl('excel'); });
+        btnKml.addEventListener('click', () => { window.location.href = getExportUrl('kml'); });
+
+        // Events
+        cityFilter.addEventListener('change', loadData);
+        typeFilter.addEventListener('change', loadData);
+        statusFilter.addEventListener('change', loadData);
+
+        // Init
+        loadData();
+
+    </script>
+</body>
+
+</html>
