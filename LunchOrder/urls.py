@@ -18,4 +18,5 @@ urlpatterns = [
     path('api/restaurants/<int:restaurant_id>/menu-item/<int:item_id>/edit/', views.menu_item_edit, name='menu_item_edit'),
     path('api/restaurants/<int:restaurant_id>/menu-item/delete/', views.menu_item_delete, name='menu_item_delete'),
     path('restaurants/<int:restaurant_id>/delete/', views.restaurant_delete, name='restaurant_delete'),
+    path('payment/upload/', views.payment_upload, name='payment_upload'),
 ]

@@ -54,6 +54,24 @@
         .text-dark {
             color: var(--text-main) !important;
         }
+
+        /* Dropdown Styles for Dark Theme */
+        .dropdown-menu {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            margin-top: 0.5rem;
+        }
+
+        .dropdown-item {
+            color: var(--text-main);
+            transition: all 0.2s;
+        }
+
+        .dropdown-item:hover,
+        .dropdown-item:focus {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -68,15 +86,25 @@
                 <a class="nav-link" href="{% url 'lunchorder:order_list' %}">
                     <i class="fas fa-list me-1"></i>個人訂單列表
                 </a>
-                <a class="nav-link" href="{% url 'lunchorder:restaurant_list' %}">
-                    <i class="fas fa-store me-1"></i>所有便當店
-                </a>
                 <a class="nav-link" href="{% url 'lunchorder:order_create' %}">
                     <i class="fas fa-plus me-1"></i>新增訂單
                 </a>
                 <a class="nav-link" href="{% url 'lunchorder:order_statistics' %}">
                     <i class="fas fa-chart-bar me-1"></i>統計報表
                 </a>
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-cog me-1"></i>管理區
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown"
+                        style="background-color: var(--bg-card); border-color: var(--border-color);">
+                        <li><a class="dropdown-item text-light" href="{% url 'lunchorder:restaurant_list' %}"><i
+                                    class="fas fa-store me-1"></i>所有便當店</a></li>
+                        <li><a class="dropdown-item text-light" href="{% url 'lunchorder:payment_upload' %}"><i
+                                    class="fas fa-file-invoice-dollar me-1"></i>繳費辨識</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
     </nav>

@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.http import JsonResponse
 from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Sum, F, DecimalField, IntegerField
 from django.db.models.functions import Coalesce
 from django.utils import timezone
@@ -43,14 +45,22 @@ def calendar_view(request):
         # 其他彈性放假 (依行政機關辦公日曆表)
     }
     
-    # 取得當前月份參數，預設為本月
-    year = request.GET.get('year', today.year)
-    month = request.GET.get('month', today.month)
+    # 取得當前月份參數，優先使用 GET，其次使用 Session，最後預設為本月
+    year_param = request.GET.get('year')
+    month_param = request.GET.get('month')
     
-    try:
-        year = int(year)
-        month = int(month)
-    except ValueError:
+    if year_param and month_param:
+        try:
+            year = int(year_param)
+            month = int(month_param)
+            # 更新 Session
+            request.session['calendar_year'] = year
+            request.session['calendar_month'] = month
+        except ValueError:
+            year = today.year
+            month = today.month
+    else:
+        # 若無參數，預設為本月 (不從 Session 讀取，以免使用者想回首頁時還停留在舊月份)
         year = today.year
         month = today.month
 
@@ -83,12 +93,21 @@ def calendar_view(request):
         restaurant = schedule_map.get(date_obj)
         is_holiday = date_obj in NATIONAL_HOLIDAYS_2026
         
+        # 計算是否超過今日截止時間 (10:15)
+        is_past_cutoff_time = False
+        if date_obj == today:
+             now_local = timezone.localtime(timezone.now())
+             cutoff_time = now_local.replace(hour=10, minute=15, second=0, microsecond=0)
+             if now_local > cutoff_time:
+                 is_past_cutoff_time = True
+
         day_info = {
             'date': date_obj,
             'day': day,
             'restaurant': restaurant,
             'is_today': date_obj == today,
             'is_past': date_obj < today,
+            'is_past_cutoff': is_past_cutoff_time,
             'is_sunday': date_obj.weekday() == 6,
             'is_holiday': is_holiday,
         }
@@ -135,6 +154,16 @@ def set_daily_restaurant(request):
         restaurant_id = request.POST.get('restaurant_id')
         action = request.POST.get('action')
         
+        # 取得年份和月份參數，以便重導向回原本的月份
+        year = request.POST.get('year')
+        month = request.POST.get('month')
+        
+        base_url = reverse('lunchorder:calendar_view')
+        if year and month:
+            next_url = f"{base_url}?year={year}&month={month}"
+        else:
+            next_url = base_url
+        
         if date_str:
             try:
                 date_obj = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
@@ -153,12 +182,12 @@ def set_daily_restaurant(request):
                 # 週日檢查
                 if date_obj.weekday() == 6 and action != 'delete':
                      messages.error(request, '週日無法排程')
-                     return redirect('lunchorder:calendar_view')
+                     return redirect(next_url)
                 
                 # 國定假日檢查
                 if date_obj in NATIONAL_HOLIDAYS_2026 and action != 'delete':
                      messages.error(request, '國定假日無法排程')
-                     return redirect('lunchorder:calendar_view')
+                     return redirect(next_url)
 
                 if action == 'delete':
                     RestaurantSchedule.objects.filter(date=date_obj).delete()
@@ -189,21 +218,87 @@ def set_daily_restaurant(request):
         else:
             messages.error(request, '日期錯誤')
             
+        return redirect(next_url)
+
     return redirect('lunchorder:calendar_view')
 
 
 def order_list(request):
     """訂單列表 (公開)"""
-    orders = LunchOrder.objects.select_related(
-        'menu_item', 'menu_item__restaurant'
-    ).order_by('-order_date', '-created_at')[:50]
-    
     today = timezone.now().date()
-    current_year = today.year
-    
-    # 1. 每月花費統計
+
+    # ---- 篩選參數 ----
+    filter_year = request.GET.get('year')
+    filter_month = request.GET.get('month')
+
+    try:
+        filter_year = int(filter_year) if filter_year else None
+        filter_month = int(filter_month) if filter_month else None
+    except ValueError:
+        filter_year = None
+        filter_month = None
+    # 如果沒有指定月份，預設為最新有訂單的月份
+    if not filter_year or not filter_month:
+        latest = LunchOrder.objects.order_by('-order_date').values_list('order_date', flat=True).first()
+        if latest:
+            filter_year = latest.year
+            filter_month = latest.month
+        else:
+            filter_year = today.year
+            filter_month = today.month
+
+    # 基礎 queryset — 永遠按月篩選
+    orders_qs = LunchOrder.objects.select_related(
+        'menu_item', 'menu_item__restaurant'
+    ).filter(
+        order_date__year=filter_year,
+        order_date__month=filter_month,
+    )
+
+    orders = orders_qs.order_by('-order_date', '-created_at')[:100]
+
+    # ---- 取得所有可用的年月 (供篩選下拉選單) ----
+    available_months_qs = (
+        LunchOrder.objects.values('order_date__year', 'order_date__month')
+        .distinct()
+        .order_by('-order_date__year', '-order_date__month')
+    )
+    available_months = [
+        {
+            'year': m['order_date__year'],
+            'month': m['order_date__month'],
+            'label': f"{m['order_date__year']}年{m['order_date__month']}月",
+            'selected': (filter_year == m['order_date__year'] and filter_month == m['order_date__month']),
+        }
+        for m in available_months_qs
+    ]
+
+    # ---- 圓餅圖統計 ----
+    # chart_year 可獨立於月份篩選，有自己的 GET 參數
+    chart_year_param = request.GET.get('chart_year')
+    try:
+        chart_year = int(chart_year_param) if chart_year_param else None
+    except ValueError:
+        chart_year = None
+    if not chart_year:
+        chart_year = filter_year if filter_year else today.year
+
+    # 取得所有有訂單的年份 (供年份下拉選單)
+    year_values = list(
+        LunchOrder.objects.values_list('order_date__year', flat=True)
+        .distinct()
+        .order_by('-order_date__year')
+    )
+    if today.year not in year_values:
+        year_values.insert(0, today.year)
+    available_years = [
+        {'year': y, 'selected': y == chart_year}
+        for y in year_values
+    ]
+
+    # 1. 每月花費統計 (整年)
     monthly_spending = (
-        LunchOrder.objects.filter(order_date__year=current_year)
+        LunchOrder.objects.filter(order_date__year=chart_year)
         .values('order_date__month')
         .annotate(
             total=Sum(
@@ -213,21 +308,25 @@ def order_list(request):
         )
         .order_by('order_date__month')
     )
-    
+
     month_labels = []
     month_data = []
     total_year_spending = 0
-    
+
     for entry in monthly_spending:
         val = int(entry['total'])
         month_labels.append(f"{entry['order_date__month']}月 (${val:,})")
         month_data.append(val)
         total_year_spending += val
-    
-    # 2. 種類分佈統計
+
+    # 2. 種類分佈統計 (依篩選月份或整年)
     category_display_map = dict(MenuItem.CATEGORY_CHOICES)
+    cat_filter = LunchOrder.objects.filter(order_date__year=chart_year)
+    if filter_month:
+        cat_filter = cat_filter.filter(order_date__month=filter_month)
+
     category_spending = (
-        LunchOrder.objects.filter(order_date__year=current_year)
+        cat_filter
         .values('menu_item__category')
         .annotate(
             total=Sum(
@@ -237,7 +336,7 @@ def order_list(request):
         )
         .order_by('-total')
     )
-    
+
     cat_labels = []
     cat_data = []
     for entry in category_spending:
@@ -246,16 +345,40 @@ def order_list(request):
         cat_name = category_display_map.get(cat_key, cat_key)
         cat_labels.append(f"{cat_name} (${val:,})")
         cat_data.append(val)
-    
+
+    # ---- 篩選月份小計 ----
+    if filter_year and filter_month:
+        filter_month_total = int(
+            LunchOrder.objects.filter(
+                order_date__year=filter_year,
+                order_date__month=filter_month,
+            ).aggregate(
+                total=Coalesce(
+                    Sum(F('menu_item__price') * F('quantity'), output_field=DecimalField()),
+                    0, output_field=DecimalField()
+                )
+            )['total']
+        )
+    else:
+        filter_month_total = None
+
     context = {
         'orders': orders,
         'today': today,
-        'current_year': current_year,
+        'current_year': chart_year,
         'total_year_spending': int(total_year_spending),
         'month_labels_json': json.dumps(month_labels),
         'month_data_json': json.dumps(month_data),
         'cat_labels_json': json.dumps(cat_labels),
         'cat_data_json': json.dumps(cat_data),
+        # 篩選相關
+        'available_months': available_months,
+        'filter_year': filter_year,
+        'filter_month': filter_month,
+        'filter_month_total': filter_month_total,
+        # 年份篩選
+        'available_years': available_years,
+        'chart_year': chart_year,
     }
     return render(request, 'LunchOrder/order_list.html', context)
 
@@ -263,13 +386,13 @@ def order_list(request):
 def order_delete(request, order_id):
     """刪除訂單 (僅限當日)"""
     order = get_object_or_404(LunchOrder, id=order_id)
-    today = timezone.now().date()
+    today = timezone.localtime(timezone.now()).date()
     
-    if order.order_date == today:
+    if order.order_date >= today:
         order.delete()
         messages.success(request, '訂單已刪除')
     else:
-        messages.error(request, '只能刪除今日的訂單')
+        messages.error(request, '無法刪除過去的訂單')
         
     return redirect('lunchorder:order_list')
 
@@ -348,8 +471,47 @@ def order_create(request):
         except Restaurant.DoesNotExist:
             pass
 
+    today = timezone.localtime(timezone.now()).date()
+    now = timezone.localtime(timezone.now())
+    # 設定截止時間為當天 10:15
+    cutoff_time = now.replace(hour=10, minute=15, second=0, microsecond=0)
+    is_past_cutoff = (target_date == today and now > cutoff_time)
+
+    if is_past_cutoff:
+        return render(request, 'LunchOrder/order_cutoff.html')
+
     if request.method == 'POST':
-        form = LunchOrderForm(request.POST)
+        form = LunchOrderForm(request.POST) # 先綁定資料，以便之後驗證或傳遞
+
+        # Check for reservation confirmation
+        is_future_order = target_date > today
+        is_confirmed = request.POST.get('confirmed') == 'true'
+
+        if is_future_order and not is_confirmed:
+             # 必須設定正確的 queryset，否則驗證會失敗 (為了顯示正確的品項名稱)
+            if target_restaurant:
+                form.fields['menu_item'].queryset = MenuItem.objects.filter(
+                    restaurant=target_restaurant,
+                    is_available=True
+                )
+            
+            if form.is_valid():
+                # 取得選購的餐點名稱供顯示
+                menu_item = form.cleaned_data['menu_item']
+                context = {
+                    'form': form,
+                    'target_date': target_date,
+                    'target_restaurant': target_restaurant,
+                    'menu_item_name': menu_item.name,
+                }
+                return render(request, 'LunchOrder/order_confirm_reservation.html', context)
+            else:
+                 messages.error(request, '表單驗證失敗，請確認所有欄位已填寫')
+                 # 這裡可以選擇直接回傳錯誤，或者讓流程繼續走下去顯示錯誤在原表單
+                 # 為了簡單起見，這裡不 return，讓它掉到下面原本的逻辑去處理顯示錯誤 (或者這裡直接 return redirect)
+                 # 但為了讓使用者修正，我們應該 fall through to render the form with errors.
+                 pass 
+
         # 必須設定正確的 queryset，否則驗證會失敗
         if target_restaurant:
             form.fields['menu_item'].queryset = MenuItem.objects.filter(
@@ -411,6 +573,7 @@ def order_create(request):
         'menu_categories': categories,
         'target_date': target_date,
         'target_restaurant': target_restaurant,
+        'is_past_cutoff': is_past_cutoff,
     }
     return render(request, 'LunchOrder/order_form.html', context)
 
@@ -719,3 +882,17 @@ def restaurant_delete(request, restaurant_id):
     
     # 如果不是 POST，導回更新頁面 (雖然前端應該只送 POST)
     return redirect('lunchorder:restaurant_update_menu', restaurant_id=restaurant_id)
+
+
+def payment_upload(request):
+    """繳費辨識上傳頁面"""
+    if request.method == 'POST':
+        # TODO: 實作圖片辨識邏輯
+        # file = request.FILES.get('payment_image')
+        # if file:
+        #     pass
+            
+        messages.success(request, '上傳成功！(辨識功能尚未實作)')
+        return redirect('lunchorder:payment_upload')
+        
+    return render(request, 'LunchOrder/payment_upload.html')
