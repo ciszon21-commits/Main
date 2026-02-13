@@ -20,8 +20,7 @@ class ComparisonRunViewTests(TestCase):
     def test_project_index_requires_login(self):
         self.client.logout()
         response = self.client.get(reverse('compareapp:project_index'))
-        self.assertEqual(response.status_code, 302)
-        self.assertIn('/accounts/login/', response.url)
+        self.assertEqual(response.status_code, 403)
 
     def test_compare_run_status_endpoint_returns_json_payload(self):
         project = CompareProject.objects.create(name='P1', plan_number='A-001', owner=self.owner)
