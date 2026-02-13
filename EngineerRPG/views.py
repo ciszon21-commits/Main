@@ -883,8 +883,9 @@ def next_question(request, trial_id):
         
         # 檢查是否答完所有題目
         if next_index >= len(question_ids):
-            progress.is_completed = True
-            # progress.is_passed 由 start_daily_trial 統一判斷 (包含正確率檢核)
+            # progress.is_completed 由 start_daily_trial 統一設定
+            # progress.is_passed 由 start_daily_trial 統一判斷
+            pass
         
         progress.save()
     
@@ -892,7 +893,6 @@ def next_question(request, trial_id):
         # 答完所有題目, 重導向回每日試煉頁面(會自動顯示結算)
         if daily_task_id:
              print(f"DEBUG: Completing daily trial {daily_task_id}. Current answers: {progress.answers}")
-             progress.is_completed = True
              progress.current_question_index = len(question_ids)
              progress.save()
              return redirect('engineer_rpg:start_daily_trial', task_id=daily_task_id)
@@ -1038,10 +1038,19 @@ def daily_trial_list(request):
              if time_diff > task.trial.time_limit_minutes:
                  is_timeout = True
                  
+        # 計算動態經驗值獎勵
+        next_level_exp = profile.experience_to_next_level()
+        dynamic_exp_reward = next_level_exp // 20
+        perfect_exp_reward = dynamic_exp_reward * 2
+        
         task_progress_list.append({
             'task': task,
             'progress': progress,
-            'is_timeout': is_timeout
+            'is_timeout': is_timeout,
+            'exp_reward': dynamic_exp_reward,
+            'perfect_exp_reward': perfect_exp_reward,
+            'ticket_reward': 1,
+            'perfect_ticket_reward': 3
         })
         
     context = {
@@ -1101,7 +1110,13 @@ def start_daily_trial(request, task_id):
     is_timeout = elapsed_minutes > daily_task.trial.time_limit_minutes
     
     
-    if progress.is_completed or is_timeout or progress.current_hp <= 0:
+    # 檢查是否已完成或超時
+    elapsed_minutes = (timezone.now() - progress.started_at).total_seconds() / 60
+    is_timeout = elapsed_minutes > daily_task.trial.time_limit_minutes
+    total_questions_count = daily_task.questions.count()
+    is_questions_finished = progress.current_question_index >= total_questions_count
+    
+    if progress.is_completed or is_timeout or progress.current_hp <= 0 or is_questions_finished:
         # 顯示結算畫面
         trial = daily_task.trial
         all_questions = list(daily_task.questions.all())
@@ -1126,8 +1141,9 @@ def start_daily_trial(request, task_id):
                 })
         
         # 判斷結果
-        # 成功條件: 1. 正確率 >= 60%  2. 未超時  3. HP > 0
-        is_passed = (accuracy >= 60) and (not is_timeout) and (progress.current_hp > 0)
+        # 成功條件: 1. 正確率 >= 60%  2. 未超時 (或已答完所有題目) 3. HP > 0
+        # 修正：如果玩家已答完所有題目，即使系統時間顯示稍微超時，也判定為通過 (避免 100% 正確率卻因幾秒誤差被判失敗)
+        is_passed = (accuracy >= 60) and ((not is_timeout) or is_questions_finished) and (progress.current_hp > 0)
         is_perfect = (accuracy == 100) and is_passed
         
         # 計算獎勵

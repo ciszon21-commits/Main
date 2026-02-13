@@ -5,6 +5,7 @@
 
 {% block content %}
 <div class="rpg-container">
+    {% if not is_completed %}
     <div class="exam-header mb-lg">
         <div class="d-flex justify-content-between align-items-center">
             <h1>{{ trial.title }}</h1>
@@ -43,6 +44,7 @@
                 style="width: {% widthratio current_index total_questions 100 %}%"></div>
         </div>
     </div>
+    {% endif %}
 </div>
 
 <!-- 單題顯示區 -->
@@ -126,24 +128,14 @@
             <div class="stat-label text-stone text-sm">正確率</div>
         </div>
         <div class="stat-card bg-black/30 p-md rounded">
-            <div class="stat-value text-3xl font-bold text-success">+{{ exp_reward }}</div>
-            <div class="stat-label text-stone text-sm">獲得經驗</div>
+            <div
+                class="stat-value text-3xl font-bold {% if final_hp > 0 %}text-success{% else %}text-danger{% endif %}">
+                {{ final_hp }} / {{ initial_hp }}</div>
+            <div class="stat-label text-stone text-sm">最終 HP</div>
         </div>
     </div>
 
-    <!-- HP 狀態 -->
-    <div class="hp-result mb-xl max-w-md mx-auto">
-        <div class="flex justify-between text-sm mb-xs">
-            <span class="text-stone"><i class="fas fa-heart text-danger"></i> 最終 HP</span>
-            <span class="{% if final_hp > 0 %}text-success{% else %}text-danger{% endif %}">
-                {{ final_hp }} / {{initial_hp }}
-            </span>
-        </div>
-        <div class="hp-bar-container bg-black/40 rounded-full h-6 overflow-hidden">
-            <div class="hp-bar bg-gradient-to-r from-danger to-primary h-full transition-all duration-500"
-                style="width: {% widthratio final_hp initial_hp 100 %}%"></div>
-        </div>
-    </div>
+
 
     <!-- 返回按鈕 -->
     <a href="{% url 'engineer_rpg:daily_trial_list' %}" class="rpg-btn rpg-btn-primary btn-large">
@@ -282,7 +274,7 @@
 </div>
 
 <script>
-    // 安全初始化變數
+    // 初始化變數
     const trialId = "{{ trial.id|default:'0' }}";
     const csrfTokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
     const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
