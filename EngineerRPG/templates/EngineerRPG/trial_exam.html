@@ -50,194 +50,235 @@
     {% if is_completed %}
     <!-- 結算畫面 -->
     <div class="completion-result text-center py-xl">
-        {% if is_timeout %}
+        {% if is_passed %}
+        {% if is_perfect %}
         <div class="result-icon mb-lg">
-            <i class="fas fa-clock text-warning" style="font-size: 5rem;"></i>
+            <i class="fas fa-crown text-warning" style="font-size: 5rem;"></i>
         </div>
-        <h2 class="text-warning mb-md">⏰ 時間到!</h2>
-        <p class="text-lg text-stone mb-lg">時間已用盡,試煉結束</p>
-        {% elif is_passed %}
+        <h2 class="text-warning mb-md">🎉 PERFECT CLEAR!</h2>
+        <p class="text-lg text-stone mb-lg">完美通關！獲得雙倍經驗值與額外獎勵！</p>
+        {% else %}
         <div class="result-icon mb-lg">
             <i class="fas fa-trophy text-primary" style="font-size: 5rem;"></i>
         </div>
         <h2 class="text-primary mb-md">🎉 挑戰成功!</h2>
         <p class="text-lg text-stone mb-lg">恭喜您完成了本次每日試煉!</p>
-        {% else %}
+        {% endif %}
+
+        <div class="row justify-content-center mb-4">
+            <div class="col-md-8">
+                <div class="card bg-dark text-light border-secondary">
+                    <div class="card-body">
+                        <h5 class="card-title text-center mb-3">獲得獎勵</h5>
+                        <div class="d-flex justify-content-around align-items-center">
+                            <div class="text-center">
+                                <i class="fas fa-star text-warning fa-2x mb-2"></i>
+                                <p class="mb-0 text-muted">經驗值</p>
+                                <h4 class="text-warning">+{{ exp_reward }}</h4>
+                            </div>
+                            {% if ticket_reward > 0 %}
+                            <div class="text-center">
+                                <i class="fas fa-ticket-alt text-info fa-2x mb-2"></i>
+                                <p class="mb-0 text-muted">強化券</p>
+                                <h4 class="text-info">+{{ ticket_reward }}</h4>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% elif is_timeout %}
         <div class="result-icon mb-lg">
-            <i class="fas fa-skull text-danger" style="font-size: 5rem;"></i>
+            <i class="fas fa-clock text-warning" style="font-size: 5rem;"></i>
         </div>
-        <h2 class="text-danger mb-md">💀 挑戰失敗</h2>
-        <p class="text-lg text-stone mb-lg">很遺憾,您的 HP 已歸零...</p>
-        {% endif %}
+        <h2 class="text-warning mb-md">⏰ 時間到!</h2>
+        <p class="text-lg text-stone mb-lg">時間已用盡,試煉失敗。</p>
 
-        <!-- 統計數據 -->
-        <div class="stats-grid grid grid-cols-4 gap-md mb-xl max-w-3xl mx-auto">
-            <div class="stat-card bg-black/30 p-md rounded">
-                <div class="stat-value text-3xl font-bold text-primary">{{ correct_count }}</div>
-                <div class="stat-label text-stone text-sm">答對題數</div>
-            </div>
-            <div class="stat-card bg-black/30 p-md rounded">
-                <div class="stat-value text-3xl font-bold text-warning">{{ total_count }}</div>
-                <div class="stat-label text-stone text-sm">總題數</div>
-            </div>
-            <div class="stat-card bg-black/30 p-md rounded">
-                <div class="stat-value text-3xl font-bold text-secondary">{{ accuracy|floatformat:1 }}%</div>
-                <div class="stat-label text-stone text-sm">正確率</div>
-            </div>
-            <div class="stat-card bg-black/30 p-md rounded">
-                <div class="stat-value text-3xl font-bold text-success">+{{ exp_reward }}</div>
-                <div class="stat-label text-stone text-sm">獲得經驗</div>
-            </div>
-        </div>
-
-        <!-- HP 狀態 -->
-        <div class="hp-result mb-xl max-w-md mx-auto">
-            <div class="flex justify-between text-sm mb-xs">
-                <span class="text-stone"><i class="fas fa-heart text-danger"></i> 最終 HP</span>
-                <span class="{% if final_hp > 0 %}text-success{% else %}text-danger{% endif %}">
-                    {{ final_hp }} / {{initial_hp }}
-                </span>
-            </div>
-            <div class="hp-bar-container bg-black/40 rounded-full h-6 overflow-hidden">
-                <div class="hp-bar bg-gradient-to-r from-danger to-primary h-full transition-all duration-500"
-                    style="width: {% widthratio final_hp initial_hp 100 %}%"></div>
-            </div>
-        </div>
-
-        <!-- 返回按鈕 -->
-        <a href="{% url 'engineer_rpg:daily_trial_list' %}" class="rpg-btn rpg-btn-primary btn-large">
-            <i class="fas fa-home"></i> 返回每日挑戰列表
-        </a>
+        {% elif final_hp <= 0 %} <div class="result-icon mb-lg">
+            <i class="fas fa-heart-broken text-danger" style="font-size: 5rem;"></i>
     </div>
-    {% elif question %}
-    <div class="question-header mb-md">
-        <span class="question-number">Q{{ current_index|add:1 }}</span>
-        <span class="question-type badge badge-info">{{ question.get_question_type_display }}</span>
-        <span class="question-difficulty badge badge-{{ question.difficulty }}">
-            {{ question.get_difficulty_display }}</span>
+    <h2 class="text-danger mb-md">💀 生命值歸零!</h2>
+    <p class="text-lg text-stone mb-lg">很遺憾,您未能完成試煉。</p>
+
+    {% else %}
+    <div class="result-icon mb-lg">
+        <i class="fas fa-times-circle text-danger" style="font-size: 5rem;"></i>
+    </div>
+    <h2 class="text-danger mb-md">❌ 挑戰失敗!</h2>
+    <p class="text-lg text-stone mb-lg">正確率未達 60% (目前: {{ accuracy|floatformat:1 }}%)</p>
+    {% endif %}
+
+
+    <!-- 統計數據 -->
+    <div class="stats-grid grid grid-cols-4 gap-md mb-xl max-w-3xl mx-auto">
+        <div class="stat-card bg-black/30 p-md rounded">
+            <div class="stat-value text-3xl font-bold text-primary">{{ correct_count }}</div>
+            <div class="stat-label text-stone text-sm">答對題數</div>
+        </div>
+        <div class="stat-card bg-black/30 p-md rounded">
+            <div class="stat-value text-3xl font-bold text-warning">{{ total_count }}</div>
+            <div class="stat-label text-stone text-sm">總題數</div>
+        </div>
+        <div class="stat-card bg-black/30 p-md rounded">
+            <div class="stat-value text-3xl font-bold text-secondary">{{ accuracy|floatformat:1 }}%</div>
+            <div class="stat-label text-stone text-sm">正確率</div>
+        </div>
+        <div class="stat-card bg-black/30 p-md rounded">
+            <div class="stat-value text-3xl font-bold text-success">+{{ exp_reward }}</div>
+            <div class="stat-label text-stone text-sm">獲得經驗</div>
+        </div>
     </div>
 
-    <div class="question-content mb-lg">
-        <h3 class="mb-md">{{ question.content|linebreaksbr }}</h3>
-        {% if question.image %}
-        <img src="{{ question.image.url }}" alt="Question Image" class="question-image mb-md">
-        {% endif %}
+    <!-- HP 狀態 -->
+    <div class="hp-result mb-xl max-w-md mx-auto">
+        <div class="flex justify-between text-sm mb-xs">
+            <span class="text-stone"><i class="fas fa-heart text-danger"></i> 最終 HP</span>
+            <span class="{% if final_hp > 0 %}text-success{% else %}text-danger{% endif %}">
+                {{ final_hp }} / {{initial_hp }}
+            </span>
+        </div>
+        <div class="hp-bar-container bg-black/40 rounded-full h-6 overflow-hidden">
+            <div class="hp-bar bg-gradient-to-r from-danger to-primary h-full transition-all duration-500"
+                style="width: {% widthratio final_hp initial_hp 100 %}%"></div>
+        </div>
     </div>
 
-    <form id="answerForm">
-        {% csrf_token %}
+    <!-- 返回按鈕 -->
+    <a href="{% url 'engineer_rpg:daily_trial_list' %}" class="rpg-btn rpg-btn-primary btn-large">
+        <i class="fas fa-home"></i> 返回每日挑戰列表
+    </a>
+</div>
+{% elif question %}
+<div class="question-header mb-md">
+    <span class="question-number">Q{{ current_index|add:1 }}</span>
+    <span class="question-type badge badge-info">{{ question.get_question_type_display }}</span>
+    <span class="question-difficulty badge badge-{{ question.difficulty }}">
+        {{ question.get_difficulty_display }}</span>
+</div>
 
-        <!-- MP 技能按鈕區域已移除 -->
+<div class="question-content mb-lg">
+    <h3 class="mb-md">{{ question.content|linebreaksbr }}</h3>
+    {% if question.image %}
+    <img src="{{ question.image.url }}" alt="Question Image" class="question-image mb-md">
+    {% endif %}
+</div>
 
-        <!-- 錯題回顧 -->
-        {% if wrong_answers_list %}
-        <div class="mt-lg">
-            <h3 class="text-xl font-bold mb-md text-danger"><i class="fas fa-exclamation-circle"></i> 錯題回顧</h3>
-            <div class="space-y-md">
-                {% for wrong in wrong_answers_list %}
-                <div class="bg-stone-dark p-md rounded-lg border border-danger/30">
-                    <div class="mb-sm">
-                        <span class="text-stone-light text-sm">題目：</span>
-                        <p class="font-bold text-white">{{ wrong.question_text }}</p>
+<form id="answerForm">
+    {% csrf_token %}
+
+    <!-- MP 技能按鈕區域已移除 -->
+
+    <!-- 錯題回顧 -->
+    {% if wrong_answers_list %}
+    <div class="mt-lg">
+        <h3 class="text-xl font-bold mb-md text-danger"><i class="fas fa-exclamation-circle"></i> 錯題回顧</h3>
+        <div class="space-y-md">
+            {% for wrong in wrong_answers_list %}
+            <div class="bg-stone-dark p-md rounded-lg border border-danger/30">
+                <div class="mb-sm">
+                    <span class="text-stone-light text-sm">題目：</span>
+                    <p class="font-bold text-white">{{ wrong.question_text }}</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-sm mb-sm">
+                    <div class="bg-danger/10 p-sm rounded border border-danger/20">
+                        <span class="text-danger text-xs block mb-xs">你的答案</span>
+                        <span class="text-danger font-mono">{{ wrong.user_answer }}</span>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-sm mb-sm">
-                        <div class="bg-danger/10 p-sm rounded border border-danger/20">
-                            <span class="text-danger text-xs block mb-xs">你的答案</span>
-                            <span class="text-danger font-mono">{{ wrong.user_answer }}</span>
-                        </div>
-                        <div class="bg-success/10 p-sm rounded border border-success/20">
-                            <span class="text-success text-xs block mb-xs">正確答案</span>
-                            <span class="text-success font-mono">{{ wrong.correct_answer }}</span>
-                        </div>
+                    <div class="bg-success/10 p-sm rounded border border-success/20">
+                        <span class="text-success text-xs block mb-xs">正確答案</span>
+                        <span class="text-success font-mono">{{ wrong.correct_answer }}</span>
                     </div>
-                    {% if wrong.explanation and wrong.explanation != '無解析' and wrong.explanation != 'None' %}
-                    <div class="bg-primary/5 p-sm rounded text-sm text-stone-light border-l-4 border-primary">
-                        <strong class="text-primary">解析：</strong> {{ wrong.explanation }}
-                    </div>
+                </div>
+                {% if wrong.explanation and wrong.explanation != '無解析' and wrong.explanation != 'None' %}
+                <div class="bg-primary/5 p-sm rounded text-sm text-stone-light border-l-4 border-primary">
+                    <strong class="text-primary">解析：</strong> {{ wrong.explanation }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 道具欄 -->
+    {% if user_items %}
+    <div class="items-toolbar mb-lg">
+        <div class="items-label">
+            <i class="fas fa-briefcase"></i> 可用道具
+        </div>
+        <div class="items-list">
+            {% for user_item in user_items %}
+            <button type="button" class="item-btn" data-item-id="{{ user_item.id }}"
+                data-item-name="{{ user_item.item.name }}" data-effect-type="{{ user_item.item.effect_type }}"
+                data-effect-value="{{ user_item.item.effect_value }}" onclick="useItem(this)">
+                <div class="item-icon">
+                    {% if user_item.item.effect_type == 'HEAL' %}
+                    <i class="fas fa-heart"></i>
+                    {% elif user_item.item.effect_type == 'HINT' %}
+                    <i class="fas fa-lightbulb"></i>
+                    {% elif user_item.item.effect_type == 'SKIP' %}
+                    <i class="fas fa-forward"></i>
+                    {% elif user_item.item.effect_type == 'SHIELD' %}
+                    <i class="fas fa-shield-alt"></i>
+                    {% elif user_item.item.effect_type == 'TIME_EXTEND' %}
+                    <i class="fas fa-hourglass-half"></i>
+                    {% elif user_item.item.effect_type == 'REMOVE_OPTION' %}
+                    <i class="fas fa-cut"></i>
+                    {% else %}
+                    <i class="fas fa-box"></i>
                     {% endif %}
                 </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- 道具欄 -->
-        {% if user_items %}
-        <div class="items-toolbar mb-lg">
-            <div class="items-label">
-                <i class="fas fa-briefcase"></i> 可用道具
-            </div>
-            <div class="items-list">
-                {% for user_item in user_items %}
-                <button type="button" class="item-btn" data-item-id="{{ user_item.id }}"
-                    data-item-name="{{ user_item.item.name }}" data-effect-type="{{ user_item.item.effect_type }}"
-                    data-effect-value="{{ user_item.item.effect_value }}" onclick="useItem(this)">
-                    <div class="item-icon">
-                        {% if user_item.item.effect_type == 'HEAL' %}
-                        <i class="fas fa-heart"></i>
-                        {% elif user_item.item.effect_type == 'HINT' %}
-                        <i class="fas fa-lightbulb"></i>
-                        {% elif user_item.item.effect_type == 'SKIP' %}
-                        <i class="fas fa-forward"></i>
-                        {% elif user_item.item.effect_type == 'SHIELD' %}
-                        <i class="fas fa-shield-alt"></i>
-                        {% elif user_item.item.effect_type == 'TIME_EXTEND' %}
-                        <i class="fas fa-hourglass-half"></i>
-                        {% elif user_item.item.effect_type == 'REMOVE_OPTION' %}
-                        <i class="fas fa-cut"></i>
-                        {% else %}
-                        <i class="fas fa-box"></i>
-                        {% endif %}
-                    </div>
-                    <div class="item-info">
-                        <div class="item-name">{{ user_item.item.name }}</div>
-                        <div class="item-quantity">x{{ user_item.quantity }}</div>
-                    </div>
-                </button>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-
-        <div class="options-list" id="optionsList">
-            {% if question.question_type == 'SINGLE' or question.question_type == 'TRUEFALSE' %}
-            {% for key, value in question.options.items %}
-            <label class="option-item">
-                <input type="radio" name="answer" value="{{ key }}" required>
-                <span class="option-text">{{ key }}. {{ value }}</span>
-            </label>
-            {% endfor %}
-            {% elif question.question_type == 'MULTIPLE' %}
-            {% for key, value in question.options.items %}
-            <label class="option-item">
-                <input type="checkbox" name="answer" value="{{ key }}">
-                <span class="option-text">{{ key }}. {{ value }}</span>
-            </label>
-            {% endfor %}
-            {% endif %}
-        </div>
-
-        <div class="action-buttons mt-xl text-center">
-            <button type="submit" class="rpg-btn rpg-btn-primary btn-large" id="submitBtn">
-                <i class="fas fa-check"></i> 提交答案
+                <div class="item-info">
+                    <div class="item-name">{{ user_item.item.name }}</div>
+                    <div class="item-quantity">x{{ user_item.quantity }}</div>
+                </div>
             </button>
-        </div>
-    </form>
-
-    <!-- 反饋區域（初始隱藏） -->
-    <div class="feedback-area" id="feedbackArea" style="display: none;">
-        <div class="feedback-content">
-            <div class="feedback-icon" id="feedbackIcon"></div>
-            <h3 class="feedback-title" id="feedbackTitle"></h3>
-            <div class="feedback-details" id="feedbackDetails"></div>
-            <button class="rpg-btn rpg-btn-secondary btn-large mt-lg" id="nextBtn">
-                <i class="fas fa-arrow-right"></i> 下一題
-            </button>
+            {% endfor %}
         </div>
     </div>
-    {% else %}
-    <p class="text-center">沒有可用的題目</p>
     {% endif %}
+
+    <div class="options-list" id="optionsList">
+        {% if question.question_type == 'SINGLE' or question.question_type == 'TRUEFALSE' %}
+        {% for key, value in question.options.items %}
+        <label class="option-item">
+            <input type="radio" name="answer" value="{{ key }}" required>
+            <span class="option-text">{{ key }}. {{ value }}</span>
+        </label>
+        {% endfor %}
+        {% elif question.question_type == 'MULTIPLE' %}
+        {% for key, value in question.options.items %}
+        <label class="option-item">
+            <input type="checkbox" name="answer" value="{{ key }}">
+            <span class="option-text">{{ key }}. {{ value }}</span>
+        </label>
+        {% endfor %}
+        {% endif %}
+    </div>
+
+    <div class="action-buttons mt-xl text-center">
+        <button type="submit" class="rpg-btn rpg-btn-primary btn-large" id="submitBtn">
+            <i class="fas fa-check"></i> 提交答案
+        </button>
+    </div>
+</form>
+
+<!-- 反饋區域（初始隱藏） -->
+<div class="feedback-area" id="feedbackArea" style="display: none;">
+    <div class="feedback-content">
+        <div class="feedback-icon" id="feedbackIcon"></div>
+        <h3 class="feedback-title" id="feedbackTitle"></h3>
+        <div class="feedback-details" id="feedbackDetails"></div>
+        <button class="rpg-btn rpg-btn-secondary btn-large mt-lg" id="nextBtn">
+            <i class="fas fa-arrow-right"></i> 下一題
+        </button>
+    </div>
+</div>
+{% else %}
+<p class="text-center">沒有可用的題目</p>
+{% endif %}
 </div>
 
 <script>

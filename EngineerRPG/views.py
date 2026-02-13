@@ -884,7 +884,7 @@ def next_question(request, trial_id):
         # 檢查是否答完所有題目
         if next_index >= len(question_ids):
             progress.is_completed = True
-            progress.is_passed = progress.current_hp > 0  # HP > 0 才算通過
+            # progress.is_passed 由 start_daily_trial 統一判斷 (包含正確率檢核)
         
         progress.save()
     
@@ -1100,6 +1100,7 @@ def start_daily_trial(request, task_id):
     elapsed_minutes = (timezone.now() - progress.started_at).total_seconds() / 60
     is_timeout = elapsed_minutes > daily_task.trial.time_limit_minutes
     
+    
     if progress.is_completed or is_timeout or progress.current_hp <= 0:
         # 顯示結算畫面
         trial = daily_task.trial
@@ -1107,10 +1108,9 @@ def start_daily_trial(request, task_id):
         
         # 計算統計數據
         answers = progress.answers
-        print(f"DEBUG: DailyTrialProgress ID {progress.id} answers: {answers}") # Debug print
         
         correct_count = sum(1 for ans in answers.values() if ans.get('is_correct', False))
-        total_count = len(answers)
+        total_count = len(daily_task.questions.all()) # 使用總題目數，而非已回答數 (以防未答完)
         accuracy = (correct_count / total_count * 100) if total_count > 0 else 0
         
         # 收集錯題列表
@@ -1118,37 +1118,84 @@ def start_daily_trial(request, task_id):
         for q_id, ans_data in answers.items():
             if not ans_data.get('is_correct', False):
                 wrong_answers_list.append({
+                    'id': q_id,
                     'question_text': ans_data.get('question_text', '題目內容缺失'),
                     'user_answer': ans_data.get('user_answer', ''),
                     'correct_answer': ans_data.get('correct_answer_text', ''),
                     'explanation': ans_data.get('explanation', '無解析')
                 })
-        print(f"DEBUG: Wrong answers list size: {len(wrong_answers_list)}") # Debug print
         
-        # 判斷結束原因和是否通過
-        if is_timeout:
-            is_passed = False
-            exp_reward = 0  # 時間到不給獎勵
-        elif progress.current_hp <= 0:
-            is_passed = False
-            exp_reward = trial.exp_reward if correct_count > 0 else 0
-        else:
-            is_passed = True
-            exp_reward = trial.exp_reward
+        # 判斷結果
+        # 成功條件: 1. 正確率 >= 60%  2. 未超時  3. HP > 0
+        is_passed = (accuracy >= 60) and (not is_timeout) and (progress.current_hp > 0)
+        is_perfect = (accuracy == 100) and is_passed
         
+        # 計算獎勵
+        exp_reward = 0
+        ticket_reward = 0
+        
+        if is_passed:
+            # 標準經驗值: 下一級所需經驗值的 1/20
+            next_level_exp = profile.experience_to_next_level()
+            standard_exp = next_level_exp // 20
+            exp_reward = standard_exp
+            ticket_reward = 1
+            
+            if is_perfect:
+                # 完美通關: 經驗值翻倍 (1/10), 額外獲得 2 張強化券 (共 3 張)
+                exp_reward = standard_exp * 2
+                ticket_reward += 2
+            
+            # 發放獎勵 (僅限當日首次通關，或可重複領取? 通常每日副本僅首通有獎，但這裡先依邏輯發放)
+            # 檢查是否已領過獎勵? TrialRecord 會記錄，這裡簡化邏輯先發放
+            # 若需限制每日一次，應檢查 DailyTrialProgress.is_passed 是否原本為 False
+            if not progress.is_passed: # 避免重複刷新頁面重複領獎
+                profile.experience += exp_reward
+                profile.enhancement_tickets += ticket_reward
+                
+                #檢查升級
+                while profile.experience >= profile.experience_to_next_level():
+                    profile.experience -= profile.experience_to_next_level()
+                    profile.level += 1
+                
+                profile.save()
+                
+                # 記錄到 TrialRecord (略，TrialRecord 通常在 submit 時建立或在此更新)
+                # 這裡假設 DailyTrialProgress 用於暫存，結算時寫入 Record
+                record = TrialRecord.objects.create(
+                    user_profile=profile,
+                    trial=trial,
+                    daily_task=daily_task,
+                    score=int(accuracy),
+                    total_questions=total_count,
+                    correct_answers=correct_count,
+                    time_spent_seconds=int((timezone.now() - progress.started_at).total_seconds()),
+                    answer_details=answers,
+                    exp_gained=exp_reward,
+                    is_passed=True
+                )
+        
+        # 更新進度狀態
+        if not progress.is_completed:
+            progress.is_completed = True
+            progress.is_passed = is_passed
+            progress.save()
+
         context = {
             'profile': profile,
             'trial': trial,
             'is_completed': True,
             'is_passed': is_passed,
+            'is_perfect': is_perfect,
             'is_timeout': is_timeout,
             'correct_count': correct_count,
             'total_count': total_count,
             'accuracy': accuracy,
             'exp_reward': exp_reward,
+            'ticket_reward': ticket_reward,
             'final_hp': progress.current_hp,
             'initial_hp': progress.initial_hp,
-            'wrong_answers_list': wrong_answers_list,  # 傳遞錯題列表
+            'wrong_answers_list': wrong_answers_list,
         }
         return render(request, 'EngineerRPG/trial_exam.html', context)
         
