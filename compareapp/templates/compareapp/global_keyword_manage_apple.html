@@ -1,0 +1,349 @@
+{% extends "compareapp/base.html" %}
+
+{% block title %}全域關鍵字管理{% endblock %}
+{% block nav_projects %}{% endblock %}
+{% block nav_keywords %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --apple-bg: #F5F5F7;
+        --card-bg: rgba(255, 255, 255, 0.74);
+        --text-primary: #1D1D1F;
+        --text-secondary: #86868B;
+        --accent-blue: #0071E3;
+    }
+    body {
+        background-color: var(--apple-bg) !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: var(--text-primary);
+    }
+    .keyword-container {
+        max-width: 1080px;
+        margin: 42px auto;
+        padding: 0 20px;
+    }
+    .keyword-header {
+        margin-bottom: 18px;
+    }
+    .keyword-header h1 {
+        font-size: 34px;
+        margin: 0 0 6px 0;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+    }
+    .keyword-subtitle {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+    .keyword-card {
+        background: var(--card-bg);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        border-radius: 18px;
+        padding: 20px;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03);
+        margin-bottom: 16px;
+    }
+    .top-grid {
+        display: grid;
+        grid-template-columns: 1fr 280px;
+        gap: 14px;
+        align-items: end;
+    }
+    .input-row {
+        display: flex;
+        gap: 10px;
+    }
+    .apple-input {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.03);
+        border: 1px solid transparent;
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-size: 15px;
+    }
+    .apple-input:focus {
+        background: #fff;
+        border-color: var(--accent-blue);
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.12);
+    }
+    .apple-btn {
+        border: none;
+        border-radius: 999px;
+        padding: 9px 14px;
+        font-size: 14px;
+        cursor: pointer;
+        background: var(--accent-blue);
+        color: #fff;
+        white-space: nowrap;
+    }
+    .apple-btn:hover {
+        background: #0077ED;
+    }
+    .apple-btn-secondary {
+        background: rgba(0, 0, 0, 0.06);
+        color: var(--text-primary);
+    }
+    .apple-btn-secondary:hover {
+        background: rgba(0, 0, 0, 0.12);
+    }
+    .apple-btn-danger {
+        background: rgba(255, 59, 48, 0.11);
+        color: #d3362a;
+    }
+    .apple-btn-danger:hover {
+        background: rgba(255, 59, 48, 0.18);
+    }
+    .chip-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+    }
+    .chip-link {
+        border-radius: 999px;
+        padding: 5px 11px;
+        text-decoration: none;
+        font-size: 12px;
+        background: rgba(0, 0, 0, 0.05);
+        color: #55565c;
+    }
+    .chip-link.is-active {
+        background: rgba(0, 113, 227, 0.12);
+        color: #0b4ea2;
+        font-weight: 600;
+    }
+    .feedback {
+        margin-top: 10px;
+        font-size: 13px;
+        color: #1f7a3a;
+    }
+    .feedback.is-error {
+        color: #d3362a;
+    }
+    .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+    }
+    .stat-box {
+        border-radius: 12px;
+        background: rgba(0, 0, 0, 0.04);
+        padding: 10px 12px;
+    }
+    .stat-val {
+        font-size: 20px;
+        font-weight: 650;
+        line-height: 1.2;
+    }
+    .stat-label {
+        color: var(--text-secondary);
+        font-size: 12px;
+        margin-top: 2px;
+    }
+    .table-wrap {
+        overflow-x: auto;
+    }
+    .keyword-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 760px;
+    }
+    .keyword-table th {
+        text-align: left;
+        font-size: 12px;
+        color: var(--text-secondary);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        padding: 10px 8px;
+        font-weight: 600;
+    }
+    .keyword-table td {
+        padding: 12px 8px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        vertical-align: middle;
+        font-size: 14px;
+    }
+    .kw-term {
+        font-weight: 600;
+    }
+    .kw-normalized {
+        color: #0b4ea2;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+    }
+    .kw-pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-size: 11px;
+        background: rgba(0, 0, 0, 0.06);
+        color: #4f5058;
+    }
+    .kw-pill.active {
+        background: rgba(52, 199, 89, 0.12);
+        color: #20823f;
+    }
+    .kw-pill.inactive {
+        background: rgba(255, 59, 48, 0.11);
+        color: #bd2e25;
+    }
+    .row-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+    .inline-form {
+        margin: 0;
+    }
+    .empty-row {
+        color: var(--text-secondary);
+        text-align: center;
+    }
+    @media (max-width: 900px) {
+        .top-grid {
+            grid-template-columns: 1fr;
+        }
+        .stat-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="keyword-container">
+    <div class="keyword-header">
+        <h1>全域關鍵字管理</h1>
+        <p class="keyword-subtitle">管理比對特徵詞庫，新增後所有專案都會共用。</p>
+    </div>
+
+    <div class="keyword-card">
+        <div class="top-grid">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add">
+                <input type="hidden" name="q" value="{{ query }}">
+                <input type="hidden" name="status" value="{{ status }}">
+                <div class="input-row">
+                    <input
+                        type="text"
+                        class="apple-input"
+                        name="term"
+                        maxlength="120"
+                        placeholder="輸入關鍵字，例如：鋼筋、混凝土、模板支撐"
+                    >
+                    <button type="submit" class="apple-btn">＋ 新增</button>
+                </div>
+            </form>
+
+            <form method="get">
+                <div class="input-row">
+                    <input
+                        type="text"
+                        class="apple-input"
+                        name="q"
+                        value="{{ query }}"
+                        placeholder="搜尋關鍵字或正規化詞"
+                    >
+                    <input type="hidden" name="status" value="{{ status }}">
+                    <button type="submit" class="apple-btn apple-btn-secondary">搜尋</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="chip-row">
+            <a href="?status=all&q={{ query|urlencode }}" class="chip-link {% if status == 'all' %}is-active{% endif %}">全部</a>
+            <a href="?status=active&q={{ query|urlencode }}" class="chip-link {% if status == 'active' %}is-active{% endif %}">啟用中</a>
+            <a href="?status=inactive&q={{ query|urlencode }}" class="chip-link {% if status == 'inactive' %}is-active{% endif %}">停用</a>
+        </div>
+
+        {% if feedback %}
+        <div class="feedback {% if feedback_error %}is-error{% endif %}">{{ feedback }}</div>
+        {% endif %}
+    </div>
+
+    <div class="keyword-card">
+        <div class="stat-grid">
+            <div class="stat-box">
+                <div class="stat-val">{{ total_count }}</div>
+                <div class="stat-label">總關鍵字數</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-val">{{ active_count }}</div>
+                <div class="stat-label">啟用中</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-val">{{ inactive_count }}</div>
+                <div class="stat-label">停用</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="keyword-card">
+        <div class="table-wrap">
+            <table class="keyword-table">
+                <thead>
+                    <tr>
+                        <th>關鍵字</th>
+                        <th>正規化</th>
+                        <th>來源</th>
+                        <th>使用次數</th>
+                        <th>狀態</th>
+                        <th style="text-align:right;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for keyword in keywords %}
+                    <tr>
+                        <td>
+                            <div class="kw-term">{{ keyword.term }}</div>
+                        </td>
+                        <td>
+                            <div class="kw-normalized">{{ keyword.normalized_term }}</div>
+                        </td>
+                        <td>{{ keyword.get_source_display }}</td>
+                        <td>{{ keyword.selected_count }}</td>
+                        <td>
+                            {% if keyword.is_active %}
+                            <span class="kw-pill active">✓ 啟用</span>
+                            {% else %}
+                            <span class="kw-pill inactive">× 停用</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="row-actions">
+                                <form method="post" class="inline-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="toggle">
+                                    <input type="hidden" name="keyword_id" value="{{ keyword.id }}">
+                                    <input type="hidden" name="q" value="{{ query }}">
+                                    <input type="hidden" name="status" value="{{ status }}">
+                                    <button type="submit" class="apple-btn apple-btn-secondary">
+                                        {% if keyword.is_active %}停用{% else %}啟用{% endif %}
+                                    </button>
+                                </form>
+                                <form method="post" class="inline-form" onsubmit="return confirm('確定刪除此關鍵字？');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="keyword_id" value="{{ keyword.id }}">
+                                    <input type="hidden" name="q" value="{{ query }}">
+                                    <input type="hidden" name="status" value="{{ status }}">
+                                    <button type="submit" class="apple-btn apple-btn-danger">刪除</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="empty-row">目前沒有符合條件的關鍵字。</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

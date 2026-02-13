@@ -1,0 +1,503 @@
+{% extends "compareapp/base.html" %}
+
+{% block title %}Step 4 比對結果{% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+.run-status-banner { padding: .85rem 1rem; border-radius: .8rem; border: 1px solid rgba(148,163,184,.35); }
+.run-status-banner.is-running { border-color: rgba(251,191,36,.5); background: rgba(251,191,36,.08); }
+.run-status-banner.is-completed { border-color: rgba(34,197,94,.45); background: rgba(34,197,94,.09); }
+.run-status-banner.is-failed { border-color: rgba(248,113,113,.5); background: rgba(248,113,113,.08); }
+.run-status-title { font-weight: 700; margin-bottom: .35rem; }
+.run-history-row--active { outline: 1px solid rgba(59,130,246,.5); }
+.annotation-note { min-width: 180px; min-height: 52px; resize: vertical; }
+.annotation-feedback { display: inline-block; min-width: 1.2rem; text-align: center; font-size: .9rem; opacity: .95; }
+.annotation-actions { display: flex; gap: .3rem; align-items: center; margin-bottom: .25rem; }
+.annotation-verdict-btn {
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    padding: 0;
+    border-radius: .5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    line-height: 1;
+}
+.annotation-verdict-btn[data-verdict="correct"] { color: #22c55e; }
+.annotation-verdict-btn[data-verdict="incorrect"] { color: #f87171; }
+.annotation-verdict-btn[data-verdict="unreviewed"] { color: #94a3b8; }
+.annotation-verdict-btn--active {
+    border-color: rgba(59,130,246,.6);
+    background: rgba(59,130,246,.12);
+    box-shadow: 0 0 0 1px rgba(59,130,246,.45) inset;
+}
+.annotation-verdict-label { font-size: .95rem; min-height: 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'compareapp:project_detail' project.id %}" class="back-link">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    返回專案
+</a>
+
+<div class="page-header">
+    <h1>Step 4：比對結果與人工註記</h1>
+    <p class="subtitle">{{ project.name }} / {{ project.plan_number }}</p>
+</div>
+
+<div class="section animate-in">
+    <div class="glass-card">
+        <form method="post">
+            {% csrf_token %}
+            <div class="params-title">建立新的比對任務</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.quantity_tolerance.id_for_label }}">{{ form.quantity_tolerance.label }}</label>
+                    {{ form.quantity_tolerance }}
+                    <span class="form-help">{{ form.quantity_tolerance.help_text }}</span>
+                    {% if form.quantity_tolerance.errors %}<div style="color:#fca5a5;font-size:.78rem;">{{ form.quantity_tolerance.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.fuzzy_threshold.id_for_label }}">{{ form.fuzzy_threshold.label }}</label>
+                    {{ form.fuzzy_threshold }}
+                    <span class="form-help">{{ form.fuzzy_threshold.help_text }}</span>
+                    {% if form.fuzzy_threshold.errors %}<div style="color:#fca5a5;font-size:.78rem;">{{ form.fuzzy_threshold.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.weighted_threshold.id_for_label }}">{{ form.weighted_threshold.label }}</label>
+                    {{ form.weighted_threshold }}
+                    <span class="form-help">{{ form.weighted_threshold.help_text }}</span>
+                    {% if form.weighted_threshold.errors %}<div style="color:#fca5a5;font-size:.78rem;">{{ form.weighted_threshold.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div style="margin-top:1rem;">
+                <button type="submit" class="btn btn-primary">開始新比對</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if run_history %}
+<div class="section animate-in">
+    <div class="section-title"><span class="step-badge">R</span>歷史比對紀錄</div>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Run ID</th>
+                    <th>建立時間</th>
+                    <th>狀態</th>
+                    <th>已配對筆數</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for run in run_history %}
+                <tr class="{% if run.is_active %}run-history-row--active{% endif %}">
+                    <td>#{{ run.id }}</td>
+                    <td>{{ run.created_at|date:"Y-m-d H:i:s" }}</td>
+                    <td>{{ run.status_label }}</td>
+                    <td>{{ run.match_count }}</td>
+                    <td><a class="btn btn-secondary" href="{{ run.detail_url }}">查看</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if active_run %}
+<div class="section animate-in">
+    {% if active_run.status == 'pending' or active_run.status == 'running' %}
+    <div class="run-status-banner is-running">
+        <div class="run-status-title">Run #{{ active_run.id }} 比對中</div>
+        <div id="run-live-status">狀態：{{ active_run.get_status_display }}</div>
+        <div id="run-live-detail" style="margin-top:.25rem;">頁面會自動更新，完成後顯示完整結果。</div>
+        {% if run_status_url %}
+        <div id="run-status-poll" data-url="{{ run_status_url }}"></div>
+        {% endif %}
+    </div>
+    {% elif active_run.status == 'completed' %}
+    <div class="run-status-banner is-completed">
+        <div class="run-status-title">Run #{{ active_run.id }} 已完成</div>
+        <div>完成時間：{{ active_run.finished_at|date:"Y-m-d H:i:s" }}</div>
+    </div>
+    {% else %}
+    <div class="run-status-banner is-failed">
+        <div class="run-status-title">Run #{{ active_run.id }} 失敗</div>
+        <div>{{ active_run.error_message|default:"比對過程發生未預期錯誤" }}</div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if baseline_meta and active_run and active_run.status == 'completed' %}
+<div class="section animate-in" style="margin-bottom:1rem;">
+    <div class="form-errors" style="border-color: rgba(59,130,246,.35); background: rgba(59,130,246,.1); color:#bfdbfe;">
+        基線化資料筆數：
+        XML {{ baseline_meta.left_raw_count }} -> {{ baseline_meta.left_baseline_count }}；
+        Excel {{ baseline_meta.right_raw_count }} -> {{ baseline_meta.right_baseline_count }}
+    </div>
+</div>
+{% endif %}
+
+{% if report_payload and active_run and active_run.status == 'completed' %}
+<div class="stat-grid animate-in">
+    <div class="stat-card">
+        <div class="stat-value">{{ report_payload.left_records|length }}</div>
+        <div class="stat-label">XML 基線資料筆數</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ report_payload.right_records|length }}</div>
+        <div class="stat-label">Excel 基線資料筆數</div>
+    </div>
+    {% with report_payload.methods|last as last_method %}
+    <div class="stat-card stat-card--success">
+        <div class="stat-value">{{ last_method.matches|length }}</div>
+        <div class="stat-label">最終方法配對數</div>
+    </div>
+    <div class="stat-card stat-card--warning">
+        <div class="stat-value">{{ last_method.unmatched_left|length }}</div>
+        <div class="stat-label">最終未配對(XML)</div>
+    </div>
+    {% endwith %}
+</div>
+
+<div class="section animate-in">
+    <div class="section-title"><span class="step-badge">1</span>原始基線資料</div>
+    <div class="collapsible">
+        <button type="button" class="collapsible-toggle">
+            <span>XML 基線資料</span>
+            <svg class="chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="collapsible-body">
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>ID</th><th>名稱</th><th>數量</th><th>單位</th></tr></thead>
+                    <tbody>
+                        {% for record in report_payload.left_records %}
+                        <tr><td>{{ record.source_id }}</td><td>{{ record.name }}</td><td>{{ record.quantity }}</td><td>{{ record.unit }}</td></tr>
+                        {% empty %}<tr class="empty-row"><td colspan="4">沒有資料</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="collapsible">
+        <button type="button" class="collapsible-toggle">
+            <span>Excel 基線資料</span>
+            <svg class="chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="collapsible-body">
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>ID</th><th>名稱</th><th>數量</th><th>單位</th></tr></thead>
+                    <tbody>
+                        {% for record in report_payload.right_records %}
+                        <tr><td>{{ record.source_id }}</td><td>{{ record.name }}</td><td>{{ record.quantity }}</td><td>{{ record.unit }}</td></tr>
+                        {% empty %}<tr class="empty-row"><td colspan="4">沒有資料</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="section animate-in">
+    <div class="section-title"><span class="step-badge">2</span>標準化結果</div>
+    <div class="collapsible">
+        <button type="button" class="collapsible-toggle">
+            <span>XML 標準化</span>
+            <svg class="chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="collapsible-body">
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>ID</th><th>原名稱</th><th>標準名稱</th><th>標準單位</th><th>標準數量</th></tr></thead>
+                    <tbody>
+                        {% for record in report_payload.normalized_left %}
+                        <tr>
+                            <td>{{ record.original.source_id }}</td>
+                            <td>{{ record.original.name }}</td>
+                            <td>{{ record.normalized_name }}</td>
+                            <td>{{ record.normalized_unit }}</td>
+                            <td>{{ record.normalized_quantity }}</td>
+                        </tr>
+                        {% empty %}<tr class="empty-row"><td colspan="5">沒有資料</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="collapsible">
+        <button type="button" class="collapsible-toggle">
+            <span>Excel 標準化</span>
+            <svg class="chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="collapsible-body">
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>ID</th><th>原名稱</th><th>標準名稱</th><th>標準單位</th><th>標準數量</th></tr></thead>
+                    <tbody>
+                        {% for record in report_payload.normalized_right %}
+                        <tr>
+                            <td>{{ record.original.source_id }}</td>
+                            <td>{{ record.original.name }}</td>
+                            <td>{{ record.normalized_name }}</td>
+                            <td>{{ record.normalized_unit }}</td>
+                            <td>{{ record.normalized_quantity }}</td>
+                        </tr>
+                        {% empty %}<tr class="empty-row"><td colspan="5">沒有資料</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="section animate-in">
+    <div class="section-title"><span class="step-badge">3</span>方法比對結果與註記</div>
+    {% for method_result in report_payload.methods %}
+    <div class="method-card">
+        <div class="method-header">
+            <div class="method-name">{{ method_result.method }}</div>
+            <div class="method-stats">
+                <span class="method-stat method-stat--success">配對 {{ method_result.matches|length }}</span>
+                <span class="method-stat method-stat--warning">未配對(XML) {{ method_result.unmatched_left|length }}</span>
+                <span class="method-stat method-stat--warning">未配對(Excel) {{ method_result.unmatched_right|length }}</span>
+            </div>
+        </div>
+        <p class="method-desc">{{ method_result.description }}</p>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>XML ID</th>
+                        <th>Excel ID</th>
+                        <th>XML 名稱</th>
+                        <th>Excel 名稱</th>
+                        <th>總分</th>
+                        <th>名稱分</th>
+                        <th>單位分</th>
+                        <th>數量分</th>
+                        <th>註記操作</th>
+                        <th>備註</th>
+                        <th>回饋</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for match in method_result.matches %}
+                    <tr>
+                        <td>{{ match.left_source_id }}</td>
+                        <td>{{ match.right_source_id }}</td>
+                        <td>{{ match.left_name }}</td>
+                        <td>{{ match.right_name }}</td>
+                        <td>{{ match.score|floatformat:4 }}</td>
+                        <td>{{ match.name_score|floatformat:4 }}</td>
+                        <td>{{ match.unit_score|floatformat:4 }}</td>
+                        <td>{{ match.quantity_score|floatformat:4 }}</td>
+                        <td>
+                            <div class="annotation-actions">
+                                <button
+                                    type="button"
+                                    class="btn btn-secondary annotation-verdict-btn {% if match.verdict == 'correct' %}annotation-verdict-btn--active{% endif %}"
+                                    data-url="{{ match.annotation_url }}"
+                                    data-match-id="{{ match.id }}"
+                                    data-verdict="correct"
+                                    aria-label="確認正確"
+                                    title="確認正確"
+                                >
+                                    &#10003;
+                                </button>
+                                <button
+                                    type="button"
+                                    class="btn btn-secondary annotation-verdict-btn {% if match.verdict == 'incorrect' %}annotation-verdict-btn--active{% endif %}"
+                                    data-url="{{ match.annotation_url }}"
+                                    data-match-id="{{ match.id }}"
+                                    data-verdict="incorrect"
+                                    aria-label="確認錯誤"
+                                    title="確認錯誤"
+                                >
+                                    &#10005;
+                                </button>
+                                <button
+                                    type="button"
+                                    class="btn btn-secondary annotation-verdict-btn {% if match.verdict == 'unreviewed' %}annotation-verdict-btn--active{% endif %}"
+                                    data-url="{{ match.annotation_url }}"
+                                    data-match-id="{{ match.id }}"
+                                    data-verdict="unreviewed"
+                                    aria-label="清除註記"
+                                    title="清除註記"
+                                >
+                                    &#8635;
+                                </button>
+                            </div>
+                            <div class="annotation-verdict-label" data-match-id="{{ match.id }}">
+                                {% if match.verdict == 'correct' %}&#10003;{% elif match.verdict == 'incorrect' %}&#10005;{% else %}&#9675;{% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <textarea class="form-input annotation-note" data-match-id="{{ match.id }}" placeholder="備註（選填）">{{ match.note }}</textarea>
+                        </td>
+                        <td><span class="annotation-feedback" data-match-id="{{ match.id }}"></span></td>
+                    </tr>
+                    {% empty %}
+                    <tr class="empty-row"><td colspan="11">本方法沒有配對資料</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const pollTarget = document.getElementById('run-status-poll');
+  if (!pollTarget) return;
+
+  const statusUrl = pollTarget.dataset.url;
+  const statusEl = document.getElementById('run-live-status');
+  const detailEl = document.getElementById('run-live-detail');
+  if (!statusUrl || !statusEl || !detailEl) return;
+
+  const poll = async () => {
+    try {
+      const response = await fetch(statusUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      if (!response.ok) return;
+      const payload = await response.json();
+      statusEl.textContent = `狀態：${payload.status_label}`;
+
+      if (payload.status === 'running' || payload.status === 'pending') {
+        const stageText = payload.stage_text || '任務執行中';
+        const pairText = payload.pair_count ? `；候選對數：約 ${payload.pair_count}` : '';
+        detailEl.textContent = `${stageText}${pairText}（完成前已寫入筆數可能為 0）`;
+        return;
+      }
+
+      if (payload.status === 'completed') {
+        detailEl.textContent = '已完成，載入結果中...';
+        window.location.href = payload.detail_url;
+        return;
+      }
+
+      detailEl.textContent = payload.error_message || '比對失敗';
+      window.location.href = payload.detail_url;
+    } catch (error) {
+      detailEl.textContent = '狀態查詢失敗，將自動重試...';
+    }
+  };
+
+  poll();
+  setInterval(poll, 3000);
+})();
+
+(function () {
+  const verdictButtons = document.querySelectorAll('.annotation-verdict-btn');
+  if (verdictButtons.length === 0) return;
+
+  const getCookie = (name) => {
+    const cookie = document.cookie
+      .split(';')
+      .map(item => item.trim())
+      .find(item => item.startsWith(name + '='));
+    if (!cookie) return '';
+    return decodeURIComponent(cookie.substring(name.length + 1));
+  };
+
+  const csrfToken = getCookie('csrftoken');
+  const verdictLabels = {
+    unreviewed: '○',
+    correct: '✓',
+    incorrect: '✕'
+  };
+
+  const setFeedback = (matchId, text, isError, titleText = '') => {
+    const target = document.querySelector(`.annotation-feedback[data-match-id="${matchId}"]`);
+    if (!target) return;
+    target.textContent = text;
+    target.title = titleText;
+    if (text === '…') {
+      target.style.color = '#93c5fd';
+      return;
+    }
+    target.style.color = isError ? '#fca5a5' : '#86efac';
+  };
+
+  const updateVerdictUI = (matchId, verdict) => {
+    const buttons = document.querySelectorAll(`.annotation-verdict-btn[data-match-id="${matchId}"]`);
+    buttons.forEach((btn) => {
+      if (btn.dataset.verdict === verdict) {
+        btn.classList.add('annotation-verdict-btn--active');
+      } else {
+        btn.classList.remove('annotation-verdict-btn--active');
+      }
+    });
+
+    const labelEl = document.querySelector(`.annotation-verdict-label[data-match-id="${matchId}"]`);
+    if (!labelEl) return;
+    labelEl.textContent = verdictLabels[verdict] || '○';
+  };
+
+  verdictButtons.forEach((button) => {
+    button.addEventListener('click', async () => {
+      const matchId = button.dataset.matchId;
+      const endpoint = button.dataset.url;
+      const verdictValue = button.dataset.verdict || 'unreviewed';
+      const noteEl = document.querySelector(`.annotation-note[data-match-id="${matchId}"]`);
+
+      if (!endpoint || !noteEl) return;
+
+      verdictButtons.forEach((btn) => {
+        if (btn.dataset.matchId === matchId) {
+          btn.disabled = true;
+        }
+      });
+      setFeedback(matchId, '…', false, '送出註記中');
+
+      const body = new URLSearchParams();
+      body.set('verdict', verdictValue);
+      body.set('note', noteEl.value);
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: body.toString()
+        });
+
+        if (!response.ok) {
+          const errPayload = await response.json().catch(() => ({}));
+          throw new Error(errPayload.detail || '註記失敗');
+        }
+
+        const result = await response.json();
+        updateVerdictUI(matchId, result.verdict);
+        const verdictLabel = verdictLabels[result.verdict] || result.verdict;
+        setFeedback(matchId, verdictLabel, false, '註記完成');
+      } catch (error) {
+        setFeedback(matchId, '!', true, error.message || '註記失敗');
+      } finally {
+        verdictButtons.forEach((btn) => {
+          if (btn.dataset.matchId === matchId) {
+            btn.disabled = false;
+          }
+        });
+      }
+    });
+  });
+})();
+</script>
+{% endblock %}

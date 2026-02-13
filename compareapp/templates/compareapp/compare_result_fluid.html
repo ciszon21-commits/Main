@@ -1,0 +1,382 @@
+{% extends "compareapp/base.html" %}
+
+{% block title %}Step 4 比對結果 (Fluid){% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Fluid Micro-interactions Styles */
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --secondary-gradient: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+        --glass-bg: rgba(255, 255, 255, 0.9);
+        --shadow-soft: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        --radius-lg: 1.5rem;
+        --radius-xl: 2rem;
+    }
+    
+    body {
+        background: #fdfbf7;
+        font-family: 'Outfit', sans-serif;
+    }
+
+    .fluid-container {
+        max-width: 1100px;
+        margin: 3rem auto;
+        padding: 0 1.5rem;
+    }
+
+    .fluid-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        animation: floatIn 0.8s ease-out;
+    }
+
+    .fluid-header h1 {
+        font-weight: 800;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .fluid-card {
+        background: #fff;
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-soft);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: 1px solid rgba(255,255,255,0.5);
+    }
+    
+    .fluid-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-hover);
+    }
+
+    .fluid-btn {
+        background: var(--primary-gradient);
+        border: none;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 9999px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 6px rgba(118, 75, 162, 0.3);
+    }
+
+    .fluid-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 15px rgba(118, 75, 162, 0.4);
+    }
+
+    .fluid-btn:active {
+        transform: scale(0.95);
+    }
+    
+    .fluid-btn-secondary {
+        background: #fff;
+        color: #764ba2;
+        border: 2px solid #eee;
+        box-shadow: none;
+    }
+    .fluid-btn-secondary:hover {
+        border-color: #764ba2;
+        background: #f8faff;
+    }
+
+    .fluid-input {
+        background: #f3f4f6;
+        border: 2px solid transparent;
+        border-radius: 1rem;
+        padding: 0.75rem 1.25rem;
+        width: 100%;
+        transition: all 0.3s ease;
+        font-family: inherit;
+    }
+    
+    .fluid-input:focus {
+        background: #fff;
+        border-color: #764ba2;
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(118, 75, 162, 0.1);
+    }
+
+    /* Table Styles */
+    .fluid-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 0.8rem;
+    }
+
+    .fluid-table th {
+        text-align: left;
+        padding: 1rem;
+        font-size: 0.85rem;
+        color: #888;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .fluid-table td {
+        background: #fff;
+        padding: 1.25rem 1rem;
+    }
+    
+    .fluid-table tr td:first-child { border-top-left-radius: 1rem; border-bottom-left-radius: 1rem; }
+    .fluid-table tr td:last-child { border-top-right-radius: 1rem; border-bottom-right-radius: 1rem; }
+    
+    .fluid-table tbody tr {
+        transition: transform 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    
+    .fluid-table tbody tr:hover {
+        transform: scale(1.01);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        z-index: 10;
+        position: relative;
+    }
+
+    /* Status Badge */
+    .fluid-badge {
+        display: inline-block;
+        padding: 0.4rem 1rem;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        background: #eee;
+        color: #555;
+    }
+    .fluid-badge.completed { background: #d1fae5; color: #065f46; }
+    .fluid-badge.running { background: #fef3c7; color: #92400e; animation: pulse 2s infinite; }
+    .fluid-badge.failed { background: #fee2e2; color: #991b1b; }
+
+    /* Keyframes */
+    @keyframes floatIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.05); opacity: 0.8; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Verdict buttons */
+    .annotation-verdict-btn--active[data-verdict="correct"] {
+        background: #10b981;
+        color: white;
+        border-color: #10b981;
+    }
+    .annotation-verdict-btn--active[data-verdict="incorrect"] {
+        background: #ef4444;
+        color: white;
+        border-color: #ef4444;
+    }
+    
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="fluid-container">
+    <div class="fluid-header">
+        <a href="{% url 'compareapp:project_detail' project.id %}" class="fluid-btn fluid-btn-secondary" style="position: absolute; top: 2rem; left: 2rem; padding: 0.5rem 1rem; font-size: 0.9rem;">
+            ← Back
+        </a>
+        <h1>Review & Sync</h1>
+        <p style="color: #666; font-size: 1.1rem;">{{ project.name }}</p>
+    </div>
+
+    <!-- Active Run -->
+    {% if active_run %}
+    <div class="fluid-card" style="border-left: 6px solid #667eea; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h2 style="margin: 0 0 0.5rem 0; color: #2d3748;">Current Run #{{ active_run.id }}</h2>
+            <div style="color: #718096;">
+                Status: <span class="fluid-badge {{ active_run.status }}">{{ active_run.get_status_display }}</span>
+            </div>
+            {% if run_status_url and active_run.status == 'running' %}
+            <div id="run-live-detail" style="margin-top: 0.5rem; font-size: 0.9rem; color: #4a5568;">Processing matches...</div>
+            <div id="run-status-poll" data-url="{{ run_status_url }}"></div>
+            {% endif %}
+        </div>
+        <div>
+            {% if active_run.status == 'completed' %}
+            <div style="text-align: right;">
+                <div style="font-size: 2.5rem; font-weight: 800; background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    {{ active_run.match_count|default:"--" }}
+                </div>
+                <div style="font-size: 0.8rem; font-weight: 600; color: #a0aec0; text-transform: uppercase;">Matches Found</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Report Data -->
+    {% if report_payload and active_run and active_run.status == 'completed' %}
+        {% for method_result in report_payload.methods %}
+        <div class="fluid-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <div>
+                    <h3 style="margin: 0; font-size: 1.5rem; color: #2d3748;">{{ method_result.method }}</h3>
+                    <p style="color: #718096; margin-top: 0.5rem;">{{ method_result.description }}</p>
+                </div>
+                <div class="fluid-badge" style="background: #e2e8f0;">{{ method_result.matches|length }} Pairs</div>
+            </div>
+
+            <table class="fluid-table">
+                <thead>
+                    <tr>
+                        <th>Source</th>
+                        <th>Target</th>
+                        <th>Confidence</th>
+                        <th>Verification</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for match in method_result.matches %}
+                    <tr>
+                        <td>
+                            <div style="font-weight: 700; color: #2d3748;">{{ match.left_name }}</div>
+                            <div style="font-size: 0.85rem; color: #a0aec0;">ID: {{ match.left_source_id }}</div>
+                        </td>
+                        <td>
+                            <div style="font-weight: 700; color: #2d3748;">{{ match.right_name }}</div>
+                            <div style="font-size: 0.85rem; color: #a0aec0;">ID: {{ match.right_source_id }}</div>
+                        </td>
+                        <td>
+                            {% with score=match.score|floatformat:2 %}
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div style="width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; background: {% if match.score > 0.9 %}#d1fae5; color: #065f46;{% elif match.score > 0.7 %}#fef3c7; color: #92400e;{% else %}#fee2e2; color: #991b1b;{% endif %}">
+                                    {{ score }}
+                                </div>
+                            </div>
+                            {% endwith %}
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <button class="fluid-btn fluid-btn-secondary annotation-verdict-btn" style="padding: 0.4rem 0.8rem; border-radius: 0.8rem;"
+                                    data-url="{{ match.annotation_url }}"
+                                    data-match-id="{{ match.id }}"
+                                    data-verdict="correct">✓</button>
+                                <button class="fluid-btn fluid-btn-secondary annotation-verdict-btn" style="padding: 0.4rem 0.8rem; border-radius: 0.8rem;"
+                                    data-url="{{ match.annotation_url }}"
+                                    data-match-id="{{ match.id }}"
+                                    data-verdict="incorrect">✕</button>
+                            </div>
+                            <textarea class="fluid-input annotation-note" data-match-id="{{ match.id }}" placeholder="Notes..." rows="1" style="font-size: 0.85rem; padding: 0.5rem;">{{ match.note }}</textarea>
+                             <div class="annotation-verdict-label" data-match-id="{{ match.id }}"></div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" style="text-align: center; color: #a0aec0;">No matches found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- New Run Trigger -->
+    <div class="fluid-card" style="background: linear-gradient(135deg, #fdfbf7 0%, #fff 100%);">
+        <h3 style="margin-top: 0;">Start a New Comparison</h3>
+        <form method="post">
+            {% csrf_token %}
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div class="form-group">
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #4a5568;">{{ form.quantity_tolerance.label }}</label>
+                    {{ form.quantity_tolerance }}
+                </div>
+                <div class="form-group">
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #4a5568;">{{ form.fuzzy_threshold.label }}</label>
+                    {{ form.fuzzy_threshold }}
+                </div>
+                <div class="form-group">
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #4a5568;">{{ form.weighted_threshold.label }}</label>
+                    {{ form.weighted_threshold }}
+                </div>
+            </div>
+            <button type="submit" class="fluid-btn">
+                <span>Run Analysis</span>
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            </button>
+        </form>
+    </div>
+
+</div>
+
+<!-- Reuse the JS logic for functionality but adapt classes -->
+<script>
+    // .. Include same JS logic as before for polling and annotations ..
+    // Minimal adaptation for brevity
+    (function () {
+      const pollTarget = document.getElementById('run-status-poll');
+      if (!pollTarget) return;
+      const statusUrl = pollTarget.dataset.url;
+      const poll = async () => {
+        try {
+          const response = await fetch(statusUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+          const payload = await response.json();
+          if (payload.status === 'completed') window.location.reload();
+        } catch (e) {}
+      };
+      setInterval(poll, 3000);
+    })();
+    
+    (function () {
+      const verdictButtons = document.querySelectorAll('.annotation-verdict-btn');
+       const getCookie = (name) => {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+      };
+      const csrfToken = getCookie('csrftoken');
+      
+      verdictButtons.forEach(btn => {
+          btn.addEventListener('click', async () => {
+              const matchId = btn.dataset.matchId;
+              const verdict = btn.dataset.verdict;
+              const noteEl = document.querySelector(`.annotation-note[data-match-id="${matchId}"]`);
+              const note = noteEl ? noteEl.value : '';
+              
+              const btns = document.querySelectorAll(`.annotation-verdict-btn[data-match-id="${matchId}"]`);
+              btns.forEach(b => b.classList.remove('annotation-verdict-btn--active'));
+              btn.classList.add('annotation-verdict-btn--active');
+              
+              const body = new URLSearchParams();
+              body.set('verdict', verdict);
+              body.set('note', note);
+              
+              try {
+                  await fetch(btn.dataset.url, {
+                      method: 'POST',
+                      headers: {'X-CSRFToken': csrfToken},
+                      body: body
+                  });
+              } catch(e) {}
+          });
+      });
+    })();
+</script>
+{% endblock %}

@@ -1,0 +1,436 @@
+{% extends "compareapp/base.html" %}
+
+{% block title %}Step 4 比對結果 (Structured){% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Structured Minimalism Styles */
+    :root {
+        --border-color: #000;
+        --bg-color: #fff;
+        --accent-color: #000;
+    }
+    
+    body {
+        font-family: 'Courier New', Courier, monospace; /* Brutalist vibe */
+        background-color: #f0f0f0 !important;
+        color: #000 !important;
+    }
+
+    .struct-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+
+    .struct-header {
+        border-bottom: 2px solid var(--border-color);
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+    }
+
+    .struct-header h1 {
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: -1px;
+        margin: 0;
+    }
+
+    .struct-card {
+        background: var(--bg-color);
+        border: 2px solid var(--border-color);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 4px 4px 0px var(--border-color); /* Hard shadow */
+        border-radius: 0;
+    }
+
+    .struct-title {
+        font-weight: bold;
+        text-transform: uppercase;
+        border-bottom: 2px solid var(--border-color);
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+        display: inline-block;
+    }
+
+    .struct-btn {
+        background: var(--bg-color);
+        border: 2px solid var(--border-color);
+        color: var(--border-color);
+        padding: 0.5rem 1rem;
+        text-transform: uppercase;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.1s;
+        box-shadow: 2px 2px 0px var(--border-color);
+    }
+
+    .struct-btn:hover {
+        transform: translate(-1px, -1px);
+        box-shadow: 3px 3px 0px var(--border-color);
+    }
+
+    .struct-btn:active {
+        transform: translate(1px, 1px);
+        box-shadow: 1px 1px 0px var(--border-color);
+    }
+    
+    .struct-btn-primary {
+        background: var(--accent-color);
+        color: white;
+    }
+
+    .struct-table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 2px solid var(--border-color);
+    }
+
+    .struct-table th, .struct-table td {
+        border: 1px solid var(--border-color);
+        padding: 0.75rem;
+        text-align: left;
+    }
+
+    .struct-table th {
+        background: #000;
+        color: #fff;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+    }
+
+    .struct-badge {
+        border: 1px solid var(--border-color);
+        padding: 0.2rem 0.5rem;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        font-weight: bold;
+    }
+
+    .struct-input {
+        border: 2px solid var(--border-color);
+        padding: 0.5rem;
+        width: 100%;
+        background: #fafafa;
+        font-family: inherit;
+        border-radius: 0;
+    }
+    
+    .struct-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .struct-stat-card {
+        border: 2px solid var(--border-color);
+        padding: 1rem;
+        text-align: center;
+        background: #fff;
+    }
+    
+    .struct-stat-value {
+        font-size: 2rem;
+        font-weight: 900;
+        display: block;
+    }
+    
+    .struct-stat-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        color: #555;
+    }
+
+    /* Annotation Verdict Buttons specific styles */
+    .annotation-verdict-btn--active {
+        background: #000;
+        color: #fff;
+    }
+    
+    /* Collapsible */
+    .struct-collapsible-header {
+        width: 100%;
+        text-align: left;
+        border: 2px solid var(--border-color);
+        background: #fff;
+        padding: 1rem;
+        margin-bottom: -2px; /* Overlap borders */
+        cursor: pointer;
+        font-weight: bold;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .struct-collapsible-content {
+        border: 2px solid var(--border-color);
+        border-top: none;
+        padding: 1rem;
+        background: #fff;
+        display: none; /* Controlled by JS or simple css toggle */
+    }
+    .struct-collapsible-content.open { display: block; }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="struct-container">
+    <a href="{% url 'compareapp:project_detail' project.id %}" style="text-decoration: none; color: black; display: inline-block; margin-bottom: 1rem;">
+        &larr; BACK TO PROJECT
+    </a>
+
+    <div class="struct-header">
+        <h1>COMPARISON RESULT</h1>
+        <p style="font-family: sans-serif; opacity: 0.7;">{{ project.name }} / {{ project.plan_number }}</p>
+    </div>
+
+    <!-- Params Form -->
+    <div class="struct-card">
+        <div class="struct-title">NEW RUN PARAMETERS</div>
+        <form method="post">
+            {% csrf_token %}
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                <div class="form-group">
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;" for="{{ form.quantity_tolerance.id_for_label }}">{{ form.quantity_tolerance.label }}</label>
+                    {{ form.quantity_tolerance }}
+                    {% if form.quantity_tolerance.errors %}<div style="color:red;">{{ form.quantity_tolerance.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;" for="{{ form.fuzzy_threshold.id_for_label }}">{{ form.fuzzy_threshold.label }}</label>
+                    {{ form.fuzzy_threshold }}
+                    {% if form.fuzzy_threshold.errors %}<div style="color:red;">{{ form.fuzzy_threshold.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;" for="{{ form.weighted_threshold.id_for_label }}">{{ form.weighted_threshold.label }}</label>
+                    {{ form.weighted_threshold }}
+                    {% if form.weighted_threshold.errors %}<div style="color:red;">{{ form.weighted_threshold.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div style="margin-top: 1.5rem; text-align: right;">
+                <button type="submit" class="struct-btn struct-btn-primary">INITIATE RUN</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- History -->
+    {% if run_history %}
+    <div class="struct-card">
+        <div class="struct-title">RUN HISTORY</div>
+        <div style="overflow-x: auto;">
+            <table class="struct-table">
+                <thead>
+                    <tr>
+                        <th>Run ID</th>
+                        <th>Created At</th>
+                        <th>Status</th>
+                        <th>Matches</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for run in run_history %}
+                    <tr style="{% if run.is_active %}background: #eee;{% endif %}">
+                        <td>#{{ run.id }}</td>
+                        <td>{{ run.created_at|date:"Y-m-d H:i" }}</td>
+                        <td><span class="struct-badge">{{ run.status_label }}</span></td>
+                        <td>{{ run.match_count }}</td>
+                        <td><a href="{{ run.detail_url }}" class="struct-btn" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; text-decoration: none;">VIEW</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Active Run Status -->
+    {% if active_run %}
+    <div class="struct-card" style="border-left: 10px solid {% if active_run.status == 'completed' %}#000{% elif active_run.status == 'failed' %}red{% else %}#ccc{% endif %};">
+        <h2 style="margin: 0; font-weight: 800; text-transform: uppercase;">RUN #{{ active_run.id }} STATUS: {{ active_run.get_status_display }}</h2>
+        {% if active_run.status == 'pending' or active_run.status == 'running' %}
+            <div id="run-live-status">Updating...</div>
+            <div id="run-live-detail"></div>
+            {% if run_status_url %}
+            <div id="run-status-poll" data-url="{{ run_status_url }}"></div>
+            {% endif %}
+        {% elif active_run.status == 'completed' %}
+            <div>Finished: {{ active_run.finished_at|date:"Y-m-d H:i:s" }}</div>
+        {% else %}
+            <div style="color: red;">{{ active_run.error_message }}</div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Report Stats -->
+    {% if report_payload and active_run and active_run.status == 'completed' %}
+    <div class="struct-stat-grid" style="margin-bottom: 2rem;">
+        <div class="struct-stat-card">
+            <span class="struct-stat-value">{{ report_payload.left_records|length }}</span>
+            <span class="struct-stat-label">XML BASELINE</span>
+        </div>
+        <div class="struct-stat-card">
+            <span class="struct-stat-value">{{ report_payload.right_records|length }}</span>
+            <span class="struct-stat-label">EXCEL BASELINE</span>
+        </div>
+        {% with report_payload.methods|last as last_method %}
+        <div class="struct-stat-card" style="background: #000; color: #fff;">
+            <span class="struct-stat-value">{{ last_method.matches|length }}</span>
+            <span class="struct-stat-label" style="color: #fff;">MATCHES</span>
+        </div>
+        {% endwith %}
+    </div>
+
+    <!-- Methods Loop -->
+    {% for method_result in report_payload.methods %}
+    <div class="struct-card">
+        <div class="struct-header" style="border: none; margin-bottom: 1rem; padding-bottom: 0;">
+            <h3>METHOD: {{ method_result.method }}</h3>
+            <p>{{ method_result.description }}</p>
+        </div>
+        
+        <div style="overflow-x: auto;">
+            <table class="struct-table">
+                <thead>
+                    <tr>
+                        <th>IDs (XML/XL)</th>
+                        <th>Names (XML/XL)</th>
+                        <th>Scores (Tot/N/U/Q)</th>
+                        <th>Annotation</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for match in method_result.matches %}
+                    <tr>
+                        <td>{{ match.left_source_id }}<br>{{ match.right_source_id }}</td>
+                        <td>
+                            <strong>{{ match.left_name }}</strong><br>
+                            <span style="opacity:0.7;">{{ match.right_name }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ match.score|floatformat:2 }}</strong><br>
+                            <small>{{ match.name_score|floatformat:2 }} / {{ match.unit_score|floatformat:2 }} / {{ match.quantity_score|floatformat:2 }}</small>
+                        </td>
+                        <td>
+                            <div class="annotation-actions">
+                                <button type="button" class="struct-btn annotation-verdict-btn {% if match.verdict == 'correct' %}annotation-verdict-btn--active{% endif %}"
+                                    data-url="{{ match.annotation_url }}"
+                                    data-match-id="{{ match.id }}"
+                                    data-verdict="correct">OK</button>
+                                <button type="button" class="struct-btn annotation-verdict-btn {% if match.verdict == 'incorrect' %}annotation-verdict-btn--active{% endif %}"
+                                    data-url="{{ match.annotation_url }}"
+                                    data-match-id="{{ match.id }}"
+                                    data-verdict="incorrect">NO</button>
+                            </div>
+                            <div class="annotation-verdict-label" data-match-id="{{ match.id }}" style="font-size: 0.7rem; margin-top: 0.5rem; text-transform: uppercase;">
+                                {% if match.verdict == 'correct' %}VERIFIED: CORRECT{% elif match.verdict == 'incorrect' %}VERIFIED: WRONG{% else %}UNVERIFIED{% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <textarea class="struct-input annotation-note" data-match-id="{{ match.id }}" rows="2">{{ match.note }}</textarea>
+                            <div class="annotation-feedback" data-match-id="{{ match.id }}" style="font-size: 0.7rem; margin-top: 0.2rem;"></div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5">NO DATA FOUND FOR THIS METHOD</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+    
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Copying Logic from original with slight modifications if class changes needed
+    // Reusing the ID-based logic mostly
+    (function () {
+      const pollTarget = document.getElementById('run-status-poll');
+      if (!pollTarget) return;
+    
+      const statusUrl = pollTarget.dataset.url;
+      const statusEl = document.getElementById('run-live-status');
+      const detailEl = document.getElementById('run-live-detail');
+      
+      const poll = async () => {
+        try {
+          const response = await fetch(statusUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+          const payload = await response.json();
+          if(statusEl) statusEl.textContent = `STATUS: ${payload.status_label}`;
+          // ... Simplified logic reuse ...
+          if (payload.status === 'completed') {
+             window.location.reload(); 
+          }
+        } catch (e) {}
+      };
+      setInterval(poll, 3000);
+    })();
+    
+    // Annotation Logic Reuse
+    (function () {
+      const verdictButtons = document.querySelectorAll('.annotation-verdict-btn');
+      // ... same helpers ...
+      const getCookie = (name) => {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+      };
+      const csrfToken = getCookie('csrftoken');
+      
+      verdictButtons.forEach(btn => {
+          btn.addEventListener('click', async () => {
+              const matchId = btn.dataset.matchId;
+              const endpoint = btn.dataset.url;
+              const verdict = btn.dataset.verdict;
+              const note = document.querySelector(`.annotation-note[data-match-id="${matchId}"]`).value;
+              
+              // Optimistic UI for Structured
+              document.querySelectorAll(`.annotation-verdict-btn[data-match-id="${matchId}"]`).forEach(b => b.classList.remove('annotation-verdict-btn--active'));
+              btn.classList.add('annotation-verdict-btn--active');
+              
+              const feedback = document.querySelector(`.annotation-feedback[data-match-id="${matchId}"]`);
+              if(feedback) feedback.textContent = "SAVING...";
+              
+              const body = new URLSearchParams();
+              body.set('verdict', verdict);
+              body.set('note', note);
+              
+              try {
+                  const res = await fetch(endpoint, {
+                      method: 'POST',
+                      headers: {'X-CSRFToken': csrfToken},
+                      body: body
+                  });
+                  if(res.ok) {
+                      if(feedback) feedback.textContent = "SAVED";
+                      // Update label
+                      const label = document.querySelector(`.annotation-verdict-label[data-match-id="${matchId}"]`);
+                      if(label) label.textContent = verdict === 'correct' ? 'VERIFIED: CORRECT' : (verdict === 'incorrect' ? 'VERIFIED: WRONG' : 'UNVERIFIED');
+                  } else {
+                      if(feedback) feedback.textContent = "ERROR";
+                  }
+              } catch(e) {
+                  if(feedback) feedback.textContent = "ERROR";
+              }
+          });
+      });
+    })();
+</script>
+{% endblock %}

@@ -54,6 +54,7 @@ urlpatterns = [
 if getattr(settings, 'ENABLE_CLASH_CLASSIFIER', False):
     urlpatterns.append(path('api/clash/', include('ClashClassifier.urls')))  # 碰撞報告分類 API
     urlpatterns.append(path('consistency/', include('DesignConsistency.urls')))  # 資料一致性比對
+    urlpatterns.append(path('compare/', include('compareapp.urls'))) # 資料一致性比對
 
 
 # 開發環境下提供 media

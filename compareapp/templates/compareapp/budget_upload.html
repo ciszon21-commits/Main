@@ -1,0 +1,50 @@
+{% extends "compareapp/base.html" %}
+
+{% block title %}Step 1 預算書上傳{% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block content %}
+<a href="{% url 'compareapp:project_detail' project.id %}" class="back-link">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    返回專案流程
+</a>
+
+<div style="max-width: 760px; margin: 0 auto;">
+    <div class="page-header">
+        <h1>Step 1：上傳預算書 XML</h1>
+        <p class="subtitle">{{ project.name }} ｜ {{ project.plan_number }}</p>
+    </div>
+
+    <div class="glass-card glass-card--gradient animate-in">
+        {% if form.non_field_errors %}
+        <div class="form-errors">
+            <ul>
+                {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="upload-file-card">
+                <div class="file-icon">
+                    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                </div>
+                <div class="file-label">預算書 XML</div>
+                <div class="file-hint">請上傳 pcces 匯出的 .xml 檔案</div>
+                <input type="file" name="{{ form.budget_xml.html_name }}" accept=".xml">
+            </div>
+            {% if form.budget_xml.errors %}
+            <div style="color:#fca5a5;font-size:.82rem;margin-top:.5rem;">{{ form.budget_xml.errors.0 }}</div>
+            {% endif %}
+            <div style="margin-top: 1.3rem;">
+                <button type="submit" class="btn btn-primary">
+                    <svg viewBox="0 0 24 24"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>
+                    儲存並解析名詞
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
