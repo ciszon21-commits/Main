@@ -1,0 +1,261 @@
+{% extends "compareapp/base.html" %}
+
+{% block title %}專案權限管理{% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --apple-bg: #F5F5F7;
+        --card-bg: rgba(255, 255, 255, 0.74);
+        --text-primary: #1D1D1F;
+        --text-secondary: #86868B;
+        --accent-blue: #0071E3;
+    }
+    body {
+        background-color: var(--apple-bg) !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: var(--text-primary);
+    }
+    .access-container {
+        max-width: 980px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+    .access-nav {
+        margin-bottom: 16px;
+    }
+    .access-nav a {
+        color: var(--accent-blue);
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+    }
+    .access-header {
+        margin-bottom: 14px;
+    }
+    .access-title {
+        margin: 0;
+        font-size: 32px;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+    }
+    .access-subtitle {
+        margin: 6px 0 0 0;
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+    .access-card {
+        background: var(--card-bg);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        border-radius: 18px;
+        box-shadow: 0 5px 18px rgba(0, 0, 0, 0.03);
+        padding: 20px;
+        margin-bottom: 14px;
+    }
+    .access-form-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 160px 130px;
+        gap: 10px;
+        align-items: end;
+    }
+    .access-label {
+        display: block;
+        margin: 0 0 6px 0;
+        color: var(--text-secondary);
+        font-size: 12px;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+    .access-input, .access-select {
+        width: 100%;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        background: rgba(0, 0, 0, 0.04);
+        padding: 10px 12px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+    .access-input:focus, .access-select:focus {
+        outline: none;
+        background: #fff;
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.12);
+    }
+    .access-btn {
+        border: none;
+        border-radius: 999px;
+        padding: 9px 12px;
+        background: var(--accent-blue);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .access-btn:hover {
+        background: #0077ED;
+    }
+    .access-btn-secondary {
+        background: rgba(0, 0, 0, 0.07);
+        color: var(--text-primary);
+    }
+    .access-btn-secondary:hover {
+        background: rgba(0, 0, 0, 0.12);
+    }
+    .access-btn-danger {
+        background: rgba(255, 59, 48, 0.12);
+        color: #c7342a;
+    }
+    .access-btn-danger:hover {
+        background: rgba(255, 59, 48, 0.2);
+    }
+    .feedback {
+        margin-top: 10px;
+        font-size: 13px;
+        color: #1f7a3a;
+    }
+    .feedback.error {
+        color: #c7342a;
+    }
+    .table-wrap {
+        overflow-x: auto;
+    }
+    .access-table {
+        width: 100%;
+        min-width: 760px;
+        border-collapse: collapse;
+    }
+    .access-table th {
+        text-align: left;
+        padding: 10px 8px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .access-table td {
+        padding: 12px 8px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        font-size: 14px;
+        vertical-align: middle;
+    }
+    .role-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 9px;
+        border-radius: 999px;
+        background: rgba(0, 113, 227, 0.1);
+        color: #0b4ea2;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .inline-form {
+        margin: 0;
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+    }
+    .empty-row {
+        text-align: center;
+        color: var(--text-secondary);
+    }
+    @media (max-width: 900px) {
+        .access-form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="access-container">
+    <div class="access-nav">
+        <a href="{% url 'compareapp:project_detail' project.id %}">‹ 返回專案</a>
+    </div>
+
+    <div class="access-header">
+        <h1 class="access-title">專案權限管理</h1>
+        <p class="access-subtitle">{{ project.name }} / {{ project.plan_number }} · 共享成員 {{ shared_users_count }} 人</p>
+    </div>
+
+    <div class="access-card">
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add">
+            <div class="access-form-row">
+                <div>
+                    <label class="access-label" for="user_identity">使用者名稱或 Email</label>
+                    <input
+                        id="user_identity"
+                        name="user_identity"
+                        class="access-input"
+                        placeholder="例如：rex 或 rex@example.com"
+                        value="{{ query_text }}"
+                    >
+                </div>
+                <div>
+                    <label class="access-label" for="role">權限角色</label>
+                    <select id="role" name="role" class="access-select">
+                        {% for option in role_options %}
+                        <option value="{{ option.value }}" {% if option.value == selected_role %}selected{% endif %}>{{ option.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" class="access-btn" style="width:100%;">新增或更新</button>
+                </div>
+            </div>
+        </form>
+        {% if feedback %}
+        <div class="feedback {% if feedback_error %}error{% endif %}">{{ feedback }}</div>
+        {% endif %}
+    </div>
+
+    <div class="access-card">
+        <div class="table-wrap">
+            <table class="access-table">
+                <thead>
+                    <tr>
+                        <th>使用者</th>
+                        <th>Email</th>
+                        <th>目前角色</th>
+                        <th style="text-align:right;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in access_rows %}
+                    <tr>
+                        <td>{{ row.username }}</td>
+                        <td>{{ row.email|default:"-" }}</td>
+                        <td><span class="role-pill">{{ row.role_label }}</span></td>
+                        <td style="text-align:right;">
+                            <form method="post" class="inline-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="update_role">
+                                <input type="hidden" name="access_id" value="{{ row.id }}">
+                                <select name="role" class="access-select" style="min-width: 130px;">
+                                    {% for option in role_options %}
+                                    <option value="{{ option.value }}" {% if option.value == row.role %}selected{% endif %}>{{ option.label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="access-btn access-btn-secondary">更新</button>
+                            </form>
+                            <form method="post" class="inline-form" onsubmit="return confirm('確定移除此成員權限？');">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="remove">
+                                <input type="hidden" name="access_id" value="{{ row.id }}">
+                                <button type="submit" class="access-btn access-btn-danger">移除</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="empty-row">目前尚未授權其他使用者。</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends "compareapp/base.html" %}
+
+{% block title %}專案流程{% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block content %}
+<a href="{% url 'compareapp:project_index' %}" class="back-link">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    返回專案清單
+</a>
+
+<div class="page-header">
+    <h1>{{ project.name }}</h1>
+    <p class="subtitle">計畫編號：{{ project.plan_number }}</p>
+</div>
+
+<div class="pipeline animate-in">
+    <div class="pipeline-node active">
+        <div class="node-circle">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle></svg>
+        </div>
+        <span class="node-label">專案建立</span>
+    </div>
+    <div class="pipeline-connector"></div>
+    <div class="pipeline-node {% if project.has_budget %}active{% endif %}">
+        <div class="node-circle">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        </div>
+        <span class="node-label">預算書上傳</span>
+    </div>
+    <div class="pipeline-connector"></div>
+    <div class="pipeline-node {% if project.has_budget %}active{% endif %}">
+        <div class="node-circle">
+            <svg viewBox="0 0 24 24"><path d="M3 7h18"></path><path d="M3 12h18"></path><path d="M3 17h18"></path></svg>
+        </div>
+        <span class="node-label">名詞解析</span>
+    </div>
+    <div class="pipeline-connector"></div>
+    <div class="pipeline-node {% if project.has_quantity_sheet %}active{% endif %}">
+        <div class="node-circle">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18"></rect><line x1="3" y1="9" x2="21" y2="9"></line></svg>
+        </div>
+        <span class="node-label">數量書上傳</span>
+    </div>
+    <div class="pipeline-connector"></div>
+    <div class="pipeline-node {% if project.can_compare %}active{% endif %}">
+        <div class="node-circle">
+            <svg viewBox="0 0 24 24"><path d="M4 12h16"></path><path d="M12 4v16"></path></svg>
+        </div>
+        <span class="node-label">比對結果</span>
+    </div>
+</div>
+
+<div class="stat-grid animate-in">
+    <div class="stat-card">
+        <div class="stat-value">{{ project.budget_records|length }}</div>
+        <div class="stat-label">預算標準筆數</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ project.budget_terms|length }}</div>
+        <div class="stat-label">預算名詞數</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ project.quantity_records|length }}</div>
+        <div class="stat-label">數量標準筆數</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{% if project.can_compare %}Ready{% else %}Wait{% endif %}</div>
+        <div class="stat-label">比對狀態</div>
+    </div>
+</div>
+
+<div class="section animate-in">
+    <div class="glass-card">
+        <div style="display:flex; gap:.75rem; flex-wrap:wrap;">
+            <a class="btn btn-primary" href="{% url 'compareapp:budget_upload' project.id %}">Step 1：上傳預算書</a>
+            {% if project.has_budget %}
+            <a class="btn btn-secondary" href="{% url 'compareapp:budget_terms' project.id %}">Step 2：查看名詞解析</a>
+            {% endif %}
+            {% if project.has_budget %}
+            <a class="btn btn-secondary" href="{% url 'compareapp:quantity_upload' project.id %}">Step 3：上傳數量計算書</a>
+            {% endif %}
+            {% if project.can_compare %}
+            <a class="btn btn-secondary" href="{% url 'compareapp:compare' project.id %}">Step 4：執行比對</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if project.has_budget %}
+<div class="section animate-in">
+    <div class="section-title"><span class="step-badge">B</span>預算書標準化預覽</div>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>來源 ID</th>
+                    <th>名稱</th>
+                    <th>數量</th>
+                    <th>單位</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in budget_preview %}
+                <tr>
+                    <td>{{ row.source_id }}</td>
+                    <td>{{ row.name }}</td>
+                    <td>{{ row.quantity }}</td>
+                    <td>{{ row.unit }}</td>
+                </tr>
+                {% empty %}
+                <tr class="empty-row"><td colspan="4">尚無資料。</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if project.has_quantity_sheet %}
+<div class="section animate-in">
+    <div class="section-title"><span class="step-badge">Q</span>數量計算書標準化預覽</div>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>來源 ID</th>
+                    <th>名稱</th>
+                    <th>數量</th>
+                    <th>單位</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in quantity_preview %}
+                <tr>
+                    <td>{{ row.source_id }}</td>
+                    <td>{{ row.name }}</td>
+                    <td>{{ row.quantity }}</td>
+                    <td>{{ row.unit }}</td>
+                </tr>
+                {% empty %}
+                <tr class="empty-row"><td colspan="4">尚無資料。</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
