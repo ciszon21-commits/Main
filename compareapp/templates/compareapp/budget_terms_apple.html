@@ -1,0 +1,338 @@
+{% extends "compareapp/base.html" %}
+
+{% block title %}預算名詞解析{% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Reuse Apple Styles */
+    :root {
+        --apple-bg: #F5F5F7;
+        --card-bg: rgba(255, 255, 255, 0.72);
+        --text-primary: #1D1D1F;
+        --text-secondary: #86868B;
+        --accent-blue: #0071E3;
+        --radius-app: 18px;
+    }
+    
+    body {
+        background-color: var(--apple-bg) !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: var(--text-primary);
+    }
+
+    .apple-container {
+        max-width: 1080px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+
+    .apple-nav {
+        margin-bottom: 20px;
+    }
+    .apple-nav a {
+        color: var(--accent-blue);
+        text-decoration: none;
+        font-size: 15px;
+        font-weight: 500;
+    }
+
+    .apple-header {
+        margin-bottom: 30px;
+    }
+    .apple-header h1 { font-size: 32px; font-weight: 600; margin: 0; }
+    .apple-header p { color: var(--text-secondary); margin-top: 5px; }
+
+    .apple-card {
+        background: var(--card-bg);
+        border-radius: var(--radius-app);
+        padding: 0; /* No padding for table cards usually */
+        border: 1px solid rgba(0,0,0,0.05);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        overflow: hidden;
+        margin-bottom: 30px;
+    }
+    
+    .apple-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .apple-table th {
+        background: rgba(245, 245, 247, 0.5);
+        text-align: left;
+        padding: 12px 20px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .apple-table td {
+        padding: 16px 20px;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        font-size: 15px;
+    }
+    
+    .apple-table tr:last-child td { border-bottom: none; }
+    
+    .stat-bar {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
+        background: #fff;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    .stat-item h3 { font-size: 24px; font-weight: 600; margin: 0; }
+    .stat-item p { font-size: 12px; color: var (--text-secondary); text-transform: uppercase; margin: 4px 0 0 0; }
+    
+    .apple-btn {
+        background: var(--accent-blue);
+        color: #fff;
+        border: none;
+        border-radius: 980px;
+        padding: 12px 24px;
+        font-size: 17px;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .apple-btn:hover { background: #0077ED; }
+
+    .keyword-card {
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        border-radius: 14px;
+        padding: 18px;
+        margin-bottom: 24px;
+    }
+    .keyword-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0 0 8px 0;
+    }
+    .keyword-subtitle {
+        margin: 0 0 12px 0;
+        color: var(--text-secondary);
+        font-size: 13px;
+    }
+    .keyword-chip-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .keyword-chip-btn {
+        border: 1px solid rgba(0, 113, 227, 0.2);
+        background: rgba(0, 113, 227, 0.05);
+        color: #0b4ea2;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 13px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+    }
+    .keyword-chip-btn.is-added {
+        border-color: rgba(52, 199, 89, 0.25);
+        background: rgba(52, 199, 89, 0.12);
+        color: #1f7a3a;
+        cursor: default;
+    }
+    .keyword-chip-btn:disabled {
+        opacity: 0.9;
+    }
+    .keyword-chip-count {
+        color: #5f86b8;
+        font-size: 11px;
+    }
+    .keyword-chip-state {
+        font-weight: 700;
+    }
+    .keyword-library {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .keyword-tag {
+        background: rgba(0,0,0,0.04);
+        color: #4b4b51;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 12px;
+    }
+    .keyword-feedback {
+        min-height: 18px;
+        font-size: 12px;
+        color: #1f7a3a;
+        margin-top: 8px;
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="apple-container">
+    <div class="apple-nav">
+        <a href="{% url 'compareapp:project_detail' project.id %}">‹ 返回專案</a>
+    </div>
+
+    <div class="apple-header">
+        <h1>名詞解析結果</h1>
+        <p>已從 {{ project.budget_original_name }} 擷取名詞與正規化資料。</p>
+    </div>
+
+    <div class="stat-bar">
+        <div class="stat-item">
+            <h3>{{ budget_records_count }}</h3>
+            <p>總項目數</p>
+        </div>
+        <div class="stat-item">
+            <h3>{{ terms_total_count }}</h3>
+            <p>唯一名詞數</p>
+        </div>
+        <div class="stat-item">
+            <h3>{{ records_preview|length }}</h3>
+            <p>項目預覽</p>
+        </div>
+        <div class="stat-item">
+            <h3>{{ terms|length }}</h3>
+            <p>名詞預覽</p>
+        </div>
+    </div>
+
+    <h2 style="font-size: 21px; margin-bottom: 15px;">唯一名詞清單</h2>
+    <div class="apple-card">
+        <table class="apple-table">
+            <thead>
+                <tr>
+                    <th width="50">#</th>
+                    <th>原始名稱</th>
+                    <th>正規化名稱</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for term in terms %}
+                <tr>
+                    <td style="color: var(--text-secondary);">{{ forloop.counter }}</td>
+                    <td style="font-weight: 500;">{{ term.name }}</td>
+                    <td style="color: var(--accent-blue);">{{ term.normalized_name }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" style="text-align:center; color: var(--text-secondary);">目前沒有名詞資料。</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if terms_truncated %}
+    <div style="text-align: center; color: var(--text-secondary); font-size: 13px; margin-bottom: 40px;">
+        目前僅顯示前 {{ terms|length }} 筆。
+    </div>
+    {% endif %}
+
+    <div class="keyword-card">
+        <h2 class="keyword-title">關鍵字推薦</h2>
+        <p class="keyword-subtitle">從目前預算資料自動整理，可點選快速加入全域關鍵字庫。</p>
+        <div id="keyword-api" data-url="{{ keyword_add_url }}" data-stage="budget"></div>
+        <div class="keyword-chip-grid">
+            {% for keyword in keyword_recommendations %}
+            <button
+                type="button"
+                class="keyword-chip-btn {% if keyword.exists %}is-added{% endif %}"
+                data-term="{{ keyword.term }}"
+                data-source="budget"
+                data-normalized-term="{{ keyword.normalized_term }}"
+                {% if keyword.exists %}disabled{% endif %}
+            >
+                <span>{{ keyword.term }}</span>
+                <span class="keyword-chip-count">×{{ keyword.occurrences }}</span>
+                <span class="keyword-chip-state">{% if keyword.exists %}✓{% else %}+{% endif %}</span>
+            </button>
+            {% empty %}
+            <span style="color: var(--text-secondary); font-size: 13px;">目前沒有可推薦關鍵字。</span>
+            {% endfor %}
+        </div>
+        <div class="keyword-feedback" id="keyword-feedback"></div>
+    </div>
+
+    <div class="keyword-card">
+        <h3 class="keyword-title" style="font-size: 16px;">全域關鍵字庫</h3>
+        <div class="keyword-library">
+            {% for keyword in keyword_global_list %}
+            <span class="keyword-tag">{{ keyword.term }}</span>
+            {% empty %}
+            <span style="color: var(--text-secondary); font-size: 13px;">尚無資料。</span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div style="text-align: right;">
+        <a href="{% url 'compareapp:quantity_upload' project.id %}" class="apple-btn">下一步：上傳數量書 ›</a>
+    </div>
+</div>
+<script>
+(function () {
+  const apiNode = document.getElementById('keyword-api');
+  if (!apiNode) return;
+  const apiUrl = apiNode.dataset.url;
+  if (!apiUrl) return;
+
+  const feedbackEl = document.getElementById('keyword-feedback');
+  const setFeedback = (text, isError = false) => {
+    if (!feedbackEl) return;
+    feedbackEl.textContent = text;
+    feedbackEl.style.color = isError ? '#d63c2b' : '#1f7a3a';
+  };
+
+  const getCookie = (name) => {
+    const cookie = document.cookie
+      .split(';')
+      .map(item => item.trim())
+      .find(item => item.startsWith(name + '='));
+    if (!cookie) return '';
+    return decodeURIComponent(cookie.substring(name.length + 1));
+  };
+  const csrfToken = getCookie('csrftoken');
+
+  document.querySelectorAll('.keyword-chip-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (btn.disabled) return;
+      btn.disabled = true;
+      setFeedback('加入中...');
+
+      const body = new URLSearchParams();
+      body.set('term', btn.dataset.term || '');
+      body.set('source', btn.dataset.source || 'budget');
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: body.toString(),
+        });
+        if (!response.ok) {
+          const errPayload = await response.json().catch(() => ({}));
+          throw new Error(errPayload.detail || '加入失敗');
+        }
+        btn.classList.add('is-added');
+        btn.querySelector('.keyword-chip-state').textContent = '✓';
+        setFeedback('已加入全域關鍵字庫');
+      } catch (error) {
+        btn.disabled = false;
+        setFeedback(error.message || '加入失敗', true);
+      }
+    });
+  });
+})();
+</script>
+{% endblock %}
