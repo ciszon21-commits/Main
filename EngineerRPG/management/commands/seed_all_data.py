@@ -300,50 +300,33 @@ class Command(BaseCommand):
 
     def _seed_trials(self, items):
         created = 0
-        # Trials may have duplicate titles, so match by order within (title, trial_type)
-        seen = {}
+        # Trials need to be matched by ID to allow renaming
         for d in items:
             cat_id = self._cat_id_map.get(d['category_id']) if d['category_id'] else None
             eq_id = self._eq_id_map.get(d['equipment_reward_id']) if d.get('equipment_reward_id') else None
             item_id = self._item_id_map.get(d['item_reward_id']) if d.get('item_reward_id') else None
 
-            key = (d['title'], d['trial_type'])
-            seen[key] = seen.get(key, 0)
-            existing = list(
-                Trial.objects.filter(
-                    title=d['title'], trial_type=d['trial_type']
-                ).order_by('id'))
-
-            if seen[key] < len(existing):
-                obj = existing[seen[key]]
-                obj.description = d.get('description', '')
-                obj.category_id = cat_id
-                obj.question_count = d.get('question_count', 10)
-                obj.time_limit_minutes = d.get('time_limit_minutes', 30)
-                obj.required_level = d.get('required_level', 1)
-                obj.exp_reward = d.get('exp_reward', 100)
-                obj.equipment_reward_id = eq_id
-                obj.item_reward_id = item_id
-                obj.is_daily = d.get('is_daily', False)
-                obj.is_active = d.get('is_active', True)
-                obj.save()
-            else:
-                obj = Trial.objects.create(
-                    title=d['title'],
-                    description=d.get('description', ''),
-                    trial_type=d['trial_type'],
-                    category_id=cat_id,
-                    question_count=d.get('question_count', 10),
-                    time_limit_minutes=d.get('time_limit_minutes', 30),
-                    required_level=d.get('required_level', 1),
-                    exp_reward=d.get('exp_reward', 100),
-                    equipment_reward_id=eq_id,
-                    item_reward_id=item_id,
-                    is_daily=d.get('is_daily', False),
-                    is_active=d.get('is_active', True),
-                )
+            # Use update_or_create with 'id' as the lookup field
+            obj, is_new = Trial.objects.update_or_create(
+                id=d['id'],  # Lookup by ID
+                defaults={
+                    'title': d['title'],
+                    'description': d.get('description', ''),
+                    'trial_type': d['trial_type'],
+                    'category_id': cat_id,
+                    'question_count': d.get('question_count', 10),
+                    'time_limit_minutes': d.get('time_limit_minutes', 30),
+                    'required_level': d.get('required_level', 1),
+                    'exp_reward': d.get('exp_reward', 100),
+                    'equipment_reward_id': eq_id,
+                    'item_reward_id': item_id,
+                    'is_daily': d.get('is_daily', False),
+                    'is_active': d.get('is_active', True),
+                }
+            )
+            
+            if is_new:
                 created += 1
-            seen[key] += 1
 
             # M2M: questions
             if d.get('question_ids'):
