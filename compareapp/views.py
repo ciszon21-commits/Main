@@ -4,10 +4,10 @@ import json
 from collections import defaultdict
 from decimal import Decimal
 from datetime import timedelta
+from functools import wraps
 from typing import Any
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import login_required
 from django.core.files.base import ContentFile
 from django.db.models import Count, Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -28,6 +28,17 @@ from .services.serialization import (
     serialize_standard_records,
 )
 from .services.run_tasks import enqueue_comparison_run
+
+
+def require_authenticated_user(view_func):
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        user = getattr(request, 'user', None)
+        if user is None or not user.is_authenticated:
+            return HttpResponseForbidden('Authentication required.')
+        return view_func(request, *args, **kwargs)
+
+    return _wrapped
 
 
 def _is_legacy_budget_payload(project: CompareProject) -> bool:
@@ -159,12 +170,12 @@ def _find_user_for_share(identity: str):
     return UserModel.objects.filter(email__iexact=query).first()
 
 
-@login_required
+@require_authenticated_user
 def project_index_view(request):
     return _project_index_internal(request, 'compareapp/project_index_apple.html', 'compareapp:project_detail')
 
 
-@login_required
+@require_authenticated_user
 def project_index_apple_view(request):
     return _project_index_internal(request, 'compareapp/project_index_apple.html', 'compareapp:project_detail_apple')
 
@@ -208,12 +219,12 @@ def _project_index_internal(request, template_name, detail_view_name):
     )
 
 
-@login_required
+@require_authenticated_user
 def project_detail_view(request, project_id: int):
     return _project_detail_internal(request, project_id, 'compareapp/project_detail_apple.html')
 
 
-@login_required
+@require_authenticated_user
 def project_detail_apple_view(request, project_id: int):
     return _project_detail_internal(request, project_id, 'compareapp/project_detail_apple.html')
 
@@ -233,12 +244,12 @@ def _project_detail_internal(request, project_id, template_name):
     )
 
 
-@login_required
+@require_authenticated_user
 def budget_upload_view(request, project_id: int):
     return _budget_upload_internal(request, project_id, 'compareapp/budget_upload_apple.html', 'compareapp:budget_terms')
 
 
-@login_required
+@require_authenticated_user
 def budget_upload_apple_view(request, project_id: int):
     return _budget_upload_internal(request, project_id, 'compareapp/budget_upload_apple.html', 'compareapp:budget_terms_apple')
 
@@ -288,12 +299,12 @@ def _budget_upload_internal(request, project_id, template_name, next_view_name):
     )
 
 
-@login_required
+@require_authenticated_user
 def budget_terms_view(request, project_id: int):
     return _budget_terms_internal(request, project_id, 'compareapp/budget_terms_apple.html', 'compareapp:budget_upload')
 
 
-@login_required
+@require_authenticated_user
 def budget_terms_apple_view(request, project_id: int):
     return _budget_terms_internal(request, project_id, 'compareapp/budget_terms_apple.html', 'compareapp:budget_upload_apple')
 
@@ -344,12 +355,12 @@ def _budget_terms_internal(request, project_id, template_name, upload_view_name)
     )
 
 
-@login_required
+@require_authenticated_user
 def quantity_upload_view(request, project_id: int):
     return _quantity_upload_internal(request, project_id, 'compareapp/quantity_upload_apple.html', 'compareapp:budget_upload', 'compareapp:compare')
 
 
-@login_required
+@require_authenticated_user
 def quantity_upload_apple_view(request, project_id: int):
     return _quantity_upload_internal(request, project_id, 'compareapp/quantity_upload_apple.html', 'compareapp:budget_upload_apple', 'compareapp:compare_apple')
 
@@ -392,7 +403,7 @@ def _quantity_upload_internal(request, project_id, template_name, budget_upload_
     )
 
 
-@login_required
+@require_authenticated_user
 def compare_view(request, project_id: int):
     project = _get_project_or_404_for_user(request.user, project_id)
     context = _build_compare_context(request, project)
@@ -402,7 +413,7 @@ def compare_view(request, project_id: int):
     return render(request, 'compareapp/compare_result_apple.html', context)
 
 
-@login_required
+@require_authenticated_user
 def compare_view_structured(request, project_id: int):
     project = _get_project_or_404_for_user(request.user, project_id)
     context = _build_compare_context(request, project)
@@ -411,7 +422,7 @@ def compare_view_structured(request, project_id: int):
     return render(request, 'compareapp/compare_result_structured.html', context)
 
 
-@login_required
+@require_authenticated_user
 def compare_view_fluid(request, project_id: int):
     project = _get_project_or_404_for_user(request.user, project_id)
     context = _build_compare_context(request, project)
@@ -420,7 +431,7 @@ def compare_view_fluid(request, project_id: int):
     return render(request, 'compareapp/compare_result_fluid.html', context)
 
 
-@login_required
+@require_authenticated_user
 def compare_view_apple(request, project_id: int):
     project = _get_project_or_404_for_user(request.user, project_id)
     context = _build_compare_context(request, project)
@@ -429,7 +440,7 @@ def compare_view_apple(request, project_id: int):
     return render(request, 'compareapp/compare_result_apple.html', context)
 
 
-@login_required
+@require_authenticated_user
 @require_http_methods(['GET', 'POST'])
 def global_keyword_manage_view(request):
     feedback = ''
@@ -505,7 +516,7 @@ def global_keyword_manage_view(request):
     )
 
 
-@login_required
+@require_authenticated_user
 @require_http_methods(['GET', 'POST'])
 def project_access_manage_view(request, project_id: int):
     project = _get_project_or_404_for_user(request.user, project_id)
@@ -677,7 +688,7 @@ def _build_compare_context(request, project):
     }
 
 
-@login_required
+@require_authenticated_user
 @require_GET
 def compare_run_status_view(request, project_id: int, run_id: int):
     project = _get_project_or_404_for_user(request.user, project_id)
@@ -718,7 +729,7 @@ def compare_run_status_view(request, project_id: int, run_id: int):
     )
 
 
-@login_required
+@require_authenticated_user
 @require_POST
 def compare_match_annotation_view(request, project_id: int, run_id: int, match_id: int):
     project = _get_project_or_404_for_user(request.user, project_id)
@@ -768,7 +779,7 @@ def compare_match_annotation_view(request, project_id: int, run_id: int, match_i
     )
 
 
-@login_required
+@require_authenticated_user
 @require_POST
 def keyword_add_view(request, project_id: int):
     project = _get_project_or_404_for_user(request.user, project_id)
