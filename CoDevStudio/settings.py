@@ -96,7 +96,6 @@ INSTALLED_APPS = [
     'GeoDataHub',  # 地圖導向資料管理平台
     'GeoCoding',  # 地址編碼服務
     'BidQA',  # 標案問答管理
-    'DesignConsistency',  # 設計一致性比對
     'SinoChat',  # Sinotech 內部聊天室
     'InterviewAssessment',
     'GravityPipeCalc',  # 重力管水理計算器
@@ -117,7 +116,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.RemoteUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.security.SecurityMiddleware",
-
 ] + local.STAGE_MIDDLEWARES
 
 

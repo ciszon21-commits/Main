@@ -36,7 +36,6 @@ urlpatterns = [
     path('geodatahub/', include('GeoDataHub.urls')),  # 地圖導向資料管理平台
     path('geocoding/', include('GeoCoding.urls')),  # 地址編碼服務
     path('bidqa/', include('BidQA.urls')),  # 標案問答管理
-    # path('consistency/', include('DesignConsistency.urls')),
     path('chat/', include('SinoChat.urls', namespace='sinochat')),  # Sinotech 聊天室
     path('interview/', include('InterviewAssessment.urls', namespace='interview_assessment')),
     path('gravity-pipe/', include('GravityPipeCalc.urls')),  # 重力管水理計算器
@@ -47,6 +46,8 @@ urlpatterns = [
 # 條件載入 ClashClassifier API
 if getattr(settings, 'ENABLE_CLASH_CLASSIFIER', False):
     urlpatterns.append(path('api/clash/', include('ClashClassifier.urls')))  # 碰撞報告分類 API
+    urlpatterns.append(path('consistency/', include('DesignConsistency.urls')))  # 資料一致性比對
+
 
 # 開發環境下提供 media 檔案服務
 if settings.DEBUG:
