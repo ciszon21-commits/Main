@@ -153,6 +153,65 @@ def dashboard(request):
     exp_to_next = profile.experience_to_next_level()
     exp_progress = (profile.experience / exp_to_next * 100) if exp_to_next > 0 else 0
     progress_percent = int((completed_skills / total_skills * 100)) if total_skills > 0 else 0
+
+    # 計算裝備加成 (僅計算裝備本身提供的數值)
+    equipped_items = UserEquipment.objects.filter(user_profile=profile, is_equipped=True).select_related('equipment')
+    
+    equip_hp_bonus = 0
+    equip_mp_bonus = 0
+    active_effects = []
+
+    for item in equipped_items:
+        # 基礎加成
+        hp = item.equipment.hp_bonus
+        mp = item.equipment.mp_bonus
+        dr = item.equipment.damage_reduction
+        
+        # 強化加成 (從 enhancement_rules JSON 解析)
+        # 格式可能包含: {"hp": 10, "mp": 5, "dr": 1, "desc": "效果描述"}
+        extra_desc = None
+        
+        # 即使是 +0 (Level 0) 也可能會有基礎效果定義在 enhancement_rules['0']
+        rules = item.equipment.enhancement_rules
+        level_str = str(item.enhancement_level)
+        
+        if rules and level_str in rules:
+            enhancement_data = rules[level_str]
+            hp += enhancement_data.get('hp', 0)
+            mp += enhancement_data.get('mp', 0)
+            dr += enhancement_data.get('dr', 0)
+            extra_desc = enhancement_data.get('desc')
+        
+        equip_hp_bonus += hp
+        equip_mp_bonus += mp
+
+        # 1. 減傷效果 (Damage Reduction)
+        if dr > 0:
+            active_effects.append({
+                'source': item.equipment.name,
+                'effect': f"減傷 -{dr}"
+            })
+
+        # 2. 特殊效果 (技能效果)
+        if item.equipment.skill_effect:
+            active_effects.append({
+                'source': item.equipment.name,
+                'effect': item.equipment.skill_effect
+            })
+        
+        # 3. 強化帶來的額外描述 (例如: 靴子的強化券機率)
+        if extra_desc:
+            active_effects.append({
+                'source': f"{item.equipment.name} (+{item.enhancement_level})",
+                'effect': extra_desc
+            })
+
+        # 4. +9 特殊能力
+        if item.enhancement_level >= 9 and item.equipment.special_ability_name:
+            active_effects.append({
+                'source': f"{item.equipment.name} (+9)",
+                'effect': item.equipment.special_ability_name
+            })
     
     context = {
         'profile': profile,
@@ -165,6 +224,9 @@ def dashboard(request):
         'total_hp': profile.get_total_hp(),
         'total_mp': profile.get_total_mp(),
         'progress_percent': progress_percent,
+        'equip_hp_bonus': equip_hp_bonus,
+        'equip_mp_bonus': equip_mp_bonus,
+        'active_effects': active_effects,
     }
     return render(request, 'EngineerRPG/dashboard.html', context)
 
