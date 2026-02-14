@@ -904,6 +904,9 @@ class DailyTrialProgress(models.Model):
     boots_correct_streak = models.IntegerField('連續答對次數', default=0, help_text='用於追蹤連續答對,答錯時重置')
     boots_total_correct = models.IntegerField('累積答對次數', default=0, help_text='用於追蹤累積答對,不會重置')
     
+    # 寶箱獎勵
+    chest_data = models.JSONField('寶箱資料', default=dict, blank=True)
+    
     class Meta:
         verbose_name = '每日試煉進度'
         verbose_name_plural = '每日試煉進度'

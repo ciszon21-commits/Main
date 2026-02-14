@@ -5,6 +5,7 @@
 
 {% block content %}
 <div class="rpg-container">
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
     {% if not is_completed %}
     <div class="exam-header mb-lg">
         <div class="d-flex justify-content-between align-items-center">
@@ -91,6 +92,223 @@
             </div>
         </div>
 
+        <h2 class="text-primary mb-md">🎉 挑戰成功!</h2>
+        <p class="text-lg text-stone mb-lg">恭喜您完成了本次每日試煉!</p>
+
+        {% if chests %}
+        <div class="bonus-stage mt-xl mb-xl">
+            <h3 class="text-warning text-2xl mb-lg animate-pulse">✨ 隱藏獎勵 ✨</h3>
+            <p class="text-stone-light mb-sm">你的剩餘 HP 超過了 60%！請選擇一個寶箱開啟！</p>
+            <p class="text-xs text-stone-dark mb-lg">(剩餘HP60%以上觸發)</p>
+
+            <div class="chests-container grid grid-cols-2 md:grid-cols-4 gap-md justify-items-center">
+                {% for key, chest in chests.items %}
+                <div class="chest-wrapper perspective-1000">
+                    <div class="chest-card {% if chest.is_opened %}opened{% endif %}" id="chest-{{ key }}"
+                        onclick="openChest('{{ daily_task_id|default:0 }}', '{{ key }}')">
+                        <div class="chest-front">
+                            <i
+                                class="fas fa-box-open text-warning text-5xl hover:scale-110 transition-transform cursor-pointer"></i>
+                            <p class="text-stone text-sm mt-2">神秘寶箱</p>
+                        </div>
+                        <div class="chest-back bg-black/50 p-4 rounded border border-warning/30">
+                            {% if chest.is_opened %}
+                            <div class="reward-reveal">
+                                {% if chest.type == 'MIMIC' %}
+                                <i class="fas fa-teeth-open text-danger text-4xl mb-2"></i>
+                                <p class="text-danger font-bold">寶箱怪!</p>
+                                <p class="text-xs text-danger">-5 HP</p>
+                                {% elif chest.type == 'TICKETS_3' %}
+                                <i class="fas fa-ticket-alt text-info text-4xl mb-2"></i>
+                                <p class="text-info font-bold">強化券</p>
+                                <p class="text-xs text-stone-light">x3</p>
+                                {% elif chest.type == 'POTION' %}
+                                <i class="fas fa-flask text-success text-4xl mb-2"></i>
+                                <p class="text-success font-bold">回復藥水</p>
+                                <p class="text-xs text-stone-light">HP+10</p>
+                                {% elif chest.type == 'TICKET_POTION' %}
+                                <div class="flex justify-center gap-2">
+                                    <i class="fas fa-ticket-alt text-info text-2xl"></i>
+                                    <i class="fas fa-flask text-success text-2xl"></i>
+                                </div>
+                                <p class="text-warning font-bold text-sm mt-1">大禮包</p>
+                                <p class="text-xs text-stone-light">券x1 + 藥水</p>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <div class="locked-state">
+                                <i class="fas fa-lock text-stone-dark text-3xl"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <script>
+            function openChest(taskId, chestIndex) {
+                const chestEl = document.getElementById(`chest-${chestIndex}`);
+                if (chestEl.classList.contains('opened') || document.querySelector('.chest-card.opened')) {
+                    // Prevent opening if this one is opened OR any other is likely opened (if we want to limit to 1 visually instant)
+                    // But server checks limit.
+                    // If this specific chest is opened, do nothing.
+                    if (chestEl.classList.contains('opened')) return;
+
+                    // If we want to strictly enforce one choice in UI before server callback:
+                    if (document.querySelector('.chest-card.opened')) {
+                        alert('只能選擇一個寶箱喔！');
+                        return;
+                    }
+                }
+
+                // Animation
+                chestEl.classList.add('shaking');
+
+                fetch(`/rpg/daily-trial/${taskId}/chest/${chestIndex}/open/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        chestEl.classList.remove('shaking');
+                        if (data.success) {
+                            chestEl.classList.add('opened');
+                            // Render content dynamically based on data.reward_type
+                            // Or reload? Reloading might be safer to show persistent state but less smooth.
+                            // Let's update standard UI.
+
+                            let contentHtml = '';
+                            if (data.reward_type === 'MIMIC') {
+                                contentHtml = `<i class="fas fa-teeth-open text-danger text-4xl mb-2"></i><p class="text-danger font-bold">寶箱怪!</p><p class="text-xs text-danger">-5 HP</p>`;
+                                // Update HP
+                                if (data.changes.hp) {
+                                    const hpVal = document.getElementById('hpValue'); // Assuming element exists
+                                    // Wait, this is result screen, hpValue might be in stat card
+                                    // "final_hp" in stat grid
+                                    // stat-value text-3xl font-bold ...
+                                    // I need a reliable selector.
+                                    // But simplified: Just alert message.
+                                }
+                            } else if (data.reward_type === 'TICKETS_3') {
+                                contentHtml = `<i class="fas fa-ticket-alt text-info text-4xl mb-2"></i><p class="text-info font-bold">強化券</p><p class="text-xs text-stone-light">x3</p>`;
+                            } else if (data.reward_type === 'POTION') {
+                                contentHtml = `<i class="fas fa-flask text-success text-4xl mb-2"></i><p class="text-success font-bold">回復藥水</p><p class="text-xs text-stone-light">HP+10</p>`;
+                            } else if (data.reward_type === 'TICKET_POTION') {
+                                contentHtml = `<div class="flex justify-center gap-2"><i class="fas fa-ticket-alt text-info text-2xl"></i><i class="fas fa-flask text-success text-2xl"></i></div><p class="text-warning font-bold text-sm mt-1">大禮包</p><p class="text-xs text-stone-light">券x1 + 藥水</p>`;
+                            }
+
+                            const backFace = chestEl.querySelector('.chest-back');
+                            backFace.innerHTML = `<div class="reward-reveal animate-bounce-in">${contentHtml}</div>`;
+
+                            alert(data.message);
+
+                            // Disable others
+                            document.querySelectorAll('.chest-card').forEach(el => {
+                                if (el !== chestEl) el.classList.add('disabled opacity-50 cursor-not-allowed');
+                            });
+
+                        } else {
+                            alert(data.error);
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        chestEl.classList.remove('shaking');
+                        alert('發生錯誤，請重試');
+                    });
+            }
+        </script>
+
+        <style>
+            .perspective-1000 {
+                perspective: 1000px;
+            }
+
+            .chest-card {
+                position: relative;
+                width: 120px;
+                height: 120px;
+                transition: transform 0.6s;
+                transform-style: preserve-3d;
+            }
+
+            .chest-card.opened {
+                transform: rotateY(180deg);
+            }
+
+            .chest-front,
+            .chest-back {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                -webkit-backface-visibility: hidden;
+                backface-visibility: hidden;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .chest-back {
+                transform: rotateY(180deg);
+            }
+
+            .shaking {
+                animation: shake 0.5s;
+            }
+
+            @keyframes shake {
+                0% {
+                    transform: translate(1px, 1px) rotate(0deg);
+                }
+
+                10% {
+                    transform: translate(-1px, -2px) rotate(-1deg);
+                }
+
+                20% {
+                    transform: translate(-3px, 0px) rotate(1deg);
+                }
+
+                30% {
+                    transform: translate(3px, 2px) rotate(0deg);
+                }
+
+                40% {
+                    transform: translate(1px, -1px) rotate(1deg);
+                }
+
+                50% {
+                    transform: translate(-1px, 2px) rotate(-1deg);
+                }
+
+                60% {
+                    transform: translate(-3px, 1px) rotate(0deg);
+                }
+
+                70% {
+                    transform: translate(3px, 1px) rotate(-1deg);
+                }
+
+                80% {
+                    transform: translate(-1px, -1px) rotate(1deg);
+                }
+
+                90% {
+                    transform: translate(1px, 2px) rotate(0deg);
+                }
+
+                100% {
+                    transform: translate(1px, -2px) rotate(-1deg);
+                }
+            }
+        </style>
+        {% endif %}
+
         {% elif is_timeout %}
         <div class="result-icon mb-lg">
             <i class="fas fa-clock text-warning" style="font-size: 5rem;"></i>
@@ -141,136 +359,135 @@
     <a href="{% url 'engineer_rpg:daily_trial_list' %}" class="rpg-btn rpg-btn-primary btn-large">
         <i class="fas fa-home"></i> 返回每日挑戰列表
     </a>
-</div>
-{% elif question %}
-<div class="question-header mb-md">
-    <span class="question-number">Q{{ current_index|add:1 }}</span>
-    <span class="question-type badge badge-info">{{ question.get_question_type_display }}</span>
-    <span class="question-difficulty badge badge-{{ question.difficulty }}">
-        {{ question.get_difficulty_display }}</span>
-</div>
-
-<div class="question-content mb-lg">
-    <h3 class="mb-md">{{ question.content|linebreaksbr }}</h3>
-    {% if question.image %}
-    <img src="{{ question.image.url }}" alt="Question Image" class="question-image mb-md">
-    {% endif %}
-</div>
-
-<form id="answerForm">
-    {% csrf_token %}
-
-    <!-- MP 技能按鈕區域已移除 -->
-
-    <!-- 錯題回顧 -->
-    {% if wrong_answers_list %}
-    <div class="mt-lg">
-        <h3 class="text-xl font-bold mb-md text-danger"><i class="fas fa-exclamation-circle"></i> 錯題回顧</h3>
-        <div class="space-y-md">
-            {% for wrong in wrong_answers_list %}
-            <div class="bg-stone-dark p-md rounded-lg border border-danger/30">
-                <div class="mb-sm">
-                    <span class="text-stone-light text-sm">題目：</span>
-                    <p class="font-bold text-white">{{ wrong.question_text }}</p>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-sm mb-sm">
-                    <div class="bg-danger/10 p-sm rounded border border-danger/20">
-                        <span class="text-danger text-xs block mb-xs">你的答案</span>
-                        <span class="text-danger font-mono">{{ wrong.user_answer }}</span>
-                    </div>
-                    <div class="bg-success/10 p-sm rounded border border-success/20">
-                        <span class="text-success text-xs block mb-xs">正確答案</span>
-                        <span class="text-success font-mono">{{ wrong.correct_answer }}</span>
-                    </div>
-                </div>
-                {% if wrong.explanation and wrong.explanation != '無解析' and wrong.explanation != 'None' %}
-                <div class="bg-primary/5 p-sm rounded text-sm text-stone-light border-l-4 border-primary">
-                    <strong class="text-primary">解析：</strong> {{ wrong.explanation }}
-                </div>
-                {% endif %}
-            </div>
-            {% endfor %}
-        </div>
+    {% elif question %}
+    <div class="question-header mb-md">
+        <span class="question-number">Q{{ current_index|add:1 }}</span>
+        <span class="question-type badge badge-info">{{ question.get_question_type_display }}</span>
+        <span class="question-difficulty badge badge-{{ question.difficulty }}">
+            {{ question.get_difficulty_display }}</span>
     </div>
-    {% endif %}
 
-    <!-- 道具欄 -->
-    {% if user_items %}
-    <div class="items-toolbar mb-lg">
-        <div class="items-label">
-            <i class="fas fa-briefcase"></i> 可用道具
-        </div>
-        <div class="items-list">
-            {% for user_item in user_items %}
-            <button type="button" class="item-btn" data-item-id="{{ user_item.id }}"
-                data-item-name="{{ user_item.item.name }}" data-effect-type="{{ user_item.item.effect_type }}"
-                data-effect-value="{{ user_item.item.effect_value }}" onclick="useItem(this)">
-                <div class="item-icon">
-                    {% if user_item.item.effect_type == 'HEAL' %}
-                    <i class="fas fa-heart"></i>
-                    {% elif user_item.item.effect_type == 'HINT' %}
-                    <i class="fas fa-lightbulb"></i>
-                    {% elif user_item.item.effect_type == 'SKIP' %}
-                    <i class="fas fa-forward"></i>
-                    {% elif user_item.item.effect_type == 'SHIELD' %}
-                    <i class="fas fa-shield-alt"></i>
-                    {% elif user_item.item.effect_type == 'TIME_EXTEND' %}
-                    <i class="fas fa-hourglass-half"></i>
-                    {% elif user_item.item.effect_type == 'REMOVE_OPTION' %}
-                    <i class="fas fa-cut"></i>
-                    {% else %}
-                    <i class="fas fa-box"></i>
-                    {% endif %}
-                </div>
-                <div class="item-info">
-                    <div class="item-name">{{ user_item.item.name }}</div>
-                    <div class="item-quantity">x{{ user_item.quantity }}</div>
-                </div>
-            </button>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
-    <div class="options-list" id="optionsList">
-        {% if question.question_type == 'SINGLE' or question.question_type == 'TRUEFALSE' %}
-        {% for key, value in question.options.items %}
-        <label class="option-item">
-            <input type="radio" name="answer" value="{{ key }}" required>
-            <span class="option-text">{{ key }}. {{ value }}</span>
-        </label>
-        {% endfor %}
-        {% elif question.question_type == 'MULTIPLE' %}
-        {% for key, value in question.options.items %}
-        <label class="option-item">
-            <input type="checkbox" name="answer" value="{{ key }}">
-            <span class="option-text">{{ key }}. {{ value }}</span>
-        </label>
-        {% endfor %}
+    <div class="question-content mb-lg">
+        <h3 class="mb-md">{{ question.content|linebreaksbr }}</h3>
+        {% if question.image %}
+        <img src="{{ question.image.url }}" alt="Question Image" class="question-image mb-md">
         {% endif %}
     </div>
 
-    <div class="action-buttons mt-xl text-center">
-        <button type="submit" class="rpg-btn rpg-btn-primary btn-large" id="submitBtn">
-            <i class="fas fa-check"></i> 提交答案
-        </button>
-    </div>
-</form>
+    <form id="answerForm">
+        {% csrf_token %}
 
-<!-- 反饋區域（初始隱藏） -->
-<div class="feedback-area" id="feedbackArea" style="display: none;">
-    <div class="feedback-content">
-        <div class="feedback-icon" id="feedbackIcon"></div>
-        <h3 class="feedback-title" id="feedbackTitle"></h3>
-        <div class="feedback-details" id="feedbackDetails"></div>
-        <button class="rpg-btn rpg-btn-secondary btn-large mt-lg" id="nextBtn">
-            <i class="fas fa-arrow-right"></i> 下一題
-        </button>
+        <!-- MP 技能按鈕區域已移除 -->
+
+        <!-- 錯題回顧 -->
+        {% if wrong_answers_list %}
+        <div class="mt-lg">
+            <h3 class="text-xl font-bold mb-md text-danger"><i class="fas fa-exclamation-circle"></i> 錯題回顧</h3>
+            <div class="space-y-md">
+                {% for wrong in wrong_answers_list %}
+                <div class="bg-stone-dark p-md rounded-lg border border-danger/30">
+                    <div class="mb-sm">
+                        <span class="text-stone-light text-sm">題目：</span>
+                        <p class="font-bold text-white">{{ wrong.question_text }}</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-sm mb-sm">
+                        <div class="bg-danger/10 p-sm rounded border border-danger/20">
+                            <span class="text-danger text-xs block mb-xs">你的答案</span>
+                            <span class="text-danger font-mono">{{ wrong.user_answer }}</span>
+                        </div>
+                        <div class="bg-success/10 p-sm rounded border border-success/20">
+                            <span class="text-success text-xs block mb-xs">正確答案</span>
+                            <span class="text-success font-mono">{{ wrong.correct_answer }}</span>
+                        </div>
+                    </div>
+                    {% if wrong.explanation and wrong.explanation != '無解析' and wrong.explanation != 'None' %}
+                    <div class="bg-primary/5 p-sm rounded text-sm text-stone-light border-l-4 border-primary">
+                        <strong class="text-primary">解析：</strong> {{ wrong.explanation }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 道具欄 -->
+        {% if user_items %}
+        <div class="items-toolbar mb-lg">
+            <div class="items-label">
+                <i class="fas fa-briefcase"></i> 可用道具
+            </div>
+            <div class="items-list">
+                {% for user_item in user_items %}
+                <button type="button" class="item-btn" data-item-id="{{ user_item.id }}"
+                    data-item-name="{{ user_item.item.name }}" data-effect-type="{{ user_item.item.effect_type }}"
+                    data-effect-value="{{ user_item.item.effect_value }}" onclick="useItem(this)">
+                    <div class="item-icon">
+                        {% if user_item.item.effect_type == 'HEAL' %}
+                        <i class="fas fa-heart"></i>
+                        {% elif user_item.item.effect_type == 'HINT' %}
+                        <i class="fas fa-lightbulb"></i>
+                        {% elif user_item.item.effect_type == 'SKIP' %}
+                        <i class="fas fa-forward"></i>
+                        {% elif user_item.item.effect_type == 'SHIELD' %}
+                        <i class="fas fa-shield-alt"></i>
+                        {% elif user_item.item.effect_type == 'TIME_EXTEND' %}
+                        <i class="fas fa-hourglass-half"></i>
+                        {% elif user_item.item.effect_type == 'REMOVE_OPTION' %}
+                        <i class="fas fa-cut"></i>
+                        {% else %}
+                        <i class="fas fa-box"></i>
+                        {% endif %}
+                    </div>
+                    <div class="item-info">
+                        <div class="item-name">{{ user_item.item.name }}</div>
+                        <div class="item-quantity">x{{ user_item.quantity }}</div>
+                    </div>
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="options-list" id="optionsList">
+            {% if question.question_type == 'SINGLE' or question.question_type == 'TRUEFALSE' %}
+            {% for key, value in question.options.items %}
+            <label class="option-item">
+                <input type="radio" name="answer" value="{{ key }}" required>
+                <span class="option-text">{{ key }}. {{ value }}</span>
+            </label>
+            {% endfor %}
+            {% elif question.question_type == 'MULTIPLE' %}
+            {% for key, value in question.options.items %}
+            <label class="option-item">
+                <input type="checkbox" name="answer" value="{{ key }}">
+                <span class="option-text">{{ key }}. {{ value }}</span>
+            </label>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="action-buttons mt-xl text-center">
+            <button type="submit" class="rpg-btn rpg-btn-primary btn-large" id="submitBtn">
+                <i class="fas fa-check"></i> 提交答案
+            </button>
+        </div>
+    </form>
+
+    <!-- 反饋區域（初始隱藏） -->
+    <div class="feedback-area" id="feedbackArea" style="display: none;">
+        <div class="feedback-content">
+            <div class="feedback-icon" id="feedbackIcon"></div>
+            <h3 class="feedback-title" id="feedbackTitle"></h3>
+            <div class="feedback-details" id="feedbackDetails"></div>
+            <button class="rpg-btn rpg-btn-secondary btn-large mt-lg" id="nextBtn">
+                <i class="fas fa-arrow-right"></i> 下一題
+            </button>
+        </div>
     </div>
-</div>
-{% else %}
-<p class="text-center">沒有可用的題目</p>
-{% endif %}
+    {% else %}
+    <p class="text-center">沒有可用的題目</p>
+    {% endif %}
 </div>
 
 <script>
@@ -517,6 +734,68 @@
             effectBox.classList.remove('show');
             setTimeout(() => effectBox.remove(), 300);
         }, 3000);
+    }
+
+    // 開啟寶箱
+
+    function openChest(taskId, chestIndex) {
+        const chestEl = document.getElementById(`chest-${chestIndex}`);
+        if (chestEl.classList.contains('opened') || document.querySelector('.chest-card.opened')) {
+            if (chestEl.classList.contains('opened')) return;
+            alert('只能選擇一個寶箱喔！');
+            return;
+        }
+
+        // Animation
+        chestEl.classList.add('shaking');
+
+        fetch(`/rpg/daily-trial/${taskId}/chest/${chestIndex}/open/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                chestEl.classList.remove('shaking');
+                if (data.success) {
+                    chestEl.classList.add('opened');
+
+                    let contentHtml = '';
+                    if (data.reward_type === 'MIMIC') {
+                        contentHtml = `<i class="fas fa-teeth-open text-danger text-4xl mb-2"></i><p class="text-danger font-bold">寶箱怪!</p><p class="text-xs text-danger">-5 HP</p>`;
+                    } else if (data.reward_type === 'TICKETS_3') {
+                        contentHtml = `<i class="fas fa-ticket-alt text-info text-4xl mb-2"></i><p class="text-info font-bold">強化券</p><p class="text-xs text-stone-light">x3</p>`;
+                    } else if (data.reward_type === 'POTION') {
+                        contentHtml = `<i class="fas fa-flask text-success text-4xl mb-2"></i><p class="text-success font-bold">回復藥水</p><p class="text-xs text-stone-light">HP+10</p>`;
+                    } else if (data.reward_type === 'TICKET_POTION') {
+                        contentHtml = `<div class="flex justify-center gap-2"><i class="fas fa-ticket-alt text-info text-2xl"></i><i class="fas fa-flask text-success text-2xl"></i></div><p class="text-warning font-bold text-sm mt-1">大禮包</p><p class="text-xs text-stone-light">券x1 + 藥水</p>`;
+                    }
+
+                    const backFace = chestEl.querySelector('.chest-back');
+                    backFace.innerHTML = `<div class="reward-reveal animate-bounce-in">${contentHtml}</div>`;
+
+                    // Disable others
+                    document.querySelectorAll('.chest-card').forEach(el => {
+                        if (el !== chestEl) {
+                            el.classList.add('disabled');
+                            el.style.opacity = '0.5';
+                            el.style.cursor = 'not-allowed';
+                            el.onclick = null;
+                        }
+                    });
+
+                    setTimeout(() => alert(data.message), 500);
+
+                } else {
+                    alert(data.message || '無法開啟寶箱');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                chestEl.classList.remove('shaking');
+                alert('發生錯誤，請重試');
+            });
     }
 </script>
 

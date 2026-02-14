@@ -1,13 +1,12 @@
 ﻿from django.db.models import Sum
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import login, authenticate, logout
-from django.contrib.auth.models import User
 from django.contrib import messages
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse
 from django.utils import timezone
-from django.db.models import Q, Count, Avg, Prefetch
+from django.db.models import Count, Sum, Q, Prefetch
 from django.core.paginator import Paginator
 import random
 import json
@@ -1139,11 +1138,12 @@ def start_daily_trial(request, task_id):
     is_timeout = elapsed_minutes > daily_task.trial.time_limit_minutes
     
     
+    
     # 檢查是否已完成或超時
-    elapsed_minutes = (timezone.now() - progress.started_at).total_seconds() / 60
-    is_timeout = elapsed_minutes > daily_task.trial.time_limit_minutes
+    # elapsed_minutes = (timezone.now() - progress.started_at).total_seconds() / 60
+    # is_timeout = elapsed_minutes > daily_task.trial.time_limit_minutes
     total_questions_count = daily_task.questions.count()
-    is_questions_finished = progress.current_question_index >= total_questions_count
+    is_questions_finished = (progress.current_question_index >= total_questions_count) or (progress.answers and len(progress.answers) >= total_questions_count)
     
     if progress.is_completed or is_timeout or progress.current_hp <= 0 or is_questions_finished:
         # 顯示結算畫面
@@ -1226,9 +1226,27 @@ def start_daily_trial(request, task_id):
             progress.is_passed = is_passed
             progress.save()
 
+        # 額外獎勵判定：每日試煉且 HP >= 60%
+        if not getattr(progress, 'chest_data', {}):
+             # 確保 initial_hp > 0
+             initial = progress.initial_hp if progress.initial_hp > 0 else 1
+             hp_percent = progress.current_hp / initial
+             if hp_percent >= 0.6:
+                 chest_options = ['MIMIC', 'TICKETS_3', 'POTION', 'TICKET_POTION']
+                 import random
+                 chests = {}
+                 for i in range(1, 5):
+                     chests[str(i)] = {
+                         'type': random.choice(chest_options),
+                         'is_opened': False
+                     }
+                 progress.chest_data = chests
+                 progress.save()
+
         context = {
             'profile': profile,
             'trial': trial,
+            'daily_task_id': task_id,
             'is_completed': True,
             'is_passed': is_passed,
             'is_perfect': is_perfect,
@@ -1241,6 +1259,7 @@ def start_daily_trial(request, task_id):
             'final_hp': progress.current_hp,
             'initial_hp': progress.initial_hp,
             'wrong_answers_list': wrong_answers_list,
+            'chests': getattr(progress, 'chest_data', {}),
         }
         return render(request, 'EngineerRPG/trial_exam.html', context)
         
@@ -1470,6 +1489,50 @@ def submit_trial(request, trial_id):
             tickets_earned = 2
             if score >= 100:
                 tickets_earned += 1
+            
+            # [NEW] 寶箱獎勵邏輯
+            # 剩餘HP如果仍有全部HP的60%(含)以上
+            # progress is updated above in `submit_trial`, we need to refetch or rely on `remaining_hp`
+            # `remaining_hp` is calculated locally
+            
+            # Use initial_hp from progress to ensure consistency with the UI
+            try:
+                if 'progress' not in locals():
+                    from .models import DailyTrialProgress
+                    progress = DailyTrialProgress.objects.get(user_profile=profile, daily_task_id=daily_task_id)
+                current_total_hp = progress.initial_hp
+            except Exception:
+                 current_total_hp = profile.get_total_hp() # Fallback
+
+            hp_threshold = current_total_hp * 0.6
+            
+            if remaining_hp >= hp_threshold:
+                # Generate Chests
+                from .models import DailyTrialProgress
+                try:
+                    progress = DailyTrialProgress.objects.get(user_profile=profile, daily_task_id=daily_task_id)
+                    # Check if already generated
+                    if not getattr(progress, 'chest_data', None):
+                        import random
+                        # 1. 遭遇寶箱怪，扣5HP
+                        # 2. 發現3張強化券
+                        # 3. 發現回復藥水(回復10HP)
+                        # 4. 發現1張強化券跟回復藥水(回復10HP)
+                        reward_pool = ['MIMIC', 'TICKETS_3', 'POTION', 'TICKET_POTION']
+                        random.shuffle(reward_pool)
+                        
+                        chest_data = {}
+                        for i, reward_type in enumerate(reward_pool):
+                            chest_data[str(i)] = {
+                                'type': reward_type,
+                                'is_opened': False
+                            }
+                        progress.chest_data = chest_data
+                        progress.save()
+                        messages.success(request, '觸發隱藏獎勵！出現了四個神秘寶箱！')
+                except Exception as e:
+                    print(f"Error generating chests: {e}")
+
         else:
             # 地下城
             if trial.trial_type == 'DUNGEON':
@@ -1521,12 +1584,110 @@ def submit_trial(request, trial_id):
     else:
         messages.error(request, '試煉失敗，請再接再厲！')
         
+    # 先暫存 task_id 以便導向
+    redirect_task_id = request.session.get('daily_task_id')
+
     # 清理 Session
     for key in ['trial_id', 'trial_questions', 'trial_start_time', 'trial_answers', 'current_question_index', 'trial_hp', 'trial_mp', 'daily_task_id']:
         if key in request.session:
             del request.session[key]
             
+    if redirect_task_id:
+        return redirect('engineer_rpg:start_daily_trial', task_id=redirect_task_id)
+
     return redirect('engineer_rpg:dashboard')
+
+
+@login_required # Turbo: Add login_required decorator
+def open_daily_chest(request, task_id, chest_index):
+    """開啟每日試煉寶箱"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid method'}, status=405)
+        
+    profile = get_or_create_user_profile(request.user)
+    try:
+        from .models import DailyTrialTask, DailyTrialProgress, Item
+        daily_task = DailyTrialTask.objects.get(id=task_id)
+        progress = DailyTrialProgress.objects.get(user_profile=profile, daily_task=daily_task)
+    except (DailyTrialTask.DoesNotExist, DailyTrialProgress.DoesNotExist):
+        return JsonResponse({'error': 'Task not found'}, status=404)
+        
+    # Check if chests exist
+    chest_data = getattr(progress, 'chest_data', {})
+    if not chest_data:
+        return JsonResponse({'error': 'No chests available'}, status=400)
+        
+    # Check if already opened (limit to 1)
+    # 檢查是否已經開啟過任何寶箱
+    if any(c.get('is_opened', False) for c in chest_data.values()):
+        return JsonResponse({'error': '只能開啟一個寶箱！'}, status=400)
+        
+    # Check specific chest
+    chest_key = str(chest_index)
+    if chest_key not in chest_data:
+        return JsonResponse({'error': 'Invalid chest index'}, status=400)
+        
+    chest = chest_data[chest_key]
+    
+    # Process Reward
+    reward_type = chest['type']
+    message = ""
+    changes = {}
+    
+    if reward_type == 'MIMIC':
+        # 扣除 HP
+        damage = 5
+        progress.current_hp = max(0, progress.current_hp - damage)
+        progress.save()
+        message = f"遭遇寶箱怪！HP -{damage}"
+        changes['hp'] = -damage
+        
+    elif reward_type == 'TICKETS_3':
+        profile.enhancement_tickets += 3
+        profile.save()
+        message = "獲得 3 張強化券！"
+        
+    elif reward_type == 'POTION':
+        # 嘗試查找回復藥水道具，若無則直接回復
+        potion_item = Item.objects.filter(name__contains='回復藥水').first()
+        if potion_item:
+            user_item, _ = UserItem.objects.get_or_create(user_profile=profile, item=potion_item)
+            user_item.quantity += 1
+            user_item.save()
+            message = f"獲得 {potion_item.name}！"
+        else:
+            # Fallback: 直接回復? 或是這只是一個道具? 根據需求 '發現回復藥水(回復10HP)'
+            # 假設獲得道具
+            message = "獲得回復藥水(回復10HP)！(道具不存在，請聯繫管理員)"
+            # Create a localized log or similar? For now simple message.
+            
+    elif reward_type == 'TICKET_POTION':
+        profile.enhancement_tickets += 1
+        profile.save()
+        
+        potion_item = Item.objects.filter(name__contains='回復藥水').first()
+        if potion_item:
+            user_item, _ = UserItem.objects.get_or_create(user_profile=profile, item=potion_item)
+            user_item.quantity += 1
+            user_item.save()
+            message = f"獲得 1 張強化券 與 {potion_item.name}！"
+        else:
+             message = "獲得 1 張強化券 與 回復藥水！"
+
+    # Update State
+    chest['is_opened'] = True
+    progress.chest_data = chest_data
+    progress.save()
+    
+    return JsonResponse({
+        'success': True,
+        'message': message,
+        'reward_type': reward_type,
+        'changes': changes,
+        'chest_content': chest # Return details if needed
+    })
+
+
 
 # ==================== 晉升系統 ====================
 
@@ -3368,6 +3529,194 @@ def reset_daily_trials(request):
         user_profile=profile
     ).delete()[0]
     
-    messages.success(request, f'已重置 {deleted_count} 個每日試煉進度!(獎勵已保留)')
-    return redirect(request.META.get('HTTP_REFERER', 'engineer_rpg:daily_trial_list'))
+@login_required
+def open_daily_chest(request, task_id, chest_index):
+    """開啟每日試煉寶箱"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid method'}, status=405)
+        
+    profile = get_or_create_user_profile(request.user)
+    
+    from .models import DailyTrialProgress, DailyTrialTask
+    try:
+        daily_task = DailyTrialTask.objects.get(id=task_id)
+        progress = DailyTrialProgress.objects.get(user_profile=profile, daily_task=daily_task)
+    except (DailyTrialTask.DoesNotExist, DailyTrialProgress.DoesNotExist):
+        return JsonResponse({'success': False, 'message': '找不到試煉紀錄'}, status=404)
+        
+    # 驗證寶箱資料是否存在
+    chest_data = getattr(progress, 'chest_data', {})
+    if not chest_data:
+        return JsonResponse({'success': False, 'message': '錯誤：沒有可用的寶箱'}, status=400)
+        
+    s_index = str(chest_index)
+    if s_index not in chest_data:
+        return JsonResponse({'success': False, 'message': '無效的寶箱編號'}, status=400)
+        
+    # 檢查是否已開啟過任何寶箱 (Pick One 邏輯)
+    # 遍歷所有寶箱檢查 is_opened
+    for key, val in chest_data.items():
+        if isinstance(val, dict) and val.get('is_opened'):
+             return JsonResponse({'success': False, 'message': '你已經領取過獎勵了！'}, status=400)
+         
+    chest_info = chest_data[s_index]
+    
+    # 相容舊資料錯誤 (如果還有 string 類型的資料)
+    if isinstance(chest_info, str):
+         reward_type = chest_info
+         # 轉換為新結構
+         chest_info = {'type': reward_type, 'is_opened': True}
+         chest_data[s_index] = chest_info
+    else:
+        reward_type = chest_info.get('type')
+    
+    # 發放獎勵
+    changes = {}
+    message = ""
+    
+    if reward_type == 'MIMIC':
+        # 寶箱怪
+        message = "😱 寶箱怪咬了你一口！ (HP -5)"
+        changes['hp'] = -5
+        
+    elif reward_type == 'TICKETS_3':
+        profile.enhancement_tickets += 3
+        profile.save()
+        message = "🎉 獲得 強化券 x3！"
+        
+    elif reward_type == 'POTION':
+        from .models import Item, UserItem
+        try:
+            potion = Item.objects.get(name='回復藥水')
+            ui, _ = UserItem.objects.get_or_create(user_profile=profile, item=potion)
+            ui.quantity += 1
+            ui.save()
+            message = "🍷 獲得 回復藥水 x1！"
+        except Item.DoesNotExist:
+             message = "獲得 回復藥水 (但道具不存在...)"
+
+    elif reward_type == 'TICKET_POTION':
+         profile.enhancement_tickets += 1
+         profile.save()
+         from .models import Item, UserItem
+         try:
+            potion = Item.objects.get(name='回復藥水')
+            ui, _ = UserItem.objects.get_or_create(user_profile=profile, item=potion)
+            ui.quantity += 1
+            ui.save()
+            message = "🎁 大禮包！獲得 強化券 x1 + 回復藥水 x1！"
+         except:
+             pass
+             
+    # 標記已開啟
+    if isinstance(chest_data[s_index], dict):
+        chest_data[s_index]['is_opened'] = True
+    
+    progress.chest_data = chest_data
+    progress.save()
+    
+    print(f"DEBUG: Chest opened successfully. Reward: {reward_type}, Message: {message}")
+    return JsonResponse({
+        'success': True, 
+        'reward_type': reward_type,
+        'message': message,
+        'changes': changes
+    })
+
+
+@login_required
+def submit_answer(request, trial_id):
+    """提交單題答案並即時回饋"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+    
+    profile = get_or_create_user_profile(request.user)
+    trial = get_object_or_404(Trial, id=trial_id)
+    
+    # 獲取題組
+    question_ids = request.session.get('trial_questions', [])
+    current_index = request.session.get('current_question_index', 0)
+    
+    if current_index >= len(question_ids):
+        return JsonResponse({'error': 'No more questions'}, status=400)
+    
+    question = get_object_or_404(Question, id=question_ids[current_index])
+    
+    # 獲取使用者答案
+    user_answer = request.POST.get('answer', '')
+    
+    # 批改
+    correct_answer = question.correct_answer
+    is_correct = False
+    
+    if question.question_type == 'MULTIPLE':
+        user_answer_list = request.POST.getlist('answer')
+        is_correct = set(user_answer_list) == set(correct_answer)
+    else:
+        is_correct = user_answer == str(correct_answer)
+    
+    # 更新 Session 中的逐題紀錄
+    trial_answers = request.session.get('trial_answers', {})
+    trial_answers[str(question.id)] = {
+        'user_answer': user_answer,
+        'is_correct': is_correct,
+    }
+    request.session['trial_answers'] = trial_answers
+    
+    # 檢查是否為每日試煉
+    daily_task_id = request.session.get('daily_task_id')
+    if daily_task_id:
+        # 每日試煉：更新 DailyTrialProgress
+        from .models import DailyTrialTask, DailyTrialProgress
+        try:
+            daily_task = DailyTrialTask.objects.get(id=daily_task_id)
+            progress = DailyTrialProgress.objects.get(
+                user_profile=profile,
+                daily_task=daily_task
+            )
+            
+            # 扣除 HP（即時扣血）
+            if not is_correct:
+                progress.current_hp = max(0, progress.current_hp - 1)
+                progress.save()
+            
+            current_hp = progress.current_hp
+            
+            # 更新逐題紀錄
+            if not progress.answers:
+                progress.answers = {}
+            progress.answers[str(question.id)] = {
+                'user_answer': user_answer,
+                'is_correct': is_correct,
+            }
+            progress.save()
+            
+        except (DailyTrialTask.DoesNotExist, DailyTrialProgress.DoesNotExist):
+            # 異常情況，使用 session
+            current_hp = request.session.get('trial_hp', 3)
+            if not is_correct:
+                current_hp = max(0, current_hp - 1)
+                request.session['trial_hp'] = current_hp
+    else:
+        # 一般試煉/地下城
+        current_hp = request.session.get('trial_hp', 3)
+        if not is_correct:
+            current_hp = max(0, current_hp - 1)
+            request.session['trial_hp'] = current_hp
+    
+    # 檢查是否 Game Over
+    is_game_over = current_hp <= 0
+    
+    # 回傳 JSON 數據
+    response_data = {
+        'is_correct': is_correct,
+        'correct_answer': correct_answer,
+        'explanation': question.explanation,
+        'remaining_hp': current_hp,
+        'is_game_over': is_game_over,
+        'current_index': current_index,
+        'total_questions': len(question_ids),
+    }
+    
+    return JsonResponse(response_data)
 

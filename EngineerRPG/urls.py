@@ -41,6 +41,7 @@ urlpatterns = [
     path('training-hall/', views.training_hub, name='training_hub'),
     path('daily-trial/', views.daily_trial_list, name='daily_trial_list'),
     path('daily-trial/<int:task_id>/start/', views.start_daily_trial, name='start_daily_trial'),
+    path('daily-trial/<int:task_id>/chest/<int:chest_index>/open/', views.open_daily_chest, name='open_daily_chest'),
     path('dungeons/', views.dungeon_list, name='dungeon_list'),
     path('trial/<int:trial_id>/', views.trial_detail, name='trial_detail'),
     path('trial/<int:trial_id>/start/', views.start_trial, name='start_trial'),
