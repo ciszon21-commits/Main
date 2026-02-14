@@ -130,7 +130,10 @@ def dashboard(request):
         return redirect('engineer_rpg:select_class')
 
     # 獲取統計資訊
-    total_skills = UserSkill.objects.filter(user_profile=profile).count()
+    # 總技能數：該職業的所有技能 (含 ROOT 與 CLASS 專屬)
+    total_skills = SkillNode.objects.filter(
+        Q(character_class=profile.character_class) | Q(character_class__isnull=True)
+    ).count()
     completed_skills = UserSkill.objects.filter(user_profile=profile, status='COMPLETED').count()
     
     # 最近紀錄
@@ -221,7 +224,7 @@ def skill_tree(request):
     
     # 過戶過濾
     skills = SkillNode.objects.filter(
-        Q(character_class__code=selected_class_code) | Q(node_type='ROOT')
+        Q(character_class__code=selected_class_code) | Q(character_class__isnull=True)
     ).prefetch_related('parent_skills')
     
     courses = Course.objects.all()
