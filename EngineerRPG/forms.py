@@ -39,7 +39,7 @@ class QuestionForm(forms.ModelForm):
     
     class Meta:
         model = Question
-        fields = ['content', 'question_type', 'explanation', 'difficulty', 'tags', 'is_active']
+        fields = ['content', 'question_type', 'explanation', 'difficulty', 'category', 'tags', 'is_active']
         widgets = {
             'content': forms.Textarea(attrs={
                 'class': 'rpg-input',
@@ -53,12 +53,35 @@ class QuestionForm(forms.ModelForm):
                 'placeholder': '答案解析...'
             }),
             'difficulty': forms.Select(attrs={'class': 'rpg-input'}),
+            'category': forms.Select(attrs={'class': 'rpg-input'}),
             'tags': forms.TextInput(attrs={
                 'class': 'rpg-input',
                 'placeholder': '多個標籤用逗號分隔，例如：鋼筋,法規,職安'
             }),
             'is_active': forms.CheckboxInput(attrs={'class': 'rpg-checkbox'}),
         }
+        labels = {
+            'category': '題目分類',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # 如果是編輯模式 (有 instance)，從 instance 載入選項和答案
+        if self.instance and self.instance.pk:
+            # 載入選項
+            options = self.instance.options or {}
+            self.fields['option_a'].initial = options.get('A', '')
+            self.fields['option_b'].initial = options.get('B', '')
+            self.fields['option_c'].initial = options.get('C', '')
+            self.fields['option_d'].initial = options.get('D', '')
+            
+            # 載入正確答案
+            correct = self.instance.correct_answer
+            if isinstance(correct, list):
+                self.fields['answer'].initial = ','.join(correct)
+            else:
+                self.fields['answer'].initial = correct
     
     def save(self, commit=True):
         instance = super().save(commit=False)

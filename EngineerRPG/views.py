@@ -2129,8 +2129,24 @@ def edit_question(request, question_id):
     if profile.role != 'ADMIN':
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
-    context = {'profile': profile}
-    return render(request, 'EngineerRPG/edit_question.html', context)
+    
+    question = get_object_or_404(Question, id=question_id)
+    
+    if request.method == 'POST':
+        form = QuestionForm(request.POST, request.FILES, instance=question)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '題目更新成功！')
+            return redirect('engineer_rpg:question_management')
+    else:
+        form = QuestionForm(instance=question)
+    
+    context = {
+        'profile': profile,
+        'form': form,
+        'is_edit': True
+    }
+    return render(request, 'EngineerRPG/create_question.html', context)
 
 @login_required
 def category_management(request):
@@ -3426,32 +3442,107 @@ def create_question(request):
     """建立新題目"""
     profile = get_or_create_user_profile(request.user)
     if not has_whitelist_permission(request.user, 'ADMIN'): return redirect('engineer_rpg:dashboard')
+    
     if request.method == 'POST':
-        form = QuestionForm(request.POST)
+        # 複製 POST data 以便修改
+        post_data = request.POST.copy()
+        
+        # 確保 answer 欄位有值以通過驗證 (實際值會從 correct_answer JSON 讀取)
+        if 'correct_answer' in post_data and 'answer' not in post_data:
+            # 簡單填入一個值，確保 Form 驗證通過
+            try:
+                answer_json = json.loads(post_data.get('correct_answer', '"A"'))
+                if isinstance(answer_json, list):
+                    post_data['answer'] = ','.join(answer_json)
+                else:
+                    post_data['answer'] = str(answer_json)
+            except:
+                post_data['answer'] = 'A'
+
+        form = QuestionForm(post_data)
         if form.is_valid():
-            form.save()
+            question = form.save(commit=False)
+            
+            # 從 hidden input 讀取完整的 JSON 選項與答案 (支援超過 4 個選項)
+            try:
+                if 'options' in request.POST:
+                    question.options = json.loads(request.POST['options'])
+                if 'correct_answer' in request.POST:
+                    question.correct_answer = json.loads(request.POST['correct_answer'])
+            except json.JSONDecodeError:
+                messages.error(request, '選項或答案格式錯誤')
+                return render(request, 'EngineerRPG/management/question_form.html', {
+                    'profile': profile, 
+                    'form': form, 
+                    'categories': QuestionCategory.objects.all()
+                })
+
+            question.save()
+            form.save_m2m() # 儲存多對多關聯 (Tags etc.)
+            
             messages.success(request, '題目建立成功')
             return redirect('engineer_rpg:question_management')
     else:
         form = QuestionForm()
-    return render(request, 'EngineerRPG/management/question_form.html', {'profile': profile, 'form': form})
-
+        
+    return render(request, 'EngineerRPG/management/question_form.html', {
+        'profile': profile, 
+        'form': form,
+        'categories': QuestionCategory.objects.all()
+    })
 
 
 def edit_question(request, question_id):
     """編輯題目"""
     profile = get_or_create_user_profile(request.user)
     if not has_whitelist_permission(request.user, 'ADMIN'): return redirect('engineer_rpg:dashboard')
+    
     question = get_object_or_404(Question, id=question_id)
+    
     if request.method == 'POST':
-        form = QuestionForm(request.POST, instance=question)
+        post_data = request.POST.copy()
+        if 'correct_answer' in post_data and 'answer' not in post_data:
+            try:
+                answer_json = json.loads(post_data.get('correct_answer', '"A"'))
+                if isinstance(answer_json, list):
+                    post_data['answer'] = ','.join(answer_json)
+                else:
+                    post_data['answer'] = str(answer_json)
+            except:
+                post_data['answer'] = 'A'
+                
+        form = QuestionForm(post_data, instance=question)
         if form.is_valid():
-            form.save()
+            question = form.save(commit=False)
+            
+            try:
+                if 'options' in request.POST:
+                    question.options = json.loads(request.POST['options'])
+                if 'correct_answer' in request.POST:
+                    question.correct_answer = json.loads(request.POST['correct_answer'])
+            except json.JSONDecodeError:
+                pass # Keep existing or form processed values
+                
+            question.save()
+            form.save_m2m()
+            
             messages.success(request, '題目更新成功')
             return redirect('engineer_rpg:question_management')
     else:
         form = QuestionForm(instance=question)
-    return render(request, 'EngineerRPG/management/question_form.html', {'profile': profile, 'form': form, 'question': question})
+    
+    # 準備 JSON 資料給前端 JS 使用
+    options_json = json.dumps(question.options or {})
+    answer_json = json.dumps(question.correct_answer or "A")
+    
+    return render(request, 'EngineerRPG/management/question_form.html', {
+        'profile': profile, 
+        'form': form, 
+        'question': question,
+        'categories': QuestionCategory.objects.all(),
+        'options_json': options_json,
+        'answer_json': answer_json
+    })
 
 
 
@@ -3467,7 +3558,7 @@ def import_questions_view(request):
             return redirect('engineer_rpg:question_management')
     else:
         form = QuestionImportForm()
-    return render(request, 'EngineerRPG/management/import_questions.html', {'profile': profile, 'form': form})
+    return render(request, 'EngineerRPG/import_questions.html', {'profile': profile, 'form': form})
 
 
 
