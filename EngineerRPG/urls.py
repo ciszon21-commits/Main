@@ -43,12 +43,13 @@ urlpatterns = [
     path('daily-trial/<int:task_id>/start/', views.start_daily_trial, name='start_daily_trial'),
     path('daily-trial/<int:task_id>/chest/<int:chest_index>/open/', views.open_daily_chest, name='open_daily_chest'),
     path('dungeons/', views.dungeon_list, name='dungeon_list'),
+    path('trial/records/', views.trial_record_list, name='trial_record_list'),
+    path('trial/record/<int:record_id>/', views.trial_record_detail, name='trial_record_detail'),
     path('trial/<int:trial_id>/', views.trial_detail, name='trial_detail'),
     path('trial/<int:trial_id>/start/', views.start_trial, name='start_trial'),
     path('trial/<int:trial_id>/submit-answer/', views.submit_answer, name='submit_answer'),
     path('trial/<int:trial_id>/next-question/', views.next_question, name='next_question'),
     path('trial/<int:trial_id>/submit/', views.submit_trial, name='submit_trial'),
-    path('trial/record/<int:record_id>/', views.trial_record_detail, name='trial_record_detail'),
     
     # 升階系統
     path('promotion/apply/', views.apply_promotion, name='apply_promotion'),

@@ -1429,13 +1429,103 @@ def trial_detail(request, trial_id):
     return render(request, 'EngineerRPG/trial_detail.html', context)
 
 @login_required
+def trial_record_list(request):
+    """使用者試煉紀錄列表"""
+    print("DEBUG: trial_record_list called")
+    profile = get_or_create_user_profile(request.user)
+    
+    # Get all records for user, ordered by most recent first
+    records_list = TrialRecord.objects.filter(user_profile=profile).order_by('-completed_at')
+    
+    # Pagination: 15 records per page
+    paginator = Paginator(records_list, 15)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'profile': profile,
+        'page_obj': page_obj
+    }
+    return render(request, 'EngineerRPG/trial_record_list.html', context)
+
 def trial_record_detail(request, record_id):
     """試煉紀錄詳情"""
     profile = get_or_create_user_profile(request.user)
     record = get_object_or_404(TrialRecord, id=record_id, user_profile=profile)
+    
+    # Process answer details to include full text
+    details_list = []
+    if record.answer_details:
+        question_ids = record.answer_details.keys()
+        # Fetch existing questions
+        questions_map = {str(q.id): q for q in Question.objects.filter(id__in=question_ids)}
+        
+        for q_id, ans_data in record.answer_details.items():
+            question = questions_map.get(str(q_id))
+            
+            # Question Text
+            # Try to get from record (if saved by submit_answer), else fetch from DB
+            question_text = ans_data.get('question_text') 
+            if not question_text and question:
+                question_text = question.content
+            elif not question_text:
+                question_text = "題目已刪除"
+            
+            # Correct Answer Text
+            correct_ans_key = ans_data.get('correct_answer')
+            
+            # Record 16 fix: If correct_answer is missing in record (legacy data), fetch from Question
+            if correct_ans_key is None and question:
+                 correct_ans_key = question.correct_answer
+
+            correct_ans_full = str(correct_ans_key) if correct_ans_key is not None else "None" # Default to key
+            
+            if question and question.options:
+                # Resolve option key to full text
+                # Handle List (Multiple Choice)
+                if isinstance(correct_ans_key, list):
+                    texts = []
+                    for k in correct_ans_key:
+                        val = question.options.get(str(k), str(k))
+                        texts.append(f"{k}. {val}")
+                    correct_ans_full = " / ".join(texts)
+                # Handle String (Single Choice / TrueFalse)
+                elif isinstance(correct_ans_key, str) or isinstance(correct_ans_key, int):
+                    k = str(correct_ans_key)
+                    val = question.options.get(k, k)
+                    correct_ans_full = f"{k}. {val}"
+
+            # User Answer Text (New Logic)
+            user_ans_key = ans_data.get('user_answer')
+            user_ans_full = str(user_ans_key) if user_ans_key else "未作答"
+            
+            if question and question.options and user_ans_key:
+                 if isinstance(user_ans_key, list):
+                    texts = []
+                    for k in user_ans_key:
+                        val = question.options.get(str(k), str(k))
+                        texts.append(f"{k}. {val}")
+                    user_ans_full = " / ".join(texts)
+                 elif isinstance(user_ans_key, str) or isinstance(user_ans_key, int):
+                    k = str(user_ans_key)
+                    val = question.options.get(k, k)
+                    user_ans_full = f"{k}. {val}"
+            
+            details_list.append({
+                'question_id': q_id,
+                'question_text': question_text,
+                'user_answer_key': user_ans_key,
+                'user_answer_full': user_ans_full,
+                'correct_answer_key': correct_ans_key,
+                'correct_answer_full': correct_ans_full,
+                'is_correct': ans_data.get('is_correct'),
+                'explanation': ans_data.get('explanation')
+            })
+
     context = {
         'profile': profile,
-        'record': record
+        'record': record,
+        'details_list': details_list
     }
     return render(request, 'EngineerRPG/trial_record_detail.html', context)
 
