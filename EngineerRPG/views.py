@@ -149,6 +149,23 @@ def dashboard(request):
         
     daily_trials = [task.trial for task in daily_tasks_query]
     
+    # 處理職業名稱 (移除英文部分)
+    profession_name = profile.character_class.name.split(' (')[0] if profile.character_class else ""
+
+    # 處理顯示名稱 (中文姓名移除空格)
+    # 假設 first_name 存姓氏，last_name 存名字 (根據使用者資料 "黃" "瑞澤")
+    first_name = request.user.first_name
+    last_name = request.user.last_name
+    display_name = request.user.get_full_name()
+    
+    if first_name and last_name:
+        # 檢查是否包含中文字元
+        if any('\u4e00' <= char <= '\u9fff' for char in first_name) or any('\u4e00' <= char <= '\u9fff' for char in last_name):
+            display_name = first_name + last_name
+            
+    if not display_name:
+        display_name = request.user.username
+
     # 經驗值與進度
     exp_to_next = profile.experience_to_next_level()
     exp_progress = (profile.experience / exp_to_next * 100) if exp_to_next > 0 else 0
@@ -227,6 +244,8 @@ def dashboard(request):
         'equip_hp_bonus': equip_hp_bonus,
         'equip_mp_bonus': equip_mp_bonus,
         'active_effects': active_effects,
+        'profession_name': profession_name,
+        'display_name': display_name,
     }
     return render(request, 'EngineerRPG/dashboard.html', context)
 
