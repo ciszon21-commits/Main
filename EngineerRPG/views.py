@@ -910,6 +910,7 @@ def submit_answer(request, trial_id):
             current_hp = progress.current_hp
         else:
             current_hp = request.session.get('trial_hp', 3)
+            
             if not is_correct:
                 base_damage = 1
                 
@@ -3889,99 +3890,4 @@ def open_daily_chest(request, task_id, chest_index):
     })
 
 
-@login_required
-def submit_answer(request, trial_id):
-    """提交單題答案並即時回饋"""
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Invalid request method'}, status=400)
-    
-    profile = get_or_create_user_profile(request.user)
-    trial = get_object_or_404(Trial, id=trial_id)
-    
-    # 獲取題組
-    question_ids = request.session.get('trial_questions', [])
-    current_index = request.session.get('current_question_index', 0)
-    
-    if current_index >= len(question_ids):
-        return JsonResponse({'error': 'No more questions'}, status=400)
-    
-    question = get_object_or_404(Question, id=question_ids[current_index])
-    
-    # 獲取使用者答案
-    user_answer = request.POST.get('answer', '')
-    
-    # 批改
-    correct_answer = question.correct_answer
-    is_correct = False
-    
-    if question.question_type == 'MULTIPLE':
-        user_answer_list = request.POST.getlist('answer')
-        is_correct = set(user_answer_list) == set(correct_answer)
-    else:
-        is_correct = user_answer == str(correct_answer)
-    
-    # 更新 Session 中的逐題紀錄
-    trial_answers = request.session.get('trial_answers', {})
-    trial_answers[str(question.id)] = {
-        'user_answer': user_answer,
-        'is_correct': is_correct,
-    }
-    request.session['trial_answers'] = trial_answers
-    
-    # 檢查是否為每日試煉
-    daily_task_id = request.session.get('daily_task_id')
-    if daily_task_id:
-        # 每日試煉：更新 DailyTrialProgress
-        from .models import DailyTrialTask, DailyTrialProgress
-        try:
-            daily_task = DailyTrialTask.objects.get(id=daily_task_id)
-            progress = DailyTrialProgress.objects.get(
-                user_profile=profile,
-                daily_task=daily_task
-            )
-            
-            # 扣除 HP（即時扣血）
-            if not is_correct:
-                progress.current_hp = max(0, progress.current_hp - 1)
-                progress.save()
-            
-            current_hp = progress.current_hp
-            
-            # 更新逐題紀錄
-            if not progress.answers:
-                progress.answers = {}
-            progress.answers[str(question.id)] = {
-                'user_answer': user_answer,
-                'is_correct': is_correct,
-            }
-            progress.save()
-            
-        except (DailyTrialTask.DoesNotExist, DailyTrialProgress.DoesNotExist):
-            # 異常情況，使用 session
-            current_hp = request.session.get('trial_hp', 3)
-            if not is_correct:
-                current_hp = max(0, current_hp - 1)
-                request.session['trial_hp'] = current_hp
-    else:
-        # 一般試煉/地下城
-        current_hp = request.session.get('trial_hp', 3)
-        if not is_correct:
-            current_hp = max(0, current_hp - 1)
-            request.session['trial_hp'] = current_hp
-    
-    # 檢查是否 Game Over
-    is_game_over = current_hp <= 0
-    
-    # 回傳 JSON 數據
-    response_data = {
-        'is_correct': is_correct,
-        'correct_answer': correct_answer,
-        'explanation': question.explanation,
-        'remaining_hp': current_hp,
-        'is_game_over': is_game_over,
-        'current_index': current_index,
-        'total_questions': len(question_ids),
-    }
-    
-    return JsonResponse(response_data)
 
