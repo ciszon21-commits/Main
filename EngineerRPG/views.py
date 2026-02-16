@@ -579,17 +579,42 @@ def enhance_equipment(request, user_equipment_id):
         messages.error(request, '此裝備已強化至最高等級')
         return redirect('engineer_rpg:equipment_inventory')
         
+    # 強化機率表 (當前等級 -> 成功率%)
+    SUCCESS_RATES = {
+        0: 100, # +0 -> +1: 100%
+        1: 50,  # +1 -> +2: 50%
+        2: 20,  # +2 -> +3: 20%
+        3: 50,  # +3 -> +4: 50%
+        4: 20,  # +4 -> +5: 20%
+        5: 5,   # +5 -> +6: 5% (極困難)
+        6: 20,  # +6 -> +7: 20%
+        7: 10,  # +7 -> +8: 10%
+        8: 1,   # +8 -> +9: 1% (煉獄)
+    }
+
+    current_level = user_equip.enhancement_level
+    success_rate = SUCCESS_RATES.get(current_level, 0)
+
     # 執行強化
     try:
+        # 扣除強化券
         profile.enhancement_tickets -= 1
         profile.save(update_fields=['enhancement_tickets'])
         
-        user_equip.enhancement_level += 1
-        user_equip.save()
+        # 機率判定
+        rand_val = random.randint(1, 100)
+        is_success = rand_val <= success_rate
         
-        messages.success(request, f'強化成功！{user_equip.equipment.name} +{user_equip.enhancement_level}')
+        if is_success:
+            user_equip.enhancement_level += 1
+            user_equip.save()
+            messages.success(request, f'強化成功！{user_equip.equipment.name} +{user_equip.enhancement_level}')
+        else:
+            # 失敗僅消耗強化券，等級不變
+            messages.error(request, f'強化失敗... 裝備等級維持 +{current_level}')
+            
     except Exception as e:
-        messages.error(request, f'強化失敗：{str(e)}')
+        messages.error(request, f'系統錯誤：{str(e)}')
         
     return redirect('engineer_rpg:equipment_inventory')
 
