@@ -28,15 +28,36 @@
 
     <div class="p-md">
         {% if courses %}
-        <div class="table-container">
+        <div class="table-container"
+            style="max-height: calc(100vh - 250px); overflow-y: auto; border: 1px solid var(--color-secondary); border-radius: var(--border-radius);">
             <table class="rpg-table w-full">
-                <thead>
+                <thead style="position: sticky; top: 0; z-index: 10; background: var(--color-dark);">
                     <tr>
-                        <th style="width: 40%;">課程名稱</th>
-                        <th>類型</th>
-                        <th>題目數</th>
-                        <th>時限</th>
-                        <th style="width: 15%;">操作</th>
+                        <th style="width: 40%; cursor: pointer;"
+                            onclick="window.location.href='?sort=title&order={% if current_sort == 'title' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}';">
+                            課程名稱 {% if current_sort == 'title' %}
+                            <i class="fas fa-sort-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                            {% endif %}
+                        </th>
+                        <th class="text-center" style="cursor: pointer;"
+                            onclick="window.location.href='?sort=content_type&order={% if current_sort == 'content_type' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}';">
+                            類型 {% if current_sort == 'content_type' %}
+                            <i class="fas fa-sort-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                            {% endif %}
+                        </th>
+                        <th class="text-center" style="cursor: pointer;"
+                            onclick="window.location.href='?sort=question_count&order={% if current_sort == 'question_count' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}';">
+                            題目數 {% if current_sort == 'question_count' %}
+                            <i class="fas fa-sort-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                            {% endif %}
+                        </th>
+                        <th class="text-center" style="cursor: pointer;"
+                            onclick="window.location.href='?sort=exam_time_limit&order={% if current_sort == 'exam_time_limit' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}';">
+                            時限 {% if current_sort == 'exam_time_limit' %}
+                            <i class="fas fa-sort-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                            {% endif %}
+                        </th>
+                        <th class="text-center" style="width: 15%;">操作</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -45,19 +66,19 @@
                         <td>
                             <div class="font-bold text-secondary">{{ course.title }}</div>
                         </td>
-                        <td>
+                        <td class="text-center">
                             <span class="badge bg-info/20 text-info">
                                 {{ course.get_content_type_display }}
                             </span>
                         </td>
-                        <td>
+                        <td class="text-center">
                             <span class="text-sm">{{ course.questions.count }}</span>
                         </td>
-                        <td>
+                        <td class="text-center">
                             <span class="text-sm">{{ course.exam_time_limit }} 分鐘</span>
                         </td>
-                        <td>
-                            <div class="flex gap-xs">
+                        <td class="text-center">
+                            <div class="flex gap-xs justify-center">
                                 <a href="{% url 'engineer_rpg:edit_course' course.id %}"
                                     class="rpg-btn rpg-btn-xs rpg-btn-secondary" title="編輯">
                                     <i class="fas fa-edit"></i>
@@ -77,24 +98,10 @@
             </table>
         </div>
 
-        <!-- Pagination -->
-        {% if is_paginated %}
-        <div class="pagination flex justify-center gap-xs mt-lg">
-            {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}"
-                class="rpg-btn rpg-btn-sm rpg-btn-outline"><i class="fas fa-chevron-left"></i></a>
-            {% endif %}
-
-            <span class="rpg-btn rpg-btn-sm rpg-btn-disabled">
-                {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
-            </span>
-
-            {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}"
-                class="rpg-btn rpg-btn-sm rpg-btn-outline"><i class="fas fa-chevron-right"></i></a>
-            {% endif %}
+        <div class="mt-sm text-right text-stone text-sm">
+            共 {{ courses.count }} 筆課程
         </div>
-        {% endif %}
+
 
         {% else %}
         <div class="text-center py-lg text-stone">

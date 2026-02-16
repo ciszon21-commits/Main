@@ -3793,30 +3793,123 @@ def delete_question(request, question_id):
 
 
 
+
 def course_management(request):
     """課程管理"""
-    messages.info(request, '此功能正在開發中')
-    return redirect('engineer_rpg:admin_dashboard')
-
+    profile = get_or_create_user_profile(request.user)
+    if not has_whitelist_permission(request.user, 'MANAGER'):
+        return redirect('engineer_rpg:dashboard')
+        
+    search_query = request.GET.get('q')
+    sort_by = request.GET.get('sort', 'created_at')
+    order = request.GET.get('order', 'desc')
+    
+    # 建立排序字串
+    sort_expr = sort_by
+    if order == 'desc':
+        sort_expr = f'-{sort_by}'
+        
+    # 處理關聯欄位排序
+    if sort_by == 'question_count':
+        courses = Course.objects.annotate(question_count=Count('questions')).order_by(sort_expr if order == 'asc' else '-question_count')
+    else:
+        courses = Course.objects.all().order_by(sort_expr)
+    
+    if search_query:
+        courses = courses.filter(
+            Q(title__icontains=search_query) | 
+            Q(description__icontains=search_query)
+        )
+    
+    # 移除原本的分頁，改為一次回傳所有結果 (或設定很大上限)
+    # paginator = Paginator(courses, 20)
+    # page_obj = paginator.get_page(request.GET.get('page'))
+    
+    return render(request, 'EngineerRPG/management/course_list.html', {
+        'profile': profile,
+        'courses': courses, # 直接回傳 QuerySet
+        'search_query': search_query,
+        'current_sort': sort_by,
+        'current_order': order,
+    })
 
 
 def create_course(request):
     """創建課程"""
-    messages.info(request, '此功能正在開發中')
-    return redirect('engineer_rpg:course_management')
-
+    profile = get_or_create_user_profile(request.user)
+    if not has_whitelist_permission(request.user, 'ADMIN'):
+        return redirect('engineer_rpg:dashboard')
+        
+    if request.method == 'POST':
+        form = CourseForm(request.POST, request.FILES)
+        if form.is_valid():
+            course = form.save()
+            
+            # 手動處理關聯題目 (因為不在 fields 中，template 使用 name="questions")
+            question_ids = request.POST.getlist('questions')
+            if question_ids:
+                course.questions.set(question_ids)
+                
+            messages.success(request, f'課程「{course.title}」建立成功')
+            return redirect('engineer_rpg:course_management')
+    else:
+        form = CourseForm()
+        
+    return render(request, 'EngineerRPG/management/course_form.html', {
+        'profile': profile,
+        'form': form,
+        'mode': 'create',
+        'categories': QuestionCategory.objects.all(),
+        'questions': Question.objects.filter(is_active=True).order_by('category', 'id'),
+        'selected_question_ids': []
+    })
 
 
 def edit_course(request, course_id):
     """編輯課程"""
-    messages.info(request, '此功能正在開發中')
-    return redirect('engineer_rpg:course_management')
-
+    profile = get_or_create_user_profile(request.user)
+    if not has_whitelist_permission(request.user, 'ADMIN'):
+        return redirect('engineer_rpg:dashboard')
+        
+    course = get_object_or_404(Course, id=course_id)
+    
+    if request.method == 'POST':
+        form = CourseForm(request.POST, request.FILES, instance=course)
+        if form.is_valid():
+            course = form.save()
+            
+            # 手動更新關聯題目
+            question_ids = request.POST.getlist('questions')
+            course.questions.set(question_ids)
+            
+            messages.success(request, f'課程「{course.title}」更新成功')
+            return redirect('engineer_rpg:course_management')
+    else:
+        form = CourseForm(instance=course)
+        
+    return render(request, 'EngineerRPG/management/course_form.html', {
+        'profile': profile,
+        'form': form,
+        'course': course,
+        'mode': 'edit',
+        'categories': QuestionCategory.objects.all(),
+        'questions': Question.objects.filter(is_active=True).order_by('category', 'id'),
+        'selected_question_ids': list(course.questions.values_list('id', flat=True))
+    })
 
 
 def delete_course(request, course_id):
     """刪除課程"""
-    messages.info(request, '此功能正在開發中')
+    profile = get_or_create_user_profile(request.user)
+    if not has_whitelist_permission(request.user, 'ADMIN'):
+        return redirect('engineer_rpg:dashboard')
+        
+    if request.method == 'POST':
+        course = get_object_or_404(Course, id=course_id)
+        title = course.title
+        course.delete()
+        messages.success(request, f'課程「{title}」已刪除')
+        
     return redirect('engineer_rpg:course_management')
 
 
