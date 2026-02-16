@@ -94,6 +94,9 @@ urlpatterns = [
     path('admin-panel/courses/create/', views.create_course, name='create_course'),
     path('admin-panel/courses/<int:course_id>/edit/', views.edit_course, name='edit_course'),
     path('admin-panel/courses/<int:course_id>/delete/', views.delete_course, name='delete_course'),
+    path('admin-panel/courses/batch/', views.batch_manage_courses, name='batch_manage_courses'),
+    path('admin-panel/courses/import/', views.import_courses, name='import_courses'),
+    path('admin-panel/courses/template/<str:format>/', views.download_course_template, name='download_course_template'),
     
     # Study & Exam
     path('courses/<int:course_id>/study/', views.course_study, name='course_study'),

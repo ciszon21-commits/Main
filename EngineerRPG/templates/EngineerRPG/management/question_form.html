@@ -1,5 +1,12 @@
 {% extends 'EngineerRPG/management/base_management.html' %}
 
+{% block page_header %}
+<div class="page-header mb-lg">
+    <h1><i class="fas fa-book"></i> 課程與題庫管理</h1>
+    <p class="text-stone">管理課程內容、題庫、分類與匯入匯出</p>
+</div>
+{% endblock %}
+
 {% block management_content %}
 <div class="rpg-card">
     <div class="rpg-card-header">
@@ -21,7 +28,7 @@
                 <select name="category" class="rpg-input w-full">
                     <option value="">-- 無分類 --</option>
                     {% for cat in categories %}
-                    <option value="{{ cat.id }}" {% if question.category_id == cat.id %}selected{% endif %}>
+                    <option value="{{ cat.id }}" {% if question.category_id==cat.id %}selected{% endif %}>
                         {{ cat.name }}
                     </option>
                     {% endfor %}
@@ -32,11 +39,11 @@
             <div class="form-group">
                 <label class="form-label">難度</label>
                 <select name="difficulty" class="rpg-input w-full">
-                    <option value="C" {% if question.difficulty == 'C' %}selected{% endif %}>C級（簡單）</option>
-                    <option value="B" {% if question.difficulty == 'B' or not question %}selected{% endif %}>B級（中等）
+                    <option value="C" {% if question.difficulty=='C' %}selected{% endif %}>C級（簡單）</option>
+                    <option value="B" {% if question.difficulty=='B' or not question %}selected{% endif %}>B級（中等）
                     </option>
-                    <option value="A" {% if question.difficulty == 'A' %}selected{% endif %}>A級（困難）</option>
-                    <option value="S" {% if question.difficulty == 'S' %}selected{% endif %}>S級（最難）</option>
+                    <option value="A" {% if question.difficulty=='A' %}selected{% endif %}>A級（困難）</option>
+                    <option value="S" {% if question.difficulty=='S' %}selected{% endif %}>S級（最難）</option>
                 </select>
             </div>
         </div>
@@ -45,9 +52,9 @@
         <div class="form-group mb-md">
             <label class="form-label">題目類型</label>
             <select name="question_type" id="questionType" class="rpg-input w-full" onchange="updateOptionsUI()">
-                <option value="SINGLE" {% if question.question_type == 'SINGLE' %}selected{% endif %}>單選題</option>
-                <option value="MULTIPLE" {% if question.question_type == 'MULTIPLE' %}selected{% endif %}>多選題</option>
-                <option value="TRUEFALSE" {% if question.question_type == 'TRUEFALSE' %}selected{% endif %}>是非題</option>
+                <option value="SINGLE" {% if question.question_type=='SINGLE' %}selected{% endif %}>單選題</option>
+                <option value="MULTIPLE" {% if question.question_type=='MULTIPLE' %}selected{% endif %}>多選題</option>
+                <option value="TRUEFALSE" {% if question.question_type=='TRUEFALSE' %}selected{% endif %}>是非題</option>
             </select>
         </div>
 
@@ -96,8 +103,8 @@
         <!-- 啟用狀態 -->
         <div class="form-group mb-lg">
             <label class="flex items-center gap-sm cursor-pointer">
-                <input type="checkbox" name="is_active" class="rpg-checkbox" 
-                {% if question.is_active or not question %}checked{% endif %}>
+                <input type="checkbox" name="is_active" class="rpg-checkbox" {% if question.is_active or not question
+                    %}checked{% endif %}>
                 <span class="text-stone-light">啟用題目</span>
             </label>
         </div>
@@ -113,8 +120,8 @@
 </div>
 
 <script>
-    let options = {{ options_json|default:'{"A":"", "B":"", "C":"", "D":""}' | safe }};
-    let answer = {{ answer_json|default:'"A"' | safe }};
+    let options = {{ options_json|default: '{"A":"", "B":"", "C":"", "D":""}' | safe }};
+    let answer = {{ answer_json|default: '"A"' | safe }};
 
     function init() {
         const type = document.getElementById('questionType').value;
@@ -141,7 +148,7 @@
             div.className = 'flex items-center gap-sm';
 
             // Answer selector
-            let inputType = type === 'SINGLE' ? 'radio' :'checkbox';
+            let inputType = type === 'SINGLE' ? 'radio' : 'checkbox';
             let isChecked = false;
             if (type === 'SINGLE') isChecked = (answer === key);
             if (type === 'MULTIPLE') isChecked = (Array.isArray(answer) && answer.includes(key));

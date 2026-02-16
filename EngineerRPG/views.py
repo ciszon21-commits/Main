@@ -23,8 +23,11 @@ from .models import (
 
 
 from .forms import (
-    QuestionForm, QuestionImportForm, SkillNodeForm, CourseForm, UserProfileEditForm
+    QuestionForm, QuestionImportForm, SkillNodeForm, CourseForm, UserProfileEditForm,
+    CourseImportForm
 )
+
+from .utils.course_importer import CourseImporter, generate_template_excel
 
 # Import team management functions
 from .views_team_management import edit_team, manage_team_members, create_team
@@ -4127,6 +4130,109 @@ def open_daily_chest(request, task_id, chest_index):
         'message': message,
         'changes': changes
     })
+
+
+# ==================== 課程批次管理 ====================
+
+@login_required
+def batch_manage_courses(request):
+    """批量管理課程"""
+    if not has_whitelist_permission(request.user, 'ADMIN'):
+        return messages.warning(request, '權限不足') or redirect('engineer_rpg:dashboard')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        selected_ids = request.POST.getlist('selected_ids')
+
+        if not selected_ids:
+            messages.warning(request, '未選擇任何課程')
+            return redirect('engineer_rpg:course_management')
+
+        if action == 'delete':
+            count, _ = Course.objects.filter(id__in=selected_ids).delete()
+            messages.success(request, f'已刪除 {count} 個課程')
+
+        elif action == 'download':
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="courses_export.csv"'
+            
+            # Add BOM for Excel compatibility
+            response.write('\ufeff'.encode('utf8'))
+
+            writer = csv.writer(response)
+            # Headers matching Importer
+            writer.writerow(['ID', '課程標題', '課程描述', '內容類型', '內容網址', '課程時長', '考試時限'])
+
+            courses = Course.objects.filter(id__in=selected_ids)
+            for c in courses:
+                writer.writerow([
+                    c.id,
+                    c.title,
+                    c.description,
+                    c.get_content_type_display(), 
+                    c.content_url,
+                    c.duration_minutes,
+                    c.exam_time_limit
+                ])
+            return response
+
+    return redirect('engineer_rpg:course_management')
+
+
+@login_required
+def import_courses(request):
+    """匯入課程"""
+    profile = get_or_create_user_profile(request.user)
+    if not has_whitelist_permission(request.user, 'ADMIN'):
+        return redirect('engineer_rpg:dashboard')
+        
+    if request.method == 'POST':
+        form = CourseImportForm(request.POST, request.FILES)
+        if form.is_valid():
+            try:
+                importer = CourseImporter()
+                result = importer.import_from_file(request.FILES['file'])
+                
+                msg = f"匯入成功: {result['success']} 筆, 跳過: {result['skip']} 筆"
+                
+                # Check for new courses and add reminder
+                if result.get('created_count', 0) > 0:
+                    msg += f"。其中有 {result['created_count']} 筆為新增課程，請記得前往編輯頁面關聯題目與上傳 PDF 檔案。"
+                
+                if result['errors']:
+                    msg += f" 錯誤詳情: {'; '.join(result['errors'][:5])}..."
+                    messages.warning(request, msg)
+                else:
+                    messages.success(request, msg)
+                    
+                return redirect('engineer_rpg:course_management')
+            except Exception as e:
+                messages.error(request, f'匯入失敗: {str(e)}')
+    else:
+        form = CourseImportForm()
+        
+    return render(request, 'EngineerRPG/management/course_import.html', {
+        'profile': profile,
+        'form': form
+    })
+
+
+@login_required
+def download_course_template(request, format):
+    """下載課程匯入範本"""
+    if not has_whitelist_permission(request.user, 'ADMIN'):
+        return redirect('engineer_rpg:dashboard')
+        
+    if format == 'excel':
+        output = generate_template_excel()
+        response = HttpResponse(
+            output.read(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename="course_template.xlsx"'
+        return response
+        
+    return redirect('engineer_rpg:course_management')
 
 
 

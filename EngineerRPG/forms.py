@@ -239,6 +239,33 @@ class CourseForm(forms.ModelForm):
 
 
 
+
+class CourseImportForm(forms.Form):
+    """課程批次匯入表單"""
+    
+    file = forms.FileField(
+        label='選擇檔案',
+        help_text='支援 CSV 或 Excel (.xlsx) 格式，檔案大小限制 5MB',
+        widget=forms.FileInput(attrs={
+            'class': 'rpg-input',
+            'accept': '.csv,.xlsx'
+        })
+    )
+    
+    def clean_file(self):
+        file = self.cleaned_data.get('file')
+        if file:
+            # 檢查檔案類型
+            if not file.name.endswith(('.csv', '.xlsx')):
+                raise forms.ValidationError('只支援 CSV 或 Excel (.xlsx) 格式')
+            
+            # 檢查檔案大小 (限制 5MB)
+            if file.size > 5 * 1024 * 1024:
+                raise forms.ValidationError('檔案大小不能超過 5MB')
+        
+        return file
+
+
 class UserProfileEditForm(forms.Form):
     """使用者資料編輯表單"""
     username = forms.CharField(
