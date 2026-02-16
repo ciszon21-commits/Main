@@ -1143,38 +1143,9 @@ def daily_trial_list(request):
             'perfect_ticket_reward': 3
         })
         
-    # 計算今日統計
-    total_passed = 0
-    total_exp_earned = 0
-    total_tickets_earned = 0
-    
-    for item in task_progress_list:
-        progress = item['progress']
-        if progress and progress.is_passed:
-            total_passed += 1
-            # 判斷是否完美通關以計算獲得的獎勵
-            # 注意：這裡重新計算一次邏輯，理想情況下應記錄在 DailyTrialProgress 或 TrialRecord
-            # 但目前 DailyTrialProgress 只有 answers，我們從 answers 推算
-            answers = progress.answers
-            correct_count = sum(1 for ans in answers.values() if ans.get('is_correct', False))
-            total_questions = item['task'].questions.count()
-            accuracy = (correct_count / total_questions * 100) if total_questions > 0 else 0
-            
-            is_perfect = (accuracy == 100)
-            
-            if is_perfect:
-                total_exp_earned += item['perfect_exp_reward']
-                total_tickets_earned += item['perfect_ticket_reward']
-            else:
-                total_exp_earned += item['exp_reward']
-                total_tickets_earned += item['ticket_reward']
-
     context = {
         'profile': profile,
         'task_progress_list': task_progress_list,
-        'total_passed': total_passed,
-        'total_exp_earned': total_exp_earned,
-        'total_tickets_earned': total_tickets_earned,
     }
     return render(request, 'EngineerRPG/daily_trial.html', context)
 
