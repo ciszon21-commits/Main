@@ -75,19 +75,40 @@
             </button>
         </div>
 
-        <div class="table-container">
+        <div class="table-container"
+            style="max-height: calc(100vh - 280px); overflow-y: auto; border: 1px solid var(--color-secondary); border-radius: var(--border-radius);">
             <table class="rpg-table w-full">
-                <thead>
+                <thead style="position: sticky; top: 0; z-index: 10; background: var(--color-dark);">
                     <tr>
                         <th style="width: 40px; text-align: center;">
                             <input type="checkbox" id="selectAll" class="cursor-pointer" style="transform: scale(1.2);">
                         </th>
-                        <th style="width: 45%;">內容</th>
-                        <th>狀態</th>
-                        <th>分類</th>
-                        <th>難度</th>
-                        <th>類型</th>
-                        <th>操作</th>
+                        <th style="width: 40%;">內容</th>
+                        <th class="text-center" style="cursor: pointer;"
+                            onclick="window.location.href='?sort=active&order={% if current_sort == 'active' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}'">
+                            狀態 {% if current_sort == 'active' %}
+                            <i class="fas fa-sort-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                            {% endif %}
+                        </th>
+                        <th class="text-center" style="cursor: pointer;"
+                            onclick="window.location.href='?sort=category&order={% if current_sort == 'category' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}'">
+                            分類 {% if current_sort == 'category' %}
+                            <i class="fas fa-sort-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                                {% endif %}
+                        </th>
+                        <th class="text-center" style="cursor: pointer;"
+                            onclick="window.location.href='?sort=difficulty&order={% if current_sort == 'difficulty' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}'">
+                            難度 {% if current_sort == 'difficulty' %}
+                            <i class="fas fa-sort-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                            {% endif %}
+                        </th>
+                        <th class="text-center" style="cursor: pointer;"
+                            onclick="window.location.href='?sort=type&order={% if current_sort == 'type' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}'">
+                            類型 {% if current_sort == 'type' %}
+                            <i class="fas fa-sort-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                            {% endif %}
+                        </th>
+                        <th class="text-center">操作</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -100,28 +121,28 @@
                         <td class="text-xs">
                             <div class="line-clamp-2" title="{{ question.content }}">{{ question.content }}</div>
                         </td>
-                        <td>
+                        <td class="text-center">
                             {% if question.is_active %}
                             <span class="text-success text-xs"><i class="fas fa-check-circle"></i></span>
                             {% else %}
                             <span class="text-stone text-xs"><i class="fas fa-times-circle"></i></span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td class="text-center">
                             {% if question.category %}
                             <span class="badge bg-secondary/20 text-secondary">{{ question.category.name }}</span>
                             {% else %}
                             <span class="text-stone text-xs">無分類</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td class="text-center">
                             <span
                                 class="badge {% if question.difficulty == 'S' %}bg-primary/20 text-primary{% elif question.difficulty == 'A' %}bg-warning/20 text-warning{% else %}bg-stone/20 text-stone{% endif %}">
                                 {{ question.get_difficulty_display }}
                             </span>
                         </td>
-                        <td>{{ question.get_question_type_display }}</td>
-                        <td>
+                        <td class="text-center">{{ question.get_question_type_display }}</td>
+                        <td class="text-center">
                             <a href="{% url 'engineer_rpg:edit_question' question.id %}"
                                 class="rpg-btn rpg-btn-xs rpg-btn-secondary">
                                 <i class="fas fa-edit"></i>
@@ -142,35 +163,16 @@
         </div>
     </form>
 
+    <div class="mt-sm text-right text-stone text-sm">
+        共 {{ page_obj.end_index }} 筆題目
+    </div>
+
     {% for question in page_obj %}
     <form id="delete-form-{{ question.id }}" action="{% url 'engineer_rpg:delete_question' question.id %}" method="post"
         style="display:none;">
         {% csrf_token %}
     </form>
     {% endfor %}
-
-    <!-- Pagination -->
-    {% if page_obj.has_other_pages %}
-    <div class="flex justify-center mt-lg gap-sm">
-        {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
-            class="rpg-btn rpg-btn-sm rpg-btn-secondary">
-            <i class="fas fa-chevron-left"></i>
-        </a>
-        {% endif %}
-
-        <span class="rpg-btn rpg-btn-sm rpg-btn-outline disabled">
-            {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
-        </span>
-
-        {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
-            class="rpg-btn rpg-btn-sm rpg-btn-secondary">
-            <i class="fas fa-chevron-right"></i>
-        </a>
-        {% endif %}
-    </div>
-    {% endif %}
 </div>
 
 <script>

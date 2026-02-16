@@ -3156,14 +3156,36 @@ def question_management(request):
         
     category_id = request.GET.get('category')
     search_query = request.GET.get('q')
+    sort_by = request.GET.get('sort', '-created_at')
+    order = request.GET.get('order', 'asc')
     
-    questions = Question.objects.all().order_by('-created_at')
+    # Map sort keys to actual fields
+    sort_map = {
+        'difficulty': 'difficulty',
+        'category': 'category__name',
+        'type': 'question_type',
+        'active': 'is_active',
+        'date': 'created_at',
+        'content': 'content'
+    }
+    
+    # Determine order field
+    db_sort_field = sort_map.get(sort_by, '-created_at')
+    if order == 'desc' and not db_sort_field.startswith('-'):
+        db_sort_field = f'-{db_sort_field}'
+    elif order == 'asc' and db_sort_field.startswith('-'):
+        db_sort_field = db_sort_field.lstrip('-')
+        
+    questions = Question.objects.all().select_related('category').order_by(db_sort_field)
+    
     if category_id:
         questions = questions.filter(category_id=category_id)
     if search_query:
         questions = questions.filter(content__icontains=search_query)
         
-    paginator = Paginator(questions, 20)
+    # 改為捲軸式瀏覽，一次載入較多資料 (或是全部)
+    # 設定為 5000 筆，實務上等同於不分頁
+    paginator = Paginator(questions, 5000)
     page_obj = paginator.get_page(request.GET.get('page'))
     
     context = {
@@ -3172,6 +3194,8 @@ def question_management(request):
         'categories': QuestionCategory.objects.all(),
         'selected_category': int(category_id) if category_id else None,
         'search_query': search_query,
+        'current_sort': sort_by,
+        'current_order': order,
     }
     return render(request, 'EngineerRPG/management/question_list.html', context)
 
