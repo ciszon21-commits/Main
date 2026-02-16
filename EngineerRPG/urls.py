@@ -86,6 +86,7 @@ urlpatterns = [
     path('admin-panel/users/<int:user_id>/edit/', views.edit_user, name='edit_user'),
     path('admin-panel/users/<int:user_id>/delete/', views.delete_user, name='delete_user'),
     path('admin-panel/questions/', views.question_management, name='question_management'),
+    path('admin-panel/questions/batch/', views.batch_manage_questions, name='batch_manage_questions'),
     path('admin-panel/questions/create/', views.create_question, name='create_question'),
     path('admin-panel/questions/<int:question_id>/edit/', views.edit_question, name='edit_question'),
     path('admin-panel/questions/<int:question_id>/delete/', views.delete_question, name='delete_question'),

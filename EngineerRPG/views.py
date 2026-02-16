@@ -10,6 +10,8 @@ from django.db.models import Count, Sum, Q, Prefetch
 from django.core.paginator import Paginator
 import random
 import json
+import csv
+from django.http import HttpResponse
 
 from .models import (
     CharacterClass, UserProfile, SkillNode, Course, UserSkill,
@@ -18,6 +20,7 @@ from .models import (
     DailyTrialTask, AdminWhitelist, Trial, Question, QuestionCategory, TrialRecord,
     Equipment, UserEquipment, Item, UserItem
 )
+
 
 from .forms import (
     QuestionForm, QuestionImportForm, SkillNodeForm, CourseForm, UserProfileEditForm
@@ -3173,6 +3176,80 @@ def question_management(request):
     return render(request, 'EngineerRPG/management/question_list.html', context)
 
 
+@login_required
+def batch_manage_questions(request):
+    """批量管理題目"""
+    if not has_whitelist_permission(request.user, 'MANAGER'):
+        return redirect('engineer_rpg:dashboard')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        selected_ids = request.POST.getlist('selected_ids')
+
+        if not selected_ids:
+            messages.warning(request, '未選擇任何題目')
+            return redirect('engineer_rpg:question_management')
+
+        if action == 'activate':
+            count = Question.objects.filter(id__in=selected_ids).update(is_active=True)
+            messages.success(request, f'已啟用 {count} 個題目')
+
+        elif action == 'deactivate':
+            count = Question.objects.filter(id__in=selected_ids).update(is_active=False)
+            messages.success(request, f'已停用 {count} 個題目')
+
+        elif action == 'delete':
+            count, _ = Question.objects.filter(id__in=selected_ids).delete()
+            messages.success(request, f'已刪除 {count} 個題目')
+
+        elif action == 'download':
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="questions_export.csv"'
+            
+            # Add BOM for Excel compatibility with Chinese characters
+            response.write('\ufeff'.encode('utf8'))
+
+            writer = csv.writer(response)
+            # Headers matching the importer template + ID at the beginning
+            writer.writerow(['ID', '題目內容', '題目類型', '選項A', '選項B', '選項C', '選項D', '正確答案', '答案解析', '難度', '分類', '啟用'])
+
+            questions = Question.objects.filter(id__in=selected_ids)
+            for q in questions:
+                # Prepare options
+                opts = q.options or {}
+                
+                # Prepare correct answer (handle list or string)
+                answer = q.correct_answer
+                if isinstance(answer, list):
+                    answer = ','.join(answer)
+                
+                # Prepare question type (display name for importer compatibility)
+                q_type_map = {
+                    'SINGLE': '單選',
+                    'MULTIPLE': '多選',
+                    'TRUEFALSE': '是非'
+                }
+                q_type = q_type_map.get(q.question_type, '單選')
+
+                writer.writerow([
+                    q.id,
+                    q.content,
+                    q_type,
+                    opts.get('A', ''),
+                    opts.get('B', ''),
+                    opts.get('C', ''),
+                    opts.get('D', ''),
+                    answer,
+                    q.explanation,
+                    q.difficulty,
+                    q.category.name if q.category else '',
+                    'Y' if q.is_active else 'N'
+                ])
+            return response
+
+    return redirect('engineer_rpg:question_management')
+
+
 
 def category_management(request):
     """題目分類管理"""
@@ -3552,11 +3629,40 @@ def import_questions_view(request):
     profile = get_or_create_user_profile(request.user)
     if not has_whitelist_permission(request.user, 'ADMIN'): return redirect('engineer_rpg:dashboard')
     if request.method == 'POST':
+        from .utils.question_importer import QuestionImporter
         form = QuestionImportForm(request.POST, request.FILES)
         if form.is_valid():
             # 匯入邏輯...
-            messages.success(request, '題目匯入完成')
+            file = form.cleaned_data['file']
+            try:
+                importer = QuestionImporter()
+                result = importer.import_from_file(file)
+                print(f"Import result: {result}")
+                
+                if result['errors']:
+                    messages.warning(request, "匯入過程發生錯誤，請檢查下方錯誤列表")
+                    return render(request, 'EngineerRPG/import_questions.html', {
+                        'profile': profile, 
+                        'form': form,
+                        'import_result': result
+                    })
+                        
+                messages.success(request, f"匯入成功: 新增/更新 {result['success']} 筆")
+            except Exception as e:
+                print(f"Import error: {e}")
+                import traceback
+                traceback.print_exc()
+                messages.error(request, f"匯入失敗: {str(e)}")
+                return render(request, 'EngineerRPG/import_questions.html', {
+                    'profile': profile, 
+                    'form': form,
+                    'error_message': str(e)
+                })
+                
             return redirect('engineer_rpg:question_management')
+        else:
+            print(f"Import form invalid: {form.errors}")
+            messages.error(request, f"表單驗證失敗: {form.errors}")
     else:
         form = QuestionImportForm()
     return render(request, 'EngineerRPG/import_questions.html', {'profile': profile, 'form': form})
@@ -3565,9 +3671,25 @@ def import_questions_view(request):
 
 def download_template(request, format='csv'):
     """下載匯入範本"""
-    # 範本生成邏輯...
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="question_template.csv"'
+    from .utils.question_importer import generate_template_csv, generate_template_excel
+    
+    if format == 'excel' or format == 'xlsx':
+        # Excel 格式
+        output = generate_template_excel()
+        response = HttpResponse(
+            output.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename="question_template.xlsx"'
+    else:
+        # CSV 格式 (預設)
+        content = generate_template_csv()
+        response = HttpResponse(content, content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="question_template.csv"'
+        
+        # Add BOM for Excel compatibility with Chinese characters
+        response.write('\ufeff'.encode('utf8'))
+        
     return response
 
 # ==================== 其他導向視圖 ====================
