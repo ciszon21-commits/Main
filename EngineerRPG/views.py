@@ -726,6 +726,11 @@ def start_trial(request, trial_id):
         'time_limit': trial.time_limit_minutes,
         'start_time': request.session['trial_start_time'],
         'remaining_seconds': trial.time_limit_minutes * 60,
+        'has_engineering_app': (
+            (profile.equipped_tool_1 and profile.equipped_tool_1.equipment.id == 10) or
+            (profile.equipped_tool_2 and profile.equipped_tool_2.equipment.id == 10) or
+            (profile.equipped_tool_3 and profile.equipped_tool_3.equipment.id == 10)
+        ),
     }
     return render(request, 'EngineerRPG/trial_exam.html', context)
 
@@ -746,7 +751,12 @@ def submit_answer(request, trial_id):
         question = get_object_or_404(Question, id=question_ids[current_index])
         user_answer = request.POST.get('answer', '')
         current_mp = int(request.POST.get('current_mp', 100))
+        use_engineering_app = request.POST.get('use_engineering_app') == 'true'
         hp_damage = 0
+
+        # Debug logging for skill usage
+        if use_engineering_app:
+            print(f"DEBUG: User {request.user.username} used Engineering Inspection APP on Q{question.id}")
         
         # 判斷正確性
         if question.question_type == 'MULTIPLE':
@@ -783,6 +793,52 @@ def submit_answer(request, trial_id):
             progress.answers = current_answers
             print(f"DEBUG: Saving answer for Q{question.id}. Progress Answers keys: {progress.answers.keys()}")
             
+            # --- 技能效果實現: 工程查驗 APP (Shield) ---
+            # 1. 啟動護盾 (Activation)
+            if use_engineering_app:
+                # 檢查是否有裝備 (雖然前端檢查了，後端再確認)
+                app_equip = None
+                for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+                    if slot and slot.equipment.id == 10:
+                        app_equip = slot
+                        break
+                
+                if app_equip:
+                    # 計算消耗與護盾值
+                    enhancement_level = app_equip.enhancement_level
+                    if enhancement_level >= 9:
+                        mp_cost = 35
+                        shield_amount = 35
+                    elif enhancement_level >= 6:
+                        mp_cost = 30
+                        shield_amount = 30
+                    elif enhancement_level >= 3:
+                        mp_cost = 25
+                        shield_amount = 25
+                    else:
+                        mp_cost = 20
+                        shield_amount = 20
+                    
+                    # 檢查 MP
+                    if current_mp >= mp_cost:
+                        current_mp -= mp_cost
+                        boots_messages.append(f'📱 工程查驗 APP: 消耗 {mp_cost} MP, 啟動 {shield_amount} 點護盾!')
+                        
+                        # 設定護盾狀態
+                        chest_data = progress.chest_data or {}
+                        if 'active_skills' not in chest_data:
+                            chest_data['active_skills'] = {}
+                        
+                        chest_data['active_skills']['engineering_app'] = {
+                            'hp': shield_amount,
+                            'turns': 3,
+                            'initial_hp': shield_amount,
+                            'level': enhancement_level
+                        }
+                        progress.chest_data = chest_data
+                    else:
+                        boots_messages.append('⚠️ MP 不足, 無法啟動工程查驗 APP!')
+
             if not is_correct:
                 # 基礎傷害
                 base_damage = 10
@@ -812,9 +868,31 @@ def submit_answer(request, trial_id):
 
                 actual_damage = max(1, base_damage - damage_reduction)  # 至少扣1點
                 
+                # --- 技能效果: 護盾抵銷傷害 ---
+                chest_data = progress.chest_data or {}
+                shield_info = chest_data.get('active_skills', {}).get('engineering_app')
+                
+                if shield_info and shield_info['hp'] > 0:
+                    shield_hp = shield_info['hp']
+                    if shield_hp >= actual_damage:
+                        # 護盾完全吸收
+                        shield_info['hp'] -= actual_damage
+                        boots_messages.append(f'🛡️ 護盾吸收全額傷害! (-{actual_damage}) 剩餘護盾: {shield_info["hp"]}')
+                        actual_damage = 0
+                    else:
+                        # 護盾部分吸收
+                        absorbed = shield_hp
+                        actual_damage -= absorbed
+                        shield_info['hp'] = 0
+                        boots_messages.append(f'🛡️ 護盾吸收 {absorbed} 點傷害! 護盾破裂!')
+                    
+                    # 更新護盾狀態
+                    progress.chest_data = chest_data
+                # -----------------------------
+
                 # 減傷效果訊息
-                if damage_reduction > 0:
-                    boots_messages.append(f'💪 裝備減傷: {base_damage} - {damage_reduction} = {actual_damage} 點傷害')
+                if damage_reduction > 0 and actual_damage > 0:
+                     boots_messages.append(f'💪 裝備減傷: {base_damage} - {damage_reduction} = {actual_damage} 點傷害')
                 
                 hp_damage = actual_damage
                 progress.current_hp = max(0, progress.current_hp - actual_damage)
@@ -837,6 +915,7 @@ def submit_answer(request, trial_id):
             else:
                 # 答對時處理靴子被動效果
                 if profile.equipped_boots:
+
                     boots = profile.equipped_boots
                     boots_name = boots.equipment.name
                     boots_level = boots.enhancement_level
@@ -935,9 +1014,39 @@ def submit_answer(request, trial_id):
                 progress.is_completed = True
                 progress.is_passed = False
             
+            # --- 技能效果: 護盾回合遞減與反饋 ---
+            chest_data = progress.chest_data or {}
+            shield_info = chest_data.get('active_skills', {}).get('engineering_app')
+            
+            if shield_info:
+                # 遞減回合數 (無論答對答錯，回合結束都扣)
+                # 修正需求: "若回答正確，護盾會持續保留至下一題，直到耗盡或過關三題後為止" -> 意味著每題結束都算過一關
+                shield_info['turns'] -= 1
+                
+                if shield_info['turns'] <= 0:
+                    # 護盾到期
+                    # +9 特殊能力【反饋】 若護盾過關三題後未耗盡，返還 20 MP。
+                    if shield_info['hp'] > 0 and shield_info.get('level', 0) >= 9:
+                        progress.current_mp += 20
+                        boots_messages.append('✨ 【反饋】護盾未耗盡! 返還 20 MP!')
+                        current_mp = progress.current_mp # 同步更新
+                    
+                    boots_messages.append('🛡️ 護盾時效已過，自動解除。')
+                    del chest_data['active_skills']['engineering_app']
+                    
+                    # 清理空字典
+                    if not chest_data['active_skills']:
+                        del chest_data['active_skills']
+                else:
+                    boots_messages.append(f'🛡️ 護盾剩餘 {shield_info["turns"]} 回合 (HP: {shield_info["hp"]})')
+                
+                progress.chest_data = chest_data
+            # ------------------------------------
+
             progress.current_mp = current_mp
             progress.save()
             profile.save()  # 儲存強化券變更
+
             current_hp = progress.current_hp
         else:
             current_hp = request.session.get('trial_hp', 3)
@@ -1054,6 +1163,11 @@ def next_question(request, trial_id):
         'time_limit': trial.time_limit_minutes,
         'start_time': start_time.isoformat(),
         'remaining_seconds': remaining_seconds,
+        'has_engineering_app': (
+            (profile.equipped_tool_1 and profile.equipped_tool_1.equipment.id == 10) or
+            (profile.equipped_tool_2 and profile.equipped_tool_2.equipment.id == 10) or
+            (profile.equipped_tool_3 and profile.equipped_tool_3.equipment.id == 10)
+        ),
     }
     return render(request, 'EngineerRPG/trial_exam.html', context)
 
@@ -1398,6 +1512,11 @@ def start_daily_trial(request, task_id):
         'time_limit': trial.time_limit_minutes,
         'start_time': progress.started_at.isoformat(),
         'remaining_seconds': remaining_seconds,
+        'has_engineering_app': (
+            (profile.equipped_tool_1 and profile.equipped_tool_1.equipment.id == 10) or
+            (profile.equipped_tool_2 and profile.equipped_tool_2.equipment.id == 10) or
+            (profile.equipped_tool_3 and profile.equipped_tool_3.equipment.id == 10)
+        ),
     }
     return render(request, 'EngineerRPG/trial_exam.html', context)
         

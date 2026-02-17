@@ -377,7 +377,24 @@
     <form id="answerForm">
         {% csrf_token %}
 
-        <!-- MP 技能按鈕區域已移除 -->
+        <!-- 工程查驗 APP 技能按鈕 (移至頂部) -->
+        {% if has_engineering_app %}
+        <div class="mb-lg p-md border border-secondary/30 rounded bg-secondary/5">
+            <div class="d-flex justify-content-between align-items-center mb-sm">
+                <span class="text-secondary font-bold"><i class="fas fa-microchip"></i> 工程輔助系統</span>
+                <span class="text-xs text-stone-light">消耗 MP 抵銷傷害</span>
+            </div>
+            <button type="button" class="rpg-btn rpg-btn-secondary w-full" id="engineeringAppBtn"
+                onclick="toggleEngineeringApp()">
+                <i class="fas fa-tools"></i> 啟動工程查驗 APP
+            </button>
+            <input type="hidden" name="use_engineering_app" id="useEngineeringApp" value="false">
+            <p id="engineeringAppStatus" class="text-sm text-success mt-sm font-bold text-center"
+                style="display: none;">
+                <i class="fas fa-shield-alt"></i> 護盾模式已預備 (下題生效)
+            </p>
+        </div>
+        {% endif %}
 
         <!-- 錯題回顧 -->
         {% if wrong_answers_list %}
@@ -467,12 +484,36 @@
             {% endif %}
         </div>
 
+
+
         <div class="action-buttons mt-xl text-center">
             <button type="submit" class="rpg-btn rpg-btn-primary btn-large" id="submitBtn">
                 <i class="fas fa-check"></i> 提交答案
             </button>
         </div>
     </form>
+
+    <script>
+        function toggleEngineeringApp() {
+            const btn = document.getElementById('engineeringAppBtn');
+            const input = document.getElementById('useEngineeringApp');
+            const status = document.getElementById('engineeringAppStatus');
+
+            if (input.value === 'false') {
+                input.value = 'true';
+                btn.classList.remove('rpg-btn-secondary');
+                btn.classList.add('rpg-btn-warning'); // Change to a distinct active color
+                btn.innerHTML = '<i class="fas fa-tools"></i> 關閉工程查驗 APP';
+                status.style.display = 'block';
+            } else {
+                input.value = 'false';
+                btn.classList.remove('rpg-btn-warning');
+                btn.classList.add('rpg-btn-secondary');
+                btn.innerHTML = '<i class="fas fa-tools"></i> 啟動工程查驗 APP';
+                status.style.display = 'none';
+            }
+        }
+    </script>
 
     <!-- 反饋區域（初始隱藏） -->
     <div class="feedback-area" id="feedbackArea" style="display: none;">
@@ -495,13 +536,13 @@
     const trialId = "{{ trial.id|default:'0' }}";
     const csrfTokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
     const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
-    let currentHP = {{ initial_hp|default:"0" }};
-    const maxHP = {{ base_hp|default:"0" }};
-    const maxMP = {{ base_mp|default:"0" }};
-    let remainingSeconds = {{ remaining_seconds|default:"0" }};
+    let currentHP = {{ initial_hp|default:"0" | stringformat:"d" }};
+    const maxHP = {{ base_hp|default:"0" | stringformat:"d" }};
+    const maxMP = {{ base_mp|default:"0" | stringformat:"d" }};
+    let remainingSeconds = {{ remaining_seconds|default:"0" | stringformat:"d" }};
     const isTrialCompleted = {{ is_completed| yesno:"true,false" }};
 
-    // 防止意外離開頁面
+    // 防止意 外離開頁面
     let isSubmitting = false;
 
     window.addEventListener('beforeunload', function (e) {
@@ -659,10 +700,10 @@
         currentHP = hp;
     }
 
-     // MP 用於提交答案時更新狀態
-    let currentMP = {{ initial_mp|default:"0" }};
+    // MP 用於提交答案時更新狀態
+    let currentMP = {{ initial_mp |default:"0" }};
 
-    // useHint 與 useFiftyFifty 函數已移除
+    // useHint 與 use FiftyFifty 函數已移除
 
     function updateMPDisplay(mp) {
         const mpBar = document.getElementById('mpBar');
