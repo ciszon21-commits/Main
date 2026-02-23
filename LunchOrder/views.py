@@ -9,41 +9,16 @@ from django.utils import timezone
 from .models import Restaurant, MenuItem, LunchOrder, RestaurantSchedule
 from .forms import LunchOrderForm, MenuImageForm, RestaurantCreateForm
 import datetime
-import datetime
 import calendar
 import json
+from .utils import NATIONAL_HOLIDAYS_2026, CATEGORY_META, is_past_order_cutoff, is_past_schedule_cutoff
 
 
 def calendar_view(request):
     """日曆首頁"""
     today = timezone.now().date()
     
-    # 2026年國定假日（不含週六週日）
-    NATIONAL_HOLIDAYS_2026 = {
-        # 元旦
-        datetime.date(2026, 1, 1),
-        datetime.date(2026, 1, 2),
-        # 春節
-        datetime.date(2026, 2, 16),
-        datetime.date(2026, 2, 17),
-        datetime.date(2026, 2, 18),
-        datetime.date(2026, 2, 19),
-        datetime.date(2026, 2, 20),
-        # 二二八和平紀念日
-        datetime.date(2026, 2, 27),
-        # 兒童節 / 清明節
-        datetime.date(2026, 4, 3),
-        datetime.date(2026, 4, 6),
-        # 勞動節
-        datetime.date(2026, 5, 1),
-        # 端午節
-        datetime.date(2026, 5, 29),
-        # 中秋節
-        datetime.date(2026, 10, 2),
-        # 國慶日
-        datetime.date(2026, 10, 9),
-        # 其他彈性放假 (依行政機關辦公日曆表)
-    }
+    # 從 utils 取得 2026 年國定假日
     
     # 取得當前月份參數，優先使用 GET，其次使用 Session，最後預設為本月
     year_param = request.GET.get('year')
@@ -94,12 +69,10 @@ def calendar_view(request):
         is_holiday = date_obj in NATIONAL_HOLIDAYS_2026
         
         # 計算是否超過今日截止時間 (10:15)
-        is_past_cutoff_time = False
-        if date_obj == today:
-             now_local = timezone.localtime(timezone.now())
-             cutoff_time = now_local.replace(hour=10, minute=15, second=0, microsecond=0)
-             if now_local > cutoff_time:
-                 is_past_cutoff_time = True
+        is_past_cutoff_time = is_past_order_cutoff(date_obj, today)
+        
+        # 計算是否超過今日排程設定時間 (11:00)
+        is_past_schedule_cutoff_time = is_past_schedule_cutoff(date_obj, today)
 
         day_info = {
             'date': date_obj,
@@ -108,6 +81,7 @@ def calendar_view(request):
             'is_today': date_obj == today,
             'is_past': date_obj < today,
             'is_past_cutoff': is_past_cutoff_time,
+            'is_past_schedule_cutoff': is_past_schedule_cutoff_time,
             'is_sunday': date_obj.weekday() == 6,
             'is_holiday': is_holiday,
         }
@@ -168,17 +142,14 @@ def set_daily_restaurant(request):
             try:
                 date_obj = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
                 
-                # 國定假日列表
-                NATIONAL_HOLIDAYS_2026 = {
-                    datetime.date(2026, 1, 1), datetime.date(2026, 1, 2),
-                    datetime.date(2026, 2, 16), datetime.date(2026, 2, 17),
-                    datetime.date(2026, 2, 18), datetime.date(2026, 2, 19),
-                    datetime.date(2026, 2, 20), datetime.date(2026, 2, 27),
-                    datetime.date(2026, 4, 3), datetime.date(2026, 4, 6),
-                    datetime.date(2026, 5, 1), datetime.date(2026, 5, 29),
-                    datetime.date(2026, 10, 2), datetime.date(2026, 10, 9),
-                }
+                # 使用 utils 中定義的 NATIONAL_HOLIDAYS_2026
                 
+                # 11:00 AM排程時間檢查
+                today_local = timezone.localtime(timezone.now()).date()
+                if is_past_schedule_cutoff(date_obj, today_local):
+                     messages.error(request, '每日早上 11:00 後無法再設定或更換今日的店家')
+                     return redirect(next_url)
+
                 # 週日檢查
                 if date_obj.weekday() == 6 and action != 'delete':
                      messages.error(request, '週日無法排程')
@@ -473,9 +444,8 @@ def order_create(request):
 
     today = timezone.localtime(timezone.now()).date()
     now = timezone.localtime(timezone.now())
-    # 設定截止時間為當天 10:15
-    cutoff_time = now.replace(hour=10, minute=15, second=0, microsecond=0)
-    is_past_cutoff = (target_date == today and now > cutoff_time)
+    # 檢查是否超過截止時間
+    is_past_cutoff = is_past_order_cutoff(target_date, today, now)
 
     if is_past_cutoff:
         return render(request, 'LunchOrder/order_cutoff.html')
@@ -544,26 +514,13 @@ def order_create(request):
             is_available=True
         ).order_by('price')
     
-    category_meta = {
-        'chicken': {'name': '雞肉餐盒', 'icon': 'fa-drumstick-bite'},
-        'duck': {'name': '鴨肉料理', 'icon': 'fa-feather'},
-        'pork': {'name': '豬肉餐盒', 'icon': 'fa-bacon'},
-        'beef': {'name': '牛肉餐盒', 'icon': 'fa-cow'},
-        'fish': {'name': '鮮魚餐盒', 'icon': 'fa-fish'},
-        'noodle': {'name': '麵食/粥品', 'icon': 'fa-bowl-food'},
-        'soup': {'name': '精選湯品', 'icon': 'fa-mug-hot'},
-        'veg': {'name': '蔬食餐盒', 'icon': 'fa-carrot'},
-        'side': {'name': '美味小菜', 'icon': 'fa-utensils'},
-        'single': {'name': '單點品項', 'icon': 'fa-utensils'},
-        'drink': {'name': '冷泡茶飲', 'icon': 'fa-glass-water'},
-        'other': {'name': '其他', 'icon': 'fa-ellipsis'},
-    }
+    
     
     categories = {}
     for item in menu_queryset:
         cat_key = item.category or 'single'
         if cat_key not in categories:
-            meta = category_meta.get(cat_key, {'name': cat_key, 'icon': 'fa-utensils'})
+            meta = CATEGORY_META.get(cat_key, {'name': cat_key, 'icon': 'fa-utensils'})
             categories[cat_key] = {'name': meta['name'], 'icon': meta['icon'], 'items': []}
         categories[cat_key]['items'].append(item)
     
