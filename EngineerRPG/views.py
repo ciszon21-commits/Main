@@ -731,7 +731,28 @@ def start_trial(request, trial_id):
             (profile.equipped_tool_2 and profile.equipped_tool_2.equipment.id == 10) or
             (profile.equipped_tool_3 and profile.equipped_tool_3.equipment.id == 10)
         ),
+        'has_uav': False,
+        'uav_mp_cost': 30,
+        'uav_eliminate_count': 1,
+        'has_vr': False,
+        'vr_mp_cost': 70,
+        'vr_already_used': False,
     }
+    # 計算 UAV 資訊
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+        if slot and slot.equipment.skill_effect == 'ELIMINATION':
+            lvl = slot.enhancement_level
+            context['has_uav'] = True
+            context['uav_mp_cost'] = 25 if lvl >= 9 else 30
+            context['uav_eliminate_count'] = 2 if lvl >= 6 else 1
+            break
+    # 計算 VR 資訊（start_trial）
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+        if slot and slot.equipment.skill_effect == 'ABSOLUTE_ANSWER':
+            lvl = slot.enhancement_level
+            context['has_vr'] = True
+            context['vr_mp_cost'] = 40 if lvl >= 9 else (50 if lvl >= 6 else (60 if lvl >= 3 else 70))
+            break
     return render(request, 'EngineerRPG/trial_exam.html', context)
 
 @login_required
@@ -839,6 +860,36 @@ def submit_answer(request, trial_id):
                     else:
                         boots_messages.append('⚠️ MP 不足, 無法啟動工程查驗 APP!')
 
+            # --- 技能效果: UAV 選項刪去（當題扣 MP + 設定 Buff）---
+            # 僅在單選題且前端明確傳入 use_uav=true 時觸發
+            use_uav = request.POST.get('use_uav') == 'true'
+            if use_uav and question.question_type == 'SINGLE':
+                uav_equip = None
+                for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+                    if slot and slot.equipment.skill_effect == 'ELIMINATION':
+                        uav_equip = slot
+                        break
+                if uav_equip:
+                    lvl = uav_equip.enhancement_level
+                    uav_mp_cost = 25 if lvl >= 9 else 30
+                    eliminate_count = 2 if lvl >= 6 else 1
+                    if current_mp >= uav_mp_cost:
+                        current_mp -= uav_mp_cost
+                        boots_messages.append(f'🛸 UAV 已啟動: 消耗 {uav_mp_cost} MP，刪去 {eliminate_count} 個錯誤選項!')
+                        # +9 限定：設定 3 題減傷 Buff
+                        if lvl >= 9:
+                            uav_chest_data = progress.chest_data or {}
+                            if 'active_skills' not in uav_chest_data:
+                                uav_chest_data['active_skills'] = {}
+                            uav_chest_data['active_skills']['uav'] = {
+                                'damage_reduction_bonus': 2,
+                                'turns': 3,
+                                'level': lvl
+                            }
+                            progress.chest_data = uav_chest_data
+                    else:
+                        boots_messages.append('⚠️ MP 不足，無法啟動 UAV!')
+
             if not is_correct:
                 # 基礎傷害
                 base_damage = 10
@@ -865,6 +916,22 @@ def submit_answer(request, trial_id):
                          if progress.current_hp < total_hp * 0.2:
                              damage_reduction *= 2
                              boots_messages.append(f'🛡️ 危機防護: HP < 20%, 減傷翻倍! ({damage_reduction})')
+
+                # --- UAV Buff（+9 限定）：額外 -2 減傷，並遞減回合 ---
+                chest_data = progress.chest_data or {}
+                uav_buff = chest_data.get('active_skills', {}).get('uav')
+                if uav_buff and uav_buff.get('turns', 0) > 0:
+                    damage_reduction += uav_buff['damage_reduction_bonus']
+                    uav_buff['turns'] -= 1
+                    if uav_buff['turns'] <= 0:
+                        del chest_data['active_skills']['uav']
+                        if not chest_data['active_skills']:
+                            del chest_data['active_skills']
+                        boots_messages.append('🛸 UAV 減傷 Buff 已結束。')
+                    else:
+                        boots_messages.append(f'🛸 UAV 減傷 Buff 剩餘 {uav_buff["turns"]} 題')
+                    progress.chest_data = chest_data
+                # -----------------------------------------------
 
                 actual_damage = max(1, base_damage - damage_reduction)  # 至少扣1點
                 
@@ -1169,6 +1236,12 @@ def next_question(request, trial_id):
             (profile.equipped_tool_3 and profile.equipped_tool_3.equipment.id == 10)
         ),
         'engineering_app_mp_cost': 20, # Default cost, updated below if equipped
+        'has_uav': False,
+        'uav_mp_cost': 30,
+        'uav_eliminate_count': 1,
+        'has_vr': False,
+        'vr_mp_cost': 70,
+        'vr_already_used': False,
     }
 
     # Calculate actual MP cost based on enhancement level if equipped
@@ -1190,10 +1263,148 @@ def next_question(request, trial_id):
             else:
                 context['engineering_app_mp_cost'] = 20
 
+    # 計算 UAV 資訊（next_question）
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+        if slot and slot.equipment.skill_effect == 'ELIMINATION':
+            lvl = slot.enhancement_level
+            context['has_uav'] = True
+            context['uav_mp_cost'] = 25 if lvl >= 9 else 30
+            context['uav_eliminate_count'] = 2 if lvl >= 6 else 1
+            break
+
+    # 計算 VR 資訊（next_question）
+    daily_task_id_nq = request.session.get('daily_task_id')
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+        if slot and slot.equipment.skill_effect == 'ABSOLUTE_ANSWER':
+            lvl = slot.enhancement_level
+            context['has_vr'] = True
+            context['vr_mp_cost'] = 40 if lvl >= 9 else (50 if lvl >= 6 else (60 if lvl >= 3 else 70))
+            # 探查本場是否已使用 VR
+            if daily_task_id_nq:
+                from .models import DailyTrialProgress
+                try:
+                    nq_progress = DailyTrialProgress.objects.get(user_profile=profile, daily_task_id=daily_task_id_nq)
+                    nq_chest = nq_progress.chest_data or {}
+                    if nq_chest.get('active_skills', {}).get('vr_used'):
+                        context['vr_already_used'] = True
+                except DailyTrialProgress.DoesNotExist:
+                    pass
+            break
+
     return render(request, 'EngineerRPG/trial_exam.html', context)
 
 @login_required
+def uav_eliminate_option(request, trial_id):
+    """API (GET): UAV 選項刪去 — 隨機回傳 N 個錯誤選項 key（僅單選題）"""
+    question_id = request.GET.get('question_id')
+    count = int(request.GET.get('count', 1))
+
+    if not question_id:
+        return JsonResponse({'error': 'question_id 必填'}, status=400)
+
+    try:
+        question = Question.objects.get(id=question_id)
+    except Question.DoesNotExist:
+        return JsonResponse({'error': 'Question not found'}, status=404)
+
+    # 僅限單選題
+    if question.question_type != 'SINGLE':
+        return JsonResponse({'eliminated': []})
+
+    correct = {str(question.correct_answer)}
+    wrong_options = [k for k in sorted(question.options.keys()) if k not in correct]
+    import random as _random
+    _random.shuffle(wrong_options)
+    eliminated = wrong_options[:min(count, len(wrong_options))]
+    return JsonResponse({'eliminated': eliminated})
+
+@login_required
+def vr_reveal_answer(request, trial_id):
+    """API (GET): VR 技能「絕對解答」— 回傳正確選項 key，扣 MP，記錄本場已使用"""
+    profile = get_or_create_user_profile(request.user)
+    question_id = request.GET.get('question_id')
+
+    if not question_id:
+        return JsonResponse({'error': 'question_id 必填'}, status=400)
+
+    try:
+        question = Question.objects.get(id=question_id)
+    except Question.DoesNotExist:
+        return JsonResponse({'error': 'Question not found'}, status=404)
+
+    if question.question_type != 'SINGLE':
+        return JsonResponse({'error': '僅限單選題使用'}, status=400)
+
+    # 確認有裝備 VR 眼鏡
+    vr_equip = None
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+        if slot and slot.equipment.skill_effect == 'ABSOLUTE_ANSWER':
+            vr_equip = slot
+            break
+    if not vr_equip:
+        return JsonResponse({'error': '未裝備 VR 虛擬實境眼鏡'}, status=400)
+
+    # 計算 MP 消耗（依強化等級）
+    lvl = vr_equip.enhancement_level
+    if lvl >= 9:
+        mp_cost = 40
+    elif lvl >= 6:
+        mp_cost = 50
+    elif lvl >= 3:
+        mp_cost = 60
+    else:
+        mp_cost = 70
+
+    # 取每日試煉進度（本場一次限制）
+    daily_task_id = request.session.get('daily_task_id')
+    if not daily_task_id:
+        return JsonResponse({'error': 'VR 僅限每日試煉使用'}, status=400)
+
+    from .models import DailyTrialProgress
+    try:
+        progress = DailyTrialProgress.objects.get(user_profile=profile, daily_task_id=daily_task_id)
+    except DailyTrialProgress.DoesNotExist:
+        return JsonResponse({'error': '找不到試煉進度'}, status=404)
+
+    chest_data = progress.chest_data or {}
+    active_skills = chest_data.get('active_skills', {})
+
+    # 檢查本場是否已使用
+    if active_skills.get('vr_used'):
+        return JsonResponse({'error': '本場已使用過 VR 絕對解答', 'already_used': True}, status=400)
+
+    # 檢查 MP
+    if progress.current_mp < mp_cost:
+        return JsonResponse({'error': f'MP 不足（需要 {mp_cost} MP）', 'mp_insufficient': True}, status=400)
+
+    # 扣除 MP
+    progress.current_mp -= mp_cost
+
+    # +9【沉浸學習】：額外回復 20 HP
+    heal_amount = 0
+    if lvl >= 9:
+        heal_amount = 20
+        max_hp = profile.get_total_hp()
+        progress.current_hp = min(max_hp, progress.current_hp + heal_amount)
+
+    # 記錄本場已使用
+    active_skills['vr_used'] = True
+    chest_data['active_skills'] = active_skills
+    progress.chest_data = chest_data
+    progress.save()
+
+    correct_key = str(question.correct_answer)
+    return JsonResponse({
+        'correct_key': correct_key,
+        'mp_cost': mp_cost,
+        'heal_amount': heal_amount,
+        'remaining_mp': progress.current_mp,
+        'remaining_hp': progress.current_hp,
+    })
+
+@login_required
 def api_consume_item(request, user_item_id):
+
     """API: Consume an item"""
     if request.method != 'POST':
         return JsonResponse({'error': 'Invalid method'}, status=405)
@@ -1560,6 +1771,27 @@ def start_daily_trial(request, task_id):
                 context['engineering_app_mp_cost'] = 25
             else:
                 context['engineering_app_mp_cost'] = 20
+
+    # 計算 UAV 資訊（start_daily_trial）
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+        if slot and slot.equipment.skill_effect == 'ELIMINATION':
+            lvl = slot.enhancement_level
+            context['has_uav'] = True
+            context['uav_mp_cost'] = 25 if lvl >= 9 else 30
+            context['uav_eliminate_count'] = 2 if lvl >= 6 else 1
+            break
+
+    # 計算 VR 資訊（start_daily_trial）
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+        if slot and slot.equipment.skill_effect == 'ABSOLUTE_ANSWER':
+            lvl = slot.enhancement_level
+            context['has_vr'] = True
+            context['vr_mp_cost'] = 40 if lvl >= 9 else (50 if lvl >= 6 else (60 if lvl >= 3 else 70))
+            # 探查本場是否已使用 VR
+            sd_chest = progress.chest_data or {}
+            if sd_chest.get('active_skills', {}).get('vr_used'):
+                context['vr_already_used'] = True
+            break
 
     return render(request, 'EngineerRPG/trial_exam.html', context)
         

@@ -50,6 +50,8 @@ urlpatterns = [
     path('trial/<int:trial_id>/submit-answer/', views.submit_answer, name='submit_answer'),
     path('trial/<int:trial_id>/next-question/', views.next_question, name='next_question'),
     path('trial/<int:trial_id>/submit/', views.submit_trial, name='submit_trial'),
+    path('trial/<int:trial_id>/uav-eliminate/', views.uav_eliminate_option, name='uav_eliminate_option'),
+    path('trial/<int:trial_id>/vr-reveal/', views.vr_reveal_answer, name='vr_reveal_answer'),
     
     # 升階系統
     path('promotion/apply/', views.apply_promotion, name='apply_promotion'),
