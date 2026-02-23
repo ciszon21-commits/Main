@@ -428,6 +428,23 @@ class Equipment(models.Model):
         verbose_name = '裝備'
         verbose_name_plural = '裝備列表'
         
+    @property
+    def enhancement_rules_json(self):
+        import json
+        return json.dumps(self.enhancement_rules or {})
+        
+    @property
+    def detail_json(self):
+        import json
+        return json.dumps({
+            'name': self.name,
+            'description': self.description,
+            'type_name': self.get_equipment_type_display(),
+            'rules': self.enhancement_rules or {},
+            'special_ability_name': self.special_ability_name or '',
+            'special_ability_description': self.special_ability_description or '',
+        })
+        
     def __str__(self):
         return f"{self.name} (T{self.tier} {self.get_equipment_type_display()})"
 
