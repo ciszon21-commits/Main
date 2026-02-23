@@ -62,10 +62,9 @@
 
         {% if has_vr and question.question_type == 'SINGLE' %}
         <div class="skill-control-panel mt-sm text-right">
-            <button type="button" class="rpg-btn rpg-btn-sm rpg-btn-warning" id="vrBtn" onclick="activateVR()" {% if
-                vr_already_used %}disabled{% endif %}>
+            <button type="button" class="rpg-btn rpg-btn-sm rpg-btn-warning" id="vrBtn" onclick="activateVR()">
                 &#x1F97D; VR 絕對解答
-                (耗能: {{ vr_mp_cost }}{% if vr_already_used %}、本場已使用{% endif %})
+                (耗能: {{ vr_mp_cost }})
             </button>
         </div>
         {% endif %}
@@ -529,25 +528,25 @@
     const trialId = "{{ trial.id|default:'0' }}";
     const csrfTokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
     const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
-    let currentHP = {{ initial_hp|default:"0" | stringformat:"d" }};
-    const maxHP = {{ base_hp|default:"0" | stringformat:"d" }};
-    let currentMP = {{ initial_mp|default:"0" | stringformat:"d" }};
-    const maxMP = {{ base_mp|default:"0" | stringformat:"d" }};
-    let remainingSeconds = {{ remaining_seconds|default:"0" | stringformat:"d" }};
-    const isTrialCompleted = {{ is_completed| yesno:"true,false" }};
+    let currentHP = {{ initial_hp|default:" 0" | stringformat:" d" }};
+    const maxHP = {{ base_hp|default:" 0" | stringformat:" d" }};
+    let currentMP = {{ initial_mp|default:" 0" | stringformat:" d" }};
+    const maxMP = {{ base_mp|default:" 0" | stringformat:" d" }};
+    let remainingSeconds = {{ remaining_seconds|default:" 0" | stringformat:" d" }};
+    const isTrialCompleted = {{ is_completed| yesno:" true,false" }};
 
     // Engineering App Cost
-    const engineeringAppMpCost = {{ engineering_app_mp_cost|default:"20" | stringformat:"d" }};
+    const engineeringAppMpCost = {{ engineering_app_mp_cost|default:" 20" | stringformat:" d" }};
     // UAV 資訊
-    const hasUAV = {{ has_uav| yesno:"true,false" }};
-    const uavMpCost = {{ uav_mp_cost|default:"30" | stringformat:"d" }};
-    const uavEliminateCount = {{ uav_eliminate_count|default:"1" | stringformat:"d" }};
+    const hasUAV = {{ has_uav| yesno:" true,false" }};
+    const uavMpCost = {{ uav_mp_cost|default:" 30" | stringformat:" d" }};
+    const uavEliminateCount = {{ uav_eliminate_count|default:" 1" | stringformat:" d" }};
     const questionId = "{{ question.id|default:'0' }}";
     const questionType = "{{ question.question_type|default:'' }}";
     // VR 資訊
-    const hasVR = {{ has_vr| yesno:"true,false" }};
-    const vrMpCost = {{ vr_mp_cost|default:"70" | stringformat:"d" }};
-    let vrAlreadyUsed = {{ vr_already_used| yesno:"true,false" }};
+    const hasVR = {{ has_vr| yesno:" true,false" }};
+    const vrMpCost = {{ vr_mp_cost|default:" 70" | stringformat:" d" }};
+    let vrAlreadyUsed = {{ vr_already_used| yesno:" true,false" }};
 
     // Update MP Bar Helper
     function updateMPDisplay(newMP) {
@@ -663,6 +662,25 @@
     // ============================
 
     // ===== VR 虛擬實境眼鏡「絕對解答」技能 =====
+    function setVRButtonUsed() {
+        const vrBtn = document.getElementById('vrBtn');
+        if (!vrBtn) return;
+        vrBtn.disabled = true;
+        vrBtn.onclick = null;  // 移除點擊事件
+        vrBtn.classList.remove('rpg-btn-warning', 'rpg-btn-info', 'rpg-btn-secondary');
+        // 灯暗灰色樣式 + 禁用 pointer
+        vrBtn.style.cssText = `
+            background: #555 !important;
+            border-color: #444 !important;
+            color: #888 !important;
+            opacity: 0.6;
+            cursor: not-allowed !important;
+            pointer-events: none;
+            box-shadow: none;
+        `;
+        vrBtn.innerHTML = '&#x1F97D; VR 絕對解答（本場已使用，每場限一次）';
+    }
+
     function activateVR() {
         if (vrAlreadyUsed) return; // 本場已使用過
 
@@ -675,7 +693,7 @@
             return;
         }
 
-        // 呼叫後端安全 API 取得正確選項 key（正確答案不暴露在前端 HTML）
+        // 呼叫後端安全 API 取得正確選項 key（正確答案不會暴露在前端 HTML）
         fetch(`/rpg/trial/${trialId}/vr-reveal/?question_id=${questionId}`, {
             headers: { 'X-CSRFToken': csrfToken }
         })
@@ -684,8 +702,7 @@
                 if (data.error) {
                     if (data.already_used) {
                         vrAlreadyUsed = true;
-                        vrBtn.disabled = true;
-                        vrBtn.innerHTML = '&#x1F97D; VR 已使用（本場限一次）';
+                        setVRButtonUsed();
                     } else if (data.mp_insufficient) {
                         alert('MP 不足！');
                     } else {
@@ -730,12 +747,9 @@
                     }
                 }
 
-                // 標記已使用，禁用按鈕
+                // 標記已使用，按鈕變灯暗
                 vrAlreadyUsed = true;
-                vrBtn.disabled = true;
-                vrBtn.classList.remove('rpg-btn-warning');
-                vrBtn.classList.add('rpg-btn-secondary');
-                vrBtn.innerHTML = '&#x1F97D; VR 已使用（本場限一次）';
+                setVRButtonUsed();
             })
             .catch(err => {
                 console.error('VR API error:', err);
@@ -743,6 +757,11 @@
             });
     }
     // ==================================================
+
+    // 頁面初始化：若本場已使用 VR，直接變灯暗
+    if (typeof vrAlreadyUsed !== 'undefined' && vrAlreadyUsed) {
+        setVRButtonUsed();
+    }
 
     // 防止意 外離開頁面
     let isSubmitting = false;
