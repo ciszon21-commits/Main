@@ -492,6 +492,24 @@ class UserEquipment(models.Model):
         return self.enhancement_level >= 9
 
     @property
+    def current_mp_cost(self):
+        """取得當前等級的 MP 消耗量（工具類與主動技能會用到）"""
+        return self._get_stat_from_rules('cost', 0)
+
+    def get_passive_desc(self):
+        """取得靴子被動效果描述（從 enhancement_rules[當前等級].desc 讀取）"""
+        rules = self.equipment.enhancement_rules
+        if not rules:
+            return ''
+        # 找 <= enhancement_level 的最大 key
+        valid_keys = [int(k) for k in rules if k.isdigit() and int(k) <= self.enhancement_level]
+        if valid_keys:
+            key = str(max(valid_keys))
+            return rules[key].get('desc', '')
+        # 若無匹配，退而取 '0' 等級
+        return rules.get('0', {}).get('desc', '')
+
+    @property
     def special_ability_name(self):
         """獲取特殊能力名稱"""
         if not self.has_special_ability():
