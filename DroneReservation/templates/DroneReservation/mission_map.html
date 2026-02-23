@@ -53,40 +53,6 @@
             font-weight: 600;
         }
 
-        /* 縮放等級輸入控制項 */
-        .leaflet-control-zoom-input {
-            background: white;
-            border-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-            padding: 4px 8px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            color: #555;
-        }
-
-        .leaflet-control-zoom-input label {
-            white-space: nowrap;
-            font-weight: 500;
-            margin: 0;
-        }
-
-        .leaflet-control-zoom-input input {
-            width: 48px;
-            padding: 3px 6px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 12px;
-            text-align: center;
-            font-family: inherit;
-            outline: none;
-        }
-
-        .leaflet-control-zoom-input input:focus {
-            border-color: var(--primary-color, #3b82f6);
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
-        }
 
         /* 搜尋列 - 地圖內控制項 */
         .leaflet-control-search {
@@ -440,34 +406,7 @@
             // 2. 縮放控制項 (左上，搜尋下方)
             L.control.zoom({ position: 'topleft' }).addTo(map);
 
-            // 2.5 縮放等級輸入控制項 (左上，縮放下方)
-            L.Control.ZoomInput = L.Control.extend({
-                onAdd: function (map) {
-                    const container = L.DomUtil.create('div', 'leaflet-control-zoom-input leaflet-bar');
-                    L.DomEvent.disableClickPropagation(container);
-                    container.innerHTML = '<label>比例尺</label><input type="number" id="zoomLevelInput" min="1" max="19" step="0.5" value="' + map.getZoom() + '">';
-                    return container;
-                }
-            });
-            new L.Control.ZoomInput({ position: 'topleft' }).addTo(map);
 
-            // 監聽 zoom 變化同步輸入框
-            map.on('zoomend', function () {
-                const input = document.getElementById('zoomLevelInput');
-                if (input) input.value = map.getZoom();
-            });
-
-            // 監聽輸入框變化設定 zoom
-            document.addEventListener('change', function (e) {
-                if (e.target && e.target.id === 'zoomLevelInput') {
-                    let val = parseInt(e.target.value, 10);
-                    if (val >= 1 && val <= 19) {
-                        map.setZoom(val);
-                    } else {
-                        e.target.value = map.getZoom();
-                    }
-                }
-            });
 
             // 3. 全區檢視控制項 (左上，縮放下方)
             // 3. 底圖切換 (右上)
