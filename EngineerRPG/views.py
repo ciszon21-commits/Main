@@ -1168,7 +1168,28 @@ def next_question(request, trial_id):
             (profile.equipped_tool_2 and profile.equipped_tool_2.equipment.id == 10) or
             (profile.equipped_tool_3 and profile.equipped_tool_3.equipment.id == 10)
         ),
+        'engineering_app_mp_cost': 20, # Default cost, updated below if equipped
     }
+
+    # Calculate actual MP cost based on enhancement level if equipped
+    if context['has_engineering_app']:
+        app_equip = None
+        for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+            if slot and slot.equipment.id == 10:
+                app_equip = slot
+                break
+        
+        if app_equip:
+            level = app_equip.enhancement_level
+            if level >= 9:
+                context['engineering_app_mp_cost'] = 35
+            elif level >= 6:
+                context['engineering_app_mp_cost'] = 30
+            elif level >= 3:
+                context['engineering_app_mp_cost'] = 25
+            else:
+                context['engineering_app_mp_cost'] = 20
+
     return render(request, 'EngineerRPG/trial_exam.html', context)
 
 @login_required
@@ -1235,6 +1256,7 @@ def api_consume_item(request, user_item_id):
 @login_required
 def training_hub(request):
     """Training hub"""
+    # Force reload check
     profile = get_or_create_user_profile(request.user)
     context = {'profile': profile}
     return render(request, 'EngineerRPG/training_hub.html', context)
@@ -1517,7 +1539,28 @@ def start_daily_trial(request, task_id):
             (profile.equipped_tool_2 and profile.equipped_tool_2.equipment.id == 10) or
             (profile.equipped_tool_3 and profile.equipped_tool_3.equipment.id == 10)
         ),
+        'engineering_app_mp_cost': 20, # Default cost, updated below if equipped
     }
+
+    # Calculate actual MP cost based on enhancement level if equipped
+    if context['has_engineering_app']:
+        app_equip = None
+        for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+            if slot and slot.equipment.id == 10:
+                app_equip = slot
+                break
+        
+        if app_equip:
+            level = app_equip.enhancement_level
+            if level >= 9:
+                context['engineering_app_mp_cost'] = 35
+            elif level >= 6:
+                context['engineering_app_mp_cost'] = 30
+            elif level >= 3:
+                context['engineering_app_mp_cost'] = 25
+            else:
+                context['engineering_app_mp_cost'] = 20
+
     return render(request, 'EngineerRPG/trial_exam.html', context)
         
     # 計算刷新時間
