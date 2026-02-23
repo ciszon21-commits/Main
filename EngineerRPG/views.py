@@ -753,6 +753,18 @@ def start_trial(request, trial_id):
             context['has_vr'] = True
             context['vr_mp_cost'] = 40 if lvl >= 9 else (50 if lvl >= 6 else (60 if lvl >= 3 else 70))
             break
+    # 計算 360 環景相機資訊（start_trial，無 daily_task_id 所以次數為預設）
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+        if slot and slot.equipment.skill_effect == 'TIME_REWIND':
+            lvl = slot.enhancement_level
+            context['has_camera'] = True
+            context['camera_mp_cost'] = 30
+            if lvl >= 9:   context['camera_uses_max'] = 5
+            elif lvl >= 6: context['camera_uses_max'] = 4
+            elif lvl >= 3: context['camera_uses_max'] = 3
+            else:           context['camera_uses_max'] = 2
+            context['camera_uses_left'] = context['camera_uses_max']  # start_trial 無 progress
+            break
     return render(request, 'EngineerRPG/trial_exam.html', context)
 
 @login_required
@@ -1137,6 +1149,35 @@ def submit_answer(request, trial_id):
         traceback.print_exc()
         return JsonResponse({'error': f'提交失敗: {str(e)}'}, status=500)
 
+    # ===== 360 環景相機：相機輔助資訊 =====
+    camera_already_rewound = False
+    camera_discount_activated = False
+    daily_task_id_for_camera = request.session.get('daily_task_id')
+    if daily_task_id_for_camera:
+        try:
+            from .models import DailyTrialProgress as _DTP2
+            cam_p = _DTP2.objects.get(user_profile=profile, daily_task_id=daily_task_id_for_camera)
+            cam_chest = cam_p.chest_data or {}
+            cam_skills = cam_chest.get('active_skills', {})
+            rewound_qs = [str(q) for q in cam_skills.get('camera_rewound_questions', [])]
+            if str(question.id) in rewound_qs:
+                camera_already_rewound = True  # 此題已回溯過，不再顯示按鈕
+
+            # 縮時攝影（+9 特效）：答對且此題未曾回溯 → 設定下次折扣
+            if is_correct and not camera_already_rewound:
+                # 確認是否裝備了 +9 相機
+                for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+                    if slot and slot.equipment.skill_effect == 'TIME_REWIND' and slot.enhancement_level >= 9:
+                        cam_skills['camera_discount_active'] = True
+                        cam_chest['active_skills'] = cam_skills
+                        cam_p.chest_data = cam_chest
+                        cam_p.save()
+                        camera_discount_activated = True
+                        break
+        except Exception:
+            pass
+    # =============================================
+
     return JsonResponse({
         'success': True,  # Add success flag
         'is_correct': is_correct,
@@ -1151,6 +1192,8 @@ def submit_answer(request, trial_id):
         'current_index': current_index,
         'total_questions': len(question_ids),
         'boots_messages': boots_messages,  # 靴子效果訊息
+        'camera_already_rewound': camera_already_rewound,
+        'camera_discount_activated': camera_discount_activated,
     })
 
 @login_required
@@ -1291,6 +1334,35 @@ def next_question(request, trial_id):
                     pass
             break
 
+    # 計算 360 環景相機資訊（next_question）
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+        if slot and slot.equipment.skill_effect == 'TIME_REWIND':
+            lvl = slot.enhancement_level
+            context['has_camera'] = True
+            if lvl >= 9:   max_uses = 5
+            elif lvl >= 6: max_uses = 4
+            elif lvl >= 3: max_uses = 3
+            else:           max_uses = 2
+            context['camera_uses_max'] = max_uses
+            # 從 progress 讀取剩餘次數與折扣狀態
+            if daily_task_id_nq:
+                try:
+                    from .models import DailyTrialProgress as _DTP
+                    cam_progress = _DTP.objects.get(user_profile=profile, daily_task_id=daily_task_id_nq)
+                    cam_chest = cam_progress.chest_data or {}
+                    cam_skills = cam_chest.get('active_skills', {})
+                    camera_uses = cam_skills.get('camera_uses', 0)
+                    context['camera_uses_left'] = max(0, max_uses - camera_uses)
+                    discount = cam_skills.get('camera_discount_active', False)
+                    context['camera_mp_cost'] = 15 if discount else 30
+                except Exception:
+                    context['camera_uses_left'] = max_uses
+                    context['camera_mp_cost'] = 30
+            else:
+                context['camera_uses_left'] = max_uses
+                context['camera_mp_cost'] = 30
+            break
+
     return render(request, 'EngineerRPG/trial_exam.html', context)
 
 @login_required
@@ -1400,6 +1472,108 @@ def vr_reveal_answer(request, trial_id):
         'heal_amount': heal_amount,
         'remaining_mp': progress.current_mp,
         'remaining_hp': progress.current_hp,
+    })
+
+@login_required
+def camera_rewind(request, trial_id):
+    """API (POST): 360 環景相機「存檔與回溯」— 回溯錯題，恢復 HP，重新作答"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid method'}, status=405)
+
+    profile = get_or_create_user_profile(request.user)
+    question_id = request.POST.get('question_id')
+    hp_damage = int(request.POST.get('hp_damage', 0))
+
+    if not question_id:
+        return JsonResponse({'error': 'question_id 必填'}, status=400)
+
+    # 確認有裝備 360 環景相機
+    camera_equip = None
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+        if slot and slot.equipment.skill_effect == 'TIME_REWIND':
+            camera_equip = slot
+            break
+    if not camera_equip:
+        return JsonResponse({'error': '未裝備 360 環景相機'}, status=400)
+
+    # 計算每場使用次數上限（依強化等級）
+    lvl = camera_equip.enhancement_level
+    if lvl >= 9:
+        max_uses = 5
+    elif lvl >= 6:
+        max_uses = 4
+    elif lvl >= 3:
+        max_uses = 3
+    else:
+        max_uses = 2
+
+    # 取每日試煉進度
+    daily_task_id = request.session.get('daily_task_id')
+    if not daily_task_id:
+        return JsonResponse({'error': '相機回溯僅限每日試煉使用'}, status=400)
+
+    from .models import DailyTrialProgress
+    try:
+        progress = DailyTrialProgress.objects.get(user_profile=profile, daily_task_id=daily_task_id)
+    except DailyTrialProgress.DoesNotExist:
+        return JsonResponse({'error': '找不到試煉進度'}, status=404)
+
+    chest_data = progress.chest_data or {}
+    active_skills = chest_data.get('active_skills', {})
+
+    # 確認次數未達上限
+    camera_uses = active_skills.get('camera_uses', 0)
+    if camera_uses >= max_uses:
+        return JsonResponse({'error': f'本場已使用 {camera_uses} 次，上限 {max_uses} 次', 'uses_exceeded': True}, status=400)
+
+    # 確認此題尚未回溯過（同一題只能回溯一次）
+    rewound_questions = active_skills.get('camera_rewound_questions', [])
+    if str(question_id) in [str(q) for q in rewound_questions]:
+        return JsonResponse({'error': '此題已回溯過，無法再次回溯', 'already_rewound': True}, status=400)
+
+    # 計算 MP 消耗（縮時攝影折半）
+    discount_active = active_skills.get('camera_discount_active', False)
+    mp_cost = 15 if discount_active else 30
+
+    # 確認 MP 足夠
+    if progress.current_mp < mp_cost:
+        return JsonResponse({'error': f'MP 不足（需要 {mp_cost} MP）', 'mp_insufficient': True}, status=400)
+
+    # 執行回溯
+    # 1. 扣除 MP
+    progress.current_mp -= mp_cost
+
+    # 2. 恢復 HP（加回此題傷害，不超過上限）
+    max_hp = profile.get_total_hp()
+    progress.current_hp = min(max_hp, progress.current_hp + hp_damage)
+
+    # 3. 移除此題的錯誤答題記錄
+    current_answers = progress.answers or {}
+    current_answers.pop(str(question_id), None)
+    progress.answers = current_answers
+
+    # 4. 記錄使用次數 +1
+    active_skills['camera_uses'] = camera_uses + 1
+
+    # 5. 記錄此題已回溯（同一題限一次）
+    rewound_questions.append(str(question_id))
+    active_skills['camera_rewound_questions'] = rewound_questions
+
+    # 6. 清除縮時攝影折扣（回溯後不享折扣）
+    active_skills['camera_discount_active'] = False
+
+    chest_data['active_skills'] = active_skills
+    progress.chest_data = chest_data
+    progress.save()
+
+    uses_left = max_uses - active_skills['camera_uses']
+    return JsonResponse({
+        'success': True,
+        'mp_cost': mp_cost,
+        'hp_restored': hp_damage,
+        'remaining_mp': progress.current_mp,
+        'remaining_hp': progress.current_hp,
+        'uses_left': uses_left,
     })
 
 @login_required
@@ -1791,6 +1965,24 @@ def start_daily_trial(request, task_id):
             sd_chest = progress.chest_data or {}
             if sd_chest.get('active_skills', {}).get('vr_used'):
                 context['vr_already_used'] = True
+            break
+
+    # 計算 360 環景相機資訊（start_daily_trial）
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+        if slot and slot.equipment.skill_effect == 'TIME_REWIND':
+            lvl = slot.enhancement_level
+            context['has_camera'] = True
+            if lvl >= 9:   max_uses = 5
+            elif lvl >= 6: max_uses = 4
+            elif lvl >= 3: max_uses = 3
+            else:           max_uses = 2
+            context['camera_uses_max'] = max_uses
+            sd_chest2 = progress.chest_data or {}
+            sd_skills = sd_chest2.get('active_skills', {})
+            camera_uses = sd_skills.get('camera_uses', 0)
+            context['camera_uses_left'] = max(0, max_uses - camera_uses)
+            discount = sd_skills.get('camera_discount_active', False)
+            context['camera_mp_cost'] = 15 if discount else 30
             break
 
     return render(request, 'EngineerRPG/trial_exam.html', context)

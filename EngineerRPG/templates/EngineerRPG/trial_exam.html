@@ -519,6 +519,28 @@
     </div>
 </div>
 
+<!-- 360 環景相機回溯確認 Modal -->
+<div id="cameraModal" style="display:none; position:fixed; inset:0; z-index:9999;
+     background:rgba(0,0,0,0.65); align-items:center; justify-content:center;">
+  <div style="background:#1e293b; border:2px solid #f59e0b; border-radius:16px;
+              padding:2rem; max-width:420px; width:90%; text-align:center; box-shadow:0 8px 40px rgba(0,0,0,0.6);">
+    <div style="font-size:3rem; margin-bottom:0.5rem;">🎥</div>
+    <h3 style="color:#f59e0b; margin-bottom:0.75rem; font-size:1.2rem;">答錯了，但別灰心！</h3>
+    <p style="color:#cbd5e1; margin-bottom:0.25rem;">是否使用 <strong style="color:#fbbf24;">360 環景相機</strong> 回溯此題重新作答？</p>
+    <p id="cameraModalInfo" style="color:#94a3b8; font-size:0.85rem; margin-bottom:1.5rem;"></p>
+    <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
+      <button id="cameraModalUseBtn" class="rpg-btn rpg-btn-warning"
+              style="min-width:130px;" onclick="handleCameraModalUse()">
+        🎥 使用相機回溯
+      </button>
+      <button class="rpg-btn rpg-btn-secondary"
+              style="min-width:130px;" onclick="handleCameraModalSkip()">
+        放棄，看答案
+      </button>
+    </div>
+  </div>
+</div>
+
 {% else %}
 <p class="text-center mt-xl">沒有可用的題目</p>
 {% endif %}
@@ -528,25 +550,31 @@
     const trialId = "{{ trial.id|default:'0' }}";
     const csrfTokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
     const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
-    let currentHP = {{ initial_hp|default:" 0" | stringformat:" d" }};
-    const maxHP = {{ base_hp|default:" 0" | stringformat:" d" }};
-    let currentMP = {{ initial_mp|default:" 0" | stringformat:" d" }};
-    const maxMP = {{ base_mp|default:" 0" | stringformat:" d" }};
-    let remainingSeconds = {{ remaining_seconds|default:" 0" | stringformat:" d" }};
-    const isTrialCompleted = {{ is_completed| yesno:" true,false" }};
+    let currentHP = {{ initial_hp|default:"0" }};
+    const maxHP = {{ base_hp|default:"0" }};
+    let currentMP = {{ initial_mp|default:"0" }};
+    const maxMP = {{ base_mp|default:"0" }};
+    let remainingSeconds = {{ remaining_seconds|default:"0" }};
+    const isTrialCompleted = {{ is_completed|yesno:"true,false" }};
 
     // Engineering App Cost
-    const engineeringAppMpCost = {{ engineering_app_mp_cost|default:" 20" | stringformat:" d" }};
+    const engineeringAppMpCost = {{ engineering_app_mp_cost|default:"20" }};
     // UAV 資訊
-    const hasUAV = {{ has_uav| yesno:" true,false" }};
-    const uavMpCost = {{ uav_mp_cost|default:" 30" | stringformat:" d" }};
-    const uavEliminateCount = {{ uav_eliminate_count|default:" 1" | stringformat:" d" }};
+    const hasUAV = {{ has_uav|yesno:"true,false" }};
+    const uavMpCost = {{ uav_mp_cost|default:"30" }};
+    const uavEliminateCount = {{ uav_eliminate_count|default:"1" }};
     const questionId = "{{ question.id|default:'0' }}";
     const questionType = "{{ question.question_type|default:'' }}";
     // VR 資訊
-    const hasVR = {{ has_vr| yesno:" true,false" }};
-    const vrMpCost = {{ vr_mp_cost|default:" 70" | stringformat:" d" }};
-    let vrAlreadyUsed = {{ vr_already_used| yesno:" true,false" }};
+    const hasVR = {{ has_vr|yesno:"true,false" }};
+    const vrMpCost = {{ vr_mp_cost|default:"70" }};
+    let vrAlreadyUsed = {{ vr_already_used|yesno:"true,false" }};
+    // 360 環景相機資訊
+    const hasCamera = {{ has_camera|yesno:"true,false" }};
+    let cameraMpCost = {{ camera_mp_cost|default:"30" }};
+    let cameraUsesLeft = {{ camera_uses_left|default:"0" }};
+    let currentQuestionRewound = false; // 當前題是否已回溯
+
 
     // Update MP Bar Helper
     function updateMPDisplay(newMP) {
@@ -680,6 +708,84 @@
         `;
         vrBtn.innerHTML = '&#x1F97D; VR 絕對解答（本場已使用，每場限一次）';
     }
+
+    // ===== 360 環景相機「存檔與回溯」技能 =====
+    function resetQuestion() {
+        // 隱藏 feedbackArea，恢復題目表單讓使用者重答
+        const feedbackArea = document.getElementById('feedbackArea');
+        const answerForm = document.getElementById('answerForm');
+        const submitBtn = document.getElementById('submitBtn');
+        if (feedbackArea) feedbackArea.style.display = 'none';
+        if (answerForm) answerForm.style.display = 'block';
+        // 清除所有 radio 選取
+        if (answerForm) {
+            answerForm.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
+        }
+        // 清除 UAV/VR 高亮殘留
+        document.querySelectorAll('#optionsList .option-item').forEach(label => {
+            label.style.border = '';
+            label.style.backgroundColor = '';
+            label.style.borderRadius = '';
+            label.style.padding = '';
+        });
+        if (submitBtn) submitBtn.disabled = false;
+        isSubmitting = false;
+        currentQuestionRewound = true; // 標記當前題已回溯
+    }
+
+    function activateCamera(hpDamage) {
+        const btn = document.getElementById('cameraRewindBtn');
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = '🎥 回溯中...';
+        }
+
+        const formData = new FormData();
+        formData.append('question_id', questionId);
+        formData.append('hp_damage', hpDamage);
+
+        fetch(`/rpg/trial/${trialId}/camera-rewind/`, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) {
+                if (data.uses_exceeded) {
+                    alert('本場回溯次數已用盡！');
+                } else if (data.mp_insufficient) {
+                    alert('MP 不足，無法回溯！');
+                } else if (data.already_rewound) {
+                    alert('此題已回溯過，無法再次回溯！');
+                } else {
+                    alert(data.error);
+                }
+                if (btn) { btn.disabled = false; btn.textContent = '🎥 360 相機回溯'; }
+                return;
+            }
+
+            // 成功回溯
+            cameraUsesLeft = data.uses_left;
+            cameraMpCost = 30; // 回溯後折扣清除，下題重新從 context 取
+            updateMPDisplay(data.remaining_mp);
+            updateHPDisplay(data.remaining_hp);
+
+            // 顯示成功提示
+            if (typeof showItemEffect === 'function') {
+                showItemEffect(`🎥 相機回溯成功！HP +${data.hp_restored} 恢復，剩餘 ${data.uses_left} 次`, 'success');
+            }
+
+            // 重設題目 UI
+            resetQuestion();
+        })
+        .catch(err => {
+            console.error('Camera rewind error:', err);
+            alert('回溯系統異常，請重試');
+            if (btn) { btn.disabled = false; btn.textContent = '🎥 360 相機回溯'; }
+        });
+    }
+    // ============================================
 
     function activateVR() {
         if (vrAlreadyUsed) return; // 本場已使用過
@@ -832,6 +938,8 @@
     }
 
     // 顯示反饋
+    let _pendingWrongData = null; // 暫存答錯資料，待 Modal 決定後才顯示
+
     function showFeedback(data) {
         console.log('Feedback data:', data);
 
@@ -842,6 +950,60 @@
             return;
         }
 
+        const answerForm = document.getElementById('answerForm');
+        const feedbackArea = document.getElementById('feedbackArea');
+        const feedbackIcon = document.getElementById('feedbackIcon');
+        const feedbackTitle = document.getElementById('feedbackTitle');
+        const feedbackDetails = document.getElementById('feedbackDetails');
+
+        updateHPDisplay(data.remaining_hp);
+
+        if (data.is_correct) {
+            // 答對：正常顯示 feedbackArea
+            answerForm.style.display = 'none';
+            feedbackArea.style.display = 'block';
+            feedbackIcon.innerHTML = '<i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>';
+            feedbackTitle.textContent = '✓ 答對了！';
+            feedbackTitle.className = 'feedback-title text-success';
+            let feedbackHTML = `<p class="text-lg">${data.explanation || '太棒了！繼續加油！'}</p>`;
+            if (data.boots_messages && data.boots_messages.length > 0) {
+                feedbackHTML += '<div class="mt-md p-md bg-primary/10 rounded-lg border border-primary/30">';
+                data.boots_messages.forEach(msg => {
+                    if (!msg.includes('[DEBUG]')) feedbackHTML += `<div class="text-sm text-stone mb-xs">${msg}</div>`;
+                });
+                feedbackHTML += '</div>';
+            }
+            if (data.camera_discount_activated) {
+                feedbackHTML += `<div class="mt-sm" style="color:#f59e0b; font-size:0.85rem;">🎥 【縮時攝影】已啟動！下次使用相機消耗 15 MP</div>`;
+            }
+            feedbackDetails.innerHTML = feedbackHTML;
+            setupNextBtn(data);
+
+        } else {
+            // 答錯：先判斷是否能回溯
+            _pendingWrongData = data;
+
+            const canRewind = hasCamera && cameraUsesLeft > 0 &&
+                              currentMP >= cameraMpCost && !data.camera_already_rewound &&
+                              !data.is_game_over;
+
+            if (canRewind) {
+                // 顯示相機 Modal，不洩漏正確答案
+                const discountNote = cameraMpCost === 15 ? '（縮時攝影折半）' : '';
+                document.getElementById('cameraModalInfo').textContent =
+                    `消耗 ${cameraMpCost} MP${discountNote}・本場剩餘 ${cameraUsesLeft} 次・HP -${data.hp_damage || 0} 已扣除`;
+                const modal = document.getElementById('cameraModal');
+                modal.style.display = 'flex';
+            } else {
+                // 無法回溯，直接顯示答錯畫面
+                answerForm.style.display = 'none';
+                showWrongFeedback(data);
+            }
+        }
+    }
+
+    // 顯示答錯的完整 feedback（含正確答案），在放棄回溯後才呼叫
+    function showWrongFeedback(data) {
         const feedbackArea = document.getElementById('feedbackArea');
         const feedbackIcon = document.getElementById('feedbackIcon');
         const feedbackTitle = document.getElementById('feedbackTitle');
@@ -850,66 +1012,56 @@
 
         answerForm.style.display = 'none';
         feedbackArea.style.display = 'block';
+        feedbackIcon.innerHTML = '<i class="fas fa-times-circle text-danger" style="font-size: 4rem;"></i>';
+        feedbackTitle.textContent = '✗ 答錯了';
+        feedbackTitle.className = 'feedback-title text-danger';
 
-        updateHPDisplay(data.remaining_hp);
-
-        if (data.is_correct) {
-            feedbackIcon.innerHTML = '<i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>';
-            feedbackTitle.textContent = '✓ 答對了！';
-            feedbackTitle.className = 'feedback-title text-success';
-            let feedbackHTML = `<p class="text-lg">${data.explanation || '太棒了！繼續加油！'}</p>`;
-
-            // 顯示額外訊息 (如鞋子效果)
-            if (data.boots_messages && data.boots_messages.length > 0) {
-                feedbackHTML += '<div class="mt-md p-md bg-primary/10 rounded-lg border border-primary/30">';
-                data.boots_messages.forEach(msg => {
-                    if (!msg.includes('[DEBUG]')) feedbackHTML += `<div class="text-sm text-stone mb-xs">${msg}</div>`;
-                });
-                feedbackHTML += '</div>';
-            }
-            feedbackDetails.innerHTML = feedbackHTML;
-        } else {
-            feedbackIcon.innerHTML = '<i class="fas fa-times-circle text-danger" style="font-size: 4rem;"></i>';
-            feedbackTitle.textContent = '✗ 答錯了';
-            feedbackTitle.className = 'feedback-title text-danger';
-
-            let feedbackHTML = `
-            <p class="text-lg mb-md"><strong>正確答案：</strong>${data.correct_answer}</p>
-            <p class="text-md">${data.explanation || '請再接再厲！'}</p>
-            <p class="text-danger mt-md"><strong>❤️ HP -${data.hp_damage || 10}</strong></p>
-            `;
-
-            if (data.boots_messages && data.boots_messages.length > 0) {
-                feedbackHTML += '<div class="mt-md p-md bg-primary/10 rounded-lg border border-primary/30">';
-                data.boots_messages.forEach(msg => {
-                    if (!msg.includes('[DEBUG]')) feedbackHTML += `<div class="text-sm text-stone mb-xs">${msg}</div>`;
-                });
-                feedbackHTML += '</div>';
-            }
-            feedbackDetails.innerHTML = feedbackHTML;
+        let feedbackHTML = `
+        <p class="text-lg mb-md"><strong>正確答案：</strong>${data.correct_answer}</p>
+        <p class="text-md">${data.explanation || '請再接再厲！'}</p>
+        <p class="text-danger mt-md"><strong>❤️ HP -${data.hp_damage || 10}</strong></p>
+        `;
+        if (data.boots_messages && data.boots_messages.length > 0) {
+            feedbackHTML += '<div class="mt-md p-md bg-primary/10 rounded-lg border border-primary/30">';
+            data.boots_messages.forEach(msg => {
+                if (!msg.includes('[DEBUG]')) feedbackHTML += `<div class="text-sm text-stone mb-xs">${msg}</div>`;
+            });
+            feedbackHTML += '</div>';
         }
+        feedbackDetails.innerHTML = feedbackHTML;
+        setupNextBtn(data);
+    }
 
+    // 設定「下一題」按鈕行為
+    function setupNextBtn(data) {
         const nextBtn = document.getElementById('nextBtn');
         if (data.is_game_over) {
-            feedbackDetails.innerHTML += '<p class="text-danger text-xl mt-lg"><strong>❌ HP 歸零!挑戰失敗!</strong></p>';
+            document.getElementById('feedbackDetails').innerHTML += '<p class="text-danger text-xl mt-lg"><strong>❌ HP 歸零!挑戰失敗!</strong></p>';
             nextBtn.textContent = '查看結果';
-            nextBtn.onclick = function () {
-                isSubmitting = true;
-                window.location.reload();
-            };
+            nextBtn.onclick = function () { isSubmitting = true; window.location.reload(); };
         } else if (data.current_index + 1 >= data.total_questions) {
             nextBtn.innerHTML = '<i class="fas fa-flag-checkered"></i> 結束副本';
-            nextBtn.onclick = function () {
-                isSubmitting = true;
-                window.location.reload();
-            };
+            nextBtn.onclick = function () { isSubmitting = true; window.location.reload(); };
         } else {
             nextBtn.innerHTML = '<i class="fas fa-arrow-right"></i> 下一題';
-            nextBtn.onclick = function () {
-                isSubmitting = true;
-                window.location.href = `/rpg/trial/${trialId}/next-question/`;
-            };
+            nextBtn.onclick = function () { isSubmitting = true; window.location.href = `/rpg/trial/${trialId}/next-question/`; };
         }
+    }
+
+    // Modal：選擇使用相機回溯
+    function handleCameraModalUse() {
+        const modal = document.getElementById('cameraModal');
+        modal.style.display = 'none';
+        const btn = document.getElementById('cameraModalUseBtn');
+        if (btn) { btn.disabled = true; btn.textContent = '🎥 回溯中...'; }
+        activateCamera(_pendingWrongData ? (_pendingWrongData.hp_damage || 0) : 0);
+    }
+
+    // Modal：放棄回溯，顯示正確答案
+    function handleCameraModalSkip() {
+        const modal = document.getElementById('cameraModal');
+        modal.style.display = 'none';
+        if (_pendingWrongData) showWrongFeedback(_pendingWrongData);
     }
 
     function updateHPDisplay(hp) {
