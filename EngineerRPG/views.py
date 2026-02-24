@@ -816,6 +816,22 @@ def submit_answer(request, trial_id):
         
         # Newbie Luck (【新手運】) refund logic for tools consumed in answer submission
         use_uav = request.POST.get('use_uav') == 'true'
+        use_vr = request.POST.get('use_vr') == 'true' # Assuming there might be a VR flag in the future
+        
+        daily_task_id = request.session.get('daily_task_id')
+        progress = None
+        if daily_task_id:
+            from .models import DailyTrialProgress, DailyTrialTask
+            import random
+            progress = DailyTrialProgress.objects.filter(user_profile=profile, daily_task_id=daily_task_id).first()
+        
+        # 檢查是否被「禁語默僧」封印
+        chest_data = progress.chest_data or {} if progress else {}
+        is_sealed = chest_data.get('sealed_tools_turns', 0) > 0
+        
+        if is_sealed and (use_engineering_app or use_uav or use_vr):
+            return JsonResponse({'success': False, 'message': '🚫 禁語默僧的詛咒發作！工具技能已被封印，無法使用！'})
+
         used_skill_this_turn = use_engineering_app or (use_uav and question.question_type == 'SINGLE')
         
         boots_messages = [] # 先定義，確保後方不會出錯
@@ -838,16 +854,11 @@ def submit_answer(request, trial_id):
         request.session['trial_answers'] = trial_answers
         
         # 處理血量扣減
-        daily_task_id = request.session.get('daily_task_id')
         # boots_messages 已在更早處宣告
         
         is_game_over_flag = False
 
-        if daily_task_id:
-            from .models import DailyTrialProgress, DailyTrialTask
-            import random
-            progress = DailyTrialProgress.objects.get(user_profile=profile, daily_task_id=daily_task_id)
-            
+        if daily_task_id and progress:
             # 更新答題紀錄到資料庫
             current_answers = progress.answers or {}
             current_answers[str(question.id)] = {
@@ -937,12 +948,15 @@ def submit_answer(request, trial_id):
                         boots_messages.append('⚠️ MP 不足，無法啟動 UAV!')
 
             if not is_correct:
-                # 基礎傷害
-                base_damage = 10
-                if question.difficulty == 'C': 
-                    base_damage = 5
-                elif question.difficulty in ['A', 'S']: 
-                    base_damage = 15
+                # 新制基礎傷害：根據怪物類型判斷
+                current_monster = chest_data.get('current_monster', {})
+                m_type = current_monster.get('type', 'NORMAL')
+                
+                if m_type == 'ELITE':
+                    base_damage = 30
+                else:
+                    # NORMAL 或 MUTANT 皆為 10
+                    base_damage = 10
                 
                 # 3. [Lighting Optimization] (Helmet +9): -1 damage on bad visibility/hard questions
                 if profile.equipped_helmet and profile.equipped_helmet.has_special_ability():
@@ -952,8 +966,21 @@ def submit_answer(request, trial_id):
                              base_damage = max(1, base_damage - 1)
                              boots_messages.append('💡 照明優化: 困難題傷害 -1')
 
-                # 套用減傷
-                damage_reduction = profile.get_total_damage_reduction()
+                # 套用減傷 (若是裝備被鏽蝕之觸針對，則失去該項減傷)
+                broken_parts = chest_data.get('broken_equipments', [])
+                damage_reduction = 0
+                
+                # 手動計算尚未失效的減傷
+                if 'helmet' not in broken_parts and profile.equipped_helmet:
+                    damage_reduction += profile.equipped_helmet.get_damage_reduction()
+                if 'armor' not in broken_parts and profile.equipped_armor:
+                    damage_reduction += profile.equipped_armor.get_damage_reduction()
+                if 'boots' not in broken_parts and profile.equipped_boots:
+                    damage_reduction += profile.equipped_boots.get_damage_reduction()
+                
+                # 工具類通常不提供直接的 get_damage_reduction()，除非有填寫，若有需要也可以一併檢查
+                for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+                    if slot: damage_reduction += slot.get_damage_reduction()
                 
                 # 5. [Crisis Protection] (Armor +9): Double DR when HP < 20%
                 if profile.equipped_armor and profile.equipped_armor.has_special_ability():
@@ -1256,7 +1283,20 @@ def next_question(request, trial_id):
             pass
         
         progress.save()
-    
+        
+        progress.save()
+        
+    # 如果還有下一題，就生成下一題的怪物 (並且扣除封印回合等狀態)
+    if next_index < len(question_ids) and daily_task_id:
+        # 扣除禁語默僧的回合數
+        chest_data = progress.chest_data or {}
+        if chest_data.get('sealed_tools_turns', 0) > 0:
+            chest_data['sealed_tools_turns'] -= 1
+            progress.chest_data = chest_data
+            progress.save()
+            
+        generate_daily_monster(progress, profile, request)
+
     if next_index >= len(question_ids):
         # 答完所有題目, 重導向回每日試煉頁面(會自動顯示結算)
         if daily_task_id:
@@ -1290,6 +1330,108 @@ def next_question(request, trial_id):
     elapsed = (timezone.now() - start_time).total_seconds()
     remaining_seconds = max(0, int(trial.time_limit_minutes * 60 - elapsed))
 
+    # 擷取怪物與 Debuff 狀態供前端渲染
+    chest_data = progress.chest_data or {}
+    current_monster = chest_data.get('current_monster', None)
+    is_sealed = chest_data.get('sealed_tools_turns', 0) > 0
+    broken_equipments = chest_data.get('broken_equipments', [])
+    
+    # Prepare skill-related variables for context
+    has_engineering_app = False
+    engineering_app_cost = 20
+    engineering_app_shield = None
+    has_uav = False
+    uav_mp_cost = 30
+    uav_eliminate_count = 1
+    uav_buff_duration = 0 # Assuming this is a new variable for UAV
+    has_vr = False
+    vr_mp_cost = 70
+    vr_already_used = False
+    has_camera = False
+    camera_uses_max = 0
+    camera_uses_left = 0
+    camera_mp_cost = 30
+
+    # Calculate actual MP cost based on enhancement level if equipped
+    app_equip = None
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+        if slot and slot.equipment.id == 10:
+            app_equip = slot
+            has_engineering_app = True
+            break
+    
+    if app_equip:
+        level = app_equip.enhancement_level
+        if level >= 9:
+            engineering_app_cost = 35
+        elif level >= 6:
+            engineering_app_cost = 30
+        elif level >= 3:
+            engineering_app_cost = 25
+        else:
+            engineering_app_cost = 20
+        
+        # Get shield info if active
+        shield_info = chest_data.get('active_skills', {}).get('engineering_app')
+        if shield_info:
+            engineering_app_shield = shield_info
+
+    # 計算 UAV 資訊
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+        if slot and slot.equipment.skill_effect == '選項刪去':
+            lvl = slot.enhancement_level
+            has_uav = True
+            uav_mp_cost = 25 if lvl >= 9 else 30
+            uav_eliminate_count = 2 if lvl >= 6 else 1
+            # uav_buff_duration is not explicitly defined in the original code, assuming it's 0 or needs to be derived
+            break
+
+    # 計算 VR 資訊
+    daily_task_id_nq = request.session.get('daily_task_id')
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+        if slot and slot.equipment.skill_effect == '絕對解答':
+            lvl = slot.enhancement_level
+            has_vr = True
+            vr_mp_cost = 40 if lvl >= 9 else (50 if lvl >= 6 else (60 if lvl >= 3 else 70))
+            if daily_task_id_nq:
+                from .models import DailyTrialProgress
+                try:
+                    nq_progress = DailyTrialProgress.objects.get(user_profile=profile, daily_task_id=daily_task_id_nq)
+                    nq_chest = nq_progress.chest_data or {}
+                    if nq_chest.get('active_skills', {}).get('vr_used'):
+                        vr_already_used = True
+                except DailyTrialProgress.DoesNotExist:
+                    pass
+            break
+
+    # 計算 360 環景相機資訊
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+        if slot and slot.equipment.skill_effect == '時間回溯':
+            lvl = slot.enhancement_level
+            has_camera = True
+            if lvl >= 9:   camera_uses_max = 5
+            elif lvl >= 6: camera_uses_max = 4
+            elif lvl >= 3: camera_uses_max = 3
+            else:           camera_uses_max = 2
+            
+            if daily_task_id_nq:
+                try:
+                    from .models import DailyTrialProgress as _DTP
+                    cam_progress = _DTP.objects.get(user_profile=profile, daily_task_id=daily_task_id_nq)
+                    cam_chest = cam_progress.chest_data or {}
+                    cam_skills = cam_chest.get('active_skills', {})
+                    camera_uses = cam_skills.get('camera_uses', 0)
+                    camera_uses_left = max(0, camera_uses_max - camera_uses)
+                    discount = cam_skills.get('camera_discount_active', False)
+                    camera_mp_cost = 15 if discount else 30
+                except Exception:
+                    camera_uses_left = camera_uses_max
+                    camera_mp_cost = 30
+            else:
+                camera_uses_left = camera_uses_max
+                camera_mp_cost = 30
+            break
+
     # 渲染下一題
     context = {
         'profile': profile,
@@ -1299,103 +1441,36 @@ def next_question(request, trial_id):
         'total_questions': len(question_ids),
         'base_hp': profile.get_total_hp(),
         'base_mp': profile.get_total_mp(),
-        'initial_hp': current_hp,
-        'initial_mp': current_mp,
+        'initial_hp': current_hp, # This is actually current_hp
+        'initial_mp': current_mp, # This is actually current_mp
         'heart_range': range(1, max(profile.get_total_hp(), 5) + 1),
         'is_daily_task': bool(daily_task_id),
         'user_items': UserItem.objects.filter(user_profile=profile, quantity__gt=0).select_related('item'),
         'time_limit': trial.time_limit_minutes,
         'start_time': start_time.isoformat(),
         'remaining_seconds': remaining_seconds,
-        'has_engineering_app': (
-            (profile.equipped_tool_1 and profile.equipped_tool_1.equipment.id == 10) or
-            (profile.equipped_tool_2 and profile.equipped_tool_2.equipment.id == 10) or
-            (profile.equipped_tool_3 and profile.equipped_tool_3.equipment.id == 10)
-        ),
-        'engineering_app_mp_cost': 20, # Default cost, updated below if equipped
-        'has_uav': False,
-        'uav_mp_cost': 30,
-        'uav_eliminate_count': 1,
-        'has_vr': False,
-        'vr_mp_cost': 70,
-        'vr_already_used': False,
-    }
-
-    # Calculate actual MP cost based on enhancement level if equipped
-    if context['has_engineering_app']:
-        app_equip = None
-        for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-            if slot and slot.equipment.id == 10:
-                app_equip = slot
-                break
+        'has_engineering_app': has_engineering_app,
+        'engineering_app_mp_cost': engineering_app_cost,
+        'engineering_app_shield': engineering_app_shield, # Add shield info
+        'has_uav': has_uav,
+        'uav_mp_cost': uav_mp_cost,
+        'uav_eliminate_count': uav_eliminate_count,
+        'uav_buff_duration': uav_buff_duration, # Assuming this is needed
+        'has_vr': has_vr,
+        'vr_mp_cost': vr_mp_cost,
+        'vr_already_used': vr_already_used,
+        'has_camera': has_camera,
+        'camera_uses_max': camera_uses_max,
+        'camera_uses_left': camera_uses_left,
+        'camera_mp_cost': camera_mp_cost,
+        'chest_data': progress.chest_data if daily_task_id else {}, # Pass full chest_data
         
-        if app_equip:
-            level = app_equip.enhancement_level
-            if level >= 9:
-                context['engineering_app_mp_cost'] = 35
-            elif level >= 6:
-                context['engineering_app_mp_cost'] = 30
-            elif level >= 3:
-                context['engineering_app_mp_cost'] = 25
-            else:
-                context['engineering_app_mp_cost'] = 20
-
-    # 計算 UAV 資訊（next_question）
-    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-        if slot and slot.equipment.skill_effect == '選項刪去':
-            lvl = slot.enhancement_level
-            context['has_uav'] = True
-            context['uav_mp_cost'] = 25 if lvl >= 9 else 30
-            context['uav_eliminate_count'] = 2 if lvl >= 6 else 1
-            break
-
-    # 計算 VR 資訊（next_question）
-    daily_task_id_nq = request.session.get('daily_task_id')
-    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-        if slot and slot.equipment.skill_effect == '絕對解答':
-            lvl = slot.enhancement_level
-            context['has_vr'] = True
-            context['vr_mp_cost'] = 40 if lvl >= 9 else (50 if lvl >= 6 else (60 if lvl >= 3 else 70))
-            # 探查本場是否已使用 VR
-            if daily_task_id_nq:
-                from .models import DailyTrialProgress
-                try:
-                    nq_progress = DailyTrialProgress.objects.get(user_profile=profile, daily_task_id=daily_task_id_nq)
-                    nq_chest = nq_progress.chest_data or {}
-                    if nq_chest.get('active_skills', {}).get('vr_used'):
-                        context['vr_already_used'] = True
-                except DailyTrialProgress.DoesNotExist:
-                    pass
-            break
-
-    # 計算 360 環景相機資訊（next_question）
-    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-        if slot and slot.equipment.skill_effect == '時間回溯':
-            lvl = slot.enhancement_level
-            context['has_camera'] = True
-            if lvl >= 9:   max_uses = 5
-            elif lvl >= 6: max_uses = 4
-            elif lvl >= 3: max_uses = 3
-            else:           max_uses = 2
-            context['camera_uses_max'] = max_uses
-            # 從 progress 讀取剩餘次數與折扣狀態
-            if daily_task_id_nq:
-                try:
-                    from .models import DailyTrialProgress as _DTP
-                    cam_progress = _DTP.objects.get(user_profile=profile, daily_task_id=daily_task_id_nq)
-                    cam_chest = cam_progress.chest_data or {}
-                    cam_skills = cam_chest.get('active_skills', {})
-                    camera_uses = cam_skills.get('camera_uses', 0)
-                    context['camera_uses_left'] = max(0, max_uses - camera_uses)
-                    discount = cam_skills.get('camera_discount_active', False)
-                    context['camera_mp_cost'] = 15 if discount else 30
-                except Exception:
-                    context['camera_uses_left'] = max_uses
-                    context['camera_mp_cost'] = 30
-            else:
-                context['camera_uses_left'] = max_uses
-                context['camera_mp_cost'] = 30
-            break
+        # 每日副本新機制狀態
+        'current_monster': current_monster,
+        'is_tools_sealed': is_sealed,
+        'broken_equipments': broken_equipments,
+        'is_last_question': next_index == len(question_ids) - 1, # Add this for frontend logic
+    }
 
     return render(request, 'EngineerRPG/trial_exam.html', context)
 
@@ -1746,6 +1821,102 @@ def daily_trial_list(request):
     }
     return render(request, 'EngineerRPG/daily_trial.html', context)
 
+import random
+
+def generate_daily_monster(progress, profile, request=None):
+    """
+    根據玩家等級隨機生成每日副本的怪物，並處理變異種的 Immediate Effect。
+    結果會儲存在 progress.chest_data['current_monster'] 中。
+    """
+    chest_data = progress.chest_data or {}
+    
+    # 1. 檢查是否有「災厄標記」
+    has_calamity_mark = chest_data.get('calamity_mark', False)
+    
+    if has_calamity_mark:
+        monster_type = 'ELITE'
+        # 清除標記
+        chest_data['calamity_mark'] = False
+        if request:
+            messages.warning(request, '⚠️ 受災厄標記影響，強制遭遇菁英種！')
+    else:
+        # 2. 根據等級權重計算
+        roll = random.randint(1, 100)
+        level = profile.level
+        if level <= 10:
+            if roll <= 80:
+                monster_type = 'NORMAL'
+            elif roll <= 95:
+                monster_type = 'ELITE'
+            else:
+                monster_type = 'MUTANT'
+        else:
+            if roll <= 60:
+                monster_type = 'NORMAL'
+            elif roll <= 85:
+                monster_type = 'ELITE'
+            else:
+                monster_type = 'MUTANT'
+
+    # 3. 處理變異種 Immediate Effect
+    mutant_subtype = None
+    mutant_name = ""
+    mutant_desc = ""
+    
+    if monster_type == 'MUTANT':
+        subtypes = ['SILENT_MONK', 'MANA_DEVOURER', 'CALAMITY_HERALD', 'RUST_TOUCH']
+        mutant_subtype = random.choice(subtypes)
+        
+        if mutant_subtype == 'SILENT_MONK':
+            mutant_name = "禁語默僧"
+            mutant_desc = "封印玩家工具技能，持續 3 題"
+            chest_data['sealed_tools_turns'] = 3
+            if request:
+                messages.error(request, '🚫 遭遇【禁語默僧】！工具技能已被封印 3 題！')
+            
+        elif mutant_subtype == 'MANA_DEVOURER':
+            mutant_name = "噬法幽光"
+            mp_loss = random.randint(10, 20)
+            mutant_desc = f"隨機抽取玩家 {mp_loss} MP"
+            # 立即扣除 MP
+            progress.current_mp = max(0, progress.current_mp - mp_loss)
+            if request:
+                messages.warning(request, f'👻 遭遇【噬法幽光】！被吸取了 {mp_loss} 點 MP...')
+            
+        elif mutant_subtype == 'CALAMITY_HERALD':
+            mutant_name = "災厄先遣者"
+            mutant_desc = "對玩家施加「災厄標記」，下一題強制遭遇菁英種"
+            chest_data['calamity_mark'] = True
+            if request:
+                messages.warning(request, '💀 遭遇【災厄先遣者】！已被標記，下一題將遭遇菁英種。')
+            
+        elif mutant_subtype == 'RUST_TOUCH':
+            mutant_name = "鏽蝕之觸"
+            # 隨機選擇失效裝備部位
+            parts = ['helmet', 'armor', 'boots']
+            broken_part = random.choice(parts)
+            mutant_desc = f"隨機使 [{broken_part}] 失效，直到副本結束"
+            
+            if request:
+                part_names = {'helmet': '頭盔', 'armor': '護甲', 'boots': '靴子'}
+                messages.error(request, f'⛓️ 遭遇【鏽蝕之觸】！你的 [{part_names.get(broken_part, broken_part)}] 已失效！')
+                
+            if 'broken_equipments' not in chest_data:
+                chest_data['broken_equipments'] = []
+            if broken_part not in chest_data['broken_equipments']:
+                chest_data['broken_equipments'].append(broken_part)
+
+    # 4. 記錄當前怪物狀態
+    chest_data['current_monster'] = {
+        'type': monster_type,
+        'mutant_subtype': mutant_subtype,
+        'mutant_name': mutant_name,
+        'mutant_desc': mutant_desc
+    }
+    
+    progress.chest_data = chest_data
+    progress.save()
+
 @login_required
 def start_daily_trial(request, task_id):
     """開始每日試煉任務"""
@@ -1759,27 +1930,52 @@ def start_daily_trial(request, task_id):
     # Check if already completed
     from .models import DailyTrialProgress
     
-    # 計算包含裝備加成的總 HP/MP
+    # 計算包含裝備加成的總 HP/MP (最大值)
     total_hp = profile.get_total_hp()
     total_mp = profile.get_total_mp()
+
+    # 檢查今日是否已有其他試煉紀錄 (跨副本繼承 HP/MP 機制)
+    today = timezone.now().date()
+    today_progresses = DailyTrialProgress.objects.filter(
+        user_profile=profile,
+        daily_task__date=today
+    ).exclude(daily_task_id=task_id).order_by('-started_at')
     
-    # 應用頭盔 +9 特殊能力 (試煉開始觸發)
-    if profile.equipped_helmet and profile.equipped_helmet.has_special_ability():
-        ability_name = profile.equipped_helmet.special_ability_name
-        if ability_name == '【工頭威嚴】':
-            # 進場初始 MP 額外 +10%
-            total_mp = int(total_mp * 1.1)
-            messages.success(request, '👑 工頭威嚴: 初始 MP +10%!')
-    
+    if today_progresses.exists():
+        last_progress = today_progresses.first()
+        # 若上一場 HP 已歸零，阻擋進入
+        if last_progress.current_hp <= 0:
+            messages.error(request, '您今日的生命值已耗盡，無法再進行其他試煉，請等待明日重置。')
+            return redirect('engineer_rpg:daily_trial_list')
+        
+        # 繼承上一場的殘留血量/MP
+        initial_hp_to_use = last_progress.current_hp
+        initial_mp_to_use = last_progress.current_mp
+        # 但若是「裝備等外力影響」使得當前上限小於殘留值，防呆取最小值
+        initial_hp_to_use = min(initial_hp_to_use, total_hp)
+        initial_mp_to_use = min(initial_mp_to_use, total_mp)
+    else:
+        # 這是今日第一場試煉
+        initial_hp_to_use = total_hp
+        initial_mp_to_use = total_mp
+        
+        # 應用頭盔 +9 特殊能力 (僅在今日第一次進場滿狀態時觸發，不會在已經消耗過後再加總)
+        if profile.equipped_helmet and profile.equipped_helmet.has_special_ability():
+            ability_name = profile.equipped_helmet.special_ability_name
+            if ability_name == '【工頭威嚴】':
+                initial_mp_to_use = int(initial_mp_to_use * 1.1)
+                total_mp = initial_mp_to_use # 同步最大值
+                messages.success(request, '👑 工頭威嚴: 初始 MP +10%!')
+
     progress, created = DailyTrialProgress.objects.get_or_create(
         user_profile=profile,
         daily_task=daily_task,
         defaults={
             'started_at': timezone.now(),
-            'current_hp': total_hp,
-            'current_mp': total_mp,
-            'initial_hp': total_hp,
-            'initial_mp': total_mp,
+            'current_hp': initial_hp_to_use,
+            'current_mp': initial_mp_to_use,
+            'initial_hp': total_hp, # 這裡的 initial 記錄的是最大值 (UI 顯示用)
+            'initial_mp': total_mp, # 最大 MP
             'current_question_index': 0,
             'boots_correct_streak': 0,
             'boots_total_correct': 0,
@@ -1795,6 +1991,10 @@ def start_daily_trial(request, task_id):
     # 檢查是否已完成或超時
     # elapsed_minutes = (timezone.now() - progress.started_at).total_seconds() / 60
     # is_timeout = elapsed_minutes > daily_task.trial.time_limit_minutes
+    # 第一題開始時生成第一隻怪物
+    if created or not progress.chest_data.get('current_monster'):
+        generate_daily_monster(progress, profile, request)
+        
     total_questions_count = daily_task.questions.count()
     is_questions_finished = (progress.current_question_index >= total_questions_count) or (progress.answers and len(progress.answers) >= total_questions_count)
     
@@ -1948,6 +2148,90 @@ def start_daily_trial(request, task_id):
     elapsed = (timezone.now() - progress.started_at).total_seconds()
     remaining_seconds = max(0, int(trial.time_limit_minutes * 60 - elapsed))
 
+    # 擷取怪物與 Debuff 狀態供前端渲染
+    chest_data = progress.chest_data or {}
+    current_monster = chest_data.get('current_monster', None)
+    is_sealed = chest_data.get('sealed_tools_turns', 0) > 0
+    broken_equipments = chest_data.get('broken_equipments', [])
+
+    # Prepare skill-related variables for context
+    has_engineering_app = False
+    engineering_app_cost = 20
+    engineering_app_shield = None
+    has_uav = False
+    uav_mp_cost = 30
+    uav_eliminate_count = 1
+    uav_buff_duration = 0 # Assuming this is a new variable for UAV
+    has_vr = False
+    vr_mp_cost = 70
+    vr_already_used = False
+    has_360_camera = False # Renamed from has_camera for clarity with the snippet
+    camera_uses_max = 0
+    camera_uses_left = 0
+    camera_mp_cost = 30
+
+    # Calculate actual MP cost based on enhancement level if equipped
+    app_equip = None
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+        if slot and slot.equipment.id == 10:
+            app_equip = slot
+            has_engineering_app = True
+            break
+    
+    if app_equip:
+        level = app_equip.enhancement_level
+        if level >= 9:
+            engineering_app_cost = 35
+        elif level >= 6:
+            engineering_app_cost = 30
+        elif level >= 3:
+            engineering_app_cost = 25
+        else:
+            engineering_app_cost = 20
+        
+        # Get shield info if active
+        shield_info = chest_data.get('active_skills', {}).get('engineering_app')
+        if shield_info:
+            engineering_app_shield = shield_info
+
+    # 計算 UAV 資訊
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+        if slot and slot.equipment.skill_effect == '選項刪去':
+            lvl = slot.enhancement_level
+            has_uav = True
+            uav_mp_cost = 25 if lvl >= 9 else 30
+            uav_eliminate_count = 2 if lvl >= 6 else 1
+            # uav_buff_duration is not explicitly defined in the original code, assuming it's 0 or needs to be derived
+            break
+
+    # 計算 VR 資訊
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+        if slot and slot.equipment.skill_effect == '絕對解答':
+            lvl = slot.enhancement_level
+            has_vr = True
+            vr_mp_cost = 40 if lvl >= 9 else (50 if lvl >= 6 else (60 if lvl >= 3 else 70))
+            sd_chest = progress.chest_data or {}
+            if sd_chest.get('active_skills', {}).get('vr_used'):
+                vr_already_used = True
+            break
+
+    # 計算 360 環景相機資訊
+    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
+        if slot and slot.equipment.skill_effect == '時間回溯':
+            lvl = slot.enhancement_level
+            has_360_camera = True
+            if lvl >= 9:   camera_uses_max = 5
+            elif lvl >= 6: camera_uses_max = 4
+            elif lvl >= 3: camera_uses_max = 3
+            else:           camera_uses_max = 2
+            sd_chest2 = progress.chest_data or {}
+            sd_skills = sd_chest2.get('active_skills', {})
+            camera_uses = sd_skills.get('camera_uses', 0)
+            camera_uses_left = max(0, camera_uses_max - camera_uses)
+            discount = sd_skills.get('camera_discount_active', False)
+            camera_mp_cost = 15 if discount else 30
+            break
+
     context = {
         'profile': profile,
         'trial': trial,
@@ -1964,71 +2248,26 @@ def start_daily_trial(request, task_id):
         'time_limit': trial.time_limit_minutes,
         'start_time': progress.started_at.isoformat(),
         'remaining_seconds': remaining_seconds,
-        'has_engineering_app': (
-            (profile.equipped_tool_1 and profile.equipped_tool_1.equipment.id == 10) or
-            (profile.equipped_tool_2 and profile.equipped_tool_2.equipment.id == 10) or
-            (profile.equipped_tool_3 and profile.equipped_tool_3.equipment.id == 10)
-        ),
-        'engineering_app_mp_cost': 20, # Default cost, updated below if equipped
-    }
-
-    # Calculate actual MP cost based on enhancement level if equipped
-    if context['has_engineering_app']:
-        app_equip = None
-        for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-            if slot and slot.equipment.id == 10:
-                app_equip = slot
-                break
         
-        if app_equip:
-            level = app_equip.enhancement_level
-            if level >= 9:
-                context['engineering_app_mp_cost'] = 35
-            elif level >= 6:
-                context['engineering_app_mp_cost'] = 30
-            elif level >= 3:
-                context['engineering_app_mp_cost'] = 25
-            else:
-                context['engineering_app_mp_cost'] = 20
-
-    # 計算 UAV 資訊（start_daily_trial）
-    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-        if slot and slot.equipment.skill_effect == '選項刪去':
-            lvl = slot.enhancement_level
-            context['has_uav'] = True
-            context['uav_mp_cost'] = 25 if lvl >= 9 else 30
-            context['uav_eliminate_count'] = 2 if lvl >= 6 else 1
-            break
-
-    # 計算 VR 資訊（start_daily_trial）
-    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-        if slot and slot.equipment.skill_effect == '絕對解答':
-            lvl = slot.enhancement_level
-            context['has_vr'] = True
-            context['vr_mp_cost'] = 40 if lvl >= 9 else (50 if lvl >= 6 else (60 if lvl >= 3 else 70))
-            # 探查本場是否已使用 VR
-            sd_chest = progress.chest_data or {}
-            if sd_chest.get('active_skills', {}).get('vr_used'):
-                context['vr_already_used'] = True
-            break
-
-    # 計算 360 環景相機資訊（start_daily_trial）
-    for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-        if slot and slot.equipment.skill_effect == '時間回溯':
-            lvl = slot.enhancement_level
-            context['has_camera'] = True
-            if lvl >= 9:   max_uses = 5
-            elif lvl >= 6: max_uses = 4
-            elif lvl >= 3: max_uses = 3
-            else:           max_uses = 2
-            context['camera_uses_max'] = max_uses
-            sd_chest2 = progress.chest_data or {}
-            sd_skills = sd_chest2.get('active_skills', {})
-            camera_uses = sd_skills.get('camera_uses', 0)
-            context['camera_uses_left'] = max(0, max_uses - camera_uses)
-            discount = sd_skills.get('camera_discount_active', False)
-            context['camera_mp_cost'] = 15 if discount else 30
-            break
+        # 怪物與狀態資訊
+        'current_monster': current_monster,
+        'is_tools_sealed': is_sealed,
+        'broken_equipments': broken_equipments,
+        
+        # 技能相關資訊補充
+        'has_engineering_app': has_engineering_app,
+        'engineering_app_mp_cost': engineering_app_cost,
+        'engineering_app_shield': engineering_app_shield,
+        'has_uav': has_uav,
+        'uav_mp_cost': uav_mp_cost,
+        'uav_eliminate_count': uav_eliminate_count,
+        'has_vr': has_vr,
+        'vr_mp_cost': vr_mp_cost,
+        'vr_already_used': vr_already_used,
+        'has_camera': has_360_camera,
+        'camera_uses_left': camera_uses_left,
+        'camera_mp_cost': camera_mp_cost,
+    }
 
     return render(request, 'EngineerRPG/trial_exam.html', context)
         
