@@ -7,14 +7,20 @@
 <div class="rpg-container">
     <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
     {% if not is_completed %}
-    <div class="exam-header mb-lg">
-        <div class="d-flex justify-content-between align-items-center">
+    <div class="exam-header mb-lg d-flex flex-column" style="gap: 10px;">
+        <!-- 第 1 排：標題與倒數計時 -->
+        <div class="flex flex-between w-100" style="align-items: center; width: 100%;">
             <h1 class="mb-0" style="white-space: nowrap;">{{ trial.title }}</h1>
+            <div class="exam-timer mb-0" id="examTimer" style="white-space: nowrap;">
+                <i class="fas fa-stopwatch"></i> <span id="timeRemaining">--:--</span>
+            </div>
+        </div>
 
-            <!-- 怪物資訊置中 -->
-            {% if current_monster %}
-            <div class="monster-info text-center flex-grow-1 mx-2"
-                style="font-size: 1.1rem; font-weight: bold; color: {% if current_monster.type == 'ELITE' %}#ff4d4d{% elif current_monster.type == 'MUTANT' %}#e040fb{% else %}#adb5bd{% endif %};">
+        <!-- 第 2 排：怪物資訊 (獨立區塊) -->
+        {% if current_monster %}
+        <div style="width: 100%;">
+            <div class="monster-info text-center mx-auto"
+                style="font-size: 1.1rem; font-weight: bold; padding: 6px 12px; border-radius: 6px; background: rgba(0,0,0,0.4); color: {% if current_monster.type == 'ELITE' %}#ff4d4d{% elif current_monster.type == 'MUTANT' %}#e040fb{% else %}#adb5bd{% endif %};">
                 {% if current_monster.type == 'ELITE' %}
                 <i class="fas fa-skull"></i> 遭遇菁英種！(答錯扣除30HP)
                 {% elif current_monster.type == 'MUTANT' %}
@@ -29,7 +35,7 @@
                 {% endif %}
 
                 {% if broken_equipments %}
-                <span class="ml-2" style="color: #dc3545; font-size: 0.9rem;">
+                <span style="color: #dc3545; font-size: 0.9rem; margin-left: 8px;">
                     <i class="fas fa-unlink"></i> 失效：
                     {% if 'helmet' in broken_equipments %}[頭盔] {% endif %}
                     {% if 'armor' in broken_equipments %}[護甲] {% endif %}
@@ -38,21 +44,19 @@
                 {% endif %}
 
                 {% if is_tools_sealed %}
-                <span class="ml-2" style="color: #dc3545; font-size: 0.9rem;">
+                <span style="color: #dc3545; font-size: 0.9rem; margin-left: 8px;">
                     <i class="fas fa-ban"></i> 工具封印！
                 </span>
                 {% endif %}
             </div>
-            {% endif %}
-
-            <div class="exam-timer mb-0" id="examTimer" style="white-space: nowrap;">
-                <i class="fas fa-stopwatch"></i> <span id="timeRemaining">--:--</span>
-            </div>
         </div>
+        {% endif %}
 
-        <!-- HP/MP 狀態列 -->
-        <div class="status-bars mt-md flex-wrap">
-            <div class="d-flex align-items-center" style="gap: 15px;">
+        <!-- 第 3 排：HP/MP 與技能按鈕整併為同一列 (一左一右，如果在小螢幕則換行) -->
+        <div class="status-bars flex flex-between"
+            style="gap: 20px; align-items: center; width: 100%; flex-wrap: wrap;">
+            <!-- HP/MP 左側群組 -->
+            <div class="flex gap-md" style="align-items: center;">
                 <div class="hp-container">
                     <span class="status-label"><i class="fas fa-heart text-danger"></i> HP</span>
                     <div class="hp-bar-bg">
@@ -73,60 +77,63 @@
                 </div>
             </div>
 
-
-
-            <!-- 技能按鈕整合 (與 Status Bars 呈現同行或緊接其後) -->
-            <div class="skill-control-panel mt-md d-flex justify-content-end align-items-center flex-wrap"
-                style="gap: 8px;">
+            <!-- 技能按鈕 右側群組 (圓形小按鈕，帶有自訂 Tooltip) -->
+            <div class="skill-control-panel flex" style="align-items: center; gap: 2rem;">
                 {% if has_engineering_app %}
-                <div class="d-flex align-items-center">
+                <div class="position-relative">
                     {% if is_tools_sealed %}
-                    <button type="button" class="rpg-btn rpg-btn-sm rpg-btn-secondary disabled-skill m-0" disabled
-                        style="opacity: 0.5; cursor: not-allowed;" onclick="alert('🚫 禁語默僧的詛咒發作！工具技能已被封印！')">
-                        <i class="fas fa-tools"></i> 工程查驗APP({{ engineering_app_mp_cost|default:20 }}MP)
+                    <button type="button"
+                        class="rpg-btn rpg-btn-circle rpg-btn-secondary disabled-skill m-0 rpg-tooltip-container"
+                        disabled style="opacity: 0.5; cursor: not-allowed;" onclick="alert('🚫 禁語默僧的詛咒發作！工具技能已被封印！')">
+                        <i class="fas fa-tools"></i>
+                        <span class="rpg-tooltip-text">工程查驗APP<br><span class="text-danger text-xs mt-xs">🚫 封印中 (剩餘 {{ sealed_tools_turns }} 題)</span></span>
                     </button>
                     {% else %}
-                    <button type="button" class="rpg-btn rpg-btn-sm rpg-btn-secondary m-0" id="engineeringAppBtn"
-                        onclick="toggleEngineeringApp()">
-                        <i class="fas fa-tools"></i> 工程查驗APP({{ engineering_app_mp_cost|default:20 }}MP)
+                    <button type="button" class="rpg-btn rpg-btn-circle rpg-btn-secondary m-0 rpg-tooltip-container"
+                        id="engineeringAppBtn" onclick="toggleEngineeringApp()">
+                        <i class="fas fa-tools"></i>
+                        <span class="rpg-tooltip-text" id="engineeringAppTooltip">工程查驗APP({{ engineering_app_mp_cost|default:20 }}MP)</span>
+                    </button>
                     </button>
                     {% endif %}
-                    <span id="engineeringAppStatus" class="ml-1 text-xs text-success font-bold" style="display: none;">
-                        <i class="fas fa-shield-alt"></i>
-                    </span>
                 </div>
                 {% endif %}
 
                 {% if has_uav and question.question_type == 'SINGLE' %}
-                <div class="d-flex align-items-center">
+                <div class="position-relative">
                     {% if is_tools_sealed %}
-                    <button type="button" class="rpg-btn rpg-btn-sm rpg-btn-info disabled-skill m-0" disabled
+                    <button type="button"
+                        class="rpg-btn rpg-btn-circle rpg-btn-info disabled-skill m-0 rpg-tooltip-container" disabled
                         style="opacity: 0.5; cursor: not-allowed;" onclick="alert('🚫 禁語默僧的詛咒發作！工具技能已被封印！')">
-                        <i class="fas fa-paper-plane"></i> 無人機({{ uav_mp_cost }}MP)
+                        <i class="fas fa-paper-plane"></i>
+                        <span class="rpg-tooltip-text">無人機<br><span class="text-danger text-xs mt-xs">🚫 封印中 (剩餘 {{ sealed_tools_turns }} 題)</span></span>
                     </button>
                     {% else %}
-                    <button type="button" class="rpg-btn rpg-btn-sm rpg-btn-info m-0" id="uavBtn"
-                        onclick="activateUAV()">
-                        <i class="fas fa-paper-plane"></i> 無人機({{ uav_mp_cost }}MP)
+                    <button type="button" class="rpg-btn rpg-btn-circle rpg-btn-info m-0 rpg-tooltip-container"
+                        id="uavBtn" onclick="activateUAV()">
+                        <i class="fas fa-paper-plane"></i>
+                        <span class="rpg-tooltip-text" id="uavTooltip">無人機({{ uav_mp_cost }}MP)</span>
+                    </button>
                     </button>
                     {% endif %}
-                    <span id="uavStatus" class="ml-1 text-xs text-info font-bold" style="display: none;">
-                        <i class="fas fa-check"></i>
-                    </span>
                 </div>
                 {% endif %}
 
                 {% if has_vr and question.question_type == 'SINGLE' %}
-                <div class="d-flex align-items-center">
+                <div class="position-relative">
                     {% if is_tools_sealed %}
-                    <button type="button" class="rpg-btn rpg-btn-sm rpg-btn-warning disabled-skill m-0" disabled
+                    <button type="button"
+                        class="rpg-btn rpg-btn-circle rpg-btn-warning disabled-skill m-0 rpg-tooltip-container" disabled
                         style="opacity: 0.5; cursor: not-allowed;" onclick="alert('🚫 禁語默僧的詛咒發作！工具技能已被封印！')">
-                        <i class="fas fa-glasses"></i> VR解題({{ vr_mp_cost }}MP)
+                        <i class="fas fa-glasses"></i>
+                        <span class="rpg-tooltip-text">VR解題<br><span class="text-danger text-xs mt-xs">🚫 封印中 (剩餘 {{ sealed_tools_turns }} 題)</span></span>
                     </button>
                     {% else %}
-                    <button type="button" class="rpg-btn rpg-btn-sm rpg-btn-warning m-0" id="vrBtn"
-                        onclick="activateVR()">
-                        <i class="fas fa-glasses"></i> VR解題({{ vr_mp_cost }}MP)
+                    <button type="button" class="rpg-btn rpg-btn-circle rpg-btn-warning m-0 rpg-tooltip-container"
+                        id="vrBtn" onclick="activateVR()">
+                        <i class="fas fa-glasses"></i>
+                        <span class="rpg-tooltip-text" id="vrTooltip">VR解題({{ vr_mp_cost }}MP)<br><span
+                                class="text-warning text-xs mt-xs">⚠️每場試煉限用一次</span></span>
                     </button>
                     {% endif %}
                 </div>
@@ -639,6 +646,8 @@
         let cameraMpCost = parseInt("{{ camera_mp_cost|default:'30' }}", 10);
         let cameraUsesLeft = parseInt("{{ camera_uses_left|default:'0' }}", 10);
         let currentQuestionRewound = false; // 當前題是否已回溯
+        const isToolsSealed = ("{{ is_tools_sealed|yesno:'true,false' }}" === "true");
+        const sealedToolsTurns = parseInt("{{ sealed_tools_turns|default:'0' }}", 10);
 
 
         // Update MP Bar Helper
@@ -660,9 +669,9 @@
         function toggleEngineeringApp() {
             const btn = document.getElementById('engineeringAppBtn');
             const input = document.getElementById('useEngineeringApp');
-            const status = document.getElementById('engineeringAppStatus');
 
             if (!btn || !input) return;
+            const icon = btn.querySelector('i.fas');
 
             if (input.value === 'false') {
                 // Check if enough MP (using currentMP which tracks state)
@@ -676,8 +685,15 @@
                 input.value = 'true';
                 btn.classList.remove('rpg-btn-secondary');
                 btn.classList.add('rpg-btn-warning');
-                btn.innerHTML = '<i class="fas fa-tools"></i> 關閉工程APP';
-                if (status) status.style.display = 'inline-block';
+                document.getElementById('engineeringAppTooltip').innerText = '關閉工程APP';
+                if (icon) {
+                    icon.classList.remove('fa-tools');
+                    icon.classList.add('fa-shield-alt');
+                }
+
+                // 動畫效果
+                btn.classList.add('skill-activated-anim');
+                setTimeout(() => btn.classList.remove('skill-activated-anim'), 500);
 
                 // Visual MP deduction
                 updateMPDisplay(currentMP - engineeringAppMpCost);
@@ -686,8 +702,11 @@
                 input.value = 'false';
                 btn.classList.remove('rpg-btn-warning');
                 btn.classList.add('rpg-btn-secondary');
-                btn.innerHTML = '<i class="fas fa-tools"></i> 工程查驗APP(' + engineeringAppMpCost + 'MP)';
-                if (status) status.style.display = 'none';
+                document.getElementById('engineeringAppTooltip').innerText = '工程查驗APP(' + engineeringAppMpCost + 'MP)';
+                if (icon) {
+                    icon.classList.remove('fa-shield-alt');
+                    icon.classList.add('fa-tools');
+                }
 
                 // Restore MP display
                 updateMPDisplay(currentMP);
@@ -698,9 +717,9 @@
         function activateUAV() {
             const uavInput = document.getElementById('useUAV');
             const uavBtn = document.getElementById('uavBtn');
-            const uavStatusEl = document.getElementById('uavStatus');
 
             if (!uavInput || !uavBtn) return;
+            const icon = uavBtn.querySelector('i.fas');
             if (uavInput.value === 'true') return; // 防止重複使用
 
             // MP 檢查
@@ -744,8 +763,16 @@
                     uavBtn.disabled = true;
                     uavBtn.classList.remove('rpg-btn-info');
                     uavBtn.classList.add('rpg-btn-secondary');
-                    uavBtn.innerHTML = '<i class="fas fa-paper-plane"></i> UAV 已啟動';
-                    if (uavStatusEl) uavStatusEl.style.display = 'inline-block';
+                    if (icon) {
+                        icon.classList.remove('fa-paper-plane');
+                        icon.classList.add('fa-check');
+                    }
+
+                    // 動畫效果
+                    uavBtn.classList.add('skill-activated-anim');
+                    setTimeout(() => uavBtn.classList.remove('skill-activated-anim'), 500);
+
+                    document.getElementById('uavTooltip').innerText = 'UAV 已啟動';
                 })
                 .catch(err => {
                     console.error('UAV API error:', err);
@@ -771,7 +798,12 @@
             pointer-events: none;
             box-shadow: none;
         `;
-            vrBtn.innerHTML = '<i class="fas fa-glasses"></i> VR 絕對解答（本場已使用，每場限一次）';
+
+            // 動畫效果
+            vrBtn.classList.add('skill-activated-anim');
+            setTimeout(() => vrBtn.classList.remove('skill-activated-anim'), 500);
+
+            document.getElementById('vrTooltip').innerText = 'VR 絕對解答（本場已使用，每場限一次）';
         }
 
         // ===== 360 環景相機「存檔與回溯」技能 =====
@@ -1022,6 +1054,12 @@
                 return;
             }
 
+            // 進入解答環節時，停用三個輔助小技能按鈕
+            ['engineeringAppBtn', 'uavBtn', 'vrBtn'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.disabled = true;
+            });
+
             const answerForm = document.getElementById('answerForm');
             const feedbackArea = document.getElementById('feedbackArea');
             const feedbackIcon = document.getElementById('feedbackIcon');
@@ -1057,7 +1095,7 @@
 
                 const canRewind = hasCamera && cameraUsesLeft > 0 &&
                     currentMP >= cameraMpCost && !data.camera_already_rewound &&
-                    !data.is_game_over;
+                    !data.is_game_over && !isToolsSealed;
 
                 if (canRewind) {
                     // 顯示相機 Modal，不洩漏正確答案
@@ -1296,6 +1334,65 @@
             border: 1px solid var(--color-warning);
         }
 
+        .rpg-btn-circle {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            font-size: 1.2rem;
+            position: relative;
+            overflow: visible !important;
+        }
+
+        /* 自訂懸浮提示框 (Tooltip) */
+        .rpg-tooltip-container {
+            position: relative;
+        }
+
+        .rpg-tooltip-container .rpg-tooltip-text {
+            visibility: hidden;
+            width: max-content;
+            max-width: 200px;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px 12px;
+            position: absolute;
+            z-index: 1000;
+            top: 130%;
+            /* 出現在圖示下方 */
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s, visibility 0.3s;
+            font-size: 0.85rem;
+            border: 1px solid var(--color-secondary);
+            pointer-events: none;
+            /* 防止遮擋滑鼠事件 */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+        }
+
+        .rpg-tooltip-container .rpg-tooltip-text::after {
+            content: "";
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: transparent transparent var(--color-secondary) transparent;
+        }
+
+        /* Hover 時漸變浮現 */
+        .rpg-tooltip-container:hover .rpg-tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
         .question-card {
             border-left: 4px solid var(--color-stone);
         }
@@ -1508,6 +1605,29 @@
         .skill-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+        }
+
+        /* 技能發動動畫效果 */
+        @keyframes skillActivate {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0px 0px rgba(255, 193, 7, 0);
+            }
+
+            50% {
+                transform: scale(1.15);
+                box-shadow: 0 0 20px 10px rgba(255, 193, 7, 0.8);
+                z-index: 10;
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0px 0px rgba(255, 193, 7, 0);
+            }
+        }
+
+        .skill-activated-anim {
+            animation: skillActivate 0.4s ease-out !important;
         }
 
         .hint-box {

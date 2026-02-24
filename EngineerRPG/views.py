@@ -809,6 +809,7 @@ def submit_answer(request, trial_id):
         current_mp = int(request.POST.get('current_mp', 100))
         use_engineering_app = request.POST.get('use_engineering_app') == 'true'
         hp_damage = 0
+        is_game_over_flag = False
 
         # Debug logging for skill usage
         if use_engineering_app:
@@ -824,6 +825,8 @@ def submit_answer(request, trial_id):
             from .models import DailyTrialProgress, DailyTrialTask
             import random
             progress = DailyTrialProgress.objects.filter(user_profile=profile, daily_task_id=daily_task_id).first()
+            if progress:
+                current_mp = progress.current_mp # 強制使用資料庫裡最新的 MP，防止前端回溯舊值
         
         # 檢查是否被「禁語默僧」封印
         chest_data = progress.chest_data or {} if progress else {}
@@ -855,8 +858,6 @@ def submit_answer(request, trial_id):
         
         # 處理血量扣減
         # boots_messages 已在更早處宣告
-        
-        is_game_over_flag = False
 
         if daily_task_id and progress:
             # 更新答題紀錄到資料庫
@@ -946,7 +947,6 @@ def submit_answer(request, trial_id):
                             progress.chest_data = uav_chest_data
                     else:
                         boots_messages.append('⚠️ MP 不足，無法啟動 UAV!')
-
             if not is_correct:
                 # 新制基礎傷害：根據怪物類型判斷
                 current_monster = chest_data.get('current_monster', {})
@@ -1038,7 +1038,7 @@ def submit_answer(request, trial_id):
                 progress.current_hp = max(0, progress.current_hp - actual_damage)
                 
                 # 4. [Emergency Bandage] (Armor +9): Heal 15 HP when HP < 30% (once)
-                if profile.equipped_armor and profile.equipped_armor.has_special_ability():
+                if profile.equipped_armor and profile.equipped_armor.has_special_ability() and 'armor' not in broken_parts:
                      if profile.equipped_armor.special_ability_name == '【緊急包紮】':
                          # Check if used
                          used = request.session.get('emergency_bandage_used', False)
@@ -1053,8 +1053,9 @@ def submit_answer(request, trial_id):
                 # 答錯時重置連續答對計數
                 progress.boots_correct_streak = 0
             else:
+                broken_parts = chest_data.get('broken_equipments', []) if 'chest_data' in locals() and chest_data else progress.chest_data.get('broken_equipments', []) if progress and progress.chest_data else []
                 # 答對時處理靴子被動效果
-                if profile.equipped_boots:
+                if profile.equipped_boots and 'boots' not in broken_parts:
 
                     boots = profile.equipped_boots
                     boots_name = boots.equipment.name
@@ -1153,6 +1154,7 @@ def submit_answer(request, trial_id):
             if progress.current_hp <= 0:
                 progress.is_completed = True
                 progress.is_passed = False
+                is_game_over_flag = True
             
             # --- 技能效果: 護盾回合遞減與反饋 ---
             chest_data = progress.chest_data or {}
@@ -1180,6 +1182,19 @@ def submit_answer(request, trial_id):
                 else:
                     boots_messages.append(f'🛡️ 護盾剩餘 {shield_info["turns"]} 回合 (HP: {shield_info["hp"]})')
                 
+                progress.chest_data = chest_data
+            # ------------------------------------
+
+            # --- 變異種: 禁語默僧 封印回合遞減 ---
+            sealed_turns = chest_data.get('sealed_tools_turns', 0)
+            if sealed_turns > 0:
+                sealed_turns -= 1
+                if sealed_turns <= 0:
+                    del chest_data['sealed_tools_turns']
+                    boots_messages.append('✨ 禁語默僧的封印已解除！工具技能恢復正常。')
+                else:
+                    chest_data['sealed_tools_turns'] = sealed_turns
+                    boots_messages.append(f'🚫 技能封印剩餘 {sealed_turns} 題')
                 progress.chest_data = chest_data
             # ------------------------------------
 
@@ -1286,15 +1301,8 @@ def next_question(request, trial_id):
         
         progress.save()
         
-    # 如果還有下一題，就生成下一題的怪物 (並且扣除封印回合等狀態)
+    # 如果還有下一題，就生成下一題的怪物
     if next_index < len(question_ids) and daily_task_id:
-        # 扣除禁語默僧的回合數
-        chest_data = progress.chest_data or {}
-        if chest_data.get('sealed_tools_turns', 0) > 0:
-            chest_data['sealed_tools_turns'] -= 1
-            progress.chest_data = chest_data
-            progress.save()
-            
         generate_daily_monster(progress, profile, request)
 
     if next_index >= len(question_ids):
@@ -1333,7 +1341,8 @@ def next_question(request, trial_id):
     # 擷取怪物與 Debuff 狀態供前端渲染
     chest_data = progress.chest_data or {}
     current_monster = chest_data.get('current_monster', None)
-    is_sealed = chest_data.get('sealed_tools_turns', 0) > 0
+    sealed_tools_turns = chest_data.get('sealed_tools_turns', 0)
+    is_sealed = sealed_tools_turns > 0
     broken_equipments = chest_data.get('broken_equipments', [])
     
     # Prepare skill-related variables for context
@@ -1865,6 +1874,16 @@ def generate_daily_monster(progress, profile, request=None):
     
     if monster_type == 'MUTANT':
         subtypes = ['SILENT_MONK', 'MANA_DEVOURER', 'CALAMITY_HERALD', 'RUST_TOUCH']
+        
+        # 檢查可破壞的裝備部位
+        parts = ['helmet', 'armor', 'boots']
+        broken_equipments = chest_data.get('broken_equipments', [])
+        available_parts = [p for p in parts if p not in broken_equipments]
+        
+        # 如果全部都壞光了，就不會再遭遇鏽蝕之觸
+        if not available_parts and 'RUST_TOUCH' in subtypes:
+            subtypes.remove('RUST_TOUCH')
+        
         mutant_subtype = random.choice(subtypes)
         
         if mutant_subtype == 'SILENT_MONK':
@@ -1892,15 +1911,58 @@ def generate_daily_monster(progress, profile, request=None):
             
         elif mutant_subtype == 'RUST_TOUCH':
             mutant_name = "鏽蝕之觸"
-            # 隨機選擇失效裝備部位
+            # 隨機選擇尚未失效的裝備部位
             parts = ['helmet', 'armor', 'boots']
-            broken_part = random.choice(parts)
-            mutant_desc = f"隨機使 [{broken_part}] 失效，直到副本結束"
+            broken_equipments = chest_data.get('broken_equipments', [])
+            available_parts = [p for p in parts if p not in broken_equipments]
+            
+            broken_part = random.choice(available_parts)
+            mutant_desc = "隨機使防具失效，直到副本結束"
+            
+            # 從 Profile 找出該部位是否有裝備，如果有，則扣除其加成上限
+            lost_hp = 0
+            lost_mp = 0
+            has_special = False
+            special_name = ""
+            
+            equip_map = {
+                'helmet': profile.equipped_helmet,
+                'armor': profile.equipped_armor,
+                'boots': profile.equipped_boots
+            }
+            broken_equip = equip_map.get(broken_part)
+            
+            if broken_equip:
+                lost_hp = broken_equip.get_total_hp_bonus()
+                lost_mp = broken_equip.get_total_mp_bonus()
+                if broken_equip.has_special_ability() and broken_equip.special_ability_name:
+                    has_special = True
+                    special_name = broken_equip.special_ability_name
+
+                # 更新 Progress 的上限
+                progress.initial_hp = max(1, progress.initial_hp - lost_hp)
+                progress.initial_mp = max(0, progress.initial_mp - lost_mp)
+                
+                # 同步扣除當前值
+                progress.current_hp -= lost_hp
+                if progress.current_hp <= 0:
+                    progress.current_hp = 1  # 至少保留 1 滴血
+                    
+                progress.current_mp = max(0, progress.current_mp - lost_mp)
             
             if request:
                 part_names = {'helmet': '頭盔', 'armor': '護甲', 'boots': '靴子'}
-                messages.error(request, f'⛓️ 遭遇【鏽蝕之觸】！你的 [{part_names.get(broken_part, broken_part)}] 已失效！')
-                
+                part_tw = part_names.get(broken_part, broken_part)
+                messages.error(request, f'⛓️ 遭遇【鏽蝕之觸】！你的 [{part_tw}] 已嚴重腐蝕並失效！')
+                if lost_hp > 0 or lost_mp > 0:
+                    messages.warning(request, f'📉 失去了裝備屬性加成：HP -{lost_hp} / MP -{lost_mp}')
+                if has_special:
+                    messages.error(request, f'⚠️ 裝備附加的特殊能力 {special_name} 無法再觸發！')
+                if broken_part == 'boots' and broken_equip:
+                    messages.error(request, '⚠️ 注意：靴子提供的【發動被動效果】已遭到封印！')
+                elif broken_part == 'armor' and broken_equip:
+                    messages.error(request, '⚠️ 注意：護甲提供的【減傷與保護】性能已遭到封印！')
+
             if 'broken_equipments' not in chest_data:
                 chest_data['broken_equipments'] = []
             if broken_part not in chest_data['broken_equipments']:
@@ -4143,6 +4205,23 @@ def batch_manage_questions(request):
     return redirect('engineer_rpg:question_management')
 
 
+@login_required
+def delete_question(request, question_id):
+    """刪除單一題目"""
+    if not has_whitelist_permission(request.user, 'MANAGER'):
+        return redirect('engineer_rpg:dashboard')
+        
+    if request.method == 'POST':
+        try:
+            question = Question.objects.get(id=question_id)
+            question.delete()
+            messages.success(request, '題目已成功刪除')
+        except Question.DoesNotExist:
+            messages.error(request, '題目不存在')
+            
+    return redirect('engineer_rpg:question_management')
+
+
 
 def category_management(request):
     """題目分類管理"""
@@ -4653,12 +4732,6 @@ def delete_user(request, user_id):
     messages.info(request, '此功能正在開發中')
     return redirect('engineer_rpg:user_management')
 
-
-
-def delete_question(request, question_id):
-    """刪除題目"""
-    messages.info(request, '此功能正在開發中')
-    return redirect('engineer_rpg:question_management')
 
 
 
