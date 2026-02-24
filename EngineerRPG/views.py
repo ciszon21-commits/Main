@@ -767,6 +767,29 @@ def start_trial(request, trial_id):
             break
     return render(request, 'EngineerRPG/trial_exam.html', context)
 
+def check_newbie_luck_refund(profile):
+    """
+    檢查是否裝備頭盔【新手運】並觸發 MP 返還
+    回傳: (refund_amount, message)
+    """
+    if not (profile.equipped_helmet and profile.equipped_helmet.has_special_ability() and profile.equipped_helmet.special_ability_name == '【新手運】'):
+        return 0, ""
+    
+    import random
+    r = random.random()
+    if r < 0.20:
+        refund = 0
+    elif r < 0.70:
+        refund = 5
+    elif r < 0.95:
+        refund = 10
+    else:
+        refund = 30
+        
+    if refund > 0:
+        return refund, f"🍀 【新手運】觸發！隨機返還了 {refund} MP"
+    return 0, ""
+
 @login_required
 def submit_answer(request, trial_id):
     """提交答案 (API)"""
@@ -791,6 +814,17 @@ def submit_answer(request, trial_id):
         if use_engineering_app:
             print(f"DEBUG: User {request.user.username} used Engineering Inspection APP on Q{question.id}")
         
+        # Newbie Luck (【新手運】) refund logic for tools consumed in answer submission
+        use_uav = request.POST.get('use_uav') == 'true'
+        used_skill_this_turn = use_engineering_app or (use_uav and question.question_type == 'SINGLE')
+        
+        boots_messages = [] # 先定義，確保後方不會出錯
+        if used_skill_this_turn:
+            refund, msg = check_newbie_luck_refund(profile)
+            if refund > 0:
+                current_mp = min(profile.get_total_mp(), current_mp + refund)
+                boots_messages.append(msg)
+        
         # 判斷正確性
         if question.question_type == 'MULTIPLE':
             user_answer_list = request.POST.getlist('answer')
@@ -805,7 +839,7 @@ def submit_answer(request, trial_id):
         
         # 處理血量扣減
         daily_task_id = request.session.get('daily_task_id')
-        boots_messages = []  # 收集靴子效果訊息
+        # boots_messages 已在更早處宣告
         
         is_game_over_flag = False
 
@@ -1068,13 +1102,13 @@ def submit_answer(request, trial_id):
                         
                         if should_restore:
                             if boots_level >= 9:
-                                restore_amount = 30
-                            elif boots_level >= 6:
-                                restore_amount = 20
-                            elif boots_level >= 3:
-                                restore_amount = 15
-                            else:
                                 restore_amount = 10
+                            elif boots_level >= 6:
+                                restore_amount = 5
+                            elif boots_level >= 3:
+                                restore_amount = 10
+                            else:
+                                restore_amount = 5
                             
                             max_mp = profile.get_total_mp()
                             progress.current_mp = min(max_mp, progress.current_mp + restore_amount)
@@ -1459,6 +1493,13 @@ def vr_reveal_answer(request, trial_id):
         max_hp = profile.get_total_hp()
         progress.current_hp = min(max_hp, progress.current_hp + heal_amount)
 
+    # Newbie luck refund
+    refund, msg = check_newbie_luck_refund(profile)
+    newbie_luck_msg = ""
+    if refund > 0:
+        progress.current_mp = min(profile.get_total_mp(), progress.current_mp + refund)
+        newbie_luck_msg = msg
+
     # 記錄本場已使用
     active_skills['vr_used'] = True
     chest_data['active_skills'] = active_skills
@@ -1472,6 +1513,7 @@ def vr_reveal_answer(request, trial_id):
         'heal_amount': heal_amount,
         'remaining_mp': progress.current_mp,
         'remaining_hp': progress.current_hp,
+        'newbie_luck_msg': newbie_luck_msg,
     })
 
 @login_required
@@ -1564,6 +1606,14 @@ def camera_rewind(request, trial_id):
 
     chest_data['active_skills'] = active_skills
     progress.chest_data = chest_data
+
+    # Newbie luck refund
+    refund, msg = check_newbie_luck_refund(profile)
+    newbie_luck_msg = ""
+    if refund > 0:
+        progress.current_mp = min(profile.get_total_mp(), progress.current_mp + refund)
+        newbie_luck_msg = msg
+
     progress.save()
 
     uses_left = max_uses - active_skills['camera_uses']
@@ -1574,6 +1624,7 @@ def camera_rewind(request, trial_id):
         'remaining_mp': progress.current_mp,
         'remaining_hp': progress.current_hp,
         'uses_left': uses_left,
+        'newbie_luck_msg': newbie_luck_msg,
     })
 
 @login_required
@@ -1719,12 +1770,6 @@ def start_daily_trial(request, task_id):
             # 進場初始 MP 額外 +10%
             total_mp = int(total_mp * 1.1)
             messages.success(request, '👑 工頭威嚴: 初始 MP +10%!')
-        elif ability_name == '【新手運】':
-            # 試煉開始隨機獲得 10~30 MP
-            import random
-            bonus_mp = random.randint(10, 30)
-            total_mp += bonus_mp
-            messages.success(request, f'🍀 新手運: 隨機獲得 +{bonus_mp} MP!')
     
     progress, created = DailyTrialProgress.objects.get_or_create(
         user_profile=profile,

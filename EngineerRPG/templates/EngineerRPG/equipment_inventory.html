@@ -78,7 +78,8 @@
                                 <!-- 能力效果 -->
                                 <div style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold;">
                                     {% if equipped.helmet.get_total_hp_bonus > 0 %}
-                                    <span style="margin-right:8px;"><i class="fas fa-heart"></i> HP +{{ equipped.helmet.get_total_hp_bonus }}</span>
+                                    <span style="margin-right:8px;"><i class="fas fa-heart"></i> 
+                                        HP +{{ equipped.helmet.get_total_hp_bonus }}</span>
                                     {% endif %}
                                     {% if equipped.helmet.get_total_mp_bonus > 0 %}
                                     <span><i class="fas fa-bolt"></i> MP +{{ equipped.helmet.get_total_mp_bonus }}</span>
@@ -88,7 +89,8 @@
                                 <div
                                     style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold; {% if equipped.helmet.enhancement_level < 9 %}opacity: 0.5;{% endif %}">
                                     <i class="fas fa-star"></i> {{ equipped.helmet.equipment.special_ability_name }}
-                                    {% if equipped.helmet.enhancement_level >= 9 %}: {{ equipped.helmet.equipment.special_ability_description }}{% else %}(+9 解鎖){% endif %}
+                                    {% if equipped.helmet.enhancement_level >= 9 %}: {{ equipped.helmet.equipment.special_ability_description }}
+                                    {% else %}(+9 解鎖){% endif %}
                                 </div>
                                 {% endif %}
                             </div>
@@ -295,7 +297,7 @@
                                 <div style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold;">
                                     {% if equipped.tool_1.equipment.skill_effect %}
                                     <span style="margin-right:8px;"><i class="fas fa-bolt"></i> MP -{{ equipped.tool_1.current_mp_cost }}</span>
-                                    <span><i class="fas fa-magic"></i> {{ equipped.tool_1.equipment.skill_description }}</span>
+                                    <span><i class="fas fa-magic"></i> [{{ equipped.tool_1.equipment.skill_effect }}] {{ equipped.tool_1.equipment.skill_description }}</span>
                                     {% endif %}
                                 </div>
                                 {% if equipped.tool_1.equipment.special_ability_name %}
@@ -358,7 +360,7 @@
                                 <div style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold;">
                                     {% if equipped.tool_2.equipment.skill_effect %}
                                     <span style="margin-right:8px;"><i class="fas fa-bolt"></i> MP -{{ equipped.tool_2.current_mp_cost }}</span>
-                                    <span><i class="fas fa-magic"></i> {{ equipped.tool_2.equipment.skill_description }}</span>
+                                    <span><i class="fas fa-magic"></i> [{{ equipped.tool_2.equipment.skill_effect }}] {{ equipped.tool_2.equipment.skill_description }}</span>
                                     {% endif %}
                                 </div>
                                 {% if equipped.tool_2.equipment.special_ability_name %}
@@ -421,7 +423,7 @@
                                 <div style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold;">
                                     {% if equipped.tool_3.equipment.skill_effect %}
                                     <span style="margin-right:8px;"><i class="fas fa-bolt"></i> MP -{{ equipped.tool_3.current_mp_cost }}</span>
-                                    <span><i class="fas fa-magic"></i> {{ equipped.tool_3.equipment.skill_description }}</span>
+                                    <span><i class="fas fa-magic"></i> [{{ equipped.tool_3.equipment.skill_effect }}] {{ equipped.tool_3.equipment.skill_description }}</span>
                                     {% endif %}
                                 </div>
                                 {% if equipped.tool_3.equipment.special_ability_name %}
@@ -768,8 +770,7 @@
                                 {% if '鋼頭安全鞋' in item.user_equipment.equipment.name %}基礎步伐
                                 {% elif '防穿刺工靴' in item.user_equipment.equipment.name %}穩健推進
                                 {% elif '動力樣板護腿' in item.user_equipment.equipment.name %}動能回收
-                                {% elif item.user_equipment.equipment.skill_description %}{{
-                                item.user_equipment.equipment.skill_description }}
+                                {% elif item.user_equipment.equipment.skill_description %}{{ item.user_equipment.equipment.skill_description }}
                                 {% endif %}
                                 {% with passive=item.user_equipment.get_passive_desc %}
                                 {% if passive %}: {{ passive }}{% endif %}
@@ -830,8 +831,8 @@
                             {% endif %}
                             {% endif %}
 
-                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %}
-                             <form method="post"
+                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %} 
+                            <form method="post"
                                 action="{% url 'engineer_rpg:enhance_equipment' item.user_equipment.id %}"
                                 style="display: inline;">
                                 {% csrf_token %}
@@ -895,7 +896,7 @@
                                 MP -{{ item.user_equipment.current_mp_cost }}</span>
                             <span class="stat-item skill-effect"
                                 style="color: #FFD700; display: block; margin-top: 4px;"><i class="fas fa-magic"></i>
-                                {{ item.user_equipment.equipment.skill_description }}</span>
+                                [{{ item.user_equipment.equipment.skill_effect }}] {{ item.user_equipment.equipment.skill_description }}</span>
                             {% endif %}
                         </div>
 
@@ -1604,7 +1605,7 @@
                     const skillContainer = document.getElementById('eqDetailSkill');
                     if (eq.skill_effect) {
                         document.getElementById('eqDetailSkillName').innerHTML = `<i class="fas fa-magic"></i> 技能: ${eq.skill_effect}`;
-                        document.getElementById('eqDetailSkillDesc').textContent = eq.skill_description;
+                        document.getElementById('eqDetailSkillDesc').textContent = `[${eq.skill_effect}] ${eq.skill_description}`;
                         skillContainer.style.display = 'block';
                     } else {
                         skillContainer.style.display = 'none';

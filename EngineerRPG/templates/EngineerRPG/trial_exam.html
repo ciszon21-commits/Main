@@ -522,23 +522,23 @@
 <!-- 360 環景相機回溯確認 Modal -->
 <div id="cameraModal" style="display:none; position:fixed; inset:0; z-index:9999;
      background:rgba(0,0,0,0.65); align-items:center; justify-content:center;">
-  <div style="background:#1e293b; border:2px solid #f59e0b; border-radius:16px;
+    <div style="background:#1e293b; border:2px solid #f59e0b; border-radius:16px;
               padding:2rem; max-width:420px; width:90%; text-align:center; box-shadow:0 8px 40px rgba(0,0,0,0.6);">
-    <div style="font-size:3rem; margin-bottom:0.5rem;">🎥</div>
-    <h3 style="color:#f59e0b; margin-bottom:0.75rem; font-size:1.2rem;">答錯了，但別灰心！</h3>
-    <p style="color:#cbd5e1; margin-bottom:0.25rem;">是否使用 <strong style="color:#fbbf24;">360 環景相機</strong> 回溯此題重新作答？</p>
-    <p id="cameraModalInfo" style="color:#94a3b8; font-size:0.85rem; margin-bottom:1.5rem;"></p>
-    <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
-      <button id="cameraModalUseBtn" class="rpg-btn rpg-btn-warning"
-              style="min-width:130px;" onclick="handleCameraModalUse()">
-        🎥 使用相機回溯
-      </button>
-      <button class="rpg-btn rpg-btn-secondary"
-              style="min-width:130px;" onclick="handleCameraModalSkip()">
-        放棄，看答案
-      </button>
+        <div style="font-size:3rem; margin-bottom:0.5rem;">🎥</div>
+        <h3 style="color:#f59e0b; margin-bottom:0.75rem; font-size:1.2rem;">答錯了，但別灰心！</h3>
+        <p style="color:#cbd5e1; margin-bottom:0.25rem;">是否使用 <strong style="color:#fbbf24;">360 環景相機</strong> 回溯此題重新作答？
+        </p>
+        <p id="cameraModalInfo" style="color:#94a3b8; font-size:0.85rem; margin-bottom:1.5rem;"></p>
+        <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
+            <button id="cameraModalUseBtn" class="rpg-btn rpg-btn-warning" style="min-width:130px;"
+                onclick="handleCameraModalUse()">
+                🎥 使用相機回溯
+            </button>
+            <button class="rpg-btn rpg-btn-secondary" style="min-width:130px;" onclick="handleCameraModalSkip()">
+                放棄，看答案
+            </button>
+        </div>
     </div>
-  </div>
 </div>
 
 {% else %}
@@ -555,22 +555,22 @@
     let currentMP = {{ initial_mp|default:"0" }};
     const maxMP = {{ base_mp|default:"0" }};
     let remainingSeconds = {{ remaining_seconds|default:"0" }};
-    const isTrialCompleted = {{ is_completed|yesno:"true,false" }};
+    const isTrialCompleted = {{ is_completed| yesno:"true,false" }};
 
     // Engineering App Cost
     const engineeringAppMpCost = {{ engineering_app_mp_cost|default:"20" }};
     // UAV 資訊
-    const hasUAV = {{ has_uav|yesno:"true,false" }};
+    const hasUAV = {{ has_uav| yesno:"true,false" }};
     const uavMpCost = {{ uav_mp_cost|default:"30" }};
     const uavEliminateCount = {{ uav_eliminate_count|default:"1" }};
     const questionId = "{{ question.id|default:'0' }}";
     const questionType = "{{ question.question_type|default:'' }}";
     // VR 資訊
-    const hasVR = {{ has_vr|yesno:"true,false" }};
+    const hasVR = {{ has_vr| yesno:"true,false" }};
     const vrMpCost = {{ vr_mp_cost|default:"70" }};
-    let vrAlreadyUsed = {{ vr_already_used|yesno:"true,false" }};
+    let vrAlreadyUsed = {{ vr_already_used| yesno:"true,false" }};
     // 360 環景相機資訊
-    const hasCamera = {{ has_camera|yesno:"true,false" }};
+    const hasCamera = {{ has_camera| yesno:"true,false" }};
     let cameraMpCost = {{ camera_mp_cost|default:"30" }};
     let cameraUsesLeft = {{ camera_uses_left|default:"0" }};
     let currentQuestionRewound = false; // 當前題是否已回溯
@@ -749,41 +749,44 @@
             body: formData,
             headers: { 'X-CSRFToken': csrfToken }
         })
-        .then(r => r.json())
-        .then(data => {
-            if (data.error) {
-                if (data.uses_exceeded) {
-                    alert('本場回溯次數已用盡！');
-                } else if (data.mp_insufficient) {
-                    alert('MP 不足，無法回溯！');
-                } else if (data.already_rewound) {
-                    alert('此題已回溯過，無法再次回溯！');
-                } else {
-                    alert(data.error);
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    if (data.uses_exceeded) {
+                        alert('本場回溯次數已用盡！');
+                    } else if (data.mp_insufficient) {
+                        alert('MP 不足，無法回溯！');
+                    } else if (data.already_rewound) {
+                        alert('此題已回溯過，無法再次回溯！');
+                    } else {
+                        alert(data.error);
+                    }
+                    if (btn) { btn.disabled = false; btn.textContent = '🎥 360 相機回溯'; }
+                    return;
                 }
+
+                // 成功回溯
+                cameraUsesLeft = data.uses_left;
+                cameraMpCost = 30; // 回溯後折扣清除，下題重新從 context 取
+                updateMPDisplay(data.remaining_mp);
+                updateHPDisplay(data.remaining_hp);
+
+                // 顯示成功提示
+                if (typeof showItemEffect === 'function') {
+                    showItemEffect(`🎥 相機回溯成功！HP +${data.hp_restored} 恢復，剩餘 ${data.uses_left} 次`, 'success');
+                    if (data.newbie_luck_msg) {
+                        setTimeout(() => showItemEffect(data.newbie_luck_msg, 'success'), 1500);
+                    }
+                }
+
+                // 重設題目 UI
+                resetQuestion();
+            })
+            .catch(err => {
+                console.error('Camera rewind error:', err);
+                alert('回溯系統異常，請重試');
                 if (btn) { btn.disabled = false; btn.textContent = '🎥 360 相機回溯'; }
-                return;
-            }
-
-            // 成功回溯
-            cameraUsesLeft = data.uses_left;
-            cameraMpCost = 30; // 回溯後折扣清除，下題重新從 context 取
-            updateMPDisplay(data.remaining_mp);
-            updateHPDisplay(data.remaining_hp);
-
-            // 顯示成功提示
-            if (typeof showItemEffect === 'function') {
-                showItemEffect(`🎥 相機回溯成功！HP +${data.hp_restored} 恢復，剩餘 ${data.uses_left} 次`, 'success');
-            }
-
-            // 重設題目 UI
-            resetQuestion();
-        })
-        .catch(err => {
-            console.error('Camera rewind error:', err);
-            alert('回溯系統異常，請重試');
-            if (btn) { btn.disabled = false; btn.textContent = '🎥 360 相機回溯'; }
-        });
+            });
     }
     // ============================================
 
@@ -851,6 +854,10 @@
                     if (typeof showItemEffect === 'function') {
                         showItemEffect(`&#x1F97D; VR 絕對解答！HP +${data.heal_amount} 回復`, 'success');
                     }
+                }
+
+                if (data.newbie_luck_msg && typeof showItemEffect === 'function') {
+                    setTimeout(() => showItemEffect(data.newbie_luck_msg, 'success'), data.heal_amount > 0 ? 1500 : 0);
                 }
 
                 // 標記已使用，按鈕變灯暗
@@ -984,8 +991,8 @@
             _pendingWrongData = data;
 
             const canRewind = hasCamera && cameraUsesLeft > 0 &&
-                              currentMP >= cameraMpCost && !data.camera_already_rewound &&
-                              !data.is_game_over;
+                currentMP >= cameraMpCost && !data.camera_already_rewound &&
+                !data.is_game_over;
 
             if (canRewind) {
                 // 顯示相機 Modal，不洩漏正確答案
