@@ -1,0 +1,338 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}選擇你的職業 | 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container fade-in">
+    <div class="text-center mb-xl">
+        <h1 class="rpg-title" style="font-size: 2rem;">
+            <i class="fas fa-hat-wizard"></i> 選擇你的職業
+        </h1>
+        <p class="text-stone" style="font-size: 1.1rem;">每位冒險者都有獨特的道路，選擇一條屬於你的專業之路</p>
+        <p class="text-stone" style="font-size: 0.85rem; opacity: 0.7;">⚠ 職業選擇後無法更改，請謹慎選擇</p>
+    </div>
+
+    <div class="class-grid">
+        {% for cls in classes %}
+        <div class="class-card" data-class-id="{{ cls.id }}" data-class-code="{{ cls.code }}">
+            <!-- 卡片光暈效果 -->
+            <div class="card-glow"></div>
+
+            <!-- 職業圖示 -->
+            <div class="class-icon-wrapper">
+                {% if cls.code == 'CIVIL' %}
+                <i class="fas fa-shield-alt class-icon civil-icon"></i>
+                {% elif cls.code == 'ME' %}
+                <i class="fas fa-hat-wizard class-icon me-icon"></i>
+                {% elif cls.code == 'SAFETY' %}
+                <i class="fas fa-cross class-icon safety-icon"></i>
+                {% else %}
+                <i class="fas fa-user class-icon"></i>
+                {% endif %}
+            </div>
+
+            <!-- 職業名稱 -->
+            <h2 class="class-name">{{ cls.name }}</h2>
+
+            <!-- 職業描述 -->
+            <p class="class-desc">{{ cls.description }}</p>
+
+            <!-- 職業特色 -->
+            <div class="class-features">
+                {% if cls.code == 'CIVIL' %}
+                <div class="feature"><i class="fas fa-ruler-combined"></i> 精通結構設計與施工管理</div>
+                <div class="feature"><i class="fas fa-hard-hat"></i> 專注土木工程領域</div>
+                <div class="feature"><i class="fas fa-mountain"></i> 掌握材料力學與測量技術</div>
+                {% elif cls.code == 'ME' %}
+                <div class="feature"><i class="fas fa-bolt"></i> 精通機電系統與能源管理</div>
+                <div class="feature"><i class="fas fa-cogs"></i> 專注機電整合技術</div>
+                <div class="feature"><i class="fas fa-microchip"></i> 掌握自動化與智慧控制</div>
+                {% elif cls.code == 'SAFETY' %}
+                <div class="feature"><i class="fas fa-shield-virus"></i> 精通職安衛法規與風險評估</div>
+                <div class="feature"><i class="fas fa-first-aid"></i> 專注工地安全與防災</div>
+                <div class="feature"><i class="fas fa-clipboard-check"></i> 掌握安全稽核與教育訓練</div>
+                {% endif %}
+            </div>
+
+            <!-- 選擇按鈕 -->
+            <button class="select-btn" onclick="confirmClass({{ cls.id }}, '{{ cls.name }}')">
+                選擇此職業
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 隱藏表單 -->
+    <form id="select-form" method="post" style="display: none;">
+        {% csrf_token %}
+        <input type="hidden" name="class_id" id="class-id-input">
+    </form>
+</div>
+
+<style>
+    .class-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: var(--spacing-xl);
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    .class-card {
+        position: relative;
+        background: rgba(20, 10, 5, 0.85);
+        border: 2px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: var(--spacing-xl);
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        overflow: hidden;
+    }
+
+    .class-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        border-color: var(--color-gold);
+        box-shadow:
+            0 20px 40px rgba(0, 0, 0, 0.5),
+            0 0 30px rgba(255, 215, 0, 0.15);
+    }
+
+    .class-card:hover .card-glow {
+        opacity: 1;
+    }
+
+    .card-glow {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.4s;
+    }
+
+    .class-card[data-class-code="CIVIL"] .card-glow {
+        background: radial-gradient(ellipse at center, rgba(200, 120, 50, 0.12) 0%, transparent 70%);
+    }
+
+    .class-card[data-class-code="ME"] .card-glow {
+        background: radial-gradient(ellipse at center, rgba(100, 150, 255, 0.12) 0%, transparent 70%);
+    }
+
+    .class-card[data-class-code="SAFETY"] .card-glow {
+        background: radial-gradient(ellipse at center, rgba(100, 220, 100, 0.12) 0%, transparent 70%);
+    }
+
+    .class-icon-wrapper {
+        width: 90px;
+        height: 90px;
+        margin: 0 auto var(--spacing-lg);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+    }
+
+    .class-icon {
+        font-size: 2.8rem;
+    }
+
+    .civil-icon {
+        color: #E8913A;
+    }
+
+    .me-icon {
+        color: #6496FF;
+    }
+
+    .safety-icon {
+        color: #5ED85E;
+    }
+
+    .class-card:hover .class-icon-wrapper {
+        transform: scale(1.1);
+    }
+
+    .class-name {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: var(--color-gold);
+        margin-bottom: var(--spacing-sm);
+        letter-spacing: 1px;
+    }
+
+    .class-desc {
+        color: var(--color-stone);
+        font-size: 0.9rem;
+        line-height: 1.6;
+        margin-bottom: var(--spacing-lg);
+        min-height: 50px;
+    }
+
+    .class-features {
+        text-align: left;
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .feature {
+        padding: 8px 0;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.85rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .feature i {
+        width: 20px;
+        margin-right: 8px;
+        color: var(--color-gold);
+        text-align: center;
+    }
+
+    .feature:last-child {
+        border-bottom: none;
+    }
+
+    .select-btn {
+        display: inline-block;
+        width: 100%;
+        padding: 12px 24px;
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 200, 0, 0.25));
+        border: 2px solid var(--color-gold);
+        border-radius: 8px;
+        color: var(--color-gold);
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+        letter-spacing: 1px;
+    }
+
+    .select-btn:hover {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 200, 0, 0.4));
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        transform: scale(1.03);
+    }
+
+    /* Confirm Modal */
+    .confirm-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .confirm-overlay.active {
+        display: flex;
+    }
+
+    .confirm-box {
+        background: rgba(30, 15, 10, 0.98);
+        border: 2px solid var(--color-gold);
+        border-radius: 16px;
+        padding: var(--spacing-xl);
+        text-align: center;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 0 60px rgba(255, 215, 0, 0.2);
+    }
+
+    .confirm-box h3 {
+        color: var(--color-gold);
+        font-size: 1.3rem;
+        margin-bottom: var(--spacing-md);
+    }
+
+    .confirm-box p {
+        color: var(--color-stone);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .confirm-actions {
+        display: flex;
+        gap: var(--spacing-md);
+        justify-content: center;
+    }
+
+    .confirm-yes {
+        padding: 12px 32px;
+        background: linear-gradient(135deg, #FFD700, #FFA500);
+        color: #1a0e05;
+        border: 2px solid #FFD700;
+        border-radius: 8px;
+        font-size: 1.05rem;
+        font-weight: 800;
+        cursor: pointer;
+        transition: all 0.2s;
+        letter-spacing: 1px;
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+    }
+
+    .confirm-yes:hover {
+        background: linear-gradient(135deg, #FFE44D, #FFB833);
+        box-shadow: 0 0 25px rgba(255, 215, 0, 0.6);
+        transform: scale(1.05);
+    }
+
+    .confirm-no {
+        padding: 12px 32px;
+        background: rgba(255, 255, 255, 0.05);
+        color: #ccc;
+        border: 2px solid #888;
+        border-radius: 8px;
+        font-size: 1.05rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .confirm-no:hover {
+        border-color: #ff4444;
+        color: #ff4444;
+        background: rgba(255, 68, 68, 0.1);
+    }
+</style>
+
+<!-- 確認對話框 -->
+<div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-box">
+        <h3><i class="fas fa-exclamation-triangle"></i> 確認選擇</h3>
+        <p>你確定要選擇「<strong id="confirm-class-name"></strong>」嗎？<br>此選擇無法更改！</p>
+        <div class="confirm-actions">
+            <button class="confirm-yes" onclick="submitClass()">確定選擇</button>
+            <button class="confirm-no" onclick="cancelClass()">再考慮一下</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let selectedClassId = null;
+
+    function confirmClass(classId, className) {
+        selectedClassId = classId;
+        document.getElementById('confirm-class-name').textContent = className;
+        document.getElementById('confirm-overlay').classList.add('active');
+    }
+
+    function submitClass() {
+        document.getElementById('class-id-input').value = selectedClassId;
+        document.getElementById('select-form').submit();
+    }
+
+    function cancelClass() {
+        selectedClassId = null;
+        document.getElementById('confirm-overlay').classList.remove('active');
+    }
+
+    // 點擊背景關閉
+    document.getElementById('confirm-overlay').addEventListener('click', function(e) {
+        if (e.target === this) cancelClass();
+    });
+</script>
+{% endblock %}

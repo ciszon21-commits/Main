@@ -1,0 +1,78 @@
+{% extends 'EngineerRPG/base.html' %}
+
+{% block content %}
+<div class="container py-lg">
+    <!-- Header -->
+    <div class="page-header mb-lg">
+        <h1><i class="fas fa-tasks"></i> 公會管理中心</h1>
+        <p class="text-stone">管理題目、分類、地下城與每日副本</p>
+    </div>
+
+    <div class="grid grid-cols-12 gap-lg">
+        <!-- Sidebar Navigation -->
+        <div class="col-span-3">
+            <div class="rpg-card p-0">
+                <div class="rpg-card-header">
+                    <h3 class="rpg-card-title">管理選單</h3>
+                </div>
+                <div class="list-group">
+                    <a href="{% url 'engineer_rpg:question_management' %}"
+                        class="list-group-item {% if 'questions' in request.path %}active{% endif %}">
+                        <i class="fas fa-question-circle"></i> 題庫管理
+                    </a>
+                    <a href="{% url 'engineer_rpg:course_management' %}"
+                        class="list-group-item {% if 'courses' in request.path %}active{% endif %}">
+                        <i class="fas fa-scroll"></i> 課程管理
+                    </a>
+                    <a href="{% url 'engineer_rpg:category_management' %}"
+                        class="list-group-item {% if 'categories' in request.path %}active{% endif %}">
+                        <i class="fas fa-tags"></i> 分類管理
+                    </a>
+                    <a href="{% url 'engineer_rpg:dungeon_management' %}"
+                        class="list-group-item {% if 'dungeons' in request.path %}active{% endif %}">
+                        <i class="fas fa-dungeon"></i> 地下城管理
+                    </a>
+                    <hr class="my-sm" style="border-color: rgba(255,255,255,0.1);">
+                    <a href="{% url 'engineer_rpg:admin_dashboard' %}" class="list-group-item">
+                        <i class="fas fa-arrow-left"></i> 返回總覽
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-span-9">
+            {% block management_content %}{% endblock %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .list-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .list-group-item {
+        padding: var(--spacing-md) var(--spacing-lg);
+        color: var(--color-stone);
+        text-decoration: none;
+        border-left: 3px solid transparent;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .list-group-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--color-light);
+    }
+
+    .list-group-item.active {
+        background: rgba(var(--color-primary-rgb), 0.1);
+        color: var(--color-primary);
+        border-left-color: var(--color-primary);
+    }
+</style>
+{% endblock %}

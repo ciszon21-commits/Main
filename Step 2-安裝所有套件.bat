@@ -34,10 +34,26 @@ if not exist "requirements.txt" (
     exit /b
 )
 
-:: 3. 升級 pip
+:: 3. 偵測可用的 Python 指令 (用於升級 pip)
+set "PYTHON_CMD="
+py --version >nul 2>&1
+if %errorlevel% equ 0 (
+    set "PYTHON_CMD=py"
+) else (
+    python --version >nul 2>&1
+    if %errorlevel% equ 0 (
+        set "PYTHON_CMD=python"
+    )
+)
+
+if "%PYTHON_CMD%"=="" (
+    set "PYTHON_CMD=python"
+)
+
 echo.
 echo [Step 1/2] 正在檢查 pip 版本...
-python -m pip install --upgrade pip
+
+%PYTHON_CMD% -m pip install --upgrade pip
 
 :: 4. 安裝套件
 echo.

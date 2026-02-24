@@ -1,0 +1,374 @@
+{% extends "DesignConsistency/base.html" %}
+
+{% block title %}比對報表｜{{ project.name }}{% endblock %}
+
+{% block extra_css %}
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+    }
+
+    .summary-card {
+        padding: 16px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(12, 21, 32, 0.12);
+        display: grid;
+        gap: 6px;
+    }
+
+    .summary-label {
+        font-size: 12px;
+        color: var(--ink-soft);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+    }
+
+    .filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .filter-bar select {
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(12, 21, 32, 0.2);
+        background: rgba(255, 255, 255, 0.8);
+    }
+
+    .issue-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .issue-card {
+        padding: 16px;
+        border-radius: 16px;
+        border: 1px solid rgba(12, 21, 32, 0.12);
+        background: rgba(255, 255, 255, 0.92);
+        display: grid;
+        gap: 10px;
+    }
+
+    .issue-meta {
+        font-size: 12px;
+        color: var(--ink-soft);
+    }
+
+    .issue-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .issue-actions select,
+    .issue-actions input[type="text"] {
+        padding: 6px 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(12, 21, 32, 0.2);
+    }
+
+    .issue-payload {
+        font-size: 13px;
+        color: var(--ink-soft);
+        display: grid;
+        gap: 4px;
+    }
+
+    .match-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    .match-table th,
+    .match-table td {
+        padding: 10px;
+        text-align: left;
+        border: 1px solid rgba(12, 21, 32, 0.12);
+        vertical-align: top;
+    }
+
+    .match-table th {
+        background: rgba(31, 228, 193, 0.08);
+        font-weight: 600;
+    }
+
+    .match-meta {
+        font-size: 12px;
+        color: var(--ink-soft);
+    }
+
+    @media (max-width: 1100px) {
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 720px) {
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+{% endblock %}
+
+{% block content %}
+    <section class="panel">
+        <div class="panel-title">比對報表：{{ project.name }}</div>
+        <div class="panel-subtitle">建立時間：{{ run.created_at|date:"Y-m-d H:i" }} · 狀態：{{ run.get_status_display }}</div>
+        {% if run.report_file %}
+            <a class="btn btn-ghost" href="{{ run.report_file.url }}">下載 Excel 報表</a>
+        {% endif %}
+    </section>
+
+    {% if run.result and show_summary %}
+        <section class="panel">
+            <div class="panel-title">摘要</div>
+            <div class="panel-subtitle">
+                判定規則：相同描述＝精準比對；相似描述＝模糊比對（<92 視為低信心）；單位/數量欄位不一致會額外標記。
+            </div>
+            <div class="panel-subtitle">
+                模式：{{ run.result.summary.compare_mode|default:"balanced" }} · Budget filter：{{ run.result.summary.budget_filter|default:"none" }}
+            </div>
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-label">預算項目</div>
+                    <div>{{ run.result.summary.budget_rows }}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">數量項目</div>
+                    <div>{{ run.result.summary.quantity_rows }}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">成功比對</div>
+                    <div>{{ run.result.summary.matched_rows }}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">名稱差異</div>
+                    <div>{{ run.result.summary.name_variance|default:0 }}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">單位不一致</div>
+                    <div>{{ run.result.summary.unit_mismatch }}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">數量不一致</div>
+                    <div>{{ run.result.summary.qty_mismatch }}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">預算缺漏</div>
+                    <div>{{ run.result.summary.unmatched_budget }}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">數量缺漏</div>
+                    <div>{{ run.result.summary.unmatched_quantity }}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">預算關鍵詞</div>
+                    <div>{{ run.result.budget_terms.total_terms }}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">數量關鍵詞</div>
+                    <div>{{ run.result.quantity_terms.total_terms }}</div>
+                </div>
+            </div>
+        </section>
+    {% endif %}
+
+    <section class="panel">
+        <div class="panel-title">比對問題清單</div>
+        <div class="panel-subtitle">請逐筆確認是否真為不一致，並留下備註。</div>
+        <div class="panel-subtitle">
+            狀態統計：待確認 {{ status_counts.pending|default:0 }} · 確定不一致 {{ status_counts.confirmed|default:0 }} · 誤判 {{ status_counts.false_positive|default:0 }}
+        </div>
+        <form method="get" class="filter-bar">
+            <label>
+                類型
+                <select name="type">
+                    <option value="">全部</option>
+                    <option value="unmatched_budget" {% if issue_type == 'unmatched_budget' %}selected{% endif %}>預算缺漏</option>
+                    <option value="unmatched_quantity" {% if issue_type == 'unmatched_quantity' %}selected{% endif %}>數量缺漏</option>
+                    <option value="name_variance" {% if issue_type == 'name_variance' %}selected{% endif %}>名稱差異</option>
+                    <option value="unit_mismatch" {% if issue_type == 'unit_mismatch' %}selected{% endif %}>單位不一致</option>
+                    <option value="qty_mismatch" {% if issue_type == 'qty_mismatch' %}selected{% endif %}>數量不一致</option>
+                    <option value="low_confidence" {% if issue_type == 'low_confidence' %}selected{% endif %}>低信心匹配</option>
+                </select>
+            </label>
+            <label>
+                方法
+                <select name="method">
+                    <option value="">全部</option>
+                    {% for code, label in method_options %}
+                        <option value="{{ code }}" {% if method == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                狀態
+                <select name="status">
+                    <option value="">全部</option>
+                    <option value="pending" {% if status == 'pending' %}selected{% endif %}>待確認</option>
+                    <option value="confirmed" {% if status == 'confirmed' %}selected{% endif %}>確定不一致</option>
+                    <option value="false_positive" {% if status == 'false_positive' %}selected{% endif %}>誤判</option>
+                </select>
+            </label>
+            <label>
+                顯示摘要
+                <select name="show_summary">
+                    <option value="1" {% if show_summary %}selected{% endif %}>顯示</option>
+                    <option value="0" {% if not show_summary %}selected{% endif %}>隱藏</option>
+                </select>
+            </label>
+            <label>
+                顯示詳情
+                <select name="show_payload">
+                    <option value="1" {% if show_payload %}selected{% endif %}>顯示</option>
+                    <option value="0" {% if not show_payload %}selected{% endif %}>隱藏</option>
+                </select>
+            </label>
+            <label>
+                顯示名稱差異
+                <select name="show_name_diff">
+                    <option value="1" {% if show_name_diff %}selected{% endif %}>顯示</option>
+                    <option value="0" {% if not show_name_diff %}selected{% endif %}>隱藏</option>
+                </select>
+            </label>
+            <label>
+                顯示一致清單
+                <select name="show_matches">
+                    <option value="1" {% if show_matches %}selected{% endif %}>顯示</option>
+                    <option value="0" {% if not show_matches %}selected{% endif %}>隱藏</option>
+                </select>
+            </label>
+            <label>
+                一致篩選
+                <select name="match_filter">
+                    {% for code, label in match_filter_options %}
+                        <option value="{{ code }}" {% if match_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button class="btn btn-primary" type="submit">套用篩選</button>
+        </form>
+
+        <div class="issue-list" style="margin-top:16px;">
+            {% for issue in issues %}
+                <div class="issue-card">
+                    <div><strong>{{ issue.get_issue_type_display }}</strong> · {{ issue.summary }}</div>
+                    <div class="issue-meta">建立：{{ issue.created_at|date:"Y-m-d H:i" }} · 狀態：{{ issue.get_status_display }}</div>
+                    {% if issue.payload and show_payload %}
+                        <div class="issue-payload">
+                            {% if issue.payload.budget %}
+                                <div>預算：{{ issue.payload.budget.description }} ({{ issue.payload.budget.unit }} / {{ issue.payload.budget.quantity }})</div>
+                            {% endif %}
+                            {% if issue.payload.quantity %}
+                                <div>數量：{{ issue.payload.quantity.description }} ({{ issue.payload.quantity.unit }} / {{ issue.payload.quantity.quantity }})</div>
+                            {% endif %}
+                            {% if issue.payload.score %}
+                                <div>匹配分數：{{ issue.payload.score }} · 方法：{{ issue.payload.method }}</div>
+                            {% endif %}
+                            {% if issue.payload.name_diff and show_name_diff %}
+                                {% if issue.payload.name_diff.tokens_only_budget %}
+                                    <div>預算獨有詞彙（只在預算名稱出現）：{{ issue.payload.name_diff.tokens_only_budget|join:", " }}</div>
+                                {% endif %}
+                                {% if issue.payload.name_diff.tokens_only_quantity %}
+                                    <div>數量獨有詞彙（只在數量名稱出現）：{{ issue.payload.name_diff.tokens_only_quantity|join:", " }}</div>
+                                {% endif %}
+                                {% if issue.payload.name_diff.numbers_only_budget %}
+                                    <div>預算獨有數字（只在預算名稱出現）：{{ issue.payload.name_diff.numbers_only_budget|join:", " }}</div>
+                                {% endif %}
+                                {% if issue.payload.name_diff.numbers_only_quantity %}
+                                    <div>數量獨有數字（只在數量名稱出現）：{{ issue.payload.name_diff.numbers_only_quantity|join:", " }}</div>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    <form method="post" class="issue-actions">
+                        {% csrf_token %}
+                        <input type="hidden" name="issue_id" value="{{ issue.id }}">
+                        <select name="status">
+                            <option value="pending" {% if issue.status == 'pending' %}selected{% endif %}>待確認</option>
+                            <option value="confirmed" {% if issue.status == 'confirmed' %}selected{% endif %}>確定不一致</option>
+                            <option value="false_positive" {% if issue.status == 'false_positive' %}selected{% endif %}>誤判</option>
+                        </select>
+                        <input type="text" name="note" value="{{ issue.note }}" placeholder="備註">
+                        <button class="btn btn-ghost" type="submit">儲存註記</button>
+                    </form>
+                </div>
+            {% empty %}
+                <div class="panel-subtitle">目前沒有比對問題。</div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {% if show_matches %}
+        <section class="panel">
+            <div class="panel-title">一致清單</div>
+            {% if run.result %}
+                <div class="panel-subtitle">
+                    一致：{{ run.result.summary.matched_consistent|default:0 }} ·
+                    不一致：{{ run.result.summary.matched_inconsistent|default:0 }} ·
+                    全部匹配：{{ run.result.summary.matched_rows|default:0 }}
+                </div>
+            {% endif %}
+            {% if matched_items %}
+                <table class="match-table" style="margin-top:12px;">
+                    <thead>
+                        <tr>
+                            <th>匹配資訊</th>
+                            <th>數量來源</th>
+                            <th>預算來源</th>
+                            <th>差異說明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in matched_items %}
+                            <tr>
+                                <td>
+                                    方法：{{ item.method }}<br>
+                                    分數：{{ item.score }}<br>
+                                    單位一致：{% if item.unit_match == True %}是{% elif item.unit_match == False %}否{% else %}無{% endif %}<br>
+                                    數量差異：{% if item.qty_delta is not None %}{{ item.qty_delta }}{% else %}無{% endif %}
+                                </td>
+                                <td>
+                                    <div>{{ item.quantity.description }}</div>
+                                    <div class="match-meta">項次：{{ item.quantity.item_no }} · 單位：{{ item.quantity.unit }} · 數量：{{ item.quantity.quantity }}</div>
+                                    <div class="match-meta">分類：{{ item.quantity.category }} · 工作表：{{ item.quantity.sheet }} · 列：{{ item.quantity.row }}</div>
+                                </td>
+                                <td>
+                                    <div>{{ item.budget.description }}</div>
+                                    <div class="match-meta">項次：{{ item.budget.item_no }} · 參考碼：{{ item.budget.ref_code }}</div>
+                                    <div class="match-meta">單位：{{ item.budget.unit }} · 數量：{{ item.budget.quantity }}</div>
+                                </td>
+                                <td>
+                                    {% if item.name_diff and show_name_diff %}
+                                        {% if item.name_diff.tokens_only_budget %}
+                                            <div>預算獨有詞：{{ item.name_diff.tokens_only_budget|join:", " }}</div>
+                                        {% endif %}
+                                        {% if item.name_diff.tokens_only_quantity %}
+                                            <div>數量獨有詞：{{ item.name_diff.tokens_only_quantity|join:", " }}</div>
+                                        {% endif %}
+                                        {% if item.name_diff.numbers_only_budget %}
+                                            <div>預算獨有數字：{{ item.name_diff.numbers_only_budget|join:", " }}</div>
+                                        {% endif %}
+                                        {% if item.name_diff.numbers_only_quantity %}
+                                            <div>數量獨有數字：{{ item.name_diff.numbers_only_quantity|join:", " }}</div>
+                                        {% endif %}
+                                    {% else %}
+                                        <div class="match-meta">無名稱差異</div>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="panel-subtitle">目前沒有一致資料可顯示。</div>
+            {% endif %}
+        </section>
+    {% endif %}
+{% endblock %}

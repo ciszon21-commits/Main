@@ -1,0 +1,121 @@
+{% extends "compareapp/base.html" %}
+
+{% block title %}Step 2 名稱解析{% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block content %}
+<a href="{% url 'compareapp:project_detail' project.id %}" class="back-link">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    返回專案流程
+</a>
+
+<div class="page-header">
+    <h1>Step 2：預算書名稱解析</h1>
+    <p class="subtitle">來源：{{ project.budget_original_name }} ｜ 以預算書的中文語系欄位（zh-TW）為主要名稱來源</p>
+</div>
+
+<div class="section animate-in">
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ budget_records_count }}</div>
+            <div class="stat-label">解析總筆數</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ terms_total_count }}</div>
+            <div class="stat-label">唯一名稱數</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ records_preview|length }}</div>
+            <div class="stat-label">本頁工項預覽</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ terms|length }}</div>
+            <div class="stat-label">本頁名稱預覽</div>
+        </div>
+    </div>
+</div>
+
+<div class="section animate-in">
+    <div class="form-errors" style="border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.1); color:#bbf7d0;">
+        解析邏輯已優先採用中文語系欄位。若該欄位內容本身為英文，仍會正常保留並參與後續比對。
+    </div>
+</div>
+
+{% if terms_truncated %}
+<div class="section animate-in">
+    <div class="form-errors" style="border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.08); color:#fde68a;">
+        資料量較大，為保持畫面速度先顯示前 {{ terms|length }} 筆名稱（總計 {{ terms_total_count }} 筆）。
+    </div>
+</div>
+{% endif %}
+
+<div class="section animate-in">
+    <div class="section-title"><span class="step-badge">T</span>名稱清單</div>
+    <div class="glass-card" style="padding:1rem;">
+        <div class="table-wrapper" style="background: rgba(4,8,22,.78); border-color: rgba(148,163,184,.35);">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>原始名稱</th>
+                        <th>正規化名稱</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for term in terms %}
+                    <tr>
+                        <td style="color:#cbd5e1;">{{ forloop.counter }}</td>
+                        <td style="color:#f8fafc; font-weight:600;">{{ term.name }}</td>
+                        <td style="color:#93c5fd;">{{ term.normalized_name }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr class="empty-row"><td colspan="3">沒有可用名稱資料。</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="section animate-in">
+    <div class="section-title"><span class="step-badge">R</span>標準化工項預覽</div>
+    <div class="glass-card" style="padding:1rem;">
+        <div class="table-wrapper" style="background: rgba(4,8,22,.78); border-color: rgba(148,163,184,.35);">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>來源 ID</th>
+                        <th>名稱</th>
+                        <th>數量</th>
+                        <th>單位</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in records_preview %}
+                    <tr>
+                        <td style="color:#cbd5e1;">{{ row.source_id }}</td>
+                        <td style="color:#f8fafc; font-weight:600;">{{ row.name }}</td>
+                        <td style="color:#fde68a;">{{ row.quantity }}</td>
+                        <td style="color:#93c5fd;">{{ row.unit }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr class="empty-row"><td colspan="4">沒有可用工項資料。</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if records_truncated %}
+        <p style="margin-top:.75rem; color:var(--text-secondary); font-size:.82rem;">
+            僅顯示前 {{ records_preview|length }} 筆工項，完整資料會在比對步驟載入。
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section animate-in">
+    <a class="btn btn-primary" href="{% url 'compareapp:quantity_upload' project.id %}">
+        <svg viewBox="0 0 24 24"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>
+        下一步：上傳數量計算書
+    </a>
+</div>
+{% endblock %}

@@ -1,0 +1,177 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}隊伍管理 | 管理中心{% endblock %}
+
+{% block content %}
+<div class="rpg-container fade-in">
+    <!-- 頁面標題 -->
+    <div class="text-center mb-xl">
+        <h2 class="rpg-title">
+            <i class="fas fa-users-cog"></i> 隊伍管理
+        </h2>
+        <p class="text-stone">管理公會隊伍、指派隊長與成員</p>
+    </div>
+
+    <!-- 操作按鈕 -->
+    <div class="mb-lg text-right">
+        <a href="{% url 'engineer_rpg:create_team' %}" class="rpg-btn rpg-btn-primary">
+            <i class="fas fa-plus"></i> 創建新隊伍
+        </a>
+        <a href="{% url 'engineer_rpg:admin_dashboard' %}" class="rpg-btn rpg-btn-outline">
+            <i class="fas fa-arrow-left"></i> 返回管理中心
+        </a>
+    </div>
+
+    <!-- 隊伍列表 -->
+    <div class="rpg-card">
+        <div class="rpg-card-header">
+            <h3 class="rpg-card-title"><i class="fas fa-list"></i> 隊伍列表</h3>
+        </div>
+        <div class="rpg-card-body">
+            {% if teams %}
+            <div class="table-responsive">
+                <table class="rpg-table">
+                    <thead>
+                        <tr>
+                            <th>隊伍名稱</th>
+                            <th>隊長</th>
+                            <th>成員數</th>
+                            <th>建立時間</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for team in teams %}
+                        <tr>
+                            <td>
+                                <strong>{{ team.name }}</strong>
+                                {% if team.description %}
+                                <br><small class="text-stone">{{ team.description|truncatewords:10 }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if team.leader %}
+                                <i class="fas fa-crown text-gold"></i> {{ team.leader.username }}
+                                {% else %}
+                                <span class="text-stone">未指派</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge">{{ team.get_member_count }} 人</span>
+                            </td>
+                            <td>
+                                <small class="text-stone">{{ team.created_at|date:"Y-m-d" }}</small>
+                            </td>
+                            <td>
+                            <td>
+                                <div style="display: flex; gap: 5px;">
+                                    <a href="{% url 'engineer_rpg:edit_team' team.id %}"
+                                        class="rpg-btn-sm rpg-btn-outline">
+                                        <i class="fas fa-edit"></i> 編輯
+                                    </a>
+                                    <a href="{% url 'engineer_rpg:manage_team_members' team.id %}"
+                                        class="rpg-btn-sm rpg-btn-primary">
+                                        <i class="fas fa-users"></i> 成員管理
+                                    </a>
+                                    <form method="post" action="{% url 'engineer_rpg:delete_team' team.id %}"
+                                        style="display: inline;"
+                                        onsubmit="return confirm('確定要解散隊伍「{{ team.name }}」嗎？此操作無法復原！');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="rpg-btn-sm rpg-btn-danger"
+                                            style="border: none; cursor: pointer;">
+                                            <i class="fas fa-trash-alt"></i> 解散
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-xl">
+                <i class="fas fa-inbox" style="font-size: 3rem; color: var(--color-stone); margin-bottom: 1rem;"></i>
+                <p class="text-stone">尚未創建任何隊伍</p>
+                <a href="{% url 'engineer_rpg:create_team' %}" class="rpg-btn rpg-btn-primary mt-md">
+                    <i class="fas fa-plus"></i> 創建第一個隊伍
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .rpg-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .rpg-table thead {
+        background: rgba(var(--rgb-primary), 0.2);
+    }
+
+    .rpg-table th {
+        padding: var(--spacing-sm) var(--spacing-md);
+        text-align: left;
+        color: var(--color-gold);
+        font-weight: bold;
+        border-bottom: 2px solid var(--color-primary);
+    }
+
+    .rpg-table td {
+        padding: var(--spacing-sm) var(--spacing-md);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .rpg-table tbody tr:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .badge {
+        background: rgba(var(--rgb-primary), 0.3);
+        color: var(--color-gold);
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+    }
+
+    .rpg-btn-sm {
+        padding: 4px 12px;
+        font-size: 0.85rem;
+        text-decoration: none;
+        border-radius: 4px;
+        display: inline-block;
+        transition: all 0.3s;
+    }
+
+    .rpg-btn-sm.rpg-btn-outline {
+        border: 1px solid var(--color-border);
+        color: var(--color-text);
+    }
+
+    .rpg-btn-sm.rpg-btn-outline:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .rpg-btn-sm.rpg-btn-primary {
+        background: var(--color-primary);
+        color: var(--color-background);
+    }
+
+    .rpg-btn-sm.rpg-btn-primary:hover {
+        filter: brightness(1.2);
+    }
+
+    .rpg-btn-sm.rpg-btn-danger {
+        background: var(--color-danger, #e74c3c);
+        color: white;
+    }
+
+    .rpg-btn-sm.rpg-btn-danger:hover {
+        filter: brightness(0.9);
+    }
+</style>
+{% endblock %}

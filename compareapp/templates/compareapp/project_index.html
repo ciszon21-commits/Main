@@ -1,0 +1,94 @@
+{% extends "compareapp/base.html" %}
+
+{% block title %}專案清單{% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block content %}
+<div style="max-width: 1080px; margin: 2rem auto;">
+    <div class="page-header">
+        <h1>資料一致化比對流程</h1>
+        <p class="subtitle">先建立專案，再依序上傳預算書與數量計算書，最後進行名稱、數量、單位比對。</p>
+        <div style="margin-top: 1rem;">
+            <a href="{% url 'compareapp:project_index_apple' %}" style="display: inline-block; padding: 0.5rem 1rem; background: #000; color: #fff; text-decoration: none; border-radius: 99px; font-size: 0.85rem; font-weight: 500;">
+                 Try New Experience
+            </a>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">
+            <span class="step-badge">0</span>
+            建立專案
+        </div>
+        <div class="glass-card glass-card--gradient">
+            {% if form.non_field_errors %}
+            <div class="form-errors">
+                <ul>
+                    {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.name.id_for_label }}">專案名稱</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}<div style="color:#fca5a5;font-size:.78rem;">{{ form.name.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.plan_number.id_for_label }}">計畫編號</label>
+                        {{ form.plan_number }}
+                        {% if form.plan_number.errors %}<div style="color:#fca5a5;font-size:.78rem;">{{ form.plan_number.errors.0 }}</div>{% endif %}
+                    </div>
+                </div>
+                <div style="margin-top: 1.2rem;">
+                    <button class="btn btn-primary" type="submit">
+                        <svg viewBox="0 0 24 24"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>
+                        建立並進入流程
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">
+            <span class="step-badge">L</span>
+            已建立專案
+        </div>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>專案名稱</th>
+                        <th>計畫編號</th>
+                        <th>預算書</th>
+                        <th>數量計算書</th>
+                        <th>最後更新</th>
+                        <th>動作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for project in projects %}
+                    <tr>
+                        <td>{{ project.name }}</td>
+                        <td>{{ project.plan_number }}</td>
+                        <td>{% if project.has_budget %}已上傳{% else %}未上傳{% endif %}</td>
+                        <td>{% if project.has_quantity_sheet %}已上傳{% else %}未上傳{% endif %}</td>
+                        <td>{{ project.updated_at|date:"Y-m-d H:i" }}</td>
+                        <td>
+                            <a class="btn btn-secondary" href="{% url 'compareapp:project_detail' project.id %}">查看流程</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr class="empty-row"><td colspan="6">尚未建立專案。</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

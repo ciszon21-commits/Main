@@ -1,0 +1,929 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}{{ trial.title }} - 挑戰中{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <div class="exam-header mb-lg">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1>{{ trial.title }}</h1>
+            <div class="exam-timer" id="examTimer">
+                <i class="fas fa-stopwatch"></i> <span id="timeRemaining">--:--</span>
+            </div>
+        </div>
+
+        <!-- HP/MP 狀態列 -->
+        <div class="status-bars mt-md">
+            <div class="hp-container">
+                <span class="status-label"><i class="fas fa-heart text-danger"></i> HP</span>
+                <div class="hp-bar-bg">
+                    <div class="hp-bar-fill" id="hpBar"
+                        style="width: {% widthratio initial_hp base_hp 100 %}%; background: {% if initial_hp <= 0 %}linear-gradient(90deg, #dc3545, #8b0000){% else %}{% widthratio initial_hp base_hp 100 as hp_percentage %}{% if hp_percentage <= 20 %}linear-gradient(90deg, #dc3545, #8b0000){% else %}linear-gradient(90deg, #28a745, #1e7e34){% endif %}{% endif %};">
+                    </div>
+                    <span class="bar-value" id="hpValue">{{ initial_hp }}/{{ base_hp }}</span>
+                </div>
+            </div>
+            <div class="mp-container">
+                <span class="status-label"><i class="fas fa-bolt text-warning"></i> MP</span>
+                <div class="mp-bar-bg">
+                    <div class="mp-bar-fill" id="mpBar" style="width: {{ initial_mp }}%;"></div>
+                    <span class="bar-value" id="mpValue">{{ initial_mp }}/100</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 進度條 -->
+    <div class="progress-info mt-md">
+        <span class="progress-text">第 <span id="currentIndex">{{ current_index|add:1 }}</span>
+            / {{ total_questions }} 題</span>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progressBar"
+                style="width: {% widthratio current_index total_questions 100 %}%"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 單題顯示區 -->
+<div class="rpg-card mb-lg question-card" id="questionCard">
+    {% if is_completed %}
+    <!-- 結算畫面 -->
+    <div class="completion-result text-center py-xl">
+        {% if is_passed %}
+        <div class="result-icon mb-lg">
+            <i class="fas fa-trophy text-primary" style="font-size: 5rem;"></i>
+        </div>
+        <h2 class="text-primary mb-md">🎉 挑戰成功！</h2>
+        <p class="text-lg text-stone mb-lg">恭喜您完成了本次每日試煉！</p>
+        {% else %}
+        <div class="result-icon mb-lg">
+            <i class="fas fa-skull text-danger" style="font-size: 5rem;"></i>
+        </div>
+        <h2 class="text-danger mb-md">💀 挑戰失敗</h2>
+        <p class="text-lg text-stone mb-lg">很遺憾，您的 HP 已歸零...</p>
+        {% endif %}
+
+        <!-- 統計數據 -->
+        <div class="stats-grid grid grid-cols-4 gap-md mb-xl max-w-3xl mx-auto">
+            <div class="stat-card bg-black/30 p-md rounded">
+                <div class="stat-value text-3xl font-bold text-primary">{{ correct_count }}</div>
+                <div class="stat-label text-stone text-sm">答對題數</div>
+            </div>
+            <div class="stat-card bg-black/30 p-md rounded">
+                <div class="stat-value text-3xl font-bold text-warning">{{ total_count }}</div>
+                <div class="stat-label text-stone text-sm">總題數</div>
+            </div>
+            <div class="stat-card bg-black/30 p-md rounded">
+                <div class="stat-value text-3xl font-bold text-secondary">{{ accuracy|floatformat:1 }}%</div>
+                <div class="stat-label text-stone text-sm">正確率</div>
+            </div>
+            <div class="stat-card bg-black/30 p-md rounded">
+                <div class="stat-value text-3xl font-bold text-success">+{{ exp_reward }}</div>
+                <div class="stat-label text-stone text-sm">獲得經驗</div>
+            </div>
+        </div>
+
+        <!-- HP 狀態 -->
+        <div class="hp-result mb-xl max-w-md mx-auto">
+            <div class="flex justify-between text-sm mb-xs">
+                <span class="text-stone"><i class="fas fa-heart text-danger"></i> 最終 HP</span>
+                <span class="{% if final_hp > 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ final_hp }} / {{initial_hp }}
+                </span>
+            </div>
+            <div class="hp-bar-container bg-black/40 rounded-full h-6 overflow-hidden">
+                <div class="hp-bar bg-gradient-to-r from-danger to-primary h-full transition-all duration-500"
+                    style="width: {% widthratio final_hp initial_hp 100 %}%"></div>
+            </div>
+        </div>
+
+        <!-- 返回按鈕 -->
+        <a href="{% url 'engineer_rpg:daily_trial_list' %}" class="rpg-btn rpg-btn-primary btn-large">
+            <i class="fas fa-home"></i> 返回每日挑戰列表
+        </a>
+    </div>
+    {% elif question %}
+    <div class="question-header mb-md">
+        <span class="question-number">Q{{ current_index|add:1 }}</span>
+        <span class="question-type badge badge-info">{{ question.get_question_type_display }}</span>
+        <span class="question-difficulty badge badge-{{ question.difficulty }}">
+            {{ question.get_difficulty_display }}</span>
+    </div>
+
+    <div class="question-content mb-lg">
+        <h3 class="mb-md">{{ question.content|linebreaksbr }}</h3>
+        {% if question.image %}
+        <img src="{{ question.image.url }}" alt="Question Image" class="question-image mb-md">
+        {% endif %}
+    </div>
+
+    <form id="answerForm">
+        {% csrf_token %}
+
+        <!-- MP 技能按鈕 -->
+        <div class="skill-buttons mb-lg" id="skillButtons">
+            {% if 'HINT' in available_skills %}
+            <button type="button" class="skill-btn" id="hintBtn" onclick="useHint()">
+                <i class="fas fa-lightbulb"></i> 提示 (30 MP)
+            </button>
+            {% endif %}
+
+            {% if 'REMOVE_OPTION' in available_skills %}
+            <button type="button" class="skill-btn" id="fiftyFiftyBtn" onclick="useFiftyFifty()">
+                <i class="fas fa-cut"></i> 二選一 (50 MP)
+            </button>
+            {% endif %}
+        </div>
+
+        <!-- 道具欄 -->
+        {% if user_items %}
+        <div class="items-toolbar mb-lg">
+            <div class="items-label">
+                <i class="fas fa-briefcase"></i> 可用道具
+            </div>
+            <div class="items-list">
+                {% for user_item in user_items %}
+                <button type="button" class="item-btn" data-item-id="{{ user_item.id }}"
+                    data-item-name="{{ user_item.item.name }}" data-effect-type="{{ user_item.item.effect_type }}"
+                    data-effect-value="{{ user_item.item.effect_value }}" onclick="useItem(this)">
+                    <div class="item-icon">
+                        {% if user_item.item.effect_type == 'HEAL' %}
+                        <i class="fas fa-heart"></i>
+                        {% elif user_item.item.effect_type == 'HINT' %}
+                        <i class="fas fa-lightbulb"></i>
+                        {% elif user_item.item.effect_type == 'SKIP' %}
+                        <i class="fas fa-forward"></i>
+                        {% elif user_item.item.effect_type == 'SHIELD' %}
+                        <i class="fas fa-shield-alt"></i>
+                        {% elif user_item.item.effect_type == 'TIME_EXTEND' %}
+                        <i class="fas fa-hourglass-half"></i>
+                        {% elif user_item.item.effect_type == 'REMOVE_OPTION' %}
+                        <i class="fas fa-cut"></i>
+                        {% else %}
+                        <i class="fas fa-box"></i>
+                        {% endif %}
+                    </div>
+                    <div class="item-info">
+                        <div class="item-name">{{ user_item.item.name }}</div>
+                        <div class="item-quantity">x{{ user_item.quantity }}</div>
+                    </div>
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="options-list" id="optionsList">
+            {% if question.question_type == 'SINGLE' or question.question_type == 'TRUEFALSE' %}
+            {% for key, value in question.options.items %}
+            <label class="option-item">
+                <input type="radio" name="answer" value="{{ key }}" required>
+                <span class="option-text">{{ key }}. {{ value }}</span>
+            </label>
+            {% endfor %}
+            {% elif question.question_type == 'MULTIPLE' %}
+            {% for key, value in question.options.items %}
+            <label class="option-item">
+                <input type="checkbox" name="answer" value="{{ key }}">
+                <span class="option-text">{{ key }}. {{ value }}</span>
+            </label>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="action-buttons mt-xl text-center">
+            <button type="submit" class="rpg-btn rpg-btn-primary btn-large" id="submitBtn">
+                <i class="fas fa-check"></i> 提交答案
+            </button>
+        </div>
+    </form>
+
+    <!-- 反饋區域（初始隱藏） -->
+    <div class="feedback-area" id="feedbackArea" style="display: none;">
+        <div class="feedback-content">
+            <div class="feedback-icon" id="feedbackIcon"></div>
+            <h3 class="feedback-title" id="feedbackTitle"></h3>
+            <div class="feedback-details" id="feedbackDetails"></div>
+            <button class="rpg-btn rpg-btn-secondary btn-large mt-lg" id="nextBtn">
+                <i class="fas fa-arrow-right"></i> 下一題
+            </button>
+        </div>
+    </div>
+    {% else %}
+    <p class="text-center">沒有可用的題目</p>
+    {% endif %}
+</div>
+</div>
+
+<script>
+    const trialId = {{ trial.id }};
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    let currentHP = {{ initial_hp }};
+    const maxHP = {{ base_hp }};
+
+    // 防止意外離開頁面
+    let isSubmitting = false;
+
+    window.addEventListener('beforeunload', function (e) {
+        if (!isSubmitting) {
+            // 現代瀏覽器通常忽略自定義消息，只顯示標準警告
+            const message = "離開此頁面將可能導致任務失敗或進度異常，確定要離開嗎？";
+            e.preventDefault();
+            e.returnValue = message;
+            return message;
+        }
+    });
+
+    // 提交表單時設置標誌，避免觸發警告
+    document.getElementById('answerForm').addEventListener('submit', function () {
+        isSubmitting = true;
+    });
+
+    // 倒數計時（使用後端計算的剩餘時間）
+    let remainingSeconds = {{ remaining_seconds }};
+    const timerElement = document.getElementById('timeRemaining');
+
+    function updateTimer() {
+        const minutes = Math.floor(remainingSeconds / 60);
+        const seconds = remainingSeconds % 60;
+        timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+        if (remainingSeconds <= 0) {
+            clearInterval(timerInterval);
+            alert('時間到！');
+            window.location.href = "{% url 'engineer_rpg:daily_trial_list' %}";
+        } else {
+            remainingSeconds--;
+        }
+    }
+
+    const timerInterval = setInterval(updateTimer, 1000);
+    updateTimer();
+
+    // 提交答案
+    document.getElementById('answerForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        formData.append('current_mp', currentMP);  // 傳送當前 MP 到後端
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+
+        fetch(`/rpg/trial/${trialId}/submit-answer/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                showFeedback(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('提交失敗，請重試');
+                submitBtn.disabled = false;
+            });
+    });
+
+    // 顯示反饋
+    function showFeedback(data) {
+        console.log('Feedback data:', data); // Debug
+        console.log('Remaining HP:', data.remaining_hp); // Debug
+
+        const feedbackArea = document.getElementById('feedbackArea');
+        const feedbackIcon = document.getElementById('feedbackIcon');
+        const feedbackTitle = document.getElementById('feedbackTitle');
+        const feedbackDetails = document.getElementById('feedbackDetails');
+        const answerForm = document.getElementById('answerForm');
+
+        // 隱藏表單，顯示反饋
+        answerForm.style.display = 'none';
+        feedbackArea.style.display = 'block';
+
+        // 更新 HP 顯示
+        updateHPDisplay(data.remaining_hp);
+
+        if (data.is_correct) {
+            feedbackIcon.innerHTML = '<i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>';
+            feedbackTitle.textContent = '✓ 答對了！';
+            feedbackTitle.className = 'feedback-title text-success';
+            feedbackDetails.innerHTML = `<p class="text-lg">${data.explanation || '太棒了！繼續加油！'}</p>`;
+        } else {
+            feedbackIcon.innerHTML = '<i class="fas fa-times-circle text-danger" style="font-size: 4rem;"></i>';
+            feedbackTitle.textContent = '✗ 答錯了';
+            feedbackTitle.className = 'feedback-title text-danger';
+            feedbackDetails.innerHTML = `
+            <p class="text-lg mb-md"><strong>正確答案：</strong>${data.correct_answer}</p>
+            <p class="text-md">${data.explanation || '請再接再厲！'}</p>
+            <p class="text-danger mt-md"><strong>❤️ HP -${data.hp_damage || 10}</strong></p>
+        `;
+        }
+
+        // 檢查是否 Game Over
+        if (data.is_game_over) {
+            feedbackDetails.innerHTML += '<p class="text-danger text-xl mt-lg"><strong>❌ HP 歸零！挑戰失敗！</strong></p>';
+            document.getElementById('nextBtn').textContent = '查看結果';
+            document.getElementById('nextBtn').onclick = function () {
+                window.location.href = "{% url 'engineer_rpg:daily_trial_list' %}";
+            };
+        }
+    }
+
+    // 更新 HP 顯示
+    function updateHPDisplay(hp) {
+        const hpBar = document.getElementById('hpBar');
+        const hpValue = document.getElementById('hpValue');
+        const percentage = Math.max(0, Math.min(100, (hp / maxHP) * 100));
+        hpBar.style.width = `${percentage}%`;
+        hpValue.textContent = `${hp}/${maxHP}`;
+
+        // 顏色變化 (低血量警示)
+        if (percentage <= 20) {
+            hpBar.style.background = 'linear-gradient(90deg, #dc3545, #8b0000)';
+        } else {
+            hpBar.style.background = 'linear-gradient(90deg, #28a745, #1e7e34)';
+        }
+
+        currentHP = hp;
+    }
+
+    // 下一題按鈕
+    document.getElementById('nextBtn').addEventListener('click', function () {
+        window.location.href = `/rpg/trial/${trialId}/next-question/`;
+    });
+
+    // MP 技能功能
+    let currentMP = {{ initial_mp }};
+    let hintUsed = false;
+    let fiftyFiftyUsed = false;
+
+    function useHint() {
+        if (hintUsed) {
+            alert('本題已使用過提示！');
+            return;
+        }
+        if (currentMP < 30) {
+            alert('MP 不足！需要 30 MP');
+            return;
+        }
+
+        // 扣除 MP
+        currentMP -= 30;
+        updateMPDisplay(currentMP);
+        hintUsed = true;
+        document.getElementById('hintBtn').disabled = true;
+
+        // 顯示提示（假設是題目解析）
+        const hintBox = document.createElement('div');
+        hintBox.className = 'hint-box';
+        hintBox.innerHTML = `
+            <i class="fas fa-lightbulb"></i> 
+            <strong>提示：</strong>{{ question.explanation|default:"思考一下題目的關鍵字..." }}
+        `;
+        document.getElementById('optionsList').insertAdjacentElement('beforebegin', hintBox);
+    }
+
+    function useFiftyFifty() {
+        if (fiftyFiftyUsed) {
+            alert('本題已使用過二選一！');
+            return;
+        }
+        if (currentMP < 50) {
+            alert('MP 不足！需要 50 MP');
+            return;
+        }
+
+        // 扣除 MP
+        currentMP -= 50;
+        updateMPDisplay(currentMP);
+        fiftyFiftyUsed = true;
+        document.getElementById('fiftyFiftyBtn').disabled = true;
+
+        // 隨機移除兩個錯誤選項
+        const options = document.querySelectorAll('.option-item');
+        const wrongOptions = Array.from(options).filter(opt => {
+            const input = opt.querySelector('input');
+            return input.value !== '{{ question.correct_answer }}';
+        });
+
+        // 隨機選擇兩個錯誤選項並禁用
+        const toRemove = wrongOptions.sort(() => 0.5 - Math.random()).slice(0, 2);
+        toRemove.forEach(opt => {
+            opt.style.opacity = '0.3';
+            opt.querySelector('input').disabled = true;
+        });
+    }
+
+    function updateMPDisplay(mp) {
+        const mpBar = document.getElementById('mpBar');
+        const mpValue = document.getElementById('mpValue');
+        const percentage = (mp / 100) * 100;
+        mpBar.style.width = `${percentage}%`;
+        mpValue.textContent = `${mp}/100`;
+    }
+
+    // 使用道具
+    function useItem(button) {
+        const itemId = button.dataset.itemId;
+        const itemName = button.dataset.itemName;
+        const effectType = button.dataset.effectType;
+        const effectValue = parseInt(button.dataset.effectValue);
+
+        if (!confirm(`確定要使用「${itemName}」嗎？\n使用後道具將會消失。`)) {
+            return;
+        }
+
+        // 根據道具效果類型執行不同的邏輯
+        switch (effectType) {
+            case 'HEAL':
+                // 回復 HP
+                const healAmount = Math.ceil({{ initial_hp }} * effectValue / 100);
+        currentHP = Math.min(currentHP + healAmount, {{ initial_hp }});
+    updateHPDisplay(currentHP);
+    showItemEffect(`❤️ HP +${healAmount}`, 'success');
+    break;
+            
+            case 'HINT':
+    // 顯示提示（類似 MP 技能的提示）
+    const hintBox = document.createElement('div');
+    hintBox.className = 'hint-box';
+    hintBox.innerHTML = `
+                    <i class="fas fa-lightbulb"></i> 
+                    <strong>道具提示：</strong>{{ question.explanation|default:"仔細思考題目的關鍵概念..." }}
+                `;
+    document.getElementById('optionsList').insertAdjacentElement('beforebegin', hintBox);
+    showItemEffect('💡 獲得提示', 'info');
+    break;
+            
+            case 'REMOVE_OPTION':
+    // 移除錯誤選項
+    const options = document.querySelectorAll('.option-item');
+    const wrongOptions = Array.from(options).filter(opt => {
+        const input = opt.querySelector('input');
+        return input.value !== '{{ question.correct_answer }}' && !input.disabled;
+    });
+
+    if (wrongOptions.length > 0) {
+        const toRemove = wrongOptions.sort(() => 0.5 - Math.random()).slice(0, effectValue);
+        toRemove.forEach(opt => {
+            opt.style.opacity = '0.3';
+            opt.querySelector('input').disabled = true;
+        });
+        showItemEffect(`✂️ 移除 ${effectValue} 個錯誤選項`, 'info');
+    }
+    break;
+            
+            case 'SHIELD':
+    // 設置護盾標記（在下次答錯時不扣 HP）
+    window.hasShield = true;
+    showItemEffect('🛡️ 獲得護盾保護', 'success');
+    // 顯示護盾圖示
+    const shieldIndicator = document.createElement('div');
+    shieldIndicator.id = 'shieldIndicator';
+    shieldIndicator.className = 'shield-indicator';
+    shieldIndicator.innerHTML = '<i class="fas fa-shield-alt"></i> 護盾啟動';
+    document.querySelector('.status-bars').appendChild(shieldIndicator);
+    break;
+            
+            case 'TIME_EXTEND':
+    // 延長時間
+    remainingSeconds += effectValue;
+    updateTimer();
+    showItemEffect(`⏰ 時間 +${effectValue}秒`, 'success');
+    break;
+            
+            case 'SKIP':
+    // 跳過當前題目（標記為正確）
+    if (confirm('確定要跳過此題嗎？將自動標記為正確答案。')) {
+        // 自動選擇正確答案並提交
+        const correctInput = document.querySelector(`input[value="{{ question.correct_answer }}"]`);
+        if (correctInput) {
+            correctInput.checked = true;
+            document.getElementById('answerForm').dispatchEvent(new Event('submit'));
+        }
+    }
+    return; // 不消耗道具，由提交邏輯處理
+            
+            default:
+    alert('未知的道具效果');
+    return;
+        }
+
+    // 消耗道具（發送到後端）
+    fetch(`/rpg/item/${itemId}/consume/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            trial_id: trialId
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 更新道具數量顯示
+                const quantityEl = button.querySelector('.item-quantity');
+                const newQuantity = data.remaining_quantity;
+                if (newQuantity > 0) {
+                    quantityEl.textContent = `x${newQuantity}`;
+                } else {
+                    button.remove();
+                }
+            } else {
+                alert(data.error || '使用道具失敗');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    // 顯示道具效果提示
+    function showItemEffect(message, type) {
+        const effectBox = document.createElement('div');
+        effectBox.className = `item-effect-notification ${type}`;
+        effectBox.textContent = message;
+        document.body.appendChild(effectBox);
+
+        setTimeout(() => {
+            effectBox.classList.add('fade-out');
+            setTimeout(() => effectBox.remove(), 500);
+        }, 2000);
+    }
+</script>
+
+<style>
+    .exam-header {
+        position: sticky;
+        top: 0;
+        background: rgba(10, 10, 20, 0.95);
+        padding: var(--spacing-md);
+        z-index: 100;
+        border-bottom: 2px solid var(--color-primary);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        margin: -20px -20px 20px -20px;
+    }
+
+    .exam-timer {
+        font-size: 1.5rem;
+        font-family: monospace;
+        color: var(--color-warning);
+        background: rgba(0, 0, 0, 0.5);
+        padding: 5px 15px;
+        border-radius: 4px;
+        border: 1px solid var(--color-warning);
+    }
+
+    .question-card {
+        border-left: 4px solid var(--color-stone);
+    }
+
+    .question-number {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: var(--color-secondary);
+        margin-right: var(--spacing-md);
+    }
+
+    .options-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .option-item {
+        display: flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 15px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+    }
+
+    .option-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: var(--color-secondary);
+    }
+
+    .option-item input {
+        margin-right: 15px;
+        transform: scale(1.2);
+    }
+
+    .progress-info {
+        text-align: center;
+        color: var(--color-stone);
+    }
+
+    .progress-bar-container {
+        height: 6px;
+        background: #333;
+        border-radius: 3px;
+        overflow: hidden;
+        margin-top: 5px;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background: var(--color-primary);
+        transition: width 0.3s ease;
+    }
+
+    .badge {
+        font-size: 0.8rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-left: 5px;
+        border: 1px solid currentColor;
+    }
+
+    .badge-info {
+        color: var(--color-blue);
+    }
+
+    .badge-S,
+    .badge-A {
+        color: var(--color-danger);
+    }
+
+    .badge-B {
+        color: var(--color-warning);
+    }
+
+    .badge-C {
+        color: var(--color-success);
+    }
+
+    /* HP/MP Status Bars */
+    .status-bars {
+        display: flex;
+        justify-content: space-between;
+        background: rgba(0, 0, 0, 0.3);
+        padding: 10px 15px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .hp-container,
+    .mp-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .status-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 3px;
+    }
+
+    .status-value {
+        font-family: monospace;
+        font-size: 0.9rem;
+        font-weight: bold;
+        color: #fff;
+    }
+
+    .status-label {
+        font-weight: bold;
+        font-family: monospace;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .hp-bar-bg,
+    .mp-bar-bg {
+        width: 150px;
+        height: 16px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid var(--color-stone);
+        position: relative;
+    }
+
+    .bar-value {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: bold;
+        color: #fff;
+        text-shadow: 0 0 3px rgba(0, 0, 0, 0.8), 0 0 5px rgba(0, 0, 0, 0.6);
+        pointer-events: none;
+        z-index: 2;
+    }
+
+    .hp-bar-fill,
+    .mp-bar-fill {
+        height: 100%;
+        transition: width 0.3s ease, background 0.3s ease;
+        position: relative;
+        z-index: 1;
+    }
+
+    .hp-bar-fill {
+        background: linear-gradient(90deg, #28a745, #1e7e34);
+    }
+
+    .mp-bar-fill {
+        background: linear-gradient(90deg, #ffd700, #ffa500);
+    }
+
+    /* 反饋區域 */
+    .feedback-area {
+        text-align: center;
+        padding: var(--spacing-xl);
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 12px;
+        margin-top: var(--spacing-lg);
+    }
+
+    .feedback-title {
+        font-size: 2rem;
+        margin: var(--spacing-md) 0;
+    }
+
+    .feedback-details {
+        font-size: 1.1rem;
+        line-height: 1.6;
+    }
+
+    /* 技能按鈕 */
+    .skill-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+    }
+
+    .skill-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    .skill-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+    }
+
+    .skill-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .hint-box {
+        background: rgba(255, 193, 7, 0.1);
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        color: #ffc107;
+    }
+
+    /* 道具欄樣式 */
+    .items-toolbar {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 15px;
+    }
+
+    .items-label {
+        font-weight: bold;
+        color: var(--color-secondary);
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .items-list {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .item-btn {
+        background: linear-gradient(135deg, rgba(74, 55, 40, 0.8) 0%, rgba(44, 24, 16, 0.8) 100%);
+        border: 2px solid var(--color-secondary);
+        border-radius: 8px;
+        padding: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 120px;
+    }
+
+    .item-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+        border-color: var(--color-primary);
+    }
+
+    .item-icon {
+        width: 32px;
+        height: 32px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: var(--color-secondary);
+    }
+
+    .item-info {
+        flex: 1;
+        text-align: left;
+    }
+
+    .item-name {
+        font-size: 0.9rem;
+        font-weight: bold;
+        color: white;
+        margin-bottom: 2px;
+    }
+
+    .item-quantity {
+        font-size: 0.75rem;
+        color: var(--color-stone);
+    }
+
+    /* 道具效果通知 */
+    .item-effect-notification {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 20px 40px;
+        border-radius: 12px;
+        font-size: 1.5rem;
+        font-weight: bold;
+        z-index: 10000;
+        animation: popIn 0.3s ease;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .item-effect-notification.success {
+        border: 2px solid var(--color-success);
+    }
+
+    .item-effect-notification.info {
+        border: 2px solid var(--color-info);
+    }
+
+    .item-effect-notification.fade-out {
+        animation: fadeOut 0.5s ease forwards;
+    }
+
+    @keyframes popIn {
+        0% {
+            transform: translate(-50%, -50%) scale(0.5);
+            opacity: 0;
+        }
+
+        100% {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+    }
+
+    .shield-indicator {
+        background: rgba(0, 191, 255, 0.2);
+        border: 1px solid #00bfff;
+        border-radius: 6px;
+        padding: 5px 10px;
+        color: #00bfff;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+</style>
+{% endblock %}
