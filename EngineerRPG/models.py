@@ -441,6 +441,8 @@ class Equipment(models.Model):
             'description': self.description,
             'type_name': self.get_equipment_type_display(),
             'rules': self.enhancement_rules or {},
+            'skill_effect': self.skill_effect or '',
+            'skill_description': self.skill_description or '',
             'special_ability_name': self.special_ability_name or '',
             'special_ability_description': self.special_ability_description or '',
         })

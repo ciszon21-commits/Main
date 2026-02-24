@@ -78,8 +78,7 @@
                                 <!-- 能力效果 -->
                                 <div style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold;">
                                     {% if equipped.helmet.get_total_hp_bonus > 0 %}
-                                    <span style="margin-right:8px;"><i class="fas fa-heart"></i> HP +{{
-                                        equipped.helmet.get_total_hp_bonus }}</span>
+                                    <span style="margin-right:8px;"><i class="fas fa-heart"></i> HP +{{ equipped.helmet.get_total_hp_bonus }}</span>
                                     {% endif %}
                                     {% if equipped.helmet.get_total_mp_bonus > 0 %}
                                     <span><i class="fas fa-bolt"></i> MP +{{ equipped.helmet.get_total_mp_bonus }}</span>
@@ -89,8 +88,7 @@
                                 <div
                                     style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold; {% if equipped.helmet.enhancement_level < 9 %}opacity: 0.5;{% endif %}">
                                     <i class="fas fa-star"></i> {{ equipped.helmet.equipment.special_ability_name }}
-                                    {% if equipped.helmet.enhancement_level >= 9 %}: {{
-                                    equipped.helmet.equipment.special_ability_description }}{% else %}(+9 解鎖){% endif %}
+                                    {% if equipped.helmet.enhancement_level >= 9 %}: {{ equipped.helmet.equipment.special_ability_description }}{% else %}(+9 解鎖){% endif %}
                                 </div>
                                 {% endif %}
                             </div>
@@ -159,8 +157,7 @@
                                 <div
                                     style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold; {% if equipped.armor.enhancement_level < 9 %}opacity: 0.5;{% endif %}">
                                     <i class="fas fa-star"></i> {{ equipped.armor.equipment.special_ability_name }}
-                                    {% if equipped.armor.enhancement_level >= 9 %}: {{
-                                    equipped.armor.equipment.special_ability_description }}
+                                    {% if equipped.armor.enhancement_level >= 9 %}: {{ equipped.armor.equipment.special_ability_description }}
                                     {% else %}(+9 解鎖)
                                     {% endif %}
                                 </div>
@@ -226,8 +223,7 @@
                                     {% if '鋼頭安全鞋' in equipped.boots.equipment.name %}基礎步伐
                                     {% elif '防穿刺工靴' in equipped.boots.equipment.name %}穩健推進
                                     {% elif '動力樣板護腿' in equipped.boots.equipment.name %}動能回收
-                                    {% elif equipped.boots.equipment.skill_description %}{{
-                                    equipped.boots.equipment.skill_description }}
+                                    {% elif equipped.boots.equipment.skill_description %}{{ equipped.boots.equipment.skill_description }}
                                     {% endif %}
                                     {% with passive=equipped.boots.get_passive_desc %}
                                     {% if passive %}: {{ passive }}{% endif %}
@@ -237,8 +233,8 @@
                                 <div
                                     style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold; {% if equipped.boots.enhancement_level < 9 %}opacity: 0.5;{% endif %}">
                                     <i class="fas fa-star"></i> {{ equipped.boots.equipment.special_ability_name }}
-                                    {% if equipped.boots.enhancement_level >= 9 %}: {{
-                                    equipped.boots.equipment.special_ability_description }}{% else %}(+9 解鎖){% endif %}
+                                    {% if equipped.boots.enhancement_level >= 9 %}: {{ equipped.boots.equipment.special_ability_description }}
+                                    {% else %}(+9 解鎖){% endif %}
                                 </div>
                                 {% endif %}
                             </div>
@@ -293,46 +289,23 @@
                                         style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; font-size: 0.9rem; font-weight: bold; padding: 2px 8px; border-radius: 50%; min-width: 32px; text-align: center; box-shadow: 0 2px 4px rgba(255,215,0,0.5);">
                                         +{{ equipped.tool_1.enhancement_level }}</span>
                                 </div>
-                                <div style="color: #FFFFFF; font-size: 0.95rem; margin-bottom: 4px;">
-                                    {% if equipped.tool_1.equipment.skill_effect == 'SHIELD' %}
-                                    <div style="margin-bottom: 4px; font-weight: bold;">
-                                        技能名稱：標準化稽核 (MP {{ equipped.tool_1.equipment.mp_cost }})</div>
-                                    <div style="margin-bottom: 4px; font-size: 0.9rem; opacity: 0.9;">
-                                        技能效果：獲得[20]的「臨時護盾(N
-                                        點)」。若玩家下一題回答錯誤，護盾優先抵銷傷害（護盾歸零前不扣 HP）。若回答正確，護盾會持續保留至下一題，直到耗盡或過關三題後為止。</div>
-                                    <div style="font-size: 0.85rem; opacity: 0.8;">
-                                        強化能力：強化等級0、3、6、9，護盾值20、25、30、35，消耗MP20、25、30、35，強化+9特殊能力【反饋】 若護盾過關三題後未耗盡，返還 20
-                                        MP。
-                                    </div>
-                                    {% elif equipped.tool_1.equipment.skill_effect == 'ELIMINATION' %}
-                                    <div style="margin-bottom: 4px; font-weight: bold;">
-                                        技能名稱：全域掃描 (MP {{ equipped.tool_1.equipment.mp_cost }})</div>
-                                    <div style="margin-bottom: 4px; font-size: 0.9rem; opacity: 0.9;">技能效果：刪去：單選題刪去 2
-                                        個錯誤選項；是非題直接顯示正解。全域視野 (Buff)：接下來 N 題，受到的傷害 降低 50%。</div>
-                                    <div style="font-size: 0.85rem; opacity: 0.8;">強化能力：強化等級0、3、6、9，減傷BUFF持續時間
-                                        0題、3題(30%)、3題(40%)、3題(50%)，消耗MP30、30、25、25，強化+9特殊能力【廣域訊號】超過3題後， 仍存在減傷
-                                        20%的效果到試煉結束。
-                                    </div>
-                                    {% elif equipped.tool_1.equipment.skill_effect == 'TIME_REWIND' %}
-                                    <div style="margin-bottom: 4px; font-weight: bold;">
-                                        技能名稱：時空錨點 (MP {{ equipped.tool_1.equipment.mp_cost }})</div>
-                                    <div style="margin-bottom: 4px; font-size: 0.9rem; opacity: 0.9;">技能效果：若答對：正常消耗
-                                        MP，繼續前進。若答錯：觸發回溯機制。HP 完全恢復（抵銷該次扣血），MP 不退還。回到該題的答題前狀態，玩家可重新作答或改選工具。</div>
-                                    <div style="font-size: 0.85rem; opacity: 0.8;">
-                                        強化能力：強化等級0、3、6、9，功能都相同，消耗MP35、30、25、20，強化+9特殊能力【縮時攝影】 若答對(無回溯)，下次使用消耗減半。</div>
-                                    {% elif equipped.tool_1.equipment.skill_effect == 'ABSOLUTE_ANSWER' %}
-                                    <div style="margin-bottom: 4px; font-weight: bold;">
-                                        技能名稱：職前模擬 (MP {{ equipped.tool_1.equipment.mp_cost }})</div>
-                                    <div style="margin-bottom: 4px; font-size: 0.9rem; opacity: 0.9;">
-                                        技能效果：系統直接顯示正確答案並自動填入。
-                                    </div>
-                                    <div style="font-size: 0.85rem; opacity: 0.8;">
-                                        強化能力：強化等級0、3、6、9，功能都相同，消耗MP100、80、60、50，強化+9特殊能力【沉浸學習】 發動能力時，額外回復 20 HP。</div>
-                                    {% else %}
-                                    技能：{{ equipped.tool_1.equipment.skill_effect }}
-                                    (MP {{ equipped.tool_1.equipment.mp_cost }})
+                                <div style="color: #FFFFFF; font-size: 0.85rem; margin-top: 4px; opacity: 0.9;">
+                                    {{ equipped.tool_1.equipment.description }}
+                                </div>
+                                <div style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold;">
+                                    {% if equipped.tool_1.equipment.skill_effect %}
+                                    <span style="margin-right:8px;"><i class="fas fa-bolt"></i> MP -{{ equipped.tool_1.current_mp_cost }}</span>
+                                    <span><i class="fas fa-magic"></i> {{ equipped.tool_1.equipment.skill_description }}</span>
                                     {% endif %}
                                 </div>
+                                {% if equipped.tool_1.equipment.special_ability_name %}
+                                <div
+                                    style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold; {% if equipped.tool_1.enhancement_level < 9 %}opacity: 0.5;{% endif %}">
+                                    <i class="fas fa-star"></i> {{ equipped.tool_1.equipment.special_ability_name }}
+                                    {% if equipped.tool_1.enhancement_level >= 9 %}: {{ equipped.tool_1.equipment.special_ability_description }}
+                                    {% else %}(+9 解鎖){% endif %}
+                                </div>
+                                {% endif %}
                             </div>
                             <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.tool_1.id %}"
                                 style="position: absolute; top: 8px; right: 8px;">
@@ -379,46 +352,23 @@
                                         style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; font-size: 0.9rem; font-weight: bold; padding: 2px 8px; border-radius: 50%; min-width: 32px; text-align: center; box-shadow: 0 2px 4px rgba(255,215,0,0.5);">
                                         +{{ equipped.tool_2.enhancement_level }}</span>
                                 </div>
-                                <div style="color: #FFFFFF; font-size: 0.95rem; margin-bottom: 4px;">
-                                    {% if equipped.tool_2.equipment.skill_effect == 'SHIELD' %}
-                                    <div style="margin-bottom: 4px; font-weight: bold;">
-                                        技能名稱：標準化稽核 (MP {{ equipped.tool_2.equipment.mp_cost }})</div>
-                                    <div style="margin-bottom: 4px; font-size: 0.9rem; opacity: 0.9;">
-                                        技能效果：獲得[20]的「臨時護盾(N
-                                        點)」。若玩家下一題回答錯誤，護盾優先抵銷傷害（護盾歸零前不扣 HP）。若回答正確，護盾會持續保留至下一題，直到耗盡或過關三題後為止。</div>
-                                    <div style="font-size: 0.85rem; opacity: 0.8;">
-                                        強化能力：強化等級0、3、6、9，護盾值20、25、30、35，消耗MP20、25、30、35，強化+9特殊能力【反饋】 若護盾過關三題後未耗盡，返還 20
-                                        MP。
-                                    </div>
-                                    {% elif equipped.tool_2.equipment.skill_effect == 'ELIMINATION' %}
-                                    <div style="margin-bottom: 4px; font-weight: bold;">
-                                        技能名稱：全域掃描 (MP {{ equipped.tool_2.equipment.mp_cost }})</div>
-                                    <div style="margin-bottom: 4px; font-size: 0.9rem; opacity: 0.9;">技能效果：刪去：單選題刪去 2
-                                        個錯誤選項；是非題直接顯示正解。全域視野 (Buff)：接下來 N 題，受到的傷害 降低 50%。</div>
-                                    <div style="font-size: 0.85rem; opacity: 0.8;">強化能力：強化等級0、3、6、9，減傷BUFF持續時間
-                                        0題、3題(30%)、3題(40%)、3題(50%)，消耗MP30、30、25、25，強化+9特殊能力【廣域訊號】超過3題後， 仍存在減傷
-                                        20%的效果到試煉結束。
-                                    </div>
-                                    {% elif equipped.tool_2.equipment.skill_effect == 'TIME_REWIND' %}
-                                    <div style="margin-bottom: 4px; font-weight: bold;">
-                                        技能名稱：時空錨點 (MP {{ equipped.tool_2.equipment.mp_cost }})</div>
-                                    <div style="margin-bottom: 4px; font-size: 0.9rem; opacity: 0.9;">技能效果：若答對：正常消耗
-                                        MP，繼續前進。若答錯：觸發回溯機制。HP 完全恢復（抵銷該次扣血），MP 不退還。回到該題的答題前狀態，玩家可重新作答或改選工具。</div>
-                                    <div style="font-size: 0.85rem; opacity: 0.8;">
-                                        強化能力：強化等級0、3、6、9，功能都相同，消耗MP35、30、25、20，強化+9特殊能力【縮時攝影】 若答對(無回溯)，下次使用消耗減半。</div>
-                                    {% elif equipped.tool_2.equipment.skill_effect == 'ABSOLUTE_ANSWER' %}
-                                    <div style="margin-bottom: 4px; font-weight: bold;">
-                                        技能名稱：職前模擬 (MP {{ equipped.tool_2.equipment.mp_cost }})</div>
-                                    <div style="margin-bottom: 4px; font-size: 0.9rem; opacity: 0.9;">
-                                        技能效果：系統直接顯示正確答案並自動填入。
-                                    </div>
-                                    <div style="font-size: 0.85rem; opacity: 0.8;">
-                                        強化能力：強化等級0、3、6、9，功能都相同，消耗MP100、80、60、50，強化+9特殊能力【沉浸學習】 發動能力時，額外回復 20 HP。</div>
-                                    {% else %}
-                                    技能：{{ equipped.tool_2.equipment.skill_effect }}
-                                    (MP {{ equipped.tool_2.equipment.mp_cost }})
+                                <div style="color: #FFFFFF; font-size: 0.85rem; margin-top: 4px; opacity: 0.9;">
+                                    {{ equipped.tool_2.equipment.description }}
+                                </div>
+                                <div style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold;">
+                                    {% if equipped.tool_2.equipment.skill_effect %}
+                                    <span style="margin-right:8px;"><i class="fas fa-bolt"></i> MP -{{ equipped.tool_2.current_mp_cost }}</span>
+                                    <span><i class="fas fa-magic"></i> {{ equipped.tool_2.equipment.skill_description }}</span>
                                     {% endif %}
                                 </div>
+                                {% if equipped.tool_2.equipment.special_ability_name %}
+                                <div
+                                    style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold; {% if equipped.tool_2.enhancement_level < 9 %}opacity: 0.5;{% endif %}">
+                                    <i class="fas fa-star"></i> {{ equipped.tool_2.equipment.special_ability_name }}
+                                    {% if equipped.tool_2.enhancement_level >= 9 %}: {{ equipped.tool_2.equipment.special_ability_description }}
+                                    {% else %}(+9 解鎖){% endif %}
+                                </div>
+                                {% endif %}
                             </div>
                             <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.tool_2.id %}"
                                 style="position: absolute; top: 8px; right: 8px;">
@@ -465,46 +415,23 @@
                                         style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; font-size: 0.9rem; font-weight: bold; padding: 2px 8px; border-radius: 50%; min-width: 32px; text-align: center; box-shadow: 0 2px 4px rgba(255,215,0,0.5);">
                                         +{{ equipped.tool_3.enhancement_level }}</span>
                                 </div>
-                                <div style="color: #FFFFFF; font-size: 0.95rem; margin-bottom: 4px;">
-                                    {% if equipped.tool_3.equipment.skill_effect == 'SHIELD' %}
-                                    <div style="margin-bottom: 4px; font-weight: bold;">
-                                        技能名稱：標準化稽核 (MP {{ equipped.tool_3.equipment.mp_cost }})</div>
-                                    <div style="margin-bottom: 4px; font-size: 0.9rem; opacity: 0.9;">
-                                        技能效果：獲得[20]的「臨時護盾(N
-                                        點)」。若玩家下一題回答錯誤，護盾優先抵銷傷害（護盾歸零前不扣 HP）。若回答正確，護盾會持續保留至下一題，直到耗盡或過關三題後為止。</div>
-                                    <div style="font-size: 0.85rem; opacity: 0.8;">
-                                        強化能力：強化等級0、3、6、9，護盾值20、25、30、35，消耗MP20、25、30、35，強化+9特殊能力【反饋】 若護盾過關三題後未耗盡，返還 20
-                                        MP。
-                                    </div>
-                                    {% elif equipped.tool_3.equipment.skill_effect == 'ELIMINATION' %}
-                                    <div style="margin-bottom: 4px; font-weight: bold;">
-                                        技能名稱：全域掃描 (MP {{ equipped.tool_3.equipment.mp_cost }})</div>
-                                    <div style="margin-bottom: 4px; font-size: 0.9rem; opacity: 0.9;">技能效果：刪去：單選題刪去 2
-                                        個錯誤選項；是非題直接顯示正解。全域視野 (Buff)：接下來 N 題，受到的傷害 降低 50%。</div>
-                                    <div style="font-size: 0.85rem; opacity: 0.8;">強化能力：強化等級0、3、6、9，減傷BUFF持續時間
-                                        0題、3題(30%)、3題(40%)、3題(50%)，消耗MP30、30、25、25，強化+9特殊能力【廣域訊號】超過3題後， 仍存在減傷
-                                        20%的效果到試煉結束。
-                                    </div>
-                                    {% elif equipped.tool_3.equipment.skill_effect == 'TIME_REWIND' %}
-                                    <div style="margin-bottom: 4px; font-weight: bold;">
-                                        技能名稱：時空錨點 (MP {{ equipped.tool_3.equipment.mp_cost }})</div>
-                                    <div style="margin-bottom: 4px; font-size: 0.9rem; opacity: 0.9;">技能效果：若答對：正常消耗
-                                        MP，繼續前進。若答錯：觸發回溯機制。HP 完全恢復（抵銷該次扣血），MP 不退還。回到該題的答題前狀態，玩家可重新作答或改選工具。</div>
-                                    <div style="font-size: 0.85rem; opacity: 0.8;">
-                                        強化能力：強化等級0、3、6、9，功能都相同，消耗MP35、30、25、20，強化+9特殊能力【縮時攝影】 若答對(無回溯)，下次使用消耗減半。</div>
-                                    {% elif equipped.tool_3.equipment.skill_effect == 'ABSOLUTE_ANSWER' %}
-                                    <div style="margin-bottom: 4px; font-weight: bold;">
-                                        技能名稱：職前模擬 (MP {{ equipped.tool_3.equipment.mp_cost }})</div>
-                                    <div style="margin-bottom: 4px; font-size: 0.9rem; opacity: 0.9;">
-                                        技能效果：系統直接顯示正確答案並自動填入。
-                                    </div>
-                                    <div style="font-size: 0.85rem; opacity: 0.8;">
-                                        強化能力：強化等級0、3、6、9，功能都相同，消耗MP100、80、60、50，強化+9特殊能力【沉浸學習】 發動能力時，額外回復 20 HP。</div>
-                                    {% else %}
-                                    技能：{{ equipped.tool_3.equipment.skill_effect }}
-                                    (MP {{ equipped.tool_3.equipment.mp_cost }})
+                                <div style="color: #FFFFFF; font-size: 0.85rem; margin-top: 4px; opacity: 0.9;">
+                                    {{ equipped.tool_3.equipment.description }}
+                                </div>
+                                <div style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold;">
+                                    {% if equipped.tool_3.equipment.skill_effect %}
+                                    <span style="margin-right:8px;"><i class="fas fa-bolt"></i> MP -{{ equipped.tool_3.current_mp_cost }}</span>
+                                    <span><i class="fas fa-magic"></i> {{ equipped.tool_3.equipment.skill_description }}</span>
                                     {% endif %}
                                 </div>
+                                {% if equipped.tool_3.equipment.special_ability_name %}
+                                <div
+                                    style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold; {% if equipped.tool_3.enhancement_level < 9 %}opacity: 0.5;{% endif %}">
+                                    <i class="fas fa-star"></i> {{ equipped.tool_3.equipment.special_ability_name }}
+                                    {% if equipped.tool_3.enhancement_level >= 9 %}: {{ equipped.tool_3.equipment.special_ability_description }}
+                                    {% else %}(+9 解鎖){% endif %}
+                                </div>
+                                {% endif %}
                             </div>
                             <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.tool_3.id %}"
                                 style="position: absolute; top: 8px; right: 8px;">
@@ -647,7 +574,8 @@
                             {% endif %}
 
 
-                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %} <form method="post"
+                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %} 
+                            <form method="post"
                                 action="{% url 'engineer_rpg:enhance_equipment' item.user_equipment.id %}"
                                 style="display: inline;">
                                 {% csrf_token %}
@@ -767,7 +695,8 @@
                             {% endif %}
                             {% endif %}
 
-                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %} <form method="post"
+                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %} 
+                            <form method="post"
                                 action="{% url 'engineer_rpg:enhance_equipment' item.user_equipment.id %}"
                                 style="display: inline;">
                                 {% csrf_token %}
@@ -901,7 +830,8 @@
                             {% endif %}
                             {% endif %}
 
-                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %} <form method="post"
+                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %}
+                             <form method="post"
                                 action="{% url 'engineer_rpg:enhance_equipment' item.user_equipment.id %}"
                                 style="display: inline;">
                                 {% csrf_token %}
@@ -959,17 +889,13 @@
                                 減傷 -{{ item.user_equipment.get_damage_reduction }}</span>
                             {% endif %}
                             {% if item.user_equipment.equipment.skill_effect %}
-                            <!-- Tools MP cost is hardcoded visually for now, could be dynamic later -->
+                            <!-- Tools MP cost is dynamic -->
                             <span class="stat-item skill-effect" style="color: #FFD700; margin-right:8px;"><i
                                     class="fas fa-bolt"></i>
-                                消耗 {{ item.user_equipment.current_mp_cost }} MP</span>
+                                MP -{{ item.user_equipment.current_mp_cost }}</span>
                             <span class="stat-item skill-effect"
                                 style="color: #FFD700; display: block; margin-top: 4px;"><i class="fas fa-magic"></i>
-                                {% if item.user_equipment.equipment.skill_effect == 'SHIELD' %}標準化稽核
-                                {% elif item.user_equipment.equipment.skill_effect == 'ELIMINATION' %}全域掃描
-                                {% elif item.user_equipment.equipment.skill_effect == 'TIME_REWIND' %}時空錨點
-                                {% elif item.user_equipment.equipment.skill_effect == 'ABSOLUTE_ANSWER' %}職前模擬
-                                {% else %}{{ item.user_equipment.equipment.skill_effect }}{% endif %}</span>
+                                {{ item.user_equipment.equipment.skill_description }}</span>
                             {% endif %}
                         </div>
 
@@ -1025,7 +951,8 @@
                             {% endif %}
                             {% endif %}
 
-                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %} <form method="post"
+                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %} 
+                            <form method="post"
                                 action="{% url 'engineer_rpg:enhance_equipment' item.user_equipment.id %}"
                                 style="display: inline;">
                                 {% csrf_token %}
@@ -1636,6 +1563,13 @@
         <div id="eqDetailType" style="color: #ccc; font-size: 0.85rem; margin-bottom: 15px;">裝備類型</div>
         <p id="eqDetailDesc" style="color: #fff; font-size: 0.9rem; margin-bottom: 15px;">裝備描述</p>
 
+        <div id="eqDetailSkill"
+            style="display: none; background: rgba(0,20,50,0.5); padding: 10px; border-radius: 5px; margin-bottom: 15px; border-left: 3px solid #4da6ff;">
+            <div id="eqDetailSkillName" style="color: #4da6ff; font-weight: bold; margin-bottom: 5px;"><i
+                    class="fas fa-magic"></i> 技能</div>
+            <div id="eqDetailSkillDesc" style="color: #fff; font-size: 0.85rem;"></div>
+        </div>
+
         <h4 style="color: #FFD700; margin-bottom: 10px; font-size: 0.95rem;"><i class="fas fa-arrow-up"></i> 強化數值與效果
         </h4>
         <div id="eqDetailRules"
@@ -1667,6 +1601,15 @@
                     document.getElementById('eqDetailType').textContent = eq.type_name;
                     document.getElementById('eqDetailDesc').textContent = eq.description;
 
+                    const skillContainer = document.getElementById('eqDetailSkill');
+                    if (eq.skill_effect) {
+                        document.getElementById('eqDetailSkillName').innerHTML = `<i class="fas fa-magic"></i> 技能: ${eq.skill_effect}`;
+                        document.getElementById('eqDetailSkillDesc').textContent = eq.skill_description;
+                        skillContainer.style.display = 'block';
+                    } else {
+                        skillContainer.style.display = 'none';
+                    }
+
                     // 渲染強化規則
                     const rulesContainer = document.getElementById('eqDetailRules');
                     rulesContainer.innerHTML = '';
@@ -1680,6 +1623,9 @@
                             if (rule.hp) effectText.push(`HP +${rule.hp}`);
                             if (rule.mp) effectText.push(`MP +${rule.mp}`);
                             if (rule.dr) effectText.push(`減傷 -${rule.dr}`);
+                            if (rule.shield) effectText.push(`護盾量 ${rule.shield}`);
+                            if (rule.buff_duration) effectText.push(`Buff持續 ${rule.buff_duration} 題`);
+                            if (rule.max_uses) effectText.push(`次數上限 ${rule.max_uses} 次`);
                             if (rule.cost) effectText.push(`消耗 ${rule.cost} MP`);
                             if (rule.desc) effectText.push(rule.desc);
 

@@ -740,7 +740,7 @@ def start_trial(request, trial_id):
     }
     # 計算 UAV 資訊
     for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-        if slot and slot.equipment.skill_effect == 'ELIMINATION':
+        if slot and slot.equipment.skill_effect == '選項刪去':
             lvl = slot.enhancement_level
             context['has_uav'] = True
             context['uav_mp_cost'] = 25 if lvl >= 9 else 30
@@ -748,14 +748,14 @@ def start_trial(request, trial_id):
             break
     # 計算 VR 資訊（start_trial）
     for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-        if slot and slot.equipment.skill_effect == 'ABSOLUTE_ANSWER':
+        if slot and slot.equipment.skill_effect == '絕對解答':
             lvl = slot.enhancement_level
             context['has_vr'] = True
             context['vr_mp_cost'] = 40 if lvl >= 9 else (50 if lvl >= 6 else (60 if lvl >= 3 else 70))
             break
     # 計算 360 環景相機資訊（start_trial，無 daily_task_id 所以次數為預設）
     for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-        if slot and slot.equipment.skill_effect == 'TIME_REWIND':
+        if slot and slot.equipment.skill_effect == '時間回溯':
             lvl = slot.enhancement_level
             context['has_camera'] = True
             context['camera_mp_cost'] = 30
@@ -878,7 +878,7 @@ def submit_answer(request, trial_id):
             if use_uav and question.question_type == 'SINGLE':
                 uav_equip = None
                 for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-                    if slot and slot.equipment.skill_effect == 'ELIMINATION':
+                    if slot and slot.equipment.skill_effect == '選項刪去':
                         uav_equip = slot
                         break
                 if uav_equip:
@@ -1167,7 +1167,7 @@ def submit_answer(request, trial_id):
             if is_correct and not camera_already_rewound:
                 # 確認是否裝備了 +9 相機
                 for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-                    if slot and slot.equipment.skill_effect == 'TIME_REWIND' and slot.enhancement_level >= 9:
+                    if slot and slot.equipment.skill_effect == '時間回溯' and slot.enhancement_level >= 9:
                         cam_skills['camera_discount_active'] = True
                         cam_chest['active_skills'] = cam_skills
                         cam_p.chest_data = cam_chest
@@ -1308,7 +1308,7 @@ def next_question(request, trial_id):
 
     # 計算 UAV 資訊（next_question）
     for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-        if slot and slot.equipment.skill_effect == 'ELIMINATION':
+        if slot and slot.equipment.skill_effect == '選項刪去':
             lvl = slot.enhancement_level
             context['has_uav'] = True
             context['uav_mp_cost'] = 25 if lvl >= 9 else 30
@@ -1318,7 +1318,7 @@ def next_question(request, trial_id):
     # 計算 VR 資訊（next_question）
     daily_task_id_nq = request.session.get('daily_task_id')
     for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-        if slot and slot.equipment.skill_effect == 'ABSOLUTE_ANSWER':
+        if slot and slot.equipment.skill_effect == '絕對解答':
             lvl = slot.enhancement_level
             context['has_vr'] = True
             context['vr_mp_cost'] = 40 if lvl >= 9 else (50 if lvl >= 6 else (60 if lvl >= 3 else 70))
@@ -1336,7 +1336,7 @@ def next_question(request, trial_id):
 
     # 計算 360 環景相機資訊（next_question）
     for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-        if slot and slot.equipment.skill_effect == 'TIME_REWIND':
+        if slot and slot.equipment.skill_effect == '時間回溯':
             lvl = slot.enhancement_level
             context['has_camera'] = True
             if lvl >= 9:   max_uses = 5
@@ -1410,7 +1410,7 @@ def vr_reveal_answer(request, trial_id):
     # 確認有裝備 VR 眼鏡
     vr_equip = None
     for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-        if slot and slot.equipment.skill_effect == 'ABSOLUTE_ANSWER':
+        if slot and slot.equipment.skill_effect == '絕對解答':
             vr_equip = slot
             break
     if not vr_equip:
@@ -1490,7 +1490,7 @@ def camera_rewind(request, trial_id):
     # 確認有裝備 360 環景相機
     camera_equip = None
     for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-        if slot and slot.equipment.skill_effect == 'TIME_REWIND':
+        if slot and slot.equipment.skill_effect == '時間回溯':
             camera_equip = slot
             break
     if not camera_equip:
@@ -1948,7 +1948,7 @@ def start_daily_trial(request, task_id):
 
     # 計算 UAV 資訊（start_daily_trial）
     for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-        if slot and slot.equipment.skill_effect == 'ELIMINATION':
+        if slot and slot.equipment.skill_effect == '選項刪去':
             lvl = slot.enhancement_level
             context['has_uav'] = True
             context['uav_mp_cost'] = 25 if lvl >= 9 else 30
@@ -1957,7 +1957,7 @@ def start_daily_trial(request, task_id):
 
     # 計算 VR 資訊（start_daily_trial）
     for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-        if slot and slot.equipment.skill_effect == 'ABSOLUTE_ANSWER':
+        if slot and slot.equipment.skill_effect == '絕對解答':
             lvl = slot.enhancement_level
             context['has_vr'] = True
             context['vr_mp_cost'] = 40 if lvl >= 9 else (50 if lvl >= 6 else (60 if lvl >= 3 else 70))
@@ -1969,7 +1969,7 @@ def start_daily_trial(request, task_id):
 
     # 計算 360 環景相機資訊（start_daily_trial）
     for slot in [profile.equipped_tool_1, profile.equipped_tool_2, profile.equipped_tool_3]:
-        if slot and slot.equipment.skill_effect == 'TIME_REWIND':
+        if slot and slot.equipment.skill_effect == '時間回溯':
             lvl = slot.enhancement_level
             context['has_camera'] = True
             if lvl >= 9:   max_uses = 5
