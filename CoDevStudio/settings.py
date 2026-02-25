@@ -91,27 +91,7 @@ INSTALLED_APPS = [
     'SinoFile',
     'Inlet_Design',
     'DroneReservation',
-<<<<<<< HEAD
     'CODiS_WindRose_Plotter',
-=======
-    'ReservoirHydro',
-    'OpenSearch',  # OpenSearch 搜尋引擎
-    'GeoDataHub',  # 地圖導向資料管理平台
-    'GeoCoding',  # 地址編碼服務
-    'BidQA',  # 標案問答管理
-    'CircleOptimizer',  # 圓優化工具
-    'SinoChat',  # Sinotech 內部聊天室
-    'sinoVR',
-    'InterviewAssessment',
-    'GravityPipeCalc',  # 重力管水理計算器
-    'SoilMove',
-    'EngineerRPG',  # 現場監造工程師職涯冒險培訓系統
-    'FinanceInsight',  # 財經新聞與選股建議
-    'CarbonPLBC',  # 外部碳排放計算系統 (PL-BC)
-    'FriendExpense',  # 朋友間記帳
-    'LunchOrder',  # 訂便當系統
-    'Badminton',  # 記帳系統
->>>>>>> 8c2773b62be2a44dc3cf55d5dfec11af7503dd3a
 ] + local.STAGE_INSTALLED_APPS
 
 
