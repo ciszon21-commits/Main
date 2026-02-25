@@ -37,7 +37,6 @@ urlpatterns = [
     path('geocoding/', include('GeoCoding.urls')),  # 地址編碼服務
     path('bidqa/', include('BidQA.urls')),  # 標案問答管理
     path('circle-optimizer/', include('CircleOptimizer.urls')),  # 圓優化工具
-    # path('consistency/', include('DesignConsistency.urls')),
     path('chat/', include('SinoChat.urls', namespace='sinochat')),  # Sinotech 聊天室
     path('sinoVR/', include('sinoVR.urls')),  # sinoVR 虛擬實境
     path('interview/', include('InterviewAssessment.urls', namespace='interview_assessment')),
@@ -54,6 +53,9 @@ urlpatterns = [
 # 條件載入 ClashClassifier API
 if getattr(settings, 'ENABLE_CLASH_CLASSIFIER', False):
     urlpatterns.append(path('api/clash/', include('ClashClassifier.urls')))  # 碰撞報告分類 API
+    urlpatterns.append(path('consistency/', include('DesignConsistency.urls')))  # 資料一致性比對
+    urlpatterns.append(path('compare/', include('compareapp.urls'))) # 資料一致性比對
+
 
 # 開發環境下提供 media
 if settings.DEBUG:

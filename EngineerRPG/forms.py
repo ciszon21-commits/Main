@@ -4,7 +4,7 @@ EngineerRPG Forms - 更新版本
 """
 
 from django import forms
-from .models import Question, SkillNode, Course, CharacterClass, UserProfile
+from .models import Question, SkillNode, Course, CharacterClass
 
 
 class QuestionForm(forms.ModelForm):
@@ -39,7 +39,7 @@ class QuestionForm(forms.ModelForm):
     
     class Meta:
         model = Question
-        fields = ['content', 'question_type', 'explanation', 'difficulty', 'tags', 'is_active']
+        fields = ['content', 'question_type', 'explanation', 'difficulty', 'category', 'tags', 'is_active']
         widgets = {
             'content': forms.Textarea(attrs={
                 'class': 'rpg-input',
@@ -53,12 +53,35 @@ class QuestionForm(forms.ModelForm):
                 'placeholder': '答案解析...'
             }),
             'difficulty': forms.Select(attrs={'class': 'rpg-input'}),
+            'category': forms.Select(attrs={'class': 'rpg-input'}),
             'tags': forms.TextInput(attrs={
                 'class': 'rpg-input',
                 'placeholder': '多個標籤用逗號分隔，例如：鋼筋,法規,職安'
             }),
             'is_active': forms.CheckboxInput(attrs={'class': 'rpg-checkbox'}),
         }
+        labels = {
+            'category': '題目分類',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # 如果是編輯模式 (有 instance)，從 instance 載入選項和答案
+        if self.instance and self.instance.pk:
+            # 載入選項
+            options = self.instance.options or {}
+            self.fields['option_a'].initial = options.get('A', '')
+            self.fields['option_b'].initial = options.get('B', '')
+            self.fields['option_c'].initial = options.get('C', '')
+            self.fields['option_d'].initial = options.get('D', '')
+            
+            # 載入正確答案
+            correct = self.instance.correct_answer
+            if isinstance(correct, list):
+                self.fields['answer'].initial = ','.join(correct)
+            else:
+                self.fields['answer'].initial = correct
     
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -214,116 +237,33 @@ class CourseForm(forms.ModelForm):
         }
 
 
-class UserLoginForm(forms.Form):
-    """使用者登入表單"""
-    username = forms.CharField(
-        label='使用者名稱',
-        widget=forms.TextInput(attrs={
+
+
+
+class CourseImportForm(forms.Form):
+    """課程批次匯入表單"""
+    
+    file = forms.FileField(
+        label='選擇檔案',
+        help_text='支援 CSV 或 Excel (.xlsx) 格式，檔案大小限制 5MB',
+        widget=forms.FileInput(attrs={
             'class': 'rpg-input',
-            'placeholder': '請輸入使用者名稱'
+            'accept': '.csv,.xlsx'
         })
     )
-    password = forms.CharField(
-        label='密碼',
-        widget=forms.PasswordInput(attrs={
-            'class': 'rpg-input',
-            'placeholder': '請輸入密碼'
-        })
-    )
-
-
-class UserRegistrationForm(forms.Form):
-    """使用者註冊表單"""
-    username = forms.CharField(
-        label='使用者名稱',
-        min_length=3,
-        max_length=30,
-        widget=forms.TextInput(attrs={
-            'class': 'rpg-input',
-            'placeholder': '請輸入使用者名稱 (3-30字元)'
-        })
-    )
-    email = forms.EmailField(
-        label='電子郵件',
-        required=False,
-        widget=forms.EmailInput(attrs={
-            'class': 'rpg-input',
-            'placeholder': '請輸入電子郵件 (選填)'
-        })
-    )
-    password = forms.CharField(
-        label='密碼',
-        min_length=6,
-        widget=forms.PasswordInput(attrs={
-            'class': 'rpg-input',
-            'placeholder': '請輸入密碼 (至少6字元)'
-        })
-    )
-    confirm_password = forms.CharField(
-        label='確認密碼',
-        widget=forms.PasswordInput(attrs={
-            'class': 'rpg-input',
-            'placeholder': '請再次輸入密碼'
-        })
-    )
-    character_class = forms.ModelChoiceField(
-        label='選擇職業',
-        queryset=CharacterClass.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={'class': 'rpg-input'})
-    )
-
-    def clean_username(self):
-        from django.contrib.auth.models import User
-        username = self.cleaned_data.get('username')
-        if User.objects.filter(username=username).exists():
-            raise forms.ValidationError('此使用者名稱已被使用')
-        return username
-
-    def clean(self):
-        cleaned_data = super().clean()
-        password = cleaned_data.get('password')
-        confirm_password = cleaned_data.get('confirm_password')
-
-        if password and confirm_password and password != confirm_password:
-            raise forms.ValidationError('兩次輸入的密碼不符')
-
-        return cleaned_data
-
-    def save(self):
-        from django.contrib.auth.models import User
-        username = self.cleaned_data['username']
-        email = self.cleaned_data.get('email', '')
-        password = self.cleaned_data['password']
-        character_class = self.cleaned_data.get('character_class')
-
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            password=password
-        )
-
-        # 創建 UserProfile
-        default_class = character_class or CharacterClass.objects.first()
-        if not default_class:
-            default_class = CharacterClass.objects.create(
-                code='CIVIL',
-                name='土木戰士',
-                description='專精土木工程的職業'
-            )
-
-        UserProfile.objects.create(
-            user=user,
-            employee_id=f'EMP{user.id:05d}',
-            character_class=default_class,
-            role='ADVENTURER'
-        )
-
-        return user
-
-
-
-
+    
+    def clean_file(self):
+        file = self.cleaned_data.get('file')
+        if file:
+            # 檢查檔案類型
+            if not file.name.endswith(('.csv', '.xlsx')):
+                raise forms.ValidationError('只支援 CSV 或 Excel (.xlsx) 格式')
+            
+            # 檢查檔案大小 (限制 5MB)
+            if file.size > 5 * 1024 * 1024:
+                raise forms.ValidationError('檔案大小不能超過 5MB')
+        
+        return file
 
 
 class UserProfileEditForm(forms.Form):
@@ -404,39 +344,3 @@ class UserProfileEditForm(forms.Form):
                 self.add_error('old_password', "變更密碼時必須輸入舊密碼")
 
         return cleaned_data
-
-
-class AvatarEditForm(forms.Form):
-    """頭像編輯表單 - 僅允許修改頭像"""
-    avatar_image = forms.ImageField(
-        label='大頭照',
-        required=False,
-        widget=forms.FileInput(attrs={
-            'class': 'rpg-input'
-        })
-    )
-    avatar_index = forms.IntegerField(
-        label='預設頭像索引',
-        required=False,
-        widget=forms.HiddenInput()
-    )
-
-
-class AdminUserEditForm(forms.Form):
-    """管理員編輯使用者表單"""
-    role = forms.ChoiceField(
-        label='角色權限',
-        choices=UserProfile.ROLE_CHOICES,
-        widget=forms.Select(attrs={'class': 'rpg-input'})
-    )
-    character_class = forms.ModelChoiceField(
-        label='職業',
-        queryset=CharacterClass.objects.all(),
-        widget=forms.Select(attrs={'class': 'rpg-input'})
-    )
-    is_active = forms.BooleanField(
-        label='帳號啟用',
-        required=False,
-        widget=forms.CheckboxInput(attrs={'class': 'rpg-checkbox'})
-    )
-

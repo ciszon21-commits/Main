@@ -1,0 +1,749 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}裝備欄 - 監造冒險者公會{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="rpg-container">
+    <div class="mb-lg">
+        <h1 class="text-center">
+            <i class="fas fa-shield-alt"></i>
+            裝備欄
+        </h1>
+        <p class="text-center" style="color: var(--color-secondary); font-size: 1.1rem;">
+            裝備專業工具，提升試煉能力！
+        </p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 350px 1fr; gap: var(--spacing-xl);">
+        <!-- 左側：主要裝備與工具欄位 -->
+        <div>
+            <div class="rpg-card">
+                <h2>
+                    <i class="fas fa-user-shield"></i>
+                    當前裝備
+                </h2>
+
+                <div class="equipment-slots mt-lg">
+                    <!-- 頭盔槽 -->
+                    <div class="equipment-slot-container mb-md">
+                        <div class="equipment-slot-label">
+                            <i class="fas fa-hard-hat"></i> 頭盔
+                        </div>
+                        <div class="equipment-slot {% if profile.equipped_helmet %}filled{% endif %}"
+                            data-slot-type="HELMET" ondragover="allowDrop(event)" ondrop="dropEquipment(event)">
+                            {% if profile.equipped_helmet %}
+                            <div class="equipment-item-mini">
+                                <i class="fas fa-hard-hat"></i>
+                                <div>{{ profile.equipped_helmet.name }}</div>
+                                <button class="unequip-btn"
+                                    onclick="unequipItem('HELMET', '{{ profile.equipped_helmet.id }}')" title="移除裝備">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            {% else %}
+                            <div class="equipment-empty">
+                                <i class="fas fa-hard-hat"></i>
+                                <div>空</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- 護甲槽 -->
+                    <div class="equipment-slot-container mb-md">
+                        <div class="equipment-slot-label">
+                            <i class="fas fa-vest"></i> 護甲
+                        </div>
+                        <div class="equipment-slot {% if profile.equipped_armor %}filled{% endif %}"
+                            data-slot-type="ARMOR" ondragover="allowDrop(event)" ondrop="dropEquipment(event)">
+                            {% if profile.equipped_armor %}
+                            <div class="equipment-item-mini">
+                                <i class="fas fa-vest"></i>
+                                <div>{{ profile.equipped_armor.name }}</div>
+                                <button class="unequip-btn"
+                                    onclick="unequipItem('ARMOR', '{{ profile.equipped_armor.id }}')" title="移除裝備">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            {% else %}
+                            <div class="equipment-empty">
+                                <i class="fas fa-vest"></i>
+                                <div>空</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- 靴子槽 -->
+                    <div class="equipment-slot-container mb-xl">
+                        <div class="equipment-slot-label">
+                            <i class="fas fa-boot"></i> 靴子
+                        </div>
+                        <div class="equipment-slot {% if profile.equipped_boots %}filled{% endif %}"
+                            data-slot-type="BOOTS" ondragover="allowDrop(event)" ondrop="dropEquipment(event)">
+                            {% if profile.equipped_boots %}
+                            <div class="equipment-item-mini">
+                                <i class="fas fa-boot"></i>
+                                <div>{{ profile.equipped_boots.name }}</div>
+                                <button class="unequip-btn"
+                                    onclick="unequipItem('BOOTS', '{{ profile.equipped_boots.id }}')" title="移除裝備">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            {% else %}
+                            <div class="equipment-empty">
+                                <i class="fas fa-boot"></i>
+                                <div>空</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- 分隔線 -->
+                    <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: var(--spacing-lg) 0;"></div>
+
+                    <!-- 工具欄位 -->
+                    <div class="tool-slots">
+                        {% for slot in tool_slots %}
+                        <div class="tool-slot-container mb-sm">
+                            <div class="tool-slot-label">工具 {{ slot.index }}</div>
+                            <div class="tool-slot {% if slot.tool %}filled{% endif %}" data-slot-type="TOOL"
+                                data-slot-index="{{ slot.index }}" ondragover="allowDrop(event)"
+                                ondrop="dropEquipment(event)">
+                                {% if slot.tool %}
+                                <div class="tool-item-mini">
+                                    <i class="fas fa-tools"></i>
+                                    <div>{{ slot.tool.name }}</div>
+                                    <button class="unequip-btn"
+                                        onclick="unequipItem('TOOL', '{{ slot.tool.id }}', {{ slot.index }})"
+                                        title="移除裝備">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                {% else %}
+                                <div class="tool-empty">
+                                    <i class="fas fa-tools"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側：全部裝備列表 -->
+        <div>
+            <div class="rpg-card">
+                <h2>
+                    <i class="fas fa-list"></i>
+                    全部裝備
+                </h2>
+
+                <!-- 時間戳記 - 用於破壞快取 -->
+                <div style="background: yellow; color: black; padding: 5px; margin: 5px 0;">
+                    ⏰ 頁面載入時間: {% now "Y-m-d H:i:s" %} (如果這個時間沒有更新，表示您看到的是快取頁面)
+                </div>
+
+                <!-- 除錯資訊 -->
+                <div
+                    style="background: rgba(255,0,0,0.1); padding: 10px; margin: 10px 0; font-size: 0.8rem; max-height: 300px; overflow-y: auto;">
+                    <div style="background: lime; color: black; padding: 10px; margin-bottom: 10px; font-weight: bold;">
+                        {{ test_marker }}
+                    </div>
+                    <strong>除錯資訊：</strong><br>
+                    使用者等級: {{ profile.level }}<br>
+                    已解鎖裝備ID: {{ unlocked_equipment_ids }}<br>
+                    unlocked_equipment_ids 長度: {{ unlocked_equipment_ids|length }}<br>
+                    unlocked_equipment_ids 是否為空: {% if unlocked_equipment_ids %}否{% else %}是{% endif %}<br>
+                    裝備總數: {{ all_equipment|length }}<br>
+                    <br>
+                    <strong>裝備詳情：</strong><br>
+                    {% for equipment in all_equipment %}
+                    - ID={{ equipment.id }}, 名稱={{ equipment.name }}, 需求等級={{ equipment.required_level }}<br>
+                    {% endfor %}
+                </div>
+
+                <div class="equipment-list mt-md">
+                    {% for equipment in all_equipment %}
+                    <div class="equipment-list-item rarity-{{ equipment.rarity|lower }}">
+                        <div class="equipment-icon">
+                            {% if equipment.icon %}
+                            <img src="{{ equipment.icon.url }}" alt="{{ equipment.name }}">
+                            {% else %}
+                            <i class="fas fa-box"></i>
+                            {% endif %}
+                        </div>
+                        <div class="equipment-info">
+                            <div class="equipment-name">{{ equipment.name }}</div>
+                            <div class="equipment-type">{{ equipment.get_equipment_type_display }}</div>
+                        </div>
+                        <div class="equipment-status">
+                            {% if equipment.id in unlocked_equipment_ids %}
+                            <span class="badge badge-success">
+                                <i class="fas fa-check"></i> 已解鎖
+                            </span>
+                            <button class="rpg-btn rpg-btn-sm"
+                                onclick="quickEquip({{ equipment.id }}, '{{ equipment.equipment_type }}')"
+                                style="margin-left: 10px; padding: 5px 10px; font-size: 0.85rem;">
+                                <i class="fas fa-plus"></i> 裝備
+                            </button>
+                            {% else %}
+                            <span class="badge badge-locked">
+                                <i class="fas fa-lock"></i> Lv.{{ equipment.required_level }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-center" style="color: var(--color-stone); padding: var(--spacing-xl);">
+                        目前沒有裝備
+                    </p>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <style>
+        .equipment-slot-container {
+            position: relative;
+        }
+
+        .equipment-slot-label {
+            font-weight: 600;
+            margin-bottom: var(--spacing-sm);
+            color: var(--color-secondary);
+            font-size: 0.9rem;
+        }
+
+        .equipment-slot {
+            min-height: 80px;
+            border: 2px dashed var(--color-primary);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-sm);
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .equipment-slot.filled {
+            border-style: solid;
+            border-color: var(--color-secondary);
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .equipment-empty {
+            text-align: center;
+            color: var(--color-stone);
+            font-size: 1.5rem;
+            opacity: 0.5;
+        }
+
+        .equipment-item-mini {
+            text-align: center;
+            font-size: 0.85rem;
+        }
+
+        .equipment-item-mini i {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+            display: block;
+            color: var(--color-secondary);
+        }
+
+        /* 移除按鈕樣式 */
+        .unequip-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(244, 67, 54, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+            z-index: 10;
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .unequip-btn:hover {
+            background: rgba(244, 67, 54, 1);
+            transform: scale(1.1);
+        }
+
+        .equipment-item-mini,
+        .tool-item-mini {
+            position: relative;
+        }
+
+        .equipment-item-mini:hover .unequip-btn,
+        .tool-item-mini:hover .unequip-btn {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* 工具槽樣式 */
+        .tool-slot-container {
+            position: relative;
+        }
+
+        .tool-slot-label {
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-secondary);
+            font-size: 0.85rem;
+        }
+
+        .tool-slot {
+            height: 60px;
+            border: 2px dashed var(--color-primary);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-xs);
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tool-slot.filled {
+            border-style: solid;
+            border-color: var(--color-civil);
+            background: rgba(74, 144, 226, 0.1);
+        }
+
+        .tool-empty {
+            text-align: center;
+            color: var(--color-stone);
+            font-size: 1.2rem;
+            opacity: 0.3;
+        }
+
+        .tool-item-mini {
+            text-align: center;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tool-item-mini i {
+            font-size: 1.2rem;
+            color: var(--color-civil);
+        }
+
+        /* 裝備列表樣式 */
+        .equipment-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .equipment-list-item {
+            display: grid;
+            grid-template-columns: 50px 1fr auto;
+            gap: var(--spacing-md);
+            align-items: center;
+            padding: var(--spacing-sm);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+            transition: background 0.2s ease;
+        }
+
+        .equipment-list-item:hover {
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .equipment-icon {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .equipment-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .equipment-icon i {
+            font-size: 1.5rem;
+            color: var(--color-stone);
+        }
+
+        .equipment-info {
+            flex: 1;
+        }
+
+        .equipment-name {
+            font-weight: 600;
+            color: var(--color-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .equipment-type {
+            font-size: 0.85rem;
+            color: var(--color-stone);
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .badge-success {
+            background: var(--color-safety);
+            color: white;
+        }
+
+        .badge-locked {
+            background: var(--color-stone);
+            color: white;
+        }
+
+        /* 稀有度邊框 */
+        .equipment-list-item.rarity-common {
+            border-left: 3px solid #9E9E9E;
+        }
+
+        .equipment-list-item.rarity-rare {
+            border-left: 3px solid #4A90E2;
+        }
+
+        .equipment-list-item.rarity-epic {
+            border-left: 3px solid #9B59B6;
+        }
+
+        .equipment-list-item.rarity-legendary {
+            border-left: 3px solid #F39C12;
+        }
+
+        /* 拖曳視覺效果 */
+        .equipment-list-item[draggable="true"]:active {
+            cursor: grabbing;
+            opacity: 0.6;
+        }
+
+        .equipment-slot.drag-over {
+            border-color: var(--color-secondary);
+            background: rgba(212, 175, 55, 0.3);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+        }
+
+        .tool-slot.drag-over {
+            border-color: var(--color-secondary);
+            background: rgba(212, 175, 55, 0.3);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 1200px) {
+            .rpg-container>div {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <script>
+        // 拖曳開始
+        function dragStart(event) {
+            const equipmentId = event.target.dataset.equipmentId;
+            const equipmentType = event.target.dataset.equipmentType;
+            const equipmentName = event.target.dataset.equipmentName;
+
+            console.log('🟢 dragStart:', { equipmentId, equipmentType, equipmentName });
+
+            event.dataTransfer.setData('equipmentId', equipmentId);
+            event.dataTransfer.setData('equipmentType', equipmentType);
+            event.dataTransfer.setData('equipmentName', equipmentName);
+            event.dataTransfer.effectAllowed = 'move';
+
+            // 視覺效果
+            event.target.style.opacity = '0.4';
+        }
+
+        // 允許放置
+        function allowDrop(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('drag-over');
+            console.log('🟡 allowDrop on:', event.currentTarget);
+        }
+
+        // 拖曳離開
+        document.addEventListener('DOMContentLoaded', function () {
+            const slots = document.querySelectorAll('.equipment-slot, .tool-slot');
+            console.log('🔵 找到槽位數量:', slots.length);
+
+            slots.forEach(slot => {
+                slot.addEventListener('dragleave', function (e) {
+                    e.currentTarget.classList.remove('drag-over');
+                });
+
+                slot.addEventListener('dragend', function (e) {
+                    // 恢復透明度
+                    document.querySelectorAll('[draggable="true"]').forEach(item => {
+                        item.style.opacity = '1';
+                    });
+                    // 移除所有高亮
+                    document.querySelectorAll('.drag-over').forEach(el => {
+                        el.classList.remove('drag-over');
+                    });
+                });
+            });
+        });
+
+        // 放置裝備
+        function dropEquipment(event) {
+            console.log('🟣 dropEquipment 被呼叫');
+            event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+
+            const equipmentId = event.dataTransfer.getData('equipmentId');
+            const equipmentType = event.dataTransfer.getData('equipmentType');
+            const equipmentName = event.dataTransfer.getData('equipmentName');
+            const slotType = event.currentTarget.dataset.slotType;
+            const slotIndex = event.currentTarget.dataset.slotIndex;
+
+            console.log('🟣 dropEquipment 資料:', {
+                equipmentId,
+                equipmentType,
+                equipmentName,
+                slotType,
+                slotIndex
+            });
+
+            // 驗證槽位類型
+            if (!validateSlotType(equipmentType, slotType)) {
+                console.log('❌ 驗證失敗:', { equipmentType, slotType });
+                showMessage('error', `${equipmentName} 無法裝備到此槽位`);
+                return;
+            }
+
+            console.log('✅✅✅ 驗證通過，準備裝備 ✅✅✅');
+            console.log('準備呼叫 equipItem，參數:', { equipmentId, slotIndex });
+
+            // 發送 AJAX 請求
+            try {
+                equipItem(equipmentId, slotIndex);
+                console.log('equipItem 呼叫完成');
+            } catch (error) {
+                console.error('呼叫 equipItem 時發生錯誤:', error);
+            }
+        }
+
+        // 快速裝備（點擊按鈕）
+        function quickEquip(equipmentId, equipmentType) {
+            console.log('⚡ quickEquip 被呼叫:', { equipmentId, equipmentType });
+
+            // 根據裝備類型決定槽位索引
+            let toolSlotIndex = null;
+
+            // 如果是工具類型，詢問要裝備到哪個槽位
+            if (equipmentType.startsWith('TOOL_')) {
+                const slotInput = prompt('請輸入工具槽位編號 (1-5):');
+                if (!slotInput) {
+                    showMessage('info', '已取消裝備');
+                    return;
+                }
+                toolSlotIndex = parseInt(slotInput);
+                if (toolSlotIndex < 1 || toolSlotIndex > 5 || isNaN(toolSlotIndex)) {
+                    showMessage('error', '無效的槽位編號！請輸入 1-5');
+                    return;
+                }
+            }
+
+            // 呼叫裝備函數
+            equipItem(equipmentId, toolSlotIndex);
+        }
+
+        // 驗證槽位類型
+        function validateSlotType(equipmentType, slotType) {
+            console.log('🔶 validateSlotType:', { equipmentType, slotType });
+
+            if (slotType === 'TOOL') {
+                const result = equipmentType.startsWith('TOOL_');
+                console.log('🔶 工具槽驗證結果:', result);
+                return result;
+            }
+            const result = equipmentType === slotType;
+            console.log('🔶 一般槽位驗證結果:', result);
+            return result;
+        }
+
+        // 裝備物品 (AJAX)
+        function equipItem(equipmentId, toolSlotIndex = null) {
+            console.log('🔷 equipItem 被呼叫:', { equipmentId, toolSlotIndex });
+
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const url = `/rpg/equipment/${equipmentId}/equip/`;
+
+            console.log('🔷 URL:', url);
+            console.log('🔷 CSRF Token:', csrfToken ? '已找到' : '未找到');
+
+            const formData = new FormData();
+            formData.append('csrfmiddlewaretoken', csrfToken);
+            if (toolSlotIndex) {
+                formData.append('tool_slot_index', toolSlotIndex);
+                console.log('🔷 添加 tool_slot_index:', toolSlotIndex);
+            } else {
+                console.log('🔷 沒有 tool_slot_index (一般裝備)');
+            }
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData
+            })
+                .then(response => {
+                    console.log('🔷 Response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('🔷 Response data:', data);
+                    if (data.success) {
+                        showMessage('success', data.message || '裝備成功！');
+                        // 重新載入頁面以更新裝備狀態
+                        setTimeout(() => {
+                            location.reload();
+                        }, 500);
+                    } else {
+                        showMessage('error', data.message || '裝備失敗');
+                    }
+                })
+                .catch(error => {
+                    console.error('🔷 Error:', error);
+                    showMessage('error', '網路錯誤，請稍後再試');
+                });
+        }
+
+        // 移除裝備
+        function unequipItem(slotType, equipmentId, toolSlotIndex = null) {
+            console.log('🔴 unequipItem 被呼叫:', { slotType, equipmentId, toolSlotIndex });
+
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const url = `/rpg/equipment/${equipmentId}/unequip/`;
+
+            console.log('🔴 URL:', url);
+            console.log('🔴 CSRF Token:', csrfToken);
+
+            const formData = new FormData();
+            formData.append('csrfmiddlewaretoken', csrfToken);
+            formData.append('slot_type', slotType);
+            if (toolSlotIndex) {
+                formData.append('tool_slot_index', toolSlotIndex);
+            }
+
+            console.log('🔴 FormData:', {
+                slot_type: slotType,
+                tool_slot_index: toolSlotIndex
+            });
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData
+            })
+                .then(response => {
+                    console.log('🔴 Response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('🔴 Response data:', data);
+                    if (data.success) {
+                        showMessage('success', data.message || '已移除裝備！');
+                        // 重新載入頁面以更新裝備狀態
+                        setTimeout(() => {
+                            location.reload();
+                        }, 500);
+                    } else {
+                        showMessage('error', data.message || '移除失敗');
+                    }
+                })
+                .catch(error => {
+                    console.error('🔴 Error:', error);
+                    showMessage('error', '網路錯誤，請稍後再試');
+                });
+        }
+
+        // 顯示訊息
+        function showMessage(type, message) {
+            // 創建訊息元素
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `alert alert-${type}`;
+            messageDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        background: ${type === 'success' ? '#4CAF50' : '#f44336'};
+        color: white;
+        border-radius: 4px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        z-index: 10000;
+        animation: slideIn 0.3s ease-out;
+    `;
+            messageDiv.textContent = message;
+
+            document.body.appendChild(messageDiv);
+
+            // 3秒後自動移除
+            setTimeout(() => {
+                messageDiv.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => {
+                    document.body.removeChild(messageDiv);
+                }, 300);
+            }, 3000);
+        }
+
+        // 添加動畫
+        const style = document.createElement('style');
+        style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+`;
+        document.head.appendChild(style);
+    </script>
+
+    {% endblock %}

@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django_ckeditor_5.widgets import CKEditor5Widget
-from .models import DroneReservation, Announcement, SiteSettings, DroneReviewer, EmailTemplate
+from .models import DroneReservation, Announcement, SiteSettings, DroneReviewer, EmailTemplate, MissionRecord
 
 
 class ReservationForm(forms.ModelForm):
@@ -33,21 +33,19 @@ class ReservationForm(forms.ModelForm):
                 'rows': 3,
                 'placeholder': '請說明申請理由'
             }),
-            'usage_start_datetime': forms.DateTimeInput(
+            'usage_start_datetime': forms.DateInput(
                 attrs={
-                    'type': 'datetime-local',
-                    'class': 'form-control',
-                    'step': '60'
+                    'type': 'date',
+                    'class': 'form-control'
                 },
-                format='%Y-%m-%dT%H:%M'
+                format='%Y-%m-%d'
             ),
-            'usage_end_datetime': forms.DateTimeInput(
+            'usage_end_datetime': forms.DateInput(
                 attrs={
-                    'type': 'datetime-local',
-                    'class': 'form-control',
-                    'step': '60'
+                    'type': 'date',
+                    'class': 'form-control'
                 },
-                format='%Y-%m-%dT%H:%M'
+                format='%Y-%m-%d'
             ),
             'location': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -66,9 +64,9 @@ class ReservationForm(forms.ModelForm):
         end_time = cleaned_data.get('usage_end_datetime')
 
         if start_time and end_time:
-            # 結束時間必須在開始時間之後
-            if end_time <= start_time:
-                raise ValidationError('結束時間必須在開始時間之後')
+            # 結束日期不能早於開始日期（可以相同，表示只預約當天）
+            if end_time < start_time:
+                raise ValidationError('結束日期不能早於開始日期')
 
             # 開始時間不能是過去的時間（新申請時）
             if not self.instance.pk and start_time < timezone.now():
@@ -175,21 +173,19 @@ class ReviewerTimeEditForm(forms.ModelForm):
         model = DroneReservation
         fields = ['usage_start_datetime', 'usage_end_datetime']
         widgets = {
-            'usage_start_datetime': forms.DateTimeInput(
+            'usage_start_datetime': forms.DateInput(
                 attrs={
-                    'type': 'datetime-local',
-                    'class': 'form-control',
-                    'step': '60'
+                    'type': 'date',
+                    'class': 'form-control'
                 },
-                format='%Y-%m-%dT%H:%M'
+                format='%Y-%m-%d'
             ),
-            'usage_end_datetime': forms.DateTimeInput(
+            'usage_end_datetime': forms.DateInput(
                 attrs={
-                    'type': 'datetime-local',
-                    'class': 'form-control',
-                    'step': '60'
+                    'type': 'date',
+                    'class': 'form-control'
                 },
-                format='%Y-%m-%dT%H:%M'
+                format='%Y-%m-%d'
             ),
         }
 
@@ -199,8 +195,9 @@ class ReviewerTimeEditForm(forms.ModelForm):
         end_time = cleaned_data.get('usage_end_datetime')
 
         if start_time and end_time:
-            if end_time <= start_time:
-                raise ValidationError('結束時間必須在開始時間之後')
+            # 結束日期不能早於開始日期（可以相同，表示只預約當天）
+            if end_time < start_time:
+                raise ValidationError('結束日期不能早於開始日期')
 
         return cleaned_data
 
@@ -228,4 +225,105 @@ class EmailTemplateForm(forms.ModelForm):
         }
         help_texts = {
             'body_template': '可用變數：{applicant_name}, {start_time}, {end_time}, {location}, {project_number}, {reason}, {reviewer_name}, {rejection_reason}, {old_start_time}, {old_end_time}',
+        }
+
+
+class MissionRecordForm(forms.ModelForm):
+    """飛行任務紀錄表單"""
+    
+    # 選擇關聯的預約單（可選）
+    reservation = forms.ModelChoiceField(
+        queryset=DroneReservation.objects.filter(status='approved').select_related('applicant').order_by('-usage_start_datetime'),
+        required=False,
+        label="關聯預約單",
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        help_text="選擇已核准的預約單可自動帶入部分欄位"
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['reservation'].label_from_instance = self._reservation_label
+
+    @staticmethod
+    def _reservation_label(obj):
+        applicant_name = obj.applicant.get_full_name() or obj.applicant.username
+        date_str = obj.usage_start_datetime.strftime('%Y/%m/%d')
+        label = f"{applicant_name} - {date_str} - {obj.project_number}"
+        
+        # 檢查是否已經有建立過任務紀錄
+        if obj.mission_records.exists():
+            label += " [已建立紀錄]"
+            
+        return label
+
+    class Meta:
+        model = MissionRecord
+        fields = [
+            'reservation',
+            'mission_start_date',
+            'mission_end_date',
+            'project_number',
+            'project_short_name',
+            'location_name',
+            'latitude',
+            'longitude',
+            'mission_description',
+            'drone_payload',
+            'pilot',
+            'result_location',
+        ]
+        widgets = {
+            'mission_start_date': forms.DateInput(
+                attrs={
+                    'type': 'date',
+                    'class': 'form-control'
+                },
+                format='%Y-%m-%d'
+            ),
+            'mission_end_date': forms.DateInput(
+                attrs={
+                    'type': 'date',
+                    'class': 'form-control'
+                },
+                format='%Y-%m-%d'
+            ),
+            'project_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '例如：0123B'
+            }),
+            'project_short_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '例如：OOOOO計畫'
+            }),
+            'location_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '例如：OO園區'
+            }),
+            'latitude': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '例如：24.1234',
+                'step': 'any'
+            }),
+            'longitude': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '例如：120.5678',
+                'step': 'any'
+            }),
+            'mission_description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': '請描述任務內容與需求，如照片影片、光達掃描'
+            }),
+            'drone_payload': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '例如：SkyPro 2'
+            }),
+            'pilot': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '請輸入姓名'
+            }),
+            'result_location': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '檔案路徑或雲端連結'
+            }),
         }

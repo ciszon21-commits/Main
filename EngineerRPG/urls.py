@@ -4,17 +4,23 @@ from . import views
 app_name = 'engineer_rpg'
 
 urlpatterns = [
-    # 註冊與登入
-    path('login/', views.user_login, name='login'),
-    path('logout/', views.user_logout, name='logout'),
+    # 註冊與登入 (已移除，改由外部與白名單管理)
+    # path('register/', views.user_register, name='register'),
+    # path('login/', views.user_login, name='login'),
+    
+    # 白名單管理
+    path('admin-panel/whitelist/', views.admin_whitelist_view, name='admin_whitelist'),
+    path('admin-panel/whitelist/add/', views.admin_whitelist_add, name='admin_whitelist_add'),
+    path('admin-panel/whitelist/<int:whitelist_id>/delete/', views.admin_whitelist_delete, name='admin_whitelist_delete'),
+    path('api/search-users/', views.api_search_users, name='api_search_users'),
     
     # 首頁與儀表板
     path('', views.index, name='index'),
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('select-class/', views.select_class, name='select_class'),
     path('profile/edit/', views.profile_edit, name='profile_edit'),
-    path('profile/select-class/', views.select_character_class, name='select_character_class'),
     
-    # 技能樹與課程系統
+    # 技能樹
     path('skill-tree/', views.skill_tree, name='skill_tree'),
     path('skill/<int:skill_id>/', views.skill_detail, name='skill_detail'),
     path('skill/<int:skill_id>/start/', views.start_learning, name='start_learning'),
@@ -35,13 +41,18 @@ urlpatterns = [
     path('training-hall/', views.training_hub, name='training_hub'),
     path('daily-trial/', views.daily_trial_list, name='daily_trial_list'),
     path('daily-trial/<int:task_id>/start/', views.start_daily_trial, name='start_daily_trial'),
+    path('daily-trial/<int:task_id>/chest/<int:chest_index>/open/', views.open_daily_chest, name='open_daily_chest'),
     path('dungeons/', views.dungeon_list, name='dungeon_list'),
+    path('trial/records/', views.trial_record_list, name='trial_record_list'),
+    path('trial/record/<int:record_id>/', views.trial_record_detail, name='trial_record_detail'),
     path('trial/<int:trial_id>/', views.trial_detail, name='trial_detail'),
     path('trial/<int:trial_id>/start/', views.start_trial, name='start_trial'),
     path('trial/<int:trial_id>/submit-answer/', views.submit_answer, name='submit_answer'),
     path('trial/<int:trial_id>/next-question/', views.next_question, name='next_question'),
     path('trial/<int:trial_id>/submit/', views.submit_trial, name='submit_trial'),
-    path('trial/record/<int:record_id>/', views.trial_record_detail, name='trial_record_detail'),
+    path('trial/<int:trial_id>/uav-eliminate/', views.uav_eliminate_option, name='uav_eliminate_option'),
+    path('trial/<int:trial_id>/vr-reveal/', views.vr_reveal_answer, name='vr_reveal_answer'),
+    path('trial/<int:trial_id>/camera-rewind/', views.camera_rewind, name='camera_rewind'),
     
     # 升階系統
     path('promotion/apply/', views.apply_promotion, name='apply_promotion'),
@@ -64,7 +75,6 @@ urlpatterns = [
     # 管理員介面（創世神）
     path('admin-panel/', views.admin_dashboard, name='admin_dashboard'),
     path('admin-panel/users/', views.user_management, name='user_management'),
-    path('admin-panel/whitelist/', views.admin_whitelist_management, name='admin_whitelist_management'),
 
     # 公會系統
     path('guild/', views.guild_dashboard, name='guild_dashboard'),  # 公會大廳
@@ -79,6 +89,7 @@ urlpatterns = [
     path('admin-panel/users/<int:user_id>/edit/', views.edit_user, name='edit_user'),
     path('admin-panel/users/<int:user_id>/delete/', views.delete_user, name='delete_user'),
     path('admin-panel/questions/', views.question_management, name='question_management'),
+    path('admin-panel/questions/batch/', views.batch_manage_questions, name='batch_manage_questions'),
     path('admin-panel/questions/create/', views.create_question, name='create_question'),
     path('admin-panel/questions/<int:question_id>/edit/', views.edit_question, name='edit_question'),
     path('admin-panel/questions/<int:question_id>/delete/', views.delete_question, name='delete_question'),
@@ -86,6 +97,9 @@ urlpatterns = [
     path('admin-panel/courses/create/', views.create_course, name='create_course'),
     path('admin-panel/courses/<int:course_id>/edit/', views.edit_course, name='edit_course'),
     path('admin-panel/courses/<int:course_id>/delete/', views.delete_course, name='delete_course'),
+    path('admin-panel/courses/batch/', views.batch_manage_courses, name='batch_manage_courses'),
+    path('admin-panel/courses/import/', views.import_courses, name='import_courses'),
+    path('admin-panel/courses/template/<str:format>/', views.download_course_template, name='download_course_template'),
     
     # Study & Exam
     path('courses/<int:course_id>/study/', views.course_study, name='course_study'),
@@ -97,6 +111,7 @@ urlpatterns = [
     path('admin-panel/dungeons/<int:dungeon_id>/edit/', views.edit_dungeon, name='edit_dungeon'),
     path('admin-panel/questions/import/', views.import_questions_view, name='import_questions'),
     path('admin-panel/questions/template/<str:format>/', views.download_template, name='download_template'),
+    path('admin-panel/reset-daily-trials/', views.reset_daily_trials, name='reset_daily_trials'),
     path('admin-panel/skill-tree-editor/', views.skill_tree_editor, name='skill_tree_editor'),
     
     # 隊伍管理（管理中心）
@@ -127,13 +142,4 @@ urlpatterns = [
     
     # 成員詳細資料（公會會長專用）
     path('member/<int:member_id>/profile/', views.member_profile_detail, name='member_profile_detail'),
-
-    # 圖鑑系統 (已隱藏)
-    # path('codex/', views.codex_main, name='codex_main'),
-    # path('codex/equipment/', views.codex_equipment, name='codex_equipment'),
-    # path('codex/equipment/<int:equipment_id>/', views.codex_equipment_detail, name='codex_equipment_detail'),
-    # path('codex/items/', views.codex_items, name='codex_items'),
-    # path('codex/items/<int:item_id>/', views.codex_item_detail, name='codex_item_detail'),
-    # path('codex/skills/', views.codex_skills, name='codex_skills'),
-    # path('codex/obtain-guide/', views.codex_obtain_guide, name='codex_obtain_guide'),
 ]

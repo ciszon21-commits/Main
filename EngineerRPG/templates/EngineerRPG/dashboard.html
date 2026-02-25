@@ -1,289 +1,265 @@
-{% extends 'EngineerRPG/base.html' %}
-{% load static %}
-
-{% block title %}冒險者大廳 - 監造冒險者公會{% endblock %}
-
-{% block content %}
-<div class="rpg-container">
-    <!-- 歡迎標題 -->
-    <div class="text-center mb-lg">
-        <h1>
-            <i class="fas fa-dungeon"></i>
-            歡迎回來，{{ profile.character_class.name }}
-        </h1>
-        <p style="font-size: 1.2rem; color: var(--color-secondary);">
-            {{ user.get_full_name|default:user.username }}
-        </p>
-    </div>
-
-    <div class="grid grid-3 gap-lg">
-        <!-- 左側：角色展示 -->
-        <div>
-            <div class="rpg-card">
-                <h2 class="text-center">
-                    <i class="fas fa-user-shield"></i>
-                    角色資訊
-                </h2>
-
-                <!-- 角色展示 -->
-                <div class="character-display"
-                    style="position: relative; display: flex; flex-direction: column; align-items: center;">
-                    <div class="character-avatar"
-                        style="background-image: url('{{ profile.get_avatar_url }}'); border-radius: 50%;">
-                    </div>
-                    <div class="level-badge">
-                        Lv.{{ profile.level }}
-                    </div>
-                    <a href="{% url 'engineer_rpg:profile_edit' %}" class="rpg-btn rpg-btn-sm"
-                        style="margin-top: -15px; z-index: 10; font-size: 0.8rem; padding: 2px 10px; border-radius: 15px; background: var(--color-background); border: 1px solid var(--color-secondary);">
-                        <i class="fas fa-edit"></i> 編輯
-                    </a>
-                </div>
-
-                <!-- 經驗值條 -->
-                <div class="mt-md">
-                    <div style="font-size: 0.9rem; margin-bottom: 0.5rem; text-align: center;">
-                        經驗值：{{ profile.experience }} / {{ exp_to_next }}
-                    </div>
-                    <div class="rpg-stat-bar rpg-exp-bar">
-                        <div class="rpg-stat-bar-fill" style="width: {{ exp_progress }}%;"></div>
-                    </div>
-                </div>
-
-                <!-- 屬性資訊 -->
-                <div class="mt-lg"
-                    style="background: rgba(0, 0, 0, 0.3); padding: var(--spacing-md); border-radius: var(--border-radius);">
-                    <div class="flex flex-between mb-sm">
-                        <span><i class="fas fa-heart" style="color: var(--color-me);"></i> 生命值 (HP)</span>
-                        <strong>{{ total_hp }}</strong>
-                    </div>
-                    <div class="flex flex-between mb-sm">
-                        <span><i class="fas fa-magic" style="color: var(--color-civil);"></i> 技能值 (MP)</span>
-                        <strong>{{ total_mp }}</strong>
-                    </div>
-                    <div class="flex flex-between mb-sm">
-                        <span><i class="fas fa-star" style="color: var(--color-secondary);"></i> 等級</span>
-                        <strong>{{ profile.level }}</strong>
-                    </div>
-                    <div class="flex flex-between mb-sm">
-                        <span><i class="fas fa-medal" style="color: var(--color-warning);"></i> 職銜</span>
-                        <strong>{{ profile.get_rank_display }}</strong>
-                    </div>
-                    <div class="flex flex-between">
-                        <span><i class="fas fa-briefcase" style="color: var(--color-secondary);"></i> 職業</span>
-                        <strong>{{ profile.character_class.name }}</strong>
-                    </div>
-                </div>
-
-                <!-- 快速操作 -->
-                <div class="mt-lg">
-                    <a href="{% url 'engineer_rpg:apply_promotion' %}" class="rpg-btn rpg-btn-success"
-                        style="width: 100%; text-align: center; display: block;">
-                        <i class="fas fa-level-up-alt"></i>
-                        申請晉升
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- 中間：技能與試煉 -->
-        <div>
-            <!-- 技能進度 -->
-            <div class="rpg-card mb-lg">
-                <h2>
-                    <i class="fas fa-book-open"></i>
-                    技能學習進度
-                </h2>
-
-                <div class="flex flex-between mb-md" style="align-items: center;">
-                    <div>
-                        <div style="font-size: 2rem; font-weight: 700; color: var(--color-secondary);">
-                            {{ completed_skills }}
-                        </div>
-                        <div style="font-size: 0.9rem;">已完成技能</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 2rem; font-weight: 700; color: var(--color-stone);">
-                            {{ total_skills }}
-                        </div>
-                        <div style="font-size: 0.9rem;">總技能數</div>
-                    </div>
-                </div>
-
-                <div class="rpg-stat-bar" style="height: 25px;">
-                    <div class="rpg-stat-bar-fill" style="width: {{ progress_percent }}%; 
-            background: linear-gradient(90deg, var(--color-safety) 0%, var(--color-secondary) 100%);">
-                    </div>
-                    <div class="rpg-stat-bar-text">
-                        {% if total_skills > 0 %}
-                        {% widthratio completed_skills total_skills 100 %}%
-                        {% else %}
-                        0%
-                        {% endif %}
-                    </div>
-                </div>
-
-                <div class="mt-md">
-                    <a href="{% url 'engineer_rpg:skill_tree' %}" class="rpg-btn"
-                        style="width: 100%; text-align: center; display: block;">
-                        <i class="fas fa-tree"></i>
-                        前往技能樹
-                    </a>
-                </div>
-            </div>
-
-            <!-- 隊伍資訊 -->
-            {% if team_membership %}
-            <div class="rpg-card mb-lg">
-                <h2>
-                    <i class="fas fa-users"></i>
-                    我的隊伍
-                </h2>
-
-                <div class="flex flex-between mb-md" style="align-items: center;">
-                    <div>
-                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-secondary);">
-                            {{ team_membership.team.name }}
-                        </div>
-                        <div style="font-size: 0.9rem; color: var(--color-stone);">
-                            角色：{{ team_membership.get_role_display }}
-                        </div>
-                    </div>
-                    <div style="text-align: right;">
-                        <a href="{% url 'engineer_rpg:team_detail' team_membership.team.id %}"
-                            class="rpg-btn rpg-btn-sm">
-                            <i class="fas fa-info-circle"></i>
-                            查看詳情
-                        </a>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- 每日副本 -->
-            <div class="rpg-card">
-                <h2>
-                    <i class="fas fa-calendar-day"></i>
-                    今日練功副本
-                </h2>
-
-                {% if daily_trials %}
-                {% for trial in daily_trials %}
-                <div class="trial-option mb-sm" style="cursor: pointer;"
-                    onclick="window.location.href='{% url 'engineer_rpg:trial_detail' trial.id %}'">
-                    <div class="flex flex-between" style="align-items: center;">
-                        <div>
-                            <h4 style="margin: 0; color: var(--color-secondary);">{{ trial.title }}</h4>
-                            <p style="margin: 0.25rem 0 0 0; font-size: 0.9rem;">
-                                {{ trial.description|truncatewords:15 }}</p>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 0.85rem; color: var(--color-stone);">
-                                <i class="fas fa-clock"></i> {{ trial.time_limit_minutes }} 分鐘
-                            </div>
-                            <div style="font-size: 0.85rem; color: var(--color-secondary);">
-                                <i class="fas fa-star"></i> +{{ trial.exp_reward }} EXP
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-                {% else %}
-                <p style="text-align: center; color: var(--color-stone); padding: var(--spacing-lg);">
-                    <i class="fas fa-info-circle"></i>
-                    今日無可用副本
-                </p>
-                {% endif %}
-
-                <div class="mt-md">
-                    <a href="{% url 'engineer_rpg:daily_trial_list' %}" class="rpg-btn"
-                        style="width: 100%; text-align: center; display: block;">
-                        <i class="fas fa-dungeon"></i>
-                        查看所有副本
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- 右側：最近記錄 -->
-        <div>
-            <div class="rpg-card">
-                <h2>
-                    <i class="fas fa-history"></i>
-                    最近試煉記錄
-                </h2>
-
-                {% if recent_trials %}
-                {% for record in recent_trials %}
-                <div class="mb-md"
-                    style="background: rgba(0, 0, 0, 0.3); padding: var(--spacing-md); border-radius: var(--border-radius); border-left: 4px solid {% if record.is_passed %}var(--color-safety){% else %}var(--color-me){% endif %};">
-                    <div class="flex flex-between mb-sm">
-                        <strong>{{ record.trial.title }}</strong>
-                        {% if record.is_passed %}
-                        <span style="color: var(--color-safety);">
-                            <i class="fas fa-check-circle"></i> 通過
-                        </span>
-                        {% else %}
-                        <span style="color: var(--color-me);">
-                            <i class="fas fa-times-circle"></i> 未通過
-                        </span>
-                        {% endif %}
-                    </div>
-
-                    <div class="flex flex-between" style="font-size: 0.9rem;">
-                        <span>分數：<strong>{{ record.score }}</strong></span>
-                        <span>正確率：<strong>{{ record.correct_answers }}/{{ record.total_questions }}</strong></span>
-                    </div>
-
-                    <div style="font-size: 0.85rem; color: var(--color-stone); margin-top: 0.5rem;">
-                        <i class="fas fa-clock"></i> {{ record.completed_at|date:"Y/m/d H:i" }}
-                    </div>
-
-                    <a href="{% url 'engineer_rpg:trial_record_detail' record.id %}"
-                        style="font-size: 0.85rem; color: var(--color-secondary); text-decoration: none; margin-top: 0.5rem; display: inline-block;">
-                        查看詳情 <i class="fas fa-arrow-right"></i>
-                    </a>
-                </div>
-                {% endfor %}
-                {% else %}
-                <p style="text-align: center; color: var(--color-stone); padding: var(--spacing-lg);">
-                    <i class="fas fa-info-circle"></i>
-                    尚無試煉記錄
-                </p>
-                {% endif %}
-            </div>
-
-            <!-- 快速導航 -->
-            <div class="rpg-card mt-lg">
-                <h3>
-                    <i class="fas fa-compass"></i>
-                    快速導航
-                </h3>
-
-                <div class="grid grid-2 gap-sm">
-                    <a href="{% url 'engineer_rpg:skill_tree' %}" class="rpg-btn rpg-btn-primary"
-                        style="text-align: center; padding: var(--spacing-md);">
-                        <i class="fas fa-tree"></i><br>
-                        <span style="font-size: 0.85rem;">技能樹</span>
-                    </a>
-                    <a href="{% url 'engineer_rpg:item_inventory' %}" class="rpg-btn"
-                        style="text-align: center; padding: var(--spacing-md);">
-                        <i class="fas fa-briefcase"></i><br>
-                        <span style="font-size: 0.85rem;">道具包</span>
-                    </a>
-                    <a href="{% url 'engineer_rpg:daily_trial_list' %}" class="rpg-btn rpg-btn-danger"
-                        style="text-align: center; padding: var(--spacing-md);">
-                        <i class="fas fa-dungeon"></i><br>
-                        <span style="font-size: 0.85rem;">練功房</span>
-                    </a>
-                    <a href="{% url 'engineer_rpg:leaderboard' %}" class="rpg-btn rpg-btn-success"
-                        style="text-align: center; padding: var(--spacing-md);">
-                        <i class="fas fa-trophy"></i><br>
-                        <span style="font-size: 0.85rem;">排行榜</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}冒險者大廳 - 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <!-- 歡迎標題 -->
+    <div class="text-center mb-lg">
+        <h1>
+            <i class="fas fa-dungeon"></i>
+            歡迎回來，{{ profession_name }}
+            <span style="color: var(--color-secondary); margin-left: 0.5rem; font-size: inherit;">
+                {{ display_name }}
+            </span>
+        </h1>
+    </div>
+
+    <div class="grid grid-3 gap-lg">
+        <!-- 左側：角色展示 -->
+        <div>
+            <div class="rpg-card">
+                <h2 class="text-center">
+                    <i class="fas fa-user-shield"></i>
+                    角色資訊
+                </h2>
+
+                <!-- 角色展示 -->
+                <div class="character-display"
+                    style="position: relative; display: flex; flex-direction: column; align-items: center;">
+                    <div class="character-avatar"
+                        style="background-image: url('{{ profile.get_avatar_url }}'); border-radius: 50%;">
+                    </div>
+                    <div class="level-badge">
+                        Lv.{{ profile.level }}
+                    </div>
+                    <a href="{% url 'engineer_rpg:profile_edit' %}" class="rpg-btn rpg-btn-sm"
+                        style="margin-top: -15px; z-index: 10; font-size: 0.8rem; padding: 2px 10px; border-radius: 15px; background: var(--color-background); border: 1px solid var(--color-secondary);">
+                        <i class="fas fa-edit"></i> 編輯
+                    </a>
+                </div>
+
+                <!-- 經驗值條 -->
+                <div class="mt-md">
+                    <div style="font-size: 0.9rem; margin-bottom: 0.5rem; text-align: center;">
+                        經驗值：{{ profile.experience }} / {{ exp_to_next }}
+                    </div>
+                    <div class="rpg-stat-bar rpg-exp-bar">
+                        <div class="rpg-stat-bar-fill" style="width: {{ exp_progress }}%;"></div>
+                    </div>
+                </div>
+
+                <!-- 屬性資訊 -->
+                <div class="mt-lg"
+                    style="background: rgba(0, 0, 0, 0.3); padding: var(--spacing-md); border-radius: var(--border-radius);">
+                    <div class="flex flex-between mb-sm">
+                        <span><i class="fas fa-heart" style="color: var(--color-me);"></i> 生命值 (HP)</span>
+                        <strong>{{ total_hp }}</strong>
+                    </div>
+                    <div class="flex flex-between mb-sm">
+                        <span><i class="fas fa-magic" style="color: var(--color-civil);"></i> 技能值 (MP)</span>
+                        <strong>{{ total_mp }}</strong>
+                    </div>
+                    <div class="flex flex-between mb-sm">
+                        <span><i class="fas fa-star" style="color: var(--color-secondary);"></i> 等級</span>
+                        <strong>{{ profile.level }}</strong>
+                    </div>
+                    <div class="flex flex-between mb-sm">
+                        <span><i class="fas fa-medal" style="color: var(--color-warning);"></i> 職銜</span>
+                        <strong>{{ profile.get_rank_display }}</strong>
+                    </div>
+                    <div class="flex flex-between">
+                        <span><i class="fas fa-briefcase" style="color: var(--color-secondary);"></i> 職業</span>
+                        <strong>{{ profession_name }}</strong>
+                    </div>
+                </div>
+
+                <!-- 快速操作 -->
+                <div class="mt-lg">
+                    <a href="{% url 'engineer_rpg:apply_promotion' %}" class="rpg-btn rpg-btn-success"
+                        style="width: 100%; text-align: center; display: block;">
+                        <i class="fas fa-level-up-alt"></i>
+                        申請晉升
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 中間：技能與試煉 -->
+        <div>
+            <!-- 技能進度 -->
+            <div class="rpg-card mb-lg">
+                <h2>
+                    <i class="fas fa-book-open"></i>
+                    技能學習進度
+                </h2>
+
+                <div class="flex flex-between mb-md" style="align-items: center;">
+                    <div>
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--color-secondary);">
+                            {{ completed_skills }}
+                        </div>
+                        <div style="font-size: 0.9rem;">已完成技能</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--color-stone);">
+                            {{ total_skills }}
+                        </div>
+                        <div style="font-size: 0.9rem;">總技能數</div>
+                    </div>
+                </div>
+
+                <div class="rpg-stat-bar" style="height: 25px;">
+                    <div class="rpg-stat-bar-fill" style="width: {{ progress_percent }}%; 
+            background: linear-gradient(90deg, var(--color-safety) 0%, var(--color-secondary) 100%);">
+                    </div>
+                    <div class="rpg-stat-bar-text">
+                        {% if total_skills > 0 %}
+                        {% widthratio completed_skills total_skills 100 %}%
+                        {% else %}
+                        0%
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="mt-md">
+                    <a href="{% url 'engineer_rpg:skill_tree' %}" class="rpg-btn"
+                        style="width: 100%; text-align: center; display: block;">
+                        <i class="fas fa-tree"></i>
+                        前往技能樹
+                    </a>
+                </div>
+            </div>
+
+            <!-- 隊伍資訊 -->
+            {% if team_membership %}
+            <div class="rpg-card mb-lg">
+                <h2>
+                    <i class="fas fa-users"></i>
+                    我的隊伍
+                </h2>
+
+                <div class="flex flex-between mb-md" style="align-items: center;">
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-secondary);">
+                            {{ team_membership.team.name }}
+                        </div>
+                        <div style="font-size: 0.9rem; color: var(--color-stone);">
+                            角色：{{ team_membership.get_role_display }}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <a href="{% url 'engineer_rpg:team_detail' team_membership.team.id %}"
+                            class="rpg-btn rpg-btn-sm">
+                            <i class="fas fa-info-circle"></i>
+                            查看詳情
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 每日副本 (已移除) -->
+            <!-- 快速導航 (已移除) -->
+
+            <!-- 裝備加成狀態 (移至此處) -->
+            <div class="rpg-card mb-lg">
+                <h2>
+                    <i class="fas fa-shield-alt"></i>
+                    裝備加成狀態
+                </h2>
+
+                <div class="grid grid-2 gap-md mb-md">
+                    <div class="rpg-stat-box" style="border: 1px solid var(--color-civil);">
+                        <div class="rpg-stat-label">裝備 HP 加成</div>
+                        <div class="rpg-stat-value" style="color: var(--color-civil);">
+                            +{{ equip_hp_bonus }}
+                        </div>
+                    </div>
+                    <div class="rpg-stat-box" style="border: 1px solid var(--color-me);">
+                        <div class="rpg-stat-label">裝備 MP 加成</div>
+                        <div class="rpg-stat-value" style="color: var(--color-me);">
+                            +{{ equip_mp_bonus }}
+                        </div>
+                    </div>
+                </div>
+
+                <h3>特殊效果</h3>
+                {% if active_effects %}
+                <ul class="rpg-list">
+                    {% for effect in active_effects %}
+                    <li class="flex flex-between">
+                        <span style="color: var(--color-secondary);">{{ effect.effect }}</span>
+                        <span style="color: var(--color-stone);">{{ effect.source }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p style="color: var(--color-stone); text-align: center; padding: 1rem;">
+                    目前無發動中的特殊效果
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 右側：最近紀錄 -->
+        <div>
+
+
+            <div class="rpg-card">
+                <h2>
+                    <i class="fas fa-history"></i>
+                    最近試煉紀錄
+                </h2>
+
+                {% if recent_trials %}
+                {% for record in recent_trials %}
+                <div class="mb-md"
+                    style="background: rgba(0, 0, 0, 0.3); padding: var(--spacing-md); border-radius: var(--border-radius); border-left: 4px solid {% if record.is_passed %}var(--color-safety){% else %}var(--color-me){% endif %};">
+                    <div class="flex flex-between mb-sm">
+                        <strong>{{ record.trial.title }}</strong>
+                        {% if record.is_passed %}
+                        <span style="color: var(--color-success);">
+                            <i class="fas fa-check-circle"></i> 通過
+                        </span>
+                        {% else %}
+                        <span style="color: var(--color-danger);">
+                            <i class="fas fa-times-circle"></i> 未通過
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex flex-between" style="font-size: 0.9rem;">
+                        <span>分數：<strong>{{ record.score }}</strong></span>
+                        <span>正確率：<strong>{{ record.correct_answers }}/{{ record.total_questions }}</strong></span>
+                    </div>
+
+                    <div style="font-size: 0.85rem; color: var(--color-stone); margin-top: 0.5rem;">
+                        <i class="fas fa-clock"></i> {{ record.completed_at|date:"Y/m/d H:i" }}
+                    </div>
+
+                    <a href="{% url 'engineer_rpg:trial_record_detail' record.id %}"
+                        style="font-size: 0.85rem; color: var(--color-secondary); text-decoration: none; margin-top: 0.5rem; display: inline-block;">
+                        查看詳情 <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                {% endfor %}
+
+                <div class="text-center mt-md">
+                    <a href="{% url 'engineer_rpg:trial_record_list' %}" class="rpg-btn rpg-btn-sm"
+                        style="width: 100%; display: block;">
+                        查看更多紀錄 <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </div>
+                {% else %}
+                <p style="text-align: center; color: var(--color-stone); padding: var(--spacing-lg);">
+                    <i class="fas fa-info-circle"></i>
+                    尚無試煉記錄
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

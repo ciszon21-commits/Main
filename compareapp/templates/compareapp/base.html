@@ -1,0 +1,46 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}設計一致性比對平台{% endblock %}</title>
+    <meta name="description" content="{% block meta_desc %}上傳預算書 XML 與數量計算書 Excel，逐步標準化後進行一致化比對。{% endblock %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'compareapp/css/ai-native.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <canvas id="particle-canvas"></canvas>
+
+    <div class="page-wrapper">
+        <nav class="navbar">
+            <a href="{% url 'compareapp:project_index' %}" class="navbar-brand">
+                <span class="brand-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                        <path d="M2 17l10 5 10-5"></path>
+                        <path d="M2 12l10 5 10-5"></path>
+                    </svg>
+                </span>
+                設計一致性比對平台
+            </a>
+            <ul class="navbar-links">
+                <li><a href="{% url 'compareapp:project_index' %}" class="{% block nav_projects %}{% endblock %}">專案流程</a></li>
+                <li><a href="{% url 'compareapp:global_keyword_manage' %}" class="{% block nav_keywords %}{% endblock %}">關鍵字庫</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer class="footer">設計一致性比對平台 &copy; 2026 | XML/Excel 一致化比對</footer>
+    </div>
+
+    <script src="{% static 'compareapp/js/ai-native.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

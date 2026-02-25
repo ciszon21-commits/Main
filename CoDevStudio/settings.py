@@ -97,7 +97,6 @@ INSTALLED_APPS = [
     'GeoCoding',  # 地址編碼服務
     'BidQA',  # 標案問答管理
     'CircleOptimizer',  # 圓優化工具
-    # 'DesignConsistency',
     'SinoChat',  # Sinotech 內部聊天室
     'sinoVR',
     'InterviewAssessment',
@@ -124,7 +123,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.RemoteUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.security.SecurityMiddleware",
-
 ] + local.STAGE_MIDDLEWARES
 
 

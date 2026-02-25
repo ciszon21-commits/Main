@@ -198,95 +198,6 @@
 </style>
 
 <script>
-    // 根據技能名稱和類型獲取對應的 Font Awesome 圖標
-    function getSkillIcon(name, nodeType) {
-        // 根據技能名稱匹配圖標
-        const iconMap = {
-            // ROOT 基礎技能
-            '行政': 'fas fa-file-alt',
-            '法規': 'fas fa-gavel',
-            '安全衛生': 'fas fa-hard-hat',
-            'PMIS': 'fas fa-laptop-code',
-            '權責': 'fas fa-balance-scale',
-            '倫理': 'fas fa-balance-scale',
-
-            // CORE 核心技能
-            '鋼筋': 'fas fa-link',
-            '模板': 'fas fa-th-large',
-            '測繪': 'fas fa-map-marked-alt',
-            'GIS': 'fas fa-globe',
-            '連續壁': 'fas fa-layer-group',
-            '深開挖': 'fas fa-layer-group',
-            '結構': 'fas fa-building',
-            '補強': 'fas fa-tools',
-            '給排水': 'fas fa-tint',
-            '管路': 'fas fa-tint',
-            '強電': 'fas fa-bolt',
-            '配電': 'fas fa-bolt',
-            'BIM': 'fas fa-cube',
-            '空調': 'fas fa-snowflake',
-            '弱電': 'fas fa-network-wired',
-            '智慧建築': 'fas fa-home',
-            '施工架': 'fas fa-th',
-            '支撐': 'fas fa-columns',
-            '局限空間': 'fas fa-compress-arrows-alt',
-            '環境監測': 'fas fa-thermometer-half',
-            '重型機具': 'fas fa-truck-loading',
-            '吊掛': 'fas fa-crane',
-            '噪音': 'fas fa-volume-up',
-            '振動': 'fas fa-wave-square',
-            '基礎': 'fas fa-anchor',
-
-            // ADVANCED 進階技能
-            '無人機': 'fas fa-helicopter',
-            'UAV': 'fas fa-helicopter',
-            '點雲': 'fas fa-cubes',
-            '3D': 'fas fa-cubes',
-            '成本': 'fas fa-calculator',
-            '估驗': 'fas fa-file-invoice-dollar',
-            '鄰損': 'fas fa-handshake',
-            '糾紛': 'fas fa-gavel',
-            '環景': 'fas fa-camera-retro',
-            '攝影': 'fas fa-camera',
-            '熱影像': 'fas fa-fire',
-            '機電': 'fas fa-cogs',
-            '測試': 'fas fa-clipboard-check',
-            '綠建築': 'fas fa-leaf',
-            '節能': 'fas fa-leaf',
-            'MR': 'fas fa-vr-cardboard',
-            '混合實境': 'fas fa-vr-cardboard',
-            '智慧監控': 'fas fa-video',
-            '監控': 'fas fa-eye',
-            '職災': 'fas fa-exclamation-triangle',
-            '調查': 'fas fa-search',
-            'ISO': 'fas fa-certificate',
-            '管理系統': 'fas fa-sitemap',
-            '體感': 'fas fa-gamepad',
-            '模擬': 'fas fa-vr-cardboard',
-            'VR': 'fas fa-vr-cardboard',
-            '虛擬實境': 'fas fa-vr-cardboard',
-        };
-
-        // 搜尋匹配的圖標
-        for (const [keyword, icon] of Object.entries(iconMap)) {
-            if (name.includes(keyword)) {
-                return icon;
-            }
-        }
-
-        // 根據節點類型返回預設圖標
-        switch (nodeType) {
-            case 'ROOT':
-                return 'fas fa-book';
-            case 'CORE':
-                return 'fas fa-star';
-            case 'ADVANCED':
-                return 'fas fa-crown';
-            default:
-                return 'fas fa-circle';
-        }
-    }
-
     // 定義主繪圖函數
     function drawSkillTree() {
         // 從 Script 標籤獲取資料 (更安全的方式)
@@ -323,18 +234,16 @@
         const CONFIG = {
             nodeWidth: 60,
             nodeHeight: 60,
-            padding: 50,  // 畫布邊距
-            gridSpacingX: 150,  // 網格水平間距
-            gridSpacingY: 120   // 網格垂直間距
+            padding: 50  // 畫布邊距
         };
 
-        // 1. 資料處理：將網格座標轉換為像素座標
+        // 1. 資料處理：直接使用資料庫座標
         const positions = {};
 
         skillTreeData.forEach(item => {
-            positions[item.id] = {
-                x: (item.x || 0) * CONFIG.gridSpacingX + CONFIG.padding,
-                y: (item.y || 0) * CONFIG.gridSpacingY + CONFIG.padding,
+            positions[item.skill.id] = {
+                x: (item.skill.position_x || 0) + CONFIG.padding,
+                y: (item.skill.position_y || 0) + CONFIG.padding,
                 item: item
             };
         });
@@ -343,13 +252,13 @@
         const parentGroupsMap = {};
 
         skillTreeData.forEach(child => {
-            const parentIds = (child.parents || []).slice().sort();
+            const parentIds = child.skill.parent_skills.sort();
             if (parentIds.length > 1) {
                 const key = parentIds.join(',');
                 if (!parentGroupsMap[key]) {
                     parentGroupsMap[key] = { parents: parentIds, children: [] };
                 }
-                parentGroupsMap[key].children.push(child.id);
+                parentGroupsMap[key].children.push(child.skill.id);
             }
         });
 
@@ -393,7 +302,7 @@
         const drawnConnections = new Set();
 
         skillTreeData.forEach(item => {
-            const childId = item.id;
+            const childId = item.skill.id;
             const childPos = positions[childId];
             if (!childPos) return;
 
@@ -419,7 +328,7 @@
                     drawnConnections.add(connKey);
                 }
             } else {
-                (item.parents || []).forEach(pid => {
+                item.skill.parent_skills.forEach(pid => {
                     const parentPos = positions[pid];
                     if (parentPos) {
                         drawOrthogonalLine(
@@ -451,12 +360,12 @@
         Object.values(positions).forEach(pos => {
             const item = pos.item;
             const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            g.setAttribute('class', `skill-node-group status-${item.status} skill-node-${item.node_type}`);
+            g.setAttribute('class', `skill-node-group status-${item.status} skill-node-${item.skill.node_type}`);
             g.setAttribute('transform', `translate(${pos.x}, ${pos.y})`); // Use transform for easier positioning
             g.style.cursor = 'pointer';
 
             g.addEventListener('click', () => {
-                window.location.href = `/rpg/skill/${item.id}/`;
+                window.location.href = `/rpg/skill/${item.skill.id}/`;
             });
 
             // 節點框
@@ -468,17 +377,28 @@
             frame.setAttribute('class', 'skill-node-frame');
             g.appendChild(frame);
 
-            // 圖示 - 使用 Font Awesome
-            const iconClass = getSkillIcon(item.name, item.node_type);
-            const iconColor = item.status === 'LOCKED' ? '#555' : '#fff';
+            // 圖示
+            const iconText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            iconText.setAttribute('y', 5);
+            iconText.setAttribute('text-anchor', 'middle');
+            iconText.setAttribute('fill', item.status === 'LOCKED' ? '#555' : '#fff');
+            iconText.setAttribute('font-size', '24px');
+            iconText.style.pointerEvents = 'none';
 
-            const foreignObj = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
-            foreignObj.setAttribute('x', -15);
-            foreignObj.setAttribute('y', -15);
-            foreignObj.setAttribute('width', 30);
-            foreignObj.setAttribute('height', 30);
-            foreignObj.innerHTML = `<i class="${iconClass}" style="font-size: 24px; color: ${iconColor}; display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;"></i>`;
-            g.appendChild(foreignObj);
+            let iconChar = '⚔️';
+            if (item.skill.node_type === 'ROOT') iconChar = '🌱';
+            else if (item.skill.name.includes('無人機')) iconChar = '🚁';
+            else if (item.skill.name.includes('測繪')) iconChar = '🗺️';
+            else if (item.skill.name.includes('BIM')) iconChar = '🏢';
+            else if (item.skill.name.includes('熱影像')) iconChar = '🌡️';
+            else if (item.skill.name.includes('MR')) iconChar = '👓';
+            else if (item.skill.name.includes('氣體')) iconChar = '🌫️';
+            else if (item.skill.name.includes('噪音')) iconChar = '🔊';
+            else if (item.skill.name.includes('VR')) iconChar = '🥽';
+            else if (item.skill.name.includes('環景')) iconChar = '📷';
+
+            iconText.textContent = iconChar;
+            g.appendChild(iconText);
 
             // 名稱標籤
             const textBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -493,7 +413,7 @@
             const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             text.setAttribute('y', CONFIG.nodeHeight / 2 + 19);
             text.setAttribute('class', 'skill-text-name');
-            text.textContent = item.name.length > 6 ? item.name.substring(0, 6) + '..' : item.name;
+            text.textContent = item.skill.name.length > 6 ? item.skill.name.substring(0, 6) + '..' : item.skill.name;
             g.appendChild(text);
 
             svg.appendChild(g);
