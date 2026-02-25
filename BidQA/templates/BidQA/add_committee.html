@@ -1,0 +1,269 @@
+{% extends 'BidQA/base.html' %}
+
+{% block title %}新增委員到標案{% endblock %}
+
+{% block breadcrumb %}
+<span class="breadcrumb-separator">/</span>
+<a href="{% url 'bidqa:bid_detail' pk=bid.pk %}">{{ bid.name|truncatewords:3 }}</a>
+<span class="breadcrumb-separator">/</span>
+<span>新增委員</span>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:900px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+        <!-- 左側：表單 -->
+        <div class="card">
+            <h1 class="section-title mb-4">新增委員到標案</h1>
+            <p class="text-secondary mb-6">標案：{{ bid.name }}</p>
+            
+            <form method="post" id="add-committee-form">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger mb-4">
+                    {% for error in form.non_field_errors %}
+                    {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="form-group">
+                    <label class="form-label">委員姓名</label>
+                    <input type="text" name="new_name" id="id_new_name" class="form-input" placeholder="請先輸入委員姓名以進行搜尋..." autofocus>
+                    <p class="form-help">輸入姓名後，右側將顯示資料庫中相似的委員供選擇</p>
+                </div>
+
+                <div style="text-align:center;padding:8px 0;color:var(--text-muted);font-size:12px;">或</div>
+
+                <div class="form-group">
+                    <label class="form-label">選擇現有委員</label>
+                    {{ form.committee }}
+                    <p class="form-help">若右側顯示建議，建議直接由右側點選套用</p>
+                </div>
+                
+                <div class="form-group" style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border-light);">
+                    <label class="form-label">所屬單位</label>
+                    {{ form.new_organization }}
+                    <p class="form-help">若要建立新委員，請輸入其所屬單位</p>
+                </div>
+                
+                <!-- 隱藏欄位：選中的現有委員 ID -->
+                <input type="hidden" name="selected_existing_id" id="selected_existing_id" value="">
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                            <circle cx="8.5" cy="7" r="4"/>
+                            <path d="M20 8v6M23 11h-6"/>
+                        </svg>
+                        新增委員
+                    </button>
+                    <a href="{% url 'bidqa:bid_detail' pk=bid.pk %}" class="btn btn-secondary">取消</a>
+                </div>
+            </form>
+        </div>
+        
+        <!-- 右側：智慧建議 -->
+        <div class="card" id="suggestions-panel">
+            <h2 class="section-title mb-4">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;display:inline-block;vertical-align:middle;margin-right:8px;">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="M21 21l-4.35-4.35"/>
+                </svg>
+                類似委員建議
+            </h2>
+            <p class="text-secondary mb-4" id="suggestion-hint">輸入委員姓名後，系統會顯示資料庫中姓名相似的委員供您選擇套用。</p>
+            
+            <div id="suggestions-container">
+                <div class="empty-state" style="padding:32px 16px;">
+                    <div class="empty-state-icon" style="width:48px;height:48px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;">
+                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+                        </svg>
+                    </div>
+                    <p class="text-muted text-sm">開始輸入姓名以搜尋</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.suggestion-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+.suggestion-card:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+}
+.suggestion-card.selected {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    box-shadow: 0 0 0 2px var(--primary-light);
+}
+.suggestion-card.exact-match {
+    border-left: 3px solid var(--success);
+}
+.suggestion-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.suggestion-org {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+.suggestion-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    display: flex;
+    gap: 12px;
+}
+.suggestion-notes {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-light);
+}
+</style>
+
+{% block extra_js %}
+<script>
+(function() {
+    const nameInput = document.getElementById('id_new_name');
+    const suggestionsContainer = document.getElementById('suggestions-container');
+    const suggestionHint = document.getElementById('suggestion-hint');
+    const selectedIdInput = document.getElementById('selected_existing_id');
+    const committeeSelect = document.getElementById('id_committee');
+    
+    let debounceTimer = null;
+    let selectedId = null;
+    
+    if (nameInput) {
+        nameInput.addEventListener('input', function() {
+            const name = this.value.trim();
+            
+            // Clear previous selection
+            selectedIdInput.value = '';
+            selectedId = null;
+            
+            // Clear committee dropdown when typing new name
+            if (committeeSelect && name.length > 0) {
+                committeeSelect.value = '';
+            }
+            
+            // Debounce
+            clearTimeout(debounceTimer);
+            
+            if (name.length < 1) {
+                showEmptyState();
+                return;
+            }
+            
+            debounceTimer = setTimeout(() => {
+                searchCommittees(name);
+            }, 300);
+        });
+    }
+    
+    function showEmptyState() {
+        suggestionHint.style.display = '';
+        suggestionsContainer.innerHTML = `
+            <div class="empty-state" style="padding:32px 16px;">
+                <div class="empty-state-icon" style="width:48px;height:48px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;">
+                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+                    </svg>
+                </div>
+                <p class="text-muted text-sm">開始輸入姓名以搜尋</p>
+            </div>
+        `;
+    }
+    
+    function searchCommittees(name) {
+        fetch(`{% url 'bidqa:search_committees_by_name_api' %}?name=${encodeURIComponent(name)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.committees.length === 0) {
+                    suggestionHint.textContent = `找不到姓名包含「${name}」的委員，將建立新委員。`;
+                    suggestionsContainer.innerHTML = `
+                        <div class="alert alert-info" style="margin:0;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0;">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 8v8M8 12h8"/>
+                            </svg>
+                            將建立新委員「${name}」
+                        </div>
+                    `;
+                    return;
+                }
+                
+                suggestionHint.textContent = `找到 ${data.committees.length} 位相似委員，點擊可直接套用：`;
+                
+                let html = '';
+                data.committees.forEach(c => {
+                    const exactClass = c.exact_match ? 'exact-match' : '';
+                    html += `
+                        <div class="suggestion-card ${exactClass}" data-id="${c.id}" data-name="${c.name}" data-org="${c.organization}">
+                            <div class="suggestion-name">${c.name}</div>
+                            ${c.organization ? `<div class="suggestion-org">${c.organization}</div>` : ''}
+                            <div class="suggestion-meta">
+                                <span>${c.question_count} 則問答</span>
+                                ${c.exact_match ? '<span style="color:var(--success);">✓ 姓名完全符合</span>' : ''}
+                            </div>
+                            ${c.notes ? `<div class="suggestion-notes">${c.notes}</div>` : ''}
+                        </div>
+                    `;
+                });
+                
+                suggestionsContainer.innerHTML = html;
+                
+                // Add click handlers
+                document.querySelectorAll('.suggestion-card').forEach(card => {
+                    card.addEventListener('click', function() {
+                        // Clear other selections
+                        document.querySelectorAll('.suggestion-card').forEach(c => c.classList.remove('selected'));
+                        this.classList.add('selected');
+                        
+                        // Set the committee dropdown
+                        const id = this.dataset.id;
+                        if (committeeSelect) {
+                            // Find and select the option
+                            for (let option of committeeSelect.options) {
+                                if (option.value === id) {
+                                    option.selected = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // Clear the new name input since we're using existing
+                        nameInput.value = '';
+                        
+                        // Visual feedback
+                        suggestionHint.innerHTML = `<span style="color:var(--success);">✓ 已選擇「${this.dataset.name}」</span>`;
+                    });
+                });
+            })
+            .catch(err => {
+                console.error('Search error:', err);
+            });
+    }
+})();
+</script>
+{% endblock %}
+{% endblock %}

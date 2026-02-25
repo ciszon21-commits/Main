@@ -1,0 +1,128 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修改預約日期 - 園路無人機預約</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'DroneReservation/css/drone.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <!-- Banner Section -->
+    <div class="banner banner-sm">
+        <div class="banner-content">
+            <div class="banner-info">
+                <h1 class="banner-title">
+                    <a href="{% url 'drone:reservation_detail' reservation.pk %}" class="back-link">
+                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd"
+                                d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+                        </svg>
+                    </a>
+                    修改預約日期
+                </h1>
+            </div>
+            <div class="banner-actions">
+                <a href="{% url 'drone:dashboard' %}" class="btn-nav">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4.5a.5.5 0 0 0 .5-.5v-4h2v4a.5.5 0 0 0 .5.5H14a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146zM2.5 14V7.707l5.5-5.5 5.5 5.5V14H10v-4a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5v4H2.5z" />
+                    </svg>
+                    回首頁
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="form-container">
+            <!-- 預約摘要資訊 -->
+            <div class="detail-card" style="margin-bottom: 24px;">
+                <div class="detail-header">
+                    <span class="status-badge status-badge-lg {{ reservation.get_status_display_class }}">{{ reservation.get_status_display }}</span>
+                    <span class="detail-id">#{{ reservation.id }}</span>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <label>申請人</label>
+                            <span>{{ reservation.applicant.get_full_name|default:reservation.applicant.username }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>計畫編號</label>
+                            <span>{{ reservation.project_number }}</span>
+                        </div>
+                        <div class="detail-item detail-item-full">
+                            <label>地點</label>
+                            <span>{{ reservation.location }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 時間編輯表單 -->
+            <form method="post" class="reservation-form">
+                {% csrf_token %}
+
+                <div class="form-section">
+                    <h2 class="section-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z" />
+                            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z" />
+                        </svg>
+                        修改使用日期
+                    </h2>
+
+                    <div class="alert alert-warning" style="margin-bottom: 20px;">
+                        <strong>注意：</strong>修改日期後，系統將自動發送郵件通知申請人。
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="id_usage_start_datetime">開始日期 <span class="required">*</span></label>
+                            {{ form.usage_start_datetime }}
+                            {% if form.usage_start_datetime.errors %}
+                            <div class="error-message">{{ form.usage_start_datetime.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_usage_end_datetime">結束日期 <span class="required">*</span></label>
+                            {{ form.usage_end_datetime }}
+                            {% if form.usage_end_datetime.errors %}
+                            <div class="error-message">{{ form.usage_end_datetime.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                {% if form.non_field_errors %}
+                <div class="alert alert-error">
+                    {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="form-actions">
+                    <a href="{% url 'drone:reservation_detail' reservation.pk %}" class="btn btn-secondary">取消</a>
+                    <button type="submit" class="btn btn-primary">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425a.247.247 0 0 1 .02-.022z" />
+                        </svg>
+                        確認修改
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,966 @@
+{% extends 'reservoir_hydro_base.html' %} 
+{% load static %} 
+{% block title %}{{title }}{% endblock %} 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Reservoir_Hydro/css/reservoir_hydro.css' %}" />
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+/>
+<style></style>
+{% endblock %}
+
+<meta name="csrf-token" content="{{ csrf_token }}" />
+
+{% block template %}
+<div class="container py-2">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center">
+          <!-- 左側標題 -->
+          <div>
+            <h3><b>{{ title }}</b></h3>
+          </div>
+          <!-- 右側按鈕群組 -->
+          <div>
+            <!-- 清除所有數據按鈕 -->
+            <button
+              class="btn btn-rh-outline-danger me-2"
+              onclick="clearAllData()"
+              title="清除所有步驟的儲存數據"
+            >
+              <i class="bi bi-trash3"></i> 清除所有數據
+            </button>
+            <!-- 返回首頁按鈕 -->
+            <a
+              href="{% url 'reservoir_hydro:reservoir_hydro_home' %}"
+              class="btn btn-rh-outline-primary"
+            >
+              <i class="bi bi-house"></i> 返回首頁
+            </a>
+          </div>
+        </div>
+        <!-- 分隔線 -->
+        <div class="gray-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="col-md-12">
+      <!-- 分頁導航 -->
+      <div class="step-tabs d-flex">
+        {% for step in steps %}
+        <button
+          class="step-tab {% if step.id|stringformat:'s' == initial_step %}active{% endif %}"
+          onclick="switchStep({{ step.id }})"
+          id="tab-{{ step.id }}"
+        >
+          <i class="{{ step.icon }} fs-4 me-2 text-rh-primary"></i>
+          <span class="rh-card-title">{{ step.id }}. {{ step.name }}</span>
+          <div class="text-muted">{{ step.desc }}</div>
+        </button>
+        {% endfor %}
+      </div>
+
+      <!-- 分頁內容 -->
+      <div id="step-contents">
+        <!-- 步驟1: 水庫庫容 -->
+        <div
+          class="step-content {% if initial_step == '1' %}active{% endif %}"
+          id="content-1"
+        >
+          <div class="row">
+            <div class="col-md-6">
+              <div class="data-table">
+                <table class="table table-striped mb-0">
+                  <thead class="table-primary">
+                    <tr>
+                      <th>
+                        水位, H (m)
+                        <span class="sort-buttons">
+                          <i
+                            class="bi bi-caret-up-fill sort-btn"
+                            onclick="sortTable('level', 'asc')"
+                          ></i>
+                          <i
+                            class="bi bi-caret-down-fill sort-btn"
+                            onclick="sortTable('level', 'desc')"
+                          ></i>
+                        </span>
+                      </th>
+                      <th>
+                        面積, A (m²)
+                        <span class="sort-buttons">
+                          <i
+                            class="bi bi-caret-up-fill sort-btn"
+                            onclick="sortTable('area', 'asc')"
+                          ></i>
+                          <i
+                            class="bi bi-caret-down-fill sort-btn"
+                            onclick="sortTable('area', 'desc')"
+                          ></i>
+                        </span>
+                      </th>
+                      <th>
+                        容量, V (m³)
+                        <span class="sort-buttons">
+                          <i
+                            class="bi bi-caret-up-fill sort-btn"
+                            onclick="sortTable('volume', 'asc')"
+                          ></i>
+                          <i
+                            class="bi bi-caret-down-fill sort-btn"
+                            onclick="sortTable('volume', 'desc')"
+                          ></i>
+                        </span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody id="reservoir-data-table">
+                    <!-- 數據將透過 JavaScript 動態載入 -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="action-buttons">
+                <button class="btn btn-rh-data me-2" onclick="uploadData(1)">
+                  <i class="bi bi-upload"></i> 數據輸入
+                </button>
+                <button class="btn btn-rh-data" onclick="saveData(1)">
+                  <i class="bi bi-download"></i> 數據存檔
+                </button>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="chart-container">
+                <div id="reservoir-chart">
+                  <canvas id="havChart"></canvas>
+                </div>
+              </div>
+              <div class="action-buttons">
+                <button class="btn btn-rh-data me-2" onclick="drawChart(1)">
+                  <i class="bi bi-graph-up"></i> 數據繪圖
+                </button>
+                <button class="btn btn-rh-data" onclick="exportChart(1)">
+                  <i class="bi bi-save"></i> 出圖存檔
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 步驟2: 入流流量歷線 -->
+        <div class="step-content" id="content-2">
+          <!-- 時距調整控制區域 - 移到最上方 -->
+          <div class="row mb-1">
+            <div class="col-md-3 text-center"></div>
+            <div class="col-md-3 text-center">
+              <div class="d-flex align-items-center justify-content-center">
+                <label class="form-label fw-bold me-2 mb-0">Δt：</label>
+                <input
+                  type="number"
+                  class="form-control text-center me-2"
+                  id="delta-t-input"
+                  placeholder="時距"
+                  min="0.01"
+                  max="1"
+                  step="0.01"
+                  value="0.50"
+                  style="width: 100px"
+                />
+                <span class="me-1">hr</span>
+              </div>
+            </div>
+            <div class="col-md-6 text-center"></div>
+          </div>
+
+          <div class="row">
+            <!-- 左側：原始入流數據表格 -->
+            <div class="col-md-3">
+              <div class="data-table">
+                <table class="table table-striped mb-0">
+                  <thead>
+                    <tr>
+                      <th style="background-color: #adcff1">
+                        歷時(hr)
+                        <span class="sort-buttons">
+                          <i
+                            class="bi bi-caret-up-fill sort-btn"
+                            onclick="sortInflowTable('time', 'asc', 'original')"
+                          ></i>
+                          <i
+                            class="bi bi-caret-down-fill sort-btn"
+                            onclick="sortInflowTable('time', 'desc', 'original')"
+                          ></i>
+                        </span>
+                      </th>
+                      <th style="background-color: #adcff1">
+                        流量(cms)
+                        <span class="sort-buttons">
+                          <i
+                            class="bi bi-caret-up-fill sort-btn"
+                            onclick="sortInflowTable('flow', 'asc', 'original')"
+                          ></i>
+                          <i
+                            class="bi bi-caret-down-fill sort-btn"
+                            onclick="sortInflowTable('flow', 'desc', 'original')"
+                          ></i>
+                        </span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody id="inflow-original-table">
+                    <!-- 數據將透過 JavaScript 動態載入 -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="action-buttons">
+                <button class="btn btn-rh-data me-2" onclick="uploadData(2)">
+                  <i class="bi bi-upload"></i> 數據輸入
+                </button>
+                <button class="btn btn-rh-data" onclick="saveData(2)">
+                  <i class="bi bi-download"></i> 數據存檔
+                </button>
+              </div>
+            </div>
+
+            <!-- 中間：調整後數據表格 -->
+            <div class="col-md-3">
+              <div class="data-table">
+                <table class="table table-striped mb-0">
+                  <thead>
+                    <tr>
+                      <th style="background-color: #adcff1">
+                        歷時(hr)
+                        <span class="sort-buttons">
+                          <i
+                            class="bi bi-caret-up-fill sort-btn"
+                            onclick="sortInflowTable('time', 'asc', 'adjusted')"
+                          ></i>
+                          <i
+                            class="bi bi-caret-down-fill sort-btn"
+                            onclick="sortInflowTable('time', 'desc', 'adjusted')"
+                          ></i>
+                        </span>
+                      </th>
+                      <th style="background-color: #adcff1">
+                        流量(cms)
+                        <span class="sort-buttons">
+                          <i
+                            class="bi bi-caret-up-fill sort-btn"
+                            onclick="sortInflowTable('flow', 'asc', 'adjusted')"
+                          ></i>
+                          <i
+                            class="bi bi-caret-down-fill sort-btn"
+                            onclick="sortInflowTable('flow', 'desc', 'adjusted')"
+                          ></i>
+                        </span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody id="inflow-adjusted-table">
+                    <!-- 調整後數據將透過 JavaScript 動態載入 -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="action-buttons">
+                <button
+                  class="btn btn-rh-data me-2"
+                  onclick="adjustTimeStep(2)"
+                >
+                  <i class="bi bi-clock-history"></i> 時距調整
+                </button>
+                <button class="btn btn-rh-data" onclick="saveAdjustedData(2)">
+                  <i class="bi bi-download"></i> 數據存檔
+                </button>
+              </div>
+            </div>
+
+            <!-- 右側：圖表區域 -->
+            <div class="col-md-6">
+              <div class="chart-container">
+                <div id="inflow-chart">
+                  <canvas id="inflowChart"></canvas>
+                </div>
+              </div>
+              <div class="action-buttons">
+                <button class="btn btn-rh-data me-2" onclick="drawChart(2)">
+                  <i class="bi bi-graph-up"></i> 數據繪圖
+                </button>
+                <button class="btn btn-rh-data" onclick="exportChart(2)">
+                  <i class="bi bi-save"></i> 出圖存檔
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 步驟3: 排洪率定曲線 -->
+        <div class="step-content" id="content-3">
+          <div class="row">
+            <!-- 左側：設施選擇和數據表格 -->
+            <div class="col-md-6">
+              <div class="mb-3">
+                <!-- 設施選擇下拉選單 -->
+                <div class="card">
+                  <div class="card-body p-2">
+                    <div class="mb-3">
+                      <select id="facility-select" class="form-select">
+                        <option value="">請選擇設施</option>
+                      </select>
+                    </div>
+
+                    <!-- 動態表格結構 -->
+                    <div class="data-table" style="overflow-x: auto">
+                      <table
+                        class="table table-striped mb-0"
+                        id="drainage-data-table"
+                      >
+                        <thead class="table-primary">
+                          <!-- 開度標頭行 -->
+                          <tr id="opening-header-row">
+                            <!-- 動態生成開度欄位 -->
+                          </tr>
+                          <!-- 水位/流量標頭行 -->
+                          <tr id="data-header-row">
+                            <!-- 動態生成水位/流量欄位 -->
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <!-- 數據將透過 JavaScript 動態載入 -->
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 操作按鈕 -->
+              <div class="action-buttons">
+                <button class="btn btn-rh-data me-2" onclick="uploadData(3)">
+                  <i class="bi bi-upload"></i> 數據輸入
+                </button>
+                <button class="btn btn-rh-data" onclick="saveData(3)">
+                  <i class="bi bi-download"></i> 數據存檔
+                </button>
+              </div>
+            </div>
+
+            <!-- 右側：圖表區域 -->
+            <div class="col-md-6">
+              <div class="chart-container">
+                <div id="drainage-chart">
+                  <canvas id="drainageChart"></canvas>
+                </div>
+              </div>
+              <div class="action-buttons">
+                <button class="btn btn-rh-data me-2" onclick="drawChart(3)">
+                  <i class="bi bi-graph-up"></i> 數據繪圖
+                </button>
+                <button class="btn btn-rh-data" onclick="exportChart(3)">
+                  <i class="bi bi-save"></i> 出圖存檔
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 步驟4: 排洪規則設定 -->
+        <div class="step-content" id="content-4">
+          <div class="row">
+            <div class="col-md-12">
+              <div class="card">
+                <div class="card-body">
+                  <!-- 條件設定表格 -->
+                  <div id="step4-condition-table"></div>
+                  <!-- 操作按鈕 -->
+                  <div class="action-buttons mt-3">
+                    <button class="btn btn-rh-data me-2" id="add-condition-btn">
+                      <i class="bi bi-plus-circle"></i> 新增條件
+                    </button>
+                    <button class="btn btn-rh-data" id="export-condition-btn">
+                      <i class="bi bi-download"></i> 匯出存檔
+                    </button>
+                  </div>
+                  <div class="form-text mt-2 text-danger">
+                    備註：<br />
+                    1.每列至少需有一個條件，若同個設施同時於不同開度觸發牴觸的條件，則以開度較大者為準。<br />
+                    2.同一設施同一開度，若多個條件同時觸發，依照條件判斷順序：時間→流量→水位，後判斷的條件會覆蓋前面的狀態。
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 步驟5: 最終輸出 -->
+        <div class="step-content" id="content-5">
+          <!-- 圖表容器 -->
+          <div class="d-flex justify-content-center">
+            <div
+              class="chart-container"
+              style="
+                position: relative;
+                height: 566px;
+                width: 1000px;
+                min-width: 300px;
+              "
+            >
+              <canvas id="finalChart"></canvas>
+            </div>
+          </div>
+          <div class="action-buttons mt-3">
+            <button
+              type="button"
+              class="btn btn-rh-data"
+              onclick="drawChart(5)"
+            >
+              <i class="bi bi-graph-up"></i> 排洪演算
+            </button>
+            <button type="button" class="btn btn-rh-data" onclick="saveData(5)">
+              <!-- TODO -->
+              <i class="bi bi-download"></i> 數據存檔
+            </button>
+            <button
+              type="button"
+              class="btn btn-rh-data"
+              onclick="exportChart(5)"
+            >
+              <!-- TODO -->
+              <i class="bi bi-save"></i> 出圖存檔
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+
+<!-- 核心模組 -->
+<script src="{% static 'Reservoir_Hydro/js/core/fd-utils.js' %}"></script>
+<script src="{% static 'Reservoir_Hydro/js/core/fd-api.js' %}"></script>
+
+<!-- 組件模組 -->
+<script src="{% static 'Reservoir_Hydro/js/components/fd-charts.js' %}"></script>
+<script src="{% static 'Reservoir_Hydro/js/components/fd-tables.js' %}"></script>
+
+<!-- 步驟專用模組 -->
+<script src="{% static 'Reservoir_Hydro/js/steps/fd-step1.js' %}"></script>
+<script src="{% static 'Reservoir_Hydro/js/steps/fd-step2.js' %}"></script>
+<script src="{% static 'Reservoir_Hydro/js/steps/fd-step3.js' %}"></script>
+<script src="{% static 'Reservoir_Hydro/js/steps/fd-step4.js' %}"></script>
+<script src="{% static 'Reservoir_Hydro/js/steps/fd-step5.js' %}"></script>
+
+<!-- 主要的精簡化腳本 -->
+<script>
+  // 全局變數
+  let currentStep = {{ initial_step }};
+  let currentTableData = [];
+
+  // 重構後的主要函數
+  function uploadData(step) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.xlsx,.xls,.xlsm,.csv';
+
+      input.style.display = 'none';
+
+      input.onchange = function(event) {
+          const file = event.target.files[0];
+          if (!file) return;
+
+          // 檔案驗證
+          if (!fdUtils.validateFileSize(file, 100)) return;
+          if (!fdUtils.validateFileType(file, ['xlsx', 'xls', 'xlsm', 'csv'])) return;
+
+          // 根據步驟分配處理函數
+          if (step === 1) {
+              fdStep1.handleUpload(file);
+          } else if (step === 2) {
+              fdStep2.handleUpload(file);
+          } else if (step === 3) {
+              fdStep3.handleUpload(file);
+          } else if (step === 4) {
+              fdUtils.showMessage('info', '步驟4功能開發中');
+          } else if (step === 5) {
+              fdUtils.showMessage('info', '步驟5功能開發中');
+          }
+      };
+
+      document.body.appendChild(input);
+      input.click();
+      document.body.removeChild(input);
+  }
+
+  // 時距調整
+  function adjustTimeStep(step) {
+      if (step === 2) {
+          fdStep2.handleTimeStepAdjustment();
+      }
+  }
+
+  // 步驟3的編輯函數
+  function editData(step) {
+      if (step === 3) {
+          if (window.fdStep3) {
+              fdStep3.toggleEditMode();
+          } else {
+              fdUtils.showMessage('error', '步驟3模組未載入');
+          }
+      }
+  }
+
+  // 保存數據
+  async function saveData(step) {
+      if (step === 1) {
+          await fdStep1.saveOriginalData();
+      } else if (step === 2) {
+          await fdStep2.saveOriginalData();
+      } else if (step === 3) {
+          await fdStep3.saveOriginalData();
+      } else if (step === 4) {
+          fdUtils.showMessage('info', '步驟4功能開發中');  // TODO：記得補上
+      } else if (step === 5) {
+          await fdStep5.saveData();
+      }
+  }
+
+  // 保存調整後數據
+  function saveAdjustedData(step) {
+      if (step === 2) {
+          fdStep2.saveAdjustedData();
+      }
+  }
+
+  // 繪圖
+  function drawChart(step) {
+      if (step === 1) {
+          fdStep1.drawChart();
+      } else if (step === 2) {
+          fdStep2.drawChart();
+      } else if (step === 3) {
+          fdStep3.drawChart();
+      } else if (step === 4) {
+          fdUtils.showMessage('info', '步驟4功能開發中');
+      } else if (step === 5) {
+          fdStep5.drawChart();
+      }
+  }
+
+  // 匯出圖表
+  async function exportChart(step) {
+      if (step === 1) {
+          await fdStep1.exportChart();
+      } else if (step === 2) {
+          await fdStep2.exportChart();
+      } else if (step === 3) {
+          await fdStep3.exportChart();
+      } else if (step === 4) {
+          fdUtils.showMessage('info', '步驟4功能開發中');
+      } else if (step === 5) {
+          await fdStep5.exportChart();
+      }
+  }
+
+  // 表格排序
+  function sortTable(column, direction) {
+      // console.log('主排序函數調用:', column, direction);
+
+      if (window.fdTables && typeof window.fdTables.sortTable === 'function') {
+          // 使用步驟1的數據
+          const step1Data = window.fdStep1?.reservoirData || currentTableData;
+          const sortedData = fdTables.sortTable(column, direction, step1Data);
+
+          // 更新全局變數和步驟1模組的數據
+          currentTableData = sortedData;
+          if (window.fdStep1) {
+              window.fdStep1.reservoirData = sortedData;
+          }
+      } else {
+          console.error('fdTables.sortTable 方法不存在');
+          if (window.fdUtils) {
+              fdUtils.showMessage('error', '排序功能未載入');
+          }
+      }
+  }
+
+  function sortInflowTable(column, direction, tableType) {
+      // console.log('入流表格排序調用:', column, direction, tableType);
+
+      if (window.fdTables && typeof window.fdTables.sortInflowTable === 'function') {
+          fdTables.sortInflowTable(column, direction, tableType);
+      } else {
+          console.error('fdTables.sortInflowTable 方法不存在');
+          if (window.fdUtils) {
+              fdUtils.showMessage('error', '排序功能未載入');
+          }
+      }
+  }
+
+  // 步驟切換
+  function switchStep(stepNumber) {
+      // console.log(`切換到步驟: ${stepNumber}`);
+
+      document.querySelectorAll('.step-content').forEach(content => {
+          content.classList.remove('active');
+      });
+
+      document.querySelectorAll('.step-tab').forEach(tab => {
+          tab.classList.remove('active');
+      });
+
+      document.getElementById(`content-${stepNumber}`).classList.add('active');
+      document.getElementById(`tab-${stepNumber}`).classList.add('active');
+
+      currentStep = stepNumber;
+
+      localStorage.setItem('currentStep', stepNumber);
+      // console.log(`步驟已保存到 localStorage: ${stepNumber}`);
+
+      updateNavigationButtons();
+      loadStepData(stepNumber);
+  }
+
+  function updateNavigationButtons() {
+      const prevBtn = document.getElementById('prev-btn');
+      const nextBtn = document.getElementById('next-btn');
+
+      if (prevBtn) prevBtn.disabled = (currentStep === 1);
+      if (nextBtn) nextBtn.style.display = (currentStep === 5) ? 'none' : 'block';
+  }
+
+  // 統一的數據載入函數
+  function loadStepData(stepNumber) {
+      // console.log(`載入步驟 ${stepNumber} 的數據`);
+
+      switch(stepNumber) {
+          case 1:
+              if (window.fdStep1 && typeof window.fdStep1.loadStepData === 'function') {
+                  fdStep1.loadStepData();
+              } else {
+                  console.error('步驟1模組未載入或方法不存在');
+                  // console.log('fdStep1:', window.fdStep1);
+              }
+              break;
+
+          case 2:
+              if (window.fdStep2 && typeof window.fdStep2.loadStepData === 'function') {
+                  fdStep2.loadStepData();
+              } else {
+                  console.error('步驟2模組未載入或方法不存在');
+                  // console.log('fdStep2:', window.fdStep2);
+                  // console.log('fdStep2.loadStepData:', typeof window.fdStep2?.loadStepData);
+              }
+              break;
+
+          case 3:
+              if (window.fdStep3 && typeof window.fdStep3.loadStepData === 'function') {
+                  fdStep3.loadStepData();
+              } else {
+                  console.error('步驟3模組未載入或方法不存在');
+                  // console.log('fdStep3:', window.fdStep3);
+              }
+              break;
+          case 4:
+            if (window.fdStep4 && typeof window.fdStep4.init === 'function') {
+                fdStep4.init();
+            }
+            break;
+          case 5:
+              // console.log(`步驟${stepNumber}功能開發中`);
+              break;
+
+          default:
+              console.warn(`未知的步驟編號: ${stepNumber}`);
+      }
+  }
+
+  // 清除所有步驟的數據
+  function clearAllData() {
+      // 顯示確認對話框
+      const confirmed = confirm(
+          '確定要清除所有步驟的儲存數據嗎？\n\n' +
+          '此操作將會清除：\n' +
+          '• 步驟1：水庫庫容數據\n' +
+          '• 步驟2：入流數據和調整結果\n' +
+          '• 步驟3：排洪設施數據\n' +
+          '• 步驟4：排洪規則設定\n' +
+          '• 步驟5：最終輸出數據\n' +
+          '的所有圖表和表格內容。\n\n' +
+          '此操作無法復原！'
+      );
+
+      if (!confirmed) {
+          return;
+      }
+
+      try {
+          // console.log('開始清除所有數據...');
+
+          // 清除 localStorage 中的步驟記憶
+          localStorage.removeItem('currentStep');
+
+          // 清除 sessionStorage 中的所有數據
+          // 步驟1相關
+          sessionStorage.removeItem('step1_uploaded');
+          sessionStorage.removeItem('step1_reservoirData');
+
+          // 步驟2相關
+          sessionStorage.removeItem('step2_uploaded');
+          sessionStorage.removeItem('step2_adjusted');
+          sessionStorage.removeItem('step2_originalData');
+          sessionStorage.removeItem('step2_adjustedData');
+          sessionStorage.removeItem('step2_initialWL');
+          sessionStorage.removeItem('step2_deltaT');
+
+
+          // 步驟3相關
+          sessionStorage.removeItem('step3_uploaded');
+          sessionStorage.removeItem('step3_facilitiesData');
+          sessionStorage.removeItem('step3_currentFacilityId');
+
+          // 步驟4相關
+          sessionStorage.removeItem('step4_conditions');
+
+          // 步驟5的數據（為未來擴展準備）
+          for (let i = 5; i <= 5; i++) {
+              sessionStorage.removeItem(`step${i}_uploaded`);
+              sessionStorage.removeItem(`step${i}_data`);
+          }
+
+          // 清除其他可能的數據
+          sessionStorage.removeItem('targetStep');
+
+          // 清除模組中的數據
+          if (window.fdStep1) {
+              fdStep1.clearAllSessionData();
+              fdStep1.clearStepData();
+          }
+
+          if (window.fdStep2) {
+              fdStep2.clearAllSessionData();
+              fdStep2.clearStepData();
+          }
+
+          if (window.fdStep3) {
+              fdStep3.clearAllSessionData();
+              fdStep3.clearStepData();
+          }
+
+          if (window.fdStep4) {
+              if (typeof fdStep4.clearAllSessionData === 'function') {
+                  fdStep4.clearAllSessionData();
+              }
+              if (typeof fdStep4.clearStepData === 'function') {
+                  fdStep4.clearStepData();
+              }
+          }
+
+          // 清除全局變數
+          currentTableData = [];
+
+          // 清除所有圖表
+          if (window.fdCharts) {
+              fdCharts.clearAllCharts();
+          }
+
+          // 重置 Delta T 輸入框
+          const deltaTInput = document.getElementById('delta-t-input');
+          if (deltaTInput) {
+              deltaTInput.value = '0.50';
+          }
+
+          // 顯示成功訊息
+          if (window.fdUtils) {
+              fdUtils.showMessage('success', '所有數據已清除完成！');
+          }
+
+          // 跳轉回步驟1
+          setTimeout(() => {
+              switchStep(1);
+          }, 1000);
+
+          // console.log('所有數據清除完成');
+
+      } catch (error) {
+          console.error('清除數據時發生錯誤:', error);
+          if (window.fdUtils) {
+              fdUtils.showMessage('error', '清除數據時發生錯誤：' + error.message);
+          } else {
+              alert('清除數據時發生錯誤：' + error.message);
+          }
+      }
+  }
+
+  // DOMContentLoaded 事件處理
+  document.addEventListener('DOMContentLoaded', function() {
+      // console.log('DOM 載入完成');
+
+      // 等待模組載入
+      setTimeout(() => {
+          // console.log('檢查模組載入狀態:');
+          // console.log('fdUtils:', typeof window.fdUtils);
+          // console.log('fdStep1:', typeof window.fdStep1);
+          // console.log('fdStep2:', typeof window.fdStep2);
+          // console.log('fdStep3:', typeof window.fdStep3);
+
+          if (window.fdUtils && typeof window.fdUtils.showMessage === 'function') {
+              window.fdUtils.showMessage('info', '系統已載入完成');
+          }
+      }, 100);
+
+      // 除錯功能
+      window.testToast = function() {
+          if (window.fdUtils) {
+              window.fdUtils.testToast();
+          }
+      };
+
+      window.clearToasts = function() {
+          if (window.fdUtils) {
+              window.fdUtils.clearAllToasts();
+          }
+      };
+
+      window.clearStepMemory = function() {
+          localStorage.removeItem('currentStep');
+          sessionStorage.removeItem('targetStep');
+          if (window.fdUtils) {
+              fdUtils.showMessage('info', '步驟記憶已清除，重新整理後將回到步驟1');
+          }
+      };
+
+      // 添加模組檢查功能
+      window.checkModules = function() {
+          // console.log('=== 模組檢查 ===');
+          // console.log('fdUtils:', window.fdUtils);
+          // console.log('fdStep1:', window.fdStep1);
+          // console.log('fdStep2:', window.fdStep2);
+          // console.log('fdStep3:', window.fdStep3);
+          // console.log('fdStep1.loadStepData:', typeof window.fdStep1?.loadStepData);
+          // console.log('fdStep2.loadStepData:', typeof window.fdStep2?.loadStepData);
+          // console.log('fdStep3.loadStepData:', typeof window.fdStep3?.loadStepData);
+      };
+
+      // 除錯按鈕
+      if (window.location.search.includes('debug=true')) {
+          setTimeout(() => {
+              const testBtn = document.createElement('button');
+              testBtn.innerHTML = '測試';
+              testBtn.className = 'btn btn-primary me-2';
+              testBtn.style.cssText = 'position:fixed;top:10px;right:200px;z-index:10000;';
+              testBtn.onclick = () => window.testToast();
+              document.body.appendChild(testBtn);
+
+              const checkBtn = document.createElement('button');
+              checkBtn.innerHTML = '檢查模組';
+              checkBtn.className = 'btn btn-success me-2';
+              checkBtn.style.cssText = 'position:fixed;top:10px;right:120px;z-index:10000;';
+              checkBtn.onclick = () => window.checkModules();
+              document.body.appendChild(checkBtn);
+
+              const clearMemoryBtn = document.createElement('button');
+              clearMemoryBtn.innerHTML = '清除記憶';
+              clearMemoryBtn.className = 'btn btn-warning me-2';
+              clearMemoryBtn.style.cssText = 'position:fixed;top:10px;right:60px;z-index:10000;';
+              clearMemoryBtn.onclick = () => window.clearStepMemory();
+              document.body.appendChild(clearMemoryBtn);
+
+              const clearToastBtn = document.createElement('button');
+              clearToastBtn.innerHTML = '清除吐司';
+              clearToastBtn.className = 'btn btn-info';
+              clearToastBtn.style.cssText = 'position:fixed;top:10px;right:10px;z-index:10000;';
+              clearToastBtn.onclick = () => window.clearToasts();
+              document.body.appendChild(clearToastBtn);
+          }, 200);
+      }
+
+      // === 步驟記憶邏輯 ===
+      let targetStep = null;
+
+      const sessionTargetStep = sessionStorage.getItem('targetStep');
+      if (sessionTargetStep) {
+          targetStep = parseInt(sessionTargetStep);
+          sessionStorage.removeItem('targetStep');
+          // console.log('從 sessionStorage 恢復步驟:', targetStep);
+      } else {
+          const savedStep = localStorage.getItem('currentStep');
+          if (savedStep) {
+              targetStep = parseInt(savedStep);
+              // console.log('從 localStorage 恢復步驟:', targetStep);
+          } else {
+              targetStep = {{ initial_step }};
+              // console.log('使用預設初始步驟:', targetStep);
+          }
+      }
+
+      // 確保步驟在有效範圍內
+      if (!targetStep || targetStep < 1 || targetStep > 5) {
+          targetStep = 1;
+          // console.log('步驟超出範圍，重置為步驟1');
+      }
+
+      currentStep = targetStep;
+
+      // 切換到目標步驟
+      if (targetStep !== {{ initial_step }}) {
+          // console.log(`切換到目標步驟: ${targetStep}`);
+
+          document.querySelectorAll('.step-content').forEach(content => {
+              content.classList.remove('active');
+          });
+          document.querySelectorAll('.step-tab').forEach(tab => {
+              tab.classList.remove('active');
+          });
+
+          const targetContent = document.getElementById(`content-${targetStep}`);
+          const targetTab = document.getElementById(`tab-${targetStep}`);
+
+          if (targetContent) targetContent.classList.add('active');
+          if (targetTab) targetTab.classList.add('active');
+      }
+
+      localStorage.setItem('currentStep', targetStep);
+
+      // 延遲初始化，確保所有模組載入
+      setTimeout(() => {
+          // console.log('開始初始化模組...');
+
+          // 初始化所有模組
+          if (window.fdStep1 && typeof window.fdStep1.init === 'function') {
+              fdStep1.init();
+              // console.log('步驟1模組初始化完成');
+          } else {
+              console.warn('步驟1模組未載入');
+          }
+
+          if (window.fdStep2 && typeof window.fdStep2.init === 'function') {
+              fdStep2.init();
+              // console.log('步驟2模組初始化完成');
+          } else {
+              console.warn('步驟2模組未載入');
+          }
+
+          if (window.fdStep3 && typeof window.fdStep3.init === 'function') {
+              fdStep3.init();
+              // console.log('步驟3模組初始化完成');
+          } else {
+              console.warn('步驟3模組未載入');
+          }
+
+          // 執行初始化
+          updateNavigationButtons();
+
+          // 再次延遲載入數據
+          setTimeout(() => {
+              loadStepData(targetStep);
+              // console.log(`頁面初始化完成，當前步驟: ${targetStep}`);
+          }, 100);
+
+      }, 300); // 給更多時間讓模組載入
+  });
+</script>
+{% endblock %}

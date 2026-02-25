@@ -1,0 +1,290 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ form_title }} - 園路無人機預約</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'DroneReservation/css/drone.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    <!-- Leaflet for location picker -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #location-map {
+            height: 300px;
+            width: 100%;
+            border-radius: var(--border-radius-sm);
+            border: 1px solid var(--border-color);
+            margin-bottom: 16px;
+        }
+
+        .map-help {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Banner Section -->
+    <div class="banner banner-sm">
+        <div class="banner-content">
+            <div class="banner-info">
+                <h1 class="banner-title">
+                    <a href="{% url 'drone:mission_list' %}" class="back-link">
+                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd"
+                                d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+                        </svg>
+                    </a>
+                    {{ form_title }}
+                </h1>
+            </div>
+            <div class="banner-actions">
+                <a href="{% url 'drone:dashboard' %}" class="btn-nav">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4.5a.5.5 0 0 0 .5-.5v-4h2v4a.5.5 0 0 0 .5.5H14a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146zM2.5 14V7.707l5.5-5.5 5.5 5.5V14H10v-4a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5v4H2.5z" />
+                    </svg>
+                    回首頁
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="form-container">
+            <form method="post" class="reservation-form" id="missionForm">
+                {% csrf_token %}
+
+                <!-- 關聯預約單 -->
+                <div class="form-section">
+                    <h2 class="section-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z" />
+                        </svg>
+                        關聯預約單（選填）
+                    </h2>
+                    <div class="form-group">
+                        <label for="id_reservation">選擇預約單</label>
+                        {{ form.reservation }}
+                        <p class="map-help">選擇已核准的預約單可自動帶入計畫編號、日期等資訊</p>
+                    </div>
+                </div>
+
+                <!-- 基本資訊 -->
+                <div class="form-section">
+                    <h2 class="section-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                            <path
+                                d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z" />
+                        </svg>
+                        基本資訊
+                    </h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="id_mission_start_date">開始日期 <span class="required">*</span></label>
+                            {{ form.mission_start_date }}
+                            {% if form.mission_start_date.errors %}
+                            <div class="error-message">{{ form.mission_start_date.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_mission_end_date">結束日期 <span class="required">*</span></label>
+                            {{ form.mission_end_date }}
+                            {% if form.mission_end_date.errors %}
+                            <div class="error-message">{{ form.mission_end_date.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="id_project_number">計畫編號 <span class="required">*</span></label>
+                            {{ form.project_number }}
+                            {% if form.project_number.errors %}
+                            <div class="error-message">{{ form.project_number.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="id_project_short_name">計畫簡稱 <span class="required">*</span></label>
+                        {{ form.project_short_name }}
+                        {% if form.project_short_name.errors %}
+                        <div class="error-message">{{ form.project_short_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 地點資訊 -->
+                <div class="form-section">
+                    <h2 class="section-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" />
+                        </svg>
+                        地點資訊
+                    </h2>
+                    <div class="form-group">
+                        <label for="id_location_name">任務地點 <span class="required">*</span></label>
+                        {{ form.location_name }}
+                        {% if form.location_name.errors %}
+                        <div class="error-message">{{ form.location_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <p class="map-help">點擊地圖選取座標，或手動輸入經緯度</p>
+                    <div id="location-map"></div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="id_latitude">緯度 <span class="required">*</span></label>
+                            {{ form.latitude }}
+                            {% if form.latitude.errors %}
+                            <div class="error-message">{{ form.latitude.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_longitude">經度 <span class="required">*</span></label>
+                            {{ form.longitude }}
+                            {% if form.longitude.errors %}
+                            <div class="error-message">{{ form.longitude.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 任務詳情 -->
+                <div class="form-section">
+                    <h2 class="section-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h13zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-13z" />
+                            <path
+                                d="M3 5.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zM3 8a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9A.5.5 0 0 1 3 8zm0 2.5a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5z" />
+                        </svg>
+                        任務詳情
+                    </h2>
+                    <div class="form-group">
+                        <label for="id_mission_description">任務說明 <span class="required">*</span></label>
+                        {{ form.mission_description }}
+                        {% if form.mission_description.errors %}
+                        <div class="error-message">{{ form.mission_description.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="id_drone_payload">無人機/酬載 <span class="required">*</span></label>
+                            {{ form.drone_payload }}
+                            {% if form.drone_payload.errors %}
+                            <div class="error-message">{{ form.drone_payload.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="id_pilot">任務飛手</label>
+                            {{ form.pilot }}
+                            {% if form.pilot.errors %}
+                            <div class="error-message">{{ form.pilot.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="id_result_location">成果存放位置 <span class="required">*</span></label>
+                        {{ form.result_location }}
+                        {% if form.result_location.errors %}
+                        <div class="error-message">{{ form.result_location.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if form.non_field_errors %}
+                <div class="alert alert-error">
+                    {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="form-actions">
+                    <a href="{% url 'drone:mission_list' %}" class="btn btn-secondary">取消</a>
+                    <button type="submit" class="btn btn-primary">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425a.247.247 0 0 1 .02-.022z" />
+                        </svg>
+                        {{ submit_text }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // 取得表單元素
+            const latInput = document.getElementById('id_latitude');
+            const lngInput = document.getElementById('id_longitude');
+            const reservationSelect = document.getElementById('id_reservation');
+
+            // 初始經緯度（預設台灣中部）
+            let initLat = parseFloat(latInput.value) || 24.0;
+            let initLng = parseFloat(lngInput.value) || 121.0;
+            let initZoom = latInput.value ? 12 : 7;
+
+            // 初始化地圖
+            const map = L.map('location-map').setView([initLat, initLng], initZoom);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            // 標記
+            let marker = null;
+            if (latInput.value && lngInput.value) {
+                marker = L.marker([initLat, initLng]).addTo(map);
+            }
+
+            // 點擊地圖設定座標
+            map.on('click', function (e) {
+                const lat = e.latlng.lat.toFixed(6);
+                const lng = e.latlng.lng.toFixed(6);
+
+                latInput.value = lat;
+                lngInput.value = lng;
+
+                if (marker) {
+                    marker.setLatLng(e.latlng);
+                } else {
+                    marker = L.marker(e.latlng).addTo(map);
+                }
+            });
+
+            // 選擇預約單時自動帶入資料
+            if (reservationSelect) {
+                reservationSelect.addEventListener('change', function () {
+                    const reservationId = this.value;
+                    if (reservationId) {
+                        fetch(`{% url 'drone:reservation_data' %}?reservation_id=${reservationId}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (!data.error) {
+                                    document.getElementById('id_project_number').value = data.project_number;
+                                    document.getElementById('id_mission_start_date').value = data.mission_start_date;
+                                    document.getElementById('id_mission_end_date').value = data.mission_end_date;
+                                    document.getElementById('id_location_name').value = data.location;
+                                }
+                            })
+                            .catch(error => console.error('Error:', error));
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

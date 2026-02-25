@@ -1,0 +1,138 @@
+{% extends 'BidQA/base.html' %}
+
+{% block title %}標案管理{% endblock %}
+
+{% block breadcrumb %}
+<span class="breadcrumb-separator">/</span>
+<span>標案列表</span>
+{% endblock %}
+
+{% block content %}
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value">{{ bids.count }}</div>
+            <div class="stat-label">總標案數</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value">{{ bids|length }}</div>
+            <div class="stat-label">符合篩選</div>
+        </div>
+    </div>
+</div>
+
+<!-- Section Header -->
+<div class="section-header">
+    <div>
+        <h1 class="section-title">標案管理</h1>
+        <p class="section-subtitle">管理競標標案與問答記錄</p>
+    </div>
+    <div class="flex gap-3">
+        <!-- Search -->
+        <form method="get" class="search-bar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <input type="text" name="q" value="{{ q }}" placeholder="搜尋標案...">
+        </form>
+        
+        <!-- Filter -->
+        <form method="get">
+            <select name="status" class="form-select" onchange="this.form.submit()" style="min-width:140px;">
+                <option value="">全部狀態</option>
+                {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        
+        <a href="{% url 'bidqa:bid_create' %}" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 8v8M8 12h8"/>
+            </svg>
+            新增標案
+        </a>
+    </div>
+</div>
+
+<!-- Bid Cards Grid -->
+{% if bids %}
+<div class="card-grid">
+    {% for bid in bids %}
+    <a href="{% url 'bidqa:bid_detail' pk=bid.pk %}" class="card card-clickable">
+        <div class="card-header">
+            <div>
+                <div class="card-title">{{ bid.name }}</div>
+                {% if bid.bid_number %}
+                <div class="card-subtitle">{{ bid.bid_number }}</div>
+                {% endif %}
+            </div>
+            <span class="badge badge-{{ bid.status }}">{{ bid.get_status_display }}</span>
+        </div>
+        <div class="card-body">
+            {% if bid.description %}
+            <p style="margin-bottom:12px;">{{ bid.description|truncatewords:20 }}</p>
+            {% endif %}
+            <div class="flex gap-4 text-sm text-secondary">
+                <span class="flex items-center gap-2">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    {{ bid.bid_date|date:"Y/m/d"|default:"未設定" }}
+                </span>
+                <span class="flex items-center gap-2">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                    </svg>
+                    {{ bid.committee_count }} 位委員
+                </span>
+                <span class="flex items-center gap-2">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                    </svg>
+                    {{ bid.question_count }} 則問答
+                </span>
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-state-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+        </svg>
+    </div>
+    <h3 class="empty-state-title">尚無標案</h3>
+    <p class="empty-state-description">開始新增您的第一個標案來記錄問答內容</p>
+    <a href="{% url 'bidqa:bid_create' %}" class="btn btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 8v8M8 12h8"/>
+        </svg>
+        新增標案
+    </a>
+</div>
+{% endif %}
+{% endblock %}

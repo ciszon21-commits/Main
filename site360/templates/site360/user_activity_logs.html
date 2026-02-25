@@ -1,0 +1,234 @@
+{% extends 'site360/base.html' %}
+{% load static %}
+{% load site360_filters %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0"><i class="fas fa-history"></i> 操作紀錄</h1>
+        <a href="{% url 'site360:project_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回首頁
+        </a>
+    </div>
+
+    <!-- 篩選和搜尋表單 -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <i class="fas fa-filter"></i> 篩選與搜尋
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <!-- 搜尋框 -->
+                <div class="col-md-12">
+                    <label for="search" class="form-label">搜尋</label>
+                    <input type="text" class="form-control" id="search" name="search" value="{{ current_search }}"
+                        placeholder="搜尋使用者、IP、對象描述或請求路徑...">
+                </div>
+
+                <!-- 操作類型 -->
+                <div class="col-md-3">
+                    <label for="action_type" class="form-label">操作類型</label>
+                    <select class="form-select" id="action_type" name="action_type">
+                        <option value="">全部</option>
+                        {% for value, label in action_types %}
+                        <option value="{{ value }}" {% if current_action_type == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 使用者 -->
+                <div class="col-md-3">
+                    <label for="user" class="form-label">使用者</label>
+                    <select class="form-select" id="user" name="user">
+                        <option value="">全部</option>
+                        {% for user in all_users %}
+                        <option value="{{ user.id }}" {% if current_user == user.id|stringformat:"s" %}selected{% endif %}>
+                            {{ user.username }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 對象類型 -->
+                <div class="col-md-3">
+                    <label for="content_type" class="form-label">對象類型</label>
+                    <select class="form-select" id="content_type" name="content_type">
+                        <option value="">全部</option>
+                        {% for ct in content_types %}
+                        <option value="{{ ct.id }}" {% if current_content_type == ct.id|stringformat:"s" %}selected{% endif %}>
+                            {{ ct.model }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 日期範圍 -->
+                <div class="col-md-3">
+                    <label for="date_from" class="form-label">起始日期</label>
+                    <input type="date" class="form-control" id="date_from" name="date_from"
+                        value="{{ current_date_from }}">
+                </div>
+
+                <div class="col-md-3">
+                    <label for="date_to" class="form-label">結束日期</label>
+                    <input type="date" class="form-control" id="date_to" name="date_to" value="{{ current_date_to }}">
+                </div>
+
+                <!-- 按鈕 -->
+                <div class="col-md-9 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> 查詢
+                    </button>
+                    <a href="{% url 'site360:user_activity_logs' %}" class="btn btn-secondary">
+                        <i class="fas fa-redo"></i> 重置
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 統計資訊 -->
+    <div class="alert alert-info" role="alert">
+        <i class="fas fa-info-circle"></i>
+        共找到 <strong>{{ page_obj.paginator.count }}</strong> 筆記錄
+        {% if current_search or current_action_type or current_user or current_content_type or current_date_from or current_date_to %}
+        （已篩選）
+        {% endif %}
+    </div>
+
+    <!-- 操作記錄表格 -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th style="width: 150px;">時間</th>
+                            <th style="width: 120px;">使用者</th>
+                            <th style="width: 100px;">操作類型</th>
+                            <th style="width: 120px;">對象類型</th>
+                            <th>對象描述</th>
+                            <th style="width: 120px;">IP 地址</th>
+                            <th style="width: 200px;">請求路徑</th>
+                            <th style="width: 80px;">方法</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td class="small">{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
+                            <td>
+                                {% if log.user %}
+                                <span class="badge bg-secondary">{{ log.user.username }}</span>
+                                {% else %}
+                                <span class="badge bg-warning">匿名</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge"
+                                    style="background-color: {{ action_colors|get_item:log.action_type|default:'#6c757d' }};">
+                                    {{ log.get_action_type_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if log.content_type %}
+                                <span class="badge bg-info">{{ log.content_type.model }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if log.object_repr %}
+                                {{ log.object_repr|truncatechars:50 }}
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="small text-muted">{{ log.ip_address|default:"-" }}</td>
+                            <td class="small text-muted" title="{{ log.request_path }}">
+                                {{ log.request_path|truncatechars:30 }}
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark">{{ log.request_method|default:"-" }}</span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-5">
+                                <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                沒有找到符合條件的操作記錄
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分頁 -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="操作記錄分頁" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link"
+                    href="?page=1{% if current_search %}&search={{ current_search }}{% endif %}{% if current_action_type %}&action_type={{ current_action_type }}{% endif %}{% if current_user %}&user={{ current_user }}{% endif %}{% if current_content_type %}&content_type={{ current_content_type }}{% endif %}{% if current_date_from %}&date_from={{ current_date_from }}{% endif %}{% if current_date_to %}&date_to={{ current_date_to }}{% endif %}">
+                    <i class="fas fa-angle-double-left"></i>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link"
+                    href="?page={{ page_obj.previous_page_number }}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_action_type %}&action_type={{ current_action_type }}{% endif %}{% if current_user %}&user={{ current_user }}{% endif %}{% if current_content_type %}&content_type={{ current_content_type }}{% endif %}{% if current_date_from %}&date_from={{ current_date_from }}{% endif %}{% if current_date_to %}&date_to={{ current_date_to }}{% endif %}">
+                    <i class="fas fa-angle-left"></i>
+                </a>
+            </li>
+            {% endif %}
+
+            <!-- 頁碼 -->
+            {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <li class="page-item active">
+                <span class="page-link">{{ num }}</span>
+            </li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %} <li class="page-item">
+                <a class="page-link"
+                    href="?page={{ num }}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_action_type %}&action_type={{ current_action_type }}{% endif %}{% if current_user %}&user={{ current_user }}{% endif %}{% if current_content_type %}&content_type={{ current_content_type }}{% endif %}{% if current_date_from %}&date_from={{ current_date_from }}{% endif %}{% if current_date_to %}&date_to={{ current_date_to }}{% endif %}">
+                    {{ num }}
+                </a>
+                </li>
+                {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link"
+                        href="?page={{ page_obj.next_page_number }}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_action_type %}&action_type={{ current_action_type }}{% endif %}{% if current_user %}&user={{ current_user }}{% endif %}{% if current_content_type %}&content_type={{ current_content_type }}{% endif %}{% if current_date_from %}&date_from={{ current_date_from }}{% endif %}{% if current_date_to %}&date_to={{ current_date_to }}{% endif %}">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link"
+                        href="?page={{ page_obj.paginator.num_pages }}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_action_type %}&action_type={{ current_action_type }}{% endif %}{% if current_user %}&user={{ current_user }}{% endif %}{% if current_content_type %}&content_type={{ current_content_type }}{% endif %}{% if current_date_from %}&date_from={{ current_date_from }}{% endif %}{% if current_date_to %}&date_to={{ current_date_to }}{% endif %}">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+        </ul>
+        <div class="text-center text-muted">
+            第 {{ page_obj.number }} 頁，共 {{ page_obj.paginator.num_pages }} 頁
+        </div>
+    </nav>
+    {% endif %}
+</div>
+
+<style>
+    .table thead.sticky-top {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+</style>
+{% endblock %}

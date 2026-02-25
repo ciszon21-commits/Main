@@ -1,0 +1,193 @@
+﻿{% extends 'EngineerRPG/management/base_management.html' %}
+
+{% block page_header %}
+<div class="page-header mb-lg">
+    <h1><i class="fas fa-book"></i> 課程與題庫管理</h1>
+    <p class="text-stone">管理課程內容、題庫、分類與匯入匯出</p>
+</div>
+{% endblock %}
+
+{% block management_content %}
+<div class="rpg-card">
+    <div class="rpg-card-header flex justify-between items-center">
+        <h3 class="rpg-card-title"><i class="fas fa-question-circle"></i> 題庫管理</h3>
+        <div class="flex gap-sm items-center">
+            <form method="post" onsubmit="return confirm('確定要重置今日的試煉進度嗎？這將允許您重新挑戰今日任務。');">
+                {% csrf_token %}
+                <button type="submit" name="reset_trial" value="true" class="rpg-btn rpg-btn-sm rpg-btn-danger">
+                    <i class="fas fa-redo"></i> 重置試煉
+                </button>
+            </form>
+            <div class="w-1px h-6 bg-white/20 mx-xs"></div>
+            <a href="{% url 'engineer_rpg:import_questions' %}" class="rpg-btn rpg-btn-sm rpg-btn-secondary">
+                <i class="fas fa-file-upload"></i> 匯入
+            </a>
+            <a href="{% url 'engineer_rpg:create_question' %}" class="rpg-btn rpg-btn-sm rpg-btn-primary">
+                <i class="fas fa-plus"></i> 新增題目
+            </a>
+        </div>
+    </div>
+
+
+
+    <!-- Questions Section Header -->
+    <div class="rpg-card-header">
+        <h3 class="rpg-card-title"><i class="fas fa-question-circle"></i> 題目列表</h3>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-black/30 p-md rounded-lg mb-md flex gap-md items-end">
+        <form method="get" class="flex gap-md w-full items-end">
+            <div class="flex-1">
+                <label class="form-label text-xs mb-xs">關鍵字搜尋</label>
+                <input type="text" name="q" value="{{ search_query|default:'' }}" class="rpg-input w-full"
+                    placeholder="搜尋題目內容...">
+            </div>
+            <div>
+                <label class="form-label text-xs mb-xs">分類篩選</label>
+                <select name="category" class="rpg-input">
+                    <option value="">全部類別</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if selected_category == cat.id %}selected{% endif %}>
+                        {{ cat.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="rpg-btn rpg-btn-secondary">
+                <i class="fas fa-search"></i> 搜尋
+            </button>
+            <a href="{% url 'engineer_rpg:question_management' %}" class="rpg-btn rpg-btn-outline" title="清除篩選">
+                <i class="fas fa-times"></i>
+            </a>
+        </form>
+    </div>
+
+    <form method="post" action="{% url 'engineer_rpg:batch_manage_questions' %}" id="batchForm">
+        {% csrf_token %}
+        <div class="flex gap-sm mb-md p-sm bg-black/20 rounded items-center">
+            <span class="text-stone text-sm"><i class="fas fa-check-square"></i> 批次操作：</span>
+            <button type="submit" name="action" value="activate" class="rpg-btn rpg-btn-sm rpg-btn-success">
+                <i class="fas fa-check"></i> 啟用
+            </button>
+            <button type="submit" name="action" value="deactivate" class="rpg-btn rpg-btn-sm rpg-btn-warning">
+                <i class="fas fa-ban"></i> 停用
+            </button>
+            <button type="submit" name="action" value="download" class="rpg-btn rpg-btn-sm rpg-btn-secondary">
+                <i class="fas fa-download"></i> 下載
+            </button>
+            <button type="submit" name="action" value="delete" class="rpg-btn rpg-btn-sm rpg-btn-danger"
+                onclick="return confirm('確定要刪除選取的題目嗎？此動作無法復原！');">
+                <i class="fas fa-trash"></i> 刪除
+            </button>
+        </div>
+
+        <div class="table-container"
+            style="max-height: calc(100vh - 280px); overflow-y: auto; border: 1px solid var(--color-secondary); border-radius: var(--border-radius);">
+            <table class="rpg-table w-full">
+                <thead style="position: sticky; top: 0; z-index: 10; background: var(--color-dark);">
+                    <tr>
+                        <th style="width: 40px; text-align: center;">
+                            <input type="checkbox" id="selectAll" class="cursor-pointer" style="transform: scale(1.2);">
+                        </th>
+                        <th style="width: 40%;">內容</th>
+                        <th class="text-center" style="cursor: pointer;"
+                            onclick="window.location.href='?sort=active&order={% if current_sort == 'active' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}'">
+                            狀態 {% if current_sort == 'active' %}
+                            <i class="fas fa-sort-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                            {% endif %}
+                        </th>
+                        <th class="text-center" style="cursor: pointer;"
+                            onclick="window.location.href='?sort=category&order={% if current_sort == 'category' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}'">
+                            分類 {% if current_sort == 'category' %}
+                            <i class="fas fa-sort-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                            {% endif %}
+                        </th>
+                        <th class="text-center" style="cursor: pointer;"
+                            onclick="window.location.href='?sort=difficulty&order={% if current_sort == 'difficulty' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}'">
+                            難度 {% if current_sort == 'difficulty' %}
+                            <i class="fas fa-sort-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                            {% endif %}
+                        </th>
+                        <th class="text-center" style="cursor: pointer;"
+                            onclick="window.location.href='?sort=type&order={% if current_sort == 'type' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}'">
+                            類型 {% if current_sort == 'type' %}
+                            <i class="fas fa-sort-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                            {% endif %}
+                        </th>
+                        <th class="text-center">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for question in page_obj %}
+                    <tr>
+                        <td class="text-center">
+                            <input type="checkbox" name="selected_ids" value="{{ question.id }}"
+                                class="question-checkbox cursor-pointer" style="transform: scale(1.2);">
+                        </td>
+                        <td class="text-xs">
+                            <div class="line-clamp-2" title="{{ question.content }}">{{ question.content }}</div>
+                        </td>
+                        <td class="text-center">
+                            {% if question.is_active %}
+                            <span class="text-xs" style="color: var(--color-safety)!important;"><i
+                                    class="fas fa-check-circle"></i></span>
+                            {% else %}
+                            <span class="text-xs" style="color: var(--color-me)!important;"><i
+                                    class="fas fa-times-circle"></i></span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if question.category %}
+                            <span class="badge bg-secondary/20 text-secondary">{{ question.category.name }}</span>
+                            {% else %}
+                            <span class="text-stone text-xs">無分類</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <span
+                                class="badge {% if question.difficulty == 'S' %}bg-primary/20 text-primary{% elif question.difficulty == 'A' %}bg-warning/20 text-warning{% else %}bg-stone/20 text-stone{% endif %}">
+                                {{ question.get_difficulty_display }}
+                            </span>
+                        </td>
+                        <td class="text-center">{{ question.get_question_type_display }}</td>
+                        <td class="text-center">
+                            <a href="{% url 'engineer_rpg:edit_question' question.id %}"
+                                class="rpg-btn rpg-btn-xs rpg-btn-secondary">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button type="button" class="rpg-btn rpg-btn-xs rpg-btn-danger"
+                                onclick="if(confirm('確定要刪除這道題目嗎？')) { document.getElementById('delete-form-{{ question.id }}').submit(); }">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-lg text-stone">查無題目資料</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </form>
+
+    <div class="mt-sm text-right text-stone text-sm">
+        共 {{ page_obj.end_index }} 筆題目
+    </div>
+
+    {% for question in page_obj %}
+    <form id="delete-form-{{ question.id }}" action="{% url 'engineer_rpg:delete_question' question.id %}" method="post"
+        style="display:none;">
+        {% csrf_token %}
+    </form>
+    {% endfor %}
+</div>
+
+<script>
+    document.getElementById('selectAll').addEventListener('change', function () {
+        const checkboxes = document.querySelectorAll('.question-checkbox');
+        checkboxes.forEach(cb => cb.checked = this.checked);
+    });
+</script>
+{% endblock %}

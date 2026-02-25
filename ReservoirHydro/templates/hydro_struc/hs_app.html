@@ -1,0 +1,1339 @@
+{% extends 'reservoir_hydro_base.html' %}
+{% load static %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Reservoir_Hydro/css/reservoir_hydro.css' %}" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style></style>
+{% endblock %}
+
+<meta name="csrf-token" content="{{ csrf_token }}">
+
+{% block template %}
+<div class="container py-2">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center">
+          <!-- 左側標題 -->
+          <div>
+            <h3><b>{{ title }}</b></h3>
+          </div>
+          <!-- 右側按鈕群組 -->
+          <div>
+            <!-- 清除所有數據按鈕 -->
+            <button
+              class="btn btn-rh-outline-danger me-2"
+              onclick="clearAllData()"
+              title="清除所有步驟的儲存數據"
+            >
+              <i class="bi bi-trash3"></i> 清除所有數據
+            </button>
+            <!-- 返回首頁按鈕 -->
+            <a
+              href="{% url 'reservoir_hydro:reservoir_hydro_home' %}"
+              class="btn btn-rh-outline-primary"
+            >
+              <i class="bi bi-house"></i> 返回首頁
+            </a>
+          </div>
+        </div>
+        <!-- 分隔線 -->
+        <div class="gray-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="col-md-12">
+      <!-- 分頁導航 -->
+      <div class="step-tabs d-flex">
+        {% for step in steps %}
+        <button
+          class="step-tab {% if step.id|stringformat:'s' == initial_step %}active{% endif %}"
+          onclick="switchStep({{ step.id }})"
+          id="tab-{{ step.id }}"
+        >
+          <i class="{{ step.icon }} fs-4 me-2 text-rh-primary"></i>
+          <span class="rh-card-title">{{ step.id }}. {{ step.name }}</span>
+          <div class="text-muted">{{ step.desc }}</div>
+        </button>
+        {% endfor %}
+      </div>
+
+      <!-- 分頁內容 -->
+      <div id="step-contents">
+        <!-- 步驟1: 結構物水理計算 -->
+        <div
+          class="step-content {% if initial_step == '1' %}active{% endif %}"
+          id="content-1"
+        >
+          <div class="row">
+            <div class="col-md-7">
+              <div class="rh-big-card mb-3">
+                <div class="rh-big-card-header">
+                  基本資料
+                </div>
+                <div class="card-body">
+                  <!-- 上半部：基本資料輸入 -->
+                  <form id="structure-form">
+                    {% csrf_token %}
+                    <div class="row my-2 align-items-center">
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">選擇設施：</label>
+                      </div>
+                      <div class="col d-flex align-items-center">
+                        <select class="form-select me-2" id="facility-select"></select>
+                        <button type="button" class="btn btn-rh-outline-danger btn-sm" onclick="deleteCurrentFacility()" title="刪除目前設施">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="row my-2 align-items-center">
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">設施名稱：</label>
+                      </div>
+                      <div class="col">
+                        <input type="text" class="form-control" id="facility-name" placeholder="如：溢洪道" />
+                      </div>
+                    </div>
+                    <div class="row my-2 align-items-center">
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">自由流公式：</label>
+                      </div>
+                      <div class="col-5">
+                        <select class="form-select" id="formula-type-1">
+
+                          <option value="free-overflow">自由堰流</option>
+                        </select>
+                      </div>
+                      <div class="col-5" id="formula-desc-1"></div>
+                    </div>
+                    <div class="row my-2 align-items-center">
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">壓力流公式：</label>
+                      </div>
+                      <div class="col-5">
+                        <select class="form-select" id="formula-type-2">
+                          <option value="orifice-flow">孔口流</option>
+                          <option value="slot-gate">弧型閘門</option>
+                          <option value="vertical-gate">直提式閘門</option>
+                        </select>
+                      </div>
+                      <div class="col-5" id="formula-desc-2"></div>
+                    </div>
+                    <div class="row my-2 align-items-center">
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">設施尺寸：</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">閘孔高度 H</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <input type="number" step="any" min="0" class="form-control" id="gate-hole-height"/>
+                      </div>
+                      <div class="col-1 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">m</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">閘孔寬度 W</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <input type="number" step="any" min="0" class="form-control" id="gate-hole-width"/>
+                      </div>
+                      <div class="col-1 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">m</label>
+                      </div>
+                    </div>
+                    <div class="row my-2 align-items-center">
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;"></label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">閘門數量</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <input type="number" step="any" min="0" class="form-control" id="gate-hole-count" />
+                      </div>
+                      <div class="col-1 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;"></label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">墩座寬度 b</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <input type="number" step="any" min="0" class="form-control" id="pier-width"/>
+                      </div>
+                      <div class="col-1 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">m</label>
+                      </div>
+                    </div>
+                    <div class="row my-2 align-items-center">
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">高程(EL.)：</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">壩頂高程 E1</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <input type="number" step="any" min="0" class="form-control" id="dam-top-elevation" />
+                      </div>
+                      <div class="col-1 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">m</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">堰頂高程 E2</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <input type="number" step="any" min="0" class="form-control" id="weir-top-elevation" />
+                      </div>
+                      <div class="col-1 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">m</label>
+                      </div>
+                    </div>
+                    <div class="row my-2 align-items-center">
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;"></label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">淤積高程</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <input type="number" step="any" min="0" class="form-control" id="sediment-elevation" />
+                      </div>
+                      <div class="col-1 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">m</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">最高洪水</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <input type="number" step="any" min="0" class="form-control" id="max-flood"/>
+                      </div>
+                      <div class="col-1 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">m</label>
+                      </div>
+                    </div>
+                    <div class="row my-2 align-items-center">
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">其他參數：</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">Kp</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <input type="number" step="any" min="0" class="form-control" id="Kp"/>
+                      </div>
+                      <div class="col-1 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;"></label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">Ka</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <input type="number" step="any" min="0" class="form-control" id="Ka"/>
+                      </div>
+                      <div class="col-1 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;"></label>
+                      </div>
+                    </div>
+                    <div class="row my-2 align-items-center">
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">自動計算：</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">設施寬度 L</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <input type="text" class="form-control" id="input-L" readonly value="N/A" />
+                      </div>
+                      <div class="col-1 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">m</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">P</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <input type="text" class="form-control" id="input-P" readonly value="N/A" />
+                      </div>
+                      <div class="col-1 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">m</label>
+                      </div>
+                    </div>
+                    <div class="row my-2 align-items-center">
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;"></label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">H0</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <input type="text" class="form-control" id="input-H0" readonly value="N/A" />
+                      </div>
+                      <div class="col-1 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">m</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <label class="form-label mb-0" style="font-size: 1.1rem;">P / H0</label>
+                      </div>
+                      <div class="col-2 pe-0 me-0">
+                        <input type="text" class="form-control" id="input-PH0" readonly value="N/A" />
+                      </div>
+                    </div>
+                  </form>
+                  {% comment %} <hr class="my-4" />
+                  <!-- 下半部：計算方法勾選 -->
+                  <div class="mt-3">
+                    <div class="row">
+                      <div class="col-3">
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" id="free-overflow" />
+                          <label class="form-check-label" for="free-overflow" style="font-size: 1.1rem;">自由堰流</label>
+                        </div>
+                      </div>
+                      <div class="col-3">
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" id="orifice-flow" />
+                          <label class="form-check-label" for="orifice-flow" style="font-size: 1.1rem;">孔口流</label>
+                        </div>
+                      </div>
+                      <div class="col-3">
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" id="submerged-type" />
+                          <label class="form-check-label" for="submerged-type" style="font-size: 1.1rem;">嵌入式</label>
+                        </div>
+                      </div>
+                      <div class="col-3">
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" id="pressure-tunnel" />
+                          <label class="form-check-label" for="pressure-tunnel" style="font-size: 1.1rem;">壓力式隧道</label>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="row">
+                      <div class="col-3">
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" id="slot-gate" />
+                          <label class="form-check-label" for="slot-gate" style="font-size: 1.1rem;">弧型閘門</label>
+                        </div>
+                      </div>
+                      <div class="col-3">
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" id="vertical-gate" />
+                          <label class="form-check-label" for="vertical-gate" style="font-size: 1.1rem;">直提式閘門</label>
+                        </div>
+                      </div>
+                      <div class="col-3">
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" id="multi-gate" />
+                          <label class="form-check-label" for="multi-gate" style="font-size: 1.1rem;">何本閘</label>
+                        </div>
+                      </div>
+                    </div>
+                  </div> {% endcomment %}
+                  {% comment %} <!-- 操作按鈕 -->
+                  <div class="mt-3 d-flex justify-content-end">
+                    <button class="btn btn-success me-2" onclick="editStructure()">編輯</button>
+                    <button class="btn btn-primary" onclick="saveStructure()">存檔</button>
+                  </div> {% endcomment %}
+                </div>
+              </div>
+              <div class="action-buttons">
+                <button class="btn btn-rh-data me-2" onclick="saveAnotherStructure()">
+                  <i class="bi bi-plus-square"></i> 另存
+                </button>
+                <button class="btn btn-rh-data" onclick="saveStructure()">
+                  <i class="bi bi-save"></i> 存檔
+                </button>
+              </div>
+            </div>
+            <div class="col-md-5">
+              <div class="rh-big-card mb-3">  
+                <div class="rh-big-card-header">
+                  成果展示區
+                </div>
+                <div class="card-body">
+                  <!-- 結構物示意圖 -->
+                  <div class="my-2">
+                    <label class="form-label mb-0" style="font-size: 1.3rem;"><b>設施示意圖(非真實比例)</b></label>
+                  </div>
+                  <div>
+                    <canvas id="structureDiagram-1" width="482" height="200"></canvas>
+                  </div>
+                  <div class="my-4">
+                    <canvas id="structureDiagram-2" width="482" height="200"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 步驟2: 圖表成果展示 -->
+        <div class="step-content" id="content-2">
+          <div class="row d-flex justify-content-center mb-3">
+            <div class="col-12 text-center">
+              <label for="result-facility-select" class="form-label mb-0" style="font-size: 1.1rem;">選擇設施：</label>
+              <select id="result-facility-select" class="form-select d-inline-block" style="width: 200px;"></select>
+            </div>
+          </div>
+          <div class="row d-flex justify-content-center">
+            <div class="col-6">
+              <!-- 加上 data-table 容器 -->
+              <div class="data-table" style="overflow-x: auto;">
+                <table class="table table-bordered" id="hydroResultTable">
+                  <thead>
+                    <tr>
+                      <th style="font-weight:bold;">水庫水位<br>WSE</th>
+                      <th style="font-weight:bold;">水頭<br>He</th>
+                      {% comment %} <th style="font-weight:bold;">He/H0</th> {% endcomment %}
+                      <th style="font-weight:bold;">流量係數<br>C0</th>
+                      <th style="font-weight:bold;">修正係數<br>C/C0</th>
+                      <th style="font-weight:bold;">平均有效堰長<br>L</th>
+                      <th style="font-weight:bold;">單門流量<br>Q</th>
+                      <th style="font-weight:bold;">總流量<br>Qt</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- JS 動態填入 -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="col-6 chart-container" style="height: 510px;">
+              <div style="height: 420px;"> 
+                <canvas id="hydroResultChart"></canvas>
+              </div>
+              <div class="row my-2 d-flex align-items-center justify-content-center">
+                <label for="input-wse-query" class="col-1 px-0 mx-2" style="font-weight:bold;">水位：</label>
+                <input type="number" step="0.05" min="0" id="input-wse-query" class="col-2 me-2">
+                <label for="wse-flow-result" class="col-1 px-0 mx-2" style="font-weight:bold;">流量：</label>
+                <span id="wse-flow-result" class="col-2 px-0 ms-0" style="font-weight:bold; color:#007bff;"></span>
+                <button type="button" class="col-2 btn btn-rh-data p-1" style="height: 38px;" onclick="queryWseFlow()">查詢</button>
+              </div>
+            </div>
+          </div>
+          <div class="action-buttons mt-3 d-flex gap-2 justify-content-center">
+            <button type="button" class="btn btn-rh-data" onclick="submitHydroCalculation()">
+              <i class="bi bi-graph-up"></i> 水理計算
+            </button>
+            <button type="button" class="btn btn-rh-data" onclick="exportHydroTable()">
+              <i class="bi bi-download"></i> 匯出表格
+            </button>
+            <button type="button" class="btn btn-rh-data" onclick="exportHydroChart()">
+              <i class="bi bi-image"></i> 匯出曲線圖
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script>
+  let currentStep = {{ initial_step }};
+  let currentTableData = [];
+
+  // ======================================== 設施資料管理 ========================================
+  // 設施資料儲存 key
+  const FACILITY_STORAGE_KEY = 'hydroFacilities';
+
+  // 取得所有設施資料
+  function getFacilities() {
+    const data = localStorage.getItem(FACILITY_STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+  }
+
+  // 儲存所有設施資料
+  function setFacilities(arr) {
+    localStorage.setItem(FACILITY_STORAGE_KEY, JSON.stringify(arr));
+  }
+
+  // 取得下一流水號（自動補零）
+  function getNextFacilityId() {
+    const arr = getFacilities();
+    if (arr.length === 0) return '01';
+    const nums = arr.map(f => parseInt(f.id, 10)).filter(n => !isNaN(n));
+    const next = Math.max(...nums) + 1;
+    return next.toString().padStart(2, '0');
+  }
+
+  // 初始化設施下拉選單
+  function renderFacilitySelect() {
+    const arr = getFacilities();
+    const select = document.getElementById('facility-select');
+    select.innerHTML = '';
+    arr.forEach(fac => {
+      const opt = document.createElement('option');
+      opt.value = fac.id;
+      opt.textContent = `${fac.name}（${fac.id}）`;
+      select.appendChild(opt);
+    });
+    // 若有設施，預設選第一個並填入
+    if (arr.length > 0) {
+      select.value = arr[0].id;
+      fillFacilityForm(arr[0]);
+    } else {
+      clearFacilityForm();
+    }
+  }
+
+  // 根據設施資料填入表單
+  function fillFacilityForm(fac) {
+    document.getElementById('facility-name').value = fac.name || '';
+    document.getElementById('formula-type-1').value = fac.formula1 || 'free-overflow';
+    document.getElementById('formula-type-2').value = fac.formula2 || 'orifice-flow';
+    document.getElementById('gate-hole-height').value = fac.gateHoleHeight || '';
+    document.getElementById('gate-hole-width').value = fac.gateHoleWidth || '';
+    document.getElementById('gate-hole-count').value = fac.gateHoleCount || '';
+    document.getElementById('pier-width').value = fac.pierWidth || '';
+    document.getElementById('dam-top-elevation').value = fac.damTopElevation || '';
+    document.getElementById('weir-top-elevation').value = fac.weirTopElevation || '';
+    document.getElementById('sediment-elevation').value = fac.sedimentElevation || '';
+    document.getElementById('max-flood').value = fac.maxFlood || '';
+    document.getElementById('Kp').value = fac.Kp || '';
+    document.getElementById('Ka').value = fac.Ka || '';
+    drawStructureDiagram();
+  }
+
+  // 清空表單
+  function clearFacilityForm() {
+    document.getElementById('facility-name').value = '';
+    document.getElementById('formula-type-1').value = 'free-overflow';
+    document.getElementById('formula-type-2').value = 'orifice-flow';
+    document.getElementById('gate-hole-height').value = '';
+    document.getElementById('gate-hole-width').value = '';
+    document.getElementById('gate-hole-count').value = '';
+    document.getElementById('pier-width').value = '';
+    document.getElementById('dam-top-elevation').value = '';
+    document.getElementById('weir-top-elevation').value = '';
+    document.getElementById('sediment-elevation').value = '';
+    document.getElementById('max-flood').value = '';
+    document.getElementById('Kp').value = '';
+    document.getElementById('Ka').value = '';
+    drawStructureDiagram();
+  }
+
+  // 取得目前表單資料
+  function getCurrentFacilityForm() {
+    return {
+      name: document.getElementById('facility-name').value,
+      formula1: document.getElementById('formula-type-1').value,
+      formula2: document.getElementById('formula-type-2').value,
+      gateHoleHeight: document.getElementById('gate-hole-height').value,
+      gateHoleWidth: document.getElementById('gate-hole-width').value,
+      gateHoleCount: document.getElementById('gate-hole-count').value,
+      pierWidth: document.getElementById('pier-width').value,
+      damTopElevation: document.getElementById('dam-top-elevation').value,
+      weirTopElevation: document.getElementById('weir-top-elevation').value,
+      sedimentElevation: document.getElementById('sediment-elevation').value,
+      maxFlood: document.getElementById('max-flood').value,
+      Kp: document.getElementById('Kp').value,
+      Ka: document.getElementById('Ka').value
+    };
+  }
+
+  // 設施選擇時自動填入
+  document.getElementById('facility-select').addEventListener('change', function() {
+    const arr = getFacilities();
+    const fac = arr.find(f => f.id === this.value);
+    if (fac) fillFacilityForm(fac);
+  });
+
+  // 另存：跳出視窗讓使用者輸入流水號（預設下一號），存入 localStorage
+  function saveAnotherStructure() {
+    const arr = getFacilities();
+    const nextId = getNextFacilityId();
+    let inputId = prompt(`請輸入設施流水號（預設 ${nextId}）：`, nextId);
+    if (!inputId) return;
+    inputId = inputId.padStart(2, '0');
+    // 檢查是否已存在
+    if (arr.some(f => f.id === inputId)) {
+      alert('此流水號已存在，請重新輸入！');
+      return;
+    }
+    const formData = getCurrentFacilityForm();
+    formData.id = inputId;
+    arr.push(formData);
+    setFacilities(arr);
+    renderFacilitySelect();
+    document.getElementById('facility-select').value = inputId;
+    fillFacilityForm(formData);
+    alert('已另存新設施！');
+  }
+
+  // 儲存：更新目前選擇的設施
+  function saveStructure() {
+    const arr = getFacilities();
+    const select = document.getElementById('facility-select');
+    const id = select.value;
+    const idx = arr.findIndex(f => f.id === id);
+    if (idx === -1) {
+      alert('請先選擇設施或另存新設施！');
+      return;
+    }
+    const formData = getCurrentFacilityForm();
+    formData.id = id;
+    arr[idx] = formData;
+    setFacilities(arr);
+    renderFacilitySelect();
+    select.value = id;
+    fillFacilityForm(formData);
+    alert('已儲存設施資料！');
+  }
+
+  // 刪除目前選擇的設施
+  function deleteCurrentFacility() {
+    const select = document.getElementById('facility-select');
+    const id = select.value;
+    if (!id) {
+      alert('請先選擇要刪除的設施！');
+      return;
+    }
+    if (!confirm('確定要刪除此設施？此動作無法復原。')) return;
+
+    let arr = getFacilities();
+    arr = arr.filter(f => f.id !== id);
+    setFacilities(arr);
+
+    renderFacilitySelect();
+    // 若還有設施，選第一個並填入
+    if (arr.length > 0) {
+      select.value = arr[0].id;
+      fillFacilityForm(arr[0]);
+    } else {
+      clearFacilityForm();
+    }
+    alert('已刪除設施！');
+  }
+
+  // ======================================== 公式展示 ========================================
+  // 公式說明1
+  document.getElementById('formula-type-1').addEventListener('change', function() {
+    const desc_1 = document.getElementById('formula-desc-1');
+    switch (this.value) {
+      case 'free-overflow':
+        desc_1.innerHTML = '\\( Q = CLH^{3/2} \\)';
+        break;
+      default:
+        desc_1.innerHTML = '';
+    }
+    if (window.MathJax) MathJax.typesetPromise();
+  });
+
+  // 公式說明2
+  document.getElementById('formula-type-2').addEventListener('change', function() {
+    const desc_2 = document.getElementById('formula-desc-2');
+    switch (this.value) {
+      case 'orifice-flow':
+        desc_2.innerHTML = '\\( Q = CA\\sqrt{2gH} \\)';
+        break;
+      case 'slot-gate':
+        desc_2.innerHTML = '\\( Q = \\frac{2}{3}\\sqrt{2g}C_1L\\left(H_1^{3/2} - H_2^{3/2}\\right) \\)';
+        break;
+      case 'vertical-gate':
+        desc_2.innerHTML = '\\( Q = C G_0 B \\sqrt{2gH} \\)';
+        break;
+      default:
+        desc_2.innerHTML = '';
+    }
+    if (window.MathJax) MathJax.typesetPromise();
+  });
+
+  // ======================================== 示意圖繪製 ========================================
+  // 畫結構物示意圖
+  function drawStructureDiagram() {
+    const H = parseFloat(document.getElementById('gate-hole-height').value);
+    const W = parseFloat(document.getElementById('gate-hole-width').value);
+    const b = parseFloat(document.getElementById('pier-width').value);
+    const E1 = parseFloat(document.getElementById('dam-top-elevation').value);
+    const E2 = parseFloat(document.getElementById('weir-top-elevation').value);
+    const gateCount = parseInt(document.getElementById('gate-hole-count').value);
+    const sediment = parseFloat(document.getElementById('sediment-elevation').value);
+    const maxFlood = parseFloat(document.getElementById('max-flood').value);
+    const Kp = parseFloat(document.getElementById('Kp').value);
+    const Ka = parseFloat(document.getElementById('Ka').value);
+
+    // 計算 L、P、H0 及 P / H0
+    const L = W * gateCount + b * (gateCount + 1);  // 設 L 為 閘門總寬度加上墩座寬度
+    const P = E2 - sediment;  // 設 P 為 堰頂高程 減去 淤積高程
+    const H0 = maxFlood - E2;  // 設 H0 為 最高洪水 減去 堰頂高程
+    const P_divide_H0 = isNaN(P) || isNaN(H0) || H0 === 0 ? 'N/A' : (P / H0).toFixed(2);
+
+    // 即時更新 label
+    document.getElementById('input-L').value = isNaN(L) ? 'N/A' : L.toFixed(2);
+    document.getElementById('input-P').value = isNaN(P) ? 'N/A' : P.toFixed(2);
+    document.getElementById('input-H0').value = isNaN(H0) ? 'N/A' : H0.toFixed(2);
+    document.getElementById('input-PH0').value = P_divide_H0;
+
+    // 畫立面圖
+    const canvas1 = document.getElementById('structureDiagram-1');
+    const canvas1Width = canvas1.width;
+    const canvas1Height = canvas1.height;
+    const ctx1 = canvas1.getContext('2d');
+    ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
+    const x_start = 1 + canvas1Width*0.2;
+    const y_start = 25;
+
+    // 畫設施外框
+    ctx1.fillStyle = '#7a7a7a';
+    // 原本為250 150
+    ctx1.fillRect(x_start, y_start, canvas1Width*0.75, canvas1Height*0.75);
+    ctx1.strokeStyle = '#000000';
+    ctx1.lineWidth = 2;
+    ctx1.strokeRect(x_start, y_start, canvas1Width*0.75, canvas1Height*0.75);
+
+    // 畫閘門孔，檢查必要參數
+    if ([H, W, b, E1, E2, gateCount].some(v => isNaN(v))){
+      return;
+    } else{
+      // 計算比例與邊框
+      // y
+      const outerHeight = canvas1Height*0.75;
+      const H_plus_frame = E1 - E2; // 閘門實際高度（m）
+      const frame = H_plus_frame - H; // 上下邊框高度（m）
+      const yScale = outerHeight / (H_plus_frame + frame); // y軸縮放比例
+      const H_px = H * yScale; // 閘門圖上高度（px）
+      const marginY = frame * yScale; // 邊框圖上高度（px）
+      // x
+      const outerWidth = canvas1Width*0.75;
+      const xScale = outerWidth / (W*gateCount + b*(gateCount+1)); // x軸縮放比例
+      const W_px = W * xScale; // 閘門圖上寬度（px）
+      const b_px = b * xScale; // 墩座圖上寬度（px）
+      const marginX = b_px; // 邊框圖上寬度（px）
+
+      // 閘門繪製(根據gateCount迴圈)
+      for (let i = 0; i < gateCount; i++) {
+        const x = x_start + marginX + i * (W_px + b_px);
+        const y = y_start + marginY;
+
+        // 畫閘門
+        ctx1.fillStyle = '#d8d8d8';
+        ctx1.fillRect(x, y, W_px, H_px);
+        ctx1.strokeStyle = '#000000';
+        ctx1.strokeRect(x, y, W_px, H_px);
+        // 畫閘門寬度標示
+        ctx1.strokeStyle = '#cc1e18';
+        ctx1.beginPath();
+        ctx1.moveTo(x, canvas1Height*0.75+30);
+        ctx1.lineTo(x + W_px, canvas1Height*0.75+30);
+        ctx1.stroke();
+        ctx1.fillStyle = '#cc1e18';
+        ctx1.moveTo(x, canvas1Height*0.75+30);
+        ctx1.lineTo(x + 8.66, canvas1Height*0.75+25);
+        ctx1.lineTo(x + 8.66, canvas1Height*0.75+35);
+        ctx1.closePath();
+        ctx1.fill();
+        ctx1.moveTo(x + W_px, canvas1Height*0.75+30);
+        ctx1.lineTo(x + W_px - 8.66, canvas1Height*0.75+25);
+        ctx1.lineTo(x + W_px - 8.66, canvas1Height*0.75+35);
+        ctx1.closePath();
+        ctx1.fill();
+        ctx1.font = '14px Arial';
+        ctx1.fillText(`W`, (x*2 + W_px)/2 - 6, canvas1Height*0.75 + 45);
+
+        if (i === gateCount - 1) {
+          // 最後一個閘門標示H
+          ctx1.strokeStyle = '#cc1e18';
+          ctx1.beginPath();
+          ctx1.moveTo(x + W_px + 5, y);
+          ctx1.lineTo(x + W_px + 5, y + H_px);
+          ctx1.stroke();
+          ctx1.fillStyle = '#cc1e18';
+          ctx1.moveTo(x + W_px + 5, y);
+          ctx1.lineTo(x + W_px, y + 8.66);
+          ctx1.lineTo(x + W_px + 10, y + 8.66);
+          ctx1.closePath();
+          ctx1.fill();
+          ctx1.moveTo(x + W_px + 5, y + H_px);
+          ctx1.lineTo(x + W_px, y + H_px - 8.66);
+          ctx1.lineTo(x + W_px + 10, y + H_px - 8.66);
+          ctx1.closePath();
+          ctx1.fill();
+          ctx1.font = '14px Arial';
+          ctx1.fillText(`H`, x + W_px + 10, y + H_px / 2);
+        } else {
+          // 其他閘門標示b
+          ctx1.fillStyle = '#cc1e18';
+          ctx1.font = '14px Arial';
+          ctx1.fillText(`b`, x + W_px + (b_px/2) - 5, y + H_px);
+        }
+      }
+
+      // 其他說明文字
+      ctx1.fillStyle = '#000000';
+      ctx1.font = '18px Arial';
+      ctx1.fillText('上游立面圖', canvas1Width*0.9 - 70, 15);
+      ctx1.fillStyle = '#cc1e18';
+      ctx1.font = '16px Arial';
+      ctx1.fillText('壩頂E1', x_start, y_start - 5);
+      ctx1.fillText('堰頂E2', x_start, y_start + marginY + H_px - 5);
+
+      // 畫淤積高程線與最高洪水線
+      if (!isNaN(sediment) && sediment <= E1 && sediment >= (E2-frame)) {
+        // 計算 y 座標
+        const sedimentY = y_start + (E1 - sediment) * yScale;
+        // console.log(sedimentY);
+        // 畫淤積高程線
+        ctx1.strokeStyle = '#a0522d';
+        ctx1.setLineDash([6, 3]);
+        ctx1.beginPath();
+        ctx1.moveTo(2, sedimentY);
+        ctx1.lineTo(canvas1Width*0.2 - 5, sedimentY);
+        ctx1.stroke();
+        ctx1.setLineDash([]);
+        ctx1.fillStyle = '#cc1e18';
+        ctx1.font = '14px Arial';
+        ctx1.fillText('淤積面', 7, sedimentY - 5);
+      } else if (!isNaN(sediment) && sediment < (E2-frame)) {
+        // y 座標
+        const sedimentY = canvas1Height - 27;
+        // 畫淤積高程線
+        ctx1.strokeStyle = '#a0522d';
+        ctx1.setLineDash([6, 3]);
+        ctx1.beginPath();
+        ctx1.moveTo(2, sedimentY);
+        ctx1.lineTo(canvas1Width*0.2 - 5, sedimentY);
+        ctx1.stroke();
+        ctx1.setLineDash([]);
+        ctx1.fillStyle = '#cc1e18';
+        ctx1.font = '14px Arial';
+        ctx1.fillText('淤積面', 7, sedimentY + 15);
+      }
+
+      if (!isNaN(maxFlood) && maxFlood <= E1 && maxFlood >= (E2-frame)) {
+        // 計算 y 座標
+        const floodY = 25 + (E1 - maxFlood) * yScale;
+        // 畫最高洪水線
+        ctx1.strokeStyle = '#1e90ff';
+        ctx1.setLineDash([6, 3]);
+        ctx1.beginPath();
+        ctx1.moveTo(2, floodY);
+        ctx1.lineTo(canvas1Width*0.2 - 5, floodY);
+        ctx1.stroke();
+        ctx1.setLineDash([]);
+        ctx1.fillStyle = '#cc1e18';
+        ctx1.font = '14px Arial';
+        ctx1.fillText('最高洪水', 7, floodY - 5);
+        // 畫藍色空心三角形
+        ctx1.beginPath();
+        const triangleX = canvas1Width*0.2 - 20;
+        ctx1.moveTo(triangleX - 5, floodY - 8.66); // 左上
+        ctx1.lineTo(triangleX , floodY);        // 下
+        ctx1.lineTo(triangleX + 5, floodY - 8.66); // 右上
+        ctx1.closePath();
+        ctx1.strokeStyle = '#1e90ff';
+        ctx1.lineWidth = 1;
+        ctx1.stroke();
+      } else if (!isNaN(maxFlood) && maxFlood < (E2-frame)) {
+        // y 座標
+        const floodY = canvas1Height - 35;
+        // 畫最高洪水線
+        ctx1.strokeStyle = '#1e90ff';
+        ctx1.setLineDash([6, 3]);
+        ctx1.beginPath();
+        ctx1.moveTo(2, floodY);
+        ctx1.lineTo(canvas1Width*0.2 - 5, floodY);
+        ctx1.stroke();
+        ctx1.setLineDash([]);
+        ctx1.fillStyle = '#cc1e18';
+        ctx1.font = '14px Arial';
+        ctx1.fillText('最高洪水', 7, floodY - 5);
+        // 畫藍色空心三角形
+        ctx1.beginPath();
+        const triangleX = canvas1Width*0.2 - 20;
+        ctx1.moveTo(triangleX - 5, floodY - 8.66); // 左上
+        ctx1.lineTo(triangleX , floodY);        // 下
+        ctx1.lineTo(triangleX + 5, floodY - 8.66); // 右上
+        ctx1.closePath();
+        ctx1.strokeStyle = '#1e90ff';
+        ctx1.lineWidth = 1;
+        ctx1.stroke();
+      }
+    }
+    // 畫側面圖（完全照抄立面圖）
+    const canvas2 = document.getElementById('structureDiagram-2');
+    const canvas2Width = canvas2.width;
+    const canvas2Height = canvas2.height;
+    const ctx2 = canvas2.getContext('2d');
+    ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+    const x2_start = 1 + canvas2Width*0.2;
+    const y2_start = 25;
+
+
+
+    // 畫閘門孔，檢查必要參數
+    if ([H, W, b, E1, E2, gateCount].some(v => isNaN(v))){
+      return;
+    } else{
+      // 計算比例與邊框
+      // y
+      const outerHeight = canvas2Height*0.75;
+      const H_plus_frame = E1 - E2; // 閘門實際高度（m）
+      const frame = H_plus_frame - H; // 上下邊框高度（m）
+      const yScale = outerHeight / (H_plus_frame + frame); // y軸縮放比例
+      const H_px = H * yScale; // 閘門圖上高度（px）
+      const marginY = frame * yScale; // 邊框圖上高度（px）
+      // x
+      const outerWidth = canvas2Width*0.75;
+      const xScale = outerWidth / (W*gateCount + b*(gateCount+1)); // x軸縮放比例
+      const W_px = W * xScale; // 閘門圖上寬度（px）
+      const b_px = b * xScale; // 墩座圖上寬度（px）
+      const marginX = b_px; // 邊框圖上寬度（px）
+
+      // 閘門上邊框
+      ctx2.fillStyle = '#7a7a7a';
+      ctx2.fillRect(x2_start + 100, y2_start, canvas2Width*0.75-100, marginY);
+      ctx2.strokeStyle = '#000000';
+      ctx2.lineWidth = 2;
+      ctx2.strokeRect(x2_start + 100, y2_start, canvas2Width*0.75-100, marginY);
+
+      // 閘門區域
+      ctx2.fillStyle = '#d8d8d8';
+      ctx2.fillRect(x2_start + 100, y2_start + marginY, canvas2Width*0.75-100, H_px);
+      ctx2.strokeStyle = '#000000';
+      ctx2.lineWidth = 2;
+      ctx2.strokeRect(x2_start + 100, y2_start + marginY, canvas2Width*0.75-100, H_px);
+
+      // 閘門下邊框
+      ctx2.fillStyle = '#7a7a7a';
+      ctx2.fillRect(x2_start, y2_start + marginY + H_px, canvas2Width*0.75, marginY);
+      ctx2.strokeStyle = '#000000';
+      ctx2.lineWidth = 2;
+      ctx2.strokeRect(x2_start, y2_start + marginY + H_px, canvas2Width*0.75, marginY);
+
+      // H
+      ctx2.strokeStyle = '#cc1e18';
+      ctx2.beginPath();
+      ctx2.moveTo(canvas2Width*0.9, y2_start + marginY);
+      ctx2.lineTo(canvas2Width*0.9, y2_start + marginY + H_px);
+      ctx2.stroke();
+      ctx2.fillStyle = '#cc1e18';
+      ctx2.moveTo(canvas2Width*0.9, y2_start + marginY);
+      ctx2.lineTo(canvas2Width*0.9 - 5, y2_start + marginY + 8.66);
+      ctx2.lineTo(canvas2Width*0.9 + 5, y2_start + marginY + 8.66);
+      ctx2.closePath();
+      ctx2.fill();
+      ctx2.moveTo(canvas2Width*0.9, y2_start + marginY + H_px);
+      ctx2.lineTo(canvas2Width*0.9 - 5, y2_start + marginY + H_px - 8.66);
+      ctx2.lineTo(canvas2Width*0.9 + 5, y2_start + marginY + H_px - 8.66);
+      ctx2.closePath();
+      ctx2.fill();
+      ctx2.font = '14px Arial';
+      ctx2.fillText(`H`, canvas2Width*0.9 + 5, y2_start + marginY + H_px / 2);
+
+      // 流向箭頭
+      ctx2.strokeStyle = '#cc1e18';
+      ctx2.beginPath();
+      ctx2.moveTo(canvas2Width*0.6, y2_start + marginY + H_px / 2);
+      ctx2.lineTo(canvas2Width*0.8, y2_start + marginY + H_px / 2);
+      ctx2.stroke();
+      ctx2.fillStyle = '#cc1e18';
+      ctx2.moveTo(canvas2Width*0.8, y2_start + marginY + H_px / 2);
+      ctx2.lineTo(canvas2Width*0.8 - 8.66, y2_start + marginY + H_px / 2 + 5);
+      ctx2.lineTo(canvas2Width*0.8 - 8.66, y2_start + marginY + H_px / 2 - 5);
+      ctx2.closePath();
+      ctx2.fill();
+
+      // 其他說明文字
+      ctx2.fillStyle = '#000000';
+      ctx2.font = '18px Arial';
+      ctx2.fillText('側面圖', canvas2Width*0.9 - 35, 15);
+      ctx2.fillStyle = '#cc1e18';
+      ctx2.font = '16px Arial';
+      ctx2.fillText('壩頂E1', x2_start+100, y2_start - 5);
+      ctx2.fillText('堰頂E2', x2_start, y2_start + marginY + H_px - 5);
+
+      // 畫淤積高程線與最高洪水線
+      if (!isNaN(sediment) && sediment <= E1 && sediment >= (E2-frame)) {
+        // 計算 y 座標
+        const sedimentY = y_start + (E1 - sediment) * yScale;
+        // console.log(sedimentY);
+        // 畫淤積高程線
+        ctx2.strokeStyle = '#a0522d';
+        ctx2.setLineDash([6, 3]);
+        ctx2.beginPath();
+        ctx2.moveTo(2, sedimentY);
+        ctx2.lineTo(canvas2Width*0.2 - 5, sedimentY);
+        ctx2.stroke();
+        ctx2.setLineDash([]);
+        ctx2.fillStyle = '#cc1e18';
+        ctx2.font = '14px Arial';
+        ctx2.fillText('淤積面', 7, sedimentY - 5);
+      } else if (!isNaN(sediment) && sediment < (E2-frame)) {
+        // y 座標
+        const sedimentY = canvas2Height - 27;
+        // 畫淤積高程線
+        ctx2.strokeStyle = '#a0522d';
+        ctx2.setLineDash([6, 3]);
+        ctx2.beginPath();
+        ctx2.moveTo(2, sedimentY);
+        ctx2.lineTo(canvas2Width*0.2 - 5, sedimentY);
+        ctx2.stroke();
+        ctx2.setLineDash([]);
+        ctx2.fillStyle = '#cc1e18';
+        ctx2.font = '14px Arial';
+        ctx2.fillText('淤積面', 7, sedimentY + 15);
+      }
+
+      if (!isNaN(maxFlood) && maxFlood <= E1 && maxFlood >= (E2-frame)) {
+        // 計算 y 座標
+        const floodY = 25 + (E1 - maxFlood) * yScale;
+        // 畫最高洪水線
+        ctx2.strokeStyle = '#1e90ff';
+        ctx2.setLineDash([6, 3]);
+        ctx2.beginPath();
+        ctx2.moveTo(2, floodY);
+        ctx2.lineTo(canvas2Width*0.2 - 5, floodY);
+        ctx2.stroke();
+        ctx2.setLineDash([]);
+        ctx2.fillStyle = '#cc1e18';
+        ctx2.font = '14px Arial';
+        ctx2.fillText('最高洪水', 7, floodY - 5);
+        // 畫藍色空心三角形
+        ctx2.beginPath();
+        const triangleX = canvas2Width*0.2 - 20;
+        ctx2.moveTo(triangleX - 5, floodY - 8.66); // 左上
+        ctx2.lineTo(triangleX , floodY);        // 下
+        ctx2.lineTo(triangleX + 5, floodY - 8.66); // 右上
+        ctx2.closePath();
+        ctx2.strokeStyle = '#1e90ff';
+        ctx2.lineWidth = 1;
+        ctx2.stroke();
+      } else if (!isNaN(maxFlood) && maxFlood < (E2-frame)) {
+        // y 座標
+        const floodY = canvas2Height - 35;
+        // 畫最高洪水線
+        ctx2.strokeStyle = '#1e90ff';
+        ctx2.setLineDash([6, 3]);
+        ctx2.beginPath();
+        ctx2.moveTo(2, floodY);
+        ctx2.lineTo(canvas2Width*0.2 - 5, floodY);
+        ctx2.stroke();
+        ctx2.setLineDash([]);
+        ctx2.fillStyle = '#cc1e18';
+        ctx2.font = '14px Arial';
+        ctx2.fillText('最高洪水', 7, floodY - 5);
+        // 畫藍色空心三角形
+        ctx2.beginPath();
+        const triangleX = canvas2Width*0.2 - 20;
+        ctx2.moveTo(triangleX - 5, floodY - 8.66); // 左上
+        ctx2.lineTo(triangleX , floodY);        // 下
+        ctx2.lineTo(triangleX + 5, floodY - 8.66); // 右上
+        ctx2.closePath();
+        ctx2.strokeStyle = '#1e90ff';
+        ctx2.lineWidth = 1;
+        ctx2.stroke();
+      }
+    }
+  }
+
+  // 當表單輸入改變時，重新繪製示意圖
+  document.querySelectorAll('#structure-form input').forEach(input => {
+    input.addEventListener('input', () => {
+      drawStructureDiagram();
+    });
+  });
+
+  // ======================================== 步驟切換與其他操作 ========================================
+  function switchStep(stepNumber) {
+      document.querySelectorAll('.step-content').forEach(content => {
+          content.classList.remove('active');
+      });
+      document.querySelectorAll('.step-tab').forEach(tab => {
+          tab.classList.remove('active');
+      });
+      document.getElementById(`content-${stepNumber}`).classList.add('active');
+      document.getElementById(`tab-${stepNumber}`).classList.add('active');
+      currentStep = stepNumber;
+      localStorage.setItem('currentStep', stepNumber);
+      // TODO: 載入對應步驟數據
+  }
+
+  // ======================================== 結果匯出 ========================================
+  function exportHydroTable() {
+    // 取得表格資料
+    const table = document.getElementById('hydroResultTable');
+    if (!table) return;
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.table_to_sheet(table);
+    XLSX.utils.book_append_sheet(wb, ws, "水理計算結果");
+    XLSX.writeFile(wb, "結構物水理計算結果.xlsx");
+  }
+
+  function exportHydroChart() {
+    if (!window.hydroChart) return;
+    // 匯出高解析度圖片（3倍像素）
+    const url = window.hydroChart.toBase64Image('image/png', 3); // 3 表示3倍解析度
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = '水位-流量曲線圖.png';
+    link.click();
+  }
+
+  function clearAllData() {
+      // TODO: 清除所有步驟的儲存數據
+  }
+
+  // ======================================= 初始化 ========================================
+  document.addEventListener('DOMContentLoaded', function() {
+    // 載入設施選單
+    renderFacilitySelect();
+
+    // 初始化公式說明1
+    const formulaType1 = document.getElementById('formula-type-1');
+    const desc_1 = document.getElementById('formula-desc-1');
+    switch (formulaType1.value) {
+      case 'free-overflow':
+        desc_1.innerHTML = '\\( Q = CLH^{3/2} \\)';
+        break;
+      default:
+        desc_1.innerHTML = '';
+    }
+    if (window.MathJax) MathJax.typesetPromise();
+
+    // 初始化公式說明2
+    const formulaType2 = document.getElementById('formula-type-2');
+    const desc_2 = document.getElementById('formula-desc-2');
+    switch (formulaType2.value) {
+      case 'orifice-flow':
+        desc_2.innerHTML = '\\( Q = CA\\sqrt{2gH} \\)';
+        break;
+      case 'slot-gate':
+        desc_2.innerHTML = '\\( Q = \\frac{2}{3}\\sqrt{2g}C_1L\\left(H_1^{3/2} - H_2^{3/2}\\right) \\)';
+        break;
+      case 'vertical-gate':
+        desc_2.innerHTML = '\\( Q = C G_0 B \\sqrt{2gH} \\)';
+        break;
+      default:
+        desc_2.innerHTML = '';
+    }
+    if (window.MathJax) MathJax.typesetPromise();
+  });
+
+  // ======================================= 計算api =======================================
+  function submitHydroCalculation() {
+    // 清空水位查詢輸入框與輔助線
+    document.getElementById('input-wse-query').value = '';
+    document.getElementById('wse-flow-result').textContent = '';
+    highlightWse = null;
+    highlightQt = null;
+
+    // 取得選擇的設施 id
+    const selectedId = document.getElementById('result-facility-select').value;
+    const facilities = getFacilities();
+    const fac = facilities.find(f => f.id === selectedId);
+    if (!fac) {
+      alert('請先選擇設施！');
+      return;
+    }
+
+    // 取得 CSRF token
+    const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    const csrfToken = csrfInput ? csrfInput.value : '';
+
+    // 傳送到後端 API
+    fetch('api/hs_calculation/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      },
+      body: JSON.stringify(fac)
+    })
+    .then(response => response.json())
+    .then(result => {
+      // 填入表格
+      renderHydroResultTable(result.data);
+
+      // 繪製 WSE-Qt 曲線
+      let xArr = [], yArr = [];
+      if (Array.isArray(result.data)) {
+        xArr = result.data.map(r => r.WSE);
+        yArr = result.data.map(r => r.Qt);
+
+        // 設定水位輸入框的 min/max
+        const minWSE = Math.min(...xArr);
+        const maxWSE = Math.max(...xArr);
+        const wseInput = document.getElementById('input-wse-query');
+        wseInput.min = minWSE;
+        wseInput.max = maxWSE;
+      }
+      drawHydroCurve(xArr, yArr);
+    })
+    .catch(error => {
+      alert('計算失敗，請稍後再試');
+      console.error(error);
+    });
+  }
+
+  // ======================================= 步驟二成果展示 =======================================
+  // 初始化步驟二設施選單
+  function renderResultFacilitySelect() {
+    const arr = getFacilities();
+    const select = document.getElementById('result-facility-select');
+    select.innerHTML = '';
+    arr.forEach(fac => {
+      const opt = document.createElement('option');
+      opt.value = fac.id;
+      opt.textContent = `${fac.name}（${fac.id}）`;
+      select.appendChild(opt);
+    });
+    // 預設選第一個
+    if (arr.length > 0) select.value = arr[0].id;
+  }
+
+  // 填入表格
+  function renderHydroResultTable(data) {
+    if (!Array.isArray(data)) {
+      const tbody = document.querySelector('#hydroResultTable tbody');
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">查無資料</td></tr>';
+      return;
+    }
+    const tbody = document.querySelector('#hydroResultTable tbody');
+    tbody.innerHTML = '';
+    data.forEach(row => {
+      const WSE = row.WSE;
+      const He = row.He;
+      // const HeH0 = (typeof row['He/H0'] === 'number') ? row['He/H0'].toFixed(3) : row['He/H0'];
+      const C0 = (typeof row.C0 === 'number') ? row.C0.toFixed(3) : row.C0;
+      const CC0 = (typeof row['C/C0'] === 'number') ? row['C/C0'].toFixed(3) : row['C/C0'];
+      const L = row.L;
+      const Q = (typeof row.Q === 'number') ? row.Q.toFixed(3) : row.Q;
+      const Qt = (typeof row.Qt === 'number') ? row.Qt.toFixed(3) : row.Qt;
+
+      tbody.innerHTML += `
+        <tr>
+          <td style="color:rgb(81, 75, 162); font-weight:bold;">${WSE}</td>
+          <td style="color:rgb(75, 127, 162)">${He}</td>
+          {% comment %} <td style="color:rgb(81, 75, 162)">${HeH0}</td> {% endcomment %}
+          <td style="color:rgb(75, 127, 162)">${C0}</td>
+          <td style="color:rgb(81, 75, 162)">${CC0}</td>
+          <td style="color:rgb(75, 127, 162)">${L}</td>
+          <td style="color:rgb(81, 75, 162)">${Q}</td>
+          <td style="color:rgb(75, 127, 162); font-weight:bold;">${Qt}</td>
+        </tr>
+      `;
+    });
+  }
+
+  let chartPoints = []; // 全域儲存資料點
+  let highlightWse = null; // 查詢水位
+  let highlightQt = null;  // 查詢流量
+
+  // 繪製散佈圖
+  function drawHydroCurve(xArr, yArr) {
+    const ctx = document.getElementById('hydroResultChart').getContext('2d');
+    if (window.hydroChart) window.hydroChart.destroy();
+
+    // 組成 {x: Qt, y: WSE} 資料點
+    chartPoints = xArr.map((wse, i) => ({
+      x: typeof yArr[i] === 'number' ? Number(yArr[i]).toFixed(3) * 1 : Number(yArr[i]).toFixed(3), // Qt
+      y: typeof wse === 'number' ? wse : Number(wse)              // WSE
+    }));
+
+    window.hydroChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: [{
+          label: '水位-流量曲線',
+          data: chartPoints,
+          borderColor: '#007bff',
+          backgroundColor: 'rgba(0,123,255,0.2)',
+          fill: false,
+          pointRadius: 4,
+          pointBackgroundColor: '#007bff',
+          tension: 0.2,
+          showLine: true
+        },
+        // 輔助線資料集
+        ...(highlightWse !== null && highlightQt !== null ? [
+          {
+            label: '查詢輔助線',
+            data: [
+              {x: highlightQt, y: window.hydroChart?.scales?.y?.min ?? chartPoints[0].y}, // 垂直線起點
+              {x: highlightQt, y: highlightWse},     // 垂直線終點
+              {x: window.hydroChart?.scales?.x?.min ?? chartPoints[0].x, y: highlightWse},// 水平線起點
+              {x: highlightQt, y: highlightWse}      // 水平線終點
+            ],
+            borderColor: '#00a11b79',
+            borderWidth: 2,
+            pointRadius: 0,
+            showLine: true,
+            fill: false
+          }
+        ] : [])
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: {
+            display: true,
+            text: '水位-流量曲線圖',
+            font: { size: 20, weight: 'bold' },
+            padding: 20,
+            color: '#333'
+          },
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const qt = context.parsed.x;
+                const wse = context.parsed.y;
+                return [
+                  `流量：${qt}(cms)`,
+                  `水位：${wse}(m)`
+                ];
+              }
+            }
+          }
+        },
+        scales: {
+          x: { title: { display: true, text: '流量(cms)' }, type: 'linear' },
+          y: { title: { display: true, text: '水位(m)' }, type: 'linear' }
+        }
+      }
+    });
+  }
+
+  // 查詢水位對應流量並畫輔助線
+  function queryWseFlow() {
+    const wseInput = document.getElementById('input-wse-query');
+    const wseValue = parseFloat(wseInput.value);
+    if (isNaN(wseValue)) {
+      document.getElementById('wse-flow-result').textContent = '請輸入水位';
+      highlightWse = null;
+      highlightQt = null;
+      drawHydroCurve(chartPoints.map(p => p.y), chartPoints.map(p => p.x));
+      return;
+    }
+
+    // 找最接近的資料點
+    let nearest = chartPoints.reduce((prev, curr) => {
+      return Math.abs(curr.y - wseValue) < Math.abs(prev.y - wseValue) ? curr : prev;
+    }, chartPoints[0]);
+
+    highlightWse = nearest.y;
+    highlightQt = nearest.x;
+
+    document.getElementById('wse-flow-result').textContent = `${highlightQt}`;
+
+    // 重新畫圖（帶入輔助線）
+    drawHydroCurve(chartPoints.map(p => p.y), chartPoints.map(p => p.x));
+  }
+
+  // 初始化步驟二設施選單
+  document.addEventListener('DOMContentLoaded', function() {
+    renderResultFacilitySelect();
+  });
+</script>
+{% endblock %}

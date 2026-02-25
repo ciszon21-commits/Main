@@ -1,0 +1,133 @@
+{% extends 'EngineerRPG/management/base_management.html' %}
+
+{% block page_header %}
+<div class="page-header mb-lg">
+    <h1><i class="fas fa-book"></i> 課程與題庫管理</h1>
+    <p class="text-stone">管理課程內容、題庫、分類與匯入匯出</p>
+</div>
+{% endblock %}
+
+{% block management_content %}
+<div class="rpg-card">
+    <div class="rpg-card-header flex justify-between items-center">
+        <h3 class="rpg-card-title"><i class="fas fa-tags"></i> 分類管理</h3>
+        <button onclick="openCreateModal()" class="rpg-btn rpg-btn-sm rpg-btn-primary">
+            <i class="fas fa-plus"></i> 新增分類
+        </button>
+    </div>
+
+    <div class="table-container mt-md">
+        <table class="rpg-table w-full">
+            <thead>
+                <tr>
+                    <th>名稱</th>
+                    <th>描述</th>
+                    <th>題目數</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for category in categories %}
+                <tr>
+                    <td class="font-bold text-primary">{{ category.name }}</td>
+                    <td class="text-stone">{{ category.description }}</td>
+                    <td>{{ category.questions.count }}</td>
+                    <td>
+                        <form method="post" onsubmit="return confirm('確定要刪除此分類嗎？關聯的題目將會變成無分類狀態。');"
+                            style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="id" value="{{ category.id }}">
+                            <input type="hidden" name="action" value="delete">
+                            <button type="submit" class="rpg-btn rpg-btn-xs rpg-btn-danger">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center py-lg text-stone">目前沒有分類</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Create Modal -->
+<div id="createModal" class="modal">
+    <div class="modal-content rpg-card" style="max-width: 500px;">
+        <span class="close" onclick="closeCreateModal()">&times;</span>
+        <div class="rpg-card-header">
+            <h3 class="rpg-card-title">新增分類</h3>
+        </div>
+        <form method="post" class="mt-md">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create">
+
+            <div class="form-group mb-md">
+                <label class="form-label">分類名稱</label>
+                <input type="text" name="name" class="rpg-input w-full" required>
+            </div>
+
+            <div class="form-group mb-lg">
+                <label class="form-label">描述</label>
+                <textarea name="description" class="rpg-input w-full" rows="3"></textarea>
+            </div>
+
+            <div class="flex justify-end gap-sm">
+                <button type="button" onclick="closeCreateModal()" class="rpg-btn rpg-btn-secondary">取消</button>
+                <button type="submit" class="rpg-btn rpg-btn-primary">建立</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openCreateModal() {
+        document.getElementById('createModal').style.display = 'block';
+    }
+
+    function closeCreateModal() {
+        document.getElementById('createModal').style.display = 'none';
+    }
+
+    window.onclick = function (event) {
+        var modal = document.getElementById('createModal');
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+</script>
+
+<style>
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+    }
+
+    .modal-content {
+        margin: 15% auto;
+        position: relative;
+    }
+
+    .close {
+        color: var(--color-stone);
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .close:hover {
+        color: var(--color-light);
+    }
+</style>
+{% endblock %}

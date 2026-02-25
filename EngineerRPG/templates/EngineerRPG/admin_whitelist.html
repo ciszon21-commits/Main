@@ -1,0 +1,247 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}白名單管理 - 創世神介面{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <div class="mb-lg">
+        <h1><i class="fas fa-users-cog"></i> 管理員白名單</h1>
+        <p class="text-secondary">設定特定使用者的角色權限（公會會長、幹部）。創世神 (Superuser) 自動擁有最高權限。</p>
+    </div>
+
+    <!-- 新增白名單 -->
+    <div class="rpg-card mb-lg">
+        <div class="rpg-card-header">
+            <h3><i class="fas fa-user-plus"></i> 新增授權</h3>
+        </div>
+        <div class="rpg-card-body">
+            <form method="post" action="{% url 'engineer_rpg:admin_whitelist_add' %}" class="d-flex gap-md align-items-end">
+                {% csrf_token %}
+                <div class="form-group flex-grow-1" style="position: relative;">
+                    <label>使用者（搜尋姓名或帳號）</label>
+                    <input type="text" id="user-search" class="rpg-input" placeholder="輸入姓名或帳號搜尋..." autocomplete="off">
+                    <input type="hidden" name="username" id="selected-username">
+                    <div id="search-results" class="search-dropdown" style="display: none;"></div>
+                    <div id="selected-user-badge" class="selected-badge" style="display: none;"></div>
+                </div>
+                <div class="form-group flex-grow-1">
+                    <label>授予角色</label>
+                    <select name="role" class="rpg-input">
+                        {% for code, name in role_choices %}
+                        <option value="{{ code }}">{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="rpg-btn rpg-btn-primary" id="submit-btn" disabled>
+                        <i class="fas fa-plus"></i> 新增
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 白名單列表 -->
+    <div class="rpg-card">
+        <div class="rpg-card-header">
+            <h3><i class="fas fa-list"></i> 目前名單</h3>
+        </div>
+        <div class="rpg-card-body p-0">
+            <div class="table-responsive">
+                <table class="rpg-table">
+                    <thead>
+                        <tr>
+                            <th>使用者帳號</th>
+                            <th>角色</th>
+                            <th>建立時間</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in whitelists %}
+                        <tr>
+                            <td>{{ item.username }}</td>
+                            <td>
+                                <span class="badge badge-info">{{ item.get_role_display }}</span>
+                            </td>
+                            <td>{{ item.created_at|date:"Y-m-d H:i" }}</td>
+                            <td>
+                                <form method="post" action="{% url 'engineer_rpg:admin_whitelist_delete' item.id %}" onsubmit="return confirm('確定要移除此權限設定嗎？');" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="rpg-btn rpg-btn-danger rpg-btn-sm">
+                                        <i class="fas fa-trash"></i> 移除
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-md">目前沒有設定任何白名單</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-lg">
+        <a href="{% url 'engineer_rpg:admin_dashboard' %}" class="rpg-btn rpg-btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回管理面板
+        </a>
+    </div>
+</div>
+
+<style>
+    .search-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: rgba(30, 15, 10, 0.98);
+        border: 1px solid var(--color-secondary);
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+        max-height: 250px;
+        overflow-y: auto;
+        z-index: 100;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .search-item {
+        padding: 10px 14px;
+        cursor: pointer;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        transition: background 0.15s;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .search-item:hover {
+        background: rgba(255, 215, 0, 0.1);
+    }
+
+    .search-item .name {
+        color: var(--color-text);
+        font-weight: bold;
+    }
+
+    .search-item .username {
+        color: var(--color-stone);
+        font-size: 0.85rem;
+    }
+
+    .search-no-result {
+        padding: 12px 14px;
+        color: var(--color-stone);
+        text-align: center;
+        font-size: 0.9rem;
+    }
+
+    .selected-badge {
+        margin-top: 8px;
+        padding: 6px 12px;
+        background: rgba(255, 215, 0, 0.15);
+        border: 1px solid var(--color-gold);
+        border-radius: var(--border-radius);
+        color: var(--color-gold);
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .selected-badge .clear-btn {
+        cursor: pointer;
+        color: var(--color-stone);
+        font-size: 0.8rem;
+    }
+
+    .selected-badge .clear-btn:hover {
+        color: var(--color-danger);
+    }
+</style>
+
+<script>
+(function() {
+    const searchInput = document.getElementById('user-search');
+    const hiddenInput = document.getElementById('selected-username');
+    const resultsDiv = document.getElementById('search-results');
+    const badgeDiv = document.getElementById('selected-user-badge');
+    const submitBtn = document.getElementById('submit-btn');
+    let debounceTimer = null;
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        const query = this.value.trim();
+
+        if (query.length < 1) {
+            resultsDiv.style.display = 'none';
+            return;
+        }
+
+        debounceTimer = setTimeout(function() {
+            fetch(`{% url 'engineer_rpg:api_search_users' %}?q=${encodeURIComponent(query)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.results.length === 0) {
+                        resultsDiv.innerHTML = '<div class="search-no-result">找不到符合的使用者</div>';
+                    } else {
+                        resultsDiv.innerHTML = data.results.map(u =>
+                            `<div class="search-item" data-username="${u.username}" data-display="${u.display}">
+                                <span class="name">${u.emp_name || u.username}</span>
+                                <span class="username">${u.username}</span>
+                            </div>`
+                        ).join('');
+
+                        resultsDiv.querySelectorAll('.search-item').forEach(item => {
+                            item.addEventListener('click', function() {
+                                selectUser(this.dataset.username, this.dataset.display);
+                            });
+                        });
+                    }
+                    resultsDiv.style.display = 'block';
+                });
+        }, 250);
+    });
+
+    function selectUser(username, display) {
+        hiddenInput.value = username;
+        searchInput.value = '';
+        searchInput.style.display = 'none';
+        resultsDiv.style.display = 'none';
+
+        badgeDiv.innerHTML = `<i class="fas fa-user-check"></i> ${display}
+            <span class="clear-btn" title="清除"><i class="fas fa-times"></i></span>`;
+        badgeDiv.style.display = 'inline-flex';
+
+        badgeDiv.querySelector('.clear-btn').addEventListener('click', clearSelection);
+        submitBtn.disabled = false;
+    }
+
+    function clearSelection() {
+        hiddenInput.value = '';
+        searchInput.value = '';
+        searchInput.style.display = '';
+        badgeDiv.style.display = 'none';
+        submitBtn.disabled = true;
+        searchInput.focus();
+    }
+
+    // 點擊其他地方關閉下拉
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+            resultsDiv.style.display = 'none';
+        }
+    });
+
+    // 聚焦時若有內容則顯示
+    searchInput.addEventListener('focus', function() {
+        if (resultsDiv.innerHTML && this.value.trim().length >= 1) {
+            resultsDiv.style.display = 'block';
+        }
+    });
+})();
+</script>
+{% endblock %}

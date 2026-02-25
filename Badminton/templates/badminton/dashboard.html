@@ -1,0 +1,147 @@
+{% extends 'badminton/base.html' %}
+
+{% block title %}統計儀表板 - 記帳系統{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">📊 統計儀表板</h1>
+
+    <div style="display: flex; gap: 8px;">
+        <a href="?period=day"
+            class="btn {% if current_period == 'day' %}btn-primary{% else %}btn-secondary{% endif %}">今日</a>
+        <a href="?period=week"
+            class="btn {% if current_period == 'week' %}btn-primary{% else %}btn-secondary{% endif %}">本週</a>
+        <a href="?period=month"
+            class="btn {% if current_period == 'month' %}btn-primary{% else %}btn-secondary{% endif %}">本月</a>
+        <a href="?period=all"
+            class="btn {% if current_period == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">全部</a>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value">${{ stats.total_amount|floatformat:0 }}</div>
+        <div class="stat-label">總支出金額</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.expense_count }}</div>
+        <div class="stat-label">記帳筆數</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.category_data|length }}</div>
+        <div class="stat-label">消費類型數</div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px;">
+    <!-- Pie Chart -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📈 各類別支出佔比</h3>
+        </div>
+        <div class="chart-container">
+            <canvas id="categoryChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Category List -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📋 類別明細</h3>
+        </div>
+        {% if stats.category_data %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>類型</th>
+                    <th>金額</th>
+                    <th>比例</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cat in stats.category_data %}
+                <tr>
+                    <td>
+                        <span class="badge" style="background-color: {{ cat.color }}">
+                            {{ cat.name }}
+                        </span>
+                    </td>
+                    <td style="font-weight: 600;">${{ cat.total|floatformat:0 }}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div
+                                style="width: 100px; height: 8px; background-color: var(--bg-base); border-radius: 4px; overflow: hidden;">
+                                <div
+                                    style="width: {{ cat.percentage }}%; height: 100%; background-color: {{ cat.color }};">
+                                </div>
+                            </div>
+                            <span>{{ cat.percentage }}%</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: var(--text-subdued);">
+            <p>尚無資料</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const ctx = document.getElementById('categoryChart');
+        if (!ctx) return;
+
+        const categoryData = {{ stats.category_data| safe
+    }};
+
+    if (categoryData.length === 0) {
+        ctx.parentElement.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-subdued);">尚無資料</div>';
+        return;
+    }
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: categoryData.map(d => d.name),
+            datasets: [{
+                data: categoryData.map(d => d.total),
+                backgroundColor: categoryData.map(d => d.color),
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        color: '#f8fafc',
+                        padding: 16,
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const value = context.raw;
+                            const percentage = categoryData[context.dataIndex].percentage;
+                            return `$${value.toLocaleString()} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

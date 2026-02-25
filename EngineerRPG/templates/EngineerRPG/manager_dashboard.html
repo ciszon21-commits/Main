@@ -1,0 +1,128 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}主管儀表板 - 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <div class="mb-lg">
+        <h1 class="text-center">
+            <i class="fas fa-clipboard-check"></i>
+            主管審核中心
+        </h1>
+        <p class="text-center" style="color: var(--color-secondary); font-size: 1.1rem;">
+            審核冒險者的晉升申請，指引他們成長！
+        </p>
+    </div>
+
+    <!-- 待審核申請 -->
+    <div class="rpg-card mb-xl">
+        <h2 class="flex items-center gap-sm mb-lg">
+            <i class="fas fa-clock" style="color: var(--color-secondary);"></i>
+            待審核申請
+            {% if pending_requests %}
+            <span class="badge badge-warning">{{ pending_requests|length }}</span>
+            {% endif %}
+        </h2>
+
+        {% if pending_requests %}
+        <div class="grid grid-2 gap-md">
+            {% for req in pending_requests %}
+            <div class="rpg-card" style="background: rgba(0,0,0,0.4); border: 1px solid var(--color-secondary);">
+                <div class="flex justify-between items-start mb-md">
+                    <div>
+                        <div style="font-weight: 700; font-size: 1.1rem; color: var(--color-text);">
+                            {{ req.applicant.user.username }}
+                        </div>
+                        <div style="font-size: 0.9rem; color: var(--color-stone);">
+                            {{ req.applicant.character_class.name }}
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div style="font-size: 0.85rem; color: var(--color-stone);">申請日期</div>
+                        <div>{{ req.applied_at|date:"Y/m/d" }}</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-md mb-lg p-md"
+                    style="background: rgba(0,0,0,0.3); border-radius: var(--border-radius);">
+                    <div class="text-center flex-1">
+                        <div style="font-size: 1.2rem; font-weight: 700;">Lv.{{ req.current_level }}</div>
+                        <div style="font-size: 0.8rem; color: var(--color-stone);">目前等級</div>
+                    </div>
+                    <div style="font-size: 1.5rem; color: var(--color-secondary);"><i class="fas fa-arrow-right"></i>
+                    </div>
+                    <div class="text-center flex-1">
+                        <div style="font-size: 1.2rem; font-weight: 700; color: var(--color-secondary);">Lv.{{
+                            req.target_level }}</div>
+                        <div style="font-size: 0.8rem; color: var(--color-stone);">目標等級</div>
+                    </div>
+                </div>
+
+                <div class="flex gap-sm">
+                    <a href="{% url 'engineer_rpg:review_request' req.id %}"
+                        class="rpg-btn rpg-btn-primary flex-1 text-center">
+                        查看詳情
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-center" style="padding: var(--spacing-xl); color: var(--color-stone);">
+            <i class="fas fa-check-circle" style="font-size: 2rem; margin-bottom: var(--spacing-md);"></i><br>
+            目前沒有待審核的申請
+        </p>
+        {% endif %}
+    </div>
+
+    <!-- 功能快捷 -->
+    <div class="grid grid-2 gap-lg">
+        <div class="rpg-card text-center">
+            <i class="fas fa-list-alt"
+                style="font-size: 2.5rem; color: var(--color-stone); margin-bottom: var(--spacing-md);"></i>
+            <h3>申請歷史</h3>
+            <p class="mb-md" style="color: var(--color-stone); font-size: 0.9rem;">查看所有已處理的晉升申請</p>
+            <a href="{% url 'engineer_rpg:promotion_requests' %}" class="rpg-btn">查看歷史</a>
+        </div>
+
+        <div class="rpg-card text-center">
+            <i class="fas fa-users"
+                style="font-size: 2.5rem; color: var(--color-stone); margin-bottom: var(--spacing-md);"></i>
+            <h3>成員列表</h3>
+            <p class="mb-md" style="color: var(--color-stone); font-size: 0.9rem;">查看公會成員狀態與等級</p>
+            <a href="{% url 'engineer_rpg:user_management' %}" class="rpg-btn">查看成員</a>
+        </div>
+
+        <div class="rpg-card text-center">
+            <i class="fas fa-sitemap"
+                style="font-size: 2.5rem; color: var(--color-stone); margin-bottom: var(--spacing-md);"></i>
+            <h3>技能樹管理</h3>
+            <p class="mb-md" style="color: var(--color-stone); font-size: 0.9rem;">編輯技能節點與結構</p>
+            <a href="{% url 'engineer_rpg:manage_skill_tree' %}" class="rpg-btn rpg-btn-primary">編輯技能</a>
+        </div>
+
+        <div class="rpg-card text-center">
+            <i class="fas fa-scroll"
+                style="font-size: 2.5rem; color: var(--color-stone); margin-bottom: var(--spacing-md);"></i>
+            <h3>題庫管理</h3>
+            <p class="mb-md" style="color: var(--color-stone); font-size: 0.9rem;">新增與編輯試煉題目</p>
+            <a href="{% url 'engineer_rpg:manage_questions' %}" class="rpg-btn">管理題庫</a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .badge {
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .badge-warning {
+        background: var(--color-secondary);
+        color: black;
+    }
+</style>
+{% endblock %}

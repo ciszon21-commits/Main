@@ -1,0 +1,339 @@
+{% extends 'site360/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    #map {
+        height: 80vh;
+        width: 100%;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .popup-cover {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 4px;
+        margin-bottom: 8px;
+    }
+
+    .popup-content h6 {
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+    .popup-content p {
+        font-size: 0.9em;
+        color: #666;
+        margin-bottom: 8px;
+    }
+
+    /* Badge Colors */
+    .badge-text {
+        background-color: #3b82f6;
+        color: white;
+    }
+
+    .badge-image {
+        background-color: #22c55e;
+        color: white;
+    }
+
+    .badge-video {
+        background-color: #ef4444;
+        color: white;
+    }
+
+    .badge {
+        padding: 3px 6px;
+        border-radius: 4px;
+        font-size: 0.75em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12 px-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="mb-0"><i class="fas fa-map-marked-alt text-primary"></i> 專案地圖總覽</h2>
+                <a href="{% url 'site360:project_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-list"></i> 返回列表
+                </a>
+            </div>
+
+            <!-- Search Form -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <form method="get" id="searchForm">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-4">
+                                <label for="{{ search_form.search_query.id_for_label }}" class="form-label">
+                                    <i class="fas fa-search"></i> 專案名稱
+                                </label>
+                                {{ search_form.search_query }}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ search_form.city.id_for_label }}" class="form-label">
+                                    <i class="fas fa-map-marker-alt"></i> 縣市
+                                </label>
+                                {{ search_form.city }}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ search_form.address.id_for_label }}" class="form-label">
+                                    <i class="fas fa-home"></i> 地址關鍵字
+                                </label>
+                                {{ search_form.address }}
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-search"></i> 搜尋
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-12 text-end">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="clearFilters">
+                                    <i class="fas fa-times"></i> 清除篩選
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Stats Section -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-table"></i> 縣市專案統計表</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if city_stats %}
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>縣市</th>
+                                            <th class="text-end">專案數量</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for stat in city_stats %}
+                                        <tr data-bs-toggle="collapse" data-bs-target="#city-{{ forloop.counter }}"
+                                            role="button" aria-expanded="false" class="accordion-toggle">
+                                            <td><i class="fas fa-chevron-right me-2 text-muted"></i>{{ stat.city }}</td>
+                                            <td class="text-end ps-0 pe-2"><span
+                                                    class="badge bg-secondary rounded-pill">{{ stat.count }}</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="2" class="p-0 border-0">
+                                                <div class="collapse" id="city-{{ forloop.counter }}">
+                                                    <div
+                                                        class="card card-body bg-light border-0 py-2 px-3 list-group list-group-flush rounded-0 mb-2">
+                                                        {% for project in stat.projects %}
+                                                        <div
+                                                            class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0 py-1 border-bottom-0">
+                                                            <span class="text-truncate me-2"
+                                                                style="max-width: 280px; font-size: 0.9em;">
+                                                                <i class="fas fa-cube fa-xs me-1 text-muted"></i>{{ project.name }}
+                                                            </span>
+                                                            <a href="{% url 'site360:project_detail' project.pk %}"
+                                                                target="_blank"
+                                                                class="btn btn-sm btn-outline-primary py-0 px-2"
+                                                                style="font-size: 0.8em;">
+                                                                前往
+                                                            </a>
+                                                        </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <p class="text-muted text-center my-4">目前尚無縣市統計資料</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-chart-bar"></i> 區域分佈圖表</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="cityChart" style="max-height: 300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="map"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Chart Initialization
+        {% if city_stats %}
+        const ctx = document.getElementById('cityChart').getContext('2d');
+
+        const labels = [{% for stat in city_stats %}"{{ stat.city|escapejs }}", {% endfor %}];
+    const counts = [{% for stat in city_stats %}{{ stat.count }}, {% endfor %}];
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '專案數量',
+                data: counts,
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+    {% else %}
+    // No data handling for chart
+    const canvas = document.getElementById('cityChart');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.font = "16px Arial";
+        ctx.fillStyle = "gray";
+        ctx.textAlign = "center";
+        ctx.fillText("無資料", canvas.width / 2, canvas.height / 2);
+    }
+    {% endif %}
+
+    // Initialize map (Default: Taiwan center)
+    const map = L.map('map').setView([23.5, 121.0], 8);
+
+    // Add OSM tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // Define Red Icon
+    const redIcon = new L.Icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
+    // Clear Filters Button
+    document.getElementById('clearFilters').addEventListener('click', function () {
+        window.location.href = '{% url "site360:project_map" %}';
+    });
+
+    // Get current search parameters from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchParams = new URLSearchParams();
+
+    // Build query string for API call
+    if (urlParams.get('search_query')) {
+        searchParams.append('search_query', urlParams.get('search_query'));
+    }
+    if (urlParams.get('city')) {
+        searchParams.append('city', urlParams.get('city'));
+    }
+    if (urlParams.get('address')) {
+        searchParams.append('address', urlParams.get('address'));
+    }
+
+    // Fetch project data with search parameters
+    const apiUrl = '{% url "site360:project_map_data" %}' + (searchParams.toString() ? '?' + searchParams.toString() : '');
+
+    fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+            if (data.projects.length === 0) {
+                L.popup()
+                    .setLatLng([23.5, 121.0])
+                    .setContent("目前沒有設定座標的專案。")
+                    .openOn(map);
+                return;
+            }
+
+            const markers = L.featureGroup();
+
+            data.projects.forEach(project => {
+                const marker = L.marker([project.lat, project.lng], { icon: redIcon }).addTo(map);
+
+                let popupHtml = `<div class="popup-content">`;
+                if (project.cover) {
+                    popupHtml += `<img src="${project.cover}" class="popup-cover" alt="${project.name}">`;
+                }
+
+                // Stats Badges
+                let statsHtml = '<div class="d-flex gap-1 mb-2">';
+                if (project.stats) {
+                    if (project.stats.text > 0) {
+                        statsHtml += `<span class="badge badge-text" title="文字熱點數"><i class="fas fa-align-left"></i> ${project.stats.text}</span>`;
+                    }
+                    if (project.stats.image > 0) {
+                        statsHtml += `<span class="badge badge-image" title="圖片熱點數"><i class="fas fa-image"></i> ${project.stats.image}</span>`;
+                    }
+                    if (project.stats.video > 0) {
+                        statsHtml += `<span class="badge badge-video" title="影片熱點數"><i class="fas fa-video"></i> ${project.stats.video}</span>`;
+                    }
+                }
+                statsHtml += '</div>';
+
+                popupHtml += `<h6>${project.name}</h6>
+                                  ${statsHtml}
+                                  <p>${project.description}</p>
+                                  <a href="${project.url}" class="btn btn-info text-white btn-sm w-100">查看專案</a>
+                                  </div>`;
+
+                marker.bindPopup(popupHtml);
+                markers.addLayer(marker);
+            });
+
+            // Fit map bounds to show all markers
+            if (data.projects.length > 0) {
+                map.fitBounds(markers.getBounds(), { padding: [50, 50] });
+            }
+        })
+        .catch(error => {
+            console.error('Error loading map data:', error);
+        });
+    });
+</script>
+{% endblock %}

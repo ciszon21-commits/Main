@@ -1,0 +1,245 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}我的部門 | 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container fade-in">
+    {% if has_dept %}
+    <!-- 有部門 -->
+    <div class="text-center mb-xl">
+        <h2 class="rpg-title">
+            <i class="fas fa-building"></i> {{ dept_name }}
+        </h2>
+        <p class="text-stone">你所屬的部門冒險者</p>
+    </div>
+
+    <!-- 部門資訊卡片 -->
+    <div class="rpg-card mb-lg" style="max-width: 800px; margin: 0 auto;">
+        <div class="rpg-card-header">
+            <h3 class="rpg-card-title"><i class="fas fa-info-circle"></i> 部門資訊</h3>
+        </div>
+        <div class="rpg-card-body">
+            <div class="team-info-grid">
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-building"></i> 部門名稱</div>
+                    <div class="info-value">{{ dept_name }}</div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-hashtag"></i> 部門代碼</div>
+                    <div class="info-value">{{ dept_code }}</div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-users"></i> 冒險者人數</div>
+                    <div class="info-value">{{ dept_members.count }} 人</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 部門成員 -->
+    <div class="rpg-card" style="max-width: 1200px; margin: 0 auto;">
+        <div class="rpg-card-header">
+            <h3 class="rpg-card-title"><i class="fas fa-users"></i> 部門冒險者</h3>
+        </div>
+        <div class="rpg-card-body">
+            <div class="member-grid">
+                {% for member in dept_members %}
+                <a href="{% url 'engineer_rpg:member_profile_detail' member.id %}?from=team" class="member-card-link">
+                    <div class="member-card {% if member.user == user %}current-user{% endif %}">
+                        <img src="{{ member.get_avatar_url }}"
+                            alt="{{ member.display_name|default:member.user.username }}" class="member-avatar"
+                            style="border-color: {% if member.role == 'ADMIN' %}var(--color-danger){% elif member.role == 'MANAGER' %}var(--color-mech){% else %}var(--color-border){% endif %};">
+
+                        <div class="member-info">
+                            <div class="member-name">
+                                {{ member.display_name|default:member.user.username }}
+                                {% if member.user == user %}
+                                <span class="badge badge-primary ml-xs">你</span>
+                                {% endif %}
+                            </div>
+                            <div class="member-meta">
+                                <span>Lv.{{ member.level }}</span>
+                                {% if member.character_class %}
+                                <span>{{ member.character_class.name }}</span>
+                                {% else %}
+                                <span class="text-stone">未選擇職業</span>
+                                {% endif %}
+                            </div>
+                            {% if member.role == 'ADMIN' %}
+                            <div class="member-role">
+                                <span class="badge badge-danger">創世神</span>
+                            </div>
+                            {% elif member.role == 'MANAGER' %}
+                            <div class="member-role">
+                                <span class="badge badge-mech">公會會長</span>
+                            </div>
+                            {% elif member.role == 'OFFICER' %}
+                            <div class="member-role">
+                                <span class="badge badge-officer">公會幹部</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- 沒有部門資訊 -->
+    <div class="text-center mb-xl">
+        <h2 class="rpg-title">
+            <i class="fas fa-user-tag"></i> 自由冒險者
+        </h2>
+        <p class="text-stone">尚未取得部門資訊</p>
+    </div>
+
+    <div class="rpg-card" style="max-width: 600px; margin: 0 auto;">
+        <div class="rpg-card-body text-center py-xl">
+            <i class="fas fa-users-slash" style="font-size: 4rem; color: var(--color-stone); margin-bottom: 2rem;"></i>
+            <h3 class="mb-md">尚未指派部門</h3>
+            <p class="text-stone mb-lg">
+                系統尚未取得你的部門資訊，<br>
+                請聯繫管理員確認你的帳號資料。
+            </p>
+            <a href="{% url 'engineer_rpg:guild_dashboard' %}" class="rpg-btn rpg-btn-primary">
+                <i class="fas fa-crown"></i> 前往公會大廳
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .team-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--spacing-lg);
+        padding: var(--spacing-md);
+    }
+
+    .info-item {
+        text-align: center;
+        padding: var(--spacing-md);
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: var(--border-radius);
+    }
+
+    .info-label {
+        color: var(--color-gold);
+        font-size: 0.9rem;
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .info-value {
+        color: var(--color-text);
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+
+    .member-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: var(--spacing-md);
+        margin-top: var(--spacing-sm);
+    }
+
+    .member-card-link {
+        text-decoration: none;
+        display: block;
+    }
+
+    .member-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: var(--border-radius);
+        padding: var(--spacing-md);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        transition: transform 0.2s, background 0.2s;
+    }
+
+    .member-card:hover {
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateY(-2px);
+        cursor: pointer;
+    }
+
+    .member-card.current-user {
+        border-color: var(--color-primary);
+        background: rgba(var(--rgb-primary), 0.1);
+    }
+
+    .member-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 2px solid var(--color-border);
+        object-fit: cover;
+    }
+
+    .member-info {
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .member-name {
+        font-weight: bold;
+        color: var(--color-text);
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .member-meta {
+        display: flex;
+        gap: var(--spacing-xs);
+        font-size: 0.85rem;
+        color: var(--color-stone);
+        margin-bottom: 4px;
+    }
+
+    .member-role {
+        margin-top: 4px;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+
+    .badge-gold {
+        background: rgba(255, 215, 0, 0.2);
+        color: var(--color-gold);
+    }
+
+    .badge-primary {
+        background: rgba(var(--rgb-primary), 0.3);
+        color: var(--color-primary);
+    }
+
+    .badge-danger {
+        background: rgba(var(--rgb-danger), 0.3);
+        color: var(--color-danger);
+    }
+
+    .badge-mech {
+        background: rgba(var(--rgb-mech), 0.3);
+        color: var(--color-mech);
+    }
+
+    .badge-officer {
+        background: rgba(100, 150, 255, 0.3);
+        color: #6496FF;
+    }
+</style>
+{% endblock %}

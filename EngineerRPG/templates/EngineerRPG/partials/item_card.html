@@ -1,0 +1,61 @@
+{% load static %}
+<div
+    class="rpg-card p-md relative overflow-hidden group hover:-translate-y-1 transition-transform border border-white/10">
+    <!-- Quantity Badge -->
+    <div class="absolute top-2 right-2 bg-primary text-white text-xs font-bold px-2 py-1 rounded-full z-10 box-shadow">
+        x{{ quantity }}
+    </div>
+
+    <div class="flex gap-md">
+        <!-- Icon -->
+        <div class="w-16 h-16 rounded bg-black/30 flex items-center justify-center shrink-0 border border-white/5">
+            {% if item.icon %}
+            <img src="{% static item.icon %}" alt="{{ item.name }}" class="w-full h-full object-cover">
+            {% else %}
+            <!-- Fallback Icons based on Effect Type -->
+            {% if item.effect_type == 'HEAL' %}
+            <i class="fas fa-heart text-2xl text-red-500"></i>
+            {% elif item.effect_type == 'HINT' %}
+            <i class="fas fa-lightbulb text-2xl text-yellow-400"></i>
+            {% elif item.effect_type == 'remove_option' %}
+            <i class="fas fa-cut text-2xl text-stone"></i>
+            {% elif item.effect_type == 'SKIP' %}
+            <i class="fas fa-forward text-2xl text-blue-400"></i>
+            {% elif item.effect_type == 'SHIELD' %}
+            <i class="fas fa-shield-alt text-2xl text-teal-400"></i>
+            {% elif item.effect_type == 'time_extend' %}
+            <i class="fas fa-hourglass-half text-2xl text-orange-400"></i>
+            {% else %}
+            <i class="fas fa-box text-2xl text-gray-400"></i>
+            {% endif %}
+            {% endif %}
+        </div>
+
+        <!-- Info -->
+        <div class="flex-1">
+            <h3 class="font-bold text-lg mb-xs 
+                {% if item.rarity == 'RARE' %}text-blue-400
+                {% elif item.rarity == 'EPIC' %}text-purple-400
+                {% elif item.rarity == 'LEGENDARY' %}text-yellow-400
+                {% else %}text-white{% endif %}">
+                {{ item.name }}
+            </h3>
+
+            <p class="text-sm text-gray-400 mb-sm line-clamp-2" style="min-height: 2.5em;">
+                {{ item.description }}
+            </p>
+
+            <!-- Effect Tag -->
+            <div class="flex flex-wrap gap-xs">
+                <span class="text-xs px-2 py-0.5 rounded bg-black/40 text-gray-500 border border-white/10">
+                    {{ item.get_effect_type_display }}
+                    {% if item.effect_value > 0 %} {{ item.effect_value }}{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-md pt-sm border-t border-white/10 flex justify-between items-center">
+        <span class="text-xs text-gray-500">{{ item.get_rarity_display }}</span>
+    </div>
+</div>

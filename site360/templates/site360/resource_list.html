@@ -1,0 +1,1052 @@
+{% extends 'site360/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        {% if project %}
+        <h2>{{ project.name }} - 資源列表</h2>
+        <div class="d-flex gap-2">
+            <a href="{% url 'site360:project_detail' project.pk %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> 返回專案頁面
+            </a>
+            <a href="{% url 'site360:project_tour' project.pk %}" class="btn btn-outline-secondary">
+                <i class="fas fa-cube"></i> 返回全景導覽
+            </a>
+        </div>
+        {% else %}
+        <h2>全部專案 - 資源列表</h2>
+        <a href="{% url 'site360:project_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-home"></i> 返回首頁
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="card shadow-sm mb-4" style="overflow: visible; z-index: 10; position: relative;">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-filter"></i> 資源篩選</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                {% if all_projects %}
+                <div class="col-md-3">
+                    <label class="form-label">專案篩選</label>
+                    <select class="form-select" id="projectSelect">
+                        <option value="">全部專案</option>
+                        {% for proj in all_projects %}
+                        <option value="{{ proj.name }}">{{ proj.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <div class="col-md-3">
+                    <label class="form-label">關鍵字搜尋</label>
+                    <input type="text" class="form-control" id="keywordInput" placeholder="搜尋標題或說明...">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">場景篩選</label>
+                    <select class="form-select" id="sceneSelect">
+                        <option value="">全部場景</option>
+                        {% for scene in scenes %}
+                        <option value="{{ scene.title }}" {% if scene.project %}data-project="{{ scene.project.name }}"
+                            {% endif %}>
+                            {{ scene.title }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">狀態/引用</label>
+                    <select class="form-select" id="statusSelect">
+                        <option value="">全部狀態</option>
+                        <option value="referencing">引用中 (Referencing)</option>
+                        <option value="source">來源 (Source)</option>
+                        <option value="independent">獨立 (Independent)</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">類型篩選</label>
+                    <div class="dropdown" id="typeSelect">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button"
+                            data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                            選擇類型
+                        </button>
+                        <form class="dropdown-menu p-3">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input type-filter-checkbox" type="checkbox" value="text"
+                                    id="checkText" checked>
+                                <label class="form-check-label" for="checkText">
+                                    文字類 (Text)
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input type-filter-checkbox" type="checkbox" value="image"
+                                    id="checkImage" checked>
+                                <label class="form-check-label" for="checkImage">
+                                    圖片類 (Image)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input type-filter-checkbox" type="checkbox" value="video"
+                                    id="checkVideo" checked>
+                                <label class="form-check-label" for="checkVideo">
+                                    影片類 (Video)
+                                </label>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            {% if scenes %}
+            {% for scene in scenes %}
+            <div class="scene-section" data-scene-title="{{ scene.title }}">
+                <h4 class="mt-4 mb-3 border-bottom pb-2">{{ scene.title }}</h4>
+                {% if scene.hotspots.all %}
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover align-middle resource-table">
+                        <thead class="table-light">
+                            <tr>
+                                {% if all_projects %}<th style="width: 15%;">專案</th>{% endif %}
+                                <th style="width: 10%;">類型</th>
+                                <th style="width: {% if all_projects %}15%{% else %}20%{% endif %};">標題</th>
+                                <th style="width: 20%;">說明內容</th>
+                                <th style="width: 12%;">狀態 / 引用</th>
+                                <th style="width: 15%;">媒體預覽</th>
+                                <th style="width: 20%;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for hotspot in scene.hotspots.all %}
+                            <tr class="resource-row" data-scene="{{ scene.title }}"
+                                data-project="{{ scene.project.name }}" data-type="{{ hotspot.hotspot_type }}"
+                                data-has-image="{% if hotspot.image %}true{% else %}false{% endif %}"
+                                data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
+                                data-title="{{ hotspot.title }}" data-desc="{{ hotspot.description }}"
+                                data-status="{% if hotspot.source_hotspot %}referencing{% elif hotspot.usage_count > 0 %}source{% else %}independent{% endif %}">
+                                {% if all_projects %}
+                                <td><span class="badge bg-secondary">{{ scene.project.name }}</span></td>
+                                {% endif %}
+                                <td>
+                                    <span class="badge badge-{{ hotspot.hotspot_type }}">{{ hotspot.get_hotspot_type_display }}</span>
+                                </td>
+                                <td class="fw-bold">{{ hotspot.title }}</td>
+                                <td>
+                                    <div class="description-text">{{ hotspot.description|default:"-"|linebreaksbr }}
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex flex-column align-items-center gap-1">
+                                        <!-- Status Badge -->
+                                        {% if hotspot.source_hotspot %}
+                                        <span class="badge border border-secondary text-secondary bg-transparent"
+                                            data-bs-toggle="tooltip" title="引用來源：{{ hotspot.source_hotspot.title }}">
+                                            <i class="fas fa-link"></i> 正在引用其他資源
+                                        </span>
+                                        {% elif hotspot.usage_count > 0 %}
+                                        <button class="btn btn-sm btn-info text-white py-0 px-1 view-references-btn"
+                                            style="font-size: 0.75rem;" data-resource-id="{{ hotspot.id }}"
+                                            data-resource-title="{{ hotspot.title }}" title="點擊查看引用細節">
+                                            <i class="fas fa-network-wired"></i> 被 {{ hotspot.usage_count }} 處引用中
+                                        </button>
+                                        {% else %}
+                                        <span class="badge bg-secondary-subtle text-secondary border">
+                                            <i class="fas fa-square"></i> 獨立
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    {% if hotspot.image %}
+                                    <a href="{{ hotspot.image.url }}" target="_blank">
+                                        <img src="{{ hotspot.image.url }}" alt="預覽" class="img-thumbnail"
+                                            style="max-height: 100px;">
+                                    </a>
+                                    {% elif hotspot.video %}
+                                    <video src="{{ hotspot.video.url }}" class="img-thumbnail"
+                                        style="max-height: 100px;" controls muted></video>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-sm btn-primary edit-resource-btn"
+                                            data-id="{{ hotspot.id }}" data-title="{{ hotspot.title }}"
+                                            data-desc="{{ hotspot.description }}" data-type="{{ hotspot.hotspot_type }}"
+                                            data-usage-count="{{ hotspot.usage_count|default:0 }}"
+                                            data-has-image="{% if hotspot.image %}true{% else %}false{% endif %}"
+                                            data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
+                                            data-image-url="{% if hotspot.image %}{{ hotspot.image.url }}{% endif %}"
+                                            data-video-url="{% if hotspot.video %}{{ hotspot.video.url }}{% endif %}"
+                                            data-is-referencing="{% if hotspot.source_hotspot %}true{% else %}false{% endif %}">
+                                            <i class="fas fa-edit"></i> 編輯
+                                        </button>
+
+                                        {% if hotspot.title or hotspot.description %}
+                                        <button class="btn btn-sm btn-outline-primary copy-btn"
+                                            data-title="{{ hotspot.title }}" data-desc="{{ hotspot.description }}">
+                                            <i class="fas fa-copy"></i> 複製文字
+                                        </button>
+                                        {% endif %}
+
+                                        {% if hotspot.image %}
+                                        {% if hotspot.image.url|lower|slice:"-4:" == ".gif" %}
+                                        <a href="{{ hotspot.image.url }}" download
+                                            class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-download"></i> 下載 GIF
+                                        </a>
+                                        {% else %}
+                                        <a href="{{ hotspot.image.url }}" download
+                                            class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-download"></i> 下載圖片
+                                        </a>
+                                        {% endif %}
+                                        {% endif %}
+
+                                        {% if hotspot.video %}
+                                        <a href="{{ hotspot.video.url }}" download
+                                            class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-download"></i> 下載影片
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted fst-italic ms-3">此場景尚無熱點資料。</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="alert alert-info">此專案尚未建立任何場景。</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Edit Resource Modal -->
+<div class="modal fade" id="editResourceModal" tabindex="-1" aria-labelledby="editResourceModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editResourceModalLabel"><i class="fas fa-edit"></i> 編輯資源</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editResourceForm" enctype="multipart/form-data">
+                    <input type="hidden" id="edit_resource_id" name="resource_id">
+
+                    <!-- Reference Warning -->
+                    <div class="alert alert-warning d-none" id="referenceWarning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>注意：</strong>此資源已被引用 <span id="usageCountDisplay">0</span> 次。
+                        編輯後將創建新版本，原有引用不受影響，但可選擇更新到新版本。
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_title" class="form-label">標題 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="edit_title" name="title" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_description" class="form-label">說明內容</label>
+                        <textarea class="form-control" id="edit_description" name="description" rows="4"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_type" class="form-label">類型 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="edit_type" name="type" required>
+                            <option value="text">文字</option>
+                            <option value="text_hover">懸浮文字</option>
+                            <option value="image">圖片</option>
+                            <option value="image_hover">懸浮圖片</option>
+                            <option value="video">影片</option>
+                            <option value="video_hover">懸浮影片</option>
+                        </select>
+                    </div>
+
+                    <!-- Current Media Preview -->
+                    <div class="mb-3" id="currentMediaPreview">
+                        <label class="form-label">目前媒體</label>
+                        <div id="mediaPreviewContainer" class="border rounded p-3 bg-light">
+                            <p class="text-muted mb-0">無媒體</p>
+                        </div>
+                    </div>
+
+                    <!-- Media Upload -->
+                    <div class="mb-3" id="imageUploadSection">
+                        <label for="edit_image" class="form-label">上傳新圖片</label>
+                        <input type="file" class="form-control" id="edit_image" name="image" accept="image/*">
+                        <small class="form-text text-muted">支援 JPG, PNG, GIF 等格式</small>
+                    </div>
+
+                    <div class="mb-3 d-none" id="videoUploadSection">
+                        <label for="edit_video" class="form-label">上傳新影片</label>
+                        <input type="file" class="form-control" id="edit_video" name="video" accept="video/*">
+                        <small class="form-text text-muted">支援 MP4, WebM 等格式</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveResourceBtn">
+                    <i class="fas fa-save"></i> 儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reference Details Modal -->
+<div class="modal fade" id="referenceDetailsModal" tabindex="-1" aria-labelledby="referenceDetailsModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="referenceDetailsModalLabel">
+                    <i class="fas fa-link"></i> 引用詳情
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Resource Info -->
+                <div class="alert alert-info">
+                    <h6 class="mb-1"><i class="fas fa-info-circle"></i> 資源資訊</h6>
+                    <p class="mb-0">
+                        <strong>標題：</strong><span id="ref_resource_title"></span>
+                    </p>
+                </div>
+
+                <!-- Loading State -->
+                <div id="ref_loading" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">載入中...</span>
+                    </div>
+                    <p class="mt-2">載入引用資料中...</p>
+                </div>
+
+                <!-- No References -->
+                <div id="ref_no_references" class="alert alert-secondary d-none">
+                    <i class="fas fa-info-circle"></i> 此資源目前沒有被任何場景引用。
+                </div>
+
+                <!-- References Table -->
+                <div id="ref_references_container" class="d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">被引用清單 (<span id="ref_count">0</span> 個)</h6>
+                        <button id="updateAllBtn" class="btn btn-sm btn-warning d-none">
+                            <i class="fas fa-sync-alt"></i> 全部更新到最新版本
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 12%;">專案</th>
+                                    <th style="width: 15%;">場景</th>
+                                    <th style="width: 15%;">熱點標題</th>
+                                    <th style="width: 8%;">標題比對</th>
+                                    <th style="width: 8%;">類型比對</th>
+                                    <th style="width: 8%;">說明比對</th>
+                                    <th style="width: 15%;">同步狀態</th>
+                                    <th style="width: 12%;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ref_references_tbody">
+                                <!-- Will be populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Copy Button Logic
+        const copyBtns = document.querySelectorAll('.copy-btn');
+        copyBtns.forEach(btn => {
+            btn.addEventListener('click', function () {
+                const title = this.dataset.title;
+                const desc = this.dataset.desc;
+                const textToCopy = `標題：${title}\n說明：${desc}`;
+
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    const originalHtml = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-check"></i> 已複製';
+                    this.classList.remove('btn-outline-primary');
+                    this.classList.add('btn-success');
+
+                    setTimeout(() => {
+                        this.innerHTML = originalHtml;
+                        this.classList.remove('btn-success');
+                        this.classList.add('btn-outline-primary');
+                    }, 2000);
+                }).catch(err => {
+                    console.error('複製失敗:', err);
+                    alert('複製失敗，請手動複製。');
+                });
+            });
+        });
+
+        // Filter Logic
+        // Filter Logic
+        const keywordInput = document.getElementById('keywordInput');
+        const sceneSelect = document.getElementById('sceneSelect');
+        // Type filter is now checkboxes
+        const typeCheckboxes = document.querySelectorAll('.type-filter-checkbox');
+
+        const rows = document.querySelectorAll('.resource-row');
+        const sceneSections = document.querySelectorAll('.scene-section');
+
+        function filterResources() {
+            const keyword = keywordInput.value.toLowerCase();
+            const scene = sceneSelect.value;
+            const status = document.getElementById('statusSelect').value;
+            const project = document.getElementById('projectSelect') ? document.getElementById('projectSelect').value : '';
+
+            // Get allowed type categories from checkboxes
+            const allowedCategories = new Set();
+            typeCheckboxes.forEach(cb => {
+                if (cb.checked) {
+                    allowedCategories.add(cb.value);
+                }
+            });
+
+            rows.forEach(row => {
+                const rowScene = row.dataset.scene;
+                const rowProject = row.dataset.project;
+                const rowType = row.dataset.type; // raw type code e.g., 'text'
+                const rowStatus = row.dataset.status;
+                const hasImage = row.dataset.hasImage === 'true';
+                const hasVideo = row.dataset.hasVideo === 'true';
+                const title = row.dataset.title.toLowerCase();
+                const desc = row.dataset.desc.toLowerCase();
+
+                let isMatch = true;
+
+                // Keyword check
+                if (keyword && !title.includes(keyword) && !desc.includes(keyword)) {
+                    isMatch = false;
+                }
+
+                // Scene check
+                if (scene && rowScene !== scene) {
+                    isMatch = false;
+                }
+
+                // Project check
+                if (project && rowProject !== project) {
+                    isMatch = false;
+                }
+
+                // Status check
+                if (status && rowStatus !== status) {
+                    isMatch = false;
+                }
+
+                // Multi-select Type check
+                // Map rowType to category
+                let category = '';
+                if (rowType === 'text' || rowType === 'text_hover') category = 'text';
+                else if (rowType === 'image' || rowType === 'image_hover') category = 'image';
+                else if (rowType === 'video' || rowType === 'video_hover') category = 'video';
+
+                if (!allowedCategories.has(category)) {
+                    isMatch = false;
+                }
+
+
+
+                if (isMatch) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Hide empty scene sections
+            sceneSections.forEach(section => {
+                const visibleRows = section.querySelectorAll('.resource-row:not([style*="display: none"])');
+                if (visibleRows.length === 0) {
+                    section.style.display = 'none';
+                } else {
+                    section.style.display = '';
+                }
+            });
+        }
+
+        keywordInput.addEventListener('input', filterResources);
+        sceneSelect.addEventListener('change', filterResources);
+        document.getElementById('statusSelect').addEventListener('change', filterResources);
+        // typeSelect removed, add listeners to checkboxes
+        typeCheckboxes.forEach(cb => {
+            cb.addEventListener('change', filterResources);
+        });
+
+        if (document.getElementById('projectSelect')) {
+            const projectSelect = document.getElementById('projectSelect');
+            const sceneSelect = document.getElementById('sceneSelect');
+
+            // Store original options to restore them later
+            const originalOptions = Array.from(sceneSelect.options);
+
+            projectSelect.addEventListener('change', function () {
+                const selectedProject = this.value;
+                const currentScene = sceneSelect.value;
+
+                // Clear existing options
+                sceneSelect.innerHTML = '';
+
+                // Always add the "All Scenes" option
+                sceneSelect.appendChild(originalOptions[0]);
+
+                let isCurrentSceneValid = false;
+
+                // Add filtered options
+                for (let i = 1; i < originalOptions.length; i++) {
+                    const option = originalOptions[i];
+                    const optionProject = option.getAttribute('data-project');
+
+                    if (!selectedProject || optionProject === selectedProject) {
+                        sceneSelect.appendChild(option);
+                        if (option.value === currentScene) {
+                            isCurrentSceneValid = true;
+                        }
+                    }
+                }
+
+                // Restore selection if valid, otherwise reset
+                if (isCurrentSceneValid) {
+                    sceneSelect.value = currentScene;
+                } else {
+                    sceneSelect.value = "";
+                }
+
+                filterResources();
+            });
+        }
+
+        // Auto-filter based on URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const sceneParam = urlParams.get('scene');
+        if (sceneParam) {
+            // Check if the scene option exists before selecting
+            const options = Array.from(sceneSelect.options).map(opt => opt.value);
+            if (options.includes(sceneParam)) {
+                sceneSelect.value = sceneParam;
+                filterResources();
+            }
+        }
+
+        // Edit Resource Functionality
+        const editModal = new bootstrap.Modal(document.getElementById('editResourceModal'));
+        const editForm = document.getElementById('editResourceForm');
+        const saveBtn = document.getElementById('saveResourceBtn');
+
+        // Handle Edit Button Clicks
+        document.querySelectorAll('.edit-resource-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const id = this.dataset.id;
+                const title = this.dataset.title;
+                const desc = this.dataset.desc;
+                const type = this.dataset.type;
+                const isReferencing = this.dataset.isReferencing === 'true';
+                const usageCount = parseInt(this.dataset.usageCount || '0');
+                const hasImage = this.dataset.hasImage === 'true';
+                const hasVideo = this.dataset.hasVideo === 'true';
+                const imageUrl = this.dataset.imageUrl;
+                const videoUrl = this.dataset.videoUrl;
+
+                // Populate form
+                document.getElementById('edit_resource_id').value = id;
+                document.getElementById('edit_title').value = title;
+                document.getElementById('edit_description').value = desc;
+                document.getElementById('edit_type').value = type;
+
+                // Store referencing status and media info for updateMediaSections to use
+                document.getElementById('editResourceForm').dataset.isReferencing = isReferencing;
+                document.getElementById('editResourceForm').dataset.hasImage = hasImage;
+                document.getElementById('editResourceForm').dataset.hasVideo = hasVideo;
+
+                // Show/hide reference warning
+                const warningDiv = document.getElementById('referenceWarning');
+                if (usageCount > 0) {
+                    document.getElementById('usageCountDisplay').textContent = usageCount;
+                    warningDiv.classList.remove('d-none');
+                } else {
+                    warningDiv.classList.add('d-none');
+                }
+
+                // Update media preview
+                const previewContainer = document.getElementById('mediaPreviewContainer');
+                if (hasImage && imageUrl) {
+                    previewContainer.innerHTML = `<img src="${imageUrl}" class="img-fluid" style="max-height: 200px;" alt="預覽">`;
+                } else if (hasVideo && videoUrl) {
+                    previewContainer.innerHTML = `<video src="${videoUrl}" class="img-fluid" style="max-height: 200px;" controls></video>`;
+                } else {
+                    previewContainer.innerHTML = '<p class="text-muted mb-0">無媒體</p>';
+                }
+
+                // Update upload sections based on type
+                updateMediaSections(type);
+
+                editModal.show();
+            });
+        });
+
+        // Handle Type Change
+        document.getElementById('edit_type').addEventListener('change', function () {
+            updateMediaSections(this.value);
+        });
+
+        function updateMediaSections(type) {
+            const imageSection = document.getElementById('imageUploadSection');
+            const videoSection = document.getElementById('videoUploadSection');
+            const previewSection = document.getElementById('currentMediaPreview');
+            const typeSelect = document.getElementById('edit_type');
+            const isReferencing = document.getElementById('editResourceForm').dataset.isReferencing === 'true';
+            const hasImage = document.getElementById('editResourceForm').dataset.hasImage === 'true';
+            const hasVideo = document.getElementById('editResourceForm').dataset.hasVideo === 'true';
+
+            // If referencing another resource, restrict type options based on current media
+            if (isReferencing) {
+                // Determine current media category
+                let allowedTypes = [];
+                if (hasImage) {
+                    // Image types can only switch between image and image_hover
+                    allowedTypes = ['image', 'image_hover'];
+                } else if (hasVideo) {
+                    // Video types can only switch between video and video_hover
+                    allowedTypes = ['video', 'video_hover'];
+                } else {
+                    // Text types can only switch between text and text_hover
+                    allowedTypes = ['text', 'text_hover'];
+                }
+
+                // Disable options that are not allowed (show them greyed out, not hidden)
+                Array.from(typeSelect.options).forEach(option => {
+                    if (allowedTypes.includes(option.value)) {
+                        option.disabled = false;
+                    } else {
+                        option.disabled = true;
+                    }
+                });
+
+                // Always hide upload sections if referencing
+                imageSection.classList.add('d-none');
+                videoSection.classList.add('d-none');
+                // We still show the preview section so they can see what it is
+                previewSection.classList.remove('d-none');
+                return;
+            } else {
+                // Not referencing - enable all type options
+                Array.from(typeSelect.options).forEach(option => {
+                    option.disabled = false;
+                });
+            }
+
+            if (type === 'text' || type === 'text_hover') {
+                imageSection.classList.add('d-none');
+                videoSection.classList.add('d-none');
+                previewSection.classList.add('d-none');
+            } else if (type === 'image' || type === 'image_hover') {
+                imageSection.classList.remove('d-none');
+                videoSection.classList.add('d-none');
+                previewSection.classList.remove('d-none');
+            } else if (type === 'video' || type === 'video_hover') {
+                imageSection.classList.add('d-none');
+                videoSection.classList.remove('d-none');
+                previewSection.classList.remove('d-none');
+            }
+        }
+
+        // Handle Save Button
+        saveBtn.addEventListener('click', function () {
+            const resourceId = document.getElementById('edit_resource_id').value;
+            const formData = new FormData(editForm);
+
+            // Disable button to prevent double-submit
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 儲存中...';
+
+            fetch(`/site360/api/resource/edit/${resourceId}/`, {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        editModal.hide();
+
+                        // Show success message
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                        alertDiv.innerHTML = `
+                        <i class="fas fa-check-circle"></i> ${data.message}
+                        ${data.new_version ? `<br><small>新版本號：v${data.version_number}</small>` : ''}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                        document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
+
+                        // Reload page after a short delay
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        alert('錯誤：' + data.message);
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = '<i class="fas fa-save"></i> 儲存';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('儲存失敗：' + error.message);
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-save"></i> 儲存';
+                });
+        });
+
+        // Reset form when modal closes
+        document.getElementById('editResourceModal').addEventListener('hidden.bs.modal', function () {
+            editForm.reset();
+            document.getElementById('edit_image').value = '';
+            document.getElementById('edit_video').value = '';
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> 儲存';
+        });
+
+        // Reference Details Functionality
+        const refModal = new bootstrap.Modal(document.getElementById('referenceDetailsModal'));
+
+        document.querySelectorAll('.view-references-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const resourceId = this.dataset.resourceId;
+                const resourceTitle = this.dataset.resourceTitle;
+
+                // Open modal and show loading
+                document.getElementById('ref_loading').classList.remove('d-none');
+                document.getElementById('ref_no_references').classList.add('d-none');
+                document.getElementById('ref_references_container').classList.add('d-none');
+
+                refModal.show();
+
+                // Fetch reference details
+                fetch(`/site360/api/resource/references/${resourceId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Hide loading
+                        document.getElementById('ref_loading').classList.add('d-none');
+
+                        if (data.status === 'success') {
+                            // Update resource info
+                            document.getElementById('ref_resource_title').textContent = data.resource_title;
+
+                            if (data.reference_count === 0) {
+                                // No references
+                                document.getElementById('ref_no_references').classList.remove('d-none');
+                            } else {
+                                // Show references table
+                                document.getElementById('ref_references_container').classList.remove('d-none');
+                                document.getElementById('ref_count').textContent = data.reference_count;
+
+                                // Build table rows
+                                const tbody = document.getElementById('ref_references_tbody');
+                                tbody.innerHTML = '';
+
+                                let hasOutdated = false;
+                                const outdatedIds = [];
+
+                                data.references.forEach((ref, index) => {
+                                    if (ref.is_outdated) {
+                                        hasOutdated = true;
+                                        outdatedIds.push(ref.id);
+                                    }
+
+                                    const row = document.createElement('tr');
+                                    row.className = 'main-row';
+                                    row.innerHTML = `
+                                        <td><span class="badge bg-secondary">${ref.project_name}</span></td>
+                                        <td>${ref.scene_title}</td>
+                                        <td>${ref.hotspot_title}</td>
+                                        <td class="text-center">
+                                            ${ref.title_modified ?
+                                            '<span class="badge bg-warning text-dark"><i class="fas fa-exclamation-circle"></i> 已修改</span>' :
+                                            '<span class="badge bg-success"><i class="fas fa-check"></i> 相同</span>'}
+                                        </td>
+                                        <td class="text-center">
+                                            ${ref.type_modified ?
+                                            '<span class="badge bg-warning text-dark"><i class="fas fa-exclamation-circle"></i> 已修改</span>' :
+                                            '<span class="badge bg-success"><i class="fas fa-check"></i> 相同</span>'}
+                                        </td>
+                                        <td class="text-center">
+                                            ${ref.description_modified ?
+                                            '<span class="badge bg-warning text-dark"><i class="fas fa-exclamation-circle"></i> 已修改</span>' :
+                                            '<span class="badge bg-success"><i class="fas fa-check"></i> 相同</span>'}
+                                        </td>
+                                        <td class="text-center">
+                                            ${ref.is_outdated ?
+                                            `<span class="badge bg-warning text-dark">
+                                                    <i class="fas fa-exclamation-triangle"></i> 需要同步
+                                                </span>` :
+                                            `<span class="badge bg-success">
+                                                    <i class="fas fa-check"></i> 已同步
+                                                </span>`
+                                        }
+                                        </td>
+                                        <td class="text-center">
+                                            <button class="btn btn-sm btn-outline-info toggle-desc-btn mb-1" data-row-index="${index}">
+                                                <i class="fas fa-eye"></i> 查看詳情
+                                            </button>
+                                            ${ref.is_outdated ?
+                                            `<button class="btn btn-sm btn-warning update-single-ref-btn" 
+                                                    data-ref-id="${ref.id}"
+                                                    data-latest-version="${ref.latest_version}">
+                                                    <i class="fas fa-sync-alt"></i> 更新
+                                                </button>` :
+                                            ``
+                                        }
+                                        </td>
+                                    `;
+                                    tbody.appendChild(row);
+
+                                    // Create expandable detail row
+                                    const detailRow = document.createElement('tr');
+                                    detailRow.className = 'detail-row d-none';
+                                    detailRow.setAttribute('data-row-index', index);
+                                    detailRow.innerHTML = `
+                                        <td colspan="8" class="bg-light">
+                                            <div class="p-3">
+                                                <h6 class="mb-3"><i class="fas fa-exchange-alt"></i> 詳細比對</h6>
+                                                <div class="row mb-3">
+                                                    <div class="col-md-6">
+                                                        <h6 class="text-primary"><i class="fas fa-heading"></i> 標題比對</h6>
+                                                        <div class="border rounded p-2 bg-white mb-2">
+                                                            <small class="text-muted d-block">原始資源：</small>
+                                                            <strong>${ref.source_title}</strong>
+                                                        </div>
+                                                        <div class="border rounded p-2 bg-white ${ref.title_modified ? 'border-warning' : ''}">
+                                                            <small class="text-muted d-block">引用熱點：</small>
+                                                            <strong>${ref.hotspot_title}</strong>
+                                                            ${ref.title_modified ? '<span class="badge bg-warning text-dark ms-2">已修改</span>' : ''}
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <h6 class="text-primary"><i class="fas fa-tag"></i> 類型比對</h6>
+                                                        <div class="border rounded p-2 bg-white mb-2">
+                                                            <small class="text-muted d-block">原始資源：</small>
+                                                            <span class="badge badge-${ref.source_type}">${ref.source_type_display}</span>
+                                                        </div>
+                                                        <div class="border rounded p-2 bg-white ${ref.type_modified ? 'border-warning' : ''}">
+                                                            <small class="text-muted d-block">引用熱點：</small>
+                                                            <span class="badge badge-${ref.hotspot_type}">${ref.hotspot_type_display}</span>
+                                                            ${ref.type_modified ? '<span class="badge bg-warning text-dark ms-2">已修改</span>' : ''}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <h6 class="text-primary"><i class="fas fa-align-left"></i> 說明比對</h6>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <small class="text-muted d-block mb-1">原始資源說明：</small>
+                                                        <div class="border rounded p-2 bg-white" style="min-height: 80px;">
+                                                            ${ref.source_description || '<span class="text-muted">無說明</span>'}
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <small class="text-muted d-block mb-1">引用熱點說明：</small>
+                                                        <div class="border rounded p-2 bg-white ${ref.description_modified ? 'border-warning' : ''}" style="min-height: 80px;">
+                                                            ${ref.hotspot_description || '<span class="text-muted">無說明</span>'}
+                                                            ${ref.description_modified ?
+                                            '<span class="badge bg-warning text-dark ms-2">已修改</span>' :
+                                            ''
+                                        }
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    `;
+                                    tbody.appendChild(detailRow);
+                                });
+
+                                // Show/hide update all button
+                                const updateAllBtn = document.getElementById('updateAllBtn');
+                                if (hasOutdated) {
+                                    updateAllBtn.classList.remove('d-none');
+                                    updateAllBtn.onclick = function () {
+                                        updateMultipleReferences(outdatedIds);
+                                    };
+                                } else {
+                                    updateAllBtn.classList.add('d-none');
+                                }
+
+                                // Attach event listeners to individual update buttons
+                                document.querySelectorAll('.update-single-ref-btn').forEach(updateBtn => {
+                                    updateBtn.addEventListener('click', function () {
+                                        const refId = this.dataset.refId;
+                                        updateSingleReference(refId, this);
+                                    });
+                                });
+
+                                // Attach event listeners to toggle description buttons
+                                document.querySelectorAll('.toggle-desc-btn').forEach(toggleBtn => {
+                                    toggleBtn.addEventListener('click', function () {
+                                        const rowIndex = this.dataset.rowIndex;
+                                        const detailRow = document.querySelector(`.detail-row[data-row-index="${rowIndex}"]`);
+                                        const icon = this.querySelector('i');
+
+                                        if (detailRow.classList.contains('d-none')) {
+                                            detailRow.classList.remove('d-none');
+                                            icon.classList.remove('fa-eye');
+                                            icon.classList.add('fa-eye-slash');
+                                        } else {
+                                            detailRow.classList.add('d-none');
+                                            icon.classList.remove('fa-eye-slash');
+                                            icon.classList.add('fa-eye');
+                                        }
+                                    });
+                                });
+                            }
+                        } else {
+                            alert('錯誤：' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        document.getElementById('ref_loading').classList.add('d-none');
+                        console.error('Error:', error);
+                        alert('載入引用資料失敗：' + error.message);
+                    });
+            });
+        });
+
+        function updateSingleReference(refId, buttonElement) {
+            const originalHtml = buttonElement.innerHTML;
+            buttonElement.disabled = true;
+            buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 更新中...';
+
+            fetch(`/site360/api/resource/update-reference/${refId}/`, {
+                method: 'POST'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Show success and refresh the row
+                        buttonElement.innerHTML = '<i class="fas fa-check"></i> 已更新';
+                        buttonElement.classList.remove('btn-warning');
+                        buttonElement.classList.add('btn-success');
+
+                        setTimeout(() => {
+                            // Refresh the modal
+                            const resourceId = document.querySelector('.view-references-btn[data-resource-id]').dataset.resourceId;
+                            location.reload(); // Reload page to reflect updates
+                        }, 1000);
+                    } else {
+                        alert('更新失敗：' + data.message);
+                        buttonElement.disabled = false;
+                        buttonElement.innerHTML = originalHtml;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('更新失敗：' + error.message);
+                    buttonElement.disabled = false;
+                    buttonElement.innerHTML = originalHtml;
+                });
+        }
+
+        function updateMultipleReferences(refIds) {
+            const updateAllBtn = document.getElementById('updateAllBtn');
+            const originalHtml = updateAllBtn.innerHTML;
+            updateAllBtn.disabled = true;
+            updateAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 更新中...';
+
+            fetch('/site360/api/resource/batch-update/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `hotspot_ids=${JSON.stringify(refIds)}`
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert(`成功更新 ${data.updated_count} 個引用！`);
+                        location.reload();
+                    } else {
+                        alert('批量更新失敗：' + data.message);
+                        updateAllBtn.disabled = false;
+                        updateAllBtn.innerHTML = originalHtml;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('批量更新失敗：' + error.message);
+                    updateAllBtn.disabled = false;
+                    updateAllBtn.innerHTML = originalHtml;
+                });
+        }
+    });
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Hotspot Type Badge Colors */
+
+    /* Text - Blue */
+    .badge-text {
+        background-color: #3b82f6;
+        /* Blue 500 */
+        color: white;
+    }
+
+    .badge-text_hover {
+        background-color: #1d4ed8;
+        /* Blue 700 */
+        color: white;
+    }
+
+    /* Image - Green */
+    .badge-image {
+        background-color: #22c55e;
+        /* Green 500 */
+        color: white;
+    }
+
+    .badge-image_hover {
+        background-color: #15803d;
+        /* Green 700 */
+        color: white;
+    }
+
+    /* Video - Red (using Red/Purple family per plan, but simple Red is clear) */
+    .badge-video {
+        background-color: #ef4444;
+        /* Red 500 */
+        color: white;
+    }
+
+    .badge-video_hover {
+        background-color: #b91c1c;
+        /* Red 700 */
+        color: white;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends 'BidQA/base.html' %}
+
+{% block title %}快速查詢{% endblock %}
+
+{% block breadcrumb %}
+<span class="breadcrumb-separator">/</span>
+<span>快速查詢</span>
+{% endblock %}
+
+{% block content %}
+<div class="quick-search-container">
+    <!-- Search Header -->
+    <div style="text-align:center;margin-bottom:32px;">
+        <h1 class="page-title" style="font-size:28px;margin-bottom:8px;">快速查詢</h1>
+        <p class="text-secondary">搜尋委員姓名、單位、提問內容或回答內容</p>
+    </div>
+    
+    <!-- Search Input -->
+    <form method="get" style="position:relative;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" 
+             style="position:absolute;left:20px;top:50%;transform:translateY(-50%);width:22px;height:22px;color:var(--text-muted);">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <input type="text" name="q" value="{{ q }}" 
+               class="quick-search-input" 
+               placeholder="搜尋委員、提問或回答內容..." 
+               autofocus>
+    </form>
+    
+    <!-- Results -->
+    {% if q %}
+    <div class="quick-search-results">
+        <div class="quick-search-results-header">
+            <h2 class="section-title">搜尋結果</h2>
+            <span class="quick-search-count">找到 {{ result_count }} 則問答</span>
+        </div>
+        
+        {% if results %}
+            {% for item in results %}
+            <div class="qa-card">
+                <div class="qa-header">
+                    <div class="qa-committee">
+                        <div class="qa-avatar">{{ item.committee.name|first }}</div>
+                        <div>
+                            <div class="qa-name">{{ item.committee.name }}</div>
+                            <div class="qa-org">{{ item.committee.organization|default:"" }}</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        <span class="badge badge-{{ item.bid.status }}" style="font-size:11px;">{{ item.bid.get_status_display }}</span>
+                        <a href="{% url 'bidqa:bid_detail' pk=item.bid.pk %}" class="btn btn-ghost btn-sm">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                                <polyline points="15 3 21 3 21 9"/>
+                                <line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                            {{ item.bid.name|truncatewords:4 }}
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="qa-question">
+                    <div class="qa-question-label">提問</div>
+                    <div>{{ item.question.question|linebreaksbr }}</div>
+                </div>
+                
+                {% if item.question.answer %}
+                <div class="qa-answer">
+                    <div class="qa-answer-label">回答</div>
+                    <div>{{ item.question.answer|linebreaksbr }}</div>
+                </div>
+                {% endif %}
+                
+                {% if item.question.reference %}
+                <div class="qa-reference">
+                    <div class="qa-reference-label">參考資料</div>
+                    <div>{{ item.question.reference|linebreaksbr }}</div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="M21 21l-4.35-4.35"/>
+                </svg>
+            </div>
+            <h3 class="empty-state-title">找不到符合的結果</h3>
+            <p class="empty-state-description">請嘗試其他關鍵字</p>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <!-- Initial State -->
+    <div style="text-align:center;margin-top:48px;">
+        <div class="empty-state-icon" style="margin:0 auto 16px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            </svg>
+        </div>
+        <p class="text-secondary">輸入關鍵字搜尋委員姓名、提問或回答內容</p>
+        <div class="flex gap-2 justify-center mt-4" style="justify-content:center;">
+            <span class="badge badge-draft">委員符合</span>
+            <span class="badge badge-submitted">內容符合</span>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

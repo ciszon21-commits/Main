@@ -1,0 +1,196 @@
+{% extends "compareapp/base.html" %}
+
+{% block title %}專案總覽{% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Apple-like Styles Shared */
+    :root {
+        --apple-bg: #F5F5F7;
+        --card-bg: rgba(255, 255, 255, 0.72);
+        --card-border: rgba(0, 0, 0, 0.05);
+        --text-primary: #1D1D1F;
+        --text-secondary: #86868B;
+        --accent-blue: #0071E3;
+        --radius-app: 18px;
+    }
+    
+    body {
+        background-color: var(--apple-bg) !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .apple-container {
+        max-width: 980px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+
+    .apple-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .apple-header h1 {
+        font-size: 48px;
+        font-weight: 600;
+        margin: 0;
+        letter-spacing: -0.005em;
+    }
+    
+    .apple-header p {
+        font-size: 24px;
+        color: var(--text-secondary);
+        font-weight: 400;
+        margin-top: 10px;
+    }
+
+    .apple-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: var(--radius-app);
+        padding: 30px;
+        margin-bottom: 20px;
+        border: 1px solid var(--card-border);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        transition: transform 0.2s ease;
+    }
+
+    .apple-card:hover {
+        transform: scale(1.005);
+    }
+    
+    .apple-input {
+        width: 100%;
+        background: rgba(0,0,0,0.03);
+        border: 1px solid transparent;
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-size: 17px;
+        transition: 0.2s;
+        box-sizing: border-box;
+    }
+    
+    .apple-input:focus {
+        background: #fff;
+        border-color: var(--accent-blue);
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
+    }
+    
+    .apple-btn {
+        background: var(--accent-blue);
+        color: #fff;
+        border: none;
+        border-radius: 980px;
+        padding: 12px 24px;
+        font-size: 17px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-block;
+        text-decoration: none;
+    }
+    
+    .apple-btn:hover {
+        background: #0077ED;
+        transform: scale(1.02);
+    }
+    
+    .apple-btn-secondary {
+        background: rgba(0, 0, 0, 0.05);
+        color: var(--accent-blue);
+        padding: 6px 14px;
+        font-size: 14px;
+    }
+    
+    .apple-btn-secondary:hover {
+        background: rgba(0, 0, 0, 0.1);
+    }
+
+    .apple-list-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 0;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    .apple-list-item:last-child { border-bottom: none; }
+    
+    .project-name { font-size: 19px; font-weight: 600; color: var(--text-primary); }
+    .project-meta { font-size: 14px; color: var(--text-secondary); margin-top: 4px; }
+    
+    .apple-status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #e5e5e5;
+        display: inline-block;
+        margin-right: 6px;
+    }
+    .apple-status-dot.active { background: #34C759; }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="apple-container">
+    <div class="apple-header">
+        <h1>專案流程</h1>
+        <p>管理專案與一致性比對任務。</p>
+    </div>
+
+    <div class="apple-card">
+        <h2 style="font-size: 24px; margin-bottom: 20px;">建立新專案</h2>
+        <form method="post">
+            {% csrf_token %}
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 16px; align-items: end;">
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase;">專案名稱</label>
+                    {{ form.name }}
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase;">計畫編號</label>
+                    {{ form.plan_number }}
+                </div>
+                <button type="submit" class="apple-btn">建立</button>
+            </div>
+            {% if form.errors %}
+            <div style="margin-top: 10px; color: #FF3B30; font-size: 14px;">請檢查輸入欄位。</div>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="apple-card" style="padding: 0 30px;">
+        {% for project in projects %}
+        <div class="apple-list-item">
+            <div>
+                <div class="project-name">{{ project.name }}</div>
+                <div class="project-meta">{{ project.plan_number }} · 建立者 {{ project.owner_label }} · 更新時間 {{ project.updated_at|date:"Y-m-d" }}</div>
+            </div>
+            <div style="display: flex; gap: 16px; align-items: center;">
+                <div style="font-size: 13px; color: var(--text-secondary); display: flex; gap: 12px;">
+                    <span><span class="apple-status-dot {% if project.has_budget %}active{% endif %}"></span>預算書</span>
+                    <span><span class="apple-status-dot {% if project.has_quantity_sheet %}active{% endif %}"></span>數量書</span>
+                </div>
+                <a href="{% url 'compareapp:project_detail' project.id %}" class="apple-btn apple-btn-secondary">開啟</a>
+            </div>
+        </div>
+        {% empty %}
+        <div style="padding: 40px; text-align: center; color: var(--text-secondary);">目前尚無專案。</div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    // Add apple-input class to form fields rendered by Django
+    document.addEventListener('DOMContentLoaded', function() {
+        const inputs = document.querySelectorAll('input[type="text"]');
+        inputs.forEach(input => input.classList.add('apple-input'));
+    });
+</script>
+{% endblock %}

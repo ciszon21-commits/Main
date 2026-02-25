@@ -1,0 +1,685 @@
+"""
+OpenSearch Client Service
+Handles connection and queries to OpenSearch
+"""
+from opensearchpy import OpenSearch
+from django.conf import settings
+from django.core.cache import cache
+import urllib3
+import json
+
+# Disable SSL warnings for development
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# Singleton client instance for connection reuse
+_client = None
+
+
+def get_client():
+    """
+    Get OpenSearch client instance (singleton pattern).
+    
+    This implementation:
+    - Reuses the same connection pool across requests
+    - Configures timeout, retries, and compression for optimal performance
+    - Reduces connection overhead for high-frequency searches
+    """
+    global _client
+    if _client is None:
+        _client = OpenSearch(
+            hosts=[settings.OPENSEARCH_HOST],
+            http_auth=(settings.OPENSEARCH_USERNAME, settings.OPENSEARCH_PASSWORD),
+            verify_certs=settings.OPENSEARCH_VERIFY_CERTS,
+            ssl_show_warn=False,
+            # Performance optimization parameters
+            timeout=getattr(settings, 'OPENSEARCH_TIMEOUT', 30),
+            max_retries=getattr(settings, 'OPENSEARCH_MAX_RETRIES', 1),
+            retry_on_timeout=getattr(settings, 'OPENSEARCH_RETRY_ON_TIMEOUT', False),
+            http_compress=getattr(settings, 'OPENSEARCH_HTTP_COMPRESS', True),
+        )
+    return _client
+
+
+def reset_client():
+    """
+    Reset the OpenSearch client singleton.
+    Useful for testing or when connection settings change.
+    """
+    global _client
+    _client = None
+
+
+def clean_text(text):
+    """
+    Fix mojibake text (e.g. Big5 displayed as Latin-1).
+    """
+    if not text:
+        return ""
+    try:
+        # Common pattern in Taiwan: Big5 bytes interpreted as Latin-1
+        return text.encode('latin1').decode('big5')
+    except:
+        return text
+
+
+def increment_vote(index_name, doc_id):
+    """Increment the vote count for a document"""
+    client = get_client()
+    try:
+        client.update(
+            index=index_name,
+            id=doc_id,
+            body={
+                "script": {
+                    "source": "if (ctx._source.vote == null) { ctx._source.vote = 1 } else { ctx._source.vote += 1 }",
+                    "lang": "painless"
+                }
+            },
+            retry_on_conflict=3
+        )
+        return True
+    except Exception as e:
+        # print(f"Error incrementing vote: {e}")
+        return False
+
+
+def get_indices():
+    """Get list of user indices with stats"""
+    client = get_client()
+    indices = client.cat.indices(format='json')
+    # Filter out system indices
+    user_indices = [i for i in indices if not i['index'].startswith('.')]
+    return sorted(user_indices, key=lambda x: x.get('index', ''))
+
+
+def get_index_categories():
+    """Get indices grouped by category"""
+    # Try to get from cache first
+    cache_key = 'opensearch_index_categories'
+    cached_categories = cache.get(cache_key)
+    if cached_categories:
+        return cached_categories
+
+    indices = get_indices()
+    
+    categories = {
+        'sinobook_journal': {'name': '期刊', 'icon': '📰', 'indices': [], 'pattern': 'sinobook_journal*'},
+        'sinobook': {'name': '圖書', 'icon': '📚', 'indices': [], 'pattern': 'sinobook*'},
+        'sino_map': {'name': '地理圖資', 'icon': '🗺️', 'indices': [], 'pattern': 'sino_map*'},
+        'sinoqa': {'name': '工程問題與對策', 'icon': '❓', 'indices': [], 'pattern': 'sinoqa*'},
+        'sino_kmv1': {'name': '技術文件', 'icon': '📄', 'indices': [], 'pattern': 'sino_kmv1*'},
+        'sino_kmv2': {'name': '組織知識', 'icon': '📑', 'indices': [], 'pattern': 'sino_kmv2*'},
+        'sino_budget': {'name': '預算書', 'icon': '💰', 'indices': [], 'pattern': 'sino_budget*'},
+        'sino_spec': {'name': '施工規範', 'icon': '📋', 'indices': [], 'pattern': 'sino_spec*'},
+        'sino_cns': {'name': 'CNS 標準', 'icon': '📐', 'indices': [], 'pattern': 'sino_cns*'},
+        # 'sinopmis_meeting': {'name': '會議紀錄', 'icon': '🗣️', 'indices': [], 'pattern': 'sinopmis_meeting*'},
+        # 'sinopmis_file': {'name': 'PMIS 檔案', 'icon': '📁', 'indices': [], 'pattern': 'sinopmis_file*'},
+        # 'sinopmis_iobook_in': {'name': '收文', 'icon': '📥', 'indices': [], 'pattern': 'sinopmis_iobook_in*'},
+        # 'sinopmis_iobook_out': {'name': '發文', 'icon': '📤', 'indices': [], 'pattern': 'sinopmis_iobook_out*'},
+        'sino_dept': {'name': '部門封存', 'icon': '🏢', 'indices': [], 'pattern': 'sino_dept*'},
+        'sino_early': {'name': '結案光碟', 'icon': '💿', 'indices': [], 'pattern': 'sino_early*'},
+        'sinoproject': {'name': '計畫封存', 'icon': '📦', 'indices': [], 'pattern': 'sinoproject*'},
+        'sino_eng': {'name': '環興封存', 'icon': '🏗️', 'indices': [], 'pattern': 'sino_eng*'},
+        'sinobim_element': {'name': 'BIM 元件', 'icon': '🧱', 'indices': [], 'pattern': 'sinobim_element*'},
+        'sinobim_issue': {'name': 'BIM 議題', 'icon': '⚠️', 'indices': [], 'pattern': 'sinobim_issue*'},
+        'sinobim_file': {'name': 'BIM 檔案', 'icon': '📐', 'indices': [], 'pattern': 'sinobim_file*'},
+        'sino_website_in': {'name': '內部網站', 'icon': '🌐', 'indices': [], 'pattern': 'sino_website_in*'},
+        'sino_website_out': {'name': '外部網站', 'icon': '🔗', 'indices': [], 'pattern': 'sino_website_out*'},
+        'sino_website_user': {'name': '用戶網站', 'icon': '👤', 'indices': [], 'pattern': 'sino_website_user*'},
+        'sino_website_prkms': {'name': '採購網', 'icon': '🌍', 'indices': [], 'pattern': 'sino_website_prkms*'},
+        'sino_prkms': {'name': '領標資料', 'icon': '🛒', 'indices': [], 'pattern': 'sino_prkms*'},
+        'sino_carbon': {'name': '碳排放', 'icon': '🌱', 'indices': [], 'pattern': 'sino_carbon*'},
+        'sino_drawing': {'name': '圖紙', 'icon': '✏️', 'indices': [], 'pattern': 'sino_drawing*'},
+    }
+    
+    for idx in indices:
+        name = idx['index']
+        # Strip prefixes for matching purposes
+        match_name = name
+        if match_name.startswith('re_'):
+            match_name = match_name[3:]
+        if match_name.startswith('alias_'):
+            match_name = match_name[6:]
+        if match_name.startswith('reviewing_'):
+            match_name = match_name[10:]
+            
+        # Normalize for matching (convert - to _ for comparison)
+        norm_match_name = match_name.replace('-', '_')
+            
+        matched = False
+        # Order matters - more specific patterns first
+        for cat_key in ['sinobook_journal', 'sino_dept', 'sino_early', 
+                        'sinopmis_meeting', 'sinopmis_file', 'sinopmis_iobook_in', 'sinopmis_iobook_out',
+                        'sinobim_element', 'sinobim_issue', 'sinobim_file',
+                        'sino_website_in', 'sino_website_out', 'sino_website_user', 'sino_website_prkms',
+                        'sinobook', 'sino_map', 'sinoqa', 'sino_kmv1', 'sino_kmv2',
+                        'sino_budget', 'sino_spec', 'sino_cns', 'sinoproject', 'sino_eng',
+                        'sino_prkms', 'sino_carbon', 'sino_drawing']:
+            if cat_key in categories:
+                norm_cat_key = cat_key.replace('-', '_')
+                if norm_match_name.startswith(norm_cat_key):
+                    categories[cat_key]['indices'].append(idx)
+                    matched = True
+                    break
+    
+    # Calculate totals
+    for cat in categories.values():
+        cat['total_docs'] = sum(int(i.get('docs.count', 0) or 0) for i in cat['indices'])
+        cat['count'] = len(cat['indices'])
+    
+    # Cache using configurable timeout (default 900 seconds = 15 minutes)
+    cache_timeout = getattr(settings, 'OPENSEARCH_INDEX_CACHE_TIMEOUT', 900)
+    cache.set(cache_key, categories, cache_timeout)
+    
+    return categories
+
+
+# Department code reference
+DEPT_CODES = {
+    '02': '業務部',
+    '03': '行政部',
+    '04': '考核部',
+    '06': '研資部',
+    '08': '財會部',
+    '11': '水利部',
+    '12': '電力部',
+    '14': '軌一部',
+    '15': '環工部',
+    '18': '建築部',
+    '22': '園路部',
+    '23': '法務部',
+    '24': '軌二部',
+    '25': '職安中心',
+    '31': '結構部',
+    '32': '地工部',
+    '33': '機械部',
+    '34': '系電部',
+    '39': '工管部',
+    '40': '機工部',
+    '59': '中工中心',
+    '92': '南工中心',
+}
+
+
+def parse_search_query(query):
+    """
+    Parse search query for special operators.
+    
+    Supported operators:
+    - title:關鍵字 - Search only in title field
+    - ext:pdf - Search by file extension (e.g., ext:pdf, ext:docx)
+    - proj:0001b - Search by project number (5 chars after sinoproject-)
+    - dept:11 - Search by department number (2 chars after sino_dept_)
+    
+    Returns:
+        dict with keys: 'query' (remaining query), 'title', 'ext', 'proj', 'dept'
+    """
+    import re
+    
+    result = {
+        'query': '',
+        'title': None,
+        'ext': None,
+        'proj': None,
+        'dept': None,
+    }
+    
+    if not query:
+        return result
+    
+    query = query.strip()
+    
+    # Extract title: operator
+    title_match = re.search(r'title:(\S+)', query, re.IGNORECASE)
+    if title_match:
+        result['title'] = title_match.group(1)
+        query = query.replace(title_match.group(0), '').strip()
+    
+    # Extract ext: operator
+    ext_match = re.search(r'ext:(\S+)', query, re.IGNORECASE)
+    if ext_match:
+        result['ext'] = ext_match.group(1)
+        query = query.replace(ext_match.group(0), '').strip()
+    
+    # Extract proj: operator (project number)
+    proj_match = re.search(r'proj:(\S+)', query, re.IGNORECASE)
+    if proj_match:
+        result['proj'] = proj_match.group(1).lower()
+        query = query.replace(proj_match.group(0), '').strip()
+    
+    # Extract dept: operator (department number)
+    dept_match = re.search(r'dept:(\d{1,2})', query, re.IGNORECASE)
+    if dept_match:
+        # Pad to 2 digits if needed
+        dept_code = dept_match.group(1).zfill(2)
+        result['dept'] = dept_code
+        query = query.replace(dept_match.group(0), '').strip()
+    
+    result['query'] = query
+    return result
+
+
+def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, date_to=None, include_content=False):
+    """
+    Execute search query against OpenSearch
+    
+    Args:
+        query: Search query string
+        indices: Index pattern to search (default: all)
+        size: Number of results to return
+        from_: Offset for pagination
+        sort_by: Sort field and order (e.g., "dt:desc")
+        date_from: Filter by date from (ISO format)
+        date_to: Filter by date to (ISO format)
+        include_content: Whether to search inside full-text content (slower)
+    
+    Returns:
+        Search response with hits
+    
+    Note:
+        Only indices with alias_ or reviewing_ prefix are searchable.
+        - alias_* = online, normal display
+        - reviewing_* = online but ALL results are treated as secret/sensitive
+        The indices parameter is automatically converted to alias pattern.
+        e.g., "sinoproject*" searches both "alias_sinoproject*" and "reviewing_sinoproject*"
+    """
+    client = get_client()
+    
+    # Convert index pattern to alias patterns (only search online indices)
+    # Indices without alias_ or reviewing_ prefix are considered offline
+    if indices == "*":
+        # Search both alias_ and reviewing_ prefixed indices
+        search_indices = "alias_*,reviewing_*"
+    else:
+        # Handle comma-separated patterns and hyphen/underscore variations
+        parts = [p.strip() for p in indices.split(',')]
+        alias_parts = []
+        for part in parts:
+            # Generate hyphen and underscore versions
+            variations = {part, part.replace('-', '_'), part.replace('_', '-')}
+            for var in variations:
+                if var.startswith('alias_') or var.startswith('reviewing_'):
+                    alias_parts.append(var)
+                else:
+                    # Add both alias_ and reviewing_ versions
+                    alias_parts.append(f'alias_{var}')
+                    alias_parts.append(f'reviewing_{var}')
+        # Remove duplicates
+        alias_parts = sorted(list(set(alias_parts)))
+        search_indices = ','.join(alias_parts)
+    
+    # Parse special search operators from query
+    # Supported operators:
+    # - title:關鍵字 - Search only in title field
+    # - ext:pdf - Search by file extension
+    # - proj:0001b - Search by project number (5 chars after sinoproject-)
+    # - dept:11 - Search by department number (2 chars after sino_dept_)
+    parsed = parse_search_query(query)
+    
+    # Build query based on parsed operators
+    must_clauses = []
+    filter_clauses = []
+    should_clauses_main = []  # Top-level should clauses for boosting
+    
+    # Handle project number filter
+    if parsed.get('proj'):
+        proj_code = parsed['proj'].lower()
+        # Project pattern: sinoproject-XXXXX where XXXXX is the 5-char code
+        filter_clauses.append({
+            "wildcard": {"_index": f"*sinoproject-{proj_code}*"}
+        })
+    
+    # Handle department filter
+    if parsed.get('dept'):
+        dept_code = parsed['dept']
+        # Department pattern: sino_dept_XX where XX is the 2-char code
+        filter_clauses.append({
+            "wildcard": {"_index": f"*sino_dept_{dept_code}*"}
+        })
+    
+    # Handle file extension filter
+    if parsed.get('ext'):
+        ext = parsed['ext'].lower()
+        if not ext.startswith('.'):
+            ext = f'.{ext}'
+        filter_clauses.append({
+            "bool": {
+                "should": [
+                    {"wildcard": {"file.filename": f"*{ext}"}},
+                    {"wildcard": {"path.real": f"*{ext}"}},
+                    {"wildcard": {"file": f"*{ext}"}}
+                ],
+                "minimum_should_match": 1
+            }
+        })
+    
+    # Build main query
+    main_query = parsed.get('query', '').strip()
+    
+    # Build title phrase boost (boost exact phrase matches in title)
+    # Build title phrase boost (boost exact phrase matches in title)
+    if parsed.get('title'):
+        title_terms = parsed['title']
+        must_clauses.append({
+            "wildcard": {
+                "file.filename": f"*{title_terms}*"
+            }
+        })
+    elif main_query:
+        # Boost exact phrase match in title (user intent preservation) - SHOULD clause
+        should_clauses_main.append({
+             "match_phrase": {"file.filename": {"query": main_query, "boost": 2.0}}
+        })
+        should_clauses_main.append({
+             "match_phrase": {"content": {"query": main_query, "boost": 1.5}}
+        })
+    
+    if main_query:
+        terms = main_query.split()
+        
+        if len(terms) == 1:
+            # Single term - use phrase match to prevent splitting into single characters
+            # Always search content field to find keywords inside documents
+            search_fields = ["title^3", "file.filename^2", "path.real^2", "meta", "file.extension", "content^1"]
+            
+            must_clauses.append({
+                "multi_match": {
+                    "query": main_query,
+                    "fields": search_fields,
+                    "type": "phrase",
+                    "slop": 0
+                }
+            })
+        else:
+            # Multiple terms: use AND matching (must contains all terms)
+            # Each term is treated as a PHRASE (contiguous characters)
+            search_fields = ["title^3", "file.filename^2", "path.real^2", "meta", "file.extension", "content^1"]
+            
+            for term in terms:
+                must_clauses.append({
+                    "multi_match": {
+                        "query": term,
+                        "fields": search_fields,
+                        "type": "phrase",
+                        "slop": 0  # Strict adjacency for characters in the term
+                    }
+                })
+            
+            # 2. Phrase Boost: If the WHOLE query matches as a phrase, give it a HUGE boost
+            should_clauses_main.append({
+                "match_phrase": {
+                    "file.filename": {
+                        "query": main_query,
+                        "boost": 10.0,
+                        "slop": 2 
+                    }
+                }
+            })
+            should_clauses_main.append({
+                "match_phrase": {
+                    "content": {
+                        "query": main_query,
+                        "boost": 5.0,
+                        "slop": 2
+                    }
+                }
+            })
+    
+    # Combine into final must_query
+    if must_clauses:
+        if len(must_clauses) == 1:
+            must_query = must_clauses[0]
+        else:
+            must_query = {"bool": {"must": must_clauses}}
+    else:
+        must_query = {"match_all": {}}
+    
+    # Build filter for date range and special operators
+    filters = filter_clauses.copy()  # Include proj/dept/ext filters
+    if date_from or date_to:
+        date_filter = {"range": {"dt": {}}}
+        if date_from:
+            date_filter["range"]["dt"]["gte"] = date_from
+        if date_to:
+            date_filter["range"]["dt"]["lte"] = date_to
+        filters.append(date_filter)
+    
+    # Construct body with performance optimizations
+    # Wrap in function_score for Popularity Boosting (vote field)
+    # Construct body with performance optimizations
+    # Wrap in function_score for Popularity Boosting (vote field)
+    query_body = {
+        "bool": {
+            "must": must_query,
+            "filter": filters,
+            "should": should_clauses_main
+        }
+    }
+    
+    body = {
+        "query": {
+            "function_score": {
+                "query": query_body,
+                "field_value_factor": {
+                    "field": "vote",
+                    "factor": 1.2,
+                    "modifier": "log1p",
+                    "missing": 0
+                },
+                "boost_mode": "sum"
+            }
+        },
+        # Limit _source to essential fields only (exclude large content field unless requested)
+        "_source": {
+            "excludes": ["content"] if not include_content else []
+        },
+        # Optimized highlight - skip content field unless requested
+        "highlight": {
+            "pre_tags": ["<mark>"],
+            "post_tags": ["</mark>"],
+            "fields": {
+                "title": {"number_of_fragments": 0},
+                "file": {"number_of_fragments": 0},
+                "path": {"number_of_fragments": 0},
+                "content": {"fragment_size": 150, "number_of_fragments": 1}
+            }
+        },
+        "size": size,
+        "from": from_,
+        "terminate_after": 5000  # Performance: Stop after finding enough candidates
+    }
+    
+    # Add sort
+    if sort_by:
+        field, order = sort_by.split(':') if ':' in sort_by else (sort_by, 'desc')
+        body["sort"] = [{field: {"order": order, "unmapped_type": "date"}}]
+    
+    try:
+        response = client.search(
+            index=search_indices,
+            body=body,
+            ignore_unavailable=True,
+            request_timeout=getattr(settings, 'OPENSEARCH_TIMEOUT', 30)
+        )
+        
+        # Process results: add category and clean text
+        hits = response.get('hits', {})
+        if 'hits' in hits:
+            # Get categories for lookup
+            categories_map = get_index_categories()
+            processed_hits = []
+            
+            for hit in hits['hits']:
+                index_name = hit.get('_index', '')
+                source = hit.get('_source', {})
+                
+                # 1. Clean title if garbled
+                if 'title' in source:
+                    source['title'] = clean_text(source['title'])
+                
+                # 2. Inject category name
+                category_name = "其他"
+                for cat_key, cat_data in categories_map.items():
+                    if any(idx['index'] == index_name for idx in cat_data['indices']):
+                        category_name = cat_data['name']
+                        
+                        # Special handling for sino_dept: Append department name
+                        if cat_key == 'sino_dept':
+                            # Extract dept code from index name (e.g. ...sino_dept_11...)
+                            import re
+                            match = re.search(r'sino_dept_(\d+)', index_name)
+                            if match:
+                                code = match.group(1)
+                                dept_name = DEPT_CODES.get(code)
+                                if dept_name:
+                                    category_name = f"{category_name} - {dept_name}"
+                        break
+                hit['category_name'] = category_name
+                
+                processed_hits.append(hit)
+            
+            hits['hits'] = processed_hits
+            
+        return response
+    except Exception as e:
+        return {"error": str(e), "hits": {"hits": [], "total": {"value": 0}}}
+
+
+def search_fast(query, indices="*", size=10):
+    """
+    Ultra-fast search for instant results (autocomplete, suggestions).
+    
+    Optimizations:
+    - No highlight
+    - Minimal _source fields
+    - terminate_after for early termination
+    - Shorter timeout
+    
+    Args:
+        query: Search query string
+        indices: Index pattern to search
+        size: Number of results (default: 10)
+    
+    Returns:
+        Search response with minimal hits
+    """
+    client = get_client()
+    
+    # Convert to alias patterns
+    if indices == "*":
+        search_indices = "alias_*,reviewing_*"
+    else:
+        parts = [p.strip() for p in indices.split(',')]
+        alias_parts = []
+        for part in parts:
+            variations = {part, part.replace('-', '_'), part.replace('_', '-')}
+            for var in variations:
+                if var.startswith('alias_') or var.startswith('reviewing_'):
+                    alias_parts.append(var)
+                else:
+                    alias_parts.append(f'alias_{var}')
+                    alias_parts.append(f'reviewing_{var}')
+        alias_parts = sorted(list(set(alias_parts)))
+        search_indices = ','.join(alias_parts)
+    
+    body = {
+        "query": {
+            "multi_match": {
+                "query": query,
+                "fields": ["title^3", "file.filename^2", "path.real"],
+                "type": "best_fields",
+                "tie_breaker": 0.3
+            }
+        },
+        "_source": ["title", "file.filename", "path.real", "dt", "_index"],
+        "size": size,
+        "terminate_after": size * 10  # Stop after finding enough candidates
+    }
+    
+    try:
+        response = client.search(
+            index=search_indices,
+            body=body,
+            ignore_unavailable=True,
+            request_timeout=5  # Very short timeout for fast search
+        )
+        return response
+    except Exception as e:
+        return {"error": str(e), "hits": {"hits": [], "total": {"value": 0}}}
+
+
+def get_category_from_index(index_name):
+    """Determine category from index name"""
+    # Order matters - more specific patterns first
+    patterns = [
+        ('sinobook_journal', 'book_journal'),
+        ('sino_dept', 'dept_file'),
+        ('sino_early', 'early_file'),
+        ('sino_early', 'early_file'), # Handle both variations
+        ('sinopmis_meeting', 'pmis_meeting'),
+        ('sinopmis_file', 'pmis_file'),
+        ('sinopmis_iobook_in', 'pmis_iobook_in'),
+        ('sinopmis_iobook_out', 'pmis_iobook_out'),
+        ('sinobim_element', 'bim_element'),
+        ('sinobim_issue', 'bim_issue'),
+        ('sinobim_file', 'bim_file'),
+        ('sino_website_in', 'website_insite'),
+        ('sino_website_out', 'website_outsite'),
+        ('sino_website_user', 'website_user'),
+        ('sino_website_prkms', 'website_prkms'),
+        ('sino_map_dept', 'map_dept'),
+        ('sino_map_tw_1', 'map_tw_1'),
+        ('sino_map_tw_2', 'map_tw_2'),
+        ('sinobook', 'book'),
+        ('sino_map', 'map'),
+        ('sinoqa', 'qa'),
+        ('sino_kmv1', 'kmv1'),
+        ('sino_kmv2', 'kmv2'),
+        ('sino_drawing', 'drawing'),
+        ('sino_carbon', 'carbon'),
+        ('sino_prkms', 'prkms_tender'),
+        ('sino_budget', 'spec_budget'),
+        ('sino_spec', 'spec'),
+        ('sino_cns', 'cns'),
+        ('sinoproject', 'file'),
+        ('sino_eng', 'eng_file'),
+    ]
+    
+    for pattern, template in patterns:
+        if pattern in index_name:
+            return template
+    
+    return 'default'
+
+
+def get_aggregations(query, indices="*"):
+    """Get aggregations for search filters"""
+    client = get_client()
+    
+    body = {
+        "size": 0,
+        "query": {
+            "multi_match": {
+                "query": query,
+                "fields": ["*"]
+            }
+        } if query else {"match_all": {}},
+        "aggs": {
+            "by_index": {
+                "terms": {
+                    "field": "_index",
+                    "size": 50
+                }
+            }
+        }
+    }
+    
+    try:
+        response = client.search(
+            index=indices,
+            body=body,
+            ignore_unavailable=True
+        )
+        return response.get('aggregations', {})
+    except Exception:
+        return {}

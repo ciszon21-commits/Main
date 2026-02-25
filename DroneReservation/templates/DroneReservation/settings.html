@@ -1,0 +1,276 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系統設定 - 園路無人機預約</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'DroneReservation/css/drone.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+</head>
+
+<body>
+    <div class="banner banner-sm">
+        <div class="banner-content">
+            <div class="banner-info">
+                <h1 class="banner-title">
+                    <a href="{% url 'drone:dashboard' %}" class="back-link">
+                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd"
+                                d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+                        </svg>
+                    </a>
+                    系統設定
+                </h1>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="grid-2-col">
+            <!-- 網站設定 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z" />
+                            <path
+                                d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z" />
+                        </svg>
+                        網站設定
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_settings">
+                        <div class="form-group">
+                            <label for="id_banner_subtitle">Banner 副標題</label>
+                            {{ site_settings_form.banner_subtitle }}
+                        </div>
+                        <div class="form-actions" style="justify-content: flex-end;">
+                            <button type="submit" class="btn btn-primary">儲存設定</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 新增簽核人 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M6 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H1s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C9.516 10.68 8.289 10 6 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z" />
+                            <path fill-rule="evenodd"
+                                d="M13.5 5a.5.5 0 0 1 .5.5V7h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V8h-1.5a.5.5 0 0 1 0-1H13V5.5a.5.5 0 0 1 .5-.5z" />
+                        </svg>
+                        新增簽核人
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="add_reviewer">
+                        <div class="form-group">
+                            <label for="user_id">選擇使用者</label>
+                            <select name="user_id" id="user_id" class="form-control" required>
+                                <option value="">-- 請選擇 --</option>
+                                {% for user in all_users %}
+                                <option value="{{ user.pk }}">{{ user.last_name|default:user.username }} ({{ user.username }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-actions" style="justify-content: flex-end;">
+                            <button type="submit" class="btn btn-success">新增簽核人</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 簽核人列表 -->
+        <div class="card" style="margin-top: 24px;">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                        <path fill-rule="evenodd"
+                            d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z" />
+                        <path d="M4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z" />
+                    </svg>
+                    簽核人管理
+                </h2>
+            </div>
+            <div class="card-body">
+                {% if reviewers %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>姓名</th>
+                            <th>帳號</th>
+                            <th>Email</th>
+                            <th style="text-align:center;">啟用</th>
+                            <th style="text-align:center;">接收郵件</th>
+                            <th style="text-align:center;">管理權限</th>
+                            <th style="text-align:center;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reviewer in reviewers %}
+                        <tr class="{% if not reviewer.is_active %}inactive-row{% endif %}">
+                            <td>{{ reviewer.user.last_name|default:reviewer.user.get_full_name|default:"-" }}</td>
+                            <td>{{ reviewer.user.username }}</td>
+                            <td>{{ reviewer.user.email|default:"-" }}</td>
+                            <form method="post" style="display:contents;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="update_reviewer">
+                                <input type="hidden" name="reviewer_id" value="{{ reviewer.pk }}">
+                                <td style="text-align:center;">
+                                    <input type="checkbox" name="is_active" class="form-check-input" {% if reviewer.is_active %}checked{% endif %}>
+                                </td>
+                                <td style="text-align:center;">
+                                    <input type="checkbox" name="receive_email" class="form-check-input" {% if reviewer.receive_email %}checked{% endif %}>
+                                </td>
+                                <td style="text-align:center;">
+                                    <input type="checkbox" name="can_manage_reviewers" class="form-check-input" {% if reviewer.can_manage_reviewers %}checked{% endif %}>
+                                </td>
+                                <td style="text-align:center;">
+                                    <button type="submit" class="btn btn-sm btn-primary">更新</button>
+                                </td>
+                            </form>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">
+                    <p>目前沒有簽核人</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 郵件模板設定 -->
+        <div class="card" style="margin-top: 24px;">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z" />
+                    </svg>
+                    郵件模板設定
+                </h2>
+            </div>
+            <div class="card-body">
+                <p class="help-text" style="margin-bottom: 16px; color: var(--text-secondary); font-size: 13px;">
+                    可用變數：<code>{applicant_name}</code>, <code>{start_time}</code>, <code>{end_time}</code>,
+                    <code>{location}</code>, <code>{project_number}</code>, <code>{reason}</code>,
+                    <code>{reviewer_name}</code>, <code>{rejection_reason}</code>, <code>{old_start_time}</code>,
+                    <code>{old_end_time}</code>
+                </p>
+                {% for template in email_templates %}
+                <div class="template-card"
+                    style="margin-bottom: 16px; padding: 16px; border: 1px solid var(--border-color); border-radius: var(--border-radius-sm);">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_template">
+                        <input type="hidden" name="template_id" value="{{ template.pk }}">
+                        <h4 style="margin-bottom: 12px; font-weight: 600;">{{ template.get_email_type_display }}</h4>
+                        <div class="form-group" style="margin-bottom: 12px;">
+                            <label for="subject_{{ template.pk }}">郵件主旨</label>
+                            <input type="text" name="subject_template" id="subject_{{ template.pk }}"
+                                class="form-control" value="{{ template.subject_template }}">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 12px;">
+                            <label for="body_{{ template.pk }}">郵件內容</label>
+                            <textarea name="body_template" id="body_{{ template.pk }}" class="form-control"
+                                rows="6">{{ template.body_template }}</textarea>
+                        </div>
+                        <div class="form-actions" style="justify-content: flex-end;">
+                            <button type="submit" class="btn btn-primary btn-sm">儲存模板</button>
+                        </div>
+                    </form>
+                </div>
+                {% empty %}
+                <div class="empty-state">
+                    <p>目前沒有郵件模板</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .grid-2-col {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 24px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table th {
+            background: var(--bg-secondary);
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .data-table tr:hover {
+            background: var(--bg-secondary);
+        }
+
+        .inactive-row {
+            opacity: 0.5;
+        }
+
+        .messages {
+            margin-bottom: 24px;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: var(--border-radius-sm);
+            margin-bottom: 12px;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+            border: 1px solid var(--danger-color);
+        }
+    </style>
+</body>
+
+</html>

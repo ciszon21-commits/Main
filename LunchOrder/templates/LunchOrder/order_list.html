@@ -1,0 +1,158 @@
+{% extends "LunchOrder/base.html" %}
+{% load static %}
+
+{% block title %}訂便當系統 | 訂單列表{% endblock %}
+
+{% block extra_css %}
+<style>
+    .order-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        color: white;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+
+    .order-card h2 {
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .btn-action {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        transition: all 0.3s;
+    }
+
+    .btn-action:hover {
+        background: rgba(255, 255, 255, 0.3);
+        color: white;
+    }
+
+    .table-modern {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .table-modern thead {
+        background: #f8f9fa;
+    }
+
+    .table-modern th {
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 2px solid #e9ecef;
+        padding: 16px;
+    }
+
+    .table-modern td {
+        padding: 16px;
+        vertical-align: middle;
+    }
+
+    .badge-restaurant {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+    }
+
+    .price-tag {
+        background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+
+    .nav-tabs-custom .nav-link {
+        border: none;
+        color: #6c757d;
+        padding: 12px 24px;
+        font-weight: 500;
+    }
+
+    .nav-tabs-custom .nav-link.active {
+        color: #667eea;
+        border-bottom: 3px solid #667eea;
+        background: transparent;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header Card -->
+    <div class="order-card">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2><i class="fas fa-utensils me-2"></i>訂便當系統</h2>
+                <p class="mb-0 mt-2 opacity-75">輕鬆訂購，美味即達</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'lunchorder:order_create' %}" class="btn btn-action">
+                    <i class="fas fa-plus me-1"></i> 新增訂單
+                </a>
+                <a href="{% url 'lunchorder:order_statistics' %}" class="btn btn-action">
+                    <i class="fas fa-chart-bar me-1"></i> 統計報表
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs nav-tabs-custom mb-4">
+        <li class="nav-item">
+            <a class="nav-link active" href="{% url 'lunchorder:order_list' %}">
+                <i class="fas fa-list me-1"></i> 訂單列表
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'lunchorder:order_statistics' %}">
+                <i class="fas fa-chart-pie me-1"></i> 消費統計
+            </a>
+        </li>
+    </ul>
+
+    <!-- Orders Table -->
+    <div class="table-modern">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>訂購日期</th>
+                    <th>員工姓名</th>
+                    <th>便當店</th>
+                    <th>品項</th>
+                    <th>數量</th>
+                    <th>小計</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.order_date|date:"Y/m/d" }}</td>
+                    <td><strong>{{ order.employee_name }}</strong></td>
+                    <td><span class="badge-restaurant">{{ order.menu_item.restaurant.name }}</span></td>
+                    <td>{{ order.menu_item.name }}</td>
+                    <td>{{ order.quantity }}</td>
+                    <td><span class="price-tag">${{ order.subtotal }}</span></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5 text-muted">
+                        <i class="fas fa-inbox fa-3x mb-3 d-block opacity-50"></i>
+                        目前沒有訂單，<a href="{% url 'lunchorder:order_create' %}">立即新增</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

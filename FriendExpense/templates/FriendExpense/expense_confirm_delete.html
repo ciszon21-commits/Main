@@ -1,0 +1,33 @@
+{% extends 'FriendExpense/base.html' %}
+
+{% block title %}刪除記帳 - 朋友記帳{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">⚠️ 刪除記帳</h1>
+</div>
+
+<div class="card" style="max-width: 500px;">
+    <div style="text-align: center; margin-bottom: 24px;">
+        <div style="font-size: 4rem; margin-bottom: 16px;">🗑️</div>
+        <p style="font-size: 1.1rem; margin-bottom: 8px;">
+            確定要刪除這筆記帳嗎？
+        </p>
+        <div style="background: rgba(255,255,255,0.05); padding: 16px; border-radius: 12px; margin: 16px 0;">
+            <p style="margin: 0 0 8px 0;"><strong>{{ object.description }}</strong></p>
+            <p style="color: var(--accent-gold); font-size: 1.25rem; margin: 0;">${{ object.amount }}</p>
+        </div>
+        <p style="color: var(--text-subdued);">
+            此操作無法復原。
+        </p>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button type="submit" class="btn btn-danger">確認刪除</button>
+            <a href="{% url 'friend_expense:group_detail' pk=object.group.pk %}" class="btn btn-outline">取消</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

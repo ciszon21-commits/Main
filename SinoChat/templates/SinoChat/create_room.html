@@ -1,0 +1,487 @@
+{% extends "SinoTemplate/base.html" %}
+{% load static %}
+
+{% block title %}建立聊天室 - Sinotech 聊天{% endblock %}
+
+{% block head_block %}
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+:root {
+    --sino-red: #C41E3A;
+    --sino-red-dark: #A01830;
+    --bg-primary: #FFFFFF;
+    --bg-secondary: #F7F7F7;
+    --text-primary: #1A1A1A;
+    --text-secondary: #999999;
+    --border-color: #E5E5E5;
+}
+
+.chat-container {
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--bg-primary);
+    min-height: 100vh;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+}
+
+.chat-header {
+    background: var(--sino-red);
+    color: white;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.back-btn {
+    color: white;
+    font-size: 24px;
+    text-decoration: none;
+}
+
+.chat-header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.form-section {
+    padding: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--sino-red);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* 可見性選擇 */
+.visibility-options {
+    display: flex;
+    gap: 12px;
+}
+
+.visibility-option {
+    flex: 1;
+    padding: 16px;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.visibility-option:hover {
+    border-color: var(--sino-red);
+}
+
+.visibility-option.selected {
+    border-color: var(--sino-red);
+    background: rgba(196, 30, 58, 0.05);
+}
+
+.visibility-option input {
+    display: none;
+}
+
+.visibility-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+    color: var(--sino-red);
+}
+
+.visibility-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.visibility-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* 顏色選擇 */
+.color-options {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.color-option {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.2s;
+}
+
+.color-option:hover {
+    transform: scale(1.1);
+}
+
+.color-option.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.color-option input {
+    display: none;
+}
+
+/* 邀請成員 */
+.invite-section {
+    display: none;
+}
+
+.invite-section.show {
+    display: block;
+}
+
+.search-input-wrapper {
+    position: relative;
+    margin-bottom: 12px;
+}
+
+.search-input-wrapper i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+}
+
+.search-input {
+    width: 100%;
+    padding: 12px 16px 12px 40px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.search-results {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    display: none;
+}
+
+.search-results.show {
+    display: block;
+}
+
+.search-result-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-item:hover {
+    background: var(--bg-secondary);
+}
+
+.result-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--sino-red);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+/* 已選成員 */
+.selected-users {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.selected-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--bg-secondary);
+    border-radius: 20px;
+    font-size: 13px;
+}
+
+.selected-user .remove {
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+/* 提交按鈕 */
+.submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--sino-red);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+.submit-btn:hover {
+    background: var(--sino-red-dark);
+}
+
+/* 手機適配 */
+@media (max-width: 480px) {
+    .chat-container {
+        max-width: 100%;
+        box-shadow: none;
+    }
+}
+</style>
+{% endblock %}
+
+{% block main_block %}
+<div class="chat-container">
+    <!-- 標題欄 -->
+    <div class="chat-header">
+        <a href="{% url 'sinochat:room_list' %}" class="back-btn">
+            <i class="bi bi-chevron-left"></i>
+        </a>
+        <h1>建立聊天室</h1>
+    </div>
+
+    <form method="post" class="form-section" id="createForm">
+        {% csrf_token %}
+
+        <!-- 聊天室名稱 -->
+        <div class="form-group">
+            <label class="form-label">聊天室名稱 *</label>
+            <input type="text" name="name" class="form-input" placeholder="輸入聊天室名稱" required maxlength="100">
+        </div>
+
+        <!-- 描述 -->
+        <div class="form-group">
+            <label class="form-label">描述（選填）</label>
+            <textarea name="description" class="form-input form-textarea" placeholder="輸入聊天室描述"></textarea>
+        </div>
+
+        <!-- 可見性 -->
+        <div class="form-group">
+            <label class="form-label">可見性</label>
+            <div class="visibility-options">
+                <label class="visibility-option selected" data-value="public">
+                    <input type="radio" name="visibility" value="public" checked>
+                    <div class="visibility-icon"><i class="bi bi-globe"></i></div>
+                    <div class="visibility-title">公開</div>
+                    <div class="visibility-desc">所有人都可以加入</div>
+                </label>
+                <label class="visibility-option" data-value="private">
+                    <input type="radio" name="visibility" value="private">
+                    <div class="visibility-icon"><i class="bi bi-lock"></i></div>
+                    <div class="visibility-title">私人</div>
+                    <div class="visibility-desc">僅邀請者可加入</div>
+                </label>
+            </div>
+        </div>
+
+        <!-- 頭像顏色 -->
+        <div class="form-group">
+            <label class="form-label">頭像顏色</label>
+            <div class="color-options">
+                {% for color in color_options %}
+                <label class="color-option {% if forloop.first %}selected{% endif %}" style="background-color: {{ color }}">
+                    <input type="radio" name="avatar_color" value="{{ color }}" {% if forloop.first %}checked{% endif %}>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 邀請成員（私人聊天室） -->
+        <div class="form-group invite-section" id="inviteSection">
+            <label class="form-label">邀請成員</label>
+            <div class="search-input-wrapper">
+                <i class="bi bi-search"></i>
+                <input type="text" class="search-input" id="userSearch" placeholder="搜尋同仁...">
+            </div>
+            <div class="search-results" id="searchResults"></div>
+            <div class="selected-users" id="selectedUsers"></div>
+        </div>
+
+        <!-- 提交按鈕 -->
+        <button type="submit" class="submit-btn">
+            <i class="bi bi-plus-circle"></i> 建立聊天室
+        </button>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const createForm = document.getElementById('createForm');
+    const inviteSection = document.getElementById('inviteSection');
+    const userSearch = document.getElementById('userSearch');
+    const searchResults = document.getElementById('searchResults');
+    const selectedUsersContainer = document.getElementById('selectedUsers');
+    
+    let selectedUserIds = new Set();
+
+    // 通用自定義 Radio 設置函數
+    function setupCustomRadios(containerSelector, name) {
+        const containers = document.querySelectorAll(containerSelector);
+        const inputs = document.querySelectorAll(`input[name="${name}"]`);
+
+        inputs.forEach(input => {
+            input.addEventListener('change', function() {
+                if (this.checked) {
+                    // 更新視覺狀態
+                    containers.forEach(c => c.classList.remove('selected'));
+                    const targetContainer = this.closest(containerSelector);
+                    if (targetContainer) targetContainer.classList.add('selected');
+
+                    // 特殊處理：切換可見性時顯示/隱藏邀請區域
+                    if (name === 'visibility') {
+                        if (this.value === 'private') {
+                            inviteSection.classList.add('show');
+                        } else {
+                            inviteSection.classList.remove('show');
+                        }
+                    }
+                }
+            });
+        });
+
+        // 確保點擊容器也能觸發（因為 input 是隱藏的）
+        containers.forEach(container => {
+            container.addEventListener('click', function(e) {
+                const input = this.querySelector('input[type="radio"]');
+                if (input && e.target !== input) {
+                    input.checked = true;
+                    input.dispatchEvent(new Event('change'));
+                }
+            });
+        });
+    }
+
+    setupCustomRadios('.visibility-option', 'visibility');
+    setupCustomRadios('.color-option', 'avatar_color');
+
+    // 用戶搜尋功能
+    let searchTimeout = null;
+    userSearch.addEventListener('input', function() {
+        const query = this.value.trim();
+        if (searchTimeout) clearTimeout(searchTimeout);
+
+        if (query.length < 1) {
+            searchResults.classList.remove('show');
+            return;
+        }
+
+        searchTimeout = setTimeout(() => {
+            fetch(`{% url 'sinochat:search_users' %}?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.users.length > 0) {
+                        searchResults.innerHTML = data.users
+                            .filter(u => !selectedUserIds.has(u.id.toString()))
+                            .map(u => `
+                                <div class="search-result-item" data-id="${u.id}" data-name="${u.name}">
+                                    <div class="result-avatar">
+                                        <i class="bi bi-person"></i>
+                                    </div>
+                                    <div class="result-info">
+                                        <div class="result-name">${u.name}</div>
+                                        <div class="result-username">${u.username}</div>
+                                    </div>
+                                </div>
+                            `).join('');
+                        
+                        searchResults.classList.add('show');
+
+                        // 綁定點擊搜尋結果事件
+                        searchResults.querySelectorAll('.search-result-item').forEach(item => {
+                            item.addEventListener('click', function() {
+                                addUser(this.dataset.id, this.dataset.name);
+                                searchResults.classList.remove('show');
+                                userSearch.value = '';
+                            });
+                        });
+                    } else {
+                        searchResults.innerHTML = '<div class="search-result-item">找不到同仁</div>';
+                        searchResults.classList.add('show');
+                    }
+                });
+        }, 300);
+    });
+
+    // 新增用戶到邀請列表
+    function addUser(id, name) {
+        if (selectedUserIds.has(id.toString())) return;
+        selectedUserIds.add(id.toString());
+
+        const userTag = document.createElement('div');
+        userTag.className = 'selected-user';
+        userTag.dataset.id = id;
+        userTag.innerHTML = `
+            <span>${name}</span>
+            <i class="bi bi-x-circle-fill remove" onclick="removeUser('${id}')"></i>
+            <input type="hidden" name="invited_users" value="${id}">
+        `;
+        selectedUsersContainer.appendChild(userTag);
+    }
+
+    // 移除用戶
+    window.removeUser = function(id) {
+        selectedUserIds.delete(id.toString());
+        const tag = selectedUsersContainer.querySelector(`.selected-user[data-id="${id}"]`);
+        if (tag) tag.remove();
+    };
+
+    // 點擊外部關閉搜尋結果
+    document.addEventListener('click', function(e) {
+        if (!userSearch.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.classList.remove('show');
+        }
+    });
+});
+</script>
+{% endblock %}
