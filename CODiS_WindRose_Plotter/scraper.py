@@ -2,6 +2,8 @@
 CODIS 氣象資料爬蟲模組
 使用 Selenium 自動化瀏覽器操作，從中央氣象署觀測資料查詢系統爬取月報表資料
 """
+import os
+import glob
 import time
 import logging
 from datetime import datetime, date
@@ -68,7 +70,24 @@ class CODISScraper:
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
         chrome_options.add_experimental_option("useAutomationExtension", False)
         
-        service = Service(ChromeDriverManager().install())
+        # 嘗試線上取得 ChromeDriver，失敗時使用本機快取
+        driver_path = None
+        try:
+            driver_path = ChromeDriverManager().install()
+        except Exception as e:
+            logger.warning(f"ChromeDriverManager 無法連線 ({e})，嘗試使用本機快取")
+            wdm_dir = os.path.join(os.path.expanduser("~"), ".wdm", "drivers", "chromedriver")
+            if os.path.exists(wdm_dir):
+                cached = glob.glob(os.path.join(wdm_dir, "**", "chromedriver.exe"), recursive=True)
+                if not cached:
+                    cached = glob.glob(os.path.join(wdm_dir, "**", "chromedriver"), recursive=True)
+                if cached:
+                    driver_path = sorted(cached)[-1]
+                    logger.info(f"使用本機快取 ChromeDriver: {driver_path}")
+            if not driver_path:
+                raise RuntimeError("找不到可用的 ChromeDriver，請確認網路連線或手動安裝")
+        
+        service = Service(driver_path)
         driver = webdriver.Chrome(service=service, options=chrome_options)
         driver.implicitly_wait(10)
         

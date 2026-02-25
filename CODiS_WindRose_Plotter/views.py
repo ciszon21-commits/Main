@@ -111,6 +111,7 @@ def index(request):
     context = {
         'years': years,
         'months': months,
+        'start_year_default': 1900,
         'selected_year': selected_year,
         'selected_month': selected_month,
         'station_name': station_name,
