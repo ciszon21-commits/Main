@@ -127,3 +127,30 @@ class DroneReservationModelTest(TestCase):
         
         # Non-reviewer cannot review
         self.assertFalse(self.reservation.can_review(self.applicant))
+
+    def test_can_reviewer_edit(self):
+        """審核人只能編輯已核准預約的時間"""
+        # 申請中預約 - 不能透過修改時間編輯
+        self.reservation.status = 'pending'
+        self.assertFalse(self.reservation.can_reviewer_edit(self.reviewer_user))
+        
+        # 已核准預約 - 審核人可以編輯時間
+        self.reservation.status = 'approved'
+        self.assertTrue(self.reservation.can_reviewer_edit(self.reviewer_user))
+        
+        # 已拒絕預約 - 不能編輯
+        self.reservation.status = 'rejected'
+        self.assertFalse(self.reservation.can_reviewer_edit(self.reviewer_user))
+        
+        # 已取消預約 - 不能編輯
+        self.reservation.status = 'cancelled'
+        self.assertFalse(self.reservation.can_reviewer_edit(self.reviewer_user))
+        
+        # 非審核人不能編輯
+        self.reservation.status = 'approved'
+        self.assertFalse(self.reservation.can_reviewer_edit(self.applicant))
+        
+        # 停用的審核人不能編輯
+        self.reviewer_profile.is_active = False
+        self.reviewer_profile.save()
+        self.assertFalse(self.reservation.can_reviewer_edit(self.reviewer_user))
