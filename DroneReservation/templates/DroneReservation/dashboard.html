@@ -17,41 +17,44 @@
 
 <body>
     <!-- Banner Section -->
-    <div class="banner">
+    <div class="banner banner-compact">
         <div class="banner-content">
-            <div class="banner-info">
-                <h1 class="banner-title">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M22 11h-2V7h-2v4h-4V9h-2v2H8V7H6v4H4v2h2v4h2v-4h4v2h2v-2h4v4h2v-4h2v-2z" />
-                        <circle cx="12" cy="12" r="3" />
-                    </svg>
-                    園路無人機預約
-                </h1>
-                <p class="banner-subtitle">部門無人機使用預約與管理系統</p>
-            </div>
+            <h1 class="banner-title">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="5" cy="5" r="2.5" fill="currentColor" opacity="0.3" stroke="currentColor" />
+                    <circle cx="19" cy="5" r="2.5" fill="currentColor" opacity="0.3" stroke="currentColor" />
+                    <circle cx="5" cy="19" r="2.5" fill="currentColor" opacity="0.3" stroke="currentColor" />
+                    <circle cx="19" cy="19" r="2.5" fill="currentColor" opacity="0.3" stroke="currentColor" />
+                    <line x1="7" y1="6.5" x2="10" y2="10" />
+                    <line x1="17" y1="6.5" x2="14" y2="10" />
+                    <line x1="7" y1="17.5" x2="10" y2="14" />
+                    <line x1="17" y1="17.5" x2="14" y2="14" />
+                    <rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" stroke="none" />
+                    <circle cx="12" cy="12" r="1.5" fill="white" stroke="none" />
+                </svg>
+                園路無人機預約
+            </h1>
             <div class="banner-actions">
-                <a href="{% url 'drone:my_reservations' %}" class="btn btn-secondary">
+                <a href="{% url 'drone:my_reservations' %}" class="btn-nav">
                     <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                         <path
-                            d="M8 4a.5.5 0 0 1 .5.5V6H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V7H6a.5.5 0 0 1 0-1h1.5V4.5A.5.5 0 0 1 8 4z" />
+                            d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z" />
                         <path
-                            d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10 0H4v12h8V2z" />
+                            d="M8 7a.5.5 0 0 1 .5.5V9H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V10H6a.5.5 0 0 1 0-1h1.5V7.5A.5.5 0 0 1 8 7z" />
                     </svg>
-                    我的申請 {% if my_reservation_count > 0 %}<span class="badge">{{ my_reservation_count }}</span>{% endif %}
+                    我的申請{% if my_reservation_count > 0 %}<span class="nav-badge">{{ my_reservation_count }}</span>{% endif %}
                 </a>
                 {% if is_reviewer %}
-                <a href="{% url 'drone:pending_approvals' %}" class="btn btn-warning">
+                <a href="{% url 'drone:pending_approvals' %}"
+                    class="btn-nav {% if pending_count > 0 %}has-pending{% endif %}">
                     <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                         <path
-                            d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z" />
-                        <path
-                            d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z" />
-                        <path
-                            d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z" />
+                            d="M2 2.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm2 3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-2-9a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-1 0v-9a.5.5 0 0 1 .5-.5z" />
                     </svg>
-                    待簽核 {% if pending_count > 0 %}<span class="badge badge-warning">{{ pending_count }}</span>{% endif %}
+                    待簽核{% if pending_count > 0 %}<span class="nav-badge">{{ pending_count }}</span>{% endif %}
                 </a>
-                <a href="{% url 'drone:announcement_list' %}" class="btn btn-secondary">
+                <a href="{% url 'drone:announcement_list' %}" class="btn-nav">
                     <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                         <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
                         <path
@@ -59,19 +62,48 @@
                     </svg>
                     公告管理
                 </a>
+                <a href="{% url 'drone:mission_map' %}" class="btn-nav">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" />
+                    </svg>
+                    任務地圖
+                </a>
                 {% endif %}
-                <a href="{% url 'drone:reservation_create' %}" class="btn btn-primary">
+                {% if is_admin %}
+                <a href="{% url 'drone:settings' %}" class="btn-nav">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z" />
+                        <path
+                            d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319z" />
+                    </svg>
+                    系統設定
+                </a>
+                {% endif %}
+                <a href="{% url 'drone:reservation_create' %}" class="btn-nav btn-nav-highlight">
                     <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                         <path
                             d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
                     </svg>
                     新增預約
                 </a>
+                {% if is_reviewer and pending_count > 0 %}
+                <a href="{% url 'drone:pending_approvals' %}" class="notification-bell"
+                    title="{{ pending_count }} 筆待簽核">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path
+                            d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zm.995-14.901a1 1 0 1 0-1.99 0A5.002 5.002 0 0 0 3 6c0 1.098-.5 6-2 7h14c-1.5-1-2-5.902-2-7 0-2.42-1.72-4.44-4.005-4.901z" />
+                    </svg>
+                    <span class="notification-count">{{ pending_count }}</span>
+                </a>
+                {% endif %}
             </div>
         </div>
     </div>
 
     <div class="container">
+        <p class="page-subtitle">{{ site_settings.banner_subtitle }}</p>
         <div class="dashboard-grid">
             <!-- 公告區塊 -->
             <div class="card announcements-card">
@@ -214,7 +246,80 @@
         });
     </script>
 
-    <!-- 公告 Modal -->
+    <!-- Pinned Announcement Modal -->
+    <!-- Pinned Announcement Modal -->
+    {% if pinned_announcements %}
+    <div id="pinnedAnnouncementModal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3>
+                    <span style="color:red; margin-right:8px;">📌</span>重要公告
+                </h3>
+                <button type="button" class="close-btn" id="closePinnedCross">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                {% for announcement in pinned_announcements %}
+                <div class="pinned-announcement-item"
+                    style="border-bottom: 1px solid #eee; padding-bottom: 20px; margin-bottom: 20px;">
+                    <h4
+                        style="margin-top:0; color:var(--text-primary); display:flex; justify-content:space-between; align-items:center;">
+                        {{ announcement.title }}
+                        <small style="font-size:0.8em; color:var(--text-secondary); font-weight:normal;">{{ announcement.updated_at|naturaltime }}</small>
+                    </h4>
+                    <div class="announcement-content" style="color:var(--text-secondary); line-height:1.6;">
+                        {{ announcement.content|safe }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="modal-footer"
+                style="padding: 16px 24px; border-top: 1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+                <label
+                    style="cursor:pointer; display:flex; align-items:center; color:var(--text-secondary); user-select:none;">
+                    <input type="checkbox" id="dontShowAgainCheckbox"
+                        style="margin-right:8px; width:16px; height:16px;"> 今日不再顯示
+                </label>
+                <button type="button" class="btn btn-primary" id="closePinnedBtn">我知道了</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const modal = document.getElementById('pinnedAnnouncementModal');
+            const today = new Date().toISOString().split('T')[0];
+            const hiddenDate = localStorage.getItem('drone_pinned_announcement_hidden_date');
+
+            // Only show if the stored date is NOT today
+            if (hiddenDate !== today) {
+                modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closePinnedModal() {
+                // Check if user wants to hide it for today
+                if (document.getElementById('dontShowAgainCheckbox').checked) {
+                    localStorage.setItem('drone_pinned_announcement_hidden_date', today);
+                } else {
+                    // Optional: If un-checked, clear localStorage to be safe (though logic only checks !== today)
+                    localStorage.removeItem('drone_pinned_announcement_hidden_date');
+                }
+                modal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+
+            // Close buttons
+            document.getElementById('closePinnedCross').addEventListener('click', closePinnedModal);
+            document.getElementById('closePinnedBtn').addEventListener('click', closePinnedModal);
+
+            // Click outside to close (also saves preference if checked)
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) closePinnedModal();
+            });
+        });
+    </script>
+    {% endif %}
+
+    <!-- Individual Announcement Modal (Hidden by default) -->
     <div id="announcementModal" class="modal" style="display:none;">
         <div class="modal-content" style="max-width: 700px; max-height: 80vh; overflow-y: auto;">
             <div class="modal-header">

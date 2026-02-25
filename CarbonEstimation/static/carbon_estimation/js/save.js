@@ -82,9 +82,10 @@ class ScenarioManager {
     }
 
     updatePageTitle(scenarioInfo) {
-        const titleEl = document.querySelector('.title');
-        if (titleEl) {
-            titleEl.textContent = `${scenarioInfo.project_name} - ${scenarioInfo.scenario_name}`;
+        // Keep the original page title, show scenario info in subtitle
+        const subtitleEl = document.querySelector('.subtitle');
+        if (subtitleEl) {
+            subtitleEl.textContent = `${scenarioInfo.project_name} - ${scenarioInfo.scenario_name}`;
         }
     }
 
@@ -228,6 +229,8 @@ class ScenarioManager {
     }
 
     async saveAllCategories() {
+        const saveAllBtn = document.getElementById('save-all-btn');
+
         if (!window.carbonCalculator || window.carbonCalculator.unsavedCategories.size === 0) {
             alert('目前沒有未儲存的變更');
             return;

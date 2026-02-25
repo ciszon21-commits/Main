@@ -72,6 +72,11 @@ a:hover {
     margin-bottom: 32px;
 }
 
+.banner-compact {
+    padding: 20px 0;
+    margin-bottom: 0;
+}
+
 .banner-sm {
     padding: 24px 0;
     margin-bottom: 24px;
@@ -93,12 +98,13 @@ a:hover {
 }
 
 .banner-title {
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 700;
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
+    gap: 10px;
+    margin-bottom: 0;
+    white-space: nowrap;
 }
 
 .banner-sm .banner-title {
@@ -115,6 +121,24 @@ a:hover {
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
+    align-items: center;
+    font-size: 18px;
+}
+
+/* Page Subtitle (in container) */
+.page-subtitle {
+    color: var(--text-secondary);
+    font-size: 16px;
+    line-height: 1.6;
+    text-align: justify;
+    padding: 20px;
+    white-space: pre-line;
+    background: var(--bg-primary);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    margin-top: 24px;
+    margin-bottom: 24px;
 }
 
 .back-link {
@@ -195,6 +219,16 @@ a:hover {
 
 .btn-danger:hover {
     background: #dc2626;
+    color: white;
+}
+
+.btn-info {
+    background: var(--info-color);
+    color: white;
+}
+
+.btn-info:hover {
+    background: #0891b2;
     color: white;
 }
 
@@ -324,6 +358,21 @@ a:hover {
     background: var(--success-color);
 }
 
+/* FullCalendar Overrides */
+.fc .fc-col-header-cell-cushion {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.fc .fc-daygrid-day-number {
+    color: var(--text-primary);
+}
+
+.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
 /* Calendar Container */
 #calendar {
     min-height: 500px;
@@ -335,7 +384,7 @@ a:hover {
 
 .fc .fc-toolbar-title {
     font-size: 18px;
-    font-weight: 600;
+    font-weight: 500;
 }
 
 .fc .fc-button {
@@ -366,6 +415,39 @@ a:hover {
     padding: 2px 6px;
     font-size: 12px;
     cursor: pointer;
+    border: none;
+}
+
+/* 全天事件樣式 - 整條橫條顯示 */
+.fc .fc-daygrid-event {
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fc .fc-daygrid-block-event .fc-event-main {
+    padding: 2px 6px;
+}
+
+/* 隱藏點點樣式，確保使用橫條 */
+.fc .fc-daygrid-dot-event {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+.fc .fc-daygrid-dot-event .fc-event-title {
+    font-weight: 500;
+}
+
+/* 確保跨天事件正確顯示 */
+.fc .fc-daygrid-event-harness {
+    margin-top: 1px;
 }
 
 /* Filter Section */
@@ -970,6 +1052,7 @@ textarea.form-control {
     line-height: 1.5;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -1037,4 +1120,238 @@ textarea.form-control {
     border: 1px solid var(--border-color);
     padding: 8px 12px;
     text-align: left;
+}
+
+/* ========================================
+   Banner Navigation Buttons
+   ======================================== */
+
+.btn-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    color: rgba(255, 255, 255, 0.9);
+    background: transparent;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-size: 18px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.btn-nav:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.btn-nav-highlight {
+    color: #f59e0b !important;
+    font-weight: 700;
+}
+
+.btn-nav-highlight:hover {
+    color: #fbbf24 !important;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.btn-nav.has-pending {
+    color: #fef3c7;
+}
+
+.nav-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 10px;
+    margin-left: 4px;
+}
+
+.nav-badge-alert {
+    background: #ef4444;
+    color: #ffffff;
+    animation: pulse-badge 2s infinite;
+}
+
+@keyframes pulse-badge {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+/* Notification Bell */
+.notification-bell {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    color: #ffffff;
+    background: transparent;
+    border-radius: 50%;
+    text-decoration: none;
+    transition: var(--transition);
+    margin-left: 8px;
+}
+
+.notification-bell:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.notification-bell svg {
+    color: #ffffff;
+}
+
+.notification-count {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: #ef4444;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse-badge 2s infinite;
+}
+
+/* ========================================
+   Reservation List Styles
+   ======================================== */
+
+.reservation-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.reservation-card {
+    background: var(--bg-primary);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    transition: var(--transition);
+}
+
+.reservation-card:hover {
+    box-shadow: var(--shadow);
+    transform: translateY(-2px);
+}
+
+.reservation-header {
+    background: var(--bg-secondary);
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.reservation-body {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.reservation-body>div {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: var(--text-secondary);
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.reservation-body>div svg {
+    color: var(--text-muted);
+    flex-shrink: 0;
+    margin-top: 3px;
+}
+
+.reservation-body>div strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.reservation-actions {
+    padding: 16px 24px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.status-badge-lg {
+    padding: 6px 16px;
+    font-size: 14px;
+}
+
+.status-pending {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.status-approved {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.status-rejected {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.status-cancelled {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.reservation-date {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.rejection-text {
+    color: var(--danger-color);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.review-time {
+    color: var(--text-muted);
+    font-size: 0.9em;
 }

@@ -77,9 +77,14 @@ class ProjectWorkspaceView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
             if is_admin:
                 d.user_can_upload = True
             elif d.is_overall:
-                d.user_can_upload = (d.responsible_user == user)
+                # 整合專業：負責人或預算成員
+                d.user_can_upload = (d.responsible_user == user or user in d.budget_members.all())
             else:
-                d.user_can_upload = has_discipline_member_permission(user, d)
+                # 一般專業：專業管理員、專業成員、預算成員
+                d.user_can_upload = (
+                    has_discipline_member_permission(user, d) or 
+                    user in d.budget_members.all()
+                )
         
         def group_files_by_name(queryset):
             """將文件按名稱分組，並按版本降序排列"""
@@ -251,13 +256,15 @@ class WorkspaceFileUploadView(LoginRequiredMixin, UserPassesTestMixin, View):
         except Discipline.DoesNotExist:
             return JsonResponse({'success': False, 'message': '找不到專業分組'})
         
-        # 權限檢查
+        # 權限檢查：標案管理員、Budget群組、專業管理員、專業成員、預算成員
         user = request.user
         has_permission = (
             user.is_superuser or
             has_project_admin_permission(user, project) or
             user.groups.filter(name='Budget').exists() or
-            has_discipline_admin_permission(user, discipline)
+            has_discipline_admin_permission(user, discipline) or
+            user in discipline.members.all() or  # 專業成員
+            user in discipline.budget_members.all()  # 預算成員
         )
         
         if not has_permission:

@@ -63,8 +63,9 @@ class SinoRemoteUserBackend(RemoteUserBackend):
             # 沒有 UserProfile 模組
             return
         if not self.user_detail:
-            # 沒有找到這個 中興人員 相關的資料
-            return
+            # 沒有外部 API 資料，仍建立基本 UserProfile
+            UserProfile.objects.get_or_create(user=user)
+            return super().configure_user(request, user)
         user.email = self.user_detail['emp_email']
         user.last_name = self.user_detail['emp_name'][1:]
         user.first_name = self.user_detail['emp_name'][:1]

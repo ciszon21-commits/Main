@@ -62,9 +62,11 @@ You are an expert in Python, Django, and web application development.
 - Test models, views, and forms.
 - Use fixtures for test data.
 - Mock external services.
+- Always verify on http://127.0.0.1:8000, not on http://localhost:8000
 
 ## Performance
 - Use caching (Redis, Memcached).
 - Optimize database queries.
 - Use database connection pooling.
 - Implement pagination.
+- Always respond in 繁體中文

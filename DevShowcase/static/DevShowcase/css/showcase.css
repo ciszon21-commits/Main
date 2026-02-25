@@ -74,14 +74,17 @@ body {
 
 /* Search and Filter Section */
 .search-filter-section {
-    background: white;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     padding: 16px 20px;
     margin: 0 0px;
     max-width: 1600px;
     margin-left: auto;
     margin-right: auto;
-    border-radius: 12px;
-    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.4);
     position: relative;
     z-index: 3;
     display: flex;
@@ -213,23 +216,28 @@ body {
     font-size: 0.8rem;
 }
 
-/* Achievement Grid - Compact Layout */
+/* Achievement Grid - Bento Layout */
 .achievement-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    grid-auto-flow: dense;
+    padding: 10px 0;
 }
 
-/* Achievement Card - Compact */
+/* Achievement Card - Bento Style */
+/* Achievement Card - Bento Style */
 .achievement-card {
-    background: white;
-    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
-    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-top: 1px solid rgba(255, 255, 255, 0.9);
     display: flex;
     flex-direction: column;
+    height: 100%;
 }
 
 .achievement-card.hidden {
@@ -237,14 +245,76 @@ body {
 }
 
 .achievement-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.15);
+    transform: translateY(-6px) scale(1.005);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    z-index: 10;
+}
+
+/* Bento Spans (Desktop Only) */
+/* Bento Spans (Desktop Only) */
+@media (min-width: 1024px) {
+
+    /* Large Card (2x2) */
+    .achievement-card.span-2x2 {
+        grid-column: span 2;
+        grid-row: span 2;
+    }
+
+    .achievement-card.span-2x2 .card-video {
+        height: 320px;
+        /* Even taller video for impact */
+    }
+
+    .achievement-card.span-2x2 .card-content {
+        padding: 20px;
+    }
+
+    .achievement-card.span-2x2 .card-title {
+        font-size: 1.5rem;
+        /* Larger Title */
+        margin-bottom: 8px;
+        -webkit-line-clamp: 2;
+        /* Allow 2 lines */
+        line-clamp: 2;
+    }
+
+    .achievement-card.span-2x2 .card-summary {
+        font-size: 0.95rem;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+    }
+
+    /* Wide Card (2x1) - Horizontal Layout */
+    .achievement-card.span-2x1 {
+        grid-column: span 2;
+        flex-direction: row;
+        /* Side by side */
+        align-items: stretch;
+    }
+
+    .achievement-card.span-2x1 .card-video {
+        width: 50%;
+        height: auto;
+        /* Full height */
+    }
+
+    .achievement-card.span-2x1 .card-content {
+        width: 50%;
+        justify-content: center;
+        /* Center content vertically */
+        padding: 20px;
+    }
+
+    .achievement-card.span-2x1 .card-title {
+        font-size: 1.1rem;
+    }
 }
 
 .card-video {
     position: relative;
     width: 100%;
-    height: 100px;
+    height: 160px;
+    /* Taller default height */
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     overflow: hidden;
     flex-shrink: 0;
@@ -304,6 +374,7 @@ body {
     line-height: 1.3;
     display: -webkit-box;
     -webkit-line-clamp: 1;
+    line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -314,6 +385,7 @@ body {
     margin-bottom: 8px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     line-height: 1.4;
@@ -1023,8 +1095,8 @@ body {
     }
 
     .achievement-grid {
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
+        gap: 16px;
     }
 
     .card-video {

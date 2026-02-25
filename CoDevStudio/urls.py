@@ -28,15 +28,39 @@ urlpatterns = [
     path('knowledge/', include('TeamKnowledgeHub.urls')),  # 團隊知識管理
     path('synonyms/', include('SynonymManager.urls')),  # 同義詞建置工具
     path('patent/', include('PatentRegistry.urls')),  # 專利申請管理
+    path('site360/', include('site360.urls')),  # Site360 360照片瀏覽
     path('Diversion-Tunnel/', include('Inlet_Design.urls')),  # 水利工程隧道水理設計模組
     path('drone/', include('DroneReservation.urls')),  # 園路無人機預約
+<<<<<<< HEAD
     path('wind-rose/', include('CODiS_WindRose_Plotter.urls')),  # 風玫瑰圖繪製工具
+=======
+    path('reservoir-hydro/', include('ReservoirHydro.urls')),  # 水庫水文水理計算平台
+    path('search/', include('OpenSearch.urls')),  # OpenSearch 搜尋引擎
+    path('geodatahub/', include('GeoDataHub.urls')),  # 地圖導向資料管理平台
+    path('geocoding/', include('GeoCoding.urls')),  # 地址編碼服務
+    path('bidqa/', include('BidQA.urls')),  # 標案問答管理
+    path('circle-optimizer/', include('CircleOptimizer.urls')),  # 圓優化工具
+    path('chat/', include('SinoChat.urls', namespace='sinochat')),  # Sinotech 聊天室
+    path('sinoVR/', include('sinoVR.urls')),  # sinoVR 虛擬實境
+    path('interview/', include('InterviewAssessment.urls', namespace='interview_assessment')),
+    path('gravity-pipe/', include('GravityPipeCalc.urls')),  # 重力管水理計算器
+    path('soilmove/', include('SoilMove.urls', namespace='SoilMove')),  # 土石方查詢
+    path('rpg/', include('EngineerRPG.urls')),  # 現場監造工程師職涯冒險培訓系統
+    path('finance/', include('FinanceInsight.urls')),  # 財經新聞與選股建議
+    path('carbon-plbc/', include('CarbonPLBC.urls', namespace='carbonplbc')),  # 外部碳排放計算系統 (PL-BC)
+    path('expense/', include('FriendExpense.urls')),  # 朋友間記帳
+    path('lunch/', include('LunchOrder.urls', namespace='lunchorder')),  # 訂便當系統
+    path('badminton/', include('Badminton.urls')),  # 記帳系統
+>>>>>>> 8c2773b62be2a44dc3cf55d5dfec11af7503dd3a
 ]
 
 # 條件載入 ClashClassifier API
 if getattr(settings, 'ENABLE_CLASH_CLASSIFIER', False):
     urlpatterns.append(path('api/clash/', include('ClashClassifier.urls')))  # 碰撞報告分類 API
+    urlpatterns.append(path('consistency/', include('DesignConsistency.urls')))  # 資料一致性比對
+    urlpatterns.append(path('compare/', include('compareapp.urls'))) # 資料一致性比對
 
-# 開發環境下提供 media 檔案服務
+
+# 開發環境下提供 media
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

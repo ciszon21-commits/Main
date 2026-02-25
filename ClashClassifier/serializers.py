@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from .models import ClashReport, ClassificationResult
 from django.contrib.auth.models import User
+from django.db.models import Count
+from itertools import chain
+from collections import Counter
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -32,12 +35,14 @@ class ClashReportListSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     classification_count = serializers.SerializerMethodField()
     clash_count = serializers.SerializerMethodField()
+    frequently_clashed_item_id = serializers.SerializerMethodField()
     
     class Meta:
         model = ClashReport
         fields = [
             'id', 'title', 'user', 'uploaded_at',
-            'classification_count', 'clash_count'
+            'classification_count', 'clash_count',
+            'frequently_clashed_item_id'
         ]
     
     def get_classification_count(self, obj):
@@ -48,6 +53,27 @@ class ClashReportListSerializer(serializers.ModelSerializer):
         """取得預測為碰撞的數量"""
         return obj.classifications.filter(predicted_class=1).count()
 
+    def get_frequently_clashed_item_id(self, obj):
+        """item1_id 與 item2_id 一起比出現次數，回傳最多次的 ID"""
+
+        qs = obj.classifications.filter(predicted_class=1)
+
+        # 取得兩欄的計數
+        item1_counts = qs.values('item1_id').annotate(c=Count('item1_id'))
+        item2_counts = qs.values('item2_id').annotate(c=Count('item2_id'))
+
+        counter = Counter()
+
+        for row in chain(item1_counts, item2_counts):
+            # row 可能是 {'item1_id': 123, 'c': 5}
+            item_id = row.get('item1_id') or row.get('item2_id')
+            counter[item_id] += row['c']
+
+        if not counter:
+            return None
+
+        # 取出出現最多次的
+        return counter.most_common(1)[0][0]
 
 class ClashReportSerializer(serializers.ModelSerializer):
     """完整報告序列化器"""
@@ -55,23 +81,83 @@ class ClashReportSerializer(serializers.ModelSerializer):
     classifications = ClassificationResultSerializer(many=True, read_only=True)
     classification_count = serializers.SerializerMethodField()
     clash_count = serializers.SerializerMethodField()
+    frequently_clashed_item_id = serializers.SerializerMethodField()
+    clash_matrix = serializers.SerializerMethodField()
     
     class Meta:
         model = ClashReport
         fields = [
             'id', 'title', 'user', 'html_file', 'csv_file',
             'uploaded_at', 'classifications',
-            'classification_count', 'clash_count'
+            'classification_count', 'clash_count',
+            'frequently_clashed_item_id', 'clash_matrix'
         ]
     
     def get_classification_count(self, obj):
         """取得分類結果總數"""
         return obj.classifications.count()
-    
+
     def get_clash_count(self, obj):
         """取得預測為碰撞的數量"""
         return obj.classifications.filter(predicted_class=1).count()
 
+    def get_frequently_clashed_item_id(self, obj):
+        """item1_id 與 item2_id 一起比出現次數，回傳最多次的 ID"""
+
+        qs = obj.classifications.filter(predicted_class=1)
+
+        # 取得兩欄的計數
+        item1_counts = qs.values('item1_id').annotate(c=Count('item1_id'))
+        item2_counts = qs.values('item2_id').annotate(c=Count('item2_id'))
+
+        counter = Counter()
+
+        for row in chain(item1_counts, item2_counts):
+            # row 可能是 {'item1_id': 123, 'c': 5}
+            item_id = row.get('item1_id') or row.get('item2_id')
+            counter[item_id] += row['c']
+
+        if not counter:
+            return None
+
+        # 取出出現最多次的
+        return counter.most_common(1)[0][0]
+    
+    def get_clash_matrix(self, obj):
+        """整理碰撞矩陣 - 所有碰撞集中到右上三角（包含對角線）"""
+        item1_systems = obj.classifications.values_list('item1_system', flat=True).distinct()
+        item2_systems = obj.classifications.values_list('item2_system', flat=True).distinct()
+        systems = sorted(set(item1_systems).union(set(item2_systems)))
+
+        qs = obj.classifications.filter(predicted_class=1)
+        matrix = {}
+        
+        for i, sys1 in enumerate(systems):
+            matrix[sys1] = {}
+            for j, sys2 in enumerate(systems):
+                if i < j:
+                    # 右上三角（不含對角線）：合併雙向碰撞
+                    # sys1 vs sys2 的碰撞 + sys2 vs sys1 的碰撞
+                    count = qs.filter(
+                        item1_system=sys1, 
+                        item2_system=sys2
+                    ).count() + qs.filter(
+                        item1_system=sys2, 
+                        item2_system=sys1
+                    ).count()
+                    matrix[sys1][sys2] = count
+                elif i == j:
+                    # 對角線：只計算同系統內的碰撞
+                    count = qs.filter(
+                        item1_system=sys1, 
+                        item2_system=sys2
+                    ).count()
+                    matrix[sys1][sys2] = count
+                else:
+                    # 左下三角：設為 null
+                    matrix[sys1][sys2] = None
+        
+        return matrix     
 
 class ClashReportUploadSerializer(serializers.ModelSerializer):
     """上傳報告序列化器"""

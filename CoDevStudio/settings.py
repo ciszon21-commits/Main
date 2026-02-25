@@ -12,6 +12,15 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from datetime import timedelta
 import os
 from pathlib import Path
+import tempfile
+
+# Set matplotlib config dir to a writable temp path to avoid Permission Denied in /var/www/.config
+os.environ['MPLCONFIGDIR'] = os.path.join(tempfile.gettempdir(), 'matplotlib_config')
+if not os.path.exists(os.environ['MPLCONFIGDIR']):
+    try:
+        os.makedirs(os.environ['MPLCONFIGDIR'])
+    except OSError:
+        pass  # Might exist or permission issue, but usually temp is writable
 
 from .settings_local import settings as local
 
@@ -78,10 +87,31 @@ INSTALLED_APPS = [
     'TeamKnowledgeHub',
     'SynonymManager',
     'PatentRegistry',
+    'site360',
     'SinoFile',
     'Inlet_Design',
     'DroneReservation',
+<<<<<<< HEAD
     'CODiS_WindRose_Plotter',
+=======
+    'ReservoirHydro',
+    'OpenSearch',  # OpenSearch 搜尋引擎
+    'GeoDataHub',  # 地圖導向資料管理平台
+    'GeoCoding',  # 地址編碼服務
+    'BidQA',  # 標案問答管理
+    'CircleOptimizer',  # 圓優化工具
+    'SinoChat',  # Sinotech 內部聊天室
+    'sinoVR',
+    'InterviewAssessment',
+    'GravityPipeCalc',  # 重力管水理計算器
+    'SoilMove',
+    'EngineerRPG',  # 現場監造工程師職涯冒險培訓系統
+    'FinanceInsight',  # 財經新聞與選股建議
+    'CarbonPLBC',  # 外部碳排放計算系統 (PL-BC)
+    'FriendExpense',  # 朋友間記帳
+    'LunchOrder',  # 訂便當系統
+    'Badminton',  # 記帳系統
+>>>>>>> 8c2773b62be2a44dc3cf55d5dfec11af7503dd3a
 ] + local.STAGE_INSTALLED_APPS
 
 
@@ -291,3 +321,14 @@ ARCHIVE_ROOT = local.ARCHIVE_ROOT
 ARCHIVE_URL = local.ARCHIVE_URL
 TMP_ROOT = local.TMP_ROOT
 ARCHIVE_MAX_FOLDER_SIZE = local.ARCHIVE_MAX_FOLDER_SIZE
+
+# OpenSearch Settings
+OPENSEARCH_HOST = local.OPENSEARCH_HOST
+OPENSEARCH_USERNAME = local.OPENSEARCH_USERNAME
+OPENSEARCH_PASSWORD = local.OPENSEARCH_PASSWORD
+OPENSEARCH_VERIFY_CERTS = local.OPENSEARCH_VERIFY_CERTS
+OPENSEARCH_TIMEOUT = local.OPENSEARCH_TIMEOUT
+OPENSEARCH_MAX_RETRIES = local.OPENSEARCH_MAX_RETRIES
+OPENSEARCH_RETRY_ON_TIMEOUT = local.OPENSEARCH_RETRY_ON_TIMEOUT
+OPENSEARCH_HTTP_COMPRESS = local.OPENSEARCH_HTTP_COMPRESS
+OPENSEARCH_INDEX_CACHE_TIMEOUT = local.OPENSEARCH_INDEX_CACHE_TIMEOUT
