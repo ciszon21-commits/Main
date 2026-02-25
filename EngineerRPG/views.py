@@ -3151,13 +3151,30 @@ def skill_tree_editor(request):
     
     skills = SkillNode.objects.filter(Q(character_class__code=selected_class) | Q(character_class__isnull=True))
     courses = Course.objects.all()
-    
+
+    # XP 預算計算 (每等級 100 XP)
+    ROOT_XP_LIMIT = 10 * 100   # Lv.10 共同必修上限 = 1000 XP
+    CORE_XP_LIMIT = 40 * 100   # Lv.50 - Lv.10 = 40 等，職業核心上限 = 4000 XP
+
+    root_xp_current = SkillNode.objects.filter(
+        node_type='ROOT'
+    ).aggregate(total=Sum('exp_reward'))['total'] or 0
+
+    core_xp_current = SkillNode.objects.filter(
+        node_type='CORE',
+        character_class__code=selected_class
+    ).aggregate(total=Sum('exp_reward'))['total'] or 0
+
     context = {
         'profile': profile,
         'classes': classes,
         'selected_class': selected_class,
         'skills': skills,
         'courses': courses,
+        'root_xp_limit': ROOT_XP_LIMIT,
+        'core_xp_limit': CORE_XP_LIMIT,
+        'root_xp_current': root_xp_current,
+        'core_xp_current': core_xp_current,
     }
     return render(request, 'EngineerRPG/skill_tree_editor.html', context)
 
@@ -3314,6 +3331,7 @@ def api_skill_editor_data(request):
         
     class_code = request.GET.get('class', 'CIVIL')
     
+    # 目前職業的技能
     skills = SkillNode.objects.filter(
         Q(node_type='ROOT') | Q(character_class__code=class_code)
     ).prefetch_related('parent_skills', 'courses')
@@ -3334,13 +3352,37 @@ def api_skill_editor_data(request):
         
     all_courses = Course.objects.all().values('id', 'title', 'content_type')
     
+    # 建立其他職業的技能池 (供引用)
+    # 取出所有進階或核心技能，且不屬於當前職業的節點
+    pool_skills = SkillNode.objects.filter(
+        node_type__in=['CORE', 'ADVANCED']
+    ).exclude(
+        character_class__code=class_code
+    ).select_related('character_class')
+
+    # 因為可能有多個職業建立了同名的技能，我們在此以「名稱」去重，
+    # 只保留第一筆出現的該技能設定（或是直接回傳全部讓前端顯示職業名）。
+    # 這裡我們選擇將它們全丟給前端，帶上建立職業以供辨識。
+    skill_pool = []
+    for ps in pool_skills:
+        class_name = ps.character_class.name if ps.character_class else '未知'
+        skill_pool.append({
+            'id': ps.id,
+            'name': ps.name,
+            'type': ps.node_type,
+            'description': ps.description,
+            'exp_reward': ps.exp_reward,
+            'class_name': class_name,
+        })
+    
     return JsonResponse({
         'nodes': nodes,
-        'courses': list(all_courses)
+        'courses': list(all_courses),
+        'skill_pool': skill_pool,
     })
 
-@login_required
 @csrf_exempt
+@login_required
 def api_save_skill_layout(request):
     """API: Save skill layout (manual drag & drop)"""
     if request.method != 'POST':
@@ -3364,8 +3406,8 @@ def api_save_skill_layout(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
-@login_required
 @csrf_exempt
+@login_required
 def api_save_skill_node(request):
     """API: Save skill node"""
     if request.method != 'POST':
@@ -3419,8 +3461,8 @@ def api_save_skill_node(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
-@login_required
 @csrf_exempt
+@login_required
 def api_delete_skill_node(request):
     """API: Delete skill node"""
     if request.method != 'POST':
@@ -3443,8 +3485,8 @@ def api_manage_skill_course(request):
     """API: Manage skill course - Deprecated/Placeholder"""
     return JsonResponse({'success': True})
 
-@login_required
 @csrf_exempt
+@login_required
 def api_auto_layout_skill_tree(request):
     """API: Auto layout skill tree"""
     if request.method != 'POST':
@@ -4052,11 +4094,7 @@ def guild_announcement_create(request):
 # ==================== 主管與管理員後台 ====================
 
 
-def api_auto_layout_skill_tree(request):
-    """AJAX: 自動排版算法"""
-    if not has_whitelist_permission(request.user, 'MANAGER'):
-        return JsonResponse({'success': False}, status=403)
-    # ==================== 管理員與後台系統 ====================
+
 
 
 def user_management(request):
@@ -4262,102 +4300,7 @@ def dungeon_management(request):
 # ==================== 晉升系統 ====================
 
 
-def skill_tree_editor(request):
-    """技能樹編輯器頁面"""
-    profile = get_or_create_user_profile(request.user)
-    if not has_whitelist_permission(request.user, 'MANAGER'):
-        return redirect('engineer_rpg:dashboard')
-        
-    classes = CharacterClass.objects.all()
-    selected_class = request.GET.get('class', 'CIVIL')
-    
-    
-    # Filter skills by class
-    if selected_class:
-        skills = SkillNode.objects.filter(
-            Q(character_class__code=selected_class) | 
-            Q(character_class__isnull=True)
-        )
-    else:
-        skills = SkillNode.objects.all()
 
-    return render(request, 'EngineerRPG/skill_tree_editor.html', {
-        'profile': profile,
-        'classes': classes,
-        'selected_class': selected_class,
-        'skills': skills,
-        'courses': Course.objects.all(), # Also needed for courses checkbox list
-        # Budget calculation (simplified placeholders for now)
-        'root_xp_current': 0, 'root_xp_limit': 1000,
-        'core_xp_current': 0, 'core_xp_limit': 2000,
-    })
-
-
-
-def api_save_skill_layout(request):
-    """API: 儲存技能座標"""
-    if request.method != 'POST' or not has_whitelist_permission(request.user, 'MANAGER'):
-        return JsonResponse({'success': False}, status=403)
-    try:
-        data = json.loads(request.body)
-        updates = data.get('updates', [])
-        for item in updates:
-            SkillNode.objects.filter(id=item['id']).update(
-                position_x=item['x'],
-                position_y=item['y']
-            )
-        return JsonResponse({'success': True})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)}, status=400)
-
-
-
-def api_save_skill_node(request):
-    """API: 儲存/新增技能節點"""
-    if request.method != 'POST' or not has_whitelist_permission(request.user, 'MANAGER'):
-        return JsonResponse({'success': False}, status=403)
-    try:
-        data = json.loads(request.body)
-        node_id = data.get('id')
-        if node_id:
-            node = SkillNode.objects.get(id=node_id)
-        else:
-            node = SkillNode(position_x=100, position_y=100)
-            
-        node.name = data.get('name')
-        node.description = data.get('description', '')
-        node.node_type = data.get('type')
-        
-        if node.node_type != 'ROOT':
-            class_code = data.get('class_code')
-            if class_code:
-                node.character_class = CharacterClass.objects.get(code=class_code)
-        else:
-            node.character_class = None
-            
-        node.save()
-        
-        if 'parents' in data:
-            node.parent_skills.set(data['parents'])
-            
-        return JsonResponse({'success': True, 'id': node.id})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)}, status=400)
-
-
-
-def api_delete_skill_node(request):
-    """API: 刪除技能節點"""
-    if request.method != 'POST' or not has_whitelist_permission(request.user, 'MANAGER'):
-        return JsonResponse({'success': False}, status=403)
-    try:
-        data = json.loads(request.body)
-        SkillNode.objects.filter(id=data.get('id')).delete()
-        return JsonResponse({'success': True})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)}, status=400)
-    # 簡易層級分佈邏輯... (如前段所示)
-    return JsonResponse({'success': True})
 
 
 # ==================== 任務碎片與導向 ====================
@@ -4919,35 +4862,6 @@ def api_skill_tree_data(request):
     return JsonResponse({'skills': data})
 
 
-def api_skill_editor_data(request):
-    """API: 技能編輯器資料"""
-    if not has_whitelist_permission(request.user, 'MANAGER'):
-        return JsonResponse({'success': False}, status=403)
-        
-    class_code = request.GET.get('class')
-    if class_code:
-        skills = SkillNode.objects.filter(
-            Q(character_class__code=class_code) | 
-            Q(character_class__isnull=True)
-        )
-    else:
-        skills = SkillNode.objects.all()
-        
-    data = []
-    for skill in skills:
-        data.append({
-            'id': skill.id,
-            'name': skill.name,
-            'description': skill.description,
-            'type': skill.node_type,
-            'x': skill.position_x,
-            'y': skill.position_y,
-            'parents': list(skill.parent_skills.values_list('id', flat=True)),
-            'courses': list(skill.courses.values_list('id', flat=True)),
-            'class_code': skill.character_class.code if skill.character_class else None,
-        })
-        
-    return JsonResponse({'skills': data})
 
 
 
@@ -4957,9 +4871,87 @@ def api_manage_skill_course(request):
 
 
 
+@csrf_exempt
+@login_required
 def api_auto_distribute_xp(request):
-    """API: 自動分配經驗值"""
-    return JsonResponse({'success': False, 'message': '功能開發中'})
+    """API: 自動分配剩餘 XP 給技能節點（平均分配）"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    profile = get_or_create_user_profile(request.user)
+    if profile.role not in ['MANAGER', 'ADMIN']:
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+
+    try:
+        data = json.loads(request.body)
+        node_type = data.get('type')       # 'ROOT' 或 'CORE'
+        class_code = data.get('class_code', 'CIVIL')
+
+        # 預算定義
+        ROOT_XP_LIMIT = 10 * 100   # 1000 XP
+        CORE_XP_LIMIT = 40 * 100   # 4000 XP
+
+        if node_type == 'ROOT':
+            xp_limit = ROOT_XP_LIMIT
+            skills = list(SkillNode.objects.filter(node_type='ROOT'))
+            current_total = sum(s.exp_reward for s in skills)
+        elif node_type == 'CORE':
+            xp_limit = CORE_XP_LIMIT
+            skills = list(SkillNode.objects.filter(
+                node_type='CORE',
+                character_class__code=class_code
+            ))
+            current_total = sum(s.exp_reward for s in skills)
+        else:
+            return JsonResponse({'error': '無效的節點類型，請傳入 ROOT 或 CORE'}, status=400)
+
+        action = data.get('action', 'reset_and_average')
+
+        if not skills:
+            return JsonResponse({'error': f'找不到任何 {node_type} 類型技能'})
+
+        if action == 'distribute_remaining':
+            remaining_xp = xp_limit - current_total
+            if remaining_xp <= 0:
+                return JsonResponse({'error': f'已無剩餘 XP 可分配（目前 {current_total} / {xp_limit} XP）'})
+            
+            empty_skills = [s for s in skills if s.exp_reward == 0]
+            if not empty_skills:
+                return JsonResponse({'error': '所有技能都已經分配過經驗值了（沒有 XP 為 0 的技能）'})
+
+            per_skill_bonus = remaining_xp // len(empty_skills)
+            leftover = remaining_xp % len(empty_skills)
+            if per_skill_bonus == 0 and leftover == 0:
+                return JsonResponse({'error': f'剩餘 {remaining_xp} XP 不足以分配給 {len(empty_skills)} 個未分配的技能'})
+            for i, skill in enumerate(empty_skills):
+                bonus = per_skill_bonus + (1 if i < leftover else 0)
+                skill.exp_reward += bonus
+            message = f'成功將剩餘 {remaining_xp} XP 分配給 {len(empty_skills)} 個尚未分配的技能'
+
+        elif action == 'reset_to_zero':
+            for skill in skills:
+                skill.exp_reward = 0
+            message = f'成功將 {len(skills)} 個技能的經驗值全部歸零'
+
+        else: # reset_and_average 預設行為
+            per_skill_base = xp_limit // len(skills)
+            leftover = xp_limit % len(skills)
+            for i, skill in enumerate(skills):
+                skill.exp_reward = per_skill_base + (1 if i < leftover else 0)
+            message = f'成功將總預算 {xp_limit} XP 重新平均分配給 {len(skills)} 個技能（每個約 {per_skill_base} XP）'
+
+        SkillNode.objects.bulk_update(skills, ['exp_reward'])
+
+        new_total = sum(s.exp_reward for s in skills)
+        return JsonResponse({
+            'success': True,
+            'message': message,
+            'updated_count': len(skills),
+            'new_total': new_total,
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
 
 
 # ==================== 管理者白名單管理 ====================

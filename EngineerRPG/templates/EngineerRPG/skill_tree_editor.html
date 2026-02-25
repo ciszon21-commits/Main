@@ -14,7 +14,7 @@
         <div class="header-right">
             <select id="classSelect" class="rpg-select" onchange="filterSkills()">
                 {% for class in classes %}
-                <option value="{{ class.code }}" {% if selected_clas == class.code %}selected{% endif %}>
+                <option value="{{ class.code }}" {% if selected_class == class.code %}selected{% endif %}>
                     {{ class.name }}
                 </option>
                 {% endfor %}
@@ -40,11 +40,20 @@
                 <div class="progress-bar {% if root_xp_current > root_xp_limit %}over-limit{% endif %}"
                     style="width: {% widthratio root_xp_current root_xp_limit 100 %}%;"></div>
             </div>
-            {% if root_xp_current < root_xp_limit %} <button onclick="autoDistribute('ROOT')"
-                class="rpg-btn rpg-btn-sm rpg-btn-warning mt-sm">
-                <i class="fas fa-balance-scale"></i> 自動分配剩餘 {{ root_xp_limit|add:"-"|add:root_xp_current }} XP
-                </button>
-                {% endif %}
+            <div class="mt-sm" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                {% if root_xp_current < root_xp_limit %} <button
+                    onclick="autoDistribute('ROOT', 'distribute_remaining')" class="rpg-btn rpg-btn-sm rpg-btn-primary">
+                    <i class="fas fa-plus-circle"></i> 分配剩餘
+                    </button>
+                    {% endif %}
+                    <button onclick="autoDistribute('ROOT', 'reset_and_average')"
+                        class="rpg-btn rpg-btn-sm rpg-btn-warning">
+                        <i class="fas fa-balance-scale"></i> 平均重設 (1000 XP)
+                    </button>
+                    <button onclick="autoDistribute('ROOT', 'reset_to_zero')" class="rpg-btn rpg-btn-sm rpg-btn-danger">
+                        <i class="fas fa-trash"></i> 全部歸零
+                    </button>
+            </div>
         </div>
 
         <!-- CORE Budget -->
@@ -57,11 +66,20 @@
                 <div class="progress-bar {% if core_xp_current > core_xp_limit %}over-limit{% endif %}"
                     style="width: {% widthratio core_xp_current core_xp_limit 100 %}%;"></div>
             </div>
-            {% if core_xp_current < core_xp_limit %} <button onclick="autoDistribute('CORE')"
-                class="rpg-btn rpg-btn-sm rpg-btn-warning mt-sm">
-                <i class="fas fa-balance-scale"></i> 自動分配剩餘 {{ core_xp_limit|add:"-"|add:core_xp_current }} XP
-                </button>
-                {% endif %}
+            <div class="mt-sm" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                {% if core_xp_current < core_xp_limit %} <button
+                    onclick="autoDistribute('CORE', 'distribute_remaining')" class="rpg-btn rpg-btn-sm rpg-btn-primary">
+                    <i class="fas fa-plus-circle"></i> 分配剩餘
+                    </button>
+                    {% endif %}
+                    <button onclick="autoDistribute('CORE', 'reset_and_average')"
+                        class="rpg-btn rpg-btn-sm rpg-btn-warning">
+                        <i class="fas fa-balance-scale"></i> 平均重設 (4000 XP)
+                    </button>
+                    <button onclick="autoDistribute('CORE', 'reset_to_zero')" class="rpg-btn rpg-btn-sm rpg-btn-danger">
+                        <i class="fas fa-trash"></i> 全部歸零
+                    </button>
+            </div>
         </div>
     </div>
 
@@ -158,6 +176,18 @@
         <form id="skillForm" onsubmit="saveSkill(event)">
             <div class="modal-body">
                 <input type="hidden" id="skillId" name="skill_id">
+
+                <div class="form-group" id="skillPoolContainer"
+                    style="display: none; background: rgba(255,193,7,0.1); padding: 15px; border-radius: 4px; border: 1px dashed var(--color-warning); margin-bottom: 25px;">
+                    <label for="skillPoolSelect" style="color: var(--color-warning);">
+                        <i class="fas fa-magic"></i> 從現有技能庫引用 (選填)
+                        <small
+                            style="display:block; color:var(--color-stone); font-weight:normal; margin-top:5px;">選擇後將自動帶入技能名稱、類型與設定，建立為本職業的獨立新技能。</small>
+                    </label>
+                    <select id="skillPoolSelect" class="form-control" onchange="applySkillFromPool(this)">
+                        <option value="">-- 不引用，建立全新技能 --</option>
+                    </select>
+                </div>
 
                 <div class="form-group">
                     <label for="skillName">技能名稱 <span class="required">*</span></label>
@@ -547,6 +577,12 @@
         resize: vertical;
     }
 
+    .form-control option,
+    .rpg-select option {
+        background-color: #1a1a2e;
+        color: #ffffff;
+    }
+
     .modal-footer {
         display: flex;
         justify-content: flex-end;
@@ -678,29 +714,85 @@
         window.location.href = `?class=${classCode}`;
     }
 
+    function applySkillFromPool(selectElement) {
+        if (!selectElement.value) return;
+
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+
+        document.getElementById('skillName').value = selectedOption.dataset.name || '';
+        document.getElementById('skillType').value = selectedOption.dataset.type || 'CORE';
+        document.getElementById('skillDescription').value = selectedOption.dataset.description || '';
+        document.getElementById('expReward').value = selectedOption.dataset.exp || 50;
+
+        // 觸發 type 改變的事件來更新前置技能過濾
+        const skillTypeSelect = document.getElementById('skillType');
+        if (skillTypeSelect) {
+            skillTypeSelect.dispatchEvent(new Event('change'));
+        }
+    }
+
     function showCreateModal() {
-        document.getElementById('modalTitle').textContent = '新增技能';
-        document.getElementById('skillForm').reset();
-        document.getElementById('skillId').value = '';
+        fetch(`{% url 'engineer_rpg:api_skill_editor_data' %}?class=${currentClass}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('modalTitle').textContent = '新增技能';
+                document.getElementById('skillForm').reset();
+                document.getElementById('skillId').value = '';
 
-        // Uncheck all checkboxes
-        document.querySelectorAll('input[name="parent_skills"]').forEach(cb => cb.checked = false);
-        document.querySelectorAll('input[name="courses"]').forEach(cb => cb.checked = false);
+                const poolSelect = document.getElementById('skillPoolSelect');
+                if (poolSelect) {
+                    poolSelect.innerHTML = '<option value="">-- 不引用，建立全新技能 --</option>';
+                    if (data.skill_pool && data.skill_pool.length > 0) {
+                        data.skill_pool.forEach(ps => {
+                            const option = document.createElement('option');
+                            option.value = ps.id;
+                            option.dataset.name = ps.name;
+                            option.dataset.type = ps.type;
+                            option.dataset.description = ps.description;
+                            option.dataset.exp = ps.exp_reward;
+                            // 顯示格式： [職業] 技能名稱
+                            option.textContent = `[${ps.class_name}] ${ps.name}`;
+                            poolSelect.appendChild(option);
+                        });
+                        poolSelect.disabled = false;
+                    } else {
+                        const option = document.createElement('option');
+                        option.value = "";
+                        option.textContent = "(目前沒有其他職業的技能可供引用)";
+                        option.disabled = true;
+                        poolSelect.appendChild(option);
+                    }
+                    document.getElementById('skillPoolContainer').style.display = 'block';
+                }
 
-        // Filter parent skills based on type
-        filterParentSkillsByType('ROOT');
+                // Uncheck all checkboxes
+                document.querySelectorAll('input[name="parent_skills"]').forEach(cb => cb.checked = false);
+                document.querySelectorAll('input[name="courses"]').forEach(cb => cb.checked = false);
 
-        document.getElementById('skillModal').style.display = 'flex';
+                // Filter parent skills based on type
+                filterParentSkillsByType('ROOT');
+
+                document.getElementById('skillModal').style.display = 'flex';
+            })
+            .catch(err => {
+                console.error('載入技能池資料失敗:', err);
+                alert('載入資料失敗: ' + err.message);
+            });
     }
 
     function editSkill(skillId) {
         fetch(`{% url 'engineer_rpg:api_skill_editor_data' %}?class=${currentClass}`)
             .then(res => res.json())
             .then(data => {
-                const skill = data.skills.find(n => n.id === skillId);
+                const skill = data.nodes.find(n => n.id === skillId);
                 if (skill) {
                     document.getElementById('modalTitle').textContent = '編輯技能';
                     document.getElementById('skillId').value = skill.id;
+
+                    // 編輯時隱藏引用選單
+                    const poolContainer = document.getElementById('skillPoolContainer');
+                    if (poolContainer) poolContainer.style.display = 'none';
+
                     document.getElementById('skillName').value = skill.name;
                     document.getElementById('skillType').value = skill.type;
                     document.getElementById('skillDescription').value = skill.description;
@@ -890,11 +982,19 @@
             });
     }
 
-    function autoDistribute(type) {
+    function autoDistribute(type, action = 'reset_and_average') {
         const classCode = document.getElementById('classSelect').value;
-        const confirmMsg = type === 'ROOT' ?
-            '確定要將剩餘經驗值平均分配給所有「共同必修」技能嗎？' :
-            `確定要將剩餘經驗值平均分配給 [${currentClass}] 的「職業核心」技能嗎？`;
+        const typeName = type === 'ROOT' ? '共同必修' : `[${currentClass}]的職業核心`;
+        const limitStr = type === 'ROOT' ? '1000' : '4000';
+        let confirmMsg = '';
+
+        if (action === 'distribute_remaining') {
+            confirmMsg = `確定要將剩餘預算平均分配給目前「經驗值為 0」的${typeName}技能嗎？已經設定經驗值的技能將不會被改變。`;
+        } else if (action === 'reset_to_zero') {
+            confirmMsg = `⚠️ 警告！確定要將所有「${typeName}」技能的經驗值全部強制歸零嗎？`;
+        } else {
+            confirmMsg = `確定要將所有「${typeName}」技能的經驗值強制重設，並將 ${limitStr} XP 預算平均重新分配嗎？`;
+        }
 
         if (!confirm(confirmMsg)) return;
 
@@ -908,7 +1008,8 @@
             },
             body: JSON.stringify({
                 type: type,
-                class_code: classCode
+                class_code: classCode,
+                action: action
             })
         })
             .then(res => res.json())
