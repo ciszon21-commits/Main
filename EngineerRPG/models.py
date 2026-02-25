@@ -35,6 +35,7 @@ class CharacterClass(models.Model):
 class Team(models.Model):
     name = models.CharField(max_length=200, verbose_name='隊伍名稱')
     description = models.TextField(blank=True, verbose_name='隊伍說明')
+    emp_dept = models.CharField(max_length=20, verbose_name='所屬部門', blank=True, null=True)
     leader = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
                                related_name='led_teams', verbose_name='隊長')
     created_by = models.ForeignKey(User, on_delete=models.CASCADE,
@@ -57,6 +58,11 @@ class Team(models.Model):
     def is_leader(self, user):
         """檢查使用者是否為隊長"""
         return self.leader == user
+    
+    def get_dept_display(self):
+        """取得部門顯示名稱"""
+        from StudioBase.constants import SINO_DEPT_DB
+        return SINO_DEPT_DB.get(self.emp_dept, self.emp_dept) if self.emp_dept else '未設定'
 
 class TeamMembership(models.Model):
     ROLE_CHOICES = [
@@ -186,6 +192,15 @@ class UserProfile(models.Model):
                 equipment_bonus += slot.get_total_mp_bonus()
         
         return base_mp + equipment_bonus
+
+    def get_total_damage_reduction(self):
+        """計算總減傷值（所有裝備的減傷加總）"""
+        total_dr = 0
+        for slot in [self.equipped_helmet, self.equipped_armor, self.equipped_boots,
+                     self.equipped_tool_1, self.equipped_tool_2, self.equipped_tool_3]:
+            if slot:
+                total_dr += slot.get_damage_reduction()
+        return total_dr
 
     def update_stats(self):
         """更新並儲存最新的 HP 和 MP 數值"""
@@ -413,6 +428,25 @@ class Equipment(models.Model):
         verbose_name = '裝備'
         verbose_name_plural = '裝備列表'
         
+    @property
+    def enhancement_rules_json(self):
+        import json
+        return json.dumps(self.enhancement_rules or {})
+        
+    @property
+    def detail_json(self):
+        import json
+        return json.dumps({
+            'name': self.name,
+            'description': self.description,
+            'type_name': self.get_equipment_type_display(),
+            'rules': self.enhancement_rules or {},
+            'skill_effect': self.skill_effect or '',
+            'skill_description': self.skill_description or '',
+            'special_ability_name': self.special_ability_name or '',
+            'special_ability_description': self.special_ability_description or '',
+        })
+        
     def __str__(self):
         return f"{self.name} (T{self.tier} {self.get_equipment_type_display()})"
 
@@ -471,6 +505,50 @@ class UserEquipment(models.Model):
             # 假設規則裡的 dr 是正值 (e.g. 1, 2, 4)
             return self._get_stat_from_rules('dr', 0)
         return self.equipment.damage_reduction
+
+    def has_special_ability(self):
+        """判斷是否有特殊能力 (+9以上)"""
+        return self.enhancement_level >= 9
+
+    @property
+    def current_mp_cost(self):
+        """取得當前等級的 MP 消耗量（工具類與主動技能會用到）"""
+        return self._get_stat_from_rules('cost', 0)
+
+    def get_passive_desc(self):
+        """取得靴子被動效果描述（從 enhancement_rules[當前等級].desc 讀取）"""
+        rules = self.equipment.enhancement_rules
+        if not rules:
+            return ''
+        # 找 <= enhancement_level 的最大 key
+        valid_keys = [int(k) for k in rules if k.isdigit() and int(k) <= self.enhancement_level]
+        if valid_keys:
+            key = str(max(valid_keys))
+            return rules[key].get('desc', '')
+        # 若無匹配，退而取 '0' 等級
+        return rules.get('0', {}).get('desc', '')
+
+    @property
+    def special_ability_name(self):
+        """獲取特殊能力名稱"""
+        if not self.has_special_ability():
+            return None
+            
+        # 根據裝備名稱返回對應的特殊能力
+        name = self.equipment.name
+        if '標準工地帽' in name:
+            return '【新手運】'
+        elif '透氣型探照盔' in name:
+            return '【照明優化】'
+        elif 'AR 智慧工安盔' in name:
+            return '【工頭威嚴】'
+        elif '反光背心' in name:
+            return None # Tier 1 Armor 無特殊能力? (根據文檔)
+        elif '監工戰術背心' in name:
+            return '【緊急包紮】'
+        elif '外骨骼省力套裝' in name:
+            return '【危機防護】'
+        return None
 
 
 # ==================== 道具系統 ====================
@@ -858,6 +936,13 @@ class DailyTrialProgress(models.Model):
     
     # 當前題目索引（用於狀態保持）
     current_question_index = models.IntegerField('當前題目索引', default=0)
+    
+    # 靴子被動效果追蹤
+    boots_correct_streak = models.IntegerField('連續答對次數', default=0, help_text='用於追蹤連續答對,答錯時重置')
+    boots_total_correct = models.IntegerField('累積答對次數', default=0, help_text='用於追蹤累積答對,不會重置')
+    
+    # 寶箱獎勵
+    chest_data = models.JSONField('寶箱資料', default=dict, blank=True)
     
     class Meta:
         verbose_name = '每日試煉進度'

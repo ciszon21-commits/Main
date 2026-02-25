@@ -47,11 +47,10 @@
         <div class="rpg-card-body">
             <div class="member-grid">
                 {% for member in dept_members %}
-                <a href="{% url 'engineer_rpg:member_profile_detail' member.id %}?from=team"
-                    class="member-card-link">
+                <a href="{% url 'engineer_rpg:member_profile_detail' member.id %}?from=team" class="member-card-link">
                     <div class="member-card {% if member.user == user %}current-user{% endif %}">
-                        <img src="{{ member.get_avatar_url }}" alt="{{ member.display_name|default:member.user.username }}"
-                            class="member-avatar"
+                        <img src="{{ member.get_avatar_url }}"
+                            alt="{{ member.display_name|default:member.user.username }}" class="member-avatar"
                             style="border-color: {% if member.role == 'ADMIN' %}var(--color-danger){% elif member.role == 'MANAGER' %}var(--color-mech){% else %}var(--color-border){% endif %};">
 
                         <div class="member-info">
@@ -63,7 +62,11 @@
                             </div>
                             <div class="member-meta">
                                 <span>Lv.{{ member.level }}</span>
+                                {% if member.character_class %}
                                 <span>{{ member.character_class.name }}</span>
+                                {% else %}
+                                <span class="text-stone">未選擇職業</span>
+                                {% endif %}
                             </div>
                             {% if member.role == 'ADMIN' %}
                             <div class="member-role">
