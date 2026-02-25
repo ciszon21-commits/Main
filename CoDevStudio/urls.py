@@ -48,6 +48,7 @@ urlpatterns = [
     path('expense/', include('FriendExpense.urls')),  # 朋友間記帳
     path('lunch/', include('LunchOrder.urls', namespace='lunchorder')),  # 訂便當系統
     path('badminton/', include('Badminton.urls')),  # 記帳系統
+    path('news-insight/', include('NewsInsight.urls', namespace='NewsInsight')),  # GoogleNews輿情分析
 ]
 
 # 條件載入 ClashClassifier API
