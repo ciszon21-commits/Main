@@ -1,5 +1,12 @@
 {% extends 'EngineerRPG/management/base_management.html' %}
 
+{% block page_header %}
+<div class="page-header mb-lg">
+    <h1><i class="fas fa-book"></i> 課程與題庫管理</h1>
+    <p class="text-stone">管理課程內容、題庫、分類與匯入匯出</p>
+</div>
+{% endblock %}
+
 {% block management_content %}
 <div class="rpg-card">
     <div class="rpg-card-header">
@@ -22,8 +29,8 @@
                 <div>
                     <label class="form-label">內容類型</label>
                     <select name="content_type" class="rpg-input w-full">
-                        <option value="PDF" {% if course.content_type == 'PDF' %}selected{% endif %}>PDF文件</option>
-                        <option value="LINK" {% if course.content_type == 'LINK' %}selected{% endif %}>外部連結</option>
+                        <option value="PDF" {% if course.content_type=='PDF' %}selected{% endif %}>PDF文件</option>
+                        <option value="LINK" {% if course.content_type=='LINK' %}selected{% endif %}>外部連結</option>
                     </select>
                 </div>
             </div>
@@ -101,8 +108,8 @@
                         <label
                             class="flex items-start gap-sm p-xs hover:bg-white/5 rounded cursor-pointer question-item"
                             data-content="{{ question.content|lower }}">
-                            <input type="checkbox" name="questions" value="{{ question.id }}" 
-                            {% if question.id in selected_question_ids %}checked{% endif %} class="mt-1">
+                            <input type="checkbox" name="questions" value="{{ question.id }}" {% if question.id in
+                                selected_question_ids %}checked{% endif %} class="mt-1">
                             <span class="text-sm flex-1">{{ question.content|truncatewords:20 }}</span>
                         </label>
                         {% endfor %}

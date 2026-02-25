@@ -1,5 +1,12 @@
 {% extends 'EngineerRPG/management/base_management.html' %}
 
+{% block page_header %}
+<div class="page-header mb-lg">
+    <h1><i class="fas fa-book"></i> 課程與題庫管理</h1>
+    <p class="text-stone">管理課程內容、題庫、分類與匯入匯出</p>
+</div>
+{% endblock %}
+
 {% block management_content %}
 <div class="rpg-card">
     <div class="rpg-card-header flex justify-between items-center">
@@ -28,73 +35,142 @@
 
     <div class="p-md">
         {% if courses %}
-        <div class="table-container">
-            <table class="rpg-table w-full">
-                <thead>
-                    <tr>
-                        <th style="width: 40%;">課程名稱</th>
-                        <th>類型</th>
-                        <th>題目數</th>
-                        <th>時限</th>
-                        <th style="width: 15%;">操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for course in courses %}
-                    <tr>
-                        <td>
-                            <div class="font-bold text-secondary">{{ course.title }}</div>
-                        </td>
-                        <td>
-                            <span class="badge bg-info/20 text-info">
-                                {{ course.get_content_type_display }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="text-sm">{{ course.questions.count }}</span>
-                        </td>
-                        <td>
-                            <span class="text-sm">{{ course.exam_time_limit }} 分鐘</span>
-                        </td>
-                        <td>
-                            <div class="flex gap-xs">
-                                <a href="{% url 'engineer_rpg:edit_course' course.id %}"
-                                    class="rpg-btn rpg-btn-xs rpg-btn-secondary" title="編輯">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form method="post" action="{% url 'engineer_rpg:delete_course' course.id %}"
-                                    onsubmit="return confirm('確定要刪除課程「{{ course.title }}」嗎？');" style="display:inline;">
-                                    {% csrf_token %}
-                                    <button type="submit" class="rpg-btn rpg-btn-xs rpg-btn-danger" title="刪除">
+        <form method="post" action="{% url 'engineer_rpg:batch_manage_courses' %}" id="batchForm">
+            {% csrf_token %}
+
+            <div class="flex gap-sm mb-md p-sm bg-black/20 rounded-lg items-center">
+                <span class="text-stone text-sm"><i class="fas fa-check-square"></i> 批次操作：</span>
+                <button type="button" class="rpg-btn rpg-btn-sm rpg-btn-danger" onclick="confirmBatchDelete()">
+                    <i class="fas fa-trash"></i> 刪除
+                </button>
+                <button type="submit" name="action" value="download" class="rpg-btn rpg-btn-sm rpg-btn-secondary">
+                    <i class="fas fa-file-download"></i> 下載
+                </button>
+                <a href="{% url 'engineer_rpg:import_courses' %}" class="rpg-btn rpg-btn-sm rpg-btn-outline ml-auto">
+                    <i class="fas fa-file-import"></i> 匯入課程
+                </a>
+            </div>
+
+            <div class="table-container"
+                style="max-height: calc(100vh - 300px); overflow-y: auto; border: 1px solid var(--color-secondary); border-radius: var(--border-radius);">
+                <table class="rpg-table w-full">
+                    <thead style="position: sticky; top: 0; z-index: 10; background: var(--color-dark);">
+                        <tr>
+                            <th style="width: 40px;" class="text-center">
+                                <input type="checkbox" id="selectAll" class="rpg-checkbox"
+                                    onchange="toggleAllCheckboxes(this)">
+                            </th>
+                            <th style="width: 40%; cursor: pointer;"
+                                onclick="window.location.href='?sort=title&order={% if current_sort == 'title' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}';">
+                                課程名稱 {% if current_sort == 'title' %}
+                                <i class="fas fa-sort-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                                {% endif %}
+                            </th>
+                            <th class="text-center" style="cursor: pointer;"
+                                onclick="window.location.href='?sort=content_type&order={% if current_sort == 'content_type' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}';">
+                                類型 {% if current_sort == 'content_type' %}
+                                <i class="fas fa-sort-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                                {% endif %}
+                            </th>
+                            <th class="text-center" style="cursor: pointer;"
+                                onclick="window.location.href='?sort=question_count&order={% if current_sort == 'question_count' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}';">
+                                題目數 {% if current_sort == 'question_count' %}
+                                <i class="fas fa-sort-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                                {% endif %}
+                            </th>
+                            <th class="text-center" style="cursor: pointer;"
+                                onclick="window.location.href='?sort=exam_time_limit&order={% if current_sort == 'exam_time_limit' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}';">
+                                時限 {% if current_sort == 'exam_time_limit' %}
+                                <i class="fas fa-sort-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                                {% endif %}
+                            </th>
+                            <th class="text-center" style="width: 15%;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for course in courses %}
+                        <tr>
+                            <td class="text-center">
+                                <input type="checkbox" name="selected_ids" value="{{ course.id }}"
+                                    class="rpg-checkbox course-checkbox">
+                            </td>
+                            <td>
+                                <div class="font-bold text-secondary">{{ course.title }}</div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-info/20 text-info">
+                                    {{ course.get_content_type_display }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="text-sm">{{ course.questions.count }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="text-sm">{{ course.exam_time_limit }} 分鐘</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="flex gap-xs justify-center">
+                                    <a href="{% url 'engineer_rpg:edit_course' course.id %}"
+                                        class="rpg-btn rpg-btn-xs rpg-btn-secondary" title="編輯">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <!-- 獨立的刪除按鈕需避免觸發外層表單，建議改為 button type="button" 觸發 JS 或獨立 form -->
+                                    <button type="button" class="rpg-btn rpg-btn-xs rpg-btn-danger" title="刪除"
+                                        onclick="confirmDelete('{{ course.id }}', '{{ course.title }}')">
                                         <i class="fas fa-trash"></i>
                                     </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
 
-        <!-- Pagination -->
-        {% if is_paginated %}
-        <div class="pagination flex justify-center gap-xs mt-lg">
-            {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}"
-                class="rpg-btn rpg-btn-sm rpg-btn-outline"><i class="fas fa-chevron-left"></i></a>
-            {% endif %}
+            <div class="mt-sm text-right text-stone text-sm">
+                共 {{ courses.count }} 筆課程
+            </div>
 
-            <span class="rpg-btn rpg-btn-sm rpg-btn-disabled">
-                {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
-            </span>
+            <!-- Hidden input for single delete action -->
+            <input type="hidden" name="delete_target" id="deleteTarget">
+        </form>
 
-            {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}"
-                class="rpg-btn rpg-btn-sm rpg-btn-outline"><i class="fas fa-chevron-right"></i></a>
-            {% endif %}
-        </div>
-        {% endif %}
+        <form id="singleDeleteForm" method="post" action="" style="display:none;">
+            {% csrf_token %}
+        </form>
+
+        <script>
+            function toggleAllCheckboxes(source) {
+                const checkboxes = document.querySelectorAll('.course-checkbox');
+                checkboxes.forEach(cb => cb.checked = source.checked);
+            }
+
+            function confirmBatchDelete() {
+                const checked = document.querySelectorAll('.course-checkbox:checked').length;
+                if (checked === 0) {
+                    alert('請先選擇要刪除的課程');
+                    return;
+                }
+                if (confirm(`確定要刪除選取的 ${checked} 筆課程嗎？此動作無法復原。`)) {
+                    const form = document.getElementById('batchForm');
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'action';
+                    input.value = 'delete';
+                    form.appendChild(input);
+                    form.submit();
+                }
+            }
+
+            function confirmDelete(id, title) {
+                if (confirm(`確定要刪除課程「${title}」嗎？`)) {
+                    const form = document.getElementById('singleDeleteForm');
+                    form.action = "{% url 'engineer_rpg:delete_course' 0 %}".replace('0', id);
+                    form.submit();
+                }
+            }
+        </script>
+
 
         {% else %}
         <div class="text-center py-lg text-stone">
