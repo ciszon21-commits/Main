@@ -38,5 +38,14 @@ urlpatterns = [
     
     # 簽核人取消已核准預約
     path('<int:pk>/reviewer-cancel/', views.reviewer_cancel_reservation, name='reviewer_cancel_reservation'),
+    
+    # 飛行任務紀錄（僅限簽核人）
+    path('missions/', views.MissionListView.as_view(), name='mission_list'),
+    path('missions/map/', views.MissionMapView.as_view(), name='mission_map'),
+    path('missions/create/', views.MissionCreateView.as_view(), name='mission_create'),
+    path('missions/<int:pk>/edit/', views.MissionUpdateView.as_view(), name='mission_update'),
+    path('missions/<int:pk>/delete/', views.MissionDeleteView.as_view(), name='mission_delete'),
+    path('api/missions/', views.mission_api, name='mission_api'),
+    path('api/reservation-data/', views.get_reservation_data, name='reservation_data'),
+    path('missions/csv/', views.mission_csv_download, name='mission_csv_download'),
 ]
-

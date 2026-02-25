@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
 from django.urls import reverse_lazy, reverse
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.db.models import Q
 from django.contrib import messages
 from django.utils import timezone
@@ -11,9 +11,10 @@ from django.utils.timezone import localtime
 from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth.models import User
+import csv
 
-from .models import Announcement, DroneReservation, DroneReviewer, SiteSettings, EmailTemplate
-from .forms import ReservationForm, ReviewForm, AnnouncementForm, SiteSettingsForm, ReviewerCancelForm, ReviewerTimeEditForm, EmailTemplateForm
+from .models import Announcement, DroneReservation, DroneReviewer, SiteSettings, EmailTemplate, MissionRecord
+from .forms import ReservationForm, ReviewForm, AnnouncementForm, SiteSettingsForm, ReviewerCancelForm, ReviewerTimeEditForm, EmailTemplateForm, MissionRecordForm
 
 
 def format_local_datetime(dt):
@@ -67,6 +68,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         
         # 取得啟用的公告
         context['announcements'] = Announcement.objects.filter(is_active=True)[:5]
+        context['pinned_announcements'] = Announcement.objects.filter(is_active=True, is_pinned=True)
         
         # 檢查使用者是否為簽核人
         try:
@@ -419,7 +421,41 @@ def review_reservation(request, pk):
             
             if action == 'approve':
                 reservation.status = 'approved'
-                messages.success(request, '預約已核准。')
+                
+                # 處理審核人修改的日期
+                new_start = request.POST.get('usage_start_datetime')
+                new_end = request.POST.get('usage_end_datetime')
+                date_changed = False
+                
+                if new_start and new_end:
+                    from datetime import datetime
+                    try:
+                        new_start_date = datetime.strptime(new_start, '%Y-%m-%d').date()
+                        new_end_date = datetime.strptime(new_end, '%Y-%m-%d').date()
+                        
+                        if new_end_date < new_start_date:
+                            messages.error(request, '結束日期不能早於開始日期')
+                            return redirect('drone:reservation_detail', pk=pk)
+                        
+                        old_start = reservation.usage_start_datetime
+                        old_end = reservation.usage_end_datetime
+                        
+                        # 轉為 aware datetime 來比較
+                        from django.utils import timezone as tz
+                        new_start_dt = tz.make_aware(datetime.combine(new_start_date, datetime.min.time()))
+                        new_end_dt = tz.make_aware(datetime.combine(new_end_date, datetime.min.time()))
+                        
+                        if new_start_dt != old_start or new_end_dt != old_end:
+                            reservation.usage_start_datetime = new_start_dt
+                            reservation.usage_end_datetime = new_end_dt
+                            date_changed = True
+                    except (ValueError, TypeError):
+                        pass  # 日期格式錯誤，忽略日期修改
+                
+                if date_changed:
+                    messages.success(request, '預約已核准，日期已同步修改。')
+                else:
+                    messages.success(request, '預約已核准。')
             else:
                 reservation.status = 'rejected'
                 reservation.rejection_reason = form.cleaned_data['rejection_reason']
@@ -521,12 +557,22 @@ def calendar_events_api(request):
         
         applicant_name = reservation.applicant.get_full_name() or reservation.applicant.username
         
+        # FullCalendar 的 allDay 事件，結束日期需要 +1 天才能正確顯示
+        # 例如：1/5 ~ 1/7 需要設定 end 為 1/8 才會顯示完整區間
+        # 注意：必須先轉換為當地時間，否則在 UTC+8 時區會因時差導致日期減一
+        from datetime import timedelta
+        start_local = timezone.localtime(reservation.usage_start_datetime)
+        end_local = timezone.localtime(reservation.usage_end_datetime)
+        
+        end_date = end_local + timedelta(days=1)
+        
         events.append({
             'id': reservation.id,
             'title': f"{title_prefix}{reservation.project_number} - {applicant_name}",
-            'start': reservation.usage_start_datetime.isoformat(),
-            'end': reservation.usage_end_datetime.isoformat(),
+            'start': start_local.strftime('%Y-%m-%d'),
+            'end': end_date.strftime('%Y-%m-%d'),
             'color': color,
+            'allDay': True,  # 設定為全天事件，顯示為整條橫條
             'url': reverse('drone:reservation_detail', kwargs={'pk': reservation.id}),
             'extendedProps': {
                 'status': reservation.status,
@@ -763,4 +809,208 @@ def send_reviewer_cancel_notification(reservation, reviewer):
         )
     except Exception as e:
         print(f"Failed to send email: {e}")
+
+
+# ========================================
+# 飛行任務紀錄視圖（僅限簽核人）
+# ========================================
+
+class MissionMapView(LoginRequiredMixin, ReviewerRequiredMixin, TemplateView):
+    """任務地圖頁面 - 展示所有任務位置"""
+    template_name = 'DroneReservation/mission_map.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['missions'] = MissionRecord.objects.all().order_by('-mission_start_date')[:100]
+        return context
+
+
+class MissionListView(LoginRequiredMixin, ReviewerRequiredMixin, ListView):
+    """任務列表管理頁面"""
+    model = MissionRecord
+    template_name = 'DroneReservation/mission_list.html'
+    context_object_name = 'missions'
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = MissionRecord.objects.select_related(
+            'created_by', 'reservation'
+        ).order_by('-mission_start_date')
+
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(project_short_name__icontains=q) |
+                Q(project_number__icontains=q) |
+                Q(location_name__icontains=q) |
+                Q(drone_payload__icontains=q) |
+                Q(pilot__icontains=q) |
+                Q(result_location__icontains=q) |
+                Q(mission_description__icontains=q)
+            )
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['search_query'] = self.request.GET.get('q', '').strip()
+        return context
+
+
+class MissionCreateView(LoginRequiredMixin, ReviewerRequiredMixin, CreateView):
+    """新增任務紀錄"""
+    model = MissionRecord
+    form_class = MissionRecordForm
+    template_name = 'DroneReservation/mission_form.html'
+    success_url = reverse_lazy('drone:mission_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form_title'] = '新增飛行任務紀錄'
+        context['submit_text'] = '儲存紀錄'
+        return context
+
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        messages.success(self.request, '任務紀錄已新增。')
+        return super().form_valid(form)
+
+
+class MissionUpdateView(LoginRequiredMixin, ReviewerRequiredMixin, UpdateView):
+    """編輯任務紀錄"""
+    model = MissionRecord
+    form_class = MissionRecordForm
+    template_name = 'DroneReservation/mission_form.html'
+    success_url = reverse_lazy('drone:mission_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form_title'] = '編輯飛行任務紀錄'
+        context['submit_text'] = '更新紀錄'
+        context['is_edit'] = True
+        return context
+
+    def form_valid(self, form):
+        messages.success(self.request, '任務紀錄已更新。')
+        return super().form_valid(form)
+
+
+class MissionDeleteView(LoginRequiredMixin, ReviewerRequiredMixin, DeleteView):
+    """刪除任務紀錄"""
+    model = MissionRecord
+    success_url = reverse_lazy('drone:mission_list')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, '任務紀錄已刪除。')
+        return super().delete(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.delete(request, *args, **kwargs)
+
+
+@login_required
+def mission_api(request):
+    """任務地圖 API - 返回 GeoJSON 格式的任務位置"""
+    # 檢查是否為簽核人
+    try:
+        reviewer_profile = request.user.drone_reviewer_profile
+        if not reviewer_profile.is_active:
+            return JsonResponse({'error': 'Unauthorized'}, status=403)
+    except DroneReviewer.DoesNotExist:
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    
+    missions = MissionRecord.objects.all()
+    
+    features = []
+    for mission in missions:
+        features.append({
+            'type': 'Feature',
+            'geometry': {
+                'type': 'Point',
+                'coordinates': [mission.longitude, mission.latitude]
+            },
+            'properties': {
+                'id': mission.id,
+                'start_date': mission.mission_start_date.strftime('%Y/%m/%d'),
+                'end_date': mission.mission_end_date.strftime('%Y/%m/%d'),
+                'project_number': mission.project_number,
+                'project_short_name': mission.project_short_name,
+                'location_name': mission.location_name,
+                'mission_description': mission.mission_description,
+                'drone_payload': mission.drone_payload,
+                'pilot': mission.pilot,
+                'result_location': mission.result_location,
+            }
+        })
+    
+    return JsonResponse({
+        'type': 'FeatureCollection',
+        'features': features
+    })
+
+
+@login_required
+def get_reservation_data(request):
+    """取得預約單資料，用於表單自動帶入"""
+    reservation_id = request.GET.get('reservation_id')
+    if not reservation_id:
+        return JsonResponse({'error': 'Missing reservation_id'}, status=400)
+    
+    try:
+        reservation = DroneReservation.objects.get(pk=reservation_id, status='approved')
+        return JsonResponse({
+            'project_number': reservation.project_number,
+            'location': reservation.location,
+            'mission_start_date': reservation.usage_start_datetime.strftime('%Y-%m-%d'),
+            'mission_end_date': reservation.usage_end_datetime.strftime('%Y-%m-%d') if reservation.usage_end_datetime else reservation.usage_start_datetime.strftime('%Y-%m-%d'),
+        })
+    except DroneReservation.DoesNotExist:
+        return JsonResponse({'error': 'Reservation not found'}, status=404)
+
+
+@login_required
+def mission_csv_download(request):
+    """下載任務紀錄 CSV 檔"""
+    # 檢查是否為簽核人
+    try:
+        reviewer_profile = request.user.drone_reviewer_profile
+        if not reviewer_profile.is_active:
+            messages.error(request, '您沒有權限執行此操作。')
+            return redirect('drone:dashboard')
+    except DroneReviewer.DoesNotExist:
+        messages.error(request, '您沒有權限執行此操作。')
+        return redirect('drone:dashboard')
+    
+    missions = MissionRecord.objects.all().order_by('-mission_start_date')
+    
+    today = timezone.now().strftime('%Y%m%d')
+    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    response['Content-Disposition'] = f'attachment; filename="mission_records_{today}.csv"'
+    
+    # 加入 BOM 讓 Excel 正確辨識 UTF-8
+    response.write('\ufeff')
+    
+    writer = csv.writer(response)
+    writer.writerow([
+        '開始日期', '結束日期', '計畫編號', '計畫簡稱', '任務地點',
+        '緯度', '經度', '任務說明', '無人機/酬載',
+        '任務飛手', '成果存放位置'
+    ])
+    
+    for mission in missions:
+        writer.writerow([
+            mission.mission_start_date.strftime('%Y/%m/%d'),
+            mission.mission_end_date.strftime('%Y/%m/%d'),
+            mission.project_number,
+            mission.project_short_name,
+            mission.location_name,
+            mission.latitude,
+            mission.longitude,
+            mission.mission_description,
+            mission.drone_payload,
+            mission.pilot,
+            mission.result_location,
+        ])
+    
+    return response
 

@@ -72,7 +72,7 @@
                                 d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z" />
                             <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z" />
                         </svg>
-                        <span>{{ reservation.usage_start_datetime|date:"Y/m/d H:i" }} ~ {{ reservation.usage_end_datetime|date:"Y/m/d H:i" }}</span>
+                        <span>{{ reservation.usage_start_datetime|date:"Y/m/d" }} ~ {{ reservation.usage_end_datetime|date:"Y/m/d" }}</span>
                     </div>
                     <div class="reservation-location">
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -101,45 +101,51 @@
                     {% endif %}
                 </div>
                 <div class="reservation-actions">
-                    <a href="{% url 'drone:reservation_detail' reservation.pk %}" class="btn btn-sm btn-secondary">查看詳情</a>
+                    <a href="{% url 'drone:reservation_detail' reservation.pk %}"
+                        class="btn btn-sm btn-secondary">查看詳情</a>
                     {% if reservation.status == 'pending' %}
-                    <button type="button" class="btn btn-sm btn-success" onclick="showReviewModal({{ reservation.pk }}, 'approve')">核准</button>
-                    <button type="button" class="btn btn-sm btn-danger" onclick="showReviewModal({{ reservation.pk }}, 'reject')">拒絕</button>
+                    <button type="button" class="btn btn-sm btn-success" data-pk="{{ reservation.pk }}"
+                        data-action="approve" data-start="{{ reservation.usage_start_datetime|date:'Y-m-d' }}"
+                        data-end="{{ reservation.usage_end_datetime|date:'Y-m-d' }}"
+                        onclick="showReviewModal(this.dataset.pk, this.dataset.action, this.dataset.start, this.dataset.end)">核准</button>
+                    <button type="button" class="btn btn-sm btn-danger" data-pk="{{ reservation.pk }}"
+                        data-action="reject"
+                        onclick="showReviewModal(this.dataset.pk, this.dataset.action, '', '')">拒絕</button>
                     {% endif %}
                 </div>
             </div>
+            {% endfor %}
         </div>
-        {% endfor %}
-    </div>
 
-    {% if page_obj.has_other_pages %}
-    <div class="pagination">
-        {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}"
-            class="page-link">&laquo; 上一頁</a>
-        {% endif %}
-        <span class="page-info">第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 頁</span>
-        {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}"
-            class="page-link">下一頁 &raquo;</a>
-        {% endif %}
-    </div>
-    {% endif %}
 
-    {% else %}
-    <div class="empty-state">
-        <svg width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
-            <path
-                d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z" />
-            <path
-                d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z" />
-            <path
-                d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z" />
-        </svg>
-        <h3>{% if current_status == 'pending' %}目前沒有待簽核的預約{% else %}沒有符合條件的預約{% endif %}</h3>
-        <p>請稍後再查看</p>
-    </div>
-    {% endif %}
+        {% if page_obj.has_other_pages %}
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}"
+                class="page-link">&laquo; 上一頁</a>
+            {% endif %}
+            <span class="page-info">第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 頁</span>
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}"
+                class="page-link">下一頁 &raquo;</a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="empty-state">
+            <svg width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
+                <path
+                    d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z" />
+                <path
+                    d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z" />
+                <path
+                    d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z" />
+            </svg>
+            <h3>{% if current_status == 'pending' %}目前沒有待簽核的預約{% else %}沒有符合條件的預約{% endif %}</h3>
+            <p>請稍後再查看</p>
+        </div>
+        {% endif %}
     </div>
 
     <div id="reviewModal" class="modal" style="display: none;">
@@ -152,6 +158,20 @@
                 {% csrf_token %}
                 <div class="modal-body">
                     <input type="hidden" name="action" id="reviewAction">
+                    <div id="dateEditContainer" style="display: none;">
+                        <p style="margin-bottom: 12px; color: var(--text-secondary);">如需調整預約日期，請在下方修改：</p>
+                        <div class="form-row" style="display: flex; gap: 16px; margin-bottom: 16px;">
+                            <div class="form-group" style="flex: 1;">
+                                <label for="modal_start_date">開始日期</label>
+                                <input type="date" name="usage_start_datetime" id="modal_start_date"
+                                    class="form-control">
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label for="modal_end_date">結束日期</label>
+                                <input type="date" name="usage_end_datetime" id="modal_end_date" class="form-control">
+                            </div>
+                        </div>
+                    </div>
                     <div id="rejectReasonContainer" style="display: none;">
                         <label for="rejection_reason">拒絕理由 <span class="required">*</span></label>
                         <textarea name="rejection_reason" id="rejection_reason" class="form-control" rows="3"
@@ -168,12 +188,13 @@
     </div>
 
     <script>
-        function showReviewModal(pk, action) {
+        function showReviewModal(pk, action, startDate, endDate) {
             var modal = document.getElementById('reviewModal');
             var form = document.getElementById('reviewForm');
             var actionInput = document.getElementById('reviewAction');
             var rejectContainer = document.getElementById('rejectReasonContainer');
             var approveText = document.getElementById('approveConfirmText');
+            var dateEditContainer = document.getElementById('dateEditContainer');
             var modalTitle = document.getElementById('modalTitle');
             var submitBtn = document.getElementById('submitBtn');
 
@@ -184,12 +205,16 @@
                 modalTitle.textContent = '核准預約';
                 rejectContainer.style.display = 'none';
                 approveText.style.display = 'block';
+                dateEditContainer.style.display = 'block';
+                document.getElementById('modal_start_date').value = startDate;
+                document.getElementById('modal_end_date').value = endDate;
                 submitBtn.textContent = '確認核准';
                 submitBtn.className = 'btn btn-success';
             } else {
                 modalTitle.textContent = '拒絕預約';
                 rejectContainer.style.display = 'block';
                 approveText.style.display = 'none';
+                dateEditContainer.style.display = 'none';
                 submitBtn.textContent = '確認拒絕';
                 submitBtn.className = 'btn btn-danger';
             }
