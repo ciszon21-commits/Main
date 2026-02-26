@@ -2045,22 +2045,22 @@ def start_daily_trial(request, task_id):
         }
     )
     
+    total_questions_count = daily_task.questions.count()
+    is_questions_finished = (progress.current_question_index >= total_questions_count) or (progress.answers and len(progress.answers) >= total_questions_count)
+
     # 檢查是否已完成或超時
-    elapsed_minutes = (timezone.now() - progress.started_at).total_seconds() / 60
-    is_timeout = elapsed_minutes > daily_task.trial.time_limit_minutes
-    
-    
-    
-    # 檢查是否已完成或超時
-    # elapsed_minutes = (timezone.now() - progress.started_at).total_seconds() / 60
-    # is_timeout = elapsed_minutes > daily_task.trial.time_limit_minutes
+    if progress.is_completed:
+        # 如果已經結算，超時的判斷應該基於「當初是否因為超時失敗」。
+        # 也就是：未通關 + 還有血量 + 題目沒答完
+        is_timeout = not progress.is_passed and progress.current_hp > 0 and not is_questions_finished
+    else:
+        elapsed_minutes = (timezone.now() - progress.started_at).total_seconds() / 60
+        is_timeout = elapsed_minutes > daily_task.trial.time_limit_minutes
+
     # 第一題開始時生成第一隻怪物
     if created or not progress.chest_data.get('current_monster'):
         generate_daily_monster(progress, profile, request)
         
-    total_questions_count = daily_task.questions.count()
-    is_questions_finished = (progress.current_question_index >= total_questions_count) or (progress.answers and len(progress.answers) >= total_questions_count)
-    
     if progress.is_completed or is_timeout or progress.current_hp <= 0 or is_questions_finished:
         # 顯示結算畫面
         trial = daily_task.trial
@@ -2143,20 +2143,20 @@ def start_daily_trial(request, task_id):
             progress.save()
 
         # 額外獎勵判定：每日試煉且 HP >= 60%
-        if not getattr(progress, 'chest_data', {}):
+        chest_data = getattr(progress, 'chest_data', {}) or {}
+        if '1' not in chest_data:
              # 確保 initial_hp > 0
              initial = progress.initial_hp if progress.initial_hp > 0 else 1
              hp_percent = progress.current_hp / initial
              if hp_percent >= 0.6:
                  chest_options = ['MIMIC', 'TICKETS_3', 'POTION', 'TICKET_POTION']
                  import random
-                 chests = {}
                  for i in range(1, 5):
-                     chests[str(i)] = {
+                     chest_data[str(i)] = {
                          'type': random.choice(chest_options),
                          'is_opened': False
                      }
-                 progress.chest_data = chests
+                 progress.chest_data = chest_data
                  progress.save()
 
         context = {
@@ -2175,7 +2175,7 @@ def start_daily_trial(request, task_id):
             'final_hp': progress.current_hp,
             'initial_hp': progress.initial_hp,
             'wrong_answers_list': wrong_answers_list,
-            'chests': getattr(progress, 'chest_data', {}),
+            'chests': {k: v for k, v in getattr(progress, 'chest_data', {}).items() if k in ['1', '2', '3', '4']},
         }
         return render(request, 'EngineerRPG/trial_exam.html', context)
         
@@ -2728,13 +2728,13 @@ def open_daily_chest(request, task_id, chest_index):
         return JsonResponse({'error': 'No chests available'}, status=400)
         
     # Check if already opened (limit to 1)
-    # 檢查是否已經開啟過任何寶箱
-    if any(c.get('is_opened', False) for c in chest_data.values()):
+    # 檢查是否已經開啟過任何寶箱 (只檢查 '1', '2', '3', '4' 對應的寶箱)
+    if any(chest_data.get(str(i), {}).get('is_opened', False) for i in range(1, 5)):
         return JsonResponse({'error': '只能開啟一個寶箱！'}, status=400)
         
     # Check specific chest
     chest_key = str(chest_index)
-    if chest_key not in chest_data:
+    if chest_key not in ['1', '2', '3', '4'] or chest_key not in chest_data:
         return JsonResponse({'error': 'Invalid chest index'}, status=400)
         
     chest = chest_data[chest_key]
@@ -2988,6 +2988,13 @@ def approve_request(request, request_id):
     promotion_req.save()
     
     applicant.level = promotion_req.target_level
+    
+    # 同步更新職銜 (Rank)
+    if promotion_req.target_level == 10:
+        applicant.rank = 'ASSISTANT'
+    elif promotion_req.target_level == 50:
+        applicant.rank = 'ENGINEER'
+        
     applicant.save()
     
     messages.success(request, f'已核准 {applicant.display_name} 的晉升申請！')
