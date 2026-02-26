@@ -70,22 +70,32 @@ class CODISScraper:
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
         chrome_options.add_experimental_option("useAutomationExtension", False)
         
-        # 嘗試線上取得 ChromeDriver，失敗時使用本機快取
         driver_path = None
-        try:
-            driver_path = ChromeDriverManager().install()
-        except Exception as e:
-            logger.warning(f"ChromeDriverManager 無法連線 ({e})，嘗試使用本機快取")
-            wdm_dir = os.path.join(os.path.expanduser("~"), ".wdm", "drivers", "chromedriver")
-            if os.path.exists(wdm_dir):
-                cached = glob.glob(os.path.join(wdm_dir, "**", "chromedriver.exe"), recursive=True)
-                if not cached:
-                    cached = glob.glob(os.path.join(wdm_dir, "**", "chromedriver"), recursive=True)
-                if cached:
-                    driver_path = sorted(cached)[-1]
-                    logger.info(f"使用本機快取 ChromeDriver: {driver_path}")
-            if not driver_path:
-                raise RuntimeError("找不到可用的 ChromeDriver，請確認網路連線或手動安裝")
+        
+        # 伺服器端（Linux）：優先檢查系統安裝的 ChromeDriver
+        system_chromedriver = "/usr/local/bin/chromedriver"
+        if os.path.isfile(system_chromedriver) and os.access(system_chromedriver, os.X_OK):
+            driver_path = system_chromedriver
+            logger.info(f"使用系統 ChromeDriver: {driver_path}")
+        
+        # Client 端（Windows）或系統未安裝時：使用 ChromeDriverManager
+        if not driver_path:
+            try:
+                driver_path = ChromeDriverManager().install()
+                logger.info(f"使用 ChromeDriverManager 取得 ChromeDriver: {driver_path}")
+            except Exception as e:
+                logger.warning(f"ChromeDriverManager 無法連線 ({e})，嘗試使用本機快取")
+                wdm_dir = os.path.join(os.path.expanduser("~"), ".wdm", "drivers", "chromedriver")
+                if os.path.exists(wdm_dir):
+                    # Windows 優先找 .exe，其次找無副檔名（Linux 快取）
+                    cached = glob.glob(os.path.join(wdm_dir, "**", "chromedriver.exe"), recursive=True)
+                    if not cached:
+                        cached = glob.glob(os.path.join(wdm_dir, "**", "chromedriver"), recursive=True)
+                    if cached:
+                        driver_path = sorted(cached)[-1]
+                        logger.info(f"使用本機快取 ChromeDriver: {driver_path}")
+                if not driver_path:
+                    raise RuntimeError("找不到可用的 ChromeDriver，請確認網路連線或手動安裝")
         
         service = Service(driver_path)
         driver = webdriver.Chrome(service=service, options=chrome_options)
