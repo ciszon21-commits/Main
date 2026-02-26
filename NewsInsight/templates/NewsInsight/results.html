@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NewsInsight - 分析結果</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <!-- ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            border: none;
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            font-weight: 700;
+            color: #2a5298;
+            padding: 1.25rem;
+            font-size: 1.1rem;
+        }
+
+        .img-fluid {
+            border-radius: 8px;
+        }
+
+        .table {
+            vertical-align: middle;
+        }
+
+        .table th {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .table-responsive {
+            padding: 0 1rem;
+        }
+
+        .badge-source {
+            background-color: #e2e8f0;
+            color: #475569;
+            font-weight: 500;
+            padding: 0.5em 0.8em;
+            border-radius: 6px;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+        }
+
+        .btn-outline-primary {
+            color: #2a5298;
+            border-color: #2a5298;
+        }
+
+        .btn-outline-primary:hover {
+            background-color: #2a5298;
+            color: white;
+        }
+
+        .summary-text {
+            color: #64748b;
+            font-size: 0.9rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <div class="container d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 mb-1">NewsInsight 分析結果</h1>
+                <p class="mb-0 text-white-50">查詢字詞: <strong>{{ keywords }}</strong> | 共 {{ articles|length }} 筆</p>
+            </div>
+            <div class="d-flex">
+                <a href="{% url 'NewsInsight:index' %}" class="btn btn-outline-light me-2">重新查詢</a>
+                <form action="{% url 'NewsInsight:export_excel' %}" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="keywords" value="{{ keywords }}">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-file-earmark-excel"></i> 匯出 Excel
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mb-5">
+        {% if not articles %}
+        <div class="alert alert-info text-center py-5">
+            <h4 class="alert-heading mb-3">找不到相關新聞</h4>
+            <p>請嘗試使用其他關鍵字或擴大日期範圍。</p>
+            <a href="{% url 'NewsInsight:index' %}" class="btn btn-primary mt-3">回首頁</a>
+        </div>
+        {% else %}
+
+        <!-- 重新分析參數設定 -->
+        <div class="card mb-4 border-primary shadow-sm">
+            <div class="card-header bg-primary text-white py-2">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-sliders"></i> 進階關鍵字分析設定</h6>
+            </div>
+            <div class="card-body py-3">
+                <form action="{% url 'NewsInsight:index' %}" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="reanalyze">
+
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-5">
+                            <label for="topic_words" class="form-label form-label-sm mb-1 text-muted">自訂主題詞
+                                (不切開的詞)</label>
+                            <input type="text" class="form-control form-control-sm" id="topic_words" name="topic_words"
+                                placeholder="用逗號分隔" value="{{ topic_words|default:'' }}">
+                        </div>
+                        <div class="col-md-5">
+                            <label for="stop_words" class="form-label form-label-sm mb-1 text-muted">自訂停用詞
+                                (要過濾的詞)</label>
+                            <input type="text" class="form-control form-control-sm" id="stop_words" name="stop_words"
+                                placeholder="用逗號分隔" value="{{ stop_words|default:'' }}">
+                        </div>
+
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary btn-sm w-100 h-100">套用</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- 文字雲 -->
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>關鍵字文字雲</span>
+                        {% if wordcloud_img %}
+                        <a href="data:image/png;base64,{{ wordcloud_img }}" download="wordcloud.png"
+                            class="btn btn-sm btn-outline-primary">下載圖片</a>
+                        {% endif %}
+                    </div>
+                    <div class="card-body text-center p-0 d-flex align-items-center justify-content-center"
+                        style="background-color: #f8f9fa;">
+                        {% if wordcloud_img %}
+                        <img src="data:image/png;base64,{{ wordcloud_img }}" class="img-fluid w-100" alt="Word Cloud">
+                        {% else %}
+                        <p class="text-muted my-5">無法產生文字雲</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 長條圖 -->
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>高頻詞彙分佈</span>
+                        {% if freq_chart_data %}
+                        <button onclick="downloadChart('freqChart', '高頻詞彙分佈')"
+                            class="btn btn-sm btn-outline-primary">下載圖片</button>
+                        {% endif %}
+                    </div>
+                    <div class="card-body p-0">
+                        {% if freq_chart_data %}
+                        <div id="freqChart" style="width: 100%; height: 400px;"></div>
+                        {% else %}
+                        <p class="text-muted text-center my-5">資料不足無法產製圖示</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- 時間軸 -->
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>新聞聲量時間軸趨勢</span>
+                        {% if timeline_chart_data %}
+                        <button onclick="downloadChart('timelineChart', '新聞聲量時間軸趨勢')"
+                            class="btn btn-sm btn-outline-primary">下載圖片</button>
+                        {% endif %}
+                    </div>
+                    <div class="card-body p-0">
+                        {% if timeline_chart_data %}
+                        <div id="timelineChart" style="width: 100%; height: 400px;"></div>
+                        {% else %}
+                        <p class="text-muted text-center my-5">無時間軸資料</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 文章列表 -->
+        <div class="card pt-3">
+            <div class="card-header border-0 bg-transparent mb-2 d-flex justify-content-between align-items-center"
+                style="padding: 0 1.5rem;">
+                新聞列表明細
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th width="15%">發布時間</th>
+                            <th width="15%">媒體來源</th>
+                            <th width="70%">新聞標題與內容摘要</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for article in articles %}
+                        <tr>
+                            <td class="text-muted small">
+                                {{ article.pub_date|date:"Y-m-d H:i" }}
+                            </td>
+                            <td>
+                                <span class="badge-source">{{ article.source }}</span>
+                            </td>
+                            <td>
+                                <a href="{{ article.link }}" target="_blank"
+                                    class="text-decoration-none fw-bold text-dark d-block">
+                                    {{ article.title }}
+                                </a>
+                                <p class="summary-text mb-0">{{ article.summary }}</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% endif %}
+    </div>
+
+    <footer class="text-center py-4 mt-5 border-top text-muted" style="background-color: #f8f9fa;">
+        <div class="container">
+            <p class="mb-1 text-secondary" style="font-size: 0.95em;">資料來源：Google News</p>
+            <p class="mb-0 text-secondary" style="font-size: 0.9em;">&copy; 2026 中興工程顧問股份有限公司園路部</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function downloadChart(chartId, title) {
+            var chartObj = echarts.getInstanceByDom(document.getElementById(chartId));
+            if (chartObj) {
+                var url = chartObj.getDataURL({
+                    type: 'png',
+                    pixelRatio: 2,
+                    backgroundColor: '#fff'
+                });
+                var a = document.createElement('a');
+                a.download = title + '.png';
+                a.href = url;
+                a.click();
+            }
+        }
+    </script>
+
+    {% if freq_chart_data %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var freqData = JSON.parse('{{ freq_chart_data|escapejs }}');
+            var freqChart = echarts.init(document.getElementById('freqChart'));
+
+            var optionFreq = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' }
+                },
+                grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+                xAxis: [
+                    {
+                        type: 'category',
+                        data: freqData.labels,
+                        axisTick: { alignWithLabel: true },
+                        axisLabel: { interval: 0, rotate: 30 }
+                    }
+                ],
+                yAxis: [{ type: 'value' }],
+                series: [
+                    {
+                        name: '出現次數',
+                        type: 'bar',
+                        barWidth: '60%',
+                        data: freqData.values,
+                        itemStyle: { color: '#87CEEB' }, // skyblue
+                        label: { show: true, position: 'top' }
+                    }
+                ]
+            };
+            freqChart.setOption(optionFreq);
+            window.addEventListener('resize', function () { freqChart.resize(); });
+        });
+    </script>
+    {% endif %}
+
+    {% if timeline_chart_data %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var timelineData = JSON.parse('{{ timeline_chart_data|escapejs }}');
+            var timelineChart = echarts.init(document.getElementById('timelineChart'));
+
+            var optionTimeline = {
+                tooltip: {
+                    trigger: 'axis'
+                },
+                grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: timelineData.labels,
+                    axisLabel: { interval: 0, rotate: 30 }
+                },
+                yAxis: { type: 'value' },
+                series: [
+                    {
+                        name: '新聞篇數',
+                        type: 'line',
+                        data: timelineData.values,
+                        itemStyle: { color: '#FF7F50' }, // coral
+                        label: { show: true, position: 'top' },
+                        areaStyle: { opacity: 0.1, color: '#FF7F50' }
+                    }
+                ]
+            };
+            timelineChart.setOption(optionTimeline);
+            window.addEventListener('resize', function () { timelineChart.resize(); });
+        });
+    </script>
+    {% endif %}
+</body>
+
+</html>
