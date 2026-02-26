@@ -37,7 +37,7 @@ def index(request):
             )
             
             # 搜尋新聞
-            articles = GoogleNewsService.search_news(keywords, start_date, end_date)
+            articles, has_network_error = GoogleNewsService.search_news(keywords, start_date, end_date)
             
             # 依發布日期排序 (新到舊)
             if articles:
@@ -56,6 +56,7 @@ def index(request):
             request.session['last_keywords'] = keywords
             request.session['last_start_date'] = start_date
             request.session['last_end_date'] = end_date
+            request.session['has_network_error'] = has_network_error
             
         elif action == 'reanalyze':
             # 從 session 讀取快取文章
@@ -63,6 +64,7 @@ def index(request):
             keywords = request.session.get('last_keywords', keywords)
             start_date = request.session.get('last_start_date', start_date)
             end_date = request.session.get('last_end_date', end_date)
+            has_network_error = request.session.get('has_network_error', False)
             
             # 確保 pub_date 是 datetime 以利排序與圖表產生
             for a in articles:
@@ -100,6 +102,7 @@ def index(request):
             'wordcloud_img': wordcloud_img,
             'freq_chart_data': freq_chart_data,
             'timeline_chart_data': timeline_chart_data,
+            'has_network_error': has_network_error,
         }
         return render(request, 'NewsInsight/results.html', context)
         

@@ -2,6 +2,10 @@ import io
 import base64
 import feedparser
 import urllib.parse
+import urllib.request
+import urllib.error
+import time
+import logging
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 import jieba
@@ -13,6 +17,8 @@ import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 from collections import Counter
 import os
+
+logger = logging.getLogger(__name__)
 
 class GoogleNewsService:
     @staticmethod
@@ -34,6 +40,7 @@ class GoogleNewsService:
 
         results = []
         links_seen = set()
+        network_error = False
         
         current_start = start_dt
         chunk_days = 30 # 每 30 天查詢一次
@@ -52,7 +59,52 @@ class GoogleNewsService:
             
             url = f"https://news.google.com/rss/search?q={encoded_query}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
             
-            feed = feedparser.parse(url)
+            feed = None
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    # 不限制於 60 秒，容許時間超過 5 分鐘，這裡設定為 10 分鐘 (600 秒)
+                    # 並且計算抓取花費的時間
+                    start_fetch = time.time()
+                    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                    with urllib.request.urlopen(req, timeout=600) as response:
+                        feed_data = response.read()
+                    fetch_duration = time.time() - start_fetch
+                    
+                    feed = feedparser.parse(feed_data)
+                    
+                    success_msg = f"✅ Fetch success [{q_start} to {q_end}], took {fetch_duration:.2f} seconds."
+                    print(success_msg)
+                    logger.info(success_msg)
+                    
+                    break  # 成功取得資料，跳出重試迴圈
+                except urllib.error.HTTPError as e:
+                    if e.code in [403, 429]:
+                        error_msg = f"🚨 [Blocked] 被 Google 阻擋! HTTP Status {e.code} [{q_start} to {q_end}], attempt {attempt + 1}"
+                    else:
+                        error_msg = f"[Network Warning] HTTP Error {e.code} [{q_start} to {q_end}], attempt {attempt + 1}: {e}"
+                    print(error_msg)
+                    logger.warning(error_msg)
+                    if attempt < max_retries - 1:
+                        time.sleep(3)
+                except Exception as e:
+                    error_msg = f"[Network Warning] Fetching news error [{q_start} to {q_end}], attempt {attempt + 1}: {e}"
+                    print(error_msg)
+                    logger.warning(error_msg)
+                    if attempt < max_retries - 1:
+                        time.sleep(3)  # 等待 3 秒後重試
+            
+            if not feed or not hasattr(feed, 'entries'):
+                # 如果重試後仍失敗，則跳過目前區段
+                fail_msg = f"❌ [Network Error] 網路速度過慢或連線異常，無法取得 {q_start} 到 {q_end} 的新聞資料。已經自動跳過此區段。"
+                print(fail_msg)
+                logger.error(fail_msg)
+                network_error = True
+                
+                if current_start == end_dt:
+                    break
+                current_start = current_end + timedelta(days=1)
+                continue
             
             for entry in feed.entries:
                 if entry.link in links_seen:
@@ -89,7 +141,7 @@ class GoogleNewsService:
                 break
             current_start = current_end + timedelta(days=1)
             
-        return results
+        return results, network_error
 
 class NewsAnalyzer:
     FONT_PATH = "C:\\Windows\\Fonts\\msjh.ttc"
