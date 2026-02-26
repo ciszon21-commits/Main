@@ -122,9 +122,9 @@ class NewsAnalyzer:
         # Actually WordCloud handles duplicates naturally by creating a freq dict internally 
         # when we pass text_joined. But if user wants "words non-repeat", collocations=False helps.
         text_joined = " ".join(words)
-        
+        font_p = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
         # Windows 微軟正黑體 if not fallback to default. Adjust path depending on env.
-        font_path = cls.FONT_PATH if os.path.exists(cls.FONT_PATH) else None
+        font_path = cls.FONT_PATH if os.path.exists(cls.FONT_PATH) else font_p
         
         wc = WordCloud(
             font_path=font_path,
