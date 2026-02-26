@@ -3,6 +3,7 @@ CODIS 氣象資料爬蟲模組
 使用 Selenium 自動化瀏覽器操作，從中央氣象署觀測資料查詢系統爬取月報表資料
 """
 import os
+import tempfile
 import glob
 import time
 import logging
@@ -69,6 +70,13 @@ class CODISScraper:
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
         chrome_options.add_experimental_option("useAutomationExtension", False)
+        
+        # --- 解決 Permission Denied 的核心設定 ---
+        # 建立一個 www-data 有權限寫入的暫存目錄（避免 Chrome 嘗試寫入 /var/www）
+        tmp_dir = tempfile.mkdtemp(dir="/tmp")
+        chrome_options.add_argument(f"--user-data-dir={tmp_dir}")
+        chrome_options.add_argument(f"--disk-cache-dir={tmp_dir}")
+        chrome_options.add_argument(f"--crash-dumps-dir={tmp_dir}")
         
         driver_path = None
         
