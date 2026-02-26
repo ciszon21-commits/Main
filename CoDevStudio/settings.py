@@ -109,6 +109,7 @@ INSTALLED_APPS = [
     'LunchOrder',  # 訂便當系統
     'Badminton',  # 記帳系統
     'NewsInsight',  # GoogleNews輿情分析
+    'CODiS_WindRose_Plotter',
 ] + local.STAGE_INSTALLED_APPS
 
 

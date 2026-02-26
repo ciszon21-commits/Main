@@ -49,6 +49,7 @@ urlpatterns = [
     path('lunch/', include('LunchOrder.urls', namespace='lunchorder')),  # 訂便當系統
     path('badminton/', include('Badminton.urls')),  # 記帳系統
     path('news-insight/', include('NewsInsight.urls', namespace='NewsInsight')),  # GoogleNews輿情分析
+    path('wind-rose/', include('CODiS_WindRose_Plotter.urls')),  # 風玫瑰圖繪製工具
 ]
 
 # 條件載入 ClashClassifier API
