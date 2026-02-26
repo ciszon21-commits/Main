@@ -1,0 +1,91 @@
+{% extends "LHAWish/base.html" %}
+{% block title %}個人中心 - 部門許願池{% endblock %}
+
+{% block content %}
+<!-- Profile Header -->
+<div class="wish-card" style="padding:0;overflow:hidden;margin-bottom:24px;">
+    <div class="wish-profile-header">
+        <div class="wish-profile-info">
+            <div class="wish-profile-avatar">
+                {{ user.last_name|default:user.username|truncatechars:1 }}
+            </div>
+            <div>
+                <h2 class="wish-profile-name">{{ user.get_full_name|default:user.username }}</h2>
+                <p class="wish-profile-dept">{{ user.username }}</p>
+            </div>
+        </div>
+        <div class="wish-profile-stats">
+            <div class="wish-profile-stat">
+                <div class="wish-profile-stat-num primary">{{ my_post_count }}</div>
+                <div class="wish-profile-stat-label">我的發文</div>
+            </div>
+            <div class="wish-profile-stat">
+                <div class="wish-profile-stat-num orange">{{ saved_count }}</div>
+                <div class="wish-profile-stat-label">已收藏</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sub-Tabs -->
+<div class="wish-profile-tabs">
+    <a href="?tab=my-posts" class="wish-profile-tab {% if profile_sub_tab == 'my-posts' %}active{% endif %}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20h9" />
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+        </svg>
+        我的發文
+    </a>
+    <a href="?tab=saved" class="wish-profile-tab {% if profile_sub_tab == 'saved' %}active{% endif %}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+        </svg>
+        已收藏
+    </a>
+</div>
+
+<!-- Posts -->
+{% for post in posts %}
+<a href="{% url 'lhawish:post_detail' post.pk %}" class="wish-card">
+    <div class="wish-card-header">
+        <div class="wish-card-badges">
+            <span class="wish-badge badge-category">{{ post.get_type_display }}</span>
+            {% if post.status %}
+            <span class="wish-badge {{ post.status_css_class }}">{{ post.status_display }}</span>
+            {% endif %}
+        </div>
+    </div>
+    <h3 class="wish-card-title">{{ post.title|default:post.content|truncatechars:50 }}</h3>
+    <p class="wish-card-content">{{ post.content }}</p>
+    <div class="wish-card-footer">
+        <div class="wish-card-meta">
+            <span>{{ post.created_at|timesince }} 前</span>
+        </div>
+        <div class="wish-card-stats">
+            <span class="wish-stat">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+                {{ post.like_count }}
+            </span>
+            <span class="wish-stat">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                {{ post.comment_count }}
+            </span>
+        </div>
+    </div>
+</a>
+{% empty %}
+<div class="wish-empty">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="2" y="3" width="20" height="14" rx="2" />
+        <line x1="8" y1="21" x2="16" y2="21" />
+        <line x1="12" y1="17" x2="12" y2="21" />
+    </svg>
+    <p>{% if profile_sub_tab == 'saved' %}還沒有收藏任何文章{% else %}還沒有發表任何文章{% endif %}</p>
+</div>
+{% endfor %}
+{% endblock %}

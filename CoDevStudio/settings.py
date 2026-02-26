@@ -108,6 +108,7 @@ INSTALLED_APPS = [
     'FriendExpense',  # 朋友間記帳
     'LunchOrder',  # 訂便當系統
     'Badminton',  # 記帳系統
+    'LHAWish',  # 部門許願池
 
 ] + local.STAGE_INSTALLED_APPS
 

@@ -1,0 +1,214 @@
+{% extends "LHAWish/base.html" %}
+{% block title %}管理儀表板 - 部門許願池{% endblock %}
+
+{% block content %}
+<h2 style="margin:0 0 20px;font-size:20px;font-weight:700;color:var(--wish-text-dark);">
+    <span class="material-symbols-outlined" style="vertical-align:middle;margin-right:6px;">bar_chart</span>
+    管理儀表板
+</h2>
+
+<!-- 統計卡片列 -->
+<div class="mgr-stat-row">
+    <!-- 園路願望 -->
+    <div class="mgr-tab-card {% if active_section == 'petition' %}active{% endif %}"
+        onclick="switchSection('petition')">
+        <div class="mgr-tab-card-title">
+            <span class="material-symbols-outlined">star</span> 園路願望
+        </div>
+        <div class="mgr-tab-card-count">{{ petition_established }}</div>
+        <div class="mgr-tab-card-sub">已成案（待處理）</div>
+        <div class="mgr-tab-card-detail">
+            <span>已回應 {{ petition_responded }}</span>
+        </div>
+    </div>
+
+    <!-- 研發專案 -->
+    <div class="mgr-tab-card {% if active_section == 'rnd' %}active{% endif %}" onclick="switchSection('rnd')">
+        <div class="mgr-tab-card-title">
+            <span class="material-symbols-outlined">terminal</span> 研發專案
+        </div>
+        <div class="mgr-tab-card-count">{{ rnd_total }}</div>
+        <div class="mgr-tab-card-sub">待處理案件</div>
+        <div class="mgr-tab-card-detail">
+            <span>待確認 {{ rnd_pending }}</span>
+            <span>處理中 {{ rnd_in_progress }}</span>
+            <span>已排定 {{ rnd_scheduled }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 園路願望列表 ===== -->
+<div id="section-petition" class="mgr-section" style="{% if active_section != 'petition' %}display:none;{% endif %}">
+    <h3 class="mgr-section-title">已成案案件（依組別分類）</h3>
+    {% for group_label, group_petitions in petition_groups.items %}
+    <div class="mgr-group-block">
+        <h4 class="mgr-group-title">
+            <span class="material-symbols-outlined" style="font-size:18px;">group_work</span>
+            {{ group_label }}
+            <span class="mgr-group-count">{{ group_petitions|length }}</span>
+        </h4>
+        {% for p in group_petitions %}
+        <div class="mgr-case-card" id="petition-{{ p.pk }}">
+            <div class="mgr-case-main">
+                <a href="{% url 'lhawish:petition_detail' p.pk %}" class="mgr-case-title">{{ p.title }}</a>
+                <div class="mgr-case-meta">
+                    {{ p.proposer_display }} · {{ p.created_at|date:"Y/m/d" }}
+                    {% if p.is_overdue %}<span style="color:#ef4444;font-weight:600;"> · ⚠️ 已逾期</span>{% endif %}
+                    {% if p.days_remaining is not None and not p.is_overdue %}<span> · ⏱️ 剩餘 {{ p.days_remaining }}
+                        天</span>{% endif %}
+                </div>
+                <!-- 狀態顯示（邏輯決定，不可手動修改） -->
+                <div style="margin-top:4px;display:flex;gap:6px;align-items:center;">
+                    <span
+                        class="wish-badge {% if p.status == 'established' %}badge-status-in-progress{% elif p.status == 'responded' %}badge-status-done{% endif %}"
+                        style="font-size:11px;">
+                        {% if p.status == 'established' %}已成案 · 待回應{% elif p.status == 'responded' %}已回應{% endif %}
+                    </span>
+                    {% if p.status == 'responded' %}
+                    <a href="{% url 'lhawish:petition_detail' p.pk %}" class="wish-btn-outline"
+                        style="font-size:11px;padding:2px 8px;">
+                        <span class="material-symbols-outlined" style="font-size:14px;">edit</span> 編輯回應
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="mgr-case-actions">
+                <div class="mgr-action-dropdown">
+                    <button class="wish-btn-icon" onclick="toggleActionMenu({{ p.pk }}, 'petition')" title="更多操作">
+                        <span class="material-symbols-outlined" style="font-size:20px;">more_vert</span>
+                    </button>
+                    <div class="mgr-action-menu" id="actionMenu-petition-{{ p.pk }}" style="display:none;">
+                        <button onclick="petitionAction({{ p.pk }}, 'hide')">
+                            <span class="material-symbols-outlined" style="font-size:16px;">visibility_off</span> 隱藏
+                        </button>
+                        <button onclick="petitionAction({{ p.pk }}, 'withdraw')">
+                            <span class="material-symbols-outlined" style="font-size:16px;">undo</span> 撤銷
+                        </button>
+                        <button onclick="petitionAction({{ p.pk }}, 'delete')" style="color:#ef4444;">
+                            <span class="material-symbols-outlined" style="font-size:16px;">delete</span> 刪除
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% empty %}
+    <div class="wish-empty" style="padding:32px;">
+        <span class="material-symbols-outlined" style="font-size:48px;">check_circle</span>
+        <p>目前沒有已成案的待處理案件</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- ===== 研發專案列表（依狀態分組） ===== -->
+<div id="section-rnd" class="mgr-section" style="{% if active_section != 'rnd' %}display:none;{% endif %}">
+    <h3 class="mgr-section-title">研發專案案件（依狀態分類）</h3>
+    {% for status_label, status_posts in rnd_groups.items %}
+    <div class="mgr-group-block">
+        <h4 class="mgr-group-title">
+            <span class="material-symbols-outlined" style="font-size:18px;">folder</span>
+            {{ status_label }}
+            <span class="mgr-group-count">{{ status_posts|length }}</span>
+        </h4>
+        {% for post in status_posts %}
+        <div class="mgr-case-card">
+            <div class="mgr-case-main">
+                <a href="{% url 'lhawish:post_detail' post.pk %}" class="mgr-case-title">{{ post.title }}</a>
+                <div class="mgr-case-meta">
+                    <span class="wish-badge" style="font-size:11px;">{{ post.get_category_display }}</span>
+                    {{ post.author.get_full_name|default:post.author.username }} · {{ post.created_at|date:"Y/m/d" }}
+                </div>
+            </div>
+            <div class="mgr-case-actions" style="display:flex;gap:4px;align-items:center;">
+                <!-- Segment control for status -->
+                <div class="mgr-segment-control">
+                    <button class="mgr-segment-btn {% if post.status == 'pending' %}active{% endif %}"
+                        onclick="toggleRndStatus({{ post.pk }}, 'pending', true)">待確認</button>
+                    <button class="mgr-segment-btn {% if post.status == 'scheduled' %}active{% endif %}"
+                        onclick="toggleRndStatus({{ post.pk }}, 'scheduled', true)">已排定</button>
+                    <button class="mgr-segment-btn {% if post.status == 'in_progress' %}active{% endif %}"
+                        onclick="toggleRndStatus({{ post.pk }}, 'in_progress', true)">處理中</button>
+                    <button class="mgr-segment-btn {% if post.status == 'done' %}active{% endif %}"
+                        onclick="toggleRndStatus({{ post.pk }}, 'done', true)">已完成</button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% empty %}
+    <div class="wish-empty" style="padding:32px;">
+        <span class="material-symbols-outlined" style="font-size:48px;">check_circle</span>
+        <p>目前沒有待處理的研發專案</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function getCookie(name) {
+        let v = '; ' + document.cookie;
+        let p = v.split('; ' + name + '=');
+        if (p.length === 2) return p.pop().split(';').shift();
+    }
+    var csrfToken = getCookie('csrftoken');
+
+    function switchSection(section) {
+        document.getElementById('section-petition').style.display = section === 'petition' ? '' : 'none';
+        document.getElementById('section-rnd').style.display = section === 'rnd' ? '' : 'none';
+        document.querySelectorAll('.mgr-tab-card').forEach(function (c) { c.classList.remove('active'); });
+        event.currentTarget.classList.add('active');
+    }
+
+    function toggleRndStatus(pk, status, checked) {
+        var newStatus = checked ? status : 'pending';
+        fetch('/lhawish/api/status/' + pk + '/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        }).then(r => r.json()).then(data => {
+            if (data.error) { alert(data.error); location.reload(); return; }
+            // Reload to re-group
+            location.reload();
+        });
+    }
+
+    function toggleActionMenu(pk, type) {
+        var menu = document.getElementById('actionMenu-' + type + '-' + pk);
+        // Close others
+        document.querySelectorAll('.mgr-action-menu').forEach(function (m) {
+            if (m !== menu) m.style.display = 'none';
+        });
+        menu.style.display = menu.style.display === 'none' ? '' : 'none';
+    }
+
+    // Close menus on outside click
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.mgr-action-dropdown')) {
+            document.querySelectorAll('.mgr-action-menu').forEach(function (m) {
+                m.style.display = 'none';
+            });
+        }
+    });
+
+    function petitionAction(pk, action) {
+        var reason = '';
+        if (action === 'withdraw') {
+            reason = prompt('請輸入撤銷理由：');
+            if (!reason) return;
+        }
+        if (action === 'delete') {
+            if (!confirm('確定要刪除此案件？此操作無法復原。')) return;
+        }
+        fetch('/lhawish/petition/api/action/' + pk + '/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: action, reason: reason })
+        }).then(r => r.json()).then(data => {
+            if (data.error) { alert(data.error); return; }
+            location.reload();
+        });
+    }
+</script>
+{% endblock %}

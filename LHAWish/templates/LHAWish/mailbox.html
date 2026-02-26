@@ -1,0 +1,45 @@
+{% extends "LHAWish/base.html" %}
+{% block title %}主管信箱 - 部門許願池{% endblock %}
+
+{% block content %}
+<div class="wish-card">
+    <div class="wish-mailbox-hero">
+        <div class="wish-mailbox-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+            </svg>
+        </div>
+        <h3>主管信箱</h3>
+        <p>私密的溝通管道，僅您與選定的主管可見。</p>
+
+        <div style="max-width:360px;margin:0 auto 20px;text-align:left;">
+            <label
+                style="display:block;font-size:13px;font-weight:600;color:var(--wish-text);margin-bottom:6px;">選擇收件主管</label>
+            <select id="managerSelect"
+                style="width:100%;padding:10px 14px;border:1px solid var(--wish-border);border-radius:var(--wish-radius-sm);font-size:14px;font-family:inherit;outline:none;">
+                {% for mgr in managers %}
+                <option value="{{ mgr.email }}">{{ mgr.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button onclick="sendMail()" class="wish-btn-primary" style="margin:0 auto;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+            前往 Outlook 寫信
+        </button>
+    </div>
+</div>
+
+<script>
+    function sendMail() {
+        var select = document.getElementById('managerSelect');
+        var email = select.value;
+        window.location.href = 'mailto:' + email;
+    }
+</script>
+{% endblock %}

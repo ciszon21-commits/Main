@@ -1,0 +1,69 @@
+{% extends "LHAWish/base.html" %}
+{% block title %}園路願望 - 部門許願池{% endblock %}
+
+{% block content %}
+<!-- Toolbar (same layout as dashboard) -->
+<div class="wish-toolbar">
+    <div class="wish-toolbar-left">
+        <form method="get" class="wish-search" id="searchForm">
+            <svg class="wish-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="text" name="q" value="{{ search_term }}" placeholder="搜尋提議...">
+            {% if selected_status != 'endorsing' %}
+            <input type="hidden" name="status" value="{{ selected_status }}">
+            {% endif %}
+            {% if sort and sort != 'newest' %}
+            <input type="hidden" name="sort" value="{{ sort }}">
+            {% endif %}
+        </form>
+        <div class="wish-filter-group">
+            <a href="?status=endorsing&sort=newest"
+                class="wish-filter-btn {% if selected_status == 'endorsing' and sort == 'newest' %}active{% endif %}">最新</a>
+            <a href="?status=endorsing&sort=hot" class="wish-filter-btn {% if sort == 'hot' %}active{% endif %}">熱門</a>
+            <a href="?status=established"
+                class="wish-filter-btn {% if selected_status == 'established' %}active{% endif %}">已成案</a>
+            <a href="?status=responded"
+                class="wish-filter-btn {% if selected_status == 'responded' %}active{% endif %}">已回應</a>
+            <a href="?status=withdrawn"
+                class="wish-filter-btn {% if selected_status == 'withdrawn' %}active{% endif %}">已撤案</a>
+        </div>
+    </div>
+    <a href="{% url 'lhawish:petition_create' %}" class="wish-btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        想提議
+    </a>
+</div>
+
+
+<!-- Petition Grid -->
+<div class="petition-grid">
+    {% for petition in petitions %}
+    <div class="petition-tile wish-fade-in-up"
+        onclick="window.location.href='{% url 'lhawish:petition_detail' petition.pk %}'">
+        <h3 class="petition-tile-title">{{ petition.title }}</h3>
+        <p class="petition-tile-excerpt">{{ petition.content|striptags|truncatechars:60 }}</p>
+        <div class="petition-tile-progress">
+            <div class="petition-tile-progress-bar">
+                <div class="petition-tile-progress-fill" style="width:{{ petition.endorsement_percent }}%"></div>
+            </div>
+            <span class="petition-tile-progress-label">{{ petition.endorsement_count }} / {{ petition.endorsement_threshold }} 附議</span>
+        </div>
+        <div class="petition-tile-meta">
+            <span>💬 {{ petition.comment_count }}</span>
+            <span class="petition-tile-date">{{ petition.created_at|date:"Y.m.d" }}</span>
+        </div>
+    </div>
+    {% empty %}
+    <div style="grid-column:1/-1;" class="wish-empty">
+        <div style="font-size:48px;margin-bottom:16px;">🌟</div>
+        <p style="font-size:16px;font-weight:600;color:var(--wish-text-dark);">目前沒有提議</p>
+        <p style="font-size:13px;color:var(--wish-text-muted);margin-top:8px;">點擊「想提議」來發起第一個園路願望！</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

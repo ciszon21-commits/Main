@@ -1,0 +1,302 @@
+﻿{% extends "LHAWish/base.html" %}
+{% block title %}{% if is_edit %}編輯{% else %}發布{% endif %} - 部門許願池{% endblock %}
+
+{% block extra_css %}
+<!-- Quill Editor -->
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<style>
+    .ql-editor {
+        min-height: 200px;
+        font-size: 14px;
+        font-family: 'Noto Sans TC', 'Inter', sans-serif;
+    }
+
+    .ql-toolbar.ql-snow {
+        border-radius: var(--wish-radius-sm) var(--wish-radius-sm) 0 0;
+        border-color: var(--wish-border);
+    }
+
+    .ql-container.ql-snow {
+        border-radius: 0 0 var(--wish-radius-sm) var(--wish-radius-sm);
+        border-color: var(--wish-border);
+    }
+
+    .ql-snow .ql-editor img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin: 8px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wish-card" style="padding:24px;">
+    <h2
+        style="font-size:20px;font-weight:700;color:var(--wish-text-dark);margin:0 0 24px;display:flex;align-items:center;gap:8px;">
+        <a href="javascript:history.back()" style="color:var(--wish-text-muted);display:flex;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6" />
+            </svg>
+        </a>
+        {% if is_edit %}編輯文章{% elif form_type == 'rnd' %}報修 / 功能建議{% elif form_type == 'market' %}刊登物品{% elif form_type == 'gossip'  %}發布話題{% else %}發布文章{% endif %}
+    </h2>
+
+    <div class="wish-author-box">
+        <div class="wish-avatar" style="width:36px;height:36px;font-size:14px;">{{ user.last_name|default:user.username|truncatechars:1 }}</div>
+        <div>
+            <div style="font-weight:600;color:var(--wish-text-dark);font-size:14px;">{{ user.get_full_name|default:user.username }}</div>
+            <div style="font-size:12px;color:var(--wish-text-muted);">{{ user.username }}</div>
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="wish-form" id="postForm">
+        {% csrf_token %}
+        {% if not is_edit %}<input type="hidden" name="type" id="postType" value="{{ form_type }}">{% endif %}
+
+        <!-- RND Fields -->
+        <div id="rndFields" class="{% if form_type != 'rnd' %}wish-hidden{% endif %}">
+            <div class="wish-form-group">
+                <label>分類 <span class="required">*</span></label>
+                <select name="category" id="id_category" data-current="{{ form.category.value|default_if_none:'' }}">
+                    <option value="">請選擇分類</option>
+                    <option value="bug">Bug報修</option>
+                    <option value="feature">功能建議</option>
+                    <option value="announcement">最新公告</option>
+                </select>
+            </div>
+            <div class="wish-form-row">
+                <div class="wish-form-group">
+                    <label>指定套件</label>
+                    <input type="text" name="package_name" value="{{ form.package_name.value|default_if_none:'' }}"
+                        placeholder="例如: 報表、Excel 匯出...">
+                </div>
+                <div class="wish-form-group">
+                    <label>問題類型</label>
+                    <input type="text" name="problem_type" value="{{ form.problem_type.value|default_if_none:'' }}"
+                        placeholder="例如: UI 異常、資料問題...">
+                </div>
+            </div>
+            <div class="wish-form-group">
+                <label>指定組別（選填）</label>
+                <select name="assigned_group" id="id_assigned_group"
+                    data-current="{{ form.assigned_group.value|default_if_none:'' }}">
+                    <option value="">不指定</option>
+                    {% for gc in group_choices %}
+                    <option value="{{ gc.value }}">{{ gc.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Market Fields -->
+        <div id="marketFields" class="{% if form_type != 'market' %}wish-hidden{% endif %}">
+            <div class="wish-form-row">
+                <div class="wish-form-group">
+                    <label>價格</label>
+                    <input type="number" name="price" value="{{ form.price.value|default_if_none:'' }}"
+                        placeholder="0 = 免費贈送" min="0">
+                </div>
+                <div class="wish-form-group">
+                    <label>物品狀況</label>
+                    <input type="text" name="condition" id="id_condition"
+                        value="{{ form.condition.value|default_if_none:'' }}" placeholder="例如：全新、九成新、功能正常...">
+                </div>
+            </div>
+        </div>
+
+        <!-- Gossip Fields -->
+        <div id="gossipFields" class="{% if form_type != 'gossip' %}wish-hidden{% endif %}">
+            <div class="wish-checkbox">
+                <input type="checkbox" name="is_anonymous" id="id_is_anonymous" {% if form.is_anonymous.value %}checked{% endif %}>
+                <div>
+                    <div class="wish-checkbox-label">匿名發布</div>
+                    <div class="wish-checkbox-desc">勾選後其他成員將無法看到您的身份</div>
+                </div>
+            </div>
+            <div class="wish-form-group" style="margin-top:16px;">
+                <label>可見對象</label>
+                <select name="visibility" id="id_visibility"
+                    data-current="{{ form.visibility.value|default_if_none:'all' }}">
+                    <option value="all">全部門</option>
+                    <option value="deputy_up">僅副主管以上</option>
+                    <option value="manager_only">僅主管可見</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Common Fields -->
+        <div class="wish-form-group">
+            <label>標題 <span class="required">*</span></label>
+            <input type="text" name="title" id="id_title" required value="{{ form.title.value|default_if_none:'' }}"
+                placeholder="{% if form_type == 'market' %}物品名稱{% elif form_type == 'gossip' %}話題標題（可選）{% else %}簡短描述問題或建議{% endif %}">
+            {{ form.title.errors }}
+        </div>
+
+        <div class="wish-form-group">
+            <label>內容 <span class="required">*</span></label>
+            {% if form_type == 'market' %}
+            <textarea name="content" id="id_content" rows="4" required placeholder="描述一下你的物品..."
+                style="width:100%;padding:12px;border:1px solid var(--wish-border);border-radius:var(--wish-radius-sm);font-size:14px;resize:vertical;font-family:inherit;">{{ form.content.value|default_if_none:'' }}</textarea>
+            {% else %}
+            <div id="quillEditor">{{ form.content.value|default_if_none:''|safe }}</div>
+            <textarea name="content" id="id_content" style="display:none;"></textarea>
+            {% endif %}
+            {{ form.content.errors }}
+        </div>
+
+        <!-- Image (for market only) -->
+        {% if form_type == 'market' %}
+        <div class="wish-form-group">
+            <label>圖片上傳 <span class="required">*</span></label>
+            <div class="wish-dropzone" id="imageDropzone" onclick="document.getElementById('imageFileInput').click()">
+                <input type="file" name="image" id="imageFileInput" accept="image/*" multiple style="display:none;"
+                    onchange="handleImageFiles(this.files)">
+                <span class="material-symbols-outlined"
+                    style="font-size:40px;color:var(--wish-text-muted);">add_photo_alternate</span>
+                <p style="margin:8px 0 0;font-size:13px;color:var(--wish-text-muted);">點擊或拖曳圖片至此上傳（至少一張）</p>
+            </div>
+            <div id="imagePreviewArea" class="wish-image-preview-grid"></div>
+        </div>
+        {% endif %}
+
+        <div class="wish-form-actions" style="display:flex;gap:12px;">
+            <button type="submit" class="wish-btn-primary" style="flex:1;justify-content:center;">{% if is_edit %}儲存修改{% else %}發布{% endif %}</button>
+            <a href="javascript:history.back()" class="wish-btn-outline" style="justify-content:center;">取消</a>
+        </div>
+    </form>
+</div>
+
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Restore selects
+        document.querySelectorAll('[data-current]').forEach(function (sel) {
+            if (sel.dataset.current) sel.value = sel.dataset.current;
+        });
+
+        // Form submit — sync Quill content (only for non-market)
+        if (document.getElementById('quillEditor')) {
+            // Quill Editor
+            var quill = new Quill('#quillEditor', {
+                theme: 'snow',
+                placeholder: '{% if form_type == "gossip" %}分享你的想法...{% else %}詳細說明問題或建議...{% endif %}',
+                modules: {
+                    toolbar: [
+                        [{ 'header': [1, 2, 3, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'color': [] }, { 'background': [] }],
+                        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                        [{ 'align': [] }],
+                        ['blockquote', 'link', 'image'],
+                        ['clean']
+                    ]
+                }
+            });
+
+            // Image handler — base64 inline
+            quill.getModule('toolbar').addHandler('image', function () {
+                var input = document.createElement('input');
+                input.setAttribute('type', 'file');
+                input.setAttribute('accept', 'image/*');
+                input.click();
+                input.onchange = function () {
+                    var file = input.files[0];
+                    if (!file) return;
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('圖片大小不可超過 5MB');
+                        return;
+                    }
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        var range = quill.getSelection(true);
+                        quill.insertEmbed(range.index, 'image', e.target.result);
+                        quill.setSelection(range.index + 1);
+                    };
+                    reader.readAsDataURL(file);
+                };
+            });
+
+            document.getElementById('postForm').addEventListener('submit', function (e) {
+                var content = quill.root.innerHTML;
+                if (quill.getText().trim().length === 0) {
+                    e.preventDefault();
+                    alert('請填寫內容');
+                    return;
+                }
+                document.getElementById('id_content').value = content;
+            });
+        }
+
+        // Market image form validation + sync accumulated files
+        var form = document.getElementById('postForm');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                var dz = document.getElementById('imageDropzone');
+                if (dz) {
+                    // 收集所有非 null 的已選圖片
+                    var validFiles = _selectedFiles.filter(function (f) { return f !== null; });
+                    if (validFiles.length === 0) {
+                        e.preventDefault();
+                        alert('請至少上傳一張商品圖片');
+                        dz.style.borderColor = '#ef4444';
+                        return;
+                    }
+                    // 使用 DataTransfer 將所有累積的檔案同步回 file input
+                    var dt = new DataTransfer();
+                    validFiles.forEach(function (f) { dt.items.add(f); });
+                    document.getElementById('imageFileInput').files = dt.files;
+                }
+            });
+        }
+    });
+
+    // --- Image Dropzone ---
+    var _selectedFiles = [];
+
+    function handleImageFiles(files) {
+        var area = document.getElementById('imagePreviewArea');
+        if (!area) return;
+        for (var i = 0; i < files.length; i++) {
+            _selectedFiles.push(files[i]);
+            (function (file, idx) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var wrap = document.createElement('div');
+                    wrap.className = 'wish-image-preview-item';
+                    wrap.innerHTML = '<img src="' + e.target.result + '" alt="preview">' +
+                        '<button type="button" class="wish-image-remove-btn" onclick="removePreviewImage(this,' + idx + ')">✕</button>';
+                    area.appendChild(wrap);
+                };
+                reader.readAsDataURL(file);
+            })(files[i], _selectedFiles.length - 1);
+        }
+        // Reset the dropzone text
+        var dz = document.getElementById('imageDropzone');
+        if (dz) dz.style.borderColor = '';
+    }
+
+    function removePreviewImage(btn, idx) {
+        btn.parentNode.remove();
+        _selectedFiles[idx] = null;
+    }
+
+    // Drag-and-drop support
+    document.addEventListener('DOMContentLoaded', function () {
+        var dz = document.getElementById('imageDropzone');
+        if (!dz) return;
+        dz.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            dz.classList.add('dragover');
+        });
+        dz.addEventListener('dragleave', function () {
+            dz.classList.remove('dragover');
+        });
+        dz.addEventListener('drop', function (e) {
+            e.preventDefault();
+            dz.classList.remove('dragover');
+            handleImageFiles(e.dataTransfer.files);
+        });
+    });
+</script>
+{% endblock %}

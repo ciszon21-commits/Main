@@ -48,6 +48,7 @@ urlpatterns = [
     path('expense/', include('FriendExpense.urls')),  # 朋友間記帳
     path('lunch/', include('LunchOrder.urls', namespace='lunchorder')),  # 訂便當系統
     path('badminton/', include('Badminton.urls')),  # 記帳系統
+    path('lhawish/', include('LHAWish.urls')),  # 部門許願池
 ]
 
 # 條件載入 ClashClassifier API

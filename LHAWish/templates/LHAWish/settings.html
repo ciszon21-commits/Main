@@ -1,0 +1,279 @@
+{% extends "LHAWish/base.html" %}
+{% block title %}設定 - 部門許願池{% endblock %}
+
+{% block content %}
+<div class="wish-card" style="padding:24px;">
+    <h2 style="margin:0 0 24px;font-size:20px;font-weight:700;color:var(--wish-text-dark);">
+        <span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px;">settings</span>
+        系統設定
+    </h2>
+
+    {% if not is_developer %}
+    <div style="text-align:center;padding:40px;color:var(--wish-text-muted);">
+        <span class="material-symbols-outlined" style="font-size:48px;display:block;margin-bottom:16px;">lock</span>
+        <p>僅管理員可存取此頁面</p>
+    </div>
+    {% else %}
+
+    <!-- 附議成案門檻 -->
+    <div class="settings-section">
+        <h3 class="settings-section-title">
+            <span class="material-symbols-outlined">how_to_vote</span>
+            園路願望 — 附議成案門檻
+        </h3>
+        <div class="settings-row">
+            <label>附議人數達到多少即自動成案：</label>
+            <input type="number" id="endorsementThreshold" value="{{ config.endorsement_threshold }}" min="1" max="1000"
+                class="settings-input" style="width:100px;">
+            <span style="color:var(--wish-text-muted);font-size:13px;margin-left:4px;">人</span>
+        </div>
+    </div>
+
+    <hr class="settings-divider">
+
+    <!-- 指定組別清單 -->
+    <div class="settings-section">
+        <h3 class="settings-section-title">
+            <span class="material-symbols-outlined">groups</span>
+            指定組別清單
+        </h3>
+        <p class="settings-desc">園路願望和研發專案中可選擇的執行組別。</p>
+        <div id="groupList">
+            {% for value, label in group_choices %}
+            <div class="settings-list-item">
+                <input type="text" value="{{ label }}" data-value="{{ value }}" class="settings-input group-item"
+                    style="flex:1;">
+                <button class="settings-btn-danger" onclick="this.parentElement.remove()">✕</button>
+            </div>
+            {% endfor %}
+        </div>
+        <button class="settings-btn-add" onclick="addGroupItem()">
+            <span class="material-symbols-outlined" style="font-size:16px;">add</span> 新增組別
+        </button>
+    </div>
+
+    <hr class="settings-divider">
+
+    <!-- 主管信箱名單 -->
+    <div class="settings-section">
+        <h3 class="settings-section-title">
+            <span class="material-symbols-outlined">mail</span>
+            主管信箱名單
+        </h3>
+        <p class="settings-desc">顯示在「主管信箱」頁面上的收件人。</p>
+        <div id="managerEmailList">
+            {% for mgr in config.manager_emails %}
+            <div class="settings-list-item">
+                <input type="text" value="{{ mgr.name|default:mgr }}" placeholder="名稱" class="settings-input mgr-name"
+                    style="width:120px;">
+                <input type="email" value="{{ mgr.email|default:'' }}" placeholder="email"
+                    class="settings-input mgr-email" style="flex:1;">
+                <button class="settings-btn-danger" onclick="this.parentElement.remove()">✕</button>
+            </div>
+            {% endfor %}
+        </div>
+        <button class="settings-btn-add" onclick="addManagerEmail()">
+            <span class="material-symbols-outlined" style="font-size:16px;">add</span> 新增
+        </button>
+    </div>
+
+    <hr class="settings-divider">
+
+    <!-- 各版板主/管理員 -->
+    <div class="settings-section">
+        <h3 class="settings-section-title">
+            <span class="material-symbols-outlined">admin_panel_settings</span>
+            各版板主 / 管理員
+        </h3>
+        <p class="settings-desc">管理員可刪除、隱藏、撤銷該版的貼文。</p>
+
+        {% for board_name, board_label in board_list %}
+        <div class="settings-board-block">
+            <h4 style="font-size:14px;font-weight:600;margin:0 0 8px;">{{ board_label }}</h4>
+            <div id="boardAdmins_{{ board_name }}">
+                <!-- JS 動態填入 -->
+            </div>
+            <select class="settings-input" style="width:200px;margin-top:4px;"
+                onchange="addBoardAdmin('{{ board_name }}', this)">
+                <option value="">新增管理員...</option>
+                {% for u in all_users %}
+                <option value="{{ u.id }}">{{ u.get_full_name|default:u.username }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% empty %}
+        <div class="settings-board-block">
+            <h4 style="font-size:14px;font-weight:600;margin:0 0 8px;">園路願望</h4>
+            <div id="boardAdmins_petition"></div>
+            <select class="settings-input" style="width:200px;margin-top:4px;"
+                onchange="addBoardAdmin('petition', this)">
+                <option value="">新增管理員...</option>
+                {% for u in all_users %}
+                <option value="{{ u.id }}">{{ u.get_full_name|default:u.username }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="settings-board-block">
+            <h4 style="font-size:14px;font-weight:600;margin:0 0 8px;">研發專案</h4>
+            <div id="boardAdmins_rnd"></div>
+            <select class="settings-input" style="width:200px;margin-top:4px;" onchange="addBoardAdmin('rnd', this)">
+                <option value="">新增管理員...</option>
+                {% for u in all_users %}
+                <option value="{{ u.id }}">{{ u.get_full_name|default:u.username }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="settings-board-block">
+            <h4 style="font-size:14px;font-weight:600;margin:0 0 8px;">跳蚤市場</h4>
+            <div id="boardAdmins_market"></div>
+            <select class="settings-input" style="width:200px;margin-top:4px;" onchange="addBoardAdmin('market', this)">
+                <option value="">新增管理員...</option>
+                {% for u in all_users %}
+                <option value="{{ u.id }}">{{ u.get_full_name|default:u.username }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="settings-board-block">
+            <h4 style="font-size:14px;font-weight:600;margin:0 0 8px;">七嘴八舌</h4>
+            <div id="boardAdmins_gossip"></div>
+            <select class="settings-input" style="width:200px;margin-top:4px;" onchange="addBoardAdmin('gossip', this)">
+                <option value="">新增管理員...</option>
+                {% for u in all_users %}
+                <option value="{{ u.id }}">{{ u.get_full_name|default:u.username }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Save Button -->
+    <div style="margin-top:24px;text-align:right;">
+        <button class="wish-btn-primary" id="saveSettingsBtn" onclick="saveSettings()"
+            style="padding:10px 32px;font-size:15px;">
+            <span class="material-symbols-outlined"
+                style="font-size:18px;vertical-align:middle;margin-right:4px;">save</span>
+            儲存設定
+        </button>
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function getCookie(name) {
+        let v = '; ' + document.cookie;
+        let p = v.split('; ' + name + '=');
+        if (p.length === 2) return p.pop().split(';').shift();
+    }
+    var csrfToken = getCookie('csrftoken');
+    var boardAdmins = {{ config.board_admins| safe }};
+    var allUsers = {
+    {% for u in all_users %}
+    "{{ u.id }}": "{{ u.get_full_name|default:u.username }}",
+        {% endfor %}
+};
+
+    // 初始化各版管理員
+    document.addEventListener('DOMContentLoaded', function () {
+        for (var board in boardAdmins) {
+            var container = document.getElementById('boardAdmins_' + board);
+            if (!container) continue;
+            (boardAdmins[board] || []).forEach(function (uid) {
+                addAdminTag(board, uid, allUsers[uid] || 'User #' + uid);
+            });
+        }
+    });
+
+    function addAdminTag(board, uid, name) {
+        var container = document.getElementById('boardAdmins_' + board);
+        var tag = document.createElement('span');
+        tag.className = 'settings-admin-tag';
+        tag.dataset.uid = uid;
+        tag.innerHTML = name + ' <button onclick="this.parentElement.remove()">✕</button>';
+        container.appendChild(tag);
+    }
+
+    function addBoardAdmin(board, select) {
+        var uid = select.value;
+        if (!uid) return;
+        var name = select.options[select.selectedIndex].text;
+        addAdminTag(board, uid, name);
+        select.value = '';
+    }
+
+    function addGroupItem() {
+        var list = document.getElementById('groupList');
+        var div = document.createElement('div');
+        div.className = 'settings-list-item';
+        div.innerHTML = '<input type="text" placeholder="組別名稱" class="settings-input group-item" style="flex:1;"><button class="settings-btn-danger" onclick="this.parentElement.remove()">✕</button>';
+        list.appendChild(div);
+    }
+
+
+
+    function addManagerEmail() {
+        var list = document.getElementById('managerEmailList');
+        var div = document.createElement('div');
+        div.className = 'settings-list-item';
+        div.innerHTML = '<input type="text" placeholder="名稱" class="settings-input mgr-name" style="width:120px;">' +
+            '<input type="email" placeholder="email" class="settings-input mgr-email" style="flex:1;">' +
+            '<button class="settings-btn-danger" onclick="this.parentElement.remove()">✕</button>';
+        list.appendChild(div);
+    }
+
+    function saveSettings() {
+        var btn = document.getElementById('saveSettingsBtn');
+        btn.disabled = true;
+        btn.textContent = '儲存中...';
+
+        // Gather data
+        var groups = [];
+        document.querySelectorAll('.group-item').forEach(function (el) {
+            if (el.value.trim()) {
+                groups.push({ value: el.dataset.value || el.value.trim().toLowerCase().replace(/\s+/g, '_'), label: el.value.trim() });
+            }
+        });
+
+
+
+        var emails = [];
+        var nameEls = document.querySelectorAll('.mgr-name');
+        var emailEls = document.querySelectorAll('.mgr-email');
+        for (var i = 0; i < nameEls.length; i++) {
+            if (nameEls[i].value.trim() || emailEls[i].value.trim()) {
+                emails.push({ name: nameEls[i].value.trim(), email: emailEls[i].value.trim() });
+            }
+        }
+
+        var admins = {};
+        ['petition', 'rnd', 'market', 'gossip'].forEach(function (board) {
+            var tags = document.querySelectorAll('#boardAdmins_' + board + ' .settings-admin-tag');
+            admins[board] = [];
+            tags.forEach(function (t) { admins[board].push(parseInt(t.dataset.uid)); });
+        });
+
+        fetch('{% url "lhawish:save_settings" %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                endorsement_threshold: parseInt(document.getElementById('endorsementThreshold').value),
+                group_choices: groups,
+
+                manager_emails: emails,
+                board_admins: admins,
+            })
+        }).then(r => r.json()).then(data => {
+            if (data.error) { alert(data.error); }
+            else { alert('設定已儲存！'); }
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;">save</span> 儲存設定';
+        }).catch(() => {
+            alert('儲存失敗');
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;">save</span> 儲存設定';
+        });
+    }
+</script>
+{% endblock %}
