@@ -69,10 +69,33 @@ def get_or_create_user_profile(user):
 
 
 def check_skill_unlocked(user_profile, skill_node):
-    """檢查技能是否已解鎖（等級足夠且前置技能皆已完成）"""
+    """檢查技能是否已解鎖（等級足夠、前置技能皆已完成，且職業核心/進階選修需完修所有共同必修）"""
+    # 1. 等級檢查
     if user_profile.level < skill_node.min_level:
         return False
 
+    # 2. 共同必修 (ROOT) 限制：如果是 CORE 或 ADVANCED，必須先完成所有 ROOT 技能
+    if skill_node.node_type in ['CORE', 'ADVANCED']:
+        from django.db.models import Q
+        # 找出該職業對應的所有 ROOT 技能（包含通用與專屬）
+        all_root_skills = SkillNode.objects.filter(
+            node_type='ROOT'
+        ).filter(
+            Q(character_class=user_profile.character_class) | Q(character_class__isnull=True)
+        )
+        
+        root_count = all_root_skills.count()
+        if root_count > 0:
+            completed_roots = UserSkill.objects.filter(
+                user_profile=user_profile,
+                skill_node__in=all_root_skills,
+                status='COMPLETED'
+            ).count()
+            
+            if completed_roots < root_count:
+                return False
+
+    # 3. 前置技能檢查
     parent_skills = skill_node.parent_skills.all()
     if parent_skills.exists():
         completed_parents = UserSkill.objects.filter(
@@ -81,6 +104,7 @@ def check_skill_unlocked(user_profile, skill_node):
             status='COMPLETED'
         ).count()
         return completed_parents == parent_skills.count()
+    
     return True
 
 
@@ -3222,8 +3246,8 @@ def skill_tree_editor(request):
     courses = Course.objects.all()
 
     # XP 預算計算 (每等級 100 XP)
-    ROOT_XP_LIMIT = 10 * 100   # Lv.10 共同必修上限 = 1000 XP
-    CORE_XP_LIMIT = 40 * 100   # Lv.50 - Lv.10 = 40 等，職業核心上限 = 4000 XP
+    ROOT_XP_LIMIT = 4500   # Lv.10 共同必修上限 = 4500 XP (100+200+...+900)
+    CORE_XP_LIMIT = 118000 # Lv.50 - Lv.10 = 40 等，職業核心上限 = 118000 XP (1000+1100+...+4900)
 
     root_xp_current = SkillNode.objects.filter(
         node_type='ROOT'
@@ -3557,7 +3581,7 @@ def api_manage_skill_course(request):
 @csrf_exempt
 @login_required
 def api_auto_layout_skill_tree(request):
-    """API: Auto layout skill tree"""
+    """API: 自動佈局技能樹（會存檔至資料庫）"""
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
         
@@ -3569,54 +3593,34 @@ def api_auto_layout_skill_tree(request):
         data = json.loads(request.body)
         class_code = data.get('class_code')
         
-        skills = SkillNode.objects.filter(
-            Q(node_type='ROOT') | Q(character_class__code=class_code)
-        ).prefetch_related('parent_skills')
-        
-        levels = {} 
-        skill_map = {s.id: s for s in skills}
-        
-        for s in skills:
-            levels[s.id] = 0
-            
-        changed = True
-        iterations = 0
-        while changed and iterations < 100:
-            changed = False
-            iterations += 1
-            for s in skills:
-                current_level = levels[s.id]
-                max_parent_level = -1
-                for p in s.parent_skills.all():
-                    if p.id in levels:
-                        max_parent_level = max(max_parent_level, levels[p.id])
-                
-                if max_parent_level >= current_level:
-                    levels[s.id] = max_parent_level + 1
-                    changed = True
-                    
-        level_groups = {}
-        for s_id, lvl in levels.items():
-            if lvl not in level_groups:
-                level_groups[lvl] = []
-            level_groups[lvl].append(skill_map[s_id])
-            
-        count = 0
-        for lvl in sorted(level_groups.keys()):
-            nodes = level_groups[lvl]
-            nodes.sort(key=lambda x: x.name)
-            
-            x_pos = lvl * 250 + 50
-            start_y = 50
-            
-            for i, node in enumerate(nodes):
-                y_pos = start_y + i * 150
-                node.position_x = x_pos
-                node.position_y = y_pos
-                node.save()
-                count += 1
+        from .utils.skill_layout import apply_layout_to_db
+        count = apply_layout_to_db(class_code)
                 
         return JsonResponse({'success': True, 'count': count})
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@csrf_exempt
+@login_required
+def api_skill_tree_preview_data(request):
+    """API: 取得技能樹佈局預覽資料（不會存檔）"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+        
+    profile = get_or_create_user_profile(request.user)
+    if profile.role not in ['MANAGER', 'OFFICER']:
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+        
+    try:
+        data = json.loads(request.body)
+        class_code = data.get('class_code')
+        
+        from .utils.skill_layout import calculate_layout_data
+        layout_data = calculate_layout_data(class_code)
+        
+        return JsonResponse({'success': True, 'nodes': layout_data})
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
@@ -4990,8 +4994,8 @@ def api_auto_distribute_xp(request):
         class_code = data.get('class_code', 'CIVIL')
 
         # 預算定義
-        ROOT_XP_LIMIT = 10 * 100   # 1000 XP
-        CORE_XP_LIMIT = 40 * 100   # 4000 XP
+        ROOT_XP_LIMIT = 4500   # 4500 XP
+        CORE_XP_LIMIT = 118000 # 118000 XP
 
         if node_type == 'ROOT':
             xp_limit = ROOT_XP_LIMIT

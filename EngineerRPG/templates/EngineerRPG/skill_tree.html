@@ -55,16 +55,14 @@
         <div id="skill-tree-container" style="min-height: 800px; position: relative; overflow: auto; cursor: grab;">
             <svg id="skill-tree-svg" width="100%" height="800">
                 <defs>
-                    <marker id="arrow-head" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                        <polygon points="0 0, 10 3.5, 0 7" fill="var(--color-stone)" />
+                    <marker id="arrow-head" markerWidth="7" markerHeight="4" refX="7" refY="2" orient="auto">
+                        <polygon points="0 0, 7 2, 0 4" fill="var(--color-stone)" />
                     </marker>
-                    <marker id="arrow-head-completed" markerWidth="10" markerHeight="7" refX="9" refY="3.5"
-                        orient="auto">
-                        <polygon points="0 0, 10 3.5, 0 7" fill="var(--color-safety)" />
+                    <marker id="arrow-head-completed" markerWidth="7" markerHeight="4" refX="7" refY="2" orient="auto">
+                        <polygon points="0 0, 7 2, 0 4" fill="var(--color-safety)" />
                     </marker>
-                    <marker id="arrow-head-available" markerWidth="10" markerHeight="7" refX="9" refY="3.5"
-                        orient="auto">
-                        <polygon points="0 0, 10 3.5, 0 7" fill="var(--color-secondary)" />
+                    <marker id="arrow-head-available" markerWidth="7" markerHeight="4" refX="7" refY="2" orient="auto">
+                        <polygon points="0 0, 7 2, 0 4" fill="var(--color-secondary)" />
                     </marker>
                 </defs>
             </svg>
@@ -317,28 +315,40 @@
             if (drivenByGroup) {
                 const connKey = `group-${drivenByGroup.parents.join(',')}-to-${childId}`;
                 if (!drawnConnections.has(connKey)) {
-                    drawOrthogonalLine(
-                        svg,
-                        drivenByGroup.centerX,
-                        drivenByGroup.bottomY,
-                        childPos.x,
-                        childPos.y - CONFIG.nodeHeight / 2,
-                        item.status
-                    );
+                    let sx = drivenByGroup.centerX;
+                    let sy, ex = childPos.x, ey;
+                    if (childPos.y < drivenByGroup.y) {
+                        sy = drivenByGroup.y;
+                        ey = childPos.y + CONFIG.nodeHeight / 2;
+                    } else {
+                        sy = drivenByGroup.bottomY;
+                        ey = childPos.y - CONFIG.nodeHeight / 2;
+                    }
+                    drawOrthogonalLine(svg, sx, sy, ex, ey, item.status);
                     drawnConnections.add(connKey);
                 }
             } else {
                 item.skill.parent_skills.forEach(pid => {
                     const parentPos = positions[pid];
                     if (parentPos) {
-                        drawOrthogonalLine(
-                            svg,
-                            parentPos.x,
-                            parentPos.y + CONFIG.nodeHeight / 2,
-                            childPos.x,
-                            childPos.y - CONFIG.nodeHeight / 2,
-                            item.status
-                        );
+                        let sx, sy, ex, ey;
+                        if (Math.abs(parentPos.y - childPos.y) < 10) {
+                            sx = parentPos.x + CONFIG.nodeWidth / 2;
+                            sy = parentPos.y;
+                            ex = childPos.x - CONFIG.nodeWidth / 2;
+                            ey = childPos.y;
+                        } else if (childPos.y < parentPos.y) {
+                            sx = parentPos.x;
+                            sy = parentPos.y - CONFIG.nodeHeight / 2;
+                            ex = childPos.x;
+                            ey = childPos.y + CONFIG.nodeHeight / 2;
+                        } else {
+                            sx = parentPos.x;
+                            sy = parentPos.y + CONFIG.nodeHeight / 2;
+                            ex = childPos.x;
+                            ey = childPos.y - CONFIG.nodeHeight / 2;
+                        }
+                        drawOrthogonalLine(svg, sx, sy, ex, ey, item.status);
                     }
                 });
             }
@@ -401,19 +411,33 @@
             g.appendChild(iconText);
 
             // 名稱標籤
+            const nameStr = item.skill.name;
+            const MAX_CHARS_PER_LINE = 6;
+            let lines = [];
+            for (let i = 0; i < nameStr.length; i += MAX_CHARS_PER_LINE) {
+                lines.push(nameStr.substring(i, i + MAX_CHARS_PER_LINE));
+            }
+            const bgHeight = 20 + (lines.length - 1) * 16;
+
             const textBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             textBg.setAttribute('x', -50);
             textBg.setAttribute('y', CONFIG.nodeHeight / 2 + 5);
             textBg.setAttribute('width', 100);
-            textBg.setAttribute('height', 20);
+            textBg.setAttribute('height', bgHeight);
             textBg.setAttribute('rx', 4);
             textBg.setAttribute('fill', 'rgba(0,0,0,0.8)');
             g.appendChild(textBg);
 
             const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('y', CONFIG.nodeHeight / 2 + 19);
             text.setAttribute('class', 'skill-text-name');
-            text.textContent = item.skill.name.length > 6 ? item.skill.name.substring(0, 6) + '..' : item.skill.name;
+            lines.forEach((lineText, idx) => {
+                const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                tspan.setAttribute('x', 0);
+                tspan.setAttribute('y', CONFIG.nodeHeight / 2 + 19 + idx * 16);
+                tspan.setAttribute('text-anchor', 'middle');
+                tspan.textContent = lineText;
+                text.appendChild(tspan);
+            });
             g.appendChild(text);
 
             svg.appendChild(g);
@@ -460,9 +484,14 @@
     }
 
     function drawOrthogonalLine(svg, x1, y1, x2, y2, status) {
-        const midY = (y1 + y2) / 2;
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const d = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
+        let d = '';
+        if (Math.abs(y1 - y2) < 10 || Math.abs(x1 - x2) < 10) {
+            d = `M ${x1} ${y1} L ${x2} ${y2}`;
+        } else {
+            const midY = (y1 + y2) / 2;
+            d = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
+        }
 
         path.setAttribute('d', d);
         let className = 'skill-connection';

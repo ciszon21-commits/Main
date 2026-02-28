@@ -130,6 +130,7 @@ urlpatterns = [
     path('api/skill-editor/node/delete/', views.api_delete_skill_node, name='api_delete_skill_node'),
     path('api/skill-editor/course/manage/', views.api_manage_skill_course, name='api_manage_skill_course'),
     path('api/skill-tree/auto-layout/', views.api_auto_layout_skill_tree, name='api_auto_layout_skill_tree'),
+    path('api/skill-tree/preview-data/', views.api_skill_tree_preview_data, name='api_skill_tree_preview_data'),
     path('api/skill-editor/auto-distribute/', views.api_auto_distribute_xp, name='api_auto_distribute_xp'),
     
     # 隊伍管理
