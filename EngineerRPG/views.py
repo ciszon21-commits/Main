@@ -29,6 +29,7 @@ from .forms import (
 )
 
 from .utils.course_importer import CourseImporter, generate_template_excel
+from .utils.skill_layout import transitive_reduction
 
 # Import team management functions
 from .views_team_management import edit_team, manage_team_members, create_team
@@ -106,6 +107,36 @@ def check_skill_unlocked(user_profile, skill_node):
         return completed_parents == parent_skills.count()
     
     return True
+
+
+def update_skill_progress(user_profile, skill_node):
+    """更新技能完成進度：計算該技能下所有課程的完成比例"""
+    total_courses = skill_node.courses.count()
+    if total_courses == 0:
+        # 無課程的技能，手動觸發時設為 100% (通常不應發生，或由其他邏輯處理)
+        new_progress = 100
+    else:
+        completed_count = UserCourseProgress.objects.filter(
+            user_profile=user_profile,
+            course__in=skill_node.courses.all(),
+            is_completed=True
+        ).count()
+        new_progress = round((completed_count * 100) / total_courses)
+
+    user_skill, _ = UserSkill.objects.get_or_create(
+        user_profile=user_profile,
+        skill_node=skill_node,
+        defaults={'status': 'IN_PROGRESS', 'started_at': timezone.now()}
+    )
+
+    user_skill.progress = new_progress
+    if new_progress >= 100:
+        if user_skill.status != 'COMPLETED':
+            user_skill.status = 'COMPLETED'
+            user_skill.completed_at = timezone.now()
+            # 首次完成，給予獎勵 (這裡不給，由呼叫端處理重複給予問題，或在此判斷)
+    user_skill.save()
+    return user_skill
 
 
 # ==================== Authentication Views ====================
@@ -347,6 +378,10 @@ def skill_tree(request):
     root_xp_current = SkillNode.objects.filter(node_type='ROOT').aggregate(Sum('exp_reward'))['exp_reward__sum'] or 0
     core_xp_current = SkillNode.objects.filter(node_type='CORE', character_class__code=selected_class_code).aggregate(Sum('exp_reward'))['exp_reward__sum'] or 0
     
+    # 原則 3: 執行遞移簡化 (Transitive Reduction) 移除冗餘連線
+    all_parent_ids = {s.id: [p.id for p in s.parent_skills.all()] for s in skills}
+    reduced_parents = transitive_reduction(all_parent_ids)
+
     # 格式化 JSON 資料
     data = []
     for skill in skills:
@@ -357,7 +392,7 @@ def skill_tree(request):
                 'node_type': skill.node_type,
                 'position_x': skill.position_x,
                 'position_y': skill.position_y,
-                'parent_skills': [p.id for p in skill.parent_skills.all()]
+                'parent_skills': reduced_parents.get(skill.id, [])
             },
             'status': user_skill_dict.get(skill.id, 'LOCKED')
         })
@@ -399,6 +434,12 @@ def skill_detail(request, skill_id):
     # 相關課程
     courses = skill.courses.all()
     
+    # 獲取已完成課程 ID
+    completed_course_ids = UserCourseProgress.objects.filter(
+        user_profile=profile,
+        course__in=courses,
+        is_completed=True
+    ).values_list('course_id', flat=True)
     # 前置技能狀態
     parent_skills = skill.parent_skills.all()
     parents_with_status = []
@@ -409,13 +450,37 @@ def skill_detail(request, skill_id):
             'status': parent_user_skill.status if parent_user_skill else 'LOCKED'
         })
         
+    # 檢查並自動清除失效的修練狀態
+    learning_course_id = request.session.get('learning_course_id')
+    current_learning_course = None
+    if learning_course_id:
+        try:
+            learning_course = Course.objects.get(id=learning_course_id)
+            # 檢查這堂課是否其實已經完成了
+            is_learning_course_completed = UserCourseProgress.objects.filter(
+                user_profile=profile,
+                course=learning_course,
+                is_completed=True
+            ).exists()
+            
+            if is_learning_course_completed:
+                del request.session['learning_course_id']
+                request.session.modified = True
+            else:
+                current_learning_course = learning_course
+        except Course.DoesNotExist:
+            del request.session['learning_course_id']
+            request.session.modified = True
+
     context = {
         'profile': profile,
         'skill': skill,
         'user_skill': user_skill,
         'is_unlocked': is_unlocked,
         'courses': courses,
+        'completed_course_ids': list(completed_course_ids),
         'parents_with_status': parents_with_status,
+        'current_learning_course': current_learning_course,
     }
     return render(request, 'EngineerRPG/skill_detail_fixed.html', context)
 
@@ -4416,7 +4481,99 @@ def course_study(request, course_id):
     """課程學習頁面"""
     profile = get_or_create_user_profile(request.user)
     course = get_object_or_404(Course, id=course_id)
-    return render(request, 'EngineerRPG/course_study.html', {'profile': profile, 'course': course})
+    
+    has_questions = course.questions.filter(is_active=True).exists()
+    
+    # 檢查是否已完成
+    progress, created = UserCourseProgress.objects.get_or_create(
+        user_profile=profile,
+        course=course
+    )
+    
+    if not progress.is_completed:
+        # 僅未完成課程才紀錄為「修練中」，避免已完成課程卡住互斥邏輯
+        request.session['learning_course_id'] = course.id
+        request.session.modified = True
+    
+    remaining_seconds = 0
+    if not has_questions and not progress.is_completed:
+        # 無測驗課程，處理定時器
+        progress, created = UserCourseProgress.objects.get_or_create(
+            user_profile=profile,
+            course=course
+        )
+        if not progress.is_completed:
+            if not progress.started_at:
+                progress.started_at = timezone.now()
+                progress.save(update_fields=['started_at'])
+            
+            # 計算剩餘秒數
+            elapsed = (timezone.now() - progress.started_at).total_seconds()
+            total_needed = course.duration_minutes * 60
+            remaining_seconds = max(0, int(total_needed - elapsed))
+    
+    return render(request, 'EngineerRPG/course_study.html', {
+        'profile': profile, 
+        'course': course,
+        'has_questions': has_questions,
+        'remaining_seconds': remaining_seconds,
+    })
+
+@login_required
+def complete_course_timer(request, course_id):
+    """處理無測驗課程的定時完成"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid method'}, status=405)
+        
+    profile = get_or_create_user_profile(request.user)
+    course = get_object_or_404(Course, id=course_id)
+    
+    # 檢查是否有題目。如果有題目，應走測驗流程
+    if course.questions.filter(is_active=True).exists():
+         return JsonResponse({'success': False, 'message': '此課程有測驗，請通過測驗以完成'}, status=400)
+
+    # 建立 / 更新進度
+    progress, created = UserCourseProgress.objects.get_or_create(
+        user_profile=profile,
+        course=course,
+    )
+    
+    if not progress.is_completed:
+        progress.is_completed = True
+        progress.score = 100
+        progress.completed_at = timezone.now()
+        progress.save()
+        
+        # 獎勵經驗值與更新技能狀態
+        exp_reward = 0
+        for skill_node in course.skill_nodes.all():
+            exp_reward += skill_node.exp_reward
+            update_skill_progress(profile, skill_node)
+        
+        if exp_reward > 0:
+            profile.experience += exp_reward
+            while profile.experience >= profile.experience_to_next_level():
+                profile.experience -= profile.experience_to_next_level()
+                profile.level += 1
+            profile.save()
+            
+        # 清除學習狀態
+        if request.session.get('learning_course_id') == course.id:
+            del request.session['learning_course_id']
+            
+        return JsonResponse({
+            'success': True, 
+            'message': f'恭喜完成修練！獲得 {exp_reward} 經驗值。',
+            'exp_gained': exp_reward
+        })
+    else:
+        return JsonResponse({
+            'success': True, 
+            'message': '您之前已完成此課程修練。',
+            'exp_gained': 0
+        })
+        
+    return JsonResponse({'success': True, 'message': '課程已完成'})
 
 
 
@@ -4498,16 +4655,7 @@ def submit_course_exam(request, course_id):
             exp_reward += skill_node.exp_reward
 
             # 更新關聯的 UserSkill 進度
-            user_skill, _ = UserSkill.objects.get_or_create(
-                user_profile=profile,
-                skill_node=skill_node,
-                defaults={'status': 'IN_PROGRESS', 'started_at': timezone.now()}
-            )
-            if user_skill.status not in ('COMPLETED',):
-                user_skill.status = 'COMPLETED'
-                user_skill.progress = 100
-                user_skill.completed_at = timezone.now()
-                user_skill.save()
+            update_skill_progress(profile, skill_node)
 
         if exp_reward > 0:
             profile.experience += exp_reward
@@ -4532,6 +4680,11 @@ def submit_course_exam(request, course_id):
             f'❌ 測驗未通過。得分 {score} 分（答對 {correct_count}/{question_count} 題，'
             f'及格分數 {course.passing_score} 分），請再接再厲！'
         )
+
+    # 清除學習狀態 (只要通過就清除)
+    if is_passed and request.session.get('learning_course_id') == course.id:
+        del request.session['learning_course_id']
+        request.session.modified = True
 
     return redirect('engineer_rpg:skill_tree')
 
@@ -4944,6 +5097,10 @@ def api_skill_tree_data(request):
     else:
         skills = SkillNode.objects.none()
         
+    # 原則 3: 執行遞移簡化 (Transitive Reduction) 移除冗餘連線
+    all_parent_ids = {s.id: [p.id for p in s.parent_skills.all()] for s in skills}
+    reduced_parents = transitive_reduction(all_parent_ids)
+
     data = []
     for skill in skills:
         # Check status
@@ -4961,7 +5118,7 @@ def api_skill_tree_data(request):
             'x': skill.position_x,
             'y': skill.position_y,
             'status': status,
-            'parents': list(skill.parent_skills.values_list('id', flat=True)),
+            'parents': reduced_parents.get(skill.id, []),
             'level_required': skill.level_required,
         })
         

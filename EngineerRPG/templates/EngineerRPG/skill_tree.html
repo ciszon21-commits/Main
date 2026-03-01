@@ -59,7 +59,7 @@
                         <polygon points="0 0, 7 2, 0 4" fill="var(--color-stone)" />
                     </marker>
                     <marker id="arrow-head-completed" markerWidth="7" markerHeight="4" refX="7" refY="2" orient="auto">
-                        <polygon points="0 0, 7 2, 0 4" fill="var(--color-safety)" />
+                        <polygon points="0 0, 7 2, 0 4" fill="#ffffff" />
                     </marker>
                     <marker id="arrow-head-available" markerWidth="7" markerHeight="4" refX="7" refY="2" orient="auto">
                         <polygon points="0 0, 7 2, 0 4" fill="var(--color-secondary)" />
@@ -123,7 +123,7 @@
         opacity: 0.8;
     }
 
-    .status-LOCKED .skill-icon {
+    .status-LOCKED text {
         filter: grayscale(100%) brightness(0.5);
     }
 
@@ -132,10 +132,27 @@
         animation: pulse-border 2s infinite;
     }
 
+    .status-IN_PROGRESS .skill-node-frame {
+        stroke: var(--color-civil);
+        stroke-dasharray: 4, 2;
+        animation: rotate-dash 5s linear infinite;
+    }
+
     .status-COMPLETED .skill-node-frame {
         fill: #252525;
-        stroke: var(--color-safety);
         stroke-width: 3px;
+    }
+
+    .status-COMPLETED.skill-node-ROOT .skill-node-frame {
+        stroke: var(--color-safety);
+    }
+
+    .status-COMPLETED.skill-node-CORE .skill-node-frame {
+        stroke: var(--color-civil);
+    }
+
+    .status-COMPLETED.skill-node-ADVANCED .skill-node-frame {
+        stroke: var(--color-me);
     }
 
     .skill-connection {
@@ -147,11 +164,12 @@
     }
 
     .skill-connection.completed {
-        stroke: var(--color-safety);
+        stroke: #ffffff;
         marker-end: url(#arrow-head-completed);
     }
 
-    .skill-connection.available {
+    .skill-connection.available,
+    .skill-connection.in-progress {
         stroke: var(--color-secondary);
         stroke-dasharray: 5, 5;
         animation: dash-flow 30s linear infinite;
@@ -185,6 +203,12 @@
 
         100% {
             stroke-opacity: 1;
+        }
+    }
+
+    @keyframes rotate-dash {
+        to {
+            stroke-dashoffset: -12;
         }
     }
 
@@ -246,47 +270,142 @@
             };
         });
 
-        // 識別群組
-        const parentGroupsMap = {};
+        // 定義單位間距與文字避讓判定
+        const yCoordinates = [...new Set(Object.values(positions).map(p => p.y))].sort((a, b) => a - b);
+        let yUnit = 100; // 預設值
+        if (yCoordinates.length > 1) {
+            yUnit = yCoordinates[1] - yCoordinates[0];
+        }
 
-        skillTreeData.forEach(child => {
-            const parentIds = child.skill.parent_skills.sort();
-            if (parentIds.length > 1) {
-                const key = parentIds.join(',');
-                if (!parentGroupsMap[key]) {
-                    parentGroupsMap[key] = { parents: parentIds, children: [] };
-                }
-                parentGroupsMap[key].children.push(child.skill.id);
+        // 檢查節點是否有文字避讓需求 (同一 X 軸上下有相鄰節點)
+        const nodeNeedsLeftEntry = {};
+        skillTreeData.forEach(item => {
+            const node = item.skill;
+            const neighbors = skillTreeData.filter(other =>
+                other.skill.id !== node.id &&
+                Math.abs(other.skill.position_x - node.position_x) < 5 && // 相同 X
+                Math.abs(other.skill.position_y - node.position_y) < yUnit * 1.5 // 緊鄰
+            );
+            if (neighbors.length > 0) {
+                nodeNeedsLeftEntry[node.id] = true;
             }
         });
 
-        // 處理 Group 渲染資料
-        const visualGroups = Object.values(parentGroupsMap).map(g => {
-            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-            g.parents.forEach(pid => {
+        // --- 識別與生成符合原則的群組 ---
+        const visualGroups = [];
+        const drawnConnections = new Set();
+
+        // 1. 收集每個子節點「按類型分類」後的潛在群組 (原則 1: 僅區分 ROOT 與 其他)
+        const childToPotentialGroups = {};
+        skillTreeData.forEach(child => {
+            const childId = child.skill.id;
+            // 原則 1: 僅區分 ROOT 與 其他 (CORE/ADVANCED 合併)
+            const parentsByGroupType = { 'ROOT': [], 'OTHER': [] };
+
+            child.skill.parent_skills.forEach(pid => {
                 const p = positions[pid];
                 if (p) {
-                    minX = Math.min(minX, p.x);
-                    maxX = Math.max(maxX, p.x);
-                    minY = Math.min(minY, p.y);
-                    maxY = Math.max(maxY, p.y);
+                    const gType = p.item.skill.node_type === 'ROOT' ? 'ROOT' : 'OTHER';
+                    parentsByGroupType[gType].push(pid);
                 }
             });
 
-            if (minX === Infinity) return null; // Skip if parents not found
+            childToPotentialGroups[childId] = [];
 
-            const padding = 20;
-            return {
-                x: minX - CONFIG.nodeWidth / 2 - padding,
-                y: minY - CONFIG.nodeHeight / 2 - padding,
-                width: (maxX - minX) + CONFIG.nodeWidth + padding * 2,
-                height: (maxY - minY) + CONFIG.nodeHeight + padding * 2,
-                parents: g.parents,
-                children: g.children,
-                centerX: (minX + maxX) / 2,
-                bottomY: maxY + CONFIG.nodeHeight / 2 + padding
-            };
-        }).filter(g => g !== null);
+            Object.entries(parentsByGroupType).forEach(([gType, pids]) => {
+                if (pids.length < 2) return;
+
+                // 找出最大的連續子集 (原則 2: X 相同、Y 連續、無路人)
+                pids.sort((a, b) => positions[a].y - positions[b].y);
+
+                let currentChunk = [pids[0]];
+                for (let i = 1; i < pids.length; i++) {
+                    const p1 = positions[pids[i - 1]];
+                    const p2 = positions[pids[i]];
+
+                    // 原則 2: 中間不得跨越其他的技能節點 (路人檢查)
+                    // 只要是位於兩點之間且在同一 X 軸的節點，且不屬於當前父節點集合，就是路人
+                    const hasTrespasser = skillTreeData.some(other => {
+                        const op = positions[other.skill.id];
+                        return Math.abs(op.x - p1.x) < 5 &&
+                            op.y > p1.y + 5 &&
+                            op.y < p2.y - 5 &&
+                            !pids.includes(other.skill.id);
+                    });
+
+                    // 檢查 Y 是否相鄰 (150 為標準間距，容許較大範圍以應對自動佈局的位移)
+                    // 如果中間沒有任何路人，我們可以放寬距離限制，將其視為同一組
+                    const yDiff = p2.y - p1.y;
+                    if (yDiff > 0 && yDiff <= 250 && !hasTrespasser) {
+                        currentChunk.push(pids[i]);
+                    } else {
+                        if (currentChunk.length >= 2) {
+                            childToPotentialGroups[childId].push({ pids: [...currentChunk], gType });
+                        }
+                        currentChunk = [pids[i]];
+                    }
+                }
+                if (currentChunk.length >= 2) {
+                    childToPotentialGroups[childId].push({ pids: currentChunk, gType });
+                }
+            });
+        });
+
+        // 2. 原則 4/5: 統計群組頻率並優化子群組提取
+        const groupFrequency = {};
+        Object.values(childToPotentialGroups).forEach(groupList => {
+            groupList.forEach(g => {
+                const key = g.pids.sort().join(',');
+                groupFrequency[key] = (groupFrequency[key] || 0) + 1;
+            });
+        });
+
+        const finalGroupsMap = {};
+        Object.entries(childToPotentialGroups).forEach(([childId, groups]) => {
+            groups.forEach(g => {
+                const pids = g.pids.sort();
+
+                // 原則 4: 尋找被更多子節點使用的子集
+                let finalPids = [...pids];
+                if (groupFrequency[pids.join(',')] === 1) {
+                    for (let otherKey in groupFrequency) {
+                        if (groupFrequency[otherKey] > 1) {
+                            const subset = otherKey.split(',').map(Number);
+                            if (subset.every(val => pids.includes(val))) {
+                                finalPids = subset;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                const key = `${g.gType}-${finalPids.join(',')}`;
+                if (!finalGroupsMap[key]) {
+                    const nodes = finalPids.map(id => positions[id]);
+                    const minY = Math.min(...nodes.map(n => n.y));
+                    const maxY = Math.max(...nodes.map(n => n.y));
+                    const padding = 20;
+                    finalGroupsMap[key] = {
+                        parents: finalPids,
+                        gType: g.gType,
+                        children: [],
+                        x: nodes[0].x,
+                        width: CONFIG.nodeWidth + padding * 2,
+                        height: (maxY - minY) + CONFIG.nodeHeight + padding * 2,
+                        visualX: nodes[0].x - CONFIG.nodeWidth / 2 - padding,
+                        visualY: minY - CONFIG.nodeHeight / 2 - padding
+                    };
+                }
+                if (!finalGroupsMap[key].children.includes(Number(childId))) {
+                    finalGroupsMap[key].children.push(Number(childId));
+                }
+            });
+        });
+
+        const visualGroupsData = Object.values(finalGroupsMap);
+
+        // 繪製 SVG 元素
+        // -------------------------------------------------------------------
 
         // 設定 SVG 最終尺寸
         const allX = Object.values(positions).map(p => p.x);
@@ -296,74 +415,70 @@
         svg.setAttribute('width', maxX + CONFIG.padding + CONFIG.nodeWidth);
         svg.setAttribute('height', maxY + CONFIG.padding + CONFIG.nodeHeight);
 
-        // 2. 繪製連接線
-        const drawnConnections = new Set();
+        // 1. 繪製 Group 框 (放在底層)
+        visualGroupsData.forEach(g => {
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('x', g.visualX);
+            rect.setAttribute('y', g.visualY);
+            rect.setAttribute('width', g.width);
+            rect.setAttribute('height', g.height);
+            rect.setAttribute('class', 'group-box');
+            svg.insertBefore(rect, svg.firstChild.nextSibling);
+        });
 
+        // 2. 繪製連接線
         skillTreeData.forEach(item => {
             const childId = item.skill.id;
             const childPos = positions[childId];
             if (!childPos) return;
 
-            let drivenByGroup = null;
-            for (let g of visualGroups) {
+            // 判斷哪些父節點已經透過 Group 處理了
+            const handledParentIds = new Set();
+            visualGroupsData.forEach(g => {
                 if (g.children.includes(childId)) {
-                    drivenByGroup = g;
-                    break;
-                }
-            }
+                    const connKey = `group-${g.gType}-${g.parents.join(',')}-to-${childId}`;
+                    if (!drawnConnections.has(connKey)) {
+                        // 連線出發點：群組框右側
+                        let sx = g.visualX + g.width;
+                        let sy = g.visualY + g.height / 2;
 
-            if (drivenByGroup) {
-                const connKey = `group-${drivenByGroup.parents.join(',')}-to-${childId}`;
-                if (!drawnConnections.has(connKey)) {
-                    let sx = drivenByGroup.centerX;
-                    let sy, ex = childPos.x, ey;
-                    if (childPos.y < drivenByGroup.y) {
-                        sy = drivenByGroup.y;
-                        ey = childPos.y + CONFIG.nodeHeight / 2;
+                        // 連線進入點：子節點左側 (由用戶指令要求)
+                        let ex = childPos.x - CONFIG.nodeWidth / 2;
+                        let ey = childPos.y;
+
+                        drawSmartLine(svg, sx, sy, ex, ey, item.status, 'RIGHT', 'LEFT');
+                        drawnConnections.add(connKey);
+                    }
+                    g.parents.forEach(pid => handledParentIds.add(pid));
+                }
+            });
+
+            // 處理剩餘的單獨連線 (原則 4: 不在群組中的父節點單獨連線)
+            item.skill.parent_skills.forEach(pid => {
+                if (handledParentIds.has(pid)) return; // 已經由群組連線涵蓋
+
+                const parentPos = positions[pid];
+                if (parentPos) {
+                    let sx, sy, ex, ey, exitDir = 'RIGHT', entryDir = 'LEFT';
+
+                    if (Math.abs(parentPos.x - childPos.x) < 10) {
+                        // 禁止同 X 軸繼承連線 (後端亦會落實此規則，此處為前端防禦)
+                        // 若真的不幸重疊，依然使用右出左進以符合使用者最高原則
+                        sx = parentPos.x + CONFIG.nodeWidth / 2;
+                        sy = parentPos.y;
+                        ex = childPos.x - CONFIG.nodeWidth / 2;
+                        ey = childPos.y;
+                        exitDir = 'RIGHT'; entryDir = 'LEFT';
                     } else {
-                        sy = drivenByGroup.bottomY;
-                        ey = childPos.y - CONFIG.nodeHeight / 2;
+                        sx = parentPos.x + CONFIG.nodeWidth / 2;
+                        sy = parentPos.y;
+                        ex = childPos.x - CONFIG.nodeWidth / 2;
+                        ey = childPos.y;
+                        exitDir = 'RIGHT'; entryDir = 'LEFT';
                     }
-                    drawOrthogonalLine(svg, sx, sy, ex, ey, item.status);
-                    drawnConnections.add(connKey);
+                    drawSmartLine(svg, sx, sy, ex, ey, item.status, exitDir, entryDir);
                 }
-            } else {
-                item.skill.parent_skills.forEach(pid => {
-                    const parentPos = positions[pid];
-                    if (parentPos) {
-                        let sx, sy, ex, ey;
-                        if (Math.abs(parentPos.y - childPos.y) < 10) {
-                            sx = parentPos.x + CONFIG.nodeWidth / 2;
-                            sy = parentPos.y;
-                            ex = childPos.x - CONFIG.nodeWidth / 2;
-                            ey = childPos.y;
-                        } else if (childPos.y < parentPos.y) {
-                            sx = parentPos.x;
-                            sy = parentPos.y - CONFIG.nodeHeight / 2;
-                            ex = childPos.x;
-                            ey = childPos.y + CONFIG.nodeHeight / 2;
-                        } else {
-                            sx = parentPos.x;
-                            sy = parentPos.y + CONFIG.nodeHeight / 2;
-                            ex = childPos.x;
-                            ey = childPos.y - CONFIG.nodeHeight / 2;
-                        }
-                        drawOrthogonalLine(svg, sx, sy, ex, ey, item.status);
-                    }
-                });
-            }
-        });
-
-        // 3. 繪製 Group 框
-        visualGroups.forEach(g => {
-            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            rect.setAttribute('x', g.x);
-            rect.setAttribute('y', g.y);
-            rect.setAttribute('width', g.width);
-            rect.setAttribute('height', g.height);
-            rect.setAttribute('class', 'group-box');
-            // Insert after defs if possible, or pretend
-            svg.insertBefore(rect, svg.firstChild.nextSibling);
+            });
         });
 
         // 4. 繪製節點
@@ -483,25 +598,34 @@
         });
     }
 
-    function drawOrthogonalLine(svg, x1, y1, x2, y2, status) {
+    function drawSmartLine(svg, x1, y1, x2, y2, status, exitDir, entryDir) {
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         let d = '';
-        if (Math.abs(y1 - y2) < 10 || Math.abs(x1 - x2) < 10) {
+
+        if (exitDir === 'BOTTOM' && entryDir === 'TOP') {
+            // 直線向下
             d = `M ${x1} ${y1} L ${x2} ${y2}`;
+        } else if (exitDir === 'TOP' && entryDir === 'BOTTOM') {
+            // 直線向上
+            d = `M ${x1} ${y1} L ${x2} ${y2}`;
+        } else if (exitDir === 'RIGHT' && entryDir === 'LEFT') {
+            // 水平階梯線：使用固定通道 (Lane) 概念，避免壓到中間節點
+            // 轉折點 X 座標公式：父節點中心 + 125
+            // 由於 x1 是父節點右緣 (中心 + 30)，所以轉折點 = x1 + 95
+            const midX = x1 + 95;
+            d = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
         } else {
-            const midY = (y1 + y2) / 2;
-            d = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
+            // 後備：一般折線
+            const midX = x1 + 95;
+            d = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
         }
 
         path.setAttribute('d', d);
         let className = 'skill-connection';
         if (status === 'COMPLETED') className += ' completed';
-        else if (status === 'AVAILABLE') className += ' available';
+        else if (status === 'AVAILABLE' || status === 'IN_PROGRESS') className += ' available';
         path.setAttribute('class', className);
 
-        // Insert before grouping boxes? No, grouping boxes are lowest. 
-        // We want lines BELOW nodes but ABOVE group boxes? 
-        // Actually fine if lines are lowest.
         svg.insertBefore(path, svg.firstChild);
     }
 

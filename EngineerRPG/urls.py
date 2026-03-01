@@ -105,6 +105,7 @@ urlpatterns = [
     path('courses/<int:course_id>/study/', views.course_study, name='course_study'),
     path('courses/<int:course_id>/exam/', views.course_exam, name='course_exam'),
     path('courses/<int:course_id>/exam/submit/', views.submit_course_exam, name='submit_course_exam'),
+    path('courses/<int:course_id>/complete-timer/', views.complete_course_timer, name='complete_course_timer'),
     path('admin-panel/categories/', views.category_management, name='category_management'),
     path('admin-panel/dungeons/', views.dungeon_management, name='dungeon_management'),
     path('admin-panel/dungeons/create/', views.create_dungeon, name='create_dungeon'),

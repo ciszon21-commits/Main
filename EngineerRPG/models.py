@@ -357,6 +357,7 @@ class UserCourseProgress(models.Model):
     is_completed = models.BooleanField('已完成', default=False)
     score = models.IntegerField('最高分數', default=0)
     completed_at = models.DateTimeField('完成時間', null=True, blank=True)
+    started_at = models.DateTimeField('開始時間', null=True, blank=True)
     
     class Meta:
         verbose_name = '使用者課程進度'
