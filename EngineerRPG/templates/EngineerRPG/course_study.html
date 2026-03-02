@@ -45,11 +45,91 @@
         </div>
 
         <!-- 動作區 -->
-        <div class="flex flex-center mt-xl">
+        <div class="flex flex-center mt-xl" id="course-action-container">
+            {% if has_questions %}
             <a href="{% url 'engineer_rpg:course_exam' course.id %}" class="rpg-btn rpg-btn-primary rpg-btn-lg">
                 <i class="fas fa-pen-alt"></i> 我已研讀完畢，開始測驗
             </a>
+            {% else %}
+            <button id="complete-timer-btn" class="rpg-btn rpg-btn-disabled rpg-btn-lg" disabled
+                data-duration="{{ course.duration_minutes }}">
+                <i class="fas fa-hourglass-start"></i> 閱讀中... (<span id="timer-display">--:--</span>)
+            </button>
+            {% endif %}
         </div>
     </div>
 </div>
+
+{% if not has_questions %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const timerBtn = document.getElementById('complete-timer-btn');
+        const timerDisplay = document.getElementById('timer-display');
+        let remainingSeconds = parseInt("{{ remaining_seconds|default:0 }}");
+
+        if (remainingSeconds <= 0 && timerBtn) {
+            // Already finished or something went wrong - but let's check if it should be finished
+            // If it's 0 on load, it means either it's done or just started but the server said 0.
+            // If the server says 0, it might mean the duration is up.
+        }
+
+        function updateDisplay() {
+            const mins = Math.floor(remainingSeconds / 60);
+            const secs = remainingSeconds % 60;
+            timerDisplay.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        updateDisplay();
+
+        if (remainingSeconds <= 0) {
+            finishTimer();
+        } else {
+            const timer = setInterval(() => {
+                remainingSeconds--;
+                updateDisplay();
+
+                if (remainingSeconds <= 0) {
+                    clearInterval(timer);
+                    finishTimer();
+                }
+            }, 1000);
+        }
+
+        function finishTimer() {
+            if (!timerBtn) return;
+            timerBtn.disabled = false;
+            timerBtn.classList.remove('rpg-btn-disabled');
+            timerBtn.classList.add('rpg-btn-success', 'pulse-animation');
+            timerBtn.innerHTML = '<i class="fas fa-check-circle"></i> 我已閱讀並完成修練';
+
+            timerBtn.addEventListener('click', function () {
+                completeCourse();
+            });
+        }
+
+        function completeCourse() {
+            fetch("{% url 'engineer_rpg:complete_course_timer' course.id %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        window.location.href = "{% url 'engineer_rpg:skill_tree' %}";
+                    } else {
+                        alert('錯誤: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('伺服器連線失敗');
+                });
+        }
+    });
+</script>
+{% endif %}
 {% endblock %}
