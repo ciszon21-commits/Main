@@ -11,7 +11,24 @@
         </a>
     </div>
 
+    {% if current_learning_course and current_learning_course not in courses %}
+    <div class="rpg-alert rpg-alert-warning mb-lg"
+        style="display: flex; justify-content: space-between; align-items: center; background-color: rgba(255, 193, 7, 0.1); border-left: 4px solid #ffc107; padding: 15px; border-radius: 4px;">
+        <div>
+            <i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i>
+            <strong>您目前有正在修練的其他課程：</strong> {{ current_learning_course.title }}
+            <br>
+            <small style="color: #6c757d;">在完成該課程前，無法開始本頁面的其他課程。</small>
+        </div>
+        <a href="{% url 'engineer_rpg:course_study' current_learning_course.id %}"
+            class="rpg-btn rpg-btn-primary rpg-btn-sm" style="white-space: nowrap;">
+            前往該課程 <i class="fas fa-arrow-right"></i>
+        </a>
+    </div>
+    {% endif %}
+
     <div class="grid grid-2-1 gap-xl">
+
         <!-- 左側：技能詳情與課程 -->
         <div>
             <!-- 技能頭部卡片 -->
@@ -35,104 +52,133 @@
                         進階選修
                         {% endif %}
                     </div>
-                    <h1>{{ skill.name }}</h1>
-                    <div class="skill-exp">
-                        <i class="fas fa-star"></i> 獎勵經驗值: {{ skill.exp_reward }}
+
+                    <div style="display: flex; align-items: baseline; gap: 15px;">
+                        <h1 style="margin: 0;">{{ skill.name }}</h1>
+
+                        <div class="skill-exp" style="margin: 0;">
+                            <i class="fas fa-star"></i> 技能經驗值: {{ skill.exp_reward }}
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+                        <h3 style="margin: 0;"><i class="fas fa-info-circle"></i> 技能說明：</h3>
+                        <p class="text-stone" style="margin: 0; line-height: 1.6; font-size: 1.1rem;">
+                            {{ skill.description|linebreaksbr }}
+                        </p>
                     </div>
                 </div>
-                <div class="skill-status-badge status-{{ user_skill.status|default:'LOCKED' }}">
-                    {% if user_skill.status == 'COMPLETED' %}
-                    <i class="fas fa-check-circle"></i> 已習得
-                    {% elif user_skill.status == 'IN_PROGRESS' %}
-                    <i class="fas fa-spinner fa-spin"></i> 學習中
-                    {% elif is_unlocked %}
-                    <i class="fas fa-unlock"></i> 可學習
-                    {% else %}
-                    <i class="fas fa-lock"></i> 未解鎖
+
+                <div class="skill-status-container" style="display: flex; align-items: center; gap: 10px;">
+                    <div class="skill-status-badge status-{{ user_skill.status|default:'LOCKED' }}">
+                        {% if user_skill.status == 'COMPLETED' %}
+                        <i class="fas fa-check-circle"></i> 已習得
+                        {% elif user_skill.status == 'IN_PROGRESS' %}
+                        <i class="fas fa-spinner fa-spin"></i> 學習中
+                        {% elif is_unlocked %}
+                        <i class="fas fa-unlock"></i> 可學習
+                        {% else %}
+                        <i class="fas fa-lock"></i> 未解鎖
+                        {% endif %}
+                    </div>
+
+                    {% if user_skill.status == 'AVAILABLE' %}
+                    <form action="{% url 'engineer_rpg:start_learning' skill.id %}" method="post" style="margin: 0;">
+                        {% csrf_token %}
+                        <button type="submit" class="rpg-btn rpg-btn-primary rpg-btn-sm pulse-animation">
+                            <i class="fas fa-book-open"></i> 開始修練
+                        </button>
+                    </form>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- 技能描述 -->
-            <div class="rpg-card mb-lg">
-                <h3 class="mb-md"><i class="fas fa-info-circle"></i> 技能說明</h3>
-                <p class="text-stone" style="line-height: 1.6; font-size: 1.1rem;">
-                    {{ skill.description|linebreaksbr }}
-                </p>
-            </div>
-
-            <!-- 課程列表 -->
-            <div class="rpg-card">
-                <h3 class="mb-md"><i class="fas fa-book"></i> 修練課程</h3>
-                {% if courses %}
-                <div class="course-list">
-                    {% for course in courses %}
-                    <div class="course-item">
-                        <div class="course-icon">
-                            {% if course.content_type == 'VIDEO' %}<i class="fas fa-video"></i>
-                            {% elif course.content_type == 'PDF' %}<i class="fas fa-file-pdf"></i>
-                            {% elif course.content_type == 'PPT' %}<i class="fas fa-file-powerpoint"></i>
-                            {% else %}<i class="fas fa-link"></i>{% endif %}
+            <!-- 右側：前置與狀態 -->
+            <div>
+                <!-- 進度卡片 -->
+                <div class="rpg-card mb-lg text-center">
+                    <h3 class="mb-md">修練進度</h3>
+                    <div class="progress-circle-container mb-md">
+                        <div class="progress-circle" style="--percentage: {{ user_skill.progress|default:0 }}">
+                            <div class="progress-value">{{ user_skill.progress|default:0 }}%</div>
                         </div>
-                        <div class="course-content">
-                            <h4>{{ course.title }}</h4>
-                            <p>{{ course.description|truncatechars:50 }}</p>
-                            <div class="course-meta">
-                                <span><i class="far fa-clock"></i> {{ course.duration_minutes }} 分鐘</span>
+
+                        {% if user_skill.status == 'IN_PROGRESS' %}
+                        <div class="rpg-status-info text-info">
+                            <i class="fas fa-spinner fa-spin"></i> 修練進行中
+                        </div>
+                        <p class="mt-sm text-sm text-stone">完成所有課程與測驗以習得技能</p>
+                        {% elif user_skill.status == 'COMPLETED' %}
+                        <div class="rpg-status-info text-success">
+                            <i class="fas fa-check"></i> 已完全習得
+                        </div>
+                        {% elif user_skill.status == 'AVAILABLE' %}
+                        <p class="text-sm text-secondary">請點擊上方「開始修練」以解鎖課程</p>
+                        {% else %}
+                        <div class="rpg-status-info text-stone">
+                            <i class="fas fa-lock"></i> 條件未滿足
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 課程列表 - 修練技能的所有課程 -->
+                <div class="rpg-card">
+                    <h3 class="mb-md"><i class="fas fa-book"></i> 修練課程</h3>
+                    {% if courses %}
+                    <div class="course-list">
+                        {% for course in courses %}
+                        <div class="course-item">
+                            <div class="course-icon">
+                                {% if course.content_type == 'VIDEO' %}<i class="fas fa-video"></i>
+                                {% elif course.content_type == 'PDF' %}<i class="fas fa-file-pdf"></i>
+                                {% elif course.content_type == 'PPT' %}<i class="fas fa-file-powerpoint"></i>
+                                {% else %}<i class="fas fa-link"></i>{% endif %}
+                            </div>
+                            <div class="course-content">
+                                <h4>{{ course.title }}</h4>
+                                <p>{{ course.description|truncatechars:50 }}</p>
+                                <div class="course-meta">
+                                    <span><i class="far fa-clock"></i> {{ course.duration_minutes }} 分鐘</span>
+                                </div>
+                            </div>
+                            <div class="course-action">
+                                {% if course.id in completed_course_ids %}
+                                <a href="{% url 'engineer_rpg:course_study' course.id %}"
+                                    class="rpg-btn rpg-btn-success">
+                                    <i class="fas fa-check-circle"></i> 已修練
+                                </a>
+                                {% else %}
+                                {% if user_skill.status == 'LOCKED' or user_skill.status == 'AVAILABLE' %}
+                                <button class="rpg-btn rpg-btn-disabled" style="cursor: not-allowed; opacity: 0.6;">
+                                    <i class="fas fa-lock"></i> {% if user_skill.status == 'AVAILABLE' %}尚未開始{% else %}技能鎖定中{% endif %}
+                                </button>
+                                {% else %}
+                                {% with current_learning=request.session.learning_course_id %}
+                                {% if current_learning and current_learning != course.id %}
+                                <button class="rpg-btn rpg-btn-disabled" style="cursor: not-allowed; opacity: 0.6;">
+                                    <i class="fas fa-hourglass-half"></i> 其他課程修練中
+                                </button>
+                                {% else %}
+                                <a href="{% url 'engineer_rpg:course_study' course.id %}"
+                                    class="rpg-btn rpg-btn-primary">
+                                    <i class="fas fa-play"></i> {% if current_learning == course.id %}繼續修練{% else %}開始{% endif %}
+                                </a>
+                                {% endif %}
+                                {% endwith %}
+                                {% endif %}
+                                {% endif %}
                             </div>
                         </div>
-                        <div class="course-action">
-                            {% if user_skill.status == 'LOCKED' %}
-                            <button class="rpg-btn rpg-btn-disabled" disabled><i class="fas fa-lock"></i> 鎖定</button>
-                            {% else %}
-                            <a href="{% url 'engineer_rpg:course_study' course.id %}" class="rpg-btn rpg-btn-primary"><i
-                                    class="fas fa-play"></i> 開始</a>
-                            {% endif %}
-                        </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
+                    {% else %}
+                    <p class="text-stone text-center py-lg">目前沒有相關課程資料。</p>
+                    {% endif %}
                 </div>
-                {% else %}
-                <p class="text-stone text-center py-lg">目前沒有相關課程資料。</p>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- 右側：前置與狀態 -->
-        <div>
-            <!-- 進度卡片 -->
-            <div class="rpg-card mb-lg text-center">
-                <h3 class="mb-md">修練進度</h3>
-                <div class="progress-circle-container mb-md">
-                    <div class="progress-circle" style="--percentage: {{ user_skill.progress|default:0 }}">
-                        <div class="progress-value">{{ user_skill.progress|default:0 }}%</div>
-                    </div>
-                </div>
-
-                {% if user_skill.status == 'AVAILABLE' %}
-                <form action="{% url 'engineer_rpg:start_learning' skill.id %}" method="post">
-                    {% csrf_token %}
-                    <button type="submit" class="rpg-btn rpg-btn-primary w-100 pulse-animation">
-                        <i class="fas fa-book-open"></i> 開始修練
-                    </button>
-                </form>
-                {% elif user_skill.status == 'IN_PROGRESS' %}
-                <button class="rpg-btn rpg-btn-civil w-100" disabled>
-                    <i class="fas fa-spinner fa-spin"></i>修練進行中
-                </button>
-                <p class="mt-sm text-sm text-stone">完成所有課程與測驗以習得技能</p>
-                {% elif user_skill.status == 'COMPLETED' %}
-                <button class="rpg-btn rpg-btn-success w-100" disabled>
-                    <i class="fas fa-check"></i> 已完全習得
-                </button>
-                {% else %}
-                <button class="rpg-btn rpg-btn-disabled w-100" disabled>
-                    <i class="fas fa-lock"></i> 條件未滿足
-                </button>
-                {% endif %}
             </div>
 
-            <!-- 前置條件 -->
+            <!-- 前置技能條件 -->
             <div class="rpg-card">
                 <h3 class="mb-md"><i class="fas fa-project-diagram"></i> 前置技能</h3>
                 {% if parents_with_status %}
