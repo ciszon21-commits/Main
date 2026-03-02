@@ -8,7 +8,7 @@ import time
 import logging
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
-import jieba
+import rjieba
 import pandas as pd
 import matplotlib
 # Use non-interactive backend
@@ -149,19 +149,41 @@ class NewsAnalyzer:
     @staticmethod
     def _segment_words(texts, topic_words="", stop_words=""):
         topics = [w.strip() for w in topic_words.replace('，', ',').split(',') if w.strip()]
-        for t in topics:
-            jieba.add_word(t, freq=None, tag=None)
-            
+
         stops = set([w.strip() for w in stop_words.replace('，', ',').split(',') if w.strip()])
         default_stops = {'的', '了', '和', '與', '在', '是', '也', '有', '就', '都', '而', '及', '不', '會', '為', '以', '對', '於', '等', '之', '指出', '表示', '報導'}
         stops = stops.union(default_stops)
-        
+
         all_words = []
         for text in texts:
-            words = jieba.lcut(text)
+            words = rjieba.cut(text, hmm=True)
+            # rjieba 不支援 add_word，以後處理方式重組被拆散的主題詞
+            if topics:
+                result = []
+                i = 0
+                while i < len(words):
+                    matched = False
+                    for topic in sorted(topics, key=len, reverse=True):
+                        # 嘗試以連續 token 組合是否能形成主題詞
+                        combined = ''
+                        j = i
+                        while j < len(words) and len(combined) < len(topic):
+                            combined += words[j]
+                            j += 1
+                            if combined == topic:
+                                result.append(topic)
+                                i = j
+                                matched = True
+                                break
+                        if matched:
+                            break
+                    if not matched:
+                        result.append(words[i])
+                        i += 1
+                words = result
             filtered = [w for w in words if w not in stops and len(w.strip()) > 1]
             all_words.extend(filtered)
-            
+
         return all_words
         
     @classmethod
