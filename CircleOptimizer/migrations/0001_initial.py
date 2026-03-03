@@ -23,8 +23,8 @@ class Migration(migrations.Migration):
                 ('updated_at', models.DateTimeField(auto_now=True, verbose_name='更新時間')),
             ],
             options={
-                'verbose_name': '凸字形圖形',
-                'verbose_name_plural': '凸字形圖形',
+                'verbose_name': '隧道淨空包絡線',
+                'verbose_name_plural': '隧道淨空包絡線',
                 'ordering': ['-created_at'],
             },
         ),

@@ -4,7 +4,7 @@ import json
 
 
 class Shape(models.Model):
-    """凸字形圖形模型，儲存8個控制點"""
+    """淨空包絡線模型，儲存8個控制點"""
     name = models.CharField(max_length=200, verbose_name="名稱")
     points = models.JSONField(
         verbose_name="控制點座標",
