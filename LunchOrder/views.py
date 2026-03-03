@@ -122,8 +122,12 @@ def calendar_view(request):
 
 
 def set_daily_restaurant(request):
-    """API: 設定每日店家"""
+    """API: 設定每日店家 (僅限管理員)"""
     if request.method == 'POST':
+        # 已認證但非管理員 → 拒絕
+        if request.user.is_authenticated and not request.user.is_staff:
+            messages.error(request, '僅限管理員可以設定店家排程')
+            return redirect('lunchorder:calendar_view')
         date_str = request.POST.get('date')
         restaurant_id = request.POST.get('restaurant_id')
         action = request.POST.get('action')
@@ -841,15 +845,103 @@ def restaurant_delete(request, restaurant_id):
     return redirect('lunchorder:restaurant_update_menu', restaurant_id=restaurant_id)
 
 
-def payment_upload(request):
-    """繳費辨識上傳頁面"""
+def admin_list(request):
+    """管理員名單"""
+    from django.contrib.auth.models import User
+
+    admins = User.objects.filter(is_staff=True).select_related('profile').order_by('username')
+
+    admin_data = []
+    for user in admins:
+        profile = getattr(user, 'profile', None)
+        admin_data.append({
+            'id': user.id,
+            'username': user.username,
+            'full_name': user.get_full_name() or user.username,
+            'email': profile.emp_email if profile and profile.emp_email else user.email,
+            'department': profile.dept_display if profile else '—',
+            'company': profile.company_display if profile else '—',
+            'is_superuser': user.is_superuser,
+            'date_joined': user.date_joined,
+            'last_login': user.last_login,
+        })
+
+    context = {
+        'admin_data': admin_data,
+        'total_count': len(admin_data),
+    }
+    return render(request, 'LunchOrder/admin_list.html', context)
+
+
+def admin_search_users(request):
+    """API: 搜尋非管理員使用者 (供新增管理員用)"""
+    from django.contrib.auth.models import User
+    from django.db.models import Q
+
+    q = request.GET.get('q', '').strip()
+    if not q or len(q) < 1:
+        return JsonResponse([], safe=False)
+
+    users = User.objects.filter(is_staff=False).filter(
+        Q(username__icontains=q) |
+        Q(first_name__icontains=q) |
+        Q(last_name__icontains=q) |
+        Q(profile__emp_name__icontains=q)
+    ).select_related('profile').distinct()[:10]
+
+    results = []
+    for user in users:
+        profile = getattr(user, 'profile', None)
+        results.append({
+            'id': user.id,
+            'username': user.username,
+            'full_name': profile.get_full_name() if profile else (user.get_full_name() or user.username),
+            'department': profile.dept_display if profile else '—',
+            'company': profile.company_display if profile else '—',
+        })
+
+    return JsonResponse(results, safe=False)
+
+
+def admin_add(request):
+    """POST: 將使用者設為管理員 (is_staff=True)"""
     if request.method == 'POST':
-        # TODO: 實作圖片辨識邏輯
-        # file = request.FILES.get('payment_image')
-        # if file:
-        #     pass
-            
-        messages.success(request, '上傳成功！(辨識功能尚未實作)')
-        return redirect('lunchorder:payment_upload')
-        
-    return render(request, 'LunchOrder/payment_upload.html')
+        from django.contrib.auth.models import User
+        user_id = request.POST.get('user_id')
+        if user_id:
+            try:
+                user = User.objects.get(id=user_id)
+                user.is_staff = True
+                user.save(update_fields=['is_staff'])
+                profile = getattr(user, 'profile', None)
+                name = profile.get_full_name() if profile else (user.get_full_name() or user.username)
+                messages.success(request, f'已將「{name}」設為管理員')
+            except User.DoesNotExist:
+                messages.error(request, '找不到該使用者')
+        else:
+            messages.error(request, '未指定使用者')
+    return redirect('lunchorder:admin_list')
+
+
+def admin_remove(request):
+    """POST: 移除管理員權限 (is_staff=False)"""
+    if request.method == 'POST':
+        from django.contrib.auth.models import User
+        user_id = request.POST.get('user_id')
+        if user_id:
+            try:
+                user = User.objects.get(id=user_id)
+                if user.is_superuser:
+                    messages.error(request, '無法移除超級管理員的權限')
+                else:
+                    user.is_staff = False
+                    user.save(update_fields=['is_staff'])
+                    profile = getattr(user, 'profile', None)
+                    name = profile.get_full_name() if profile else (user.get_full_name() or user.username)
+                    messages.success(request, f'已移除「{name}」的管理員權限')
+            except User.DoesNotExist:
+                messages.error(request, '找不到該使用者')
+        else:
+            messages.error(request, '未指定使用者')
+    return redirect('lunchorder:admin_list')
+
