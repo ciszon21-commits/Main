@@ -14,6 +14,13 @@ class Restaurant(models.Model):
         blank=True,
         verbose_name="電話"
     )
+    image_file = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        verbose_name="菜單圖片檔名",
+        help_text="例如: menu_dianguo.jpg, 檔案需放在 static/LunchOrder/ 下"
+    )
     address = models.CharField(
         max_length=200,
         blank=True,
@@ -38,6 +45,21 @@ class Restaurant(models.Model):
 class MenuItem(models.Model):
     """菜單項目模型"""
     
+    CATEGORY_CHOICES = [
+        ('chicken', '雞肉餐盒'),
+        ('duck', '鴨肉料理'),
+        ('pork', '豬肉餐盒'),
+        ('beef', '牛肉餐盒'),
+        ('fish', '鮮魚餐盒'),
+        ('noodle', '麵食/粥品'),
+        ('soup', '精選湯品'),
+        ('veg', '蔬食餐盒'),
+        ('side', '美味小菜'),
+        ('single', '單點品項'),
+        ('drink', '冷泡茶飲'),
+        ('other', '其他'),
+    ]
+    
     restaurant = models.ForeignKey(
         Restaurant,
         on_delete=models.CASCADE,
@@ -52,6 +74,12 @@ class MenuItem(models.Model):
         max_digits=8,
         decimal_places=0,
         verbose_name="價格"
+    )
+    category = models.CharField(
+        max_length=20,
+        choices=CATEGORY_CHOICES,
+        default='single',
+        verbose_name="分類"
     )
     description = models.TextField(
         blank=True,
@@ -128,3 +156,28 @@ class LunchOrder(models.Model):
             full_name = self.employee.get_full_name()
             self.employee_name = full_name if full_name else self.employee.username
         super().save(*args, **kwargs)
+
+
+class RestaurantSchedule(models.Model):
+    """每日便當店排程"""
+    
+    date = models.DateField(
+        unique=True,
+        verbose_name="日期"
+    )
+    restaurant = models.ForeignKey(
+        Restaurant,
+        on_delete=models.CASCADE,
+        related_name='schedules',
+        verbose_name="便當店"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新時間")
+
+    class Meta:
+        verbose_name = "便當店排程"
+        verbose_name_plural = "便當店排程"
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.date} - {self.restaurant.name}"
