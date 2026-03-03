@@ -1,0 +1,522 @@
+{% extends "LHAWish/base.html" %}
+{% block title %}{{ petition.title }} - 園路願望{% endblock %}
+
+
+
+
+{% block content %}
+<div class="wish-card" style="padding:0;overflow:hidden;">
+    <!-- Header -->
+    <div class="wish-detail-header">
+        <a href="{% url 'lhawish:petition_list' %}" class="wish-btn-back">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6" />
+            </svg>
+            返回
+        </a>
+        <div class="wish-detail-actions">
+            {% if is_proposer and petition.status != 'withdrawn' %}
+            <a href="{% url 'lhawish:petition_update' petition.pk %}" class="wish-detail-action-btn" title="編輯願望">
+                <span class="material-symbols-outlined" style="font-size:18px;">edit</span>
+            </a>
+            {% endif %}
+            <!-- 收藏按鈕 -->
+            <button class="wish-detail-action-btn" id="saveBtn" onclick="toggleSave({{ petition.pk }})" title="收藏">
+                <svg width="18" height="18" viewBox="0 0 24 24"
+                    fill="{% if is_petition_saved %}currentColor{% else %}none{% endif %}" stroke="currentColor"
+                    stroke-width="2">
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Body -->
+    <div class="wish-detail-body">
+        <!-- Badges -->
+        <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
+            {% if petition.status == 'endorsing' %}
+            <span class="wish-badge" style="background:#fff7ed;color:#ea580c;">附議中</span>
+            {% elif petition.status == 'established' %}
+            <span class="wish-badge" style="background:#f0fdf4;color:#16a34a;">已成案</span>
+            {% elif petition.status == 'responded' %}
+            <span class="wish-badge" style="background:#eff6ff;color:#2563eb;">已回應</span>
+            {% elif petition.status == 'withdrawn' %}
+            <span class="wish-badge" style="background:#f1f5f9;color:#64748b;">已撤案</span>
+            {% endif %}
+            {% if petition.status == 'established' and petition.days_remaining is not None %}
+            <span class="petition-deadline {% if petition.is_overdue %}overdue{% endif %}">
+                {% if petition.is_overdue %}⚠️ 已逾期{% else %}⏱️ 剩餘 {{ petition.days_remaining }} 天{% endif %}
+            </span>
+            {% endif %}
+        </div>
+
+        <h1 class="wish-detail-title">{{ petition.title_display }}</h1>
+
+        <!-- Author + Group Badge -->
+        <div class="wish-detail-author">
+            <div>
+                <div class="wish-detail-author-name">{{ petition.proposer_display }}</div>
+                <div class="wish-detail-author-meta">{{ petition.created_at|date:"Y/m/d H:i" }}</div>
+            </div>
+            {% if petition.assigned_group %}
+            <span class="wish-badge badge-category" style="margin-left:auto;">指定執行組別：{{ petition.assigned_group }}</span>
+            {% endif %}
+        </div>
+
+        <!-- Progress Section -->
+        <div class="petition-detail-progress">
+            <h3 style="font-size:14px;font-weight:600;margin:0 0 12px;">附議進度</h3>
+            <div class="petition-progress-bar" style="height:12px;">
+                <div class="petition-progress-fill" id="progressFill" style="width:{{ petition.endorsement_percent }}%">
+                </div>
+            </div>
+            <div class="petition-progress-label" style="margin-top:8px;">
+                <span id="endorseCount">{{ petition.endorsement_count }}</span> / {{ petition.endorsement_threshold }}
+                附議
+                <span style="margin-left:auto;" id="endorsePercent">{{ petition.endorsement_percent }}%</span>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="wish-detail-content" id="petitionContent">{{ petition.content|safe }}</div>
+
+
+        <!-- Action Buttons -->
+        {% if petition.status == 'endorsing' %}
+        <div
+            style="display:flex;justify-content:center;gap:12px;padding:24px 0;border-top:1px solid var(--wish-border-light);">
+            {% if has_endorsed %}
+            <button class="wish-btn-primary" disabled
+                style="opacity:0.5;cursor:not-allowed;padding:14px 48px;font-size:16px;border-radius:var(--wish-radius-full);">
+                已附議
+            </button>
+            {% else %}
+            <button class="wish-btn-primary" id="endorseBtn" onclick="endorsePetition({{ petition.pk }})"
+                style="padding:14px 48px;font-size:16px;border-radius:var(--wish-radius-full);">
+                附議此願望
+            </button>
+            {% endif %}
+            {% if is_proposer %}
+            <button class="wish-btn-outline" onclick="withdrawPetition({{ petition.pk }})"
+                style="color:#ef4444;border-color:#ef4444;padding:14px 32px;font-size:16px;border-radius:var(--wish-radius-full);">
+                我要撤案
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if petition.status == 'established' and is_proposer %}
+        <div style="display:flex;justify-content:center;padding:24px 0;border-top:1px solid var(--wish-border-light);">
+            <button class="wish-btn-outline" onclick="withdrawPetition({{ petition.pk }})"
+                style="color:#ef4444;border-color:#ef4444;padding:14px 32px;font-size:16px;border-radius:var(--wish-radius-full);">
+                撤案
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- Withdraw Info -->
+        {% if petition.status == 'withdrawn' %}
+        <div class="petition-response-box" style="border-left-color:#ef4444;">
+            <h3 style="font-size:14px;font-weight:600;color:#ef4444;margin:0 0 8px;">撤案理由</h3>
+            <p style="margin:0;color:var(--wish-text);">{{ petition.withdraw_reason }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Response Section -->
+        {% if petition.status == 'responded' %}
+        <div class="petition-response-box">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <h3 style="font-size:14px;font-weight:600;color:#16a34a;margin:0;">官方回應</h3>
+                {% if is_manager %}
+                <button type="button" class="wish-icon-btn" title="編輯回應"
+                    onclick="document.getElementById('editResponseBox').style.display = document.getElementById('editResponseBox').style.display === 'none' ? '' : 'none';">
+                    <span class="material-symbols-outlined" style="font-size:16px;">edit</span>
+                </button>
+                <button type="button" class="wish-icon-btn" title="刪除回應" onclick="deleteResponse({{ petition.pk }})"
+                    style="color:#ef4444;">
+                    <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
+                </button>
+                {% endif %}
+            </div>
+            <p id="responseDisplay" style="margin:0;color:var(--wish-text);white-space:pre-wrap;">{{ petition.response_content }}</p>
+            <div style="margin-top:12px;font-size:12px;color:var(--wish-text-muted);">
+                {{ petition.response_by.get_full_name|default:petition.response_by.username }} · {{ petition.response_at|date:"Y/m/d H:i" }}
+            </div>
+            {% if is_manager %}
+            <div id="editResponseBox"
+                style="display:none;margin-top:12px;border-top:1px solid var(--wish-border);padding-top:12px;">
+                <textarea id="responseContent" placeholder="編輯回應內容..."
+                    style="width:100%;min-height:100px;padding:12px;border:1px solid var(--wish-border);border-radius:var(--wish-radius-sm);font-size:14px;resize:vertical;font-family:inherit;">{{ petition.response_content }}</textarea>
+                <button class="wish-btn-primary" style="margin-top:8px;"
+                    onclick="respondPetition({{ petition.pk }})">更新回應</button>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Manager Response Form (成案後可回應) -->
+        {% if is_manager and petition.status == 'established' %}
+        <div class="petition-response-box" style="border-left-color:var(--wish-primary);">
+            <h3 style="font-size:14px;font-weight:600;color:var(--wish-primary);margin:0 0 12px;">回應此成案願望</h3>
+            <textarea id="responseContent" placeholder="請填寫回應內容..."
+                style="width:100%;min-height:120px;padding:12px;border:1px solid var(--wish-border);border-radius:var(--wish-radius-sm);font-size:14px;resize:vertical;font-family:inherit;"></textarea>
+            <button class="wish-btn-primary" style="margin-top:12px;"
+                onclick="respondPetition({{ petition.pk }})">送出回應</button>
+        </div>
+        {% endif %}
+
+        <!-- Interactions -->
+        <div class="wish-detail-interactions">
+            <span
+                style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:500;color:var(--wish-text-muted);">
+                <span class="material-symbols-outlined" style="font-size:18px;">how_to_vote</span>
+                <span id="endorseCountBottom">{{ petition.endorsement_count }}</span> 附議
+            </span>
+            <button class="{% if is_petition_saved %}liked{% endif %}" onclick="toggleSave({{ petition.pk }})"
+                id="saveBtnBottom">
+                <svg width="18" height="18" viewBox="0 0 24 24"
+                    fill="{% if is_petition_saved %}currentColor{% else %}none{% endif %}" stroke="currentColor"
+                    stroke-width="2">
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                </svg>
+                收藏
+            </button>
+            <span
+                style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:500;color:var(--wish-text-muted);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                <span id="commentCountBottom">{{ comments|length }}</span> 留言
+            </span>
+        </div>
+
+        <!-- Comments -->
+        <div style="margin-top:24px;">
+            <h3 class="wish-comments-title">
+                留言區
+                <span class="wish-comments-count" id="commentCountBadge">{{ comments|length }}</span>
+            </h3>
+
+            <div id="commentsList">
+                {% for c in comments %}
+                <div class="wish-comment wish-fade-in-up" data-comment-id="{{ c.id }}">
+                    <div class="wish-comment-avatar"
+                        style="background:var(--wish-primary-light);color:var(--wish-primary);">{% if c.is_anonymous %}匿{% else %}{{ c.author.last_name|default:c.author.username|truncatechars:1 }}{% endif %}</div>
+                    <div class="wish-comment-bubble">
+                        <div class="wish-comment-top">
+                            <span class="wish-comment-author">{% if c.is_anonymous %}匿名{% else %}{{ c.author.get_full_name|default:c.author.username }}{% endif %}{% if c.is_official %}<span class="wish-comment-official">管理</span>{% endif %}</span>
+                            <span class="wish-comment-date">{{ c.created_at|date:"Y/m/d H:i" }}{% if c.is_edited %}
+                                (已編輯){% endif %}</span>
+                        </div>
+                        <div class="wish-comment-text" id="commentText-{{ c.id }}">{{ c.content }}</div>
+                        <div class="wish-comment-actions">
+                            <button
+                                class="wish-comment-like-btn {% if c.id in user_liked_pcomment_ids %}liked{% endif %}"
+                                onclick="likeComment({{ c.id }}, 'petition_comment', this)">
+                                <span class="material-symbols-outlined" style="font-size:16px;">thumb_up</span>
+                                <span class="like-count">{{ c.like_count }}</span>
+                            </button>
+                            {% if c.author == user %}
+                            <button class="wish-comment-action-btn"
+                                onclick="editComment({{ c.id }}, 'petition_comment')">
+                                <span class="material-symbols-outlined" style="font-size:16px;">edit</span>
+                            </button>
+                            <button class="wish-comment-action-btn"
+                                onclick="deleteComment({{ c.id }}, 'petition_comment')">
+                                <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="wish-empty" style="padding:24px;">
+                    <p>目前沒有留言，來當第一個發言的人吧！</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Comment Input -->
+    <div class="wish-comment-input">
+        <div class="wish-comment-avatar" style="background:var(--wish-primary-light);color:var(--wish-primary);">
+            <span class="material-symbols-outlined" style="font-size:16px;">person</span>
+        </div>
+        <div class="wish-comment-input-wrap" style="display:flex;align-items:flex-start;gap:8px;flex:1;">
+            <textarea id="commentInput" placeholder="撰寫留言..." style="flex:1;"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();addComment({{ petition.pk }});}"></textarea>
+            <button class="wish-comment-submit" onclick="addComment({{ petition.pk }})" title="送出留言"
+                style="flex-shrink:0;align-self:center;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+            </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 0;margin-left:40px;width:100%;">
+            <label
+                style="font-size:12px;color:var(--wish-text-muted);display:flex;align-items:center;gap:4px;cursor:pointer;">
+                <input type="checkbox" id="commentAnonymous" style="accent-color:var(--wish-primary);"> 匿名留言
+            </label>
+            {% if is_manager %}
+            <label
+                style="font-size:12px;color:var(--wish-text-muted);display:flex;align-items:center;gap:4px;cursor:pointer;">
+                <input type="checkbox" id="commentOfficial" style="accent-color:var(--wish-primary);"> 以管理者身分留言
+            </label>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if is_proposer and petition.status != 'withdrawn' %}
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+{% endif %}
+<script>
+    function getCookie(name) {
+        let value = '; ' + document.cookie;
+        let parts = value.split('; ' + name + '=');
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+    var csrfToken = getCookie('csrftoken');
+
+    function endorsePetition(pk) {
+        var btn = document.getElementById('endorseBtn');
+        btn.disabled = true;
+        btn.textContent = '處理中...';
+        fetch('{% url "lhawish:endorse_petition" petition.pk %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
+        }).then(r => r.json()).then(data => {
+            if (data.error) { alert(data.error); btn.disabled = false; btn.textContent = '附議此願望'; return; }
+            document.getElementById('endorseCount').textContent = data.endorsement_count;
+            document.getElementById('endorsePercent').textContent = data.endorsement_percent + '%';
+            document.getElementById('progressFill').style.width = data.endorsement_percent + '%';
+            btn.textContent = '已附議';
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+            if (data.status !== 'endorsing') location.reload();
+        });
+    }
+
+    function respondPetition(pk) {
+        var content = document.getElementById('responseContent').value.trim();
+        if (!content) { alert('請填寫回應內容'); return; }
+        fetch('{% url "lhawish:respond_petition" petition.pk %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: content })
+        }).then(r => r.json()).then(data => {
+            if (data.error) { alert(data.error); return; }
+            location.reload();
+        });
+    }
+
+    function toggleSave(pk) {
+        fetch('{% url "lhawish:toggle_petition_save" petition.pk %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
+        }).then(r => r.json()).then(data => {
+            var icon = document.getElementById('saveBtn');
+            var svgEl = icon.querySelector('svg');
+            if (data.saved) {
+                svgEl.setAttribute('fill', 'currentColor');
+            } else {
+                svgEl.setAttribute('fill', 'none');
+            }
+            var bottomBtn = document.getElementById('saveBtnBottom');
+            if (bottomBtn) {
+                bottomBtn.querySelector('svg').setAttribute('fill', data.saved ? 'currentColor' : 'none');
+                bottomBtn.className = data.saved ? 'liked' : '';
+            }
+        });
+    }
+
+    // ========== 編輯 Quill ==========
+    var _editQuill = null;
+    function _initEditQuill() {
+        if (_editQuill) return;
+        _editQuill = new Quill('#editQuillContent', {
+            theme: 'snow',
+            placeholder: '編輯願望內容...',
+            modules: {
+                toolbar: [
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'color': [] }, { 'background': [] }],
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                    [{ 'align': [] }],
+                    ['blockquote', 'link', 'image'],
+                    ['clean']
+                ]
+            }
+        });
+        // Image handler — base64 inline
+        _editQuill.getModule('toolbar').addHandler('image', function () {
+            var input = document.createElement('input');
+            input.setAttribute('type', 'file');
+            input.setAttribute('accept', 'image/*');
+            input.click();
+            input.onchange = function () {
+                var file = input.files[0];
+                if (!file) return;
+                if (file.size > 5 * 1024 * 1024) { alert('圖片大小不可超過 5MB'); return; }
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var range = _editQuill.getSelection(true);
+                    _editQuill.insertEmbed(range.index, 'image', e.target.result);
+                    _editQuill.setSelection(range.index + 1);
+                };
+                reader.readAsDataURL(file);
+            };
+        });
+    }
+
+    function showEditMode() {
+        document.getElementById('editArea').style.display = '';
+        document.getElementById('editBtn').style.display = 'none';
+        _initEditQuill();
+    }
+    function hideEditMode() {
+        document.getElementById('editArea').style.display = 'none';
+        document.getElementById('editBtn').style.display = '';
+    }
+
+    function saveEdit(pk) {
+        if (!_editQuill) { alert('編輯器未初始化'); return; }
+        var newContent = _editQuill.root.innerHTML.trim();
+        if (_editQuill.getText().trim().length === 0) { alert('內容不能為空'); return; }
+        fetch('{% url "lhawish:edit_petition" petition.pk %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: newContent })
+        }).then(r => r.json()).then(data => {
+            if (data.error) { alert(data.error); return; }
+            location.reload();
+        });
+    }
+
+    function likeComment(commentId, commentType, btn) {
+        fetch('/lhawish/api/comment-like/' + commentId + '/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: commentType })
+        }).then(r => r.json()).then(data => {
+            btn.querySelector('.like-count').textContent = data.like_count;
+            if (data.liked) btn.classList.add('liked');
+            else btn.classList.remove('liked');
+        });
+    }
+
+    function editComment(commentId, commentType) {
+        var textEl = document.getElementById('commentText-' + commentId);
+        var currentContent = textEl.textContent;
+        var newContent = prompt('編輯留言：', currentContent);
+        if (newContent === null || newContent.trim() === '') return;
+        fetch('/lhawish/api/comment/' + commentId + '/edit/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: newContent.trim(), type: commentType })
+        }).then(r => r.json()).then(data => {
+            if (data.error) { alert(data.error); return; }
+            textEl.textContent = data.content;
+            var dateEl = textEl.closest('.wish-comment-bubble').querySelector('.wish-comment-date');
+            if (dateEl && !dateEl.textContent.includes('(已編輯)')) {
+                dateEl.textContent += ' (已編輯)';
+            }
+        });
+    }
+
+    function deleteComment(commentId, commentType) {
+        if (!confirm('確定要刪除此留言？')) return;
+        fetch('/lhawish/api/comment/' + commentId + '/delete/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: commentType })
+        }).then(r => r.json()).then(data => {
+            if (data.error) { alert(data.error); return; }
+            var el = document.querySelector('[data-comment-id="' + commentId + '"]');
+            if (el) el.remove();
+        });
+    }
+
+    function addComment(pk) {
+        var input = document.getElementById('commentInput');
+        var content = input.value.trim();
+        if (!content) return;
+        var isAnon = document.getElementById('commentAnonymous').checked;
+        var officialEl = document.getElementById('commentOfficial');
+        var isOfficial = officialEl ? officialEl.checked : false;
+        fetch('{% url "lhawish:add_petition_comment" petition.pk %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: content, is_anonymous: isAnon, is_official: isOfficial })
+        }).then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        }).then(function (data) {
+            if (data.error) { alert(data.error); return; }
+            var list = document.getElementById('commentsList');
+            var empty = list.querySelector('.wish-empty');
+            if (empty) empty.remove();
+            var avatarText = data.is_anonymous ? '匿' : data.author.charAt(0);
+            var authorName = data.is_anonymous ? '匿名' : data.author;
+            var officialBadge = data.is_official ? '<span class="wish-comment-official">管理</span>' : '';
+            var html = '<div class="wish-comment wish-fade-in-up" data-comment-id="' + data.id + '">' +
+                '<div class="wish-comment-avatar" style="background:var(--wish-primary-light);color:var(--wish-primary);">' +
+                avatarText + '</div>' +
+                '<div class="wish-comment-bubble"><div class="wish-comment-top">' +
+                '<span class="wish-comment-author">' + authorName + officialBadge + '</span>' +
+                '<span class="wish-comment-date">' + data.created_at + '</span></div>' +
+                '<div class="wish-comment-text" id="commentText-' + data.id + '">' + data.content + '</div>' +
+                '<div class="wish-comment-actions">' +
+                '<button class="wish-comment-like-btn" onclick="likeComment(' + data.id + ', \'petition_comment\', this)">' +
+                '<span class="material-symbols-outlined" style="font-size:16px;">thumb_up</span> <span class="like-count">0</span></button>' +
+                '<button class="wish-comment-action-btn" onclick="editComment(' + data.id + ', \'petition_comment\')">' +
+                '<span class="material-symbols-outlined" style="font-size:16px;">edit</span></button>' +
+                '<button class="wish-comment-action-btn" onclick="deleteComment(' + data.id + ', \'petition_comment\')">' +
+                '<span class="material-symbols-outlined" style="font-size:16px;">delete</span></button>' +
+                '</div></div></div>';
+            list.insertAdjacentHTML('beforeend', html);
+            var badge = document.getElementById('commentCountBadge');
+            var bottom = document.getElementById('commentCountBottom');
+            if (badge) badge.textContent = data.comment_count;
+            if (bottom) bottom.textContent = data.comment_count;
+            input.value = '';
+            document.getElementById('commentAnonymous').checked = false;
+            if (officialEl) officialEl.checked = false;
+        }).catch(function (err) {
+            console.error('留言送出失敗:', err);
+            alert('留言送出失敗: ' + err.message);
+        });
+    }
+
+    function withdrawPetition(pk) {
+        var reason = prompt('請輸入撤案理由：');
+        if (reason === null) return;
+        if (reason.trim() === '') { alert('請填寫撤案理由'); return; }
+        fetch('{% url "lhawish:withdraw_petition" petition.pk %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: reason.trim() })
+        }).then(r => r.json()).then(data => {
+            if (data.error) { alert(data.error); return; }
+            location.reload();
+        });
+    }
+
+    function deleteResponse(pk) {
+        if (!confirm('確定要刪除此官方回應？願望狀態將恢復為「已成案」。')) return;
+        fetch('/lhawish/petition/api/delete-response/' + pk + '/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
+        }).then(r => r.json()).then(data => {
+            if (data.error) { alert(data.error); return; }
+            location.reload();
+        });
+    }
+</script>
+{% endblock %}

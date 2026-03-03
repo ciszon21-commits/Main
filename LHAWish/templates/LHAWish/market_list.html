@@ -1,0 +1,76 @@
+{% extends "LHAWish/base.html" %}
+{% block title %}跳蚤市場 - 部門許願池{% endblock %}
+
+{% block content %}
+<!-- Toolbar -->
+<div class="wish-toolbar">
+    <div class="wish-toolbar-left">
+        <form method="get" class="wish-search">
+            <span class="material-symbols-outlined wish-search-icon" style="font-size:18px;">search</span>
+            <input type="text" name="q" value="{{ search_term }}" placeholder="搜尋好物...">
+            {% if current_filter %}<input type="hidden" name="filter" value="{{ current_filter }}">{% endif %}
+        </form>
+        <!-- 篩選按鈕 -->
+        <div class="wish-filter-group">
+            <a href="?q={{ search_term }}" class="wish-filter-btn {% if not current_filter %}active{% endif %}">全部</a>
+            <a href="?q={{ search_term }}&filter=newest"
+                class="wish-filter-btn {% if current_filter == 'newest' %}active{% endif %}">最新</a>
+            <a href="?q={{ search_term }}&filter=on_sale"
+                class="wish-filter-btn {% if current_filter == 'on_sale' %}active{% endif %}">出售中</a>
+            <a href="?q={{ search_term }}&filter=sold"
+                class="wish-filter-btn {% if current_filter == 'sold' %}active{% endif %}">已售出</a>
+        </div>
+    </div>
+    <a href="{% url 'lhawish:post_create' %}?type=market" class="wish-btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        刊登物品
+    </a>
+</div>
+
+<!-- Market Grid -->
+<div class="wish-market-grid">
+    {% for post in posts %}
+    <a href="{% url 'lhawish:post_detail' post.pk %}" class="wish-market-card">
+        <div class="wish-market-img">
+            {% if post.image %}
+            <img src="{{ post.image.url }}" alt="{{ post.title }}">
+            {% else %}
+            <div
+                style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--wish-bg);">
+                <span class="material-symbols-outlined"
+                    style="font-size:48px;color:var(--wish-text-light);">image</span>
+            </div>
+            {% endif %}
+            <div class="wish-market-badge">
+                <span class="wish-badge {{ post.status_css_class }}">{{ post.status_display }}</span>
+            </div>
+            <div class="wish-market-price-tag">
+                {% if post.price == 0 %}🎁{% endif %}{{ post.price_display }}
+            </div>
+        </div>
+        <div class="wish-market-body">
+            <h3>{{ post.title }}</h3>
+            <div class="wish-market-info">
+                {% if post.condition %}<span class="wish-market-condition">{{ post.condition }}</span>{% endif %}
+                <span>{{ post.created_at|timesince }} 前</span>
+                <span>•</span>
+                <span>{{ post.author.get_full_name|default:post.author.username }}</span>
+            </div>
+            {% if post.status != 'sold' %}
+            <span class="wish-btn-outline" style="width:100%;justify-content:center;">詳細資訊</span>
+            {% else %}
+            <span class="wish-btn-outline wish-btn-disabled" style="width:100%;justify-content:center;">已結束交易</span>
+            {% endif %}
+        </div>
+    </a>
+    {% empty %}
+    <div class="wish-empty" style="grid-column:1/-1;">
+        <span class="material-symbols-outlined" style="font-size:48px;">shopping_bag</span>
+        <p>目前沒有任何物品刊登</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -110,6 +110,7 @@ INSTALLED_APPS = [
     'Badminton',  # 記帳系統
     'NewsInsight',  # GoogleNews輿情分析
     'CODiS_WindRose_Plotter',
+    'LHAWish',  # 部門許願池
 ] + local.STAGE_INSTALLED_APPS
 
 

@@ -1,0 +1,94 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}部門許願池{% endblock %}</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'LHAWish/css/lhawish.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <div class="wish-app">
+        <!-- Navbar -->
+        <nav class="wish-nav">
+            <div class="wish-nav-inner">
+                <div class="wish-nav-top">
+                    <a href="{% url 'lhawish:petition_list' %}" class="wish-nav-brand">
+                        <div class="wish-nav-logo">P</div>
+                        <span class="wish-nav-title">部門許願池</span>
+                    </a>
+                    <div class="wish-nav-actions">
+                        <a href="{% url 'lhawish:profile' %}" class="wish-avatar-wrap" title="個人中心">
+                            <div class="wish-avatar">
+                                <span class="material-symbols-outlined" style="font-size:20px;">person</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                {% block tabs %}
+                <div class="wish-tabs" id="tabsUser">
+                    <a href="{% url 'lhawish:petition_list' %}"
+                        class="wish-tab {% if active_tab == 'petition' %}active{% endif %}">
+                        <span class="material-symbols-outlined">star</span>
+                        園路願望
+                    </a>
+                    <a href="{% url 'lhawish:dashboard' %}"
+                        class="wish-tab {% if active_tab == 'rnd' %}active{% endif %}">
+                        <span class="material-symbols-outlined">terminal</span>
+                        研發專案
+                    </a>
+                    <a href="{% url 'lhawish:market_list' %}"
+                        class="wish-tab {% if active_tab == 'market' %}active{% endif %}">
+                        <span class="material-symbols-outlined">shopping_bag</span>
+                        跳蚤市場
+                    </a>
+                    <a href="{% url 'lhawish:gossip_list' %}"
+                        class="wish-tab {% if active_tab == 'gossip' %}active{% endif %}">
+                        <span class="material-symbols-outlined">chat_bubble</span>
+                        七嘴八舌
+                    </a>
+                    <a href="{% url 'lhawish:mailbox' %}"
+                        class="wish-tab {% if active_tab == 'mailbox' %}active{% endif %}">
+                        <span class="material-symbols-outlined">mail</span>
+                        主管信箱
+                    </a>
+                    <!-- 管理 Tabs（權限判斷顯示） -->
+                    {% if user.is_staff %}
+                    <span class="wish-tab-divider"></span>
+                    <a href="{% url 'lhawish:manager_dashboard' %}"
+                        class="wish-tab wish-tab-admin {% if active_tab == 'dashboard' %}active{% endif %}">
+                        <span class="material-symbols-outlined">bar_chart</span>
+                        管理儀表板
+                    </a>
+                    {% endif %}
+                    {% if user.is_superuser %}
+                    <a href="{% url 'lhawish:settings' %}"
+                        class="wish-tab wish-tab-admin {% if active_tab == 'settings' %}active{% endif %}">
+                        <span class="material-symbols-outlined">settings</span>
+                        設定
+                    </a>
+                    {% endif %}
+                </div>
+                {% endblock %}
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="wish-container wish-fade-in-up">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

@@ -1,0 +1,456 @@
+{% extends "LHAWish/base.html" %}
+{% block title %}設定 - 部門許願池{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --wish-card-bg: #ffffff;
+        --wish-card-header-bg: #f8fafc;
+        --wish-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --wish-input-bg: #ffffff;
+        --wish-bg-light: #f8fafc;
+        --wish-danger: #ef4444;
+        --wish-danger-light: #fee2e2;
+        --wish-danger-lighter: #fecaca;
+        --wish-primary-lighter: #ccfbf1;
+        --wish-focus-ring: 0 0 0 2px var(--wish-primary-light);
+    }
+
+    .settings-dashboard-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .pro-card {
+        background-color: var(--wish-card-bg);
+        border-radius: 12px;
+        box-shadow: var(--wish-shadow-sm);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .pro-card-header {
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--wish-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: var(--wish-card-header-bg);
+    }
+
+    .pro-card-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--wish-text-dark);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .pro-card-body {
+        padding: 24px;
+        flex-grow: 1;
+    }
+
+    .settings-desc {
+        font-size: 14px;
+        color: var(--wish-text-muted);
+        margin-bottom: 16px;
+    }
+
+    .settings-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .settings-row label {
+        font-size: 15px;
+        color: var(--wish-text);
+        white-space: nowrap;
+    }
+
+    .settings-input {
+        padding: 8px 12px;
+        border: 1px solid var(--wish-border);
+        border-radius: 8px;
+        font-size: 15px;
+        color: var(--wish-text-dark);
+        background-color: var(--wish-input-bg);
+        transition: border-color 0.2s;
+    }
+
+    .settings-input:focus {
+        outline: none;
+        border-color: var(--wish-primary);
+        box-shadow: var(--wish-focus-ring);
+    }
+
+    .settings-list-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .settings-btn-add {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 8px 16px;
+        background-color: var(--wish-primary-light);
+        color: var(--wish-primary);
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: background-color 0.2s;
+        margin-top: 16px;
+    }
+
+    .settings-btn-add:hover {
+        background-color: var(--wish-primary-lighter);
+    }
+
+    .settings-btn-danger {
+        background-color: var(--wish-danger-light);
+        color: var(--wish-danger);
+        border: none;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: background-color 0.2s;
+    }
+
+    .settings-btn-danger:hover {
+        background-color: var(--wish-danger-lighter);
+    }
+
+    .admin-row {
+        background: var(--wish-bg-light);
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+    }
+</style>
+
+{% if not is_developer %}
+<div class="wish-card" style="padding:40px; text-align:center; margin: 24px auto; max-width: 500px;">
+    <span class="material-symbols-outlined"
+        style="font-size:48px;display:block;margin-bottom:16px;color:var(--wish-text-muted);">lock</span>
+    <p style="color:var(--wish-text-muted);">僅管理員可存取此頁面</p>
+</div>
+{% else %}
+<div style="padding: 24px;">
+    <h2
+        style="margin:0 0 24px;font-size:24px;font-weight:700;color:var(--wish-text-dark); max-width:1200px; margin-left:auto; margin-right:auto;">
+        <span class="material-symbols-outlined"
+            style="vertical-align:middle;margin-right:8px;font-size:28px;">tune</span>
+        系統控制面板
+    </h2>
+    <div class="settings-dashboard-grid">
+        <!-- 附議成案門檻 -->
+        <div class="pro-card">
+            <div class="pro-card-header">
+                <h3><span class="material-symbols-outlined">how_to_vote</span> 園路願望 — 附議成案門檻</h3>
+                <button class="wish-btn-primary" onclick="saveSection('threshold', this)"
+                    style="padding:4px 12px;font-size:13px;">儲存</button>
+            </div>
+            <div class="pro-card-body">
+                <div class="settings-row">
+                    <label>附議人數達到多少即自動成案：</label>
+                    <input type="number" id="endorsementThreshold" value="{{ config.endorsement_threshold }}" min="1"
+                        max="1000" class="settings-input" style="width:100px;">
+                    <span style="color:var(--wish-text-muted);font-size:13px;margin-left:4px;">人</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 指定組別清單 -->
+        <div class="pro-card">
+            <div class="pro-card-header">
+                <h3><span class="material-symbols-outlined">groups</span> 指定組別清單</h3>
+                <button class="wish-btn-primary" onclick="saveSection('groups', this)"
+                    style="padding:4px 12px;font-size:13px;">儲存</button>
+            </div>
+            <div class="pro-card-body">
+                <p class="settings-desc">園路願望和研發專案中可選擇的執行組別。</p>
+                <div id="groupList">
+                    {% for gc in group_choices %}
+                    <div class="settings-list-item">
+                        <input type="text" value="{{ gc.label }}" data-value="{{ gc.value }}"
+                            class="settings-input group-item" style="flex:1;">
+                        <button class="settings-btn-danger" onclick="this.parentElement.remove()">✕</button>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button class="settings-btn-add" onclick="addGroupItem()">
+                    <span class="material-symbols-outlined" style="font-size:16px;">add</span> 新增組別
+                </button>
+            </div>
+        </div>
+
+        <!-- 主管信箱名單 -->
+        <div class="pro-card">
+            <div class="pro-card-header">
+                <h3><span class="material-symbols-outlined">mail</span> 主管信箱名單</h3>
+                <button class="wish-btn-primary" onclick="saveSection('emails', this)"
+                    style="padding:4px 12px;font-size:13px;">儲存</button>
+            </div>
+            <div class="pro-card-body">
+                <p class="settings-desc">顯示在「主管信箱」頁面上的收件人。</p>
+                <div id="managerEmailList">
+                    {% for mgr in config.manager_emails %}
+                    <div class="settings-list-item">
+                        <input type="text" value="{{ mgr.name|default:mgr }}" placeholder="名稱"
+                            class="settings-input mgr-name" style="width:120px;">
+                        <input type="email" value="{{ mgr.email|default:'' }}" placeholder="email"
+                            class="settings-input mgr-email" style="flex:1;">
+                        <button class="settings-btn-danger" onclick="this.parentElement.remove()">✕</button>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button class="settings-btn-add" onclick="addManagerEmail()">
+                    <span class="material-symbols-outlined" style="font-size:16px;">add</span> 新增
+                </button>
+            </div>
+        </div>
+
+        <!-- 各版板主/管理員 -->
+        <div class="pro-card" style="grid-column: 1 / -1;">
+            <div class="pro-card-header">
+                <h3><span class="material-symbols-outlined">admin_panel_settings</span> 管理員權限設定</h3>
+                <button class="wish-btn-primary" onclick="saveSection('admins', this)"
+                    style="padding:4px 12px;font-size:13px;">儲存</button>
+            </div>
+            <div class="pro-card-body">
+                <p class="settings-desc">指定管理員的權限。可以管理哪些板塊由下方勾選決定。</p>
+
+                <div
+                    style="background:var(--wish-bg-light); padding:16px; border-radius:12px; margin-bottom:24px; display:flex; gap:12px; align-items:center;">
+                    <select id="newAdminSelect" class="settings-input" style="width:200px;">
+                        <option value="">選擇管理員...</option>
+                        {% for u in all_users %}
+                        <option value="{{ u.id }}">{{ u.get_full_name|default:u.username }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="newAdminGroupSelect" class="settings-input" style="width:160px;">
+                        <option value="">無指定（全部組別）</option>
+                        {% for gc in group_choices %}
+                        <option value="{{ gc.value }}">{{ gc.label }}</option>
+                        {% endfor %}
+                    </select>
+                    <button class="wish-btn-primary" onclick="addNewAdminRow()" style="padding:8px 16px;">
+                        <span class="material-symbols-outlined"
+                            style="font-size:16px; vertical-align:middle; margin-right:4px;">add</span> 加入名單
+                    </button>
+                </div>
+
+                <div id="adminList" style="display:flex;flex-direction:column;gap:12px;">
+                    <!-- JS 動態填入 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function getCookie(name) {
+        let v = '; ' + document.cookie;
+        let p = v.split('; ' + name + '=');
+        if (p.length === 2) return p.pop().split(';').shift();
+    }
+    var csrfToken = getCookie('csrftoken');
+    var boardAdmins = {{ board_admins_json| safe }};
+    var allUsers = {
+    {% for u in all_users %}
+    "{{ u.id }}": "{{ u.get_full_name|default:u.username }}",
+        {% endfor %}
+};
+
+    // 初始化管理員清單
+    document.addEventListener('DOMContentLoaded', function () {
+        // boardAdmins 格式預期：[{uid: 1, front_edit: true, boards: ['petition', 'rnd'], groups: ['engineering']}, ...]
+        var groupOptions = {};
+        document.querySelectorAll('#newAdminGroupSelect option').forEach(opt => {
+            groupOptions[opt.value] = opt.text;
+        });
+
+        if (Array.isArray(boardAdmins)) {
+            boardAdmins.forEach(function (admin) {
+                var groupVal = (admin.groups && admin.groups.length > 0) ? admin.groups[0] : '';
+                renderAdminRow(admin.uid, allUsers[admin.uid] || 'User #' + admin.uid, admin.boards || [], groupVal, groupOptions[groupVal] || '無指定（全部組別）', admin.receive_emails || false);
+            });
+        }
+    });
+
+    function renderAdminRow(uid, name, boards, groupValue, groupLabel, receiveEmails = false) {
+        var container = document.getElementById('adminList');
+        // Check if already exists
+        if (container.querySelector(`[data-uid="${uid}"]`)) {
+            alert('此使用者已在管理員名單中！');
+            return;
+        }
+
+        var div = document.createElement('div');
+        div.className = 'admin-row';
+        div.dataset.uid = uid;
+        div.dataset.group = groupValue || '';
+
+        var hasPetition = boards.includes('petition') ? 'checked' : '';
+        var hasRnd = boards.includes('rnd') ? 'checked' : '';
+        var hasMarket = boards.includes('market') ? 'checked' : '';
+        var hasGossip = boards.includes('gossip') ? 'checked' : '';
+        var hasReceiveEmails = receiveEmails ? 'checked' : '';
+
+        div.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                <div>
+                    <div style="font-weight:700; color:var(--wish-text-dark); font-size:15px; margin-bottom:4px;">${name}</div>
+                    <span style="font-size:12px; background:var(--wish-border); padding:2px 8px; border-radius:4px; color:var(--wish-text-muted); font-weight:600;">組別: ${groupLabel}</span>
+                </div>
+                <button class="settings-btn-danger" style="padding:6px; display:flex; align-items:center; justify-content:center;" onclick="this.closest('.admin-row').remove()" title="移除管理員">
+                    <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
+                </button>
+            </div>
+            
+            <div style="display:flex; flex-wrap:wrap; gap:12px; background:white; padding:12px; border-radius:8px; border:1px solid var(--wish-border);">
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--wish-text); font-size:14px;">
+                    <input type="checkbox" class="cb-board" value="petition" ${hasPetition} style="width:16px;height:16px;accent-color:var(--wish-primary);"> 園路願望
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--wish-text); font-size:14px;">
+                    <input type="checkbox" class="cb-board" value="rnd" ${hasRnd} style="width:16px;height:16px;accent-color:var(--wish-primary);"> 研發專案
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--wish-text); font-size:14px;">
+                    <input type="checkbox" class="cb-board" value="market" ${hasMarket} style="width:16px;height:16px;accent-color:var(--wish-primary);"> 跳蚤市場
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--wish-text); font-size:14px;">
+                    <input type="checkbox" class="cb-board" value="gossip" ${hasGossip} style="width:16px;height:16px;accent-color:var(--wish-primary);"> 七嘴八舌
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--wish-text); font-size:14px;">
+                    <input type="checkbox" class="cb-receive-emails" value="true" ${hasReceiveEmails} style="width:16px;height:16px;accent-color:var(--wish-primary);"> 接收Email通知
+                </label>
+            </div>
+        `;
+        container.appendChild(div);
+    }
+
+    function addNewAdminRow() {
+        var select = document.getElementById('newAdminSelect');
+        var groupSelect = document.getElementById('newAdminGroupSelect');
+        var uid = select.value;
+        if (!uid) return;
+        var name = select.options[select.selectedIndex].text;
+        var groupValue = groupSelect.value;
+        var groupLabel = groupSelect.options[groupSelect.selectedIndex].text;
+
+        // 預設不勾選收信
+        renderAdminRow(uid, name, ['petition', 'rnd', 'market', 'gossip'], groupValue, groupLabel, false);
+        select.value = '';
+    }
+
+    function addGroupItem() {
+        var list = document.getElementById('groupList');
+        var div = document.createElement('div');
+        div.className = 'settings-list-item';
+        div.innerHTML = '<input type="text" placeholder="組別名稱" class="settings-input group-item" style="flex:1;"><button class="settings-btn-danger" onclick="this.parentElement.remove()">✕</button>';
+        list.appendChild(div);
+    }
+
+
+
+    function addManagerEmail() {
+        var list = document.getElementById('managerEmailList');
+        var div = document.createElement('div');
+        div.className = 'settings-list-item';
+        div.innerHTML = '<input type="text" placeholder="名稱" class="settings-input mgr-name" style="width:120px;">' +
+            '<input type="email" placeholder="email" class="settings-input mgr-email" style="flex:1;">' +
+            '<button class="settings-btn-danger" onclick="this.parentElement.remove()">✕</button>';
+        list.appendChild(div);
+    }
+
+    function saveSection(sectionType, btn) {
+        var originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.textContent = '儲存中...';
+
+        var payload = {};
+
+        if (sectionType === 'threshold' || sectionType === 'all') {
+            payload.endorsement_threshold = parseInt(document.getElementById('endorsementThreshold').value);
+        }
+
+        if (sectionType === 'groups' || sectionType === 'all') {
+            var groups = [];
+            document.querySelectorAll('.group-item').forEach(function (el) {
+                if (el.value.trim()) {
+                    groups.push({ value: el.dataset.value || el.value.trim().toLowerCase().replace(/\s+/g, '_'), label: el.value.trim() });
+                }
+            });
+            payload.group_choices = groups;
+        }
+
+        if (sectionType === 'emails' || sectionType === 'all') {
+            var emails = [];
+            var nameEls = document.querySelectorAll('.mgr-name');
+            var emailEls = document.querySelectorAll('.mgr-email');
+            for (var i = 0; i < nameEls.length; i++) {
+                if (nameEls[i].value.trim() || emailEls[i].value.trim()) {
+                    emails.push({ name: nameEls[i].value.trim(), email: emailEls[i].value.trim() });
+                }
+            }
+            payload.manager_emails = emails;
+        }
+
+        if (sectionType === 'admins' || sectionType === 'all') {
+            var admins = [];
+            document.querySelectorAll('.admin-row').forEach(function (row) {
+                var uid = parseInt(row.dataset.uid);
+                var groupVal = row.dataset.group;
+                var frontEdit = false; // 已棄用，預設為 false
+                var boards = [];
+                row.querySelectorAll('.cb-board:checked').forEach(function (cb) {
+                    boards.push(cb.value);
+                });
+                var receiveEmails = row.querySelector('.cb-receive-emails') ? row.querySelector('.cb-receive-emails').checked : false;
+
+                admins.push({
+                    uid: uid,
+                    front_edit: frontEdit,
+                    receive_emails: receiveEmails,
+                    boards: boards,
+                    groups: groupVal ? [groupVal] : []
+                });
+            });
+            payload.board_admins = admins;
+        }
+
+        fetch('{% url "lhawish:save_settings" %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(r => r.json()).then(data => {
+            if (data.error) { alert(data.error); }
+            else { alert('設定已儲存！'); }
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }).catch(() => {
+            alert('儲存失敗');
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        });
+    }
+</script>
+{% endblock %}
