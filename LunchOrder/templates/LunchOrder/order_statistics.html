@@ -244,6 +244,7 @@
                                     <th class="ps-4">品項名稱</th>
                                     <th>單價</th>
                                     <th>總數量</th>
+                                    <th>備註</th>
                                     <th class="text-end pe-4">總金額</th>
                                 </tr>
                             </thead>
@@ -252,12 +253,21 @@
                                 <tr>
                                     <td class="ps-4">
                                         <strong>{{ item.menu_item__name }}</strong>
-                                        <span class="badge bg-light text-dark ms-2">{{ item.menu_item__category
-                                            }}</span>
                                     </td>
                                     <td>${{ item.menu_item__price }}</td>
                                     <td>
                                         <span class="badge bg-primary rounded-pill px-3">{{ item.total_qty }}</span>
+                                    </td>
+                                    <td>
+                                        {% with notes=notes_by_item|default_if_none:"" %}
+                                        {% for note in notes_by_item.items %}
+                                        {% if note.0 == item.menu_item__name %}
+                                        {% for n in note.1 %}
+                                        <small class="d-block text-muted">{{ n }}</small>
+                                        {% endfor %}
+                                        {% endif %}
+                                        {% endfor %}
+                                        {% endwith %}
                                     </td>
                                     <td class="text-end pe-4 fw-bold text-success">
                                         ${{ item.total_price }}
@@ -274,39 +284,53 @@
     {% endif %}
 
     <!-- Orders Table -->
-    <div class="table-stats">
-        <table class="table table-hover mb-0">
-            <thead>
-                <tr>
-                    <th style="width: 60px;">#</th>
-                    <th>員工姓名</th>
-                    <th>便當店</th>
-                    <th>品項</th>
-                    <th>數量</th>
-                    <th>小計</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for order in orders %}
-                <tr>
-                    <td>{{ forloop.counter }}</td>
-                    <td><strong>{{ order.employee_name }}</strong></td>
-                    <td><span class="badge-restaurant" data-restaurant="{{ order.menu_item.restaurant.name }}"></span>
-                    </td>
-                    <td>{{ order.menu_item.name }}</td>
-                    <td>{{ order.quantity }}</td>
-                    <td><span class="price-tag">${{ order.subtotal }}</span></td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="6" class="text-center py-5 text-muted">
-                        <i class="fas fa-inbox fa-3x mb-3 d-block opacity-50"></i>
-                        {{ selected_date|date:"Y/m/d" }} 尚無訂單
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                <div class="card-header bg-white border-bottom-0 py-3" style="border-radius: 12px 12px 0 0;">
+                    <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-table me-2"></i>詳細資料</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 60px;">#</th>
+                                    <th>員工姓名</th>
+                                    <th>便當店</th>
+                                    <th>品項</th>
+                                    <th>數量</th>
+                                    <th>備註</th>
+                                    <th>小計</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td><strong>{{ order.employee_name }}</strong></td>
+                                    <td><span class="badge-restaurant"
+                                            data-restaurant="{{ order.menu_item.restaurant.name }}"></span>
+                                    </td>
+                                    <td>{{ order.menu_item.name }}</td>
+                                    <td>{{ order.quantity }}</td>
+                                    <td><small class="text-muted">{{ order.notes }}</small></td>
+                                    <td><span class="price-tag">${{ order.subtotal }}</span></td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-5 text-muted">
+                                        <i class="fas fa-inbox fa-3x mb-3 d-block opacity-50"></i>
+                                        {{ selected_date|date:"Y/m/d" }} 尚無訂單
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
