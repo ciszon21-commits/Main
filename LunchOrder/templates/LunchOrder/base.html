@@ -92,6 +92,7 @@
                 <a class="nav-link" href="{% url 'lunchorder:order_statistics' %}">
                     <i class="fas fa-chart-bar me-1"></i>統計報表
                 </a>
+                {% if not request.user.is_authenticated or request.user.is_staff %}
                 <div class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
                         data-bs-toggle="dropdown" aria-expanded="false">
@@ -101,10 +102,11 @@
                         style="background-color: var(--bg-card); border-color: var(--border-color);">
                         <li><a class="dropdown-item text-light" href="{% url 'lunchorder:restaurant_list' %}"><i
                                     class="fas fa-store me-1"></i>所有便當店</a></li>
-                        <li><a class="dropdown-item text-light" href="{% url 'lunchorder:payment_upload' %}"><i
-                                    class="fas fa-file-invoice-dollar me-1"></i>繳費辨識</a></li>
+                        <li><a class="dropdown-item text-light" href="{% url 'lunchorder:admin_list' %}"><i
+                                    class="fas fa-user-shield me-1"></i>管理員名單</a></li>
                     </ul>
                 </div>
+                {% endif %}
             </div>
         </div>
     </nav>
