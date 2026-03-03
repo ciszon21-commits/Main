@@ -36,22 +36,14 @@
 <!-- Gossip List -->
 {% for post in posts %}
 <a href="{% url 'lhawish:post_detail' post.pk %}" class="wish-card wish-gossip-card">
-    {% if post.visibility != 'all' %}
-    <div class="wish-gossip-vis-badge badge-visibility">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-        </svg>
-        {{ post.visibility_display }}
-    </div>
-    {% endif %}
     <div class="wish-gossip-author">
         <div class="wish-gossip-avatar {% if post.is_anonymous %}anon{% else %}named{% endif %}">
-            {% if post.is_anonymous %}🤐{% else %}{{ post.author.last_name|default:post.author.username|truncatechars:1 }}{% endif %}
+            {% if post.is_anonymous %}😎{% else %}<span class="material-symbols-outlined"
+                style="font-size:16px;">person</span>{% endif %}
         </div>
         <div>
             <div class="wish-gossip-name">
-                {% if post.is_anonymous %}某同事{% else %}{{ post.author.get_full_name|default:post.author.username }}{% endif %}
+                {% if post.is_anonymous %}{{ post.display_name|default:"某同事" }}{% else %}{{ post.author.get_full_name|default:post.author.username }}{% endif %}
                 {% if post.is_anonymous %}<span class="wish-gossip-anon-badge">匿名</span>{% endif %}
             </div>
             <div class="wish-gossip-date">{{ post.created_at|timesince }} 前</div>

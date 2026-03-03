@@ -2,90 +2,499 @@
 {% block title %}個人中心 - 部門許願池{% endblock %}
 
 {% block content %}
-<!-- Profile Header -->
-<div class="wish-card" style="padding:0;overflow:hidden;margin-bottom:24px;">
-    <div class="wish-profile-header">
-        <div class="wish-profile-info">
-            <div class="wish-profile-avatar">
-                {{ user.last_name|default:user.username|truncatechars:1 }}
+<style>
+    :root {
+        --profile-bg: #f8fafc;
+        --profile-card-bg: #ffffff;
+        --profile-border: #e2e8f0;
+        --profile-text-dark: #0f172a;
+        --profile-text: #334155;
+        --profile-text-muted: #64748b;
+        --profile-primary: var(--wish-primary, #00A0B0);
+        --profile-primary-light: var(--wish-primary-light, #e0f2fe);
+        --profile-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+        --profile-shadow-hover: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+        --profile-radius-lg: 16px;
+        --profile-radius: 12px;
+        --profile-radius-sm: 8px;
+    }
+
+    .profile-container {
+        padding: 24px 0;
+        background: var(--profile-bg);
+        min-height: calc(100vh - 60px);
+    }
+
+    .profile-wrapper {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 16px;
+    }
+
+    /* --- Header / Dashboard Stats --- */
+    .profile-header-grid {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+
+    @media (max-width: 640px) {
+        .profile-header-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .profile-user-card {
+        background: var(--profile-card-bg);
+        border-radius: var(--profile-radius-lg);
+        padding: 24px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        box-shadow: var(--profile-shadow);
+        border: 1px solid var(--profile-border);
+    }
+
+    .profile-avatar-large {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--profile-primary-light), var(--wish-primary));
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        font-weight: 700;
+        box-shadow: 0 4px 12px rgba(0, 160, 176, 0.2);
+    }
+
+    .profile-name {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--profile-text-dark);
+        margin: 0 0 4px 0;
+    }
+
+    .profile-email {
+        font-size: 14px;
+        color: var(--profile-text-muted);
+        margin: 0;
+    }
+
+    .profile-stats-container {
+        display: flex;
+        gap: 16px;
+    }
+
+    @media (max-width: 640px) {
+        .profile-stats-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    .profile-stat-box {
+        background: var(--profile-card-bg);
+        border-radius: var(--profile-radius-lg);
+        padding: 24px;
+        min-width: 140px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        box-shadow: var(--profile-shadow);
+        border: 1px solid var(--profile-border);
+        transition: transform 0.2s;
+    }
+
+    .profile-stat-box:hover {
+        transform: translateY(-2px);
+    }
+
+    .profile-stat-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--profile-text-muted);
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 12px;
+    }
+
+    .profile-stat-icon {
+        background: var(--profile-primary-light);
+        color: var(--profile-primary);
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .profile-stat-icon.saved {
+        background: #fef3c7;
+        color: #d97706;
+    }
+
+    .profile-stat-value {
+        font-size: 32px;
+        font-weight: 800;
+        color: var(--profile-text-dark);
+        line-height: 1;
+    }
+
+    /* --- Navigation Tabs --- */
+    .profile-main-tabs {
+        display: flex;
+        background: var(--profile-border);
+        padding: 4px;
+        border-radius: 9999px;
+        margin-bottom: 24px;
+        width: fit-content;
+    }
+
+    .profile-tab-pill {
+        padding: 8px 24px;
+        border-radius: 9999px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--profile-text-muted);
+        text-decoration: none;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .profile-tab-pill:hover {
+        color: var(--profile-text-dark);
+        text-decoration: none;
+    }
+
+    .profile-tab-pill.active {
+        background: var(--profile-card-bg);
+        color: var(--profile-text-dark);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .profile-sub-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        border-bottom: 1px solid var(--profile-border);
+        padding-bottom: 16px;
+    }
+
+    .profile-sub-tab {
+        padding: 8px 16px;
+        border-radius: var(--profile-radius-sm);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--profile-text-muted);
+        background: var(--profile-card-bg);
+        border: 1px solid var(--profile-border);
+        text-decoration: none;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .profile-sub-tab:hover {
+        border-color: var(--profile-primary);
+        color: var(--profile-primary);
+        text-decoration: none;
+    }
+
+    .profile-sub-tab.active {
+        background: var(--profile-primary);
+        color: white;
+        border-color: var(--profile-primary);
+        box-shadow: 0 2px 8px rgba(0, 160, 176, 0.2);
+    }
+
+    /* --- List Cards --- */
+    .profile-list-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .profile-list-card {
+        background: var(--profile-card-bg);
+        border-radius: var(--profile-radius);
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid var(--profile-border);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+        text-decoration: none;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .profile-list-card::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: transparent;
+        transition: background 0.2s;
+    }
+
+    .profile-list-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--profile-shadow-hover);
+        text-decoration: none;
+    }
+
+    .profile-list-card:hover::before {
+        background: var(--profile-primary);
+    }
+
+    .profile-card-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .profile-card-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--profile-text-dark);
+        margin: 0 0 8px 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .profile-card-meta {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 13px;
+        color: var(--profile-text-muted);
+        flex-wrap: wrap;
+    }
+
+    .profile-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .profile-card-action {
+        margin-left: 24px;
+        flex-shrink: 0;
+    }
+
+    /* --- Empty State --- */
+    .profile-empty-state {
+        background: var(--profile-card-bg);
+        border-radius: var(--profile-radius-lg);
+        padding: 64px 24px;
+        text-align: center;
+        border: 1px solid var(--profile-border);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .profile-empty-icon {
+        width: 80px;
+        height: 80px;
+        background: var(--profile-primary-light);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 24px;
+    }
+
+    .profile-empty-icon .material-symbols-outlined {
+        font-size: 40px;
+        color: var(--profile-primary);
+    }
+
+    .profile-empty-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--profile-text-dark);
+        margin: 0 0 8px 0;
+    }
+
+    .profile-empty-desc {
+        color: var(--profile-text-muted);
+        font-size: 14px;
+        margin: 0;
+    }
+</style>
+
+<div class="profile-container">
+    <div class="profile-wrapper">
+        <!-- Dashboard Header -->
+        <div class="profile-header-grid">
+            <div class="profile-user-card">
+                <div class="profile-avatar-large">
+                    <span class="material-symbols-outlined" style="font-size:30px;">person</span>
+                </div>
+                <div>
+                    <h2 class="profile-name">{{ user.get_full_name|default:user.username }}</h2>
+                    <p class="profile-email">{{ user.email|default:"部門許願池會員" }}</p>
+                </div>
             </div>
-            <div>
-                <h2 class="wish-profile-name">{{ user.get_full_name|default:user.username }}</h2>
-                <p class="wish-profile-dept">{{ user.username }}</p>
+
+            <div class="profile-stats-container">
+                <div class="profile-stat-box">
+                    <div class="profile-stat-header">
+                        <div class="profile-stat-icon">
+                            <span class="material-symbols-outlined" style="font-size:16px;">edit_document</span>
+                        </div>
+                        我的發文
+                    </div>
+                    <div class="profile-stat-value">{{ my_post_count|add:my_petition_count }}</div>
+                </div>
+                <div class="profile-stat-box">
+                    <div class="profile-stat-header">
+                        <div class="profile-stat-icon saved">
+                            <span class="material-symbols-outlined" style="font-size:16px;">bookmark</span>
+                        </div>
+                        已收藏
+                    </div>
+                    <div class="profile-stat-value">{{ saved_count }}</div>
+                </div>
             </div>
         </div>
-        <div class="wish-profile-stats">
-            <div class="wish-profile-stat">
-                <div class="wish-profile-stat-num primary">{{ my_post_count }}</div>
-                <div class="wish-profile-stat-label">我的發文</div>
-            </div>
-            <div class="wish-profile-stat">
-                <div class="wish-profile-stat-num orange">{{ saved_count }}</div>
-                <div class="wish-profile-stat-label">已收藏</div>
-            </div>
+
+        <!-- Navigation Tabs -->
+        <div class="profile-main-tabs">
+            <a href="?tab=my-posts" class="profile-tab-pill {% if profile_sub_tab == 'my-posts' %}active{% endif %}">
+                <span class="material-symbols-outlined" style="font-size:18px;">edit_document</span>
+                我的發文
+            </a>
+            <a href="?tab=saved" class="profile-tab-pill {% if profile_sub_tab == 'saved' %}active{% endif %}">
+                <span class="material-symbols-outlined" style="font-size:18px;">bookmark</span>
+                已收藏
+            </a>
         </div>
-    </div>
-</div>
 
-<!-- Sub-Tabs -->
-<div class="wish-profile-tabs">
-    <a href="?tab=my-posts" class="wish-profile-tab {% if profile_sub_tab == 'my-posts' %}active{% endif %}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 20h9" />
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-        </svg>
-        我的發文
-    </a>
-    <a href="?tab=saved" class="wish-profile-tab {% if profile_sub_tab == 'saved' %}active{% endif %}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-        </svg>
-        已收藏
-    </a>
-</div>
+        <div class="profile-sub-tabs">
+            {% if profile_sub_tab == 'saved' %}
+            <a href="?tab=saved&type=petition"
+                class="profile-sub-tab {% if profile_sub_type == 'petition' %}active{% endif %}">
+                <span class="material-symbols-outlined" style="font-size:16px;">star</span> 園路願望
+            </a>
+            <a href="?tab=saved&type=rnd" class="profile-sub-tab {% if profile_sub_type == 'rnd' %}active{% endif %}">
+                <span class="material-symbols-outlined" style="font-size:16px;">terminal</span> 研發專案
+            </a>
+            <a href="?tab=saved&type=gossip"
+                class="profile-sub-tab {% if profile_sub_type == 'gossip' %}active{% endif %}">
+                <span class="material-symbols-outlined" style="font-size:16px;">chat_bubble</span> 七嘴八舌
+            </a>
+            {% else %}
+            <a href="?tab=my-posts&type=petition"
+                class="profile-sub-tab {% if profile_sub_type == 'petition' %}active{% endif %}">
+                <span class="material-symbols-outlined" style="font-size:16px;">star</span> 園路願望
+            </a>
+            <a href="?tab=my-posts&type=rnd"
+                class="profile-sub-tab {% if profile_sub_type == 'rnd' %}active{% endif %}">
+                <span class="material-symbols-outlined" style="font-size:16px;">terminal</span> 研發專案
+            </a>
+            <a href="?tab=my-posts&type=market"
+                class="profile-sub-tab {% if profile_sub_type == 'market' %}active{% endif %}">
+                <span class="material-symbols-outlined" style="font-size:16px;">shopping_bag</span> 跳蚤市場
+            </a>
+            <a href="?tab=my-posts&type=gossip"
+                class="profile-sub-tab {% if profile_sub_type == 'gossip' %}active{% endif %}">
+                <span class="material-symbols-outlined" style="font-size:16px;">chat_bubble</span> 七嘴八舌
+            </a>
+            {% endif %}
+        </div>
 
-<!-- Posts -->
-{% for post in posts %}
-<a href="{% url 'lhawish:post_detail' post.pk %}" class="wish-card">
-    <div class="wish-card-header">
-        <div class="wish-card-badges">
-            <span class="wish-badge badge-category">{{ post.get_type_display }}</span>
-            {% if post.status %}
-            <span class="wish-badge {{ post.status_css_class }}">{{ post.status_display }}</span>
+        <!-- Content Area -->
+        <div class="profile-list-grid">
+            <!-- Petition items -->
+            {% if petitions %}
+            {% for p in petitions %}
+            <a href="{% url 'lhawish:petition_detail' p.pk %}" class="profile-list-card">
+                <div class="profile-card-content">
+                    <h3 class="profile-card-title">{{ p.title|truncatechars:50 }}</h3>
+                    <div class="profile-card-meta">
+                        <span class="profile-meta-item">
+                            <span class="material-symbols-outlined" style="font-size:14px;">calendar_today</span>
+                            {{ p.created_at|date:"Y/m/d H:i" }}
+                        </span>
+                        <span class="profile-meta-item">
+                            <span class="material-symbols-outlined" style="font-size:14px;">how_to_vote</span>
+                            {{ p.endorsement_count }} 附議
+                        </span>
+                        <span class="profile-meta-item">
+                            <span class="material-symbols-outlined" style="font-size:14px;">forum</span>
+                            {{ p.comment_count }} 留言
+                        </span>
+                    </div>
+                </div>
+                <div class="profile-card-action">
+                    <span class="wish-badge">{{ p.get_status_display }}</span>
+                </div>
+            </a>
+            {% endfor %}
+            {% endif %}
+
+            <!-- Post items -->
+            {% if posts %}
+            {% for post in posts %}
+            <a href="{% url 'lhawish:post_detail' post.pk %}" class="profile-list-card">
+                <div class="profile-card-content">
+                    <h3 class="profile-card-title">{{ post.title|default:post.content|truncatechars:50 }}</h3>
+                    <div class="profile-card-meta">
+                        <span class="profile-meta-item">
+                            <span class="material-symbols-outlined" style="font-size:14px;">calendar_today</span>
+                            {{ post.created_at|date:"Y/m/d H:i" }}
+                        </span>
+                        <span class="profile-meta-item">
+                            <span class="material-symbols-outlined" style="font-size:14px;">forum</span>
+                            {{ post.comment_count }} 留言
+                        </span>
+                    </div>
+                </div>
+                {% if post.type == 'rnd' or post.type == 'market' %}
+                <div class="profile-card-action">
+                    <span class="wish-badge {{ post.status_css_class }}">{{ post.status_display }}</span>
+                </div>
+                {% endif %}
+            </a>
+            {% endfor %}
+            {% endif %}
+
+            <!-- Empty State -->
+            {% if not petitions and not posts %}
+            <div class="profile-empty-state">
+                <div class="profile-empty-icon">
+                    <span class="material-symbols-outlined">
+                        {% if profile_sub_tab == 'saved' %}bookmark_border{% else %}edit_document{% endif %}
+                    </span>
+                </div>
+                <h3 class="profile-empty-title">
+                    {% if profile_sub_tab == 'saved' %}尚無收藏任何內容{% else %}還沒有發表過內容哦{% endif %}
+                </h3>
+                <p class="profile-empty-desc">
+                    {% if profile_sub_tab == 'saved' %}
+                    看到喜歡或重要的願望與專案，記得點擊收藏！
+                    {% else %}
+                    快去各個版塊分享你的想法，或是發起新的園路願望吧！
+                    {% endif %}
+                </p>
+            </div>
             {% endif %}
         </div>
     </div>
-    <h3 class="wish-card-title">{{ post.title|default:post.content|truncatechars:50 }}</h3>
-    <p class="wish-card-content">{{ post.content }}</p>
-    <div class="wish-card-footer">
-        <div class="wish-card-meta">
-            <span>{{ post.created_at|timesince }} 前</span>
-        </div>
-        <div class="wish-card-stats">
-            <span class="wish-stat">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path
-                        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
-                {{ post.like_count }}
-            </span>
-            <span class="wish-stat">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-                {{ post.comment_count }}
-            </span>
-        </div>
-    </div>
-</a>
-{% empty %}
-<div class="wish-empty">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <rect x="2" y="3" width="20" height="14" rx="2" />
-        <line x1="8" y1="21" x2="16" y2="21" />
-        <line x1="12" y1="17" x2="12" y2="21" />
-    </svg>
-    <p>{% if profile_sub_tab == 'saved' %}還沒有收藏任何文章{% else %}還沒有發表任何文章{% endif %}</p>
 </div>
-{% endfor %}
 {% endblock %}

@@ -10,7 +10,7 @@
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
-            <input type="text" name="q" value="{{ search_term }}" placeholder="搜尋提議...">
+            <input type="text" name="q" value="{{ search_term }}" placeholder="搜尋願望...">
             {% if selected_status != 'endorsing' %}
             <input type="hidden" name="status" value="{{ selected_status }}">
             {% endif %}
@@ -35,7 +35,7 @@
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
-        想提議
+        我想許願
     </a>
 </div>
 
@@ -54,15 +54,18 @@
             <span class="petition-tile-progress-label">{{ petition.endorsement_count }} / {{ petition.endorsement_threshold }} 附議</span>
         </div>
         <div class="petition-tile-meta">
-            <span>💬 {{ petition.comment_count }}</span>
+	<span class="wish-stat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+	    	<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>{{ petition.comment_count }}</span>
             <span class="petition-tile-date">{{ petition.created_at|date:"Y.m.d" }}</span>
         </div>
     </div>
     {% empty %}
     <div style="grid-column:1/-1;" class="wish-empty">
         <div style="font-size:48px;margin-bottom:16px;">🌟</div>
-        <p style="font-size:16px;font-weight:600;color:var(--wish-text-dark);">目前沒有提議</p>
-        <p style="font-size:13px;color:var(--wish-text-muted);margin-top:8px;">點擊「想提議」來發起第一個園路願望！</p>
+        <p style="font-size:16px;font-weight:600;color:var(--wish-text-dark);">目前沒有願望</p>
+        <p style="font-size:13px;color:var(--wish-text-muted);margin-top:8px;">點擊「我想許願」來發起你的園路願望！</p>
     </div>
     {% endfor %}
 </div>

@@ -21,23 +21,15 @@
         <nav class="wish-nav">
             <div class="wish-nav-inner">
                 <div class="wish-nav-top">
-                    <a href="{% url 'lhawish:dashboard' %}" class="wish-nav-brand">
+                    <a href="{% url 'lhawish:petition_list' %}" class="wish-nav-brand">
                         <div class="wish-nav-logo">P</div>
                         <span class="wish-nav-title">部門許願池</span>
                     </a>
                     <div class="wish-nav-actions">
-                        <!-- Mode Toggle (moved here) -->
-                        <div class="wish-mode-toggle" id="modeToggle">
-                            <div class="wish-mode-slider" id="modeSlider"></div>
-                            <button class="wish-mode-btn active" data-mode="user"
-                                onclick="switchMode('user')">一般同仁</button>
-                            <button class="wish-mode-btn" data-mode="admin" onclick="switchMode('admin')">管理功能</button>
-                        </div>
                         <a href="{% url 'lhawish:profile' %}" class="wish-avatar-wrap" title="個人中心">
                             <div class="wish-avatar">
                                 <span class="material-symbols-outlined" style="font-size:20px;">person</span>
                             </div>
-                            <div class="wish-avatar-online"></div>
                         </a>
                     </div>
                 </div>
@@ -69,18 +61,18 @@
                         <span class="material-symbols-outlined">mail</span>
                         主管信箱
                     </a>
-                    <!-- 管理 Tabs（同一排，僅管理模式顯示） -->
-                    <span class="wish-tab-divider" id="adminDivider" style="display:none;"></span>
-                    <a href="{% url 'lhawish:manager_dashboard' %}" id="tabDashboard"
-                        class="wish-tab wish-tab-admin {% if active_tab == 'dashboard' %}active{% endif %}"
-                        style="display:none;">
+                    <!-- 管理 Tabs（權限判斷顯示） -->
+                    {% if user.is_staff %}
+                    <span class="wish-tab-divider"></span>
+                    <a href="{% url 'lhawish:manager_dashboard' %}"
+                        class="wish-tab wish-tab-admin {% if active_tab == 'dashboard' %}active{% endif %}">
                         <span class="material-symbols-outlined">bar_chart</span>
                         管理儀表板
                     </a>
+                    {% endif %}
                     {% if user.is_superuser %}
-                    <a href="{% url 'lhawish:settings' %}" id="tabSettings"
-                        class="wish-tab wish-tab-admin {% if active_tab == 'settings' %}active{% endif %}"
-                        style="display:none;">
+                    <a href="{% url 'lhawish:settings' %}"
+                        class="wish-tab wish-tab-admin {% if active_tab == 'settings' %}active{% endif %}">
                         <span class="material-symbols-outlined">settings</span>
                         設定
                     </a>
@@ -96,47 +88,6 @@
         </main>
     </div>
 
-    <script>
-        (function () {
-            var adminTabs = ['dashboard', 'settings'];
-            var activeTab = '{{ active_tab }}';
-            var savedMode = localStorage.getItem('wishNavMode');
-
-            // Auto-detect mode from active tab
-            if (adminTabs.indexOf(activeTab) !== -1) {
-                savedMode = 'admin';
-            }
-            if (savedMode === 'admin') {
-                applyMode('admin');
-            }
-        })();
-
-        function switchMode(mode) {
-            localStorage.setItem('wishNavMode', mode);
-            applyMode(mode);
-        }
-
-        function applyMode(mode) {
-            var slider = document.getElementById('modeSlider');
-            var btns = document.querySelectorAll('.wish-mode-btn');
-            var adminTabs = document.querySelectorAll('.wish-tab-admin');
-            var divider = document.getElementById('adminDivider');
-
-            btns.forEach(function (b) { b.classList.remove('active'); });
-
-            if (mode === 'admin') {
-                slider.style.transform = 'translateX(100%)';
-                document.querySelector('[data-mode="admin"]').classList.add('active');
-                adminTabs.forEach(function (t) { t.style.display = ''; });
-                if (divider) divider.style.display = '';
-            } else {
-                slider.style.transform = 'translateX(0)';
-                document.querySelector('[data-mode="user"]').classList.add('active');
-                adminTabs.forEach(function (t) { t.style.display = 'none'; });
-                if (divider) divider.style.display = 'none';
-            }
-        }
-    </script>
     {% block extra_js %}{% endblock %}
 </body>
 

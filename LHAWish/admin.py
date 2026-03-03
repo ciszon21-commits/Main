@@ -4,8 +4,8 @@ from .models import Post, Comment, PostInteraction, Petition, Endorsement, Petit
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ['title', 'type', 'category', 'status', 'author', 'priority', 'created_at']
-    list_filter = ['type', 'status', 'category', 'priority', 'visibility']
+    list_display = ['title', 'type', 'category', 'status', 'author', 'created_at']
+    list_filter = ['type', 'status', 'category']
     search_fields = ['title', 'content', 'author__username', 'author__last_name']
     list_per_page = 30
     date_hierarchy = 'created_at'

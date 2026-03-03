@@ -70,18 +70,7 @@ class Post(models.Model):
         ('sold', '已售出'),
     ]
 
-    PRIORITY_CHOICES = [
-        ('low', 'Low'),
-        ('normal', 'Normal'),
-        ('high', 'High'),
-        ('critical', 'Critical'),
-    ]
 
-    VISIBILITY_CHOICES = [
-        ('all', '全部門'),
-        ('deputy_up', '僅副主管以上'),
-        ('manager_only', '僅主管可見'),
-    ]
 
     # 基本欄位
     type = models.CharField(max_length=10, choices=TYPE_CHOICES, verbose_name="類型")
@@ -92,6 +81,10 @@ class Post(models.Model):
         related_name='lhawish_posts', verbose_name="作者"
     )
     is_anonymous = models.BooleanField(default=False, verbose_name="匿名發布")
+    display_name = models.CharField(
+        max_length=50, blank=True, verbose_name="顯示名稱",
+        help_text="留空則顯示預設的匿名，填入則以此名稱顯示"
+    )
 
     # 研發專案欄位
     category = models.CharField(
@@ -99,21 +92,19 @@ class Post(models.Model):
         blank=True, verbose_name="分類"
     )
     status = models.CharField(max_length=20, blank=True, verbose_name="狀態")
-    priority = models.CharField(
-        max_length=10, choices=PRIORITY_CHOICES,
-        default='normal', verbose_name="優先度"
-    )
+
     package_name = models.CharField(max_length=100, blank=True, verbose_name="指定套件")
     problem_type = models.CharField(max_length=100, blank=True, verbose_name="問題類型")
     assigned_group = models.CharField(
-        max_length=30, blank=True, verbose_name="指定組別",
-        choices=[
-            ('engineering', '工程組'),
-            ('urban_planning', '國土城規組'),
-            ('sustainability', '國土永續中心'),
-            ('other', '其他組'),
-            ('management', '部門主管/副主管'),
-        ]
+        max_length=50, blank=True, verbose_name="指定組別"
+    )
+
+    # 官方回應（研發專案用）
+    response_content = models.TextField(blank=True, verbose_name="回應內容")
+    response_at = models.DateTimeField(null=True, blank=True, verbose_name="回應時間")
+    response_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='lhawish_post_responses', verbose_name="回應人"
     )
 
     # 跳蚤市場欄位
@@ -131,11 +122,7 @@ class Post(models.Model):
         help_text="存放 base64 或圖片路徑清單"
     )
 
-    # 七嘴八舌欄位
-    visibility = models.CharField(
-        max_length=20, choices=VISIBILITY_CHOICES,
-        default='all', verbose_name="可見對象"
-    )
+
 
     # 時間戳記
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
@@ -185,16 +172,8 @@ class Post(models.Model):
         return css_map.get(self.status, '')
 
     @property
-    def priority_display(self):
-        return dict(self.PRIORITY_CHOICES).get(self.priority, self.priority)
-
-    @property
     def condition_display(self):
         return self.condition or ''
-
-    @property
-    def visibility_display(self):
-        return dict(self.VISIBILITY_CHOICES).get(self.visibility, self.visibility)
 
     @property
     def price_display(self):
@@ -206,8 +185,6 @@ class Post(models.Model):
         if self.price_label:
             label += f' ({self.price_label})'
         return label
-
-
 class Comment(models.Model):
     """留言模型"""
     post = models.ForeignKey(
@@ -300,7 +277,7 @@ class Petition(models.Model):
     )
 
     assigned_group = models.CharField(
-        max_length=30, choices=GROUP_CHOICES, blank=True, verbose_name="指定執行組別"
+        max_length=50, blank=True, verbose_name="指定執行組別"
     )
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES,
@@ -422,6 +399,7 @@ class PetitionComment(models.Model):
     )
     content = models.TextField(verbose_name="內容")
     is_anonymous = models.BooleanField(default=False, verbose_name="匿名留言")
+    is_official = models.BooleanField(default=False, verbose_name="管理者留言")
     is_edited = models.BooleanField(default=False, verbose_name="已編輯")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
 

@@ -10,6 +10,9 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 
+from django.core.mail import send_mail
+from django.conf import settings
+
 from .models import (
     Post, Comment, PostInteraction, Petition, Endorsement,
     PetitionComment, PetitionSave, CommentLike, SiteConfig,
@@ -19,13 +22,76 @@ from .models import (
 # ========== 工具函式 ==========
 
 def _is_manager(user):
-    """判斷使用者是否為主管角色（可擴充判定邏輯）"""
-    return user.is_staff
+    """判斷使用者是否為主管角色（舊版或通用判定，可查 is_staff）"""
+    if user.is_staff:
+        return True
+    
+    # 若在 SiteConfig.board_admins 名單中，也算是某種程度的管理員
+    config = SiteConfig.load()
+    admins = config.board_admins if isinstance(config.board_admins, list) else []
+    for admin in admins:
+        if admin.get('uid') == user.id:
+            return True
+            
+    return False
+
+def _get_user_admin_boards(user):
+    """取得當前使用者的管理權限：傳回 {'front_edit': bool, 'boards': [str], 'groups': [str]}"""
+    if user.is_superuser:
+        return {'front_edit': True, 'boards': ['petition', 'rnd', 'market', 'gossip'], 'groups': []}
+        
+    config = SiteConfig.load()
+    admins = config.board_admins if isinstance(config.board_admins, list) else []
+    for admin in admins:
+        if admin.get('uid') == user.id:
+            return {
+                'front_edit': admin.get('front_edit', False),
+                'boards': admin.get('boards', []),
+                'groups': admin.get('groups', [])
+            }
+            
+    # Fallback to staff logic
+    if user.is_staff:
+        return {'front_edit': True, 'boards': ['petition', 'rnd', 'market', 'gossip'], 'groups': []}
+        
+    return {'front_edit': False, 'boards': [], 'groups': []}
 
 
 def _is_developer(user):
     """判斷使用者是否為開發者（superuser）"""
     return user.is_superuser
+
+
+def _send_board_notification(board_name, subject, message):
+    """寄送 Email 通知給設定有接收該板塊通知且勾選收信的管理員"""
+    config = SiteConfig.load()
+    if not isinstance(config.board_admins, list):
+        return
+
+    admin_uids = []
+    for admin in config.board_admins:
+        if board_name in admin.get('boards', []) and admin.get('receive_emails', False):
+            admin_uids.append(admin.get('uid'))
+            
+    if not admin_uids:
+        return
+        
+    from django.contrib.auth.models import User
+    users = User.objects.filter(id__in=admin_uids).exclude(email='')
+    recipient_list = [u.email for u in users]
+    
+    if recipient_list:
+        try:
+            from django.utils.html import strip_tags
+            send_mail(
+                subject=f"[LHA部門許願池] {subject}",
+                message=message,
+                from_email=None,  # 預設自 settings.DEFAULT_FROM_EMAIL
+                recipient_list=recipient_list,
+                html_message=message.replace('\n', '<br>')
+            )
+        except Exception as e:
+            print(f"發送 Email 失敗: {e}")
 
 
 def _annotate_posts(qs, user):
@@ -84,11 +150,17 @@ class DashboardView(LoginRequiredMixin, PostListMixin, ListView):
 
     def get_queryset(self):
         qs = Post.objects.filter(type='rnd').select_related('author')
-        return self.filter_by_search(qs)
+        qs = self.filter_by_search(qs)
+        # 分類篩選
+        cat = self.request.GET.get('category', 'all')
+        if cat and cat != 'all':
+            qs = qs.filter(category=cat)
+        return qs
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['active_tab'] = 'rnd'
+        ctx['selected_category'] = self.request.GET.get('category', 'all')
         return ctx
 
 
@@ -132,12 +204,10 @@ class GossipListView(LoginRequiredMixin, PostListMixin, ListView):
         qs = Post.objects.filter(type='gossip').select_related('author')
         qs = self.filter_by_search(qs)
         user = self.request.user
-        if not _is_manager(user):
-            qs = qs.filter(
-                Q(visibility='all') | Q(author=user)
-            )
-        # 篩選
         f = self.request.GET.get('filter', '')
+        if f == 'my':
+            qs = qs.filter(author=user)
+        # 篩選
         if f == 'newest':
             qs = qs.order_by('-created_at')
         elif f == 'hot':
@@ -186,41 +256,89 @@ class ManagerDashboardView(LoginRequiredMixin, PostListMixin, ListView):
         ctx = super().get_context_data(**kwargs)
         ctx['active_tab'] = 'dashboard'
 
-        # 園路願望 — 只統計已成案(需處理的)
-        established_qs = Petition.objects.filter(status='established')
-        ctx['petition_established'] = established_qs.count()
-        ctx['petition_responded'] = Petition.objects.filter(status='responded').count()
-        ctx['petition_total'] = ctx['petition_established']
+        admin_perms = _get_user_admin_boards(self.request.user)
+        ctx['admin_perms'] = admin_perms
+        ctx['admin_boards'] = admin_perms['boards']
+        ctx['admin_groups'] = admin_perms['groups']
+        ctx['admin_front_edit'] = admin_perms['front_edit']
+        
+        # 決定預設顯示分頁 (只能是最前面有權限的板塊)
+        allowed_boards = [b for b in ['petition', 'rnd', 'gossip', 'market'] if b in admin_perms['boards']]
+        req_section = self.request.GET.get('section', '')
+        if req_section in allowed_boards:
+            ctx['active_section'] = req_section
+        elif allowed_boards:
+            ctx['active_section'] = allowed_boards[0]
+        else:
+            ctx['active_section'] = 'none'
 
-        # 依組別分組已成案案件
-        groups = {}
-        for p in established_qs.select_related('proposer').order_by('-created_at'):
-            group_label = p.get_assigned_group_display() if p.assigned_group else '未指定'
-            groups.setdefault(group_label, []).append(p)
-        ctx['petition_groups'] = groups
+        is_super = self.request.user.is_superuser
+        admin_groups = admin_perms['groups']
 
-        # 所有未撤案的願望（用於卡片點擊展開）
-        ctx['petitions'] = Petition.objects.exclude(
-            status='withdrawn'
-        ).select_related('proposer').order_by('-created_at')[:30]
+        # 園路願望 — 統計與清單
+        if 'petition' in admin_perms['boards']:
+            petition_qs = Petition.objects.filter(status__in=['established', 'responded', 'withdrawn'])
+            if not is_super and admin_groups:
+                # 只看 admin_groups 或沒指派的
+                petition_qs = petition_qs.filter(Q(assigned_group__in=admin_groups) | Q(assigned_group=''))
 
-        # 研發專案 — 依狀態分組
-        rnd_qs = Post.objects.filter(type='rnd')
-        ctx['rnd_pending'] = rnd_qs.filter(status='pending').count()
-        ctx['rnd_in_progress'] = rnd_qs.filter(status='in_progress').count()
-        ctx['rnd_scheduled'] = rnd_qs.filter(status='scheduled').count()
-        ctx['rnd_total'] = ctx['rnd_pending'] + ctx['rnd_in_progress'] + ctx['rnd_scheduled']
-        # 依狀態分組
-        rnd_active = rnd_qs.exclude(status='done').select_related('author').order_by('-created_at')[:50]
-        rnd_groups = {}
-        for p in rnd_active:
-            s = p.status_display
-            rnd_groups.setdefault(s, []).append(p)
-        ctx['rnd_groups'] = rnd_groups
-        ctx['rnd_posts'] = rnd_active
+            ctx['petition_established'] = petition_qs.filter(status='established').count()
+            ctx['petition_responded'] = petition_qs.filter(status='responded').count()
+            ctx['petition_withdrawn'] = petition_qs.filter(status='withdrawn').count()
+            ctx['petition_total'] = ctx['petition_established'] + ctx['petition_responded'] + ctx['petition_withdrawn']
 
-        # 預設顯示分頁
-        ctx['active_section'] = self.request.GET.get('section', 'petition')
+            from django.db.models import Case, When, IntegerField
+            petition_status_order = Case(
+                When(status='established', then=0),
+                When(status='responded', then=1),
+                When(status='withdrawn', then=2),
+                default=3,
+                output_field=IntegerField(),
+            )
+            petition_qs = petition_qs.select_related('proposer').annotate(
+                _status_order=petition_status_order
+            ).order_by('_status_order', '-created_at')
+
+            petition_groups = {}
+            status_display_map = {'established': '已成案', 'responded': '已回應', 'withdrawn': '已撤案'}
+            for p in petition_qs:
+                petition_groups.setdefault(status_display_map.get(p.status, p.status), []).append(p)
+            ctx['petition_groups'] = petition_groups
+
+        # 研發專案 — 統計與清單
+        if 'rnd' in admin_perms['boards']:
+            rnd_qs = Post.objects.filter(type='rnd')
+            if not is_super and admin_groups:
+                rnd_qs = rnd_qs.filter(Q(assigned_group__in=admin_groups) | Q(assigned_group=''))
+
+            ctx['rnd_pending'] = rnd_qs.filter(status='pending').count()
+            ctx['rnd_in_progress'] = rnd_qs.filter(status='in_progress').count()
+            ctx['rnd_scheduled'] = rnd_qs.filter(status='scheduled').count()
+            ctx['rnd_done'] = rnd_qs.filter(status='done').count()
+            ctx['rnd_total'] = ctx['rnd_pending'] + ctx['rnd_in_progress'] + ctx['rnd_scheduled'] + ctx['rnd_done']
+
+            from django.db.models import Case, When, IntegerField
+            rnd_status_order = Case(
+                When(status='pending', then=0),
+                When(status='scheduled', then=1),
+                When(status='in_progress', then=2),
+                When(status='done', then=3),
+                default=4,
+                output_field=IntegerField(),
+            )
+            rnd_active = rnd_qs.select_related('author').annotate(
+                _status_order=rnd_status_order
+            ).order_by('_status_order', '-created_at')[:100]
+
+            rnd_groups = {label: [] for label in ['待確認', '已排定', '處理中', '已完成']}
+            for p in rnd_active:
+                s = p.status_display
+                if s in rnd_groups:
+                    rnd_groups[s].append(p)
+                else:
+                    rnd_groups.setdefault(s, []).append(p)
+            ctx['rnd_groups'] = {k: v for k, v in rnd_groups.items() if v}
+            ctx['rnd_posts'] = rnd_active
 
         return ctx
 
@@ -235,22 +353,72 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         ctx['active_tab'] = 'profile'
         ctx['is_manager'] = _is_manager(self.request.user)
         sub_tab = self.request.GET.get('tab', 'my-posts')
+        sub_type = self.request.GET.get('type', 'all')
         ctx['profile_sub_tab'] = sub_tab
+        ctx['profile_sub_type'] = sub_type
 
         user = self.request.user
+
         if sub_tab == 'saved':
-            saved_ids = PostInteraction.objects.filter(
-                user=user, saved=True
-            ).values_list('post_id', flat=True)
-            ctx['posts'] = Post.objects.filter(id__in=saved_ids).select_related('author')
+            if sub_type == 'petition':
+                # 園路願望收藏
+                saved_petition_ids = PetitionSave.objects.filter(
+                    user=user
+                ).values_list('petition_id', flat=True)
+                ctx['petitions'] = Petition.objects.filter(
+                    id__in=saved_petition_ids
+                ).select_related('proposer')
+                ctx['posts'] = Post.objects.none()
+            elif sub_type in ('rnd', 'gossip'):
+                saved_ids = PostInteraction.objects.filter(
+                    user=user, saved=True
+                ).values_list('post_id', flat=True)
+                ctx['posts'] = Post.objects.filter(
+                    id__in=saved_ids, type=sub_type
+                ).select_related('author')
+                ctx['petitions'] = Petition.objects.none()
+            else:
+                # 預設: 園路願望
+                saved_petition_ids = PetitionSave.objects.filter(
+                    user=user
+                ).values_list('petition_id', flat=True)
+                ctx['petitions'] = Petition.objects.filter(
+                    id__in=saved_petition_ids
+                ).select_related('proposer')
+                ctx['posts'] = Post.objects.none()
+                sub_type = 'petition'
+                ctx['profile_sub_type'] = sub_type
         else:
-            ctx['posts'] = Post.objects.filter(author=user).select_related('author')
+            # 我的發文
+            if sub_type == 'petition':
+                ctx['petitions'] = Petition.objects.filter(
+                    proposer=user
+                ).select_related('proposer')
+                ctx['posts'] = Post.objects.none()
+            elif sub_type in ('rnd', 'market', 'gossip'):
+                ctx['posts'] = Post.objects.filter(
+                    author=user, type=sub_type
+                ).select_related('author')
+                ctx['petitions'] = Petition.objects.none()
+            else:
+                # 預設: 園路願望
+                ctx['petitions'] = Petition.objects.filter(
+                    proposer=user
+                ).select_related('proposer')
+                ctx['posts'] = Post.objects.none()
+                sub_type = 'petition'
+                ctx['profile_sub_type'] = sub_type
 
+        # 統計
         ctx['my_post_count'] = Post.objects.filter(author=user).count()
-        ctx['saved_count'] = PostInteraction.objects.filter(user=user, saved=True).count()
+        ctx['my_petition_count'] = Petition.objects.filter(proposer=user).count()
+        ctx['saved_post_count'] = PostInteraction.objects.filter(user=user, saved=True).count()
+        ctx['saved_petition_count'] = PetitionSave.objects.filter(user=user).count()
+        ctx['saved_count'] = ctx['saved_post_count'] + ctx['saved_petition_count']
 
-        post_ids = [p.id for p in ctx['posts']]
-        ctx['user_interactions'] = _get_user_interactions(user, post_ids)
+        if ctx.get('posts'):
+            post_ids = [p.id for p in ctx['posts']]
+            ctx['user_interactions'] = _get_user_interactions(user, post_ids)
         return ctx
 
 
@@ -267,6 +435,7 @@ class PostDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         post = self.object
+        ctx['active_tab'] = post.type
         ctx['comments'] = post.comments.select_related('author').all()
         ctx['is_manager'] = _is_manager(self.request.user)
         # 使用者互動
@@ -296,11 +465,12 @@ class PostCreateView(LoginRequiredMixin, CreateView):
     template_name = 'LHAWish/post_form.html'
     fields = ['type', 'title', 'content', 'category', 'status',
               'package_name', 'problem_type', 'assigned_group', 'price', 'price_label',
-              'condition', 'image', 'visibility', 'is_anonymous']
+              'condition', 'image', 'is_anonymous', 'display_name']
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['is_manager'] = _is_manager(self.request.user)
+        ctx['is_developer'] = _is_developer(self.request.user)
         ctx['form_type'] = self.request.GET.get('type', 'rnd')
         ctx['active_tab'] = ctx['form_type']
         config = SiteConfig.load()
@@ -334,7 +504,25 @@ class PostCreateView(LoginRequiredMixin, CreateView):
             # 第一張仍存到 image 欄位
             form.instance.image = uploaded_files[0]
 
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        
+        # 若是研發專案且為新發布，寄信通知
+        if post_type == 'rnd':
+            domain = self.request.get_host()
+            url = self.request.build_absolute_uri(reverse('lhawish:post_detail', args=[self.object.pk]))
+            subject = f"新研發專案/報修通知：{self.object.title}"
+            message = (
+                f"您好，\\n\\n"
+                f"部門許願池有一則新的「研發專案 / 報修」貼文。\\n\\n"
+                f"標題：{self.object.title}\\n"
+                f"發布者：{self.object.author.get_full_name() or self.object.author.username}\\n"
+                f"請點擊以下連結查看詳情並進行處理：\\n"
+                f"{url}\\n\\n"
+                f"系統自動發送，請勿直接回覆。"
+            )
+            _send_board_notification('rnd', subject, message)
+            
+        return response
 
     def get_success_url(self):
         post = self.object
@@ -350,8 +538,8 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
     model = Post
     template_name = 'LHAWish/post_form.html'
     fields = ['title', 'content', 'category', 'status',
-              'package_name', 'problem_type', 'price', 'price_label',
-              'condition', 'image', 'visibility', 'is_anonymous']
+              'package_name', 'problem_type', 'assigned_group', 'price', 'price_label',
+              'condition', 'image', 'is_anonymous', 'display_name']
 
     def get_queryset(self):
         # 只能編輯自己的文章（主管可編輯所有）
@@ -363,6 +551,7 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
         ctx = super().get_context_data(**kwargs)
         ctx['is_manager'] = _is_manager(self.request.user)
         ctx['form_type'] = self.object.type
+        ctx['active_tab'] = self.object.type
         ctx['is_edit'] = True
         config = SiteConfig.load()
         ctx['group_choices'] = config.group_choices or []
@@ -457,7 +646,13 @@ def update_status(request, pk):
     if not _is_manager(request.user):
         return JsonResponse({'error': '權限不足'}, status=403)
 
+    admin_perms = _get_user_admin_boards(request.user)
+    if not admin_perms['front_edit']:
+        return JsonResponse({'error': '缺乏前線編輯權限'}, status=403)
+
     post = get_object_or_404(Post, pk=pk)
+    if post.type not in admin_perms['boards']:
+        return JsonResponse({'error': '無此板塊管理權限'}, status=403)
     try:
         data = json.loads(request.body)
         new_status = data.get('status', '')
@@ -470,6 +665,74 @@ def update_status(request, pk):
         'status': post.status,
         'status_display': post.status_display,
     })
+
+
+@login_required
+@require_POST
+def respond_rnd_post(request, pk):
+    """研發專案官方回應"""
+    if not _is_manager(request.user):
+        return JsonResponse({'error': '權限不足'}, status=403)
+
+    admin_perms = _get_user_admin_boards(request.user)
+    if not admin_perms['front_edit'] or 'rnd' not in admin_perms['boards']:
+        return JsonResponse({'error': '無此板塊管理權限'}, status=403)
+
+    post = get_object_or_404(Post, pk=pk, type='rnd')
+    # 檢查組別權限
+    if not request.user.is_superuser:
+        if post.assigned_group and post.assigned_group not in admin_perms['groups']:
+            return JsonResponse({'error': '無此組別管理權限'}, status=403)
+
+    try:
+        data = json.loads(request.body)
+        content = data.get('content', '').strip()
+        new_status = data.get('status', '').strip()
+    except json.JSONDecodeError:
+        content = request.POST.get('content', '').strip()
+        new_status = request.POST.get('status', '').strip()
+
+    if not content:
+        return JsonResponse({'error': '請填寫回應內容'}, status=400)
+
+    post.response_content = content
+    post.response_by = request.user
+    post.response_at = timezone.now()
+    if new_status:
+        post.status = new_status
+    post.save(update_fields=['response_content', 'response_by', 'response_at', 'status'])
+    
+    return JsonResponse({
+        'success': True,
+        'status': post.status,
+        'status_display': post.status_display,
+        'response_content': post.response_content,
+        'response_at': post.response_at.strftime('%Y/%m/%d %H:%M'),
+        'response_by': post.response_by.get_full_name() or post.response_by.username
+    })
+
+
+@login_required
+@require_POST
+def delete_rnd_response(request, pk):
+    """刪除研發專案官方回應"""
+    if not _is_manager(request.user):
+        return JsonResponse({'error': '權限不足'}, status=403)
+
+    admin_perms = _get_user_admin_boards(request.user)
+    if not admin_perms['front_edit'] or 'rnd' not in admin_perms['boards']:
+        return JsonResponse({'error': '無此板塊管理權限'}, status=403)
+
+    post = get_object_or_404(Post, pk=pk, type='rnd')
+    if not request.user.is_superuser:
+        if post.assigned_group and post.assigned_group not in admin_perms['groups']:
+            return JsonResponse({'error': '無此組別管理權限'}, status=403)
+
+    post.response_content = ""
+    post.response_by = None
+    post.response_at = None
+    post.save(update_fields=['response_content', 'response_by', 'response_at'])
+    return JsonResponse({'success': True})
 
 
 # ========== 留言按讚 API ==========
@@ -597,17 +860,45 @@ class PetitionCreateView(LoginRequiredMixin, CreateView):
         return reverse('lhawish:petition_list')
 
 
+class PetitionUpdateView(LoginRequiredMixin, UpdateView):
+    model = Petition
+    template_name = 'LHAWish/petition_form.html'
+    fields = ['title', 'content', 'assigned_group', 'is_anonymous', 'display_name']
+
+    def get_queryset(self):
+        # 僅許願者可編輯，且不可編輯已撤案的
+        return Petition.objects.filter(
+            proposer=self.request.user
+        ).exclude(status='withdrawn')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['active_tab'] = 'petition'
+        ctx['is_manager'] = _is_manager(self.request.user)
+        ctx['is_edit'] = True
+        config = SiteConfig.load()
+        ctx['group_choices'] = config.group_choices or []
+        return ctx
+
+    def form_valid(self, form):
+        form.instance.is_edited = True
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('lhawish:petition_detail', kwargs={'pk': self.object.pk})
+
+
 @login_required
 @require_POST
 def endorse_petition(request, pk):
     """附議提議"""
     petition = get_object_or_404(Petition, pk=pk)
     if petition.status != 'endorsing':
-        return JsonResponse({'error': '此提議已不在附議階段'}, status=400)
+        return JsonResponse({'error': '此願望已不在附議階段'}, status=400)
 
     # 檢查是否已附議
     if Endorsement.objects.filter(petition=petition, user=request.user).exists():
-        return JsonResponse({'error': '您已經附議過此提議'}, status=400)
+        return JsonResponse({'error': '您已經附議過此願望'}, status=400)
 
     Endorsement.objects.create(petition=petition, user=request.user)
 
@@ -628,10 +919,10 @@ def endorse_petition(request, pk):
 @login_required
 @require_POST
 def withdraw_petition(request, pk):
-    """撤案（僅提議者、未成案前）"""
+    """撤案（僅許願者、未成案前）"""
     petition = get_object_or_404(Petition, pk=pk)
     if petition.proposer != request.user:
-        return JsonResponse({'error': '僅提議者可撤案'}, status=403)
+        return JsonResponse({'error': '僅許願者可撤案'}, status=403)
     if petition.status not in ('endorsing', 'established'):
         return JsonResponse({'error': '目前狀態無法撤案'}, status=400)
 
@@ -653,13 +944,13 @@ def withdraw_petition(request, pk):
 @login_required
 @require_POST
 def respond_petition(request, pk):
-    """主管/指定組別回應成案提議"""
+    """主管/指定組別回應成案願望"""
     if not _is_manager(request.user):
         return JsonResponse({'error': '權限不足'}, status=403)
 
     petition = get_object_or_404(Petition, pk=pk)
     if petition.status not in ('established', 'responded'):
-        return JsonResponse({'error': '此提議尚未成案'}, status=400)
+        return JsonResponse({'error': '此願望尚未成案'}, status=400)
 
     try:
         data = json.loads(request.body)
@@ -688,7 +979,7 @@ def delete_petition_response(request, pk):
 
     petition = get_object_or_404(Petition, pk=pk)
     if petition.status != 'responded':
-        return JsonResponse({'error': '此提議沒有官方回應'}, status=400)
+        return JsonResponse({'error': '此願望沒有官方回應'}, status=400)
 
     petition.response_content = ''
     petition.response_at = None
@@ -704,6 +995,10 @@ def update_petition_status(request, pk):
     """管理儀表板 — 更新園路願望狀態"""
     if not _is_manager(request.user):
         return JsonResponse({'error': '權限不足'}, status=403)
+
+    admin_perms = _get_user_admin_boards(request.user)
+    if not admin_perms['front_edit'] or 'petition' not in admin_perms['boards']:
+        return JsonResponse({'error': '缺乏權限'}, status=403)
 
     petition = get_object_or_404(Petition, pk=pk)
     try:
@@ -725,14 +1020,32 @@ def update_petition_status(request, pk):
         petition.withdraw_reason = reason
     if new_status == 'established' and not petition.deadline:
         petition.deadline = timezone.now() + timezone.timedelta(days=60)
+        
     petition.save()
+    
+    # 狀態變更為成案時寄信通知願望板主
+    if new_status == 'established':
+        domain = request.get_host()
+        url = request.build_absolute_uri(reverse('lhawish:petition_detail', args=[petition.pk]))
+        subject = f"園路願望成案通知：{petition.title}"
+        message = (
+            f"您好，\\n\\n"
+            f"部門許願池有一則新願望已達到附議門檻並變更為「已成案」。\\n\\n"
+            f"提案標題：{petition.title}\\n"
+            f"提案人：{petition.author.get_full_name() or petition.author.username}\\n"
+            f"請點擊以下連結查看詳情並進行後續處理：\\n"
+            f"{url}\\n\\n"
+            f"系統自動發送，請勿直接回覆。"
+        )
+        _send_board_notification('petition', subject, message)
+        
     return JsonResponse({'status': new_status})
 
 
 @login_required
 @require_POST
 def add_petition_comment(request, pk):
-    """提議留言"""
+    """願望留言"""
     petition = get_object_or_404(Petition, pk=pk)
     try:
         data = json.loads(request.body)
@@ -751,8 +1064,8 @@ def add_petition_comment(request, pk):
         petition=petition,
         author=request.user,
         content=content,
-        is_official=bool(is_official) and _is_manager(request.user),
         is_anonymous=is_anonymous,
+        is_official=bool(is_official) and _is_manager(request.user),
     )
     return JsonResponse({
         'id': comment.id,
@@ -785,12 +1098,12 @@ def toggle_petition_save(request, pk):
 @login_required
 @require_POST
 def edit_petition(request, pk):
-    """提案人編輯內文"""
+    """許願人編輯內文"""
     petition = get_object_or_404(Petition, pk=pk)
     if petition.proposer != request.user:
-        return JsonResponse({'error': '僅提案人可編輯'}, status=403)
+        return JsonResponse({'error': '僅許願人可編輯'}, status=403)
     if petition.status == 'withdrawn':
-        return JsonResponse({'error': '已撤案的提議無法編輯'}, status=400)
+        return JsonResponse({'error': '已撤案的願望無法編輯'}, status=400)
 
     try:
         data = json.loads(request.body)
@@ -819,7 +1132,11 @@ class SettingsView(LoginRequiredMixin, TemplateView):
         ctx['is_manager'] = _is_manager(self.request.user)
         config = SiteConfig.load()
         ctx['config'] = config
-        ctx['group_choices'] = config.group_choices or Petition.GROUP_CHOICES
+        import json
+        ctx['board_admins_json'] = json.dumps(config.board_admins if isinstance(config.board_admins, list) else [])
+        ctx['group_choices'] = config.group_choices or [
+            {'value': v, 'label': l} for v, l in Petition.GROUP_CHOICES
+        ]
         from django.contrib.auth.models import User
         ctx['all_users'] = User.objects.all().order_by('username')
         return ctx

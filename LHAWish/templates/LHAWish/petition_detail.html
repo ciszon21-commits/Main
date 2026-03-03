@@ -1,35 +1,8 @@
 {% extends "LHAWish/base.html" %}
 {% block title %}{{ petition.title }} - 園路願望{% endblock %}
 
-{% block extra_css %}
-{% if is_proposer and petition.status != 'withdrawn' %}
-<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
-<style>
-    #editQuillEditor .ql-editor {
-        min-height: 160px;
-        font-size: 14px;
-        font-family: 'Noto Sans TC', 'Inter', sans-serif;
-    }
 
-    #editQuillEditor .ql-toolbar.ql-snow {
-        border-radius: var(--wish-radius-sm) var(--wish-radius-sm) 0 0;
-        border-color: var(--wish-border);
-    }
 
-    #editQuillEditor .ql-container.ql-snow {
-        border-radius: 0 0 var(--wish-radius-sm) var(--wish-radius-sm);
-        border-color: var(--wish-border);
-    }
-
-    #editQuillEditor .ql-snow .ql-editor img {
-        max-width: 100%;
-        height: auto;
-        border-radius: 8px;
-        margin: 8px 0;
-    }
-</style>
-{% endif %}
-{% endblock %}
 
 {% block content %}
 <div class="wish-card" style="padding:0;overflow:hidden;">
@@ -43,9 +16,9 @@
         </a>
         <div class="wish-detail-actions">
             {% if is_proposer and petition.status != 'withdrawn' %}
-            <button class="wish-detail-action-btn" id="editBtn" onclick="showEditMode()" title="編輯內文">
+            <a href="{% url 'lhawish:petition_update' petition.pk %}" class="wish-detail-action-btn" title="編輯願望">
                 <span class="material-symbols-outlined" style="font-size:18px;">edit</span>
-            </button>
+            </a>
             {% endif %}
             <!-- 收藏按鈕 -->
             <button class="wish-detail-action-btn" id="saveBtn" onclick="toggleSave({{ petition.pk }})" title="收藏">
@@ -82,13 +55,12 @@
 
         <!-- Author + Group Badge -->
         <div class="wish-detail-author">
-            <div class="wish-detail-author-avatar">{% if petition.is_anonymous %}{% else %}{{ petition.proposer.last_name|default:petition.proposer.username|truncatechars:1 }}{% endif %}</div>
             <div>
                 <div class="wish-detail-author-name">{{ petition.proposer_display }}</div>
                 <div class="wish-detail-author-meta">{{ petition.created_at|date:"Y/m/d H:i" }}</div>
             </div>
             {% if petition.assigned_group %}
-            <span class="wish-badge badge-category" style="margin-left:auto;">指定執行組別：{{ petition.get_assigned_group_display }}</span>
+            <span class="wish-badge badge-category" style="margin-left:auto;">指定執行組別：{{ petition.assigned_group }}</span>
             {% endif %}
         </div>
 
@@ -109,18 +81,6 @@
         <!-- Content -->
         <div class="wish-detail-content" id="petitionContent">{{ petition.content|safe }}</div>
 
-        <!-- 提案人編輯區域 -->
-        {% if is_proposer and petition.status != 'withdrawn' %}
-        <div id="editArea" style="display:none;margin-top:12px;">
-            <div id="editQuillEditor">
-                <div id="editQuillContent">{{ petition.content|safe }}</div>
-            </div>
-            <div style="display:flex;gap:8px;margin-top:8px;">
-                <button class="wish-btn-primary" onclick="saveEdit({{ petition.pk }})">儲存</button>
-                <button class="wish-btn-outline" onclick="hideEditMode()">取消</button>
-            </div>
-        </div>
-        {% endif %}
 
         <!-- Action Buttons -->
         {% if petition.status == 'endorsing' %}
@@ -134,7 +94,7 @@
             {% else %}
             <button class="wish-btn-primary" id="endorseBtn" onclick="endorsePetition({{ petition.pk }})"
                 style="padding:14px 48px;font-size:16px;border-radius:var(--wish-radius-full);">
-                附議此提議
+                附議此願望
             </button>
             {% endif %}
             {% if is_proposer %}
@@ -198,7 +158,7 @@
         <!-- Manager Response Form (成案後可回應) -->
         {% if is_manager and petition.status == 'established' %}
         <div class="petition-response-box" style="border-left-color:var(--wish-primary);">
-            <h3 style="font-size:14px;font-weight:600;color:var(--wish-primary);margin:0 0 12px;">回應此成案提議</h3>
+            <h3 style="font-size:14px;font-weight:600;color:var(--wish-primary);margin:0 0 12px;">回應此成案願望</h3>
             <textarea id="responseContent" placeholder="請填寫回應內容..."
                 style="width:100%;min-height:120px;padding:12px;border:1px solid var(--wish-border);border-radius:var(--wish-radius-sm);font-size:14px;resize:vertical;font-family:inherit;"></textarea>
             <button class="wish-btn-primary" style="margin-top:12px;"
@@ -284,27 +244,28 @@
         <div class="wish-comment-avatar" style="background:var(--wish-primary-light);color:var(--wish-primary);">
             <span class="material-symbols-outlined" style="font-size:16px;">person</span>
         </div>
-        <div class="wish-comment-input-wrap">
-            <textarea id="commentInput" placeholder="撰寫留言..."
+        <div class="wish-comment-input-wrap" style="display:flex;align-items:flex-start;gap:8px;flex:1;">
+            <textarea id="commentInput" placeholder="撰寫留言..." style="flex:1;"
                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();addComment({{ petition.pk }});}"></textarea>
-            <div style="display:flex;align-items:center;gap:8px;padding:0 8px 4px;">
-                <label
-                    style="font-size:12px;color:var(--wish-text-muted);display:flex;align-items:center;gap:4px;cursor:pointer;">
-                    <input type="checkbox" id="commentAnonymous" style="accent-color:var(--wish-primary);"> 匿名留言
-                </label>
-                {% if is_manager %}
-                <label
-                    style="font-size:12px;color:var(--wish-text-muted);display:flex;align-items:center;gap:4px;cursor:pointer;">
-                    <input type="checkbox" id="commentOfficial" style="accent-color:var(--wish-primary);"> 以管理者身分留言
-                </label>
-                {% endif %}
-                <button class="wish-comment-submit" onclick="addComment({{ petition.pk }})" style="margin-left:auto;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="22" y1="2" x2="11" y2="13" />
-                        <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                    </svg>
-                </button>
-            </div>
+            <button class="wish-comment-submit" onclick="addComment({{ petition.pk }})" title="送出留言"
+                style="flex-shrink:0;align-self:center;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+            </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 0;margin-left:40px;width:100%;">
+            <label
+                style="font-size:12px;color:var(--wish-text-muted);display:flex;align-items:center;gap:4px;cursor:pointer;">
+                <input type="checkbox" id="commentAnonymous" style="accent-color:var(--wish-primary);"> 匿名留言
+            </label>
+            {% if is_manager %}
+            <label
+                style="font-size:12px;color:var(--wish-text-muted);display:flex;align-items:center;gap:4px;cursor:pointer;">
+                <input type="checkbox" id="commentOfficial" style="accent-color:var(--wish-primary);"> 以管理者身分留言
+            </label>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -330,11 +291,11 @@
             method: 'POST',
             headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
         }).then(r => r.json()).then(data => {
-            if (data.error) { alert(data.error); btn.disabled = false; btn.textContent = '✊ 附議此提議'; return; }
+            if (data.error) { alert(data.error); btn.disabled = false; btn.textContent = '附議此願望'; return; }
             document.getElementById('endorseCount').textContent = data.endorsement_count;
             document.getElementById('endorsePercent').textContent = data.endorsement_percent + '%';
             document.getElementById('progressFill').style.width = data.endorsement_percent + '%';
-            btn.textContent = '✅ 已附議';
+            btn.textContent = '已附議';
             btn.style.opacity = '0.5';
             btn.style.cursor = 'not-allowed';
             if (data.status !== 'endorsing') location.reload();
@@ -380,7 +341,7 @@
         if (_editQuill) return;
         _editQuill = new Quill('#editQuillContent', {
             theme: 'snow',
-            placeholder: '編輯提議內容...',
+            placeholder: '編輯願望內容...',
             modules: {
                 toolbar: [
                     [{ 'header': [1, 2, 3, false] }],
@@ -548,7 +509,7 @@
     }
 
     function deleteResponse(pk) {
-        if (!confirm('確定要刪除此官方回應？提議狀態將恢復為「已成案」。')) return;
+        if (!confirm('確定要刪除此官方回應？願望狀態將恢復為「已成案」。')) return;
         fetch('/lhawish/petition/api/delete-response/' + pk + '/', {
             method: 'POST',
             headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }

@@ -39,11 +39,13 @@
                 <polyline points="15 18 9 12 15 6" />
             </svg>
         </a>
-        {% if is_edit %}編輯文章{% elif form_type == 'rnd' %}報修 / 功能建議{% elif form_type == 'market' %}刊登物品{% elif form_type == 'gossip'  %}發布話題{% else %}發布文章{% endif %}
+        {% if is_edit %}編輯文章{% elif form_type == 'rnd' %}報修 / 功能建議{% elif form_type == 'market' %}刊登物品{% elif form_type == 'gossip' %}發布話題{% else %}發布文章{% endif %}
     </h2>
 
     <div class="wish-author-box">
-        <div class="wish-avatar" style="width:36px;height:36px;font-size:14px;">{{ user.last_name|default:user.username|truncatechars:1 }}</div>
+        <div class="wish-comment-avatar" style="background:var(--wish-primary-light);color:var(--wish-primary);">
+            <span class="material-symbols-outlined" style="font-size:16px;">person</span>
+        </div>
         <div>
             <div style="font-weight:600;color:var(--wish-text-dark);font-size:14px;">{{ user.get_full_name|default:user.username }}</div>
             <div style="font-size:12px;color:var(--wish-text-muted);">{{ user.username }}</div>
@@ -52,7 +54,17 @@
 
     <form method="post" enctype="multipart/form-data" class="wish-form" id="postForm">
         {% csrf_token %}
+        {% if form.errors %}
+        <div
+            style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:12px 16px;margin-bottom:16px;color:#dc2626;font-size:13px;">
+            <strong>表單驗證錯誤：</strong>
+            {{ form.errors }}
+        </div>
+        {% endif %}
         {% if not is_edit %}<input type="hidden" name="type" id="postType" value="{{ form_type }}">{% endif %}
+        {% if is_edit %}
+        <input type="hidden" name="status" value="{{ form.status.value|default:'' }}">
+        {% endif %}
 
         <!-- RND Fields -->
         <div id="rndFields" class="{% if form_type != 'rnd' %}wish-hidden{% endif %}">
@@ -62,7 +74,9 @@
                     <option value="">請選擇分類</option>
                     <option value="bug">Bug報修</option>
                     <option value="feature">功能建議</option>
+                    {% if is_manager %}
                     <option value="announcement">最新公告</option>
+                    {% endif %}
                 </select>
             </div>
             <div class="wish-form-row">
@@ -81,9 +95,9 @@
                 <label>指定組別（選填）</label>
                 <select name="assigned_group" id="id_assigned_group"
                     data-current="{{ form.assigned_group.value|default_if_none:'' }}">
-                    <option value="">不指定</option>
+                    <option value="">請選擇組別</option>
                     {% for gc in group_choices %}
-                    <option value="{{ gc.value }}">{{ gc.label }}</option>
+                    <option value="{{ gc.label }}">{{ gc.label }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -107,23 +121,23 @@
 
         <!-- Gossip Fields -->
         <div id="gossipFields" class="{% if form_type != 'gossip' %}wish-hidden{% endif %}">
-            <div class="wish-checkbox">
-                <input type="checkbox" name="is_anonymous" id="id_is_anonymous" {% if form.is_anonymous.value %}checked{% endif %}>
-                <div>
-                    <div class="wish-checkbox-label">匿名發布</div>
-                    <div class="wish-checkbox-desc">勾選後其他成員將無法看到您的身份</div>
+            <div
+                style="display:flex;align-items:center;gap:20px;border:1px solid var(--wish-border);border-radius:var(--wish-radius-sm);padding:14px 16px;margin-top:8px;flex-wrap:wrap;">
+                <div class="wish-checkbox" style="flex-shrink:0;">
+                    <input type="checkbox" name="is_anonymous" id="id_is_anonymous" {% if form.is_anonymous.value %}checked{% endif %}>
+                    <div>
+                        <div class="wish-checkbox-label">匿名發布</div>
+                    </div>
+                </div>
+                <div class="wish-form-group" style="margin:0;flex:1;min-width:180px;display:none;"
+                    id="displayNameGroup">
+                    <input type="text" name="display_name" id="id_display_name"
+                        value="{{ form.display_name.value|default_if_none:'' }}" placeholder="自訂顯示名稱（選填）"
+                        style="margin:0;">
                 </div>
             </div>
-            <div class="wish-form-group" style="margin-top:16px;">
-                <label>可見對象</label>
-                <select name="visibility" id="id_visibility"
-                    data-current="{{ form.visibility.value|default_if_none:'all' }}">
-                    <option value="all">全部門</option>
-                    <option value="deputy_up">僅副主管以上</option>
-                    <option value="manager_only">僅主管可見</option>
-                </select>
-            </div>
         </div>
+
 
         <!-- Common Fields -->
         <div class="wish-form-group">
@@ -174,6 +188,20 @@
         document.querySelectorAll('[data-current]').forEach(function (sel) {
             if (sel.dataset.current) sel.value = sel.dataset.current;
         });
+
+        // 匿名勾選 → 顯示/隱藏自訂顯示名稱
+        var anonCheckbox = document.getElementById('id_is_anonymous');
+        var displayNameGroup = document.getElementById('displayNameGroup');
+        if (anonCheckbox && displayNameGroup) {
+            function toggleDisplayName() {
+                displayNameGroup.style.display = anonCheckbox.checked ? '' : 'none';
+                if (!anonCheckbox.checked) {
+                    document.getElementById('id_display_name').value = '';
+                }
+            }
+            anonCheckbox.addEventListener('change', toggleDisplayName);
+            toggleDisplayName();
+        }
 
         // Form submit — sync Quill content (only for non-market)
         if (document.getElementById('quillEditor')) {
