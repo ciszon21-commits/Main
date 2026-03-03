@@ -1,0 +1,73 @@
+{% extends "LHAWish/base.html" %}
+{% block title %}研發專案 - 部門許願池{% endblock %}
+
+{% block content %}
+<!-- Toolbar -->
+<div class="wish-toolbar">
+    <div class="wish-toolbar-left">
+        <form method="get" class="wish-search" id="searchForm">
+            <svg class="wish-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="text" name="q" value="{{ search_term }}" placeholder="搜尋文章、報修或公告...">
+            {% if selected_category != 'all' %}
+            <input type="hidden" name="category" value="{{ selected_category }}">
+            {% endif %}
+        </form>
+        <div class="wish-filter-group">
+            <a href="?category=all{% if search_term %}&q={{ search_term }}{% endif %}"
+                class="wish-filter-btn {% if selected_category == 'all' %}active{% endif %}">全部</a>
+            <a href="?category=announcement{% if search_term %}&q={{ search_term }}{% endif %}"
+                class="wish-filter-btn {% if selected_category == 'announcement' %}active{% endif %}">最新公告</a>
+            <a href="?category=bug{% if search_term %}&q={{ search_term }}{% endif %}"
+                class="wish-filter-btn {% if selected_category == 'bug' %}active{% endif %}">Bug報修</a>
+            <a href="?category=feature{% if search_term %}&q={{ search_term }}{% endif %}"
+                class="wish-filter-btn {% if selected_category == 'feature' %}active{% endif %}">功能建議</a>
+        </div>
+    </div>
+    <a href="{% url 'lhawish:post_create' %}?type=rnd" class="wish-btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        我要報修/許願
+    </a>
+</div>
+
+<!-- Post List (two-column grid) -->
+<div class="wish-card-grid">
+    {% for post in posts %}
+    <a href="{% url 'lhawish:post_detail' post.pk %}" class="wish-card">
+        <div class="wish-card-header">
+            <div class="wish-card-badges">
+                <span class="wish-badge badge-category">{{ post.get_category_display }}</span>
+                <span class="wish-badge {{ post.status_css_class }}">{{ post.status_display }}</span>
+            </div>
+        </div>
+        <h3 class="wish-card-title">{{ post.title }}</h3>
+        <p class="wish-card-content">{{ post.content|striptags|truncatechars:100 }}</p>
+        <div class="wish-card-footer">
+            <div class="wish-detail-author-meta">{{ post.created_at|date:"Y/m/d H:i" }}</div>
+            <div class="wish-card-stats">
+                <span class="wish-stat">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    {{ post.comment_count }}
+                </span>
+            </div>
+        </div>
+    </a>
+    {% empty %}
+    <div class="wish-empty" style="grid-column:1/-1;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="2" y="3" width="20" height="14" rx="2" />
+            <line x1="8" y1="21" x2="16" y2="21" />
+            <line x1="12" y1="17" x2="12" y2="21" />
+        </svg>
+        <p>目前沒有任何研發專案貼文</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

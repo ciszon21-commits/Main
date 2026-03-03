@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>部門許願池平台</title>
+    
+    <!-- 載入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 載入 React 和 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- 載入 Babel (用於解析 JSX) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- 載入 Lucide Icons -->
+    <script src="https://unpkg.com/lucide@0.454.0/dist/umd/lucide.js"></script>
+
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in-up { animation: fadeInUp 0.3s ease-in-out; }
+    </style>
+</head>
+<body class="bg-[#F4F6F8]">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- Lucide Icon Adapter ---
+        const LucideIcon = ({ name, size = 24, className = "", ...props }) => {
+            if (typeof lucide === 'undefined' || !lucide.icons) return <span className="w-6 h-6 bg-gray-200" />;
+            const iconDef = lucide.icons[name];
+            if (!iconDef) return null;
+            const [tag, attrs, children] = iconDef;
+            const toCamel = (s) => s.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+            const formatAttrs = (attributes) => {
+                const res = {};
+                for (const key in attributes) {
+                    const val = attributes[key];
+                    if (key === 'class') res.className = val;
+                    else if (key.startsWith('stroke-')) res[toCamel(key)] = val;
+                    else if (key === 'fill-rule') res.fillRule = val;
+                    else if (key === 'clip-rule') res.clipRule = val;
+                    else res[key] = val;
+                }
+                return res;
+            };
+            return (
+                <svg {...formatAttrs(attrs)} width={size} height={size} className={`lucide lucide-${name.toLowerCase()} ${className}`} {...props}>
+                    {children.map(([childTag, childAttrs], i) => React.createElement(childTag, { ...formatAttrs(childAttrs), key: i }))}
+                </svg>
+            );
+        };
+
+        // Icons
+        const Heart = (p) => <LucideIcon name="Heart" {...p} />;
+        const MessageCircle = (p) => <LucideIcon name="MessageCircle" {...p} />;
+        const Eye = (p) => <LucideIcon name="Eye" {...p} />;
+        const Bookmark = (p) => <LucideIcon name="Bookmark" {...p} />;
+        const Search = (p) => <LucideIcon name="Search" {...p} />;
+        const Filter = (p) => <LucideIcon name="Filter" {...p} />;
+        const Plus = (p) => <LucideIcon name="Plus" {...p} />;
+        const User = (p) => <LucideIcon name="User" {...p} />;
+        const Bell = (p) => <LucideIcon name="Bell" {...p} />;
+        const Briefcase = (p) => <LucideIcon name="Briefcase" {...p} />;
+        const ShoppingBag = (p) => <LucideIcon name="ShoppingBag" {...p} />;
+        const MessageSquare = (p) => <LucideIcon name="MessageSquare" {...p} />;
+        const Mail = (p) => <LucideIcon name="Mail" {...p} />;
+        const BarChart2 = (p) => <LucideIcon name="ChartColumn" {...p} />;
+        const MoreHorizontal = (p) => <LucideIcon name="Ellipsis" {...p} />;
+        const CheckCircle = (p) => <LucideIcon name="CircleCheck" {...p} />;
+        const Clock = (p) => <LucideIcon name="Clock" {...p} />;
+        const AlertCircle = (p) => <LucideIcon name="CircleAlert" {...p} />;
+        const DollarSign = (p) => <LucideIcon name="DollarSign" {...p} />;
+        const MapPin = (p) => <LucideIcon name="MapPin" {...p} />;
+        const ChevronRight = (p) => <LucideIcon name="ChevronRight" {...p} />;
+        const Send = (p) => <LucideIcon name="Send" {...p} />;
+        const ArrowLeft = (p) => <LucideIcon name="ArrowLeft" {...p} />;
+        const Share2 = (p) => <LucideIcon name="Share2" {...p} />;
+        const CornerDownRight = (p) => <LucideIcon name="CornerDownRight" {...p} />;
+        const Monitor = (p) => <LucideIcon name="Monitor" {...p} />;
+        const Camera = (p) => <LucideIcon name="Camera" {...p} />;
+        const Tag = (p) => <LucideIcon name="Tag" {...p} />;
+        const Edit = (p) => <LucideIcon name="Pencil" {...p} />;
+        const FileText = (p) => <LucideIcon name="FileText" {...p} />;
+        const ExternalLink = (p) => <LucideIcon name="ExternalLink" {...p} />;
+        const X = (p) => <LucideIcon name="X" {...p} />;
+        const Upload = (p) => <LucideIcon name="Upload" {...p} />;
+
+        // --- Data ---
+        const MOCK_USER = { id: "u1", name: "王小明", department: "工程設計部", avatar: "https://i.pravatar.cc/150?u=u1" };
+        const MANAGERS = [
+            { name: "部門主管(資協)", email: "test.manager@company.com" },
+            { name: "ABB技經", email: "abb.manager@company.com" },
+            { name: "BAA技經", email: "baa@company.com" }
+        ];
+        const MOCK_COMMENTS = [
+            { id: 1, author: "李大文", avatar: "https://i.pravatar.cc/150?u=1", content: "這個問題我昨天也遇到了，卡了一整天！", date: "1小時前" },
+            { id: 2, author: "System Admin", avatar: "https://i.pravatar.cc/150?u=8", content: "已收到回報，工程師正在排查中。", date: "30分鐘前", isOfficial: true },
+        ];
+
+        // Rich Mock Data (R&D, Market, Gossip)
+        const INITIAL_POSTS = [
+            // R&D
+            { id: 101, type: 'rnd', category: 'Bug報修', title: 'SinoWay 套件定線設計匯出異常', author: '陳工程', date: '30分鐘前', content: '在 SinoWay 套件中進行定線設計時，若曲線半徑小於 50m，匯出的報表數值會出現 NaN。\n指定套件：SinoWay\n問題類型：定線設計\n請協助確認演算法是否有邊界值問題。', status: '待確認', priority: 'High', likes: 5, comments: 2, views: 45, isSaved: false, isLiked: false },
+            { id: 102, type: 'rnd', category: '最新公告', title: 'Q4 軟體版本更新說明會', author: '研發部主管', date: '2小時前', content: '各位同仁好，\n預計於下週三 (11/15) 下午 14:00 舉辦 Q4 版本更新說明會。本次更新包含 SinoDrain 套件的集水區自動劃設功能優化，請相關人員務必參加。\n地點：大會議室 A', status: '已排定', priority: 'Normal', likes: 32, comments: 0, views: 120, isSaved: true, isLiked: false },
+            { id: 103, type: 'rnd', category: '功能建議', title: '希望能增加自訂橫斷面樣板功能', author: '林設計', date: '1天前', content: '目前的橫斷面設計樣板較為固定，針對特殊的擋土牆結構常常需要手動後製。建議能開放使用者自訂 parametric component，以提升效率。', status: '已排定', priority: 'Low', likes: 15, comments: 4, views: 88, isSaved: false, isLiked: true },
+            { id: 104, type: 'rnd', category: 'Bug報修', title: 'SinoDrain 套件排水計算流量錯誤', author: '張水利', date: '3天前', content: '在 SinoDrain 套件進行排水設施佈設時，發現當集水區面積超過 100 公頃，流量計算結果會無故歸零。', status: '處理中', priority: 'Critical', likes: 8, comments: 6, views: 210, isSaved: true, isLiked: true },
+            { id: 105, type: 'rnd', category: '功能建議', title: '製表出圖工具希望能支援批次轉 PDF', author: '王小明', date: '5天前', content: '每次出圖都要一張一張轉存 PDF 實在太花時間了，希望能增加批次處理的功能，讓我可以準時下班 T_T', status: '已完成', priority: 'Normal', likes: 45, comments: 12, views: 500, isSaved: false, isLiked: false },
+            // Market
+            { id: 201, type: 'market', title: 'Keychron K2 機械鍵盤 (茶軸)', price: 1800, condition: '九成新', author: '李介面', date: '1小時前', image: 'https://m.media-amazon.com/images/I/61N3y-XjB+L._AC_SL1500_.jpg', status: '出售中', likes: 12, comments: 3, views: 150, isSaved: false, isLiked: false, content: '換了新鍵盤故售出。背光功能正常，已清潔消毒。附原廠盒子與拔鍵器。打感舒適，適合在辦公室使用不會太吵。' },
+            { id: 202, type: 'market', title: '星巴克飲料券 5 張', price: 500, priceLabel: '面交價', condition: '全新', author: '王小明', date: '4小時前', image: 'https://www.starbucks.com.tw/common/objects/images/products/20220803105739982.jpg', status: '出售中', likes: 8, comments: 1, views: 95, isSaved: false, isLiked: false, content: '公司活動抽到的，自己喝不完。期限到今年年底，可兌換任一中杯飲品。' },
+            { id: 203, type: 'market', title: 'Dell 27吋 4K 螢幕 (需自取)', price: 0, priceLabel: '交換 PS5 遊戲片', condition: '七成新', author: '陳硬體', date: '1天前', image: 'https://i.dell.com/is/image/DellContent/content/dam/ss2/product-images/dell-client-products/peripherals/monitors/u-series/u2723qe/media-gallery/monitor-u2723qe-gallery-1.psd?fmt=png-alpha&pscan=auto&scl=1&hei=402&wid=536&qlt=100,1&resMode=sharp2&size=536,402&chrss=full', status: '洽談中', likes: 25, comments: 8, views: 400, isSaved: true, isLiked: true, content: '螢幕左下角有一點點暗角，不影響日常使用。想交換 PS5 遊戲片（蜘蛛人2 或 戰神：諸神黃昏）。因無箱子，需開車自取。' },
+            { id: 204, type: 'market', title: 'Logitech 人體工學滑鼠 MX Vertical', price: 1200, condition: '八成新', author: '林設計', date: '2天前', image: 'https://resource.logitech.com/w_692,c_lpad,ar_4:3,q_auto,f_auto,dpr_1.0/d_transparent.gif/content/dam/logitech/en/products/mice/mx-vertical/gallery/mx-vertical-gallery-1.png?v=1', status: '已售出', likes: 5, comments: 0, views: 70, isSaved: false, isLiked: false, content: '為了拯救手腕買的，但還是習慣一般滑鼠。已售出給同部門同事。' },
+            // Gossip
+            { id: 301, type: 'gossip', author: '某同事', isAnonymous: true, visibility: '全部門', date: '20分鐘前', content: '請問有人知道公司附近的「阿嬤乾麵」搬去哪了嗎？今天中午去撲空了...那是我的精神糧食啊！🍜😭', likes: 18, comments: 5, views: 80, isSaved: false, isLiked: true },
+            { id: 302, type: 'gossip', author: '熱心路人', isAnonymous: true, visibility: '全部門', date: '3小時前', content: '提醒大家，今天的冷氣是不是特別冷？坐在出風口的同事記得穿外套，我已經看到兩個人在擤鼻涕了 🥶', likes: 42, comments: 10, views: 200, isSaved: false, isLiked: false },
+            { id: 303, type: 'gossip', author: '某同事', isAnonymous: true, visibility: '僅主管可見', date: '1天前', content: '[建議] 關於尾牙的地點，希望能避開海鮮餐廳，部門內有好幾位同事對海鮮過敏。希望能考慮 Buffet 形式，大家比較有得吃。', likes: 8, comments: 2, views: 15, isSaved: false, isLiked: false },
+            { id: 304, type: 'gossip', author: '王小明', isAnonymous: false, visibility: '全部門', date: '2天前', content: '這週五下班有人要一起去打羽球嗎？目前缺 2 人，歡迎新手！地點在附近的運動中心。🏸', likes: 12, comments: 4, views: 110, isSaved: false, isLiked: true }
+        ];
+
+        // --- Components ---
+        const StatusBadge = ({ status, type }) => {
+            let colorClass = "";
+            if (type === 'rnd') {
+                switch (status) {
+                    case '待確認': colorClass = "bg-orange-100 text-orange-600"; break;
+                    case '已排定': colorClass = "bg-blue-100 text-blue-600"; break;
+                    case '處理中': colorClass = "bg-[#E6F6F7] text-[#00A0B0]"; break;
+                    case '已完成': colorClass = "bg-gray-100 text-gray-500"; break;
+                    default: colorClass = "bg-gray-100 text-gray-500";
+                }
+            } else if (type === 'market') {
+                switch (status) {
+                    case '出售中': colorClass = "bg-[#E6F6F7] text-[#00A0B0]"; break;
+                    case '洽談中': colorClass = "bg-orange-100 text-orange-600"; break;
+                    case '已售出': colorClass = "bg-gray-200 text-gray-500 line-through"; break;
+                    default: colorClass = "bg-gray-100 text-gray-500";
+                }
+            } else if (type === 'mailbox') {
+                switch(status) {
+                    case '已讀': colorClass = "bg-blue-50 text-blue-600"; break;
+                    case '處理中': colorClass = "bg-orange-50 text-orange-600"; break;
+                    default: colorClass = "bg-gray-100 text-gray-500";
+                }
+            }
+            return <span className={`px-2 py-0.5 rounded text-xs font-medium ${colorClass}`}>{status}</span>;
+        };
+
+        const PostDetail = ({ post, onBack, primaryColor, bgPrimary, borderPrimary }) => {
+            const comments = post.type === 'mailbox' ? [] : MOCK_COMMENTS;
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-100 min-h-[500px] animate-fade-in relative">
+                    <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-10 p-4 border-b border-slate-100 flex items-center justify-between rounded-t-xl">
+                        <button onClick={onBack} className="p-2 -ml-2 text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-full transition flex items-center">
+                            <ArrowLeft size={20} className="mr-1"/> <span className="text-sm font-medium">返回列表</span>
+                        </button>
+                        <div className="flex items-center space-x-2">
+                            {post.type !== 'mailbox' && (
+                                <>
+                                    <button className="p-2 text-slate-400 hover:text-[#00A0B0] hover:bg-[#E6F6F7] rounded-full transition"><Bookmark size={20} /></button>
+                                    <button className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-50 rounded-full transition"><Share2 size={20} /></button>
+                                </>
+                            )}
+                            <button className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-50 rounded-full transition"><MoreHorizontal size={20} /></button>
+                        </div>
+                    </div>
+
+                    <div className="p-6">
+                        {post.type === 'market' && (
+                            <div className="mb-6">
+                                <div className="aspect-video w-full bg-slate-100 rounded-xl overflow-hidden mb-6 relative">
+                                    <img src={post.image} alt={post.title} className="w-full h-full object-cover" />
+                                    <div className="absolute top-4 left-4"><StatusBadge status={post.status} type="market" /></div>
+                                </div>
+                                <div className="flex flex-row items-start justify-between gap-4">
+                                    <div>
+                                        <h1 className="text-2xl font-bold text-slate-800 mb-2">{post.title}</h1>
+                                        <div className="text-3xl font-bold text-[#00A0B0] mb-2">{post.priceLabel ? post.priceLabel : `$${post.price}`}</div>
+                                        <div className="flex items-center space-x-4 text-sm text-slate-500 mb-4">
+                                            <span className="flex items-center"><User size={14} className="mr-1"/> {post.author}</span>
+                                            <span className="flex items-center"><Clock size={14} className="mr-1"/> {post.date}</span>
+                                            <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600">{post.condition}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {(post.type === 'rnd' || post.type === 'gossip') && (
+                            <div className="mb-6">
+                                <div className="flex items-center space-x-2 mb-4">
+                                    {post.type === 'rnd' && <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-bold">{post.category}</span>}
+                                    {post.type === 'gossip' && post.visibility && <span className="px-2 py-1 bg-purple-50 text-purple-600 rounded text-xs font-bold flex items-center"><User size={10} className="mr-1"/>{post.visibility}</span>}
+                                    <StatusBadge status={post.status} type="rnd" />
+                                    {post.priority === 'High' && <span className="text-xs text-red-500 bg-red-50 px-2 py-0.5 rounded flex items-center"><AlertCircle size={10} className="mr-1"/>急</span>}
+                                </div>
+                                <h1 className="text-2xl font-bold text-slate-800 mb-4 leading-snug">{post.title || (post.type === 'gossip' ? '匿名貼文' : '')}</h1>
+                                <div className="flex items-center space-x-3 mb-6 pb-6 border-b border-slate-100">
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${post.isAnonymous ? 'bg-slate-200' : 'bg-[#E6F6F7]'}`}>
+                                        {post.isAnonymous ? "🤐" : <img src={`https://i.pravatar.cc/150?u=${post.id}`} className="w-full h-full rounded-full" alt="avatar"/>}
+                                    </div>
+                                    <div>
+                                        <div className="font-bold text-slate-800 text-sm">{post.author}</div>
+                                        <div className="text-xs text-slate-400">{post.date} • {post.views} 次瀏覽</div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {post.type === 'mailbox' && (
+                            <div className="mb-6">
+                                <h1 className="text-xl font-bold text-slate-800 mb-2">{post.title}</h1>
+                                <div className="flex items-center justify-between text-sm text-slate-500 mb-6 pb-4 border-b border-slate-100">
+                                    <span>收件者：{post.recipient}</span>
+                                    <span>{post.date}</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {post.type !== 'mailbox' && (
+                            <div className="prose prose-slate max-w-none mb-8 text-slate-700 leading-relaxed whitespace-pre-line">{post.content}</div>
+                        )}
+
+                        {post.type !== 'mailbox' && (
+                            <div className="flex items-center space-x-6 py-4 border-t border-b border-slate-100 mb-8">
+                                <button className={`flex items-center space-x-2 ${post.isLiked ? 'text-red-500' : 'text-slate-500 hover:text-red-500'} transition`}>
+                                    <Heart size={20} className={post.isLiked ? "fill-current" : ""}/> <span className="font-medium">{post.likes}</span>
+                                </button>
+                                <button className="flex items-center space-x-2 text-slate-500 hover:text-[#00A0B0] transition">
+                                    <MessageCircle size={20} /> <span className="font-medium">{post.comments}</span>
+                                </button>
+                            </div>
+                        )}
+
+                        {post.type !== 'mailbox' && (
+                            <div>
+                                <h3 className="font-bold text-slate-800 mb-4 flex items-center">
+                                    留言 <span className="ml-2 text-xs bg-slate-100 px-2 py-0.5 rounded-full text-slate-500">{comments.length}</span>
+                                </h3>
+                                <div className="space-y-6 mb-8">
+                                    {comments.map(comment => (
+                                        <div key={comment.id} className="flex space-x-3">
+                                            <img src={comment.avatar} alt={comment.author} className="w-8 h-8 rounded-full bg-slate-200" />
+                                            <div className="flex-1">
+                                                <div className="bg-slate-50 p-3 rounded-xl rounded-tl-none">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="font-bold text-xs text-slate-800 flex items-center">
+                                                            {comment.author}
+                                                            {comment.isOfficial && <span className="ml-1 bg-[#00A0B0] text-white text-[10px] px-1 rounded">官方</span>}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-400">{comment.date}</span>
+                                                    </div>
+                                                    <p className="text-sm text-slate-700">{comment.content}</p>
+                                                </div>
+                                                <div className="flex items-center space-x-4 mt-1 pl-1">
+                                                    <button className="text-xs text-slate-400 hover:text-slate-600 font-medium">回覆</button>
+                                                    <button className="text-xs text-slate-400 hover:text-slate-600">讚</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex items-start space-x-3 sticky bottom-0 bg-white p-4 border-t border-slate-100 -mx-6 -mb-6 rounded-b-xl">
+                                    <img src={MOCK_USER.avatar} className="w-8 h-8 rounded-full" alt="Me" />
+                                    <div className="flex-1 relative">
+                                        <textarea placeholder="寫下你的留言..." className="w-full bg-slate-50 border-none rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#00A0B0] focus:outline-none resize-none h-12 pr-10" />
+                                        <button className="absolute right-2 top-2 p-1 text-[#00A0B0] hover:bg-[#E6F6F7] rounded-full"><CornerDownRight size={18} /></button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Compose Modal Component (Extracted for state management) ---
+        const ComposeModal = ({ activeTab, isManager, onClose, MOCK_USER, bgPrimary, borderPrimary }) => {
+            const fileInputRef = useRef(null);
+            const [previewImage, setPreviewImage] = useState(null);
+            const [mailTarget, setMailTarget] = useState(MANAGERS[0].email);
+            
+            // State for R&D custom inputs
+            const [selectedPackage, setSelectedPackage] = useState("");
+            const [selectedProblemType, setSelectedProblemType] = useState("");
+
+            const handleFileChange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => setPreviewImage(reader.result);
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const handlePaste = (e) => {
+                const items = e.clipboardData.items;
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf("image") !== -1) {
+                        const blob = items[i].getAsFile();
+                        const reader = new FileReader();
+                        reader.onloadend = () => setPreviewImage(reader.result);
+                        reader.readAsDataURL(blob);
+                        e.preventDefault(); 
+                        return;
+                    }
+                }
+            };
+
+            const handleSubmit = () => {
+                if (activeTab === 'mailbox') {
+                    window.location.href = `mailto:${mailTarget}`;
+                    onClose();
+                } else {
+                    onClose();
+                    alert("發文成功！(模擬)");
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden scale-100 transition-transform">
+                        <div className={`p-4 ${bgPrimary} text-white flex justify-between items-center`}>
+                            <h3 className="font-bold flex items-center">
+                                {activeTab === 'rnd' && <><Briefcase size={18} className="mr-2"/> 研發專案 - 我要發文</>}
+                                {activeTab === 'market' && <><ShoppingBag size={18} className="mr-2"/> 跳蚤市場 - 刊登物品</>}
+                                {activeTab === 'gossip' && <><MessageSquare size={18} className="mr-2"/> 七嘴八舌 - 發布話題</>}
+                                {activeTab === 'mailbox' && <><Mail size={18} className="mr-2"/> 主管信箱 - 撰寫信件</>}
+                            </h3>
+                            <button onClick={onClose} className="hover:bg-white/20 rounded-full p-1"><Plus size={20} className="rotate-45"/></button>
+                        </div>
+                        
+                        <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto" onPaste={handlePaste}>
+                            
+                            {/* --- RND FORM FIELDS --- */}
+                            {activeTab === 'rnd' && (
+                                <>
+                                    <div className="flex items-center space-x-3 bg-slate-50 p-3 rounded-lg border border-slate-100 mb-4">
+                                        <img src={MOCK_USER.avatar} alt="User" className="w-10 h-10 rounded-full" />
+                                        <div>
+                                            <div className="text-sm font-bold text-slate-700">{MOCK_USER.name}</div>
+                                            <div className="text-xs text-slate-400">
+                                                {MOCK_USER.department} (實名發布)
+                                                {isManager && <span className="ml-1 text-[#00A0B0] font-bold">• 主管</span>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">分類 <span className="text-red-500">*</span></label>
+                                        <select className="w-full border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:border-[#00A0B0]">
+                                            <option>Bug報修</option>
+                                            {isManager && <option>最新公告</option>}
+                                            <option>功能建議</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">標題</label>
+                                        <input type="text" className="w-full border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:border-[#00A0B0]" placeholder="例如：首頁圖片無法顯示" />
+                                    </div>
+                                    
+                                    {/* 新增欄位：指定套件 */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">指定套件</label>
+                                        <select 
+                                            className="w-full border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:border-[#00A0B0]"
+                                            value={selectedPackage}
+                                            onChange={(e) => setSelectedPackage(e.target.value)}
+                                        >
+                                            <option value="">請選擇...</option>
+                                            <option value="custom">自行輸入</option>
+                                            <option value="Way">SinoWay</option>
+                                            <option value="Drain">SinoDrain</option>
+                                        </select>
+                                        {selectedPackage === 'custom' && (
+                                            <input type="text" className="mt-2 w-full border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:border-[#00A0B0] bg-slate-50" placeholder="請輸入套件名稱..." />
+                                        )}
+                                    </div>
+
+                                    {/* 新增欄位：問題類型 */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">問題類型</label>
+                                        <select 
+                                            className="w-full border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:border-[#00A0B0]"
+                                            value={selectedProblemType}
+                                            onChange={(e) => setSelectedProblemType(e.target.value)}
+                                        >
+                                            <option value="">請選擇...</option>
+                                            <option value="custom">自行輸入</option>
+                                            <option value="grading">整地/地形</option>
+                                            <option value="alignment">定線設計</option>
+                                            <option value="ramp">匝道設計</option>
+                                            <option value="superelevation">超高設計</option>
+                                            <option value="cross_section">橫斷面設計</option>
+                                            <option value="corridor">廊道設計</option>
+                                            <option value="traffic_engineering">交通工程設計</option>
+                                            <option value="table_output">製表出圖</option>
+                                            <option value="plan">計畫</option>
+                                            <option value="watershed">集水區劃設</option>
+                                            <option value="drainage">排水設施佈設</option>
+                                            <option value="tools">工具</option>
+                                        </select>
+                                        {selectedProblemType === 'custom' && (
+                                            <input type="text" className="mt-2 w-full border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:border-[#00A0B0] bg-slate-50" placeholder="請輸入問題類型..." />
+                                        )}
+                                    </div>
+
+                                    {/* Image Upload Area */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">圖片上傳</label>
+                                        <div 
+                                            className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:bg-slate-50 transition cursor-pointer relative"
+                                            onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                                        >
+                                            <input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept="image/*" />
+                                            {previewImage ? (
+                                                <div className="relative inline-block">
+                                                    <img src={previewImage} alt="Preview" className="max-h-40 mx-auto rounded shadow-sm" />
+                                                    <button onClick={(e) => { e.stopPropagation(); setPreviewImage(null); if(fileInputRef.current) fileInputRef.current.value = ""; }} className="absolute -top-2 -right-2 bg-slate-800 text-white rounded-full p-1 hover:bg-red-500 transition shadow-md"><X size={14} /></button>
+                                                </div>
+                                            ) : (
+                                                <div className="text-slate-400">
+                                                    <Camera size={32} className="mx-auto mb-2 opacity-50" />
+                                                    <p className="text-sm font-medium">點擊選擇檔案，或直接貼上截圖 (Ctrl+V)</p>
+                                                    <p className="text-xs mt-1 text-slate-300">支援 JPG, PNG</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">內容描述</label>
+                                        <textarea className="w-full border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:border-[#00A0B0] h-32" placeholder="請詳細描述遇到的問題或建議..." />
+                                    </div>
+                                </>
+                            )}
+
+                            {/* --- MARKET FORM FIELDS --- */}
+                            {activeTab === 'market' && (
+                                <>
+                                    <div className="flex items-center space-x-3 bg-slate-50 p-3 rounded-lg border border-slate-100 mb-4">
+                                        <img src={MOCK_USER.avatar} alt="User" className="w-10 h-10 rounded-full" />
+                                        <div>
+                                            <div className="text-sm font-bold text-slate-700">{MOCK_USER.name}</div>
+                                            <div className="text-xs text-slate-400">{MOCK_USER.department} (實名刊登)</div>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="col-span-2">
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">商品名稱</label>
+                                            <input type="text" className="w-full border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:border-[#00A0B0]" placeholder="例如：全新藍牙耳機" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">預售價格</label>
+                                            <div className="relative">
+                                                <DollarSign size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                                                <input type="number" className="w-full border border-slate-200 rounded-lg pl-9 pr-2 py-2.5 focus:outline-none focus:border-[#00A0B0]" placeholder="0" />
+                                            </div>
+                                            <div className="mt-1 flex items-center">
+                                                <input type="checkbox" id="free" className="rounded text-[#00A0B0] focus:ring-[#00A0B0] mr-1"/>
+                                                <label htmlFor="free" className="text-xs text-slate-500">免費贈送 / 交換</label>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">物品狀況</label>
+                                            <select className="w-full border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:border-[#00A0B0]">
+                                                <option>全新</option>
+                                                <option>九成新</option>
+                                                <option>七成新</option>
+                                                <option>功能正常但外觀舊</option>
+                                                <option>故障/零件機</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Image Upload Area */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">商品圖片</label>
+                                        <div 
+                                            className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:bg-slate-50 transition cursor-pointer relative"
+                                            onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                                        >
+                                            <input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept="image/*" />
+                                            {previewImage ? (
+                                                <div className="relative inline-block">
+                                                    <img src={previewImage} alt="Preview" className="max-h-40 mx-auto rounded shadow-sm" />
+                                                    <button onClick={(e) => { e.stopPropagation(); setPreviewImage(null); if(fileInputRef.current) fileInputRef.current.value = ""; }} className="absolute -top-2 -right-2 bg-slate-800 text-white rounded-full p-1 hover:bg-red-500 transition shadow-md"><X size={14} /></button>
+                                                </div>
+                                            ) : (
+                                                <div className="text-slate-400">
+                                                    <Camera size={32} className="mx-auto mb-2 opacity-50" />
+                                                    <p className="text-sm font-medium">點擊上傳商品照片，或直接貼上 (Ctrl+V)</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">商品描述 & 交易方式</label>
+                                        <textarea className="w-full border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:border-[#00A0B0] h-24" placeholder="詳細說明物品狀況，以及方便面交的時間地點..." />
+                                    </div>
+                                </>
+                            )}
+
+                            {/* --- GOSSIP FORM FIELDS --- */}
+                            {activeTab === 'gossip' && (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">我想說...</label>
+                                        <textarea className="w-full border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:border-[#00A0B0] h-40 text-lg" placeholder="分享你的心情、八卦或建議..." />
+                                    </div>
+                                    
+                                    {/* Image Upload Area */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">圖片 (選填)</label>
+                                        <div 
+                                            className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:bg-slate-50 transition cursor-pointer relative"
+                                            onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                                        >
+                                            <input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept="image/*" />
+                                            {previewImage ? (
+                                                <div className="relative inline-block">
+                                                    <img src={previewImage} alt="Preview" className="max-h-32 mx-auto rounded shadow-sm" />
+                                                    <button onClick={(e) => { e.stopPropagation(); setPreviewImage(null); if(fileInputRef.current) fileInputRef.current.value = ""; }} className="absolute -top-2 -right-2 bg-slate-800 text-white rounded-full p-1 hover:bg-red-500 transition shadow-md"><X size={14} /></button>
+                                                </div>
+                                            ) : (
+                                                <div className="text-slate-400 flex items-center justify-center space-x-2">
+                                                    <Camera size={20} className="opacity-50" />
+                                                    <span className="text-sm">點擊上傳或貼上圖片</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">誰可以看到？</label>
+                                        <div className="flex space-x-2">
+                                            {['全部門', '僅副主管以上', '僅主管'].map(opt => (
+                                                <button key={opt} className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm hover:border-[#00A0B0] hover:text-[#00A0B0] focus:ring-2 ring-[#00A0B0]">{opt}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center space-x-2 pt-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                        <input type="checkbox" id="anon" className="w-4 h-4 rounded text-[#00A0B0] focus:ring-[#00A0B0]" />
+                                        <div>
+                                            <label htmlFor="anon" className="text-sm font-bold text-slate-700 block">匿名發布</label>
+                                            <span className="text-xs text-slate-400">開啟後，前台將隱藏您的姓名與頭像</span>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                            
+                            {/* --- MAILBOX FORM FIELDS --- */}
+                            {activeTab === 'mailbox' && (
+                               <>
+                                 <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-700 mb-4 flex items-start">
+                                    <AlertCircle size={18} className="mr-2 mt-0.5 flex-shrink-0" />
+                                    <p>為確保溝通效率，系統將引導您至 Outlook 進行郵件撰寫。請選擇您想聯繫的主管。</p>
+                                 </div>
+                                 <div>
+                                   <label className="block text-sm font-medium text-slate-700 mb-1">選擇收件主管</label>
+                                   <select 
+                                     className="w-full border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:border-[#00A0B0]"
+                                     onChange={(e) => setMailTarget(e.target.value)}
+                                     value={mailTarget}
+                                   >
+                                     {MANAGERS.map(m => <option key={m.email} value={m.email}>{m.name}</option>)}
+                                   </select>
+                                 </div>
+                               </>
+                            )}
+
+                            <button 
+                                onClick={handleSubmit}
+                                className={`w-full ${bgPrimary} text-white py-3 rounded-xl font-bold shadow-lg shadow-[#00A0B0]/20 hover:bg-[#00808D] transition mt-4 flex justify-center items-center`}
+                            >
+                                {activeTab === 'mailbox' ? <><ExternalLink size={18} className="mr-2"/>前往 Outlook 寫信</> : '確認發布'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 主應用程式 ---
+        const DepartmentWishingWell = () => {
+            const [activeTab, setActiveTab] = useState('rnd'); // rnd, market, gossip, mailbox, dashboard, profile
+            const [isManager, setIsManager] = useState(false); // 模擬角色切換
+            const [posts, setPosts] = useState(INITIAL_POSTS);
+            const [showCompose, setShowCompose] = useState(false);
+            const [searchTerm, setSearchTerm] = useState("");
+            const [selectedCategory, setSelectedCategory] = useState("All"); // 新增：分類篩選狀態
+            const [selectedPost, setSelectedPost] = useState(null); 
+            const [profileSubTab, setProfileSubTab] = useState('my-posts'); // my-posts, saved
+            const [mailTarget, setMailTarget] = useState(MANAGERS[0].email); // 新增：郵件目標
+
+            useEffect(() => {
+                if (activeTab !== 'profile') {
+                    setSelectedCategory("All");
+                    setSearchTerm("");
+                }
+            }, [activeTab]);
+
+            const filteredPosts = posts.filter(post => {
+                if (activeTab === 'profile') {
+                    if (profileSubTab === 'my-posts') return post.author === MOCK_USER.name;
+                    else if (profileSubTab === 'saved') return post.isSaved;
+                    return false;
+                }
+                const matchesSearch = searchTerm === "" || 
+                    (post.title && post.title.includes(searchTerm)) || 
+                    (post.content && post.content.includes(searchTerm)) ||
+                    (post.author && post.author.includes(searchTerm));
+                if (!matchesSearch) return false;
+                if (activeTab === 'rnd' && selectedCategory !== 'All') {
+                    if (post.category !== selectedCategory) return false;
+                }
+                if (activeTab === 'dashboard') return post.type === 'rnd'; 
+                if (activeTab === 'gossip' && post.type === 'gossip') {
+                    if (post.visibility === '全部門') return true;
+                    if (post.visibility === '僅主管可見' && isManager) return true;
+                    if (post.visibility === '僅副主管可見' && isManager) return true; 
+                    if (post.author === MOCK_USER.name) return true;
+                    if (!isManager && post.visibility.includes('主管')) return false;
+                    return true;
+                }
+                return post.type === activeTab;
+            });
+
+            const primaryColor = "text-[#00A0B0]";
+            const bgPrimary = "bg-[#00A0B0]";
+            const borderPrimary = "border-[#00A0B0]";
+            const hoverTextPrimary = "hover:text-[#00808D]";
+
+            const handlePostClick = (post) => {
+                setSelectedPost(post);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            return (
+                <div className="min-h-screen bg-[#F4F6F8] font-sans text-slate-600">
+                    <div className="pb-20">
+                        <nav className="bg-white shadow-sm sticky top-0 z-20">
+                            <div className="max-w-4xl mx-auto px-4">
+                                <div className="flex justify-between items-center h-16">
+                                    <div className="flex items-center space-x-2 cursor-pointer" onClick={() => { setActiveTab('rnd'); setSelectedPost(null); }}>
+                                        <div className={`w-8 h-8 ${bgPrimary} rounded-lg flex items-center justify-center text-white font-bold`}>P</div>
+                                        <span className="text-xl font-bold text-slate-800 tracking-tight block">部門許願池</span>
+                                    </div>
+                                    <div className="flex items-center space-x-4">
+                                        <div className="flex items-center bg-slate-100 rounded-full p-1 text-xs">
+                                            <button onClick={() => setIsManager(false)} className={`px-3 py-1 rounded-full transition-all ${!isManager ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500'}`}>一般員工</button>
+                                            <button onClick={() => setIsManager(true)} className={`px-3 py-1 rounded-full transition-all ${isManager ? `${bgPrimary} text-white shadow-sm` : 'text-slate-500'}`}>主管權限</button>
+                                        </div>
+                                        <div className={`relative cursor-pointer group ${activeTab === 'profile' ? 'ring-2 ring-[#00A0B0] ring-offset-2 rounded-full' : ''}`} onClick={() => { setActiveTab('profile'); setSelectedPost(null); }}>
+                                            <img src={MOCK_USER.avatar} alt="User" className="w-8 h-8 rounded-full border-2 border-white shadow-sm" />
+                                            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
+                                            <div className="absolute top-full right-0 mt-2 w-max px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition pointer-events-none">個人中心</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {!selectedPost && (
+                                    <div className="flex space-x-6 overflow-x-auto no-scrollbar scroll-smooth">
+                                        {[
+                                            { id: 'rnd', label: '研發專案', icon: Briefcase },
+                                            { id: 'market', label: '跳蚤市場', icon: ShoppingBag },
+                                            { id: 'gossip', label: '七嘴八舌', icon: MessageSquare },
+                                            { id: 'mailbox', label: '主管信箱', icon: Mail },
+                                            ...(isManager ? [{ id: 'dashboard', label: '管理儀表板', icon: BarChart2 }] : [])
+                                        ].map((tab) => (
+                                            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center space-x-2 py-3 border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? `${borderPrimary} ${primaryColor} font-medium` : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+                                                <tab.icon size={18} /><span>{tab.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </nav>
+
+                        <main className="max-w-4xl mx-auto px-4 py-6">
+                            {selectedPost ? (
+                                <PostDetail post={selectedPost} onBack={() => setSelectedPost(null)} primaryColor={primaryColor} bgPrimary={bgPrimary} borderPrimary={borderPrimary} />
+                            ) : (
+                                <>
+                                    {activeTab === 'profile' && (
+                                        <div className="animate-fade-in mb-6">
+                                            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 flex items-center justify-between mb-6">
+                                                <div className="flex items-center space-x-4">
+                                                    <img src={MOCK_USER.avatar} className="w-20 h-20 rounded-full border-4 border-[#F4F6F8]" alt="Profile" />
+                                                    <div><h2 className="text-2xl font-bold text-slate-800">{MOCK_USER.name}</h2><p className="text-slate-500">{MOCK_USER.department} • 員工編號 9527</p></div>
+                                                </div>
+                                                <div className="flex space-x-3">
+                                                    <div className="text-center px-4 py-2 bg-slate-50 rounded-lg"><div className="text-xl font-bold text-[#00A0B0]">{posts.filter(p => p.author === MOCK_USER.name).length}</div><div className="text-xs text-slate-400">發表文章</div></div>
+                                                    <div className="text-center px-4 py-2 bg-slate-50 rounded-lg"><div className="text-xl font-bold text-orange-500">{posts.filter(p => p.isSaved).length}</div><div className="text-xs text-slate-400">收藏內容</div></div>
+                                                </div>
+                                            </div>
+                                            <div className="flex space-x-1 bg-slate-200 p-1 rounded-lg w-fit mb-6">
+                                                <button onClick={() => setProfileSubTab('my-posts')} className={`px-4 py-1.5 rounded-md text-sm font-bold transition ${profileSubTab === 'my-posts' ? 'bg-white shadow text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}><div className="flex items-center"><FileText size={14} className="mr-2"/>我發表的</div></button>
+                                                <button onClick={() => setProfileSubTab('saved')} className={`px-4 py-1.5 rounded-md text-sm font-bold transition ${profileSubTab === 'saved' ? 'bg-white shadow text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}><div className="flex items-center"><Bookmark size={14} className="mr-2"/>我的收藏</div></button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeTab !== 'dashboard' && activeTab !== 'profile' && activeTab !== 'mailbox' && (
+                                        <div className="flex justify-between items-center mb-6 animate-fade-in-up">
+                                            <div className="relative flex-1 max-w-md flex items-center">
+                                                <div className="relative w-full">
+                                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
+                                                    <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={activeTab === 'market' ? "搜尋好物..." : "搜尋文章、報修或公告..."} className="w-full pl-10 pr-4 py-2 bg-white rounded-full border-none shadow-sm focus:ring-2 focus:ring-[#00A0B0] focus:outline-none transition-shadow" />
+                                                </div>
+                                                {activeTab === 'rnd' && (
+                                                    <div className="ml-3 flex items-center bg-slate-100 rounded-full p-1 text-xs whitespace-nowrap shrink-0">
+                                                        {[
+                                                            { value: 'All', label: '全部' },
+                                                            { value: '最新公告', label: '最新公告' },
+                                                            { value: 'Bug報修', label: 'Bug報修' },
+                                                            { value: '功能建議', label: '功能建議' }
+                                                        ].map((cat) => (
+                                                            <button key={cat.value} onClick={() => setSelectedCategory(cat.value)} className={`px-3 py-1 rounded-full transition-all ${selectedCategory === cat.value ? 'bg-white shadow-sm text-[#00A0B0] font-bold' : 'text-slate-500 hover:text-slate-700'}`}>{cat.label}</button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center space-x-3">
+                                                {activeTab !== 'mailbox' && (
+                                                    <button onClick={() => setShowCompose(true)} className={`px-4 py-2 ${bgPrimary} text-white rounded-full font-bold shadow-md hover:shadow-lg transition flex items-center whitespace-nowrap ml-4`}>
+                                                        <Plus size={18} className="mr-1"/>
+                                                        {activeTab === 'rnd' ? '我要報修/擲茭' : activeTab === 'market' ? '刊登物品' : '發布話題'}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-4 animate-fade-in">
+                                        {(activeTab === 'rnd' || activeTab === 'profile') && filteredPosts.filter(p => p.type === 'rnd').map(post => (
+                                            <div key={post.id} onClick={() => handlePostClick(post)} className="bg-white rounded-xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition cursor-pointer group">
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <div className="flex items-center space-x-2">
+                                                        <span className={`px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600`}>{post.category}</span>
+                                                        <StatusBadge status={post.status} type="rnd" />
+                                                        {post.priority === 'High' && <span className="text-xs text-red-500 bg-red-50 px-2 py-0.5 rounded flex items-center"><AlertCircle size={10} className="mr-1"/>急</span>}
+                                                    </div>
+                                                    <button className="text-slate-300 hover:text-slate-500 opacity-0 group-hover:opacity-100 transition"><MoreHorizontal size={18} /></button>
+                                                </div>
+                                                <h3 className="text-lg font-bold text-slate-800 mb-2 group-hover:text-[#00A0B0] transition-colors">{post.title}</h3>
+                                                <p className="text-slate-600 text-sm line-clamp-2 mb-4">{post.content}</p>
+                                                <div className="flex items-center justify-between text-xs text-slate-400 border-t pt-3">
+                                                    <div className="flex items-center space-x-2"><span className="font-medium text-slate-500">{post.author}</span><span>•</span><span>{post.date}</span></div>
+                                                    <div className="flex items-center space-x-4"><span className="flex items-center space-x-1"><Eye size={14}/> <span>{post.views}</span></span><span className="flex items-center space-x-1"><Heart size={14} className={post.isLiked ? "fill-red-400 text-red-400" : ""}/> <span>{post.likes}</span></span><span className="flex items-center space-x-1"><MessageCircle size={14}/> <span>{post.comments}</span></span></div>
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {(activeTab === 'market' || activeTab === 'profile') && (
+                                            <div className={`${activeTab === 'market' ? 'grid grid-cols-2 gap-4' : 'space-y-4'}`}>
+                                                {/* Profile view mixed rendering - handled by map below */}
+                                            </div>
+                                        )}
+                                        {/* Combined mapping for profile to handle order if needed, but here separating by type for layout control */}
+                                        {activeTab === 'profile' && filteredPosts.map(post => {
+                                            if (post.type === 'market') {
+                                                 return (
+                                                    <div key={post.id} onClick={() => handlePostClick(post)} className="bg-white rounded-xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-md transition group cursor-pointer flex flex-row h-40 mb-4">
+                                                        <div className="w-40 relative bg-slate-200"><img src={post.image} alt={post.title} className="w-full h-full object-cover" /><div className="absolute top-2 left-2"><StatusBadge status={post.status} type="market" /></div></div>
+                                                        <div className="p-4 flex-1 flex flex-col justify-between"><div><div className="flex justify-between items-start"><h3 className="font-bold text-slate-800 truncate text-lg">{post.title}</h3><span className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-500">跳蚤市場</span></div><p className="text-[#00A0B0] font-bold mt-1">{post.priceLabel ? post.priceLabel : `$${post.price}`}</p></div><div className="flex items-center justify-between text-xs text-slate-500"><span>{post.date}</span><button className={`px-3 py-1 rounded border ${borderPrimary} ${primaryColor} hover:bg-[#E6F6F7]`}>查看詳情</button></div></div>
+                                                    </div>
+                                                );
+                                            }
+                                            return null; // RND & Gossip handled above
+                                        })}
+
+                                        {activeTab === 'market' && (
+                                            <div className="grid grid-cols-2 gap-4">
+                                                {filteredPosts.map(post => (
+                                                    <div key={post.id} onClick={() => handlePostClick(post)} className="bg-white rounded-xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-md transition group cursor-pointer">
+                                                        <div className="relative h-48 bg-slate-200 overflow-hidden"><img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" /><div className="absolute top-3 left-3"><StatusBadge status={post.status} type="market" /></div><div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-bold flex items-center">{post.price === 0 && <span className="mr-1">🎁</span>}{post.priceLabel ? post.priceLabel : `$${post.price}`}</div></div>
+                                                        <div className="p-4"><h3 className="font-bold text-slate-800 mb-1 truncate">{post.title}</h3><div className="flex items-center space-x-2 text-xs text-slate-500 mb-4"><span className="bg-slate-100 px-2 py-0.5 rounded">{post.condition}</span><span>{post.date}</span><span>•</span><span>{post.author}</span></div>{post.status !== '已售出' ? <button className={`w-full py-2 rounded-lg border ${borderPrimary} ${primaryColor} hover:bg-[#E6F6F7] text-sm font-medium transition`}>詳細資訊</button> : <button disabled className="w-full py-2 rounded-lg bg-slate-100 text-slate-400 text-sm font-medium cursor-not-allowed">已結束交易</button>}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {(activeTab === 'gossip' || (activeTab === 'profile' && filteredPosts.some(p => p.type === 'gossip'))) && filteredPosts.filter(p => p.type === 'gossip').map(post => (
+                                             <div key={post.id} onClick={() => handlePostClick(post)} className="bg-white rounded-xl p-5 shadow-sm border border-slate-100 relative group cursor-pointer mb-4">
+                                                {post.visibility !== '全部門' && <div className="absolute top-0 right-0 bg-purple-100 text-purple-600 text-[10px] px-2 py-1 rounded-bl-lg rounded-tr-xl font-bold flex items-center"><User size={10} className="mr-1"/> {post.visibility}</div>}
+                                                <div className="flex items-start space-x-3 mb-3"><div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl shadow-inner ${post.isAnonymous ? 'bg-slate-200' : 'bg-[#E6F6F7]'}`}>{post.isAnonymous ? "🤐" : <img src={`https://i.pravatar.cc/150?u=${post.id}`} className="w-full h-full rounded-full" alt="avatar"/>}</div><div><div className="font-bold text-slate-800 flex items-center">{post.author}{post.isAnonymous && <span className="ml-2 text-xs font-normal text-slate-500 bg-slate-100 px-1.5 rounded border border-slate-200">匿名</span>}</div><div className="text-xs text-slate-400">{post.date}</div></div></div>
+                                                <div className="pl-13 text-slate-700 mb-4 whitespace-pre-line leading-relaxed line-clamp-3">{post.content}</div>
+                                                <div className="flex items-center space-x-6 text-slate-400 text-sm pl-1"><button className={`flex items-center space-x-1 hover:${primaryColor} transition`}><Heart size={16} className={post.isLiked ? "fill-red-400 text-red-400" : ""}/> <span>{post.likes}</span></button><button className={`flex items-center space-x-1 hover:${primaryColor} transition`}><MessageCircle size={16}/> <span>{post.comments}</span></button><span className="flex-1"></span><button className="opacity-0 group-hover:opacity-100 transition text-slate-300 hover:text-slate-500">檢舉</button></div>
+                                            </div>
+                                        ))}
+
+                                        {activeTab === 'mailbox' && (
+                                            <div className="space-y-6">
+                                                <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 text-center">
+                                                    <div className="w-12 h-12 bg-[#E6F6F7] rounded-full flex items-center justify-center mx-auto mb-3"><Mail size={24} className="text-[#00A0B0]" /></div>
+                                                    <h3 className="text-lg font-bold text-slate-800 mb-1">主管信箱</h3>
+                                                    <p className="text-slate-500 text-sm mb-4">私密的溝通管道，僅您與選定的主管可見。</p>
+                                                    <button onClick={() => setShowCompose(true)} className={`${bgPrimary} text-white px-6 py-2 rounded-full shadow-lg shadow-[#00A0B0]/30 hover:shadow-[#00A0B0]/40 transition flex items-center justify-center mx-auto`}><Plus size={18} className="mr-1"/> 撰寫新信件</button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {activeTab === 'dashboard' && isManager && (
+                                            <div className="space-y-6 animate-fade-in">
+                                                <div className="grid grid-cols-3 gap-4">
+                                                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100"><div className="text-slate-500 text-xs mb-1">待處理案件</div><div className="text-2xl font-bold text-orange-500">{posts.filter(p => p.type === 'rnd' && p.status === '待確認').length}</div></div>
+                                                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100"><div className="text-slate-500 text-xs mb-1">本週報修總數</div><div className={`text-2xl font-bold ${primaryColor}`}>{posts.filter(p => p.type === 'rnd').length}</div></div>
+                                                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100"><div className="text-slate-500 text-xs mb-1">平均處理天數</div><div className="text-2xl font-bold text-slate-700">1.5 <span className="text-xs font-normal text-slate-400">天</span></div></div>
+                                                </div>
+                                                <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-100">
+                                                    <div className="px-5 py-4 border-b border-slate-100 font-bold text-slate-800 flex justify-between items-center bg-slate-50/50"><span>案件進度管控</span><button className="text-xs text-[#00A0B0] hover:underline flex items-center"><DollarSign size={12} className="mr-1"/>匯出報表</button></div>
+                                                    {posts.filter(p => p.type === 'rnd').map(post => (
+                                                        <div key={post.id} className="p-4 border-b border-slate-50 flex flex-row items-center justify-between hover:bg-slate-50 transition cursor-pointer" onClick={(e) => { if(e.target.tagName !== 'SELECT') handlePostClick(post); }}>
+                                                            <div className="flex-1 mb-0"><div className="flex items-center space-x-2 mb-1"><span className="text-xs font-medium bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">{post.category}</span>{post.priority === 'High' && <span className="w-2 h-2 rounded-full bg-red-500"></span>}<span className="text-sm font-medium text-slate-800 hover:text-[#00A0B0]">{post.title}</span></div><div className="text-xs text-slate-400 flex items-center"><User size={10} className="mr-1"/> {post.author} <span className="mx-2">•</span> <Clock size={10} className="mr-1"/> {post.date}</div></div>
+                                                            <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}><select className={`text-xs border border-slate-200 rounded px-3 py-1.5 bg-white focus:outline-none focus:border-[#00A0B0] font-medium text-slate-600 cursor-pointer hover:border-[#00A0B0]`} defaultValue={post.status} onChange={(e) => { const newStatus = e.target.value; setPosts(posts.map(p => p.id === post.id ? {...p, status: newStatus} : p)); }}><option value="待確認">🟠 待確認</option><option value="已排定">🔵 已排定</option><option value="處理中">🟢 處理中</option><option value="已完成">⚪ 已完成</option></select></div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </main>
+
+                        {showCompose && <ComposeModal activeTab={activeTab} isManager={isManager} onClose={() => setShowCompose(false)} MOCK_USER={MOCK_USER} bgPrimary={bgPrimary} borderPrimary={borderPrimary} />}
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<DepartmentWishingWell />);
+    </script>
+</body>
+</html>

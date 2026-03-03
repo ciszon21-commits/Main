@@ -1,0 +1,186 @@
+{% extends "LHAWish/base.html" %}
+{% block title %}{% if is_edit %}編輯願望{% else %}許願{% endif %} - 園路願望{% endblock %}
+
+{% block extra_css %}
+<!-- Quill Editor -->
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<style>
+    .ql-editor {
+        min-height: 200px;
+        font-size: 14px;
+        font-family: 'Noto Sans TC', 'Inter', sans-serif;
+    }
+
+    .ql-toolbar.ql-snow {
+        border-radius: var(--wish-radius-sm) var(--wish-radius-sm) 0 0;
+        border-color: var(--wish-border);
+    }
+
+    .ql-container.ql-snow {
+        border-radius: 0 0 var(--wish-radius-sm) var(--wish-radius-sm);
+        border-color: var(--wish-border);
+    }
+
+    .ql-snow .ql-editor img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin: 8px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wish-card" style="padding:24px;">
+    <h2
+        style="font-size:20px;font-weight:700;color:var(--wish-text-dark);margin:0 0 24px;display:flex;align-items:center;gap:8px;">
+        <a href="{% if is_edit %}{% url 'lhawish:petition_detail' object.pk %}{% else %}{% url 'lhawish:petition_list' %}{% endif %}"
+            style="color:var(--wish-text-muted);display:flex;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6" />
+            </svg>
+        </a>
+        <span class="material-symbols-outlined" style="font-size:24px;color:#94a3b8;">{% if is_edit %}edit{% else %}ads_click{% endif %}</span> {% if is_edit %}編輯願望{% else %}我想許願{% endif %}
+    </h2>
+
+    <form method="post" class="wish-form" id="petitionForm">
+        {% csrf_token %}
+
+        <!-- 許願者資訊 -->
+        <div class="wish-author-box"
+            style="display:flex;align-items:center;gap:12px;padding:16px;background:var(--wish-bg);border-radius:var(--wish-radius-sm);margin-bottom:20px;">
+            <div class="wish-comment-avatar" style="background:var(--wish-primary-light);color:var(--wish-primary);">
+                <span class="material-symbols-outlined" style="font-size:16px;">person</span>
+            </div>
+            <div>
+                <div style="font-weight:600;color:var(--wish-text-dark);">{{ user.get_full_name|default:user.username }}
+                </div>
+                <div style="font-size:12px;color:var(--wish-text-muted);">{{ user.email|default:"" }}</div>
+            </div>
+        </div>
+
+        <!-- 匿名 / 顯示名稱 — 單行排列 -->
+        <div
+            style="display:flex;align-items:center;gap:20px;border:1px solid var(--wish-border);border-radius:var(--wish-radius-sm);padding:14px 16px;margin-top:8px;flex-wrap:wrap;">
+            <div class="wish-checkbox" style="flex-shrink:0;">
+                <input type="checkbox" name="is_anonymous" id="id_is_anonymous" {% if form.is_anonymous.value %}checked{% endif %}>
+                <div>
+                    <div class="wish-checkbox-label">匿名許願</div>
+                </div>
+            </div>
+            <div class="wish-form-group" style="margin:0;flex:1;min-width:180px;display:none;" id="displayNameGroup">
+                <input type="text" name="display_name" id="id_display_name"
+                    value="{{ form.display_name.value|default_if_none:'' }}" placeholder="自訂顯示名稱（選填）" style="margin:0;">
+            </div>
+        </div>
+
+        <div class="wish-form-group">
+            <label>願望標題 <span class="required">*</span></label>
+            <input type="text" name="title" id="id_title" required value="{{ form.title.value|default_if_none:'' }}"
+                placeholder="簡短描述你的願望">
+            {{ form.title.errors }}
+        </div>
+
+        <div class="wish-form-group">
+            <label>願望內容 <span class="required">*</span></label>
+            <div id="quillEditor">{{ form.content.value|default_if_none:''|safe }}</div>
+            <textarea name="content" id="id_content" style="display:none;"></textarea>
+            {{ form.content.errors }}
+        </div>
+
+        <div class="wish-form-row">
+            <div class="wish-form-group">
+                <label>指定執行組別（選填）</label>
+                <select name="assigned_group" id="id_assigned_group"
+                    data-current="{{ form.assigned_group.value|default_if_none:'' }}">
+                    <option value="">請選擇組別</option>
+                    {% for gc in group_choices %}
+                    <option value="{{ gc.label }}">{{ gc.label }}</option>
+                    {% endfor %}
+                </select>
+                {{ form.assigned_group.errors }}
+            </div>
+        </div>
+
+        <div class="wish-form-actions" style="display:flex;gap:12px;margin-top:24px;">
+            <button type="submit" class="wish-btn-primary" style="flex:1;justify-content:center;">{% if is_edit %}儲存修改{% else %}提交願望{% endif %}</button>
+            <a href="{% if is_edit %}{% url 'lhawish:petition_detail' object.pk %}{% else %}{% url 'lhawish:petition_list' %}{% endif %}"
+                class="wish-btn-outline" style="justify-content:center;">取消</a>
+        </div>
+    </form>
+</div>
+
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Select dropdown restore
+        document.querySelectorAll('[data-current]').forEach(function (sel) {
+            if (sel.dataset.current) sel.value = sel.dataset.current;
+        });
+
+        // 匿名勾選 → 顯示/隱藏自訂顯示名稱
+        var anonCheckbox = document.getElementById('id_is_anonymous');
+        var displayNameGroup = document.getElementById('displayNameGroup');
+        function toggleDisplayName() {
+            displayNameGroup.style.display = anonCheckbox.checked ? '' : 'none';
+            if (!anonCheckbox.checked) {
+                document.getElementById('id_display_name').value = '';
+            }
+        }
+        anonCheckbox.addEventListener('change', toggleDisplayName);
+        toggleDisplayName();
+
+        // Quill Editor
+        var quill = new Quill('#quillEditor', {
+            theme: 'snow',
+            placeholder: '詳細說明你的願望內容，如部門事務、培訓...',
+            modules: {
+                toolbar: [
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'color': [] }, { 'background': [] }],
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                    [{ 'align': [] }],
+                    ['blockquote', 'link', 'image'],
+                    ['clean']
+                ]
+            }
+        });
+
+        // Image handler — base64 inline
+        quill.getModule('toolbar').addHandler('image', function () {
+            var input = document.createElement('input');
+            input.setAttribute('type', 'file');
+            input.setAttribute('accept', 'image/*');
+            input.click();
+            input.onchange = function () {
+                var file = input.files[0];
+                if (!file) return;
+                // Check file size (max 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('圖片大小不可超過 5MB');
+                    return;
+                }
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var range = quill.getSelection(true);
+                    quill.insertEmbed(range.index, 'image', e.target.result);
+                    quill.setSelection(range.index + 1);
+                };
+                reader.readAsDataURL(file);
+            };
+        });
+
+        // Form submit — sync Quill content to hidden textarea
+        document.getElementById('petitionForm').addEventListener('submit', function (e) {
+            var content = quill.root.innerHTML;
+            if (quill.getText().trim().length === 0) {
+                e.preventDefault();
+                alert('請填寫願望內容');
+                return;
+            }
+            document.getElementById('id_content').value = content;
+        });
+    });
+</script>
+{% endblock %}
