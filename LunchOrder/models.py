@@ -10,7 +10,7 @@ class Restaurant(models.Model):
         verbose_name="店名"
     )
     phone = models.CharField(
-        max_length=20,
+        max_length=100,
         blank=True,
         verbose_name="電話"
     )
