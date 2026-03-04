@@ -6,29 +6,14 @@
 <div class="wish-card" style="padding:0;overflow:hidden;">
     <!-- Detail Header -->
     <div class="wish-detail-header">
-        <a href="javascript:history.back()" class="wish-btn-back">
+        <a href="javascript:void(0)" class="wish-btn-back" onclick="goBack()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="15 18 9 12 15 6" />
             </svg>
             返回
         </a>
         <div class="wish-detail-actions">
-            {% if post.type != 'market' %}
-            <button class="wish-detail-action-btn" id="likeBtn" onclick="toggleLike({{ post.pk }})">
-                <svg width="18" height="18" viewBox="0 0 24 24"
-                    fill="{% if is_liked %}currentColor{% else %}none{% endif %}" stroke="currentColor"
-                    stroke-width="2">
-                    <path
-                        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
-            </button>
-            <button class="wish-detail-action-btn" id="saveBtn" onclick="toggleSave({{ post.pk }})">
-                <svg width="18" height="18" viewBox="0 0 24 24"
-                    fill="{% if is_saved %}currentColor{% else %}none{% endif %}" stroke="currentColor"
-                    stroke-width="2">
-                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-                </svg>
-            </button>
+            {% if post.type != 'market' and post.type != 'gossip' %}
             {% endif %}
             {% if post.author == user or is_manager %}
             <a href="{% url 'lhawish:post_update' post.pk %}" class="wish-detail-action-btn">
@@ -54,10 +39,15 @@
             {% endif %}
         </div>
 
-        <div class="wish-detail-title-row{% if post.type == 'market' %} wish-market-title-row{% endif %}">
-            <h1 class="wish-detail-title">{{ post.title|default:"" }}</h1>
+        <div class="wish-detail-title-row{% if post.type == 'market' %} wish-market-title-row{% endif %}"
+            style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+            <h1 class="wish-detail-title" style="margin:0;">{{ post.title|default:"" }}</h1>
+            {% if post.type == 'rnd' and post.rnd_project %}
+            <span class="wish-badge"
+                style="background:#f1f5f9;color:#475569;margin-left:auto;white-space:nowrap;flex-shrink:0;">{{ post.rnd_project }}</span>
+            {% endif %}
             {% if post.type == 'market' and post.price_display %}
-            <span class="wish-market-detail-price">{{ post.price_display }}</span>
+            <span class="wish-market-detail-price" style="flex-shrink:0;">{{ post.price_display }}</span>
             {% endif %}
         </div>
 
@@ -65,7 +55,8 @@
         <div class="wish-detail-author">
             <div>
                 {% if post.type != 'rnd' %}
-                <div class="wish-detail-author-name">{% if post.is_anonymous %}{{ post.display_name|default:"匿名" }}{% else %}{{ post.author.get_full_name|default:post.author.username }}{% endif %}</div>
+                <div class="wish-detail-author-name">{% if post.is_anonymous %}{{ post.display_name|default:"某同事"
+                    }}{%else %}{{ post.author.get_full_name|default:post.author.username }}{% endif %}</div>
                 {% endif %}
                 <div class="wish-detail-author-meta">{{ post.created_at|date:"Y/m/d H:i" }}</div>
             </div>
@@ -233,10 +224,25 @@
                 {% for c in comments %}
                 <div class="wish-comment wish-fade-in-up" data-comment-id="{{ c.id }}">
                     <div class="wish-comment-avatar"
-                        style="background:var(--wish-primary-light);color:var(--wish-primary);">{{ c.author.last_name|default:c.author.username|truncatechars:1 }}</div>
+                        style="background:var(--wish-primary-light);color:var(--wish-primary);">
+                        {% if c.is_anonymous %}
+                        {{ c.author.last_name|default:c.author.username|truncatechars:1 }}
+                        {% else %}
+                        <span class="material-symbols-outlined" style="font-size:20px;">person</span>
+                        {% endif %}
+                    </div>
                     <div class="wish-comment-bubble">
                         <div class="wish-comment-top">
-                            <span class="wish-comment-author">{{ c.author.get_full_name|default:c.author.username }}{% if c.is_official %}<span class="wish-comment-official">管理</span>{% endif %}</span>
+                            <span class="wish-comment-author">
+                                {{ c.author.get_full_name|default:c.author.username }}
+                                {% if post.type == 'market' and c.author == post.author %}
+                                <span class="wish-comment-official"
+                                    style="background:var(--wish-primary-light);color:var(--wish-primary);">賣家</span>
+                                {% endif %}
+                                {% if c.is_official %}
+                                <span class="wish-comment-official">管理</span>
+                                {% endif %}
+                            </span>
                             <span class="wish-comment-date">{{ c.created_at|date:"Y/m/d H:i" }}{% if c.is_edited %}(已編輯){% endif %}</span>
                         </div>
                         <div class="wish-comment-text" id="commentText-{{ c.id }}">{{ c.content }}</div>
@@ -284,10 +290,21 @@
             </button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 0;margin-left:40px;width:100%;">
+            {% if post.type != 'market' %}
+            <label
+                style="font-size:12px;color:var(--wish-text-muted);display:flex;align-items:center;gap:4px;cursor:pointer;">
+                <input type="checkbox" id="commentAnonymous" style="accent-color:var(--wish-primary);"
+                    onchange="if(this.checked && document.getElementById('commentOfficial')) document.getElementById('commentOfficial').checked = false;">
+                匿名留言
+            </label>
+            {% else %}
+            <input type="checkbox" id="commentAnonymous" style="display:none;" disabled>
+            {% endif %}
             {% if is_manager %}
             <label
                 style="font-size:12px;color:var(--wish-text-muted);display:flex;align-items:center;gap:4px;cursor:pointer;">
-                <input type="checkbox" id="commentOfficial" style="accent-color:var(--wish-primary);"> 以管理者身分留言
+                <input type="checkbox" id="commentOfficial" style="accent-color:var(--wish-primary);"
+                    onchange="if(this.checked) document.getElementById('commentAnonymous').checked = false;"> 以管理者身分留言
             </label>
             {% endif %}
         </div>
@@ -328,6 +345,20 @@
         if (parts.length === 2) return parts.pop().split(';').shift();
     }
 
+    function goBack() {
+        // 設定 flag 讓 list 頁 reload 以刷新數據
+        sessionStorage.setItem('lhawish_need_refresh', '1');
+        history.back();
+    }
+
+    // 監聽頁面顯示事件（從 detail 返回 list 時刷新）
+    window.addEventListener('pageshow', function (e) {
+        if (e.persisted || sessionStorage.getItem('lhawish_need_refresh') === '1') {
+            sessionStorage.removeItem('lhawish_need_refresh');
+            // 不在 detail page 上觸發 reload
+        }
+    });
+
     function toggleLike(pk) {
         fetch('{% url "lhawish:toggle_like" post.pk %}', {
             method: 'POST',
@@ -362,8 +393,10 @@
         if (!content) return;
 
         var officialEl = document.getElementById('commentOfficial');
+        var anonEl = document.getElementById('commentAnonymous');
         var bodyData = { content: content };
         if (officialEl) bodyData.is_official = officialEl.checked;
+        if (anonEl) bodyData.is_anonymous = anonEl.checked;
 
         fetch('{% url "lhawish:add_comment" post.pk %}', {
             method: 'POST',
@@ -381,6 +414,7 @@
                 data.author.charAt(0) + '</div>' +
                 '<div class="wish-comment-bubble"><div class="wish-comment-top">' +
                 '<span class="wish-comment-author">' + data.author +
+                ('{{ post.type }}' === 'market' && data.is_author ? ' <span class="wish-comment-official" style="background:var(--wish-primary-light);color:var(--wish-primary);">賣家</span>' : '') +
                 (data.is_official ? ' <span class="wish-comment-official">管理</span>' : '') +
                 '</span><span class="wish-comment-date">' + data.created_at + '</span></div>' +
                 '<div class="wish-comment-text" id="commentText-' + data.id + '">' + data.content + '</div>' +
@@ -399,6 +433,7 @@
             document.getElementById('commentCountBadge').textContent = data.comment_count;
             input.value = '';
             if (officialEl) officialEl.checked = false;
+            if (anonEl) anonEl.checked = false;
         });
     }
 
