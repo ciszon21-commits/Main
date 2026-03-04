@@ -1,5 +1,17 @@
 from django.contrib import admin
-from .models import Post, Comment, PostInteraction, Petition, Endorsement, PetitionComment
+from .models import Post, Comment, PostInteraction, Petition, Endorsement, PetitionComment, SiteConfig
+
+
+@admin.register(SiteConfig)
+class SiteConfigAdmin(admin.ModelAdmin):
+    filter_horizontal = ('project_admins',)
+    fieldsets = (
+        ('專案管理員', {
+            'fields': ('project_admins',),
+            'description': '專案管理員可檢視與編輯許願池所有設定分頁。其餘設定皆移至前台「設定」分頁進行。',
+        }),
+    )
+    exclude = ('endorsement_threshold', 'package_choices', 'group_choices', 'rnd_project_choices', 'manager_emails', 'board_admins')
 
 
 @admin.register(Post)

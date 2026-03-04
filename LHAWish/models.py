@@ -22,7 +22,16 @@ class SiteConfig(models.Model):
     )
     board_admins = models.JSONField(
         default=dict, blank=True, verbose_name="各版板主",
-        help_text='{"petition":[1,2],"rnd":[3]}'
+        help_text='{"petition":[{"uid":1}],"rnd":[{"uid":2}]}'
+    )
+    rnd_project_choices = models.JSONField(
+        default=list, blank=True, verbose_name="研發案清單",
+        help_text='[{"value":"proj_a","label":"研發案A"}]'
+    )
+    project_admins = models.ManyToManyField(
+        User, blank=True, related_name='lhawish_admin_configs',
+        verbose_name="專案管理員",
+        help_text="擁有許願池所有設定分頁的檢視與編輯權限"
     )
 
     class Meta:
@@ -97,6 +106,9 @@ class Post(models.Model):
     problem_type = models.CharField(max_length=100, blank=True, verbose_name="問題類型")
     assigned_group = models.CharField(
         max_length=50, blank=True, verbose_name="指定組別"
+    )
+    rnd_project = models.CharField(
+        max_length=100, blank=True, verbose_name="研發案"
     )
 
     # 官方回應（研發專案用）
@@ -338,6 +350,8 @@ class Petition(models.Model):
     def proposer_display(self):
         """顯示提議人名稱"""
         if self.is_anonymous:
+            if self.display_name:
+                return self.display_name
             return "匿名"
         if self.display_name:
             return self.display_name
