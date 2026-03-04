@@ -545,6 +545,7 @@ def create_standalone_hotspot(request):
             description = request.POST.get('description', '')
             icon = request.POST.get('icon', 'fas fa-info-circle')
             icon_color = request.POST.get('icon_color', '#ffffff')
+            hazard_type_id = request.POST.get('hazard_type') or None
 
             hotspot = Hotspot(
                 scene=None,
@@ -555,6 +556,7 @@ def create_standalone_hotspot(request):
                 description=description,
                 icon=icon,
                 icon_color=icon_color,
+                hazard_type_id=hazard_type_id,
             )
 
             if 'image' in request.FILES:
@@ -717,13 +719,16 @@ def project_resource_list(request, pk):
     # The template can iterate over scenes and then their hotspots.
     # Hotspots should be pre-fetched to avoid N+1 queries.
     from django.db.models import Prefetch
+    from .models import HazardType
     scenes = scenes.prefetch_related(
-        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot').order_by('created_at'))
+        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot', 'hazard_type').order_by('created_at'))
     )
-    
+    hazard_types = HazardType.objects.all().order_by('serial_number')
+
     context = {
         'project': project,
         'scenes': scenes,
+        'hazard_types': hazard_types,
     }
     return render(request, 'site360/resource_list.html', context)
 
@@ -733,23 +738,26 @@ def all_resource_list(request):
     Also includes standalone hotspots that have no scene.
     """
     from django.db.models import Prefetch
+    from .models import HazardType
 
     scenes = Scene.objects.all().order_by('project', 'order').prefetch_related(
         'project',
-        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot').order_by('created_at'))
+        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot', 'hazard_type').order_by('created_at'))
     )
 
     projects = Project.objects.all().order_by('name')
+    hazard_types = HazardType.objects.all().order_by('serial_number')
 
     # Unassigned hotspots: scene is null
     unassigned_hotspots = Hotspot.objects.filter(scene__isnull=True).annotate(
         usage_count=Count('copied_by')
-    ).select_related('source_hotspot').order_by('-created_at')
+    ).select_related('source_hotspot', 'hazard_type').order_by('-created_at')
 
     context = {
         'scenes': scenes,
         'all_projects': projects,
         'unassigned_hotspots': unassigned_hotspots,
+        'hazard_types': hazard_types,
     }
     return render(request, 'site360/resource_list.html', context)
 
@@ -885,12 +893,13 @@ def edit_resource(request, pk):
             title = request.POST.get('title')
             description = request.POST.get('description')
             hotspot_type = request.POST.get('type')
-            
+            hazard_type_id = request.POST.get('hazard_type') or None
+
             # Always update directly - no version creation in basic edit
-            # Version control is for resource library references, not direct edits
             hotspot.title = title
             hotspot.description = description
             hotspot.hotspot_type = hotspot_type
+            hotspot.hazard_type_id = hazard_type_id
             
             # Check if this is a referencing hotspot
             if hotspot.source_hotspot:

@@ -117,12 +117,13 @@
                     <table class="table table-bordered table-hover align-middle resource-table">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 10%;">類型</th>
-                                <th style="width: 20%;">標題</th>
-                                <th style="width: 25%;">說明內容</th>
+                                <th style="width: 8%;">類型</th>
+                                <th style="width: 17%;">標題</th>
+                                <th style="width: 22%;">說明內容</th>
+                                <th style="width: 12%;">危害類型</th>
                                 <th style="width: 12%;">狀態 / 引用</th>
-                                <th style="width: 15%;">媒體預覽</th>
-                                <th style="width: 18%;">操作</th>
+                                <th style="width: 12%;">媒體預覽</th>
+                                <th style="width: 17%;">操作</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -140,6 +141,13 @@
                                 <td>
                                     <div class="description-text">{{ hotspot.description|default:"-"|linebreaksbr }}
                                     </div>
+                                </td>
+                                <td class="text-center">
+                                    {% if hotspot.hazard_type %}
+                                    <span class="badge bg-danger">{{ hotspot.hazard_type.serial_number }}. {{ hotspot.hazard_type.name }}</span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
                                 </td>
                                 <td class="text-center">
                                     <div class="d-flex flex-column align-items-center gap-1">
@@ -218,13 +226,14 @@
                     <table class="table table-bordered table-hover align-middle resource-table">
                         <thead class="table-light">
                             <tr>
-                                {% if all_projects %}<th style="width: 15%;">專案</th>{% endif %}
-                                <th style="width: 10%;">類型</th>
-                                <th style="width: {% if all_projects %}15%{% else %}20%{% endif %};">標題</th>
-                                <th style="width: 20%;">說明內容</th>
-                                <th style="width: 12%;">狀態 / 引用</th>
-                                <th style="width: 15%;">媒體預覽</th>
-                                <th style="width: 20%;">操作</th>
+                                {% if all_projects %}<th style="width: 12%;">專案</th>{% endif %}
+                                <th style="width: 8%;">類型</th>
+                                <th style="width: {% if all_projects %}12%{% else %}15%{% endif %};">標題</th>
+                                <th style="width: 15%;">說明內容</th>
+                                <th style="width: 10%;">危害類型</th>
+                                <th style="width: 10%;">狀態 / 引用</th>
+                                <th style="width: 12%;">媒體預覽</th>
+                                <th style="width: 15%;">操作</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -245,6 +254,15 @@
                                 <td>
                                     <div class="description-text">{{ hotspot.description|default:"-"|linebreaksbr }}
                                     </div>
+                                </td>
+                                <td class="text-center">
+                                    {% if hotspot.hazard_type %}
+                                    <span class="badge bg-danger">
+                                        {{ hotspot.hazard_type.serial_number }}. {{ hotspot.hazard_type.name }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
                                 </td>
                                 <td class="text-center">
                                     <div class="d-flex flex-column align-items-center gap-1">
@@ -290,7 +308,8 @@
                                             data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
                                             data-image-url="{% if hotspot.image %}{{ hotspot.image.url }}{% endif %}"
                                             data-video-url="{% if hotspot.video %}{{ hotspot.video.url }}{% endif %}"
-                                            data-is-referencing="{% if hotspot.source_hotspot %}true{% else %}false{% endif %}">
+                                            data-is-referencing="{% if hotspot.source_hotspot %}true{% else %}false{% endif %}"
+                                            data-hazard-type-id="{{ hotspot.hazard_type_id|default:'' }}">
                                             <i class="fas fa-edit"></i> 編輯
                                         </button>
 
@@ -377,6 +396,15 @@
                             <option value="video_hover">懸浮影片</option>
                         </select>
                     </div>
+                    <div class="mb-3">
+                        <label for="create_hazard_type" class="form-label">危害類型</label>
+                        <select class="form-select" id="create_hazard_type" name="hazard_type">
+                            <option value="">— 不指定 —</option>
+                            {% for ht in hazard_types %}
+                            <option value="{{ ht.id }}">{{ ht.serial_number }}. {{ ht.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     <div class="mb-3" id="create_imageSection">
                         <label for="create_image" class="form-label">上傳圖片</label>
                         <input type="file" class="form-control" id="create_image" name="image" accept="image/*">
@@ -438,6 +466,16 @@
                             <option value="image_hover">懸浮圖片</option>
                             <option value="video">影片</option>
                             <option value="video_hover">懸浮影片</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_hazard_type" class="form-label">危害類型</label>
+                        <select class="form-select" id="edit_hazard_type" name="hazard_type">
+                            <option value="">— 不指定 —</option>
+                            {% for ht in hazard_types %}
+                            <option value="{{ ht.id }}">{{ ht.serial_number }}. {{ ht.name }}</option>
+                            {% endfor %}
                         </select>
                     </div>
 
@@ -745,6 +783,9 @@
                 document.getElementById('edit_title').value = title;
                 document.getElementById('edit_description').value = desc;
                 document.getElementById('edit_type').value = type;
+                // Populate hazard type
+                const hazardTypeId = this.dataset.hazardTypeId || '';
+                document.getElementById('edit_hazard_type').value = hazardTypeId;
 
                 // Store referencing status and media info for updateMediaSections to use
                 document.getElementById('editResourceForm').dataset.isReferencing = isReferencing;
