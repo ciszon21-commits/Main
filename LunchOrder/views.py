@@ -593,6 +593,14 @@ def order_statistics(request):
         total_qty=Sum('quantity'),
         total_price=Sum(F('quantity') * F('menu_item__price'), output_field=DecimalField())
     ).order_by('-total_qty')
+
+    # 收集每個品項的備註
+    notes_by_item = {}
+    for order in orders.filter(notes__gt='').values('menu_item__name', 'notes', 'employee_name'):
+        item_name = order['menu_item__name']
+        if item_name not in notes_by_item:
+            notes_by_item[item_name] = []
+        notes_by_item[item_name].append(order['notes'])
     
     # 前一天/後一天導航
     prev_date = selected_date - datetime.timedelta(days=1)
@@ -605,6 +613,7 @@ def order_statistics(request):
         'total_amount': total_amount,
         'total_quantity': total_quantity,
         'item_stats': item_stats,
+        'notes_by_item': notes_by_item,
         'order_dates': order_dates,
         'today': today,
         'prev_date': prev_date,
@@ -895,7 +904,7 @@ def admin_search_users(request):
         results.append({
             'id': user.id,
             'username': user.username,
-            'full_name': profile.get_full_name() if profile else (user.get_full_name() or user.username),
+            'full_name': user.get_full_name() or user.username,
             'department': profile.dept_display if profile else '—',
             'company': profile.company_display if profile else '—',
         })
@@ -914,7 +923,7 @@ def admin_add(request):
                 user.is_staff = True
                 user.save(update_fields=['is_staff'])
                 profile = getattr(user, 'profile', None)
-                name = profile.get_full_name() if profile else (user.get_full_name() or user.username)
+                name = user.get_full_name() or user.username
                 messages.success(request, f'已將「{name}」設為管理員')
             except User.DoesNotExist:
                 messages.error(request, '找不到該使用者')
@@ -937,7 +946,7 @@ def admin_remove(request):
                     user.is_staff = False
                     user.save(update_fields=['is_staff'])
                     profile = getattr(user, 'profile', None)
-                    name = profile.get_full_name() if profile else (user.get_full_name() or user.username)
+                    name = user.get_full_name() or user.username
                     messages.success(request, f'已移除「{name}」的管理員權限')
             except User.DoesNotExist:
                 messages.error(request, '找不到該使用者')
