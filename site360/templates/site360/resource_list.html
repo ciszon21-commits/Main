@@ -4,7 +4,7 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         {% if project %}
-        <h2>{{ project.name }} - 資源列表</h2>
+        <h2>{{ project.name }} - 資源總表</h2>
         <div class="d-flex gap-2 align-items-center">
             <a href="{% url 'site360:project_detail' project.pk %}" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left"></i> 返回專案頁面
@@ -17,7 +17,7 @@
             </button>
         </div>
         {% else %}
-        <h2>全部專案 - 資源列表</h2>
+        <h2>全部專案 - 資源總表</h2>
         <div class="d-flex gap-2 align-items-center">
             <a href="{% url 'site360:project_list' %}" class="btn btn-outline-secondary">
                 <i class="fas fa-home"></i> 返回首頁
@@ -448,7 +448,7 @@
                     <div class="alert alert-warning d-none" id="referenceWarning">
                         <i class="fas fa-exclamation-triangle"></i>
                         <strong>注意：</strong>此資源已被引用 <span id="usageCountDisplay">0</span> 次。
-                        編輯後將創建新版本，原有引用不受影響，但可選擇更新到新版本。
+                        編輯來源，引用資源不受影響。
                     </div>
 
                     <div class="mb-3">
@@ -770,9 +770,13 @@
             const options = Array.from(sceneSelect.options).map(opt => opt.value);
             if (options.includes(sceneParam)) {
                 sceneSelect.value = sceneParam;
-                filterResources();
             }
         }
+
+        {% if not project %}
+        // Apply initial filter to enforce default dropdown states (e.g., hiding unassigned resources in "All Projects" view)
+        filterResources();
+        {% endif %}
 
         // Edit Resource Functionality
         const editModal = new bootstrap.Modal(document.getElementById('editResourceModal'));
