@@ -37,7 +37,7 @@
         }
 
         header {
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
             border-bottom: 1px solid var(--border);
             padding-bottom: 1rem;
             display: flex;
@@ -50,6 +50,42 @@
             font-weight: 700;
             margin: 0;
             color: var(--primary);
+        }
+
+        /* Tab System */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+
+        .tab-btn {
+            padding: 0.75rem 1.25rem;
+            border: none;
+            background: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
         }
 
         .grid-layout {
@@ -217,112 +253,180 @@
             <button class="btn btn-primary">儲存計算結果</button>
         </header>
 
-        <main class="grid-layout">
-            <!-- Sidebar: Inputs -->
-            <aside>
-                <div class="card">
-                    <div class="card-title">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="3" y1="9" x2="21" y2="9"></line>
-                            <line x1="9" y1="21" x2="9" y2="9"></line>
-                        </svg>
-                        基地基本資料
-                    </div>
-                    <div class="form-group">
-                        <label for="project_name">專案名稱</label>
-                        <input type="text" id="project_name" placeholder="請輸入專案名稱">
-                    </div>
-                    <div class="form-group">
-                        <label for="base_area">基地面積 (㎡)</label>
-                        <input type="number" id="base_area" value="1000" step="0.01">
-                    </div>
-                    <div class="form-group">
-                        <label for="original_volume">建物原容積 (㎡)</label>
-                        <input type="number" id="original_volume" value="0" step="0.01">
-                    </div>
-                    <div class="form-group">
-                        <label for="land_use_zone">使用分區</label>
-                        <select id="land_use_zone">
-                            <option value="住宅區">住宅區</option>
-                            <option value="商業區">商業區</option>
-                            <option value="工業區">工業區</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="floor_area_ratio">容積率 (%)</label>
-                        <input type="number" id="floor_area_ratio" value="225" step="0.1">
-                    </div>
-                </div>
-            </aside>
+        <!-- Tab Controls -->
+        <nav class="tabs">
+            <button class="tab-btn active" onclick="showTab('calculator')">🧮 試算主控台</button>
+            {% for name in sheet_names %}
+            <button class="tab-btn" onclick="showTab('sheet-{{ forloop.counter }}')">📄 {{ name }}</button>
+            {% endfor %}
+        </nav>
 
-            <!-- Main: Results Table -->
-            <section>
-                <div class="card">
-                    <div class="card-title">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 20v-6M6 20V10M18 20V4"></path>
-                        </svg>
-                        計算明細與獎勵項目
+        <!-- Tab: Calculator -->
+        <div id="calculator" class="tab-content active">
+            <main class="grid-layout">
+                <!-- Sidebar: Inputs -->
+                <aside>
+                    <div class="card">
+                        <div class="card-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="3" y1="9" x2="21" y2="9"></line>
+                                <line x1="9" y1="21" x2="9" y2="9"></line>
+                            </svg>
+                            基地基本資料
+                        </div>
+                        <div class="form-group">
+                            <label for="project_name">專案名稱</label>
+                            <input type="text" id="project_name" placeholder="請輸入專案名稱">
+                        </div>
+                        <div class="form-group">
+                            <label for="base_area">基地面積 (㎡)</label>
+                            <input type="number" id="base_area" value="1000" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="original_volume">建物原容積 (㎡)</label>
+                            <input type="number" id="original_volume" value="0" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="land_use_zone">使用分區</label>
+                            <select id="land_use_zone">
+                                <option value="住宅區">住宅區</option>
+                                <option value="商業區">商業區</option>
+                                <option value="工業區">工業區</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="floor_area_ratio">容積率 (%)</label>
+                            <input type="number" id="floor_area_ratio" value="225" step="0.1">
+                        </div>
                     </div>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>項目名稱</th>
-                                    <th class="numeric">基準(㎡)</th>
-                                    <th class="numeric">係數/百分比</th>
-                                    <th class="numeric">獎勵容積(㎡)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="reward_table_body">
-                                <!-- JS items will go here -->
-                            </tbody>
-                            <tfoot>
-                                <tr class="total-row">
-                                    <td>法定容積 (A)</td>
-                                    <td class="numeric" id="legal_volume">0</td>
-                                    <td class="numeric">-</td>
-                                    <td class="numeric">-</td>
-                                </tr>
-                                <tr class="total-row">
-                                    <td>容積獎勵合計 (B)</td>
-                                    <td class="numeric">-</td>
-                                    <td class="numeric">-</td>
-                                    <td class="numeric" id="total_reward">0</td>
-                                </tr>
-                                <tr class="total-row" style="background-color: var(--primary); color: white;">
-                                    <td>總容積上限 (A+B)</td>
-                                    <td class="numeric">-</td>
-                                    <td class="numeric">-</td>
-                                    <td class="numeric" id="final_total_volume">0</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
+                </aside>
 
-                    <div class="summary-box">
-                        <div class="summary-item">
-                            <div class="summary-label">獎勵比例</div>
-                            <div class="summary-value" id="reward_ratio">0%</div>
+                <!-- Main: Results Table -->
+                <section>
+                    <div class="card">
+                        <div class="card-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 20v-6M6 20V10M18 20V4"></path>
+                            </svg>
+                            計算明細與獎勵項目
                         </div>
-                        <div class="summary-item">
-                            <div class="summary-label">基準容積</div>
-                            <div class="summary-value" id="summary_base">0</div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>項目名稱</th>
+                                        <th class="numeric">基準(㎡)</th>
+                                        <th class="numeric">係數/百分比</th>
+                                        <th class="numeric">獎勵容積(㎡)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reward_table_body">
+                                    <!-- JS items will go here -->
+                                </tbody>
+                                <tfoot>
+                                    <tr class="total-row">
+                                        <td>法定容積 (A)</td>
+                                        <td class="numeric" id="legal_volume">0</td>
+                                        <td class="numeric">-</td>
+                                        <td class="numeric">-</td>
+                                    </tr>
+                                    <tr class="total-row">
+                                        <td>容積獎勵合計 (B)</td>
+                                        <td class="numeric">-</td>
+                                        <td class="numeric">-</td>
+                                        <td class="numeric" id="total_reward">0</td>
+                                    </tr>
+                                    <tr class="total-row" style="background-color: var(--primary); color: white;">
+                                        <td>總容積上限 (A+B)</td>
+                                        <td class="numeric">-</td>
+                                        <td class="numeric">-</td>
+                                        <td class="numeric" id="final_total_volume">0</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
                         </div>
-                        <div class="summary-item">
-                            <div class="summary-label">最終容積</div>
-                            <div class="summary-value" id="summary_final">0</div>
+
+                        <div class="summary-box">
+                            <div class="summary-item">
+                                <div class="summary-label">獎勵比例</div>
+                                <div class="summary-value" id="reward_ratio">0%</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-label">基準容積</div>
+                                <div class="summary-value" id="summary_base">0</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-label">最終容積</div>
+                                <div class="summary-value" id="summary_final">0</div>
+                            </div>
                         </div>
                     </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- Tabs for Raw Data -->
+        {% for name, data in excel_sheets.items %}
+        <div id="sheet-{{ forloop.counter }}" class="tab-content">
+            <div class="card">
+                <div class="card-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    {{ name }} - 原始資料參考
                 </div>
-            </section>
-        </main>
+                <div class="table-container" style="max-height: 600px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for col in data.columns %}
+                                <th>{{ col }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in data.rows %}
+                            <tr>
+                                {% for cell in row %}
+                                <td>
+                                    {% if cell != None %}{{ cell }}{% endif %}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
     </div>
 
     <script>
+        function showTab(tabId) {
+            // Remove active class from all tabs and contents
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            // Add active class to selected tab and content
+            document.getElementById(tabId).classList.add('active');
+
+            // Find the button that corresponds to this tabId and activate it
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if (btn.getAttribute('onclick').includes(tabId)) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
         // 從 Excel 解析出的正式獎勵項目
         const rewardItems = [
             { id: 'r1', name: '原容積+0.3倍法定容積', ratio: 0, baseType: 'original' },
