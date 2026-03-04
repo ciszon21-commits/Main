@@ -92,6 +92,21 @@ class Hotspot(models.Model):
         return f"{self.get_hotspot_type_display()} - {self.title}"
 
 
+class HazardType(models.Model):
+    """危害類型資料表"""
+    serial_number = models.PositiveIntegerField(_("項次"), unique=True, help_text="危害類型的項次編號")
+    name = models.CharField(_("危害類型名稱"), max_length=200)
+    description = models.TextField(_("危害類型說明"), blank=True)
+
+    class Meta:
+        verbose_name = _("危害類型")
+        verbose_name_plural = _("危害類型")
+        ordering = ['serial_number']
+
+    def __str__(self):
+        return f"{self.serial_number}. {self.name}"
+
+
 class UserActionLog(models.Model):
     """
     記錄所有使用者操作的詳細資訊

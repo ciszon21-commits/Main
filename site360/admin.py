@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Project, Scene, UserActionLog
+from .models import Project, Scene, UserActionLog, HazardType
 from django.utils.html import format_html
 import json
 
@@ -18,6 +18,17 @@ class ProjectAdmin(admin.ModelAdmin):
     def scene_count(self, obj):
         return obj.scenes.count()
     scene_count.short_description = "場景數量"
+
+@admin.register(HazardType)
+class HazardTypeAdmin(admin.ModelAdmin):
+    list_display = ('serial_number', 'name', 'description_short')
+    search_fields = ('name', 'description')
+    ordering = ('serial_number',)
+
+    def description_short(self, obj):
+        return obj.description[:60] + '...' if len(obj.description) > 60 else obj.description
+    description_short.short_description = "危害類型說明"
+
 
 @admin.register(Scene)
 class SceneAdmin(admin.ModelAdmin):
