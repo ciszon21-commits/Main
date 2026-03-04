@@ -88,6 +88,7 @@ INSTALLED_APPS = [
     'SynonymManager',
     'PatentRegistry',
     'site360',
+    'volume_calc',
     'SinoFile',
     'Inlet_Design',
     'DroneReservation',

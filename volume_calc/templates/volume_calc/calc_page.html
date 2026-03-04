@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>容積獎勵及建築量體計算平台</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+            color: var(--primary);
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 0.625rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background-color: #f9fafb;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            ring: 2px solid var(--primary);
+            background-color: #fff;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            background-color: #f1f5f9;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 2px solid var(--border);
+        }
+
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .numeric {
+            text-align: right;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .total-row {
+            background-color: #eff6ff;
+            font-weight: 700;
+        }
+
+        .badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-primary {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .summary-box {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .summary-item {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .summary-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .summary-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* Micro-animations */
+        .summary-value {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1>容積獎勵及建築量體計算平台</h1>
+                <p style="color: var(--text-muted); font-size: 0.875rem; margin: 0.25rem 0 0 0;">專業、精準的容積試算解決方案</p>
+            </div>
+            <button class="btn btn-primary">儲存計算結果</button>
+        </header>
+
+        <main class="grid-layout">
+            <!-- Sidebar: Inputs -->
+            <aside>
+                <div class="card">
+                    <div class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="3" y1="9" x2="21" y2="9"></line>
+                            <line x1="9" y1="21" x2="9" y2="9"></line>
+                        </svg>
+                        基地基本資料
+                    </div>
+                    <div class="form-group">
+                        <label for="project_name">專案名稱</label>
+                        <input type="text" id="project_name" placeholder="請輸入專案名稱">
+                    </div>
+                    <div class="form-group">
+                        <label for="base_area">基地面積 (㎡)</label>
+                        <input type="number" id="base_area" value="1000" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="original_volume">建物原容積 (㎡)</label>
+                        <input type="number" id="original_volume" value="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="land_use_zone">使用分區</label>
+                        <select id="land_use_zone">
+                            <option value="住宅區">住宅區</option>
+                            <option value="商業區">商業區</option>
+                            <option value="工業區">工業區</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="floor_area_ratio">容積率 (%)</label>
+                        <input type="number" id="floor_area_ratio" value="225" step="0.1">
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main: Results Table -->
+            <section>
+                <div class="card">
+                    <div class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 20v-6M6 20V10M18 20V4"></path>
+                        </svg>
+                        計算明細與獎勵項目
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>項目名稱</th>
+                                    <th class="numeric">基準(㎡)</th>
+                                    <th class="numeric">係數/百分比</th>
+                                    <th class="numeric">獎勵容積(㎡)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reward_table_body">
+                                <!-- JS items will go here -->
+                            </tbody>
+                            <tfoot>
+                                <tr class="total-row">
+                                    <td>法定容積 (A)</td>
+                                    <td class="numeric" id="legal_volume">0</td>
+                                    <td class="numeric">-</td>
+                                    <td class="numeric">-</td>
+                                </tr>
+                                <tr class="total-row">
+                                    <td>容積獎勵合計 (B)</td>
+                                    <td class="numeric">-</td>
+                                    <td class="numeric">-</td>
+                                    <td class="numeric" id="total_reward">0</td>
+                                </tr>
+                                <tr class="total-row" style="background-color: var(--primary); color: white;">
+                                    <td>總容積上限 (A+B)</td>
+                                    <td class="numeric">-</td>
+                                    <td class="numeric">-</td>
+                                    <td class="numeric" id="final_total_volume">0</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <div class="summary-box">
+                        <div class="summary-item">
+                            <div class="summary-label">獎勵比例</div>
+                            <div class="summary-value" id="reward_ratio">0%</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">基準容積</div>
+                            <div class="summary-value" id="summary_base">0</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">最終容積</div>
+                            <div class="summary-value" id="summary_final">0</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // 從 Excel 解析出的正式獎勵項目
+        const rewardItems = [
+            { id: 'r1', name: '原容積+0.3倍法定容積', ratio: 0, baseType: 'original' },
+            { id: 'r2', name: '基準容積+0.1倍法定容積', ratio: 0.1, baseType: 'legal' },
+            { id: 'r3', name: '都市更新獎勵 (依審議結果)', ratio: 0.15, baseType: 'legal' },
+            { id: 'r4', name: '法定容積+0.5倍法定容積', ratio: 0.5, baseType: 'legal' }
+        ];
+
+        function calculate() {
+            const baseArea = parseFloat(document.getElementById('base_area').value) || 0;
+            const far = parseFloat(document.getElementById('floor_area_ratio').value) / 100 || 0;
+            const originalVolume = parseFloat(document.getElementById('original_volume').value) || 0;
+            const legalVolume = baseArea * far;
+
+            document.getElementById('legal_volume').innerText = legalVolume.toLocaleString(undefined, { minimumFractionDigits: 2 });
+
+            let totalReward = 0;
+            const tableBody = document.getElementById('reward_table_body');
+            tableBody.innerHTML = '';
+
+            rewardItems.forEach(item => {
+                let reward = 0;
+                let baseVal = 0;
+                let displayRatio = (item.ratio * 100).toFixed(1) + '%';
+
+                if (item.id === 'r1') {
+                    // 原容積 + 0.3 * 法定
+                    reward = originalVolume + (0.3 * legalVolume);
+                    baseVal = originalVolume;
+                    displayRatio = '原容積 + 30%';
+                } else {
+                    reward = legalVolume * item.ratio;
+                    baseVal = legalVolume;
+                }
+
+                totalReward += reward;
+
+                const row = `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td class="numeric">${baseVal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        <td class="numeric">${displayRatio}</td>
+                        <td class="numeric">${reward.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', row);
+            });
+
+            const finalTotal = legalVolume + totalReward;
+            const rewardRatio = (totalReward / legalVolume * 100) || 0;
+
+            document.getElementById('total_reward').innerText = totalReward.toLocaleString(undefined, { minimumFractionDigits: 2 });
+            document.getElementById('final_total_volume').innerText = finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 });
+
+            // Summary elements
+            document.getElementById('reward_ratio').innerText = rewardRatio.toFixed(2) + '%';
+            document.getElementById('summary_base').innerText = legalVolume.toLocaleString(undefined, { minimumFractionDigits: 0 });
+            document.getElementById('summary_final').innerText = finalTotal.toLocaleString(undefined, { minimumFractionDigits: 0 });
+        }
+
+        // Attach listeners
+        ['base_area', 'floor_area_ratio', 'original_volume'].forEach(id => {
+            document.getElementById(id).addEventListener('input', calculate);
+        });
+
+        // Initial run
+        calculate();
+    </script>
+</body>
+
+</html>
