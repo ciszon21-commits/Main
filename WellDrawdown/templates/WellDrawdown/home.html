@@ -1,0 +1,375 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>水理分析抽水預測系統 — Theis & Neuman</title>
+    <meta name="description" content="以 Theis 及 Neuman 方法分析車站開挖抽降水需求，反推各抽水井所需抽水量">
+    <link rel="stylesheet" href="{% static 'WellDrawdown/css/style.css' %}">
+</head>
+
+<body>
+    <!-- ═══════════ Header ═══════════ -->
+    <header class="wd-header">
+        <div
+            style="max-width:1920px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; position:relative;">
+            <div>
+                <h1>
+                    <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        style="color:#818CF8">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z">
+                        </path>
+                    </svg>
+                    水理分析抽水預測系統
+                </h1>
+                <p class="wd-header-sub">Theis & Neuman 方法 — 車站開挖抽降水分析</p>
+            </div>
+            <div class="wd-header-right" style="display:none" id="header-right-desktop">
+                <p>分析方法：Theis (1935) / Neuman (1975)</p>
+                <p>疊加原理計算多井洩降</p>
+            </div>
+        </div>
+        <!-- 導覽列 Tab -->
+        <div class="wd-tabs" style="max-width:1920px; margin:0 auto;">
+            <a href="{% url 'well_drawdown_home' %}" class="wd-tab active">✏️ 反推抽水量 (逆向)</a>
+            <a href="{% url 'well_drawdown_forward' %}" class="wd-tab">📊 預估抽降深度 (正向)</a>
+        </div>
+    </header>
+
+    <main class="wd-main">
+        <div class="wd-grid">
+            <!-- ═══════════ 左側：參數面板 ═══════════ -->
+            <div class="wd-sidebar">
+                <!-- 分析方法選擇 -->
+                <div class="wd-card">
+                    <h2 class="wd-section-title">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
+                            </path>
+                        </svg>
+                        分析方法
+                    </h2>
+                    <div class="flex gap-2 mt-3">
+                        <button class="method-btn active flex-1" data-method="both" id="btn-both">兩者並列</button>
+                        <button class="method-btn flex-1" data-method="theis" id="btn-theis">Theis</button>
+                        <button class="method-btn flex-1" data-method="neuman" id="btn-neuman">Neuman</button>
+                    </div>
+                </div>
+
+                <!-- 共用參數 -->
+                <div class="wd-card">
+                    <h2 class="wd-section-title">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4">
+                            </path>
+                        </svg>
+                        共用參數
+                    </h2>
+                    <div class="space-y-3 mt-3">
+                        <div class="wd-input-group">
+                            <label for="excavation_depth">開挖抽降水深度 (m)</label>
+                            <input type="number" id="excavation_depth" value="21.6" step="0.1" class="wd-input">
+                        </div>
+                        <div class="wd-input-group">
+                            <label for="head">水頭 Head (m)</label>
+                            <input type="number" id="head" value="36.0" step="0.1" class="wd-input">
+                        </div>
+                        <div class="wd-input-group">
+                            <label for="S">貯水係數 S (-)</label>
+                            <input type="number" id="S" value="0.001" step="0.0001" class="wd-input">
+                        </div>
+                        <div class="wd-input-group">
+                            <label for="T">導水係數 T (m²/day)</label>
+                            <input type="number" id="T" value="600" step="1" class="wd-input">
+                        </div>
+                        <div class="wd-input-group">
+                            <label for="t">抽水時間 t (day)</label>
+                            <input type="number" id="t" value="4" step="0.5" class="wd-input">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Neuman 額外參數 -->
+                <div class="wd-card" id="neuman-params">
+                    <h2 class="wd-section-title">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4">
+                            </path>
+                        </svg>
+                        Neuman 額外參數
+                    </h2>
+                    <div class="space-y-3 mt-3">
+                        <div class="wd-input-group">
+                            <label for="Sy">比出水量 Sy (-)</label>
+                            <input type="number" id="Sy" value="0.20" step="0.01" class="wd-input">
+                        </div>
+                        <div class="wd-input-group">
+                            <label for="Kh">水平滲透係數 Kh (m/day)</label>
+                            <input type="number" id="Kh" value="200" step="1" class="wd-input">
+                        </div>
+                        <div class="wd-input-group">
+                            <label for="Kv">垂直滲透係數 Kv (m/day)</label>
+                            <input type="number" id="Kv" value="20" step="1" class="wd-input">
+                        </div>
+                        <div class="wd-input-group">
+                            <label for="b">含水層厚度 b (m)</label>
+                            <input type="number" id="b" value="60" step="1" class="wd-input">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 計算按鈕 -->
+                <div class="flex justify-center mt-2 mb-2">
+                    <button id="btn-calculate" class="wd-btn-primary"
+                        style="padding: 0.6rem 2rem; font-size: 0.8rem; border-radius: 20px;">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                        開始計算
+                    </button>
+                </div>
+            </div>
+
+            <!-- ═══════════ 中間：座標表格 ═══════════ -->
+            <div class="wd-center-col">
+                <!-- 匯入按鈕 -->
+                <div class="flex justify-end mb-1">
+                    <label for="file-import" class="wd-btn-sm"
+                        style="background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.3); color: var(--accent-indigo);">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                        </svg>
+                        匯入座標檔 (.txt)
+                    </label>
+                    <input type="file" id="file-import" accept=".txt" class="hidden">
+                </div>
+
+                <!-- 車站外框座標 -->
+                <div class="wd-card">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="wd-section-title">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6z">
+                                </path>
+                            </svg>
+                            車站外框座標
+                        </h2>
+                        <div class="flex gap-2">
+                            <button id="btn-add-station" class="wd-btn-sm wd-btn-add" title="新增點位">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                新增
+                            </button>
+                            <button id="btn-del-station" class="wd-btn-sm wd-btn-del" title="刪除選中">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                    </path>
+                                </svg>
+                                刪除
+                            </button>
+                        </div>
+                    </div>
+                    <div class="wd-table-container">
+                        <table class="wd-table" id="station-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:40px"><input type="checkbox" id="station-check-all"
+                                            class="wd-checkbox"></th>
+                                    <th>No.</th>
+                                    <th>X (m)</th>
+                                    <th>Y (m)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="station-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 抽水井座標 -->
+                <div class="wd-card">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="wd-section-title">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
+                                </path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            抽水井座標
+                        </h2>
+                        <div class="flex gap-2">
+                            <button id="btn-add-well" class="wd-btn-sm wd-btn-add" title="新增井位">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                新增
+                            </button>
+                            <button id="btn-del-well" class="wd-btn-sm wd-btn-del" title="刪除選中">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                    </path>
+                                </svg>
+                                刪除
+                            </button>
+                        </div>
+                    </div>
+                    <div class="wd-table-container">
+                        <table class="wd-table" id="well-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:40px"><input type="checkbox" id="well-check-all"
+                                            class="wd-checkbox"></th>
+                                    <th>井名</th>
+                                    <th>X (m)</th>
+                                    <th>Y (m)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="well-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════ 右側：結果區域 ═══════════ -->
+            <div class="wd-right-col">
+                <!-- 計算狀態 -->
+                <div id="calc-status" class="hidden">
+                    <div class="wd-status-card">
+                        <div class="wd-spinner"></div>
+                        <span>正在計算中，請稍候...</span>
+                    </div>
+                </div>
+
+                <!-- Contour 圖 -->
+                <div id="result-contours" class="hidden space-y-5">
+                    <div id="theis-result" class="wd-card hidden">
+                        <h2 class="wd-section-title" style="color:#60A5FA">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                                </path>
+                            </svg>
+                            Theis Drawdown Contour
+                        </h2>
+                        <div class="mt-3 wd-contour-container">
+                            <img id="theis-contour-img" src="" alt="Theis Drawdown Contour">
+                        </div>
+                    </div>
+
+                    <div id="neuman-result" class="wd-card hidden">
+                        <h2 class="wd-section-title" style="color:#2DD4BF">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                                </path>
+                            </svg>
+                            Neuman Drawdown Contour
+                        </h2>
+                        <div class="mt-3 wd-contour-container">
+                            <img id="neuman-contour-img" src="" alt="Neuman Drawdown Contour">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 結果表格 -->
+                <div id="result-tables" class="hidden space-y-5">
+                    <div id="theis-table-section" class="wd-card hidden">
+                        <h2 class="wd-section-title" style="color:#60A5FA">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                            Theis — Pumping Wells Table
+                        </h2>
+                        <div class="wd-table-container mt-3">
+                            <table class="wd-table wd-result-table">
+                                <thead>
+                                    <tr>
+                                        <th>Well</th>
+                                        <th>Q (CMD)</th>
+                                        <th>QFS (CMD)</th>
+                                        <th>QFS (GPM)</th>
+                                        <th>Pump Type</th>
+                                        <th>Pump HP</th>
+                                        <th>Q-List (GPM)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="theis-result-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="neuman-table-section" class="wd-card hidden">
+                        <h2 class="wd-section-title" style="color:#2DD4BF">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                            Neuman — Pumping Wells Table
+                        </h2>
+                        <div class="wd-table-container mt-3">
+                            <table class="wd-table wd-result-table">
+                                <thead>
+                                    <tr>
+                                        <th>Well</th>
+                                        <th>Q (CMD)</th>
+                                        <th>QFS (CMD)</th>
+                                        <th>QFS (GPM)</th>
+                                        <th>Pump Type</th>
+                                        <th>Pump HP</th>
+                                        <th>Q-List (GPM)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="neuman-result-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 空白提示 -->
+                <div id="empty-result" class="wd-card">
+                    <div class="wd-empty-state">
+                        <svg width="56" height="56" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                            </path>
+                        </svg>
+                        <p>尚無計算結果</p>
+                        <p>請輸入參數並點擊「開始計算」</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        window.djangoUrls = {
+            calculate: "{% url 'well_drawdown_calculate' %}"
+        };
+        // Show desktop header on wide screens
+        if (window.innerWidth >= 768) {
+            document.getElementById('header-right-desktop').style.display = 'block';
+        }
+    </script>
+    <script src="{% static 'WellDrawdown/js/main.js' %}"></script>
+</body>
+
+</html>

@@ -111,6 +111,7 @@ INSTALLED_APPS = [
     'NewsInsight',  # GoogleNews輿情分析
     'CODiS_WindRose_Plotter',
     'LHAWish',  # 部門許願池
+    'WellDrawdown',  # 水理分析抽水預測系統
 ] + local.STAGE_INSTALLED_APPS
 
 
