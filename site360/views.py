@@ -259,80 +259,7 @@ class SceneCreateView(UserActionLoggingMixin, CreateView):
         return reverse('site360:project_detail', kwargs={'pk': self.kwargs['pk']})
 
 
-@csrf_exempt
-def save_hotspot(request):
-    if request.method == 'POST':
-        try:
-            hotspot_id = request.POST.get('hotspot_id')
-            scene_id = request.POST.get('scene_id')
-            hotspot_type = request.POST.get('type')
-            pitch = request.POST.get('pitch')
-            yaw = request.POST.get('yaw')
-            title = request.POST.get('title')
-            description = request.POST.get('description')
-            icon = request.POST.get('icon', 'fas fa-info-circle')
-            icon_color = request.POST.get('icon_color', '#ffffff')
-            
-            if hotspot_id:
-                # Update existing
-                hotspot = get_object_or_404(Hotspot, id=hotspot_id)
-                hotspot.hotspot_type = hotspot_type
-                hotspot.title = title
-                hotspot.description = description
-                hotspot.icon = icon
-                hotspot.icon_color = icon_color
-                # Only update pitch/yaw if provided (though usually they are hidden fields)
-                if pitch: hotspot.pitch = float(pitch)
-                if yaw: hotspot.yaw = float(yaw)
-            else:
-                # Create new
-                scene = get_object_or_404(Scene, id=scene_id)
 
-                if not icon_color: icon_color = '#ffffff'
-                
-                hotspot = Hotspot(
-                    scene=scene,
-                    hotspot_type=hotspot_type,
-                    pitch=float(pitch),
-                    yaw=float(yaw),
-                    title=title,
-                    description=description,
-                    icon=icon,
-                    icon_color=icon_color
-                )
-            
-            # Handle source reference (copy_from_id from frontend)
-            copy_from_id = request.POST.get('copy_from_id')
-            clear_source = request.POST.get('clear_source')
-            
-            if clear_source == 'true':
-                # Explicitly clear the relationship
-                hotspot.source_hotspot = None
-                hotspot.original_resource = None
-            elif copy_from_id:
-                try:
-                    source_hotspot = Hotspot.objects.get(id=copy_from_id)
-                    hotspot.source_hotspot = source_hotspot
-                    # Inherit original_resource if source has one, otherwise source IS the original
-                    hotspot.original_resource = source_hotspot.original_resource if source_hotspot.original_resource else source_hotspot
-                except Hotspot.DoesNotExist:
-                     # If source not found, we return error as this shouldn't happen in normal flow
-                    return JsonResponse({'status': 'error', 'message': f'Target hotspot {copy_from_id} not found'})
-            
-            if 'image' in request.FILES:
-                hotspot.image = request.FILES['image']
-            if 'video' in request.FILES:
-                hotspot.video = request.FILES['video']
-                
-            hotspot.save()
-            
-            return JsonResponse({'status': 'success', 'id': hotspot.id})
-
-            
-            return JsonResponse({'status': 'success', 'id': hotspot.id})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=405)
 
 @csrf_exempt
 @user_action_logging
@@ -407,6 +334,9 @@ def save_hotspot(request):
             icon = request.POST.get('icon')
             icon_color = request.POST.get('icon_color')
             
+            hazard_type_val = request.POST.get('hazard_type')
+            hazard_type_id = int(hazard_type_val) if hazard_type_val else None
+            
             # Import Logic
             copy_from_id = request.POST.get('copy_from_id')
             clear_source = request.POST.get('clear_source')  # 檢查是否明確要求清除引用
@@ -434,6 +364,7 @@ def save_hotspot(request):
                 hotspot.description = description
                 hotspot.icon = icon
                 hotspot.icon_color = icon_color
+                hotspot.hazard_type_id = hazard_type_id
                 
                 # 處理清除引用的請求
                 if clear_source == 'true':
@@ -448,7 +379,8 @@ def save_hotspot(request):
                     title=title,
                     description=description,
                     icon=icon,
-                    icon_color=icon_color
+                    icon_color=icon_color,
+                    hazard_type_id=hazard_type_id
                 )
 
             # Handle Import (Copy/Reference fields)
@@ -856,7 +788,9 @@ def project_tour_data(request, pk):
                     "video": f"{reverse('site360:serve_hotspot_video', kwargs={'pk': hs.id})}?v={int(hs.updated_at.timestamp())}" if hs.video else "",
                     "video_raw": hs.video.url if hs.video else "", # Raw URL for comparison checks
                     "source_hotspot_id": hs.source_hotspot.id if hs.source_hotspot else None,
-                    "source_hotspot_title": hs.source_hotspot.title if hs.source_hotspot else None
+                    "source_hotspot_title": hs.source_hotspot.title if hs.source_hotspot else None,
+                    "hazard_type_id": hs.hazard_type_id,
+                    "hazard_type_name_with_serial": f"{hs.hazard_type.serial_number}. {hs.hazard_type.name}" if hs.hazard_type else None,
                 }
             }
             hotspots.append(hs_data)
@@ -874,8 +808,10 @@ def project_tour_data(request, pk):
     return JsonResponse(tour_config)
 
 def tour_view(request, pk):
+    from .models import HazardType
     projet = get_object_or_404(Project, pk=pk)
-    return render(request, 'site360/tour.html', {'project': projet})
+    hazard_types = HazardType.objects.all().order_by('serial_number')
+    return render(request, 'site360/tour.html', {'project': projet, 'hazard_types': hazard_types})
 
 @csrf_exempt
 @user_action_logging

@@ -531,6 +531,16 @@
                             <textarea class="form-control" name="description" id="hotspotDescInput" rows="3"></textarea>
                         </div>
 
+                        <div class="mb-3">
+                            <label class="form-label">危害類型</label>
+                            <select class="form-select" name="hazard_type" id="hazardTypeSelect">
+                                <option value="">— 不指定 —</option>
+                                {% for ht in hazard_types %}
+                                <option value="{{ ht.id }}">{{ ht.serial_number }}. {{ ht.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
                         <div class="mb-3 d-none" id="imageField">
                             <label class="form-label">上傳圖片</label>
                             <input type="file" class="form-control" name="image" id="imageUploadInput" accept="image/*">
@@ -744,6 +754,13 @@
                 if (args.image) {
                     content += `<img src="${args.image}">`;
                 }
+
+                content += `<div class="d-flex flex-wrap gap-1 mb-1">`;
+                if (args.hazard_type_name_with_serial) {
+                    content += `<span class="badge bg-danger">${args.hazard_type_name_with_serial}</span>`;
+                }
+                content += `</div>`;
+
                 content += `<strong>${args.title}</strong>`;
                 if (args.description) {
                     content += `<small>${args.description}</small>`;
@@ -760,6 +777,13 @@
                 if (args.video) {
                     content += `<div class="video-container"><video playsinline muted loop autoplay><source src="${args.video}" type="video/mp4"></video></div>`;
                 }
+
+                content += `<div class="d-flex flex-wrap gap-1 mb-1">`;
+                if (args.hazard_type_name_with_serial) {
+                    content += `<span class="badge bg-danger">${args.hazard_type_name_with_serial}</span>`;
+                }
+                content += `</div>`;
+
                 content += `<strong>${args.title}</strong>`;
                 if (args.description) {
                     content += `<small>${args.description}</small>`;
@@ -796,7 +820,13 @@
                 const label = document.createElement('div');
                 label.className = 'hover-text-label';
 
-                let content = `<strong>${args.title}</strong>`;
+                let content = `<div class="d-flex flex-wrap gap-1 mb-1">`;
+                if (args.hazard_type_name_with_serial) {
+                    content += `<span class="badge bg-danger">${args.hazard_type_name_with_serial}</span>`;
+                }
+                content += `</div>`;
+
+                content += `<strong>${args.title}</strong>`;
                 if (args.description) {
                     content += `<small>${args.description}</small>`;
                 }
@@ -838,7 +868,12 @@
         function showHotspotModal(data) {
             if (!data) return;
             currentHotspotId = data.id;
-            $('#viewTitle').text(data.title || '無標題');
+            let titleHtml = data.title || '無標題';
+            if (data.hazard_type_name_with_serial) {
+                titleHtml = `<span class="badge bg-danger align-middle me-2">${data.hazard_type_name_with_serial}</span>` + titleHtml;
+            }
+            $('#viewTitle').html(titleHtml);
+
             $('#viewDescription').text(data.description || '');
 
             let mediaHtml = '';
@@ -900,6 +935,8 @@
 
             $('input[name="title"]').val(hsData.createTooltipArgs.title);
             $('textarea[name="description"]').val(hsData.createTooltipArgs.description);
+            // Fill hazard_type
+            $('#hazardTypeSelect').val(hsData.createTooltipArgs.hazard_type_id || '');
 
             // Show Current Media Preview (Even if not imported)
             // Reset inputs first
