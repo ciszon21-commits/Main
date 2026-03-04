@@ -641,26 +641,32 @@ def serve_hotspot_video(request, pk):
 
 def project_resource_list(request, pk):
     """
-    Displays a list of all resources (hotspots) in a project defined by pk.
+    Displays a list of all resources (hotspots), optionally defaults to the specified project.
     """
-    project = get_object_or_404(Project, pk=pk)
-    # Get all scenes ordered by 'order'
-    scenes = project.scenes.all().order_by('order')
-    
-    # We want to display resources grouped by scene.
-    # The template can iterate over scenes and then their hotspots.
-    # Hotspots should be pre-fetched to avoid N+1 queries.
-    from django.db.models import Prefetch
+    from django.db.models import Prefetch, Count
     from .models import HazardType
-    scenes = scenes.prefetch_related(
+
+    project = get_object_or_404(Project, pk=pk)
+
+    scenes = Scene.objects.all().order_by('project', 'order').prefetch_related(
+        'project',
         Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot', 'hazard_type').order_by('created_at'))
     )
+
+    all_projects = Project.objects.all().order_by('name')
     hazard_types = HazardType.objects.all().order_by('serial_number')
+
+    # Unassigned hotspots: scene is null
+    unassigned_hotspots = Hotspot.objects.filter(scene__isnull=True).annotate(
+        usage_count=Count('copied_by')
+    ).select_related('source_hotspot', 'hazard_type').order_by('-created_at')
 
     context = {
         'project': project,
+        'all_projects': all_projects,
         'scenes': scenes,
         'hazard_types': hazard_types,
+        'unassigned_hotspots': unassigned_hotspots,
     }
     return render(request, 'site360/resource_list.html', context)
 
