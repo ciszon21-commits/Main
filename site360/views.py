@@ -501,6 +501,7 @@ def save_hotspot(request):
 def list_resources(request):
     """
     API to list all available resources (hotspots) for the library.
+    Handles hotspots that have no scene (standalone resources).
     """
     try:
         hotspots = Hotspot.objects.select_related('scene', 'scene__project').all().order_by('-created_at')
@@ -512,8 +513,9 @@ def list_resources(request):
                 'description': h.description,
                 'type': h.hotspot_type,
                 'type_display': h.get_hotspot_type_display(),
-                'project_name': h.scene.project.name,
-                'scene_title': h.scene.title,
+                'project_name': h.scene.project.name if h.scene else '（未分配）',
+                'scene_title': h.scene.title if h.scene else '（未分配至場景）',
+                'is_unassigned': h.scene is None,
                 'thumb_url': f"{h.image.url}?v={int(h.updated_at.timestamp())}" if h.image and h.hotspot_type in ['image', 'image_hover'] else None,
                 'video_url': f"{h.video.url}?v={int(h.updated_at.timestamp())}" if h.video else None,
                 'has_video': bool(h.video),
@@ -525,6 +527,55 @@ def list_resources(request):
         return JsonResponse({'status': 'success', 'resources': data})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@csrf_exempt
+@user_action_logging
+def create_standalone_hotspot(request):
+    """
+    Creates a standalone hotspot (not tied to any scene) for the resource library.
+    """
+    if request.method == 'POST':
+        try:
+            title = request.POST.get('title', '').strip()
+            if not title:
+                return JsonResponse({'status': 'error', 'message': '標題不能為空'}, status=400)
+
+            hotspot_type = request.POST.get('type', 'text')
+            description = request.POST.get('description', '')
+            icon = request.POST.get('icon', 'fas fa-info-circle')
+            icon_color = request.POST.get('icon_color', '#ffffff')
+
+            hotspot = Hotspot(
+                scene=None,
+                hotspot_type=hotspot_type,
+                pitch=0.0,
+                yaw=0.0,
+                title=title,
+                description=description,
+                icon=icon,
+                icon_color=icon_color,
+            )
+
+            if 'image' in request.FILES:
+                hotspot.image = request.FILES['image']
+            if 'video' in request.FILES:
+                hotspot.video = request.FILES['video']
+
+            # Enforce media exclusivity based on type
+            if hotspot_type in ['text', 'text_hover']:
+                hotspot.image = None
+                hotspot.video = None
+            elif hotspot_type in ['image', 'image_hover']:
+                hotspot.video = None
+            elif hotspot_type in ['video', 'video_hover']:
+                hotspot.image = None
+
+            hotspot.save()
+            return JsonResponse({'status': 'success', 'id': hotspot.id, 'message': '素材已成功建立'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
 
 @csrf_exempt
 @user_action_logging
@@ -679,6 +730,7 @@ def project_resource_list(request, pk):
 def all_resource_list(request):
     """
     Displays a list of all resources (hotspots) across all projects.
+    Also includes standalone hotspots that have no scene.
     """
     from django.db.models import Prefetch
 
@@ -686,12 +738,18 @@ def all_resource_list(request):
         'project',
         Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot').order_by('created_at'))
     )
-    
+
     projects = Project.objects.all().order_by('name')
+
+    # Unassigned hotspots: scene is null
+    unassigned_hotspots = Hotspot.objects.filter(scene__isnull=True).annotate(
+        usage_count=Count('copied_by')
+    ).select_related('source_hotspot').order_by('-created_at')
 
     context = {
         'scenes': scenes,
         'all_projects': projects,
+        'unassigned_hotspots': unassigned_hotspots,
     }
     return render(request, 'site360/resource_list.html', context)
 

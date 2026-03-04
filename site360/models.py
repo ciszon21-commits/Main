@@ -62,7 +62,7 @@ class Hotspot(models.Model):
         ('video_hover', '懸浮影片'),
     )
 
-    scene = models.ForeignKey(Scene, on_delete=models.CASCADE, related_name='hotspots', verbose_name=_("所屬場景"))
+    scene = models.ForeignKey(Scene, on_delete=models.SET_NULL, null=True, blank=True, related_name='hotspots', verbose_name=_("所屬場景"))
     hotspot_type = models.CharField(_("類型"), max_length=20, choices=TYPE_CHOICES, default='text')
     pitch = models.FloatField(_("俯仰角 (Pitch)"))
     yaw = models.FloatField(_("偏航角 (Yaw)"))
