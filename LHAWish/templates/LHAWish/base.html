@@ -22,8 +22,9 @@
             <div class="wish-nav-inner">
                 <div class="wish-nav-top">
                     <a href="{% url 'lhawish:petition_list' %}" class="wish-nav-brand">
-                        <div class="wish-nav-logo">P</div>
-                        <span class="wish-nav-title">部門許願池</span>
+                        <img src="{% static 'LHAWish/園路人logo.svg' %}" alt="許願池" class="wish-nav-logo"
+                            style="height:28px;width:auto;">
+                        <span class="wish-nav-title">許願池</span>
                     </a>
                     <div class="wish-nav-actions">
                         <a href="{% url 'lhawish:profile' %}" class="wish-avatar-wrap" title="個人中心">
@@ -62,7 +63,7 @@
                         主管信箱
                     </a>
                     <!-- 管理 Tabs（權限判斷顯示） -->
-                    {% if user.is_staff %}
+                    {% if is_board_admin %}
                     <span class="wish-tab-divider"></span>
                     <a href="{% url 'lhawish:manager_dashboard' %}"
                         class="wish-tab wish-tab-admin {% if active_tab == 'dashboard' %}active{% endif %}">
@@ -70,7 +71,7 @@
                         管理儀表板
                     </a>
                     {% endif %}
-                    {% if user.is_superuser %}
+                    {% if user.is_superuser or is_project_admin %}
                     <a href="{% url 'lhawish:settings' %}"
                         class="wish-tab wish-tab-admin {% if active_tab == 'settings' %}active{% endif %}">
                         <span class="material-symbols-outlined">settings</span>

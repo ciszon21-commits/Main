@@ -55,9 +55,7 @@
             <h3>{{ post.title }}</h3>
             <div class="wish-market-info">
                 {% if post.condition %}<span class="wish-market-condition">{{ post.condition }}</span>{% endif %}
-                <span>{{ post.created_at|timesince }} 前</span>
-                <span>•</span>
-                <span>{{ post.author.get_full_name|default:post.author.username }}</span>
+                <span>{{ post.created_at|date:"Y/m/d H:i" }}</span>
             </div>
             {% if post.status != 'sold' %}
             <span class="wish-btn-outline" style="width:100%;justify-content:center;">詳細資訊</span>
@@ -73,4 +71,12 @@
     </div>
     {% endfor %}
 </div>
+
+<script>
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
+    });
+</script>
 {% endblock %}

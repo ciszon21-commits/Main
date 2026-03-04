@@ -69,6 +69,20 @@
         <!-- RND Fields -->
         <div id="rndFields" class="{% if form_type != 'rnd' %}wish-hidden{% endif %}">
             <div class="wish-form-group">
+                <label>選擇研發案 <span class="required">*</span></label>
+                <div id="rnd_project_checkboxes" data-current="{{ form.rnd_project.value|default_if_none:'' }}"
+                    style="display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;">
+                    {% for rp in rnd_project_choices %}
+                    <label
+                        style="display:flex;align-items:center;gap:4px;font-size:13px;font-weight:400;cursor:pointer;">
+                        <input type="checkbox" name="rnd_project" value="{{ rp.label }}"
+                            style="width:16px;height:16px;accent-color:var(--wish-primary);margin:0;">
+                        {{ rp.label }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="wish-form-group">
                 <label>分類 <span class="required">*</span></label>
                 <select name="category" id="id_category" data-current="{{ form.category.value|default_if_none:'' }}">
                     <option value="">請選擇分類</option>
@@ -91,16 +105,7 @@
                         placeholder="例如: UI 異常、資料問題...">
                 </div>
             </div>
-            <div class="wish-form-group">
-                <label>指定組別（選填）</label>
-                <select name="assigned_group" id="id_assigned_group"
-                    data-current="{{ form.assigned_group.value|default_if_none:'' }}">
-                    <option value="">請選擇組別</option>
-                    {% for gc in group_choices %}
-                    <option value="{{ gc.label }}">{{ gc.label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+            <input type="hidden" name="assigned_group" value="">
         </div>
 
         <!-- Market Fields -->
@@ -143,7 +148,7 @@
         <div class="wish-form-group">
             <label>標題 <span class="required">*</span></label>
             <input type="text" name="title" id="id_title" required value="{{ form.title.value|default_if_none:'' }}"
-                placeholder="{% if form_type == 'market' %}物品名稱{% elif form_type == 'gossip' %}話題標題（可選）{% else %}簡短描述問題或建議{% endif %}">
+                placeholder="{% if form_type == 'market' %}物品名稱{% elif form_type == 'gossip' %}話題標題{% else %}簡短描述問題或建議{% endif %}">
             {{ form.title.errors }}
         </div>
 
@@ -185,9 +190,27 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         // Restore selects
-        document.querySelectorAll('[data-current]').forEach(function (sel) {
-            if (sel.dataset.current) sel.value = sel.dataset.current;
+        document.querySelectorAll('select[data-current]').forEach(function (sel) {
+            if (sel.dataset.current) {
+                if (sel.multiple) {
+                    var values = sel.dataset.current.split(',').map(function (s) { return s.trim(); });
+                    Array.from(sel.options).forEach(function (opt) {
+                        if (values.indexOf(opt.value) !== -1) opt.selected = true;
+                    });
+                } else {
+                    sel.value = sel.dataset.current;
+                }
+            }
         });
+
+        // Restore checkboxes for rnd_project
+        var rndCheckboxesContainer = document.getElementById('rnd_project_checkboxes');
+        if (rndCheckboxesContainer && rndCheckboxesContainer.dataset.current) {
+            var values = rndCheckboxesContainer.dataset.current.split(',').map(function (s) { return s.trim(); });
+            rndCheckboxesContainer.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+                if (values.indexOf(cb.value) !== -1) cb.checked = true;
+            });
+        }
 
         // 匿名勾選 → 顯示/隱藏自訂顯示名稱
         var anonCheckbox = document.getElementById('id_is_anonymous');

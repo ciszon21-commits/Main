@@ -39,17 +39,28 @@
 <div class="wish-card-grid">
     {% for post in posts %}
     <a href="{% url 'lhawish:post_detail' post.pk %}" class="wish-card">
-        <div class="wish-card-header">
+        <div class="wish-card-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div class="wish-card-badges">
                 <span class="wish-badge badge-category">{{ post.get_category_display }}</span>
                 <span class="wish-badge {{ post.status_css_class }}">{{ post.status_display }}</span>
             </div>
+            {% if post.rnd_project %}
+            <span class="wish-badge"
+                style="background:#e6f6f7;color:#475569;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">{{ post.rnd_project }}</span>
+            {% endif %}
         </div>
         <h3 class="wish-card-title">{{ post.title }}</h3>
         <p class="wish-card-content">{{ post.content|striptags|truncatechars:100 }}</p>
         <div class="wish-card-footer">
             <div class="wish-detail-author-meta">{{ post.created_at|date:"Y/m/d H:i" }}</div>
             <div class="wish-card-stats">
+                <span class="wish-stat">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                    {{ post.like_count }}
+                </span>
                 <span class="wish-stat">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -70,4 +81,12 @@
     </div>
     {% endfor %}
 </div>
+
+<script>
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
+    });
+</script>
 {% endblock %}
