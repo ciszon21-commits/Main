@@ -14,11 +14,13 @@ echo ==========================================
 :: 1. 偵測可用的 Python 指令
 set "PYTHON_CMD="
 py --version >nul 2>&1
-if %errorlevel% equ 0 (
+if not errorlevel 1 (
     set "PYTHON_CMD=py"
-) else (
+)
+
+if not defined PYTHON_CMD (
     python --version >nul 2>&1
-    if %errorlevel% equ 0 (
+    if not errorlevel 1 (
         set "PYTHON_CMD=python"
     )
 )
