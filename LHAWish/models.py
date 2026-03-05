@@ -34,6 +34,17 @@ class SiteConfig(models.Model):
         help_text="擁有許願池所有設定分頁的檢視與編輯權限"
     )
 
+    # 舊版按鈕設定
+    show_old_version = models.BooleanField(
+        default=False, verbose_name="顯示回舊版按鈕"
+    )
+    old_version_text = models.CharField(
+        max_length=50, default="回舊版", verbose_name="回舊版按鈕文字"
+    )
+    old_version_url = models.URLField(
+        blank=True, verbose_name="舊版網址"
+    )
+
     class Meta:
         verbose_name = "系統設定"
         verbose_name_plural = "系統設定"

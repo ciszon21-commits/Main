@@ -75,9 +75,9 @@
                     {% for rp in rnd_project_choices %}
                     <label
                         style="display:flex;align-items:center;gap:4px;font-size:13px;font-weight:400;cursor:pointer;">
-                        <input type="checkbox" name="rnd_project" value="{{ rp.label }}"
+                        <input type="checkbox" name="rnd_project" value="{{ rp.label|default:rp }}"
                             style="width:16px;height:16px;accent-color:var(--wish-primary);margin:0;">
-                        {{ rp.label }}
+                        {{ rp.label|default:rp }}
                     </label>
                     {% endfor %}
                 </div>
@@ -181,13 +181,40 @@
 
         <div class="wish-form-actions" style="display:flex;gap:12px;">
             <button type="submit" class="wish-btn-primary" style="flex:1;justify-content:center;">{% if is_edit %}儲存修改{% else %}發布{% endif %}</button>
+            {% if is_edit %}
+            {% if form_type == 'market' or form_type == 'gossip' %}
+            <button type="button" class="wish-btn-outline" onclick="deletePost({{ form.instance.pk }})"
+                style="color:#ef4444;border-color:#ef4444;justify-content:center;">
+                刪除文章
+            </button>
+            {% endif %}
+            {% endif %}
             <a href="javascript:history.back()" class="wish-btn-outline" style="justify-content:center;">取消</a>
         </div>
+        {% if is_edit and form_type == 'rnd' %}
+        <div style="margin-top: 8px; font-size: 13px; color: #94a3b8; text-align: center; font-weight: 500;">
+            如需刪除文章，請聯絡該案主辦{% if rnd_admin_names %} {{ rnd_admin_names }}{% endif %}
+        </div>
+        {% endif %}
     </form>
 </div>
 
 <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 <script>
+    function deletePost(pk) {
+        if (!confirm('確定要刪除此貼文？此操作無法復原。')) return;
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/lhawish/post/' + pk + '/delete/';
+        var csrf = document.createElement('input');
+        csrf.type = 'hidden';
+        csrf.name = 'csrfmiddlewaretoken';
+        csrf.value = '{{ csrf_token }}';
+        form.appendChild(csrf);
+        document.body.appendChild(form);
+        form.submit();
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         // Restore selects
         document.querySelectorAll('select[data-current]').forEach(function (sel) {

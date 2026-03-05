@@ -19,7 +19,9 @@
             <select id="managerSelect"
                 style="width:100%;padding:10px 14px;border:1px solid var(--wish-border);border-radius:var(--wish-radius-sm);font-size:14px;font-family:inherit;outline:none;">
                 {% for mgr in managers %}
-                <option value="{{ mgr.email }}">{{ mgr.name }}</option>
+                <option value="{{ mgr.email }}" data-name="{{ mgr.name }}{% if mgr.title %} {{ mgr.title }}{% endif %}">
+                    {{ mgr.name }}{% if mgr.title %} {{ mgr.title }}{% endif %}
+                </option>
                 {% endfor %}
             </select>
         </div>
@@ -39,7 +41,7 @@
     function sendMail() {
         var select = document.getElementById('managerSelect');
         var email = select.value;
-        var name = select.options[select.selectedIndex].text;
+        var name = select.options[select.selectedIndex].getAttribute('data-name') || select.options[select.selectedIndex].text;
         var subject = encodeURIComponent('[部門許願池] 員工意見反映');
         window.location.href = 'mailto:' + email + '?subject=' + subject;
     }

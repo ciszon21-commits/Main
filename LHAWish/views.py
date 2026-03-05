@@ -23,19 +23,23 @@ from .models import (
 
 # ========== 存取限制 ==========
 
-def _check_lhawish_access(user):
-    """檢查使用者是否可存取 LHAWish App（emp_dept 22/06 或 superuser）"""
+def _is_core_lhawish_user(user):
+    """檢查使用者是否為核心（園路願望/市場/等）使用者（emp_dept 22 或 superuser）"""
     if not user.is_authenticated:
         return False
     if user.is_superuser:
         return True
-    if hasattr(user, 'profile') and user.profile and user.profile.emp_dept in ('22', '06'):
+    if hasattr(user, 'profile') and user.profile and user.profile.emp_dept == '22':
         return True
     return False
 
+def _check_lhawish_access(user):
+    """檢查使用者是否可存取 LHAWish App (所有已登入員工皆可)"""
+    return user.is_authenticated
+
 
 class LHAWishAccessMixin(LoginRequiredMixin):
-    """存取限制 Mixin：emp_dept 必須是 22 或 06，或 superuser"""
+    """基本存取限制 Mixin：所有登入員工皆可（提供研發專案與其對應 API 存取）"""
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
@@ -43,23 +47,46 @@ class LHAWishAccessMixin(LoginRequiredMixin):
             return HttpResponseForbidden(
                 '<div style="text-align:center;padding:60px;font-family:sans-serif;">'
                 '<h2>⛔ 權限不足</h2>'
-                '<p>僅限特定部門人員使用此系統。</p>'
+                '<p>目前僅開放給登入同仁使用。</p>'
                 '</div>'
             )
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs) if hasattr(super(), 'get_context_data') else kwargs
-        ctx['is_project_admin'] = _is_project_admin(self.request.user)
-        ctx['is_board_admin'] = bool(_get_user_admin_boards(self.request.user)['boards'])
+        user = self.request.user
+        ctx['is_project_admin'] = _is_project_admin(user)
+        ctx['is_board_admin'] = bool(_get_user_admin_boards(user)['boards'])
+        ctx['site_config'] = SiteConfig.load()
+        ctx['is_core_user'] = _is_core_lhawish_user(user)
         return ctx
 
+class LHACoreAccessMixin(LHAWishAccessMixin):
+    """核心頁面存取限制 Mixin：emp_dept 必須是 22，或 superuser"""
+    def dispatch(self, request, *args, **kwargs):
+        if not _is_core_lhawish_user(request.user):
+            return HttpResponseForbidden(
+                '<div style="text-align:center;padding:60px;font-family:sans-serif;">'
+                '<h2>⛔ 權限不足</h2>'
+                '<p>僅限特定部門人員存取此頁面。</p>'
+                '</div>'
+            )
+        return super().dispatch(request, *args, **kwargs)
 
 def _lhawish_access_required(view_func):
-    """Function-based view 的存取限制裝飾器"""
+    """Function-based view 的基本存取限制裝飾器"""
     @wraps(view_func)
     def _wrapped(request, *args, **kwargs):
         if not _check_lhawish_access(request.user):
+            return JsonResponse({'error': '權限不足：請先登入'}, status=403)
+        return view_func(request, *args, **kwargs)
+    return _wrapped
+
+def _lhawish_core_access_required(view_func):
+    """Function-based view 的核心存取限制裝飾器"""
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        if not _is_core_lhawish_user(request.user):
             return JsonResponse({'error': '權限不足：僅限特定部門人員使用'}, status=403)
         return view_func(request, *args, **kwargs)
     return _wrapped
@@ -148,7 +175,7 @@ def _is_project_admin(user):
     return config.project_admins.filter(id=user.id).exists()
 
 
-def _send_board_notification(board_name, subject, message):
+def _send_board_notification(board_name, subject, message, rnd_project=None):
     """寄送 Email 通知給設定有接收該板塊通知且勾選收信的管理員（新格式 dict）"""
     config = SiteConfig.load()
     ba = config.board_admins
@@ -159,10 +186,15 @@ def _send_board_notification(board_name, subject, message):
     if not isinstance(board_admins, list):
         return
 
-    admin_uids = [
-        a.get('uid') for a in board_admins
-        if isinstance(a, dict) and a.get('receive_emails', False)
-    ]
+    admin_uids = []
+    for a in board_admins:
+        if isinstance(a, dict) and a.get('receive_emails', False):
+            if board_name == 'rnd' and rnd_project:
+                projects = [p.strip() for p in rnd_project.split(',')]
+                admin_project = a.get('rnd_project', '')
+                if admin_project not in projects:
+                    continue
+            admin_uids.append(a.get('uid'))
 
     if not admin_uids:
         return
@@ -172,13 +204,18 @@ def _send_board_notification(board_name, subject, message):
     recipient_list = [u.email for u in users]
 
     if recipient_list:
+        html_content = f"""
+        <div style="font-family: 'Microsoft JhengHei', sans-serif;">
+            {message.replace('\\n', '<br>').replace('\n', '<br>')}
+        </div>
+        """
         try:
             send_mail(
-                subject=f"[LHA部門許願池] {subject}",
+                subject=f"[部門許願池] {subject}",
                 message=message,
                 from_email=None,
                 recipient_list=recipient_list,
-                html_message=message.replace('\n', '<br>')
+                html_message=html_content
             )
         except Exception as e:
             print(f"發送 Email 失敗: {e}")
@@ -258,7 +295,7 @@ class DashboardView(LHAWishAccessMixin, PostListMixin, ListView):
 
 # ========== 跳蚤市場 ==========
 
-class MarketListView(LHAWishAccessMixin, PostListMixin, ListView):
+class MarketListView(LHACoreAccessMixin, PostListMixin, ListView):
     model = Post
     template_name = 'LHAWish/market_list.html'
     context_object_name = 'posts'
@@ -286,7 +323,7 @@ class MarketListView(LHAWishAccessMixin, PostListMixin, ListView):
 
 # ========== 七嘴八舌 ==========
 
-class GossipListView(LHAWishAccessMixin, PostListMixin, ListView):
+class GossipListView(LHACoreAccessMixin, PostListMixin, ListView):
     model = Post
     template_name = 'LHAWish/gossip_list.html'
     context_object_name = 'posts'
@@ -317,7 +354,7 @@ class GossipListView(LHAWishAccessMixin, PostListMixin, ListView):
 
 # ========== 主管信箱 ==========
 
-class MailboxView(LHAWishAccessMixin, TemplateView):
+class MailboxView(LHACoreAccessMixin, TemplateView):
     template_name = 'LHAWish/mailbox.html'
 
     def get_context_data(self, **kwargs):
@@ -327,10 +364,10 @@ class MailboxView(LHAWishAccessMixin, TemplateView):
         ctx['is_board_admin'] = bool(_get_user_admin_boards(self.request.user)['boards'])
         config = SiteConfig.load()
         ctx['managers'] = [
-            {'name': e.get('name', ''), 'email': e.get('email', '')}
+            {'name': e.get('name', ''), 'email': e.get('email', ''), 'title': e.get('title', '')}
             for e in config.manager_emails
         ] if isinstance(config.manager_emails, list) and config.manager_emails and isinstance(config.manager_emails[0], dict) else [
-            {'name': '部門主管(資協)', 'email': 'test.manager@company.com'},
+            {'name': '部門主管(資協)', 'email': 'test.manager@company.com', 'title': ''},
         ]
         return ctx
 
@@ -401,8 +438,14 @@ class ManagerDashboardView(LHAWishAccessMixin, PostListMixin, ListView):
         # 研發專案 — 統計與清單
         if 'rnd' in admin_perms['boards']:
             rnd_qs = Post.objects.filter(type='rnd')
-            if not is_super and admin_groups:
-                rnd_qs = rnd_qs.filter(Q(assigned_group__in=admin_groups) | Q(assigned_group=''))
+            if not is_super and admin_perms.get('rnd_projects'):
+                rnd_projects = admin_perms['rnd_projects']
+                query = Q()
+                for proj in rnd_projects:
+                    query |= Q(rnd_project__icontains=proj)
+                rnd_qs = rnd_qs.filter(query)
+            elif not is_super and not admin_perms.get('rnd_projects'):
+                rnd_qs = Post.objects.none()
 
             ctx['rnd_pending'] = rnd_qs.filter(status='pending').count()
             ctx['rnd_in_progress'] = rnd_qs.filter(status='in_progress').count()
@@ -523,6 +566,13 @@ class PostDetailView(LHAWishAccessMixin, DetailView):
     template_name = 'LHAWish/post_detail.html'
     context_object_name = 'post'
 
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        if obj.type != 'rnd' and not _is_core_lhawish_user(self.request.user):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("權限不足：僅限特定部門人員存取此貼文。")
+        return obj
+
     def get_queryset(self):
         return Post.objects.select_related('author')
 
@@ -562,6 +612,13 @@ class PostCreateView(LHAWishAccessMixin, CreateView):
               'package_name', 'problem_type', 'assigned_group', 'rnd_project',
               'price', 'price_label',
               'condition', 'image', 'is_anonymous', 'display_name']
+
+    def dispatch(self, request, *args, **kwargs):
+        post_type = request.GET.get('type') or request.POST.get('type') or 'rnd'
+        if post_type != 'rnd' and not _is_core_lhawish_user(request.user):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("權限不足：僅限特定部門人員新增此類型貼文。")
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -614,15 +671,15 @@ class PostCreateView(LHAWishAccessMixin, CreateView):
             url = self.request.build_absolute_uri(reverse('lhawish:post_detail', args=[self.object.pk]))
             subject = f"新研發專案/報修通知：{self.object.title}"
             message = (
-                f"您好，\\n\\n"
-                f"部門許願池有一則新的「研發專案 / 報修」貼文。\\n\\n"
-                f"標題：{self.object.title}\\n"
-                f"發布者：{self.object.author.get_full_name() or self.object.author.username}\\n"
-                f"請點擊以下連結查看詳情並進行處理：\\n"
-                f"{url}\\n\\n"
+                f"您好，\n\n"
+                f"部門許願池有一則新的「研發專案/報修」貼文。\n\n"
+                f"標題：{self.object.title}\n"
+                f"發布者：{self.object.author.get_full_name() or self.object.author.username}\n"
+                f"請點擊以下連結查看詳情並進行處理：\n"
+                f"{url}\n\n"
                 f"系統自動發送，請勿直接回覆。"
             )
-            _send_board_notification('rnd', subject, message)
+            _send_board_notification('rnd', subject, message, rnd_project=self.object.rnd_project)
             
         return response
 
@@ -644,6 +701,13 @@ class PostUpdateView(LHAWishAccessMixin, UpdateView):
               'price', 'price_label',
               'condition', 'image', 'is_anonymous', 'display_name']
 
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        if obj.type != 'rnd' and not _is_core_lhawish_user(self.request.user):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("權限不足：僅限特定部門人員編輯此貼文。")
+        return obj
+
     def get_queryset(self):
         # 只能編輯自己的文章（主管可編輯所有）
         if _is_manager(self.request.user):
@@ -659,6 +723,24 @@ class PostUpdateView(LHAWishAccessMixin, UpdateView):
         config = SiteConfig.load()
         ctx['group_choices'] = config.group_choices or []
         ctx['rnd_project_choices'] = config.rnd_project_choices or []
+        
+        if self.object.type == 'rnd' and self.object.rnd_project:
+            from django.contrib.auth.models import User
+            ba = config.board_admins
+            if isinstance(ba, dict) and 'rnd' in ba:
+                rnd_admins = ba['rnd']
+                post_projs = [p.strip() for p in self.object.rnd_project.split(',')]
+                admin_uids = []
+                for a in rnd_admins:
+                    if isinstance(a, dict) and a.get('rnd_project') in post_projs:
+                        uid = a.get('uid')
+                        if uid and uid not in admin_uids:
+                            admin_uids.append(uid)
+                if admin_uids:
+                    users = User.objects.filter(id__in=admin_uids)
+                    admin_names = [u.get_full_name() or u.username for u in users]
+                    ctx['rnd_admin_names'] = "、".join(admin_names)
+
         return ctx
 
     def get_success_url(self):
@@ -675,13 +757,25 @@ class PostUpdateView(LHAWishAccessMixin, UpdateView):
 class PostDeleteView(LHAWishAccessMixin, DeleteView):
     model = Post
 
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        if obj.type != 'rnd' and not _is_core_lhawish_user(self.request.user):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("權限不足：僅限特定部門人員刪除此貼文。")
+        return obj
+
     def get_queryset(self):
         if _is_manager(self.request.user):
             return Post.objects.all()
         return Post.objects.filter(author=self.request.user)
 
     def get_success_url(self):
-        return reverse_lazy('lhawish:dashboard')
+        type_to_url = {
+            'rnd': 'lhawish:dashboard',
+            'market': 'lhawish:market_list',
+            'gossip': 'lhawish:gossip_list',
+        }
+        return reverse_lazy(type_to_url.get(self.object.type, 'lhawish:dashboard'))
 
 
 # ========== AJAX API ==========
@@ -690,6 +784,8 @@ class PostDeleteView(LHAWishAccessMixin, DeleteView):
 @require_POST
 def toggle_like(request, pk):
     post = get_object_or_404(Post, pk=pk)
+    if post.type != 'rnd' and not _is_core_lhawish_user(request.user):
+        return JsonResponse({'error': '權限不足'}, status=403)
     interaction, created = PostInteraction.objects.get_or_create(
         post=post, user=request.user
     )
@@ -705,6 +801,8 @@ def toggle_like(request, pk):
 @require_POST
 def toggle_save(request, pk):
     post = get_object_or_404(Post, pk=pk)
+    if post.type != 'rnd' and not _is_core_lhawish_user(request.user):
+        return JsonResponse({'error': '權限不足'}, status=403)
     interaction, created = PostInteraction.objects.get_or_create(
         post=post, user=request.user
     )
@@ -719,6 +817,8 @@ def toggle_save(request, pk):
 @require_POST
 def add_comment(request, pk):
     post = get_object_or_404(Post, pk=pk)
+    if post.type != 'rnd' and not _is_core_lhawish_user(request.user):
+        return JsonResponse({'error': '權限不足'}, status=403)
     try:
         data = json.loads(request.body)
         content = data.get('content', '').strip()
@@ -885,7 +985,7 @@ def toggle_comment_like(request, pk):
 
 # ========== 園路願望 ==========
 
-class PetitionListView(LHAWishAccessMixin, ListView):
+class PetitionListView(LHACoreAccessMixin, ListView):
     model = Petition
     template_name = 'LHAWish/petition_list.html'
     context_object_name = 'petitions'
@@ -922,7 +1022,7 @@ class PetitionListView(LHAWishAccessMixin, ListView):
         return ctx
 
 
-class PetitionDetailView(LHAWishAccessMixin, DetailView):
+class PetitionDetailView(LHACoreAccessMixin, DetailView):
     model = Petition
     template_name = 'LHAWish/petition_detail.html'
     context_object_name = 'petition'
@@ -953,7 +1053,7 @@ class PetitionDetailView(LHAWishAccessMixin, DetailView):
         return ctx
 
 
-class PetitionCreateView(LHAWishAccessMixin, CreateView):
+class PetitionCreateView(LHACoreAccessMixin, CreateView):
     model = Petition
     template_name = 'LHAWish/petition_form.html'
     fields = ['title', 'content', 'assigned_group', 'is_anonymous', 'display_name']
@@ -978,7 +1078,7 @@ class PetitionCreateView(LHAWishAccessMixin, CreateView):
         return reverse('lhawish:petition_list')
 
 
-class PetitionUpdateView(LHAWishAccessMixin, UpdateView):
+class PetitionUpdateView(LHACoreAccessMixin, UpdateView):
     model = Petition
     template_name = 'LHAWish/petition_form.html'
     fields = ['title', 'content', 'assigned_group', 'is_anonymous', 'display_name']
@@ -1240,7 +1340,7 @@ def edit_petition(request, pk):
 
 # ========== 設定頁面 ==========
 
-class SettingsView(LHAWishAccessMixin, TemplateView):
+class SettingsView(LHACoreAccessMixin, TemplateView):
     template_name = 'LHAWish/settings.html'
 
     def get_context_data(self, **kwargs):
@@ -1266,7 +1366,7 @@ class SettingsView(LHAWishAccessMixin, TemplateView):
         ctx['all_users'] = User.objects.all().order_by('username')
         # 建立使用者 id→email 對照
         ctx['all_users_json'] = json.dumps({
-            str(u.id): {'name': u.get_full_name() or u.username, 'email': u.email or ''}
+            str(u.id): {'name': u.get_full_name() or u.username, 'email': u.email or '', 'username': u.username}
             for u in ctx['all_users']
         })
         return ctx
@@ -1292,6 +1392,12 @@ def save_settings(request):
         config.package_choices = data['package_choices']
     if 'group_choices' in data:
         config.group_choices = data['group_choices']
+    if 'show_old_version' in data:
+        config.show_old_version = data['show_old_version']
+    if 'old_version_url' in data:
+        config.old_version_url = data['old_version_url']
+    if 'old_version_text' in data:
+        config.old_version_text = data['old_version_text']
     if 'manager_emails' in data:
         config.manager_emails = data['manager_emails']
     if 'board_admins' in data:

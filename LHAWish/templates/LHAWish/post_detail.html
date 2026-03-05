@@ -55,8 +55,7 @@
         <div class="wish-detail-author">
             <div>
                 {% if post.type != 'rnd' %}
-                <div class="wish-detail-author-name">{% if post.is_anonymous %}{{ post.display_name|default:"某同事"
-                    }}{%else %}{{ post.author.get_full_name|default:post.author.username }}{% endif %}</div>
+                <div class="wish-detail-author-name">{% if post.is_anonymous %}{{ post.display_name|default:"某同事" }}{%else %}{{ post.author.get_full_name|default:post.author.username }}{% endif %}</div>
                 {% endif %}
                 <div class="wish-detail-author-meta">{{ post.created_at|date:"Y/m/d H:i" }}</div>
             </div>
@@ -98,7 +97,7 @@
         </div>
         {% endif %}
 
-        <!-- Market: 已售出 / 刪除 -->
+        <!-- Market: 已售出 -->
         {% if post.type == 'market' and post.author == user and post.status != 'sold' %}
         <div style="padding:16px 0;display:flex;gap:12px;">
             <button class="wish-btn-primary" id="markSoldBtn" onclick="markSold({{ post.pk }})"
@@ -106,28 +105,19 @@
                 <span class="material-symbols-outlined" style="font-size:18px;">sell</span>
                 標記為已售出
             </button>
-            <button class="wish-btn-outline" onclick="deletePost({{ post.pk }})"
-                style="color:#ef4444;border-color:#ef4444;justify-content:center;">
-                <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
-                刪除
-            </button>
         </div>
         {% elif post.type == 'market' and post.author == user and post.status == 'sold' %}
         <div style="padding:16px 0;display:flex;gap:12px;align-items:center;">
             <span class="wish-badge"
-                style="background:#fee2e2;color:#ef4444;font-size:16px;padding:8px 24px;">已售出</span>
-            <button class="wish-btn-outline" onclick="deletePost({{ post.pk }})"
-                style="color:#ef4444;border-color:#ef4444;margin-left:auto;justify-content:center;">
-                <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
-                刪除
-            </button>
+                style="border-radius:var(--wish-radius-full);background:#fee2e2;color:#ef4444;font-size:16px;padding:8px 24px;">已售出</span>
         </div>
         {% elif post.type == 'market' and post.status == 'sold' %}
         <div style="padding:16px 0;text-align:center;">
             <span class="wish-badge"
-                style="background:#fee2e2;color:#ef4444;font-size:16px;padding:8px 24px;">已售出</span>
+                style="border-radius:var(--wish-radius-full);background:#fee2e2;color:#ef4444;font-size:16px;padding:8px 24px;">已售出</span>
         </div>
         {% endif %}
+
 
         <!-- RND Official Response Section -->
         {% if post.type == 'rnd' and post.response_content %}
