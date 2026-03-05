@@ -1,8 +1,8 @@
 from django.urls import path
-from . import views
+from .views import CalculatorView
 
 app_name = 'volume_calc'
 
 urlpatterns = [
-    path('', views.CalcPageView.as_view(), name='index'),
+    path('', CalculatorView.as_view(), name='calculator'),
 ]

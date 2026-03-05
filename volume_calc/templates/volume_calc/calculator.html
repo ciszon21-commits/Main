@@ -1,0 +1,341 @@
+{% extends 'SinoTemplate/base.html' %}
+{% load static %}
+
+{% block main_block %}
+<!-- Include Tailwind CSS via CDN (if not already globally available) -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    primary: '#4f46e5', // Indigo-600
+                    textMuted: '#475569', // Slate-600
+                    textDark: '#0f172a', // Slate-900
+                }
+            }
+        }
+    }
+</script>
+<!-- Include Alpine.js for Reactivity -->
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+<!-- Add Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<div class="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 font-sans text-slate-900" x-data="volumeCalculator()">
+
+    <div class="max-w-7xl mx-auto space-y-8">
+        <!-- Header -->
+        <div class="flex items-center justify-between bg-white px-6 py-4 rounded-xl shadow-sm border border-gray-200">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                    <i data-lucide="calculator" class="w-6 h-6 text-primary"></i>
+                    容積獎勵及建築量體計算平台
+                </h1>
+                <p class="text-sm text-slate-600 mt-1">SaaS Style Calculation Engine (Light)</p>
+            </div>
+            <div>
+                <button @click="resetForm"
+                    class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors duration-200 cursor-pointer shadow-sm">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    重設參數
+                </button>
+            </div>
+        </div>
+
+        <!-- Input Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-slate-50/50">
+                <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="settings-2" class="w-5 h-5 text-slate-500"></i>
+                    基地基本資料
+                </h2>
+            </div>
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Base Area -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-700">基地面積 (㎡)</label>
+                    <div class="relative rounded-md shadow-sm">
+                        <input type="number" x-model.number="baseArea"
+                            class="block w-full rounded-lg border-gray-300 pl-3 pr-12 focus:border-primary focus:ring-primary sm:text-sm h-11 border bg-slate-50 hover:bg-white transition-colors">
+                    </div>
+                </div>
+                <!-- Original Volume -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-700">建物原容積 (㎡)</label>
+                    <div class="relative rounded-md shadow-sm">
+                        <input type="number" x-model.number="originalVolume"
+                            class="block w-full rounded-lg border-gray-300 pl-3 pr-12 focus:border-primary focus:ring-primary sm:text-sm h-11 border bg-slate-50 hover:bg-white transition-colors">
+                    </div>
+                </div>
+                <!-- Zone Type -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-700">使用分區</label>
+                    <input type="text" x-model="zoneType"
+                        class="block w-full rounded-lg border-gray-300 pl-3 focus:border-primary focus:ring-primary sm:text-sm h-11 border bg-slate-50 hover:bg-white transition-colors">
+                </div>
+                <!-- Volume Ratio -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-700">容積率</label>
+                    <input type="number" step="0.01" x-model.number="volumeRatio"
+                        class="block w-full rounded-lg border-gray-300 pl-3 focus:border-primary focus:ring-primary sm:text-sm h-11 border bg-slate-50 hover:bg-white transition-colors">
+                </div>
+            </div>
+            <!-- Calculated Statutory Volume -->
+            <div class="px-6 py-4 bg-indigo-50 border-t border-indigo-100 flex items-center justify-between">
+                <span class="text-sm font-medium text-indigo-900">法定容積 (基地面積 × 容積率)</span>
+                <span class="text-xl font-bold text-indigo-700" x-text="statutoryVolume.toFixed(2) + ' ㎡'"></span>
+            </div>
+        </div>
+
+        <!-- Limits Section (可申請獎勵上限) -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-slate-50/50 flex justify-between items-center">
+                <h2 class="text-lg font-semibold text-slate-900">可申請獎勵上限 (基地)</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th scope="col"
+                                class="px-6 py-3 text-left font-medium text-slate-500 uppercase tracking-wider">法令規定項目
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-right font-medium text-slate-500 uppercase tracking-wider">原容積
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-right font-medium text-slate-500 uppercase tracking-wider">法定容積
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-right font-medium text-slate-500 uppercase tracking-wider">獎勵加成
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-right font-medium text-slate-500 uppercase tracking-wider">允建上限總容積
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-right font-medium text-slate-500 uppercase tracking-wider">本案可申請
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-left font-medium text-slate-500 uppercase tracking-wider">備註</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">1.2倍原容積</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600" x-text="originalVolume">
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600"
+                                x-text="statutoryVolume.toFixed(2)"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600">1.2</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-900 font-semibold"
+                                x-text="(originalVolume * 1.2).toFixed(2)"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-primary font-bold"
+                                x-text="Math.max(0, originalVolume * 1.2 - originalVolume).toFixed(2)"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-slate-500 text-xs">擇優</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">原容積+0.3倍法定容積</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600" x-text="originalVolume">
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600"
+                                x-text="statutoryVolume.toFixed(2)"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600">0.3</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-900 font-semibold"
+                                x-text="(originalVolume + statutoryVolume * 0.3).toFixed(2)"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-primary font-bold"
+                                x-text="Math.max(0, (originalVolume + statutoryVolume * 0.3) - statutoryVolume).toFixed(2)">
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-slate-500"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">法定容積+0.5倍法定容積</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600" x-text="originalVolume">
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600"
+                                x-text="statutoryVolume.toFixed(2)"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600">0.5</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-900 font-semibold"
+                                x-text="(statutoryVolume + statutoryVolume * 0.5).toFixed(2)"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-primary font-bold"
+                                x-text="Math.max(0, (statutoryVolume + statutoryVolume * 0.5) - statutoryVolume).toFixed(2)">
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-slate-500"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="px-6 py-4 bg-slate-100 border-t border-gray-200 flex items-center justify-between">
+                <span class="text-sm font-semibold text-slate-700">合計允建容積上限 (本案可申請)</span>
+                <span class="text-xl font-bold text-slate-900" x-text="maxAllowedReward.toFixed(2) + ' ㎡'"></span>
+            </div>
+        </div>
+
+        <!-- Urban Renewal (北市) -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-slate-50/50">
+                <h2 class="text-lg font-semibold text-slate-900">都更獎勵 (北市)</h2>
+            </div>
+
+            <div class="overflow-x-auto overflow-y-visible">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th scope="col"
+                                class="px-6 py-3 text-left font-medium text-slate-500 uppercase tracking-wider w-24">法規
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-left font-medium text-slate-500 uppercase tracking-wider w-1/3">
+                                獎勵基準</th>
+                            <th scope="col"
+                                class="px-6 py-3 text-center font-medium text-slate-500 uppercase tracking-wider w-32">
+                                擬申請獎勵值(%)</th>
+                            <th scope="col"
+                                class="px-6 py-3 text-right font-medium text-slate-500 uppercase tracking-wider w-32">
+                                獎勵面積(㎡)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <!-- Rule 5 -->
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 font-medium text-slate-900 align-top">第五條</td>
+                            <td class="px-6 py-4 text-slate-600 align-top">得依原建築容積建築，或依原建築基地基準容積之10%給予獎勵容積。</td>
+                            <td class="px-6 py-4 align-top">
+                                <div class="relative">
+                                    <input type="number" step="1" x-model.number="rules.rule5"
+                                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-right text-slate-900 font-semibold align-top"
+                                x-text="(statutoryVolume * (rules.rule5 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <!-- Rule 6 -->
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 font-medium text-slate-900 align-top">第六條</td>
+                            <td class="px-6 py-4 text-slate-600 align-top">結構安全性能評估未達最低等級(8%)，限期拆除(10%)</td>
+                            <td class="px-6 py-4 align-top">
+                                <select x-model.number="rules.rule6"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <option value="0">0%</option>
+                                    <option value="8">8%</option>
+                                    <option value="10">10%</option>
+                                </select>
+                            </td>
+                            <td class="px-6 py-4 text-right text-slate-900 font-semibold align-top"
+                                x-text="(statutoryVolume * (rules.rule6 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <!-- Rule 10 -->
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 font-medium text-slate-900 align-top">第十條</td>
+                            <td class="px-6 py-4 text-slate-600 align-top">綠建築 (鑽石10%, 黃金8%, 銀6%, 銅4%, 合格2%)</td>
+                            <td class="px-6 py-4 align-top">
+                                <select x-model.number="rules.rule10"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <option value="0">0%</option>
+                                    <option value="2">2% (合格)</option>
+                                    <option value="4">4% (銅級)</option>
+                                    <option value="6">6% (銀級)</option>
+                                    <option value="8">8% (黃金)</option>
+                                    <option value="10">10% (鑽石)</option>
+                                </select>
+                            </td>
+                            <td class="px-6 py-4 text-right text-slate-900 font-semibold align-top"
+                                x-text="(statutoryVolume * (rules.rule10 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <!-- Rule 11 -->
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 font-medium text-slate-900 align-top">第十一條</td>
+                            <td class="px-6 py-4 text-slate-600 align-top">智慧建築 (鑽石10%, 黃金8%, 銀6%, 銅4%, 合格2%)</td>
+                            <td class="px-6 py-4 align-top">
+                                <select x-model.number="rules.rule11"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <option value="0">0%</option>
+                                    <option value="2">2% (合格)</option>
+                                    <option value="4">4% (銅級)</option>
+                                    <option value="6">6% (銀級)</option>
+                                    <option value="8">8% (黃金)</option>
+                                    <option value="10">10% (鑽石)</option>
+                                </select>
+                            </td>
+                            <td class="px-6 py-4 text-right text-slate-900 font-semibold align-top"
+                                x-text="(statutoryVolume * (rules.rule11 / 100)).toFixed(2)"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Total Reward Summary -->
+            <div
+                class="px-6 py-4 bg-indigo-600 border-t border-indigo-700 flex items-center justify-between text-white rounded-b-xl">
+                <span class="font-semibold">總計申請獎勵面積</span>
+                <span class="text-2xl font-bold tracking-tight" x-text="totalRewardArea.toFixed(2) + ' ㎡'"></span>
+            </div>
+
+            <div x-show="totalRewardArea > maxAllowedReward"
+                class="px-6 py-3 bg-red-50 text-red-700 border-t border-red-200 text-sm flex items-center gap-2">
+                <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                注意：目前申請獎勵面積已超過可申請容積上限。
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize Lucide Icons
+    document.addEventListener("DOMContentLoaded", () => {
+        lucide.createIcons();
+    });
+
+    // Alpine JS Component Data
+    function volumeCalculator() {
+        return {
+            baseArea: Number("{{ default_base_area }}"),
+            originalVolume: Number("{{ default_original_volume }}"),
+            zoneType: "{{ default_zone_type }}",
+            volumeRatio: Number("{{ default_volume_ratio }}"),
+            rules: {
+                rule5: 0,
+                rule6: 8,
+                rule10: 6,
+                rule11: 6,
+            },
+
+            // Computeds
+            get statutoryVolume() {
+                return this.baseArea * this.volumeRatio;
+            },
+            get maxAllowedReward() {
+                // Calculates the max value amongst the 3 capping rules (for single base area)
+                let c1 = Math.max(0, this.originalVolume * 1.2 - this.originalVolume);
+                let c2 = Math.max(0, (this.originalVolume + this.statutoryVolume * 0.3) - this.statutoryVolume);
+                let c3 = Math.max(0, (this.statutoryVolume + this.statutoryVolume * 0.5) - this.statutoryVolume);
+                return Math.max(c1, c2, c3);
+            },
+            get totalRewardArea() {
+                let r5 = this.statutoryVolume * (this.rules.rule5 / 100);
+                let r6 = this.statutoryVolume * (this.rules.rule6 / 100);
+                let r10 = this.statutoryVolume * (this.rules.rule10 / 100);
+                let r11 = this.statutoryVolume * (this.rules.rule11 / 100);
+                return r5 + r6 + r10 + r11;
+            },
+            resetForm() {
+                this.baseArea = 1029;
+                this.originalVolume = 2000;
+                this.zoneType = '第三種住宅區';
+                this.volumeRatio = 2.25;
+                this.rules = {
+                    rule5: 0,
+                    rule6: 8,
+                    rule10: 6,
+                    rule11: 6,
+                };
+            }
+        }
+    }
+</script>
+
+{% endblock %}
