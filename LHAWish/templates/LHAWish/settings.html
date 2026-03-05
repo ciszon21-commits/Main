@@ -241,7 +241,42 @@
         flex-direction: column;
         gap: 8px;
     }
+
+    /* Sortable highlight line */
+    .sortable-ghost {
+        opacity: 0.4;
+        background-color: #f1f5f9;
+        border: 1px dashed var(--wish-primary);
+    }
+
+    .sortable-drag {
+        cursor: grabbing !important;
+    }
+
+    .group-block .group-header {
+        cursor: grab;
+    }
+
+    /* Select2 overrides to match UI */
+    .select2-container .select2-selection--single {
+        height: 33px;
+        border: 1px solid var(--wish-border);
+        border-radius: var(--wish-radius-sm);
+        display: flex;
+        align-items: center;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: normal;
+        font-size: 13px;
+        color: var(--wish-text);
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 31px;
+    }
 </style>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 {% endblock %}
 
 {% block content %}
@@ -254,15 +289,41 @@
 
     <!-- Tabs -->
     <div class="settings-tabs">
-        <button class="settings-tab active" data-tab="petition">園路願望</button>
+        <button class="settings-tab active" data-tab="general">一般設定</button>
+        <button class="settings-tab" data-tab="petition">園路願望</button>
         <button class="settings-tab" data-tab="rnd">研發專案</button>
         <button class="settings-tab" data-tab="mailbox">主管信箱</button>
         <button class="settings-tab" data-tab="market">跳蚤市場</button>
         <button class="settings-tab" data-tab="gossip">七嘴八舌</button>
     </div>
 
+    <!-- ===== 一般設定 Tab ===== -->
+    <div class="settings-panel active" data-panel="general">
+        <div class="settings-section">
+            <h4><span class="material-symbols-outlined">toggle_on</span> 導覽列設定</h4>
+            <div class="settings-input-row" style="margin-bottom: 12px;">
+                <label class="checkbox-row" style="font-size: 14px; font-weight: 600;">
+                    <input type="checkbox" id="showOldVersion"
+                        style="accent-color:var(--wish-primary); width:16px; height:16px;" {% if config.show_old_version %}checked{% endif %}>
+                    顯示導覽列(右上角)按鈕
+                </label>
+            </div>
+            <div class="settings-input-row" style="margin-bottom: 12px;">
+                <span style="font-size:13px; font-weight:600; width:70px;">按鈕文字：</span>
+                <input type="text" id="oldVersionText" placeholder="回舊版" value="{{ config.old_version_text }}"
+                    style="flex:1; max-width: 200px;">
+            </div>
+            <div class="settings-input-row">
+                <span style="font-size:13px; font-weight:600; width:70px;">舊版網址：</span>
+                <input type="url" id="oldVersionUrl" placeholder="https://" value="{{ config.old_version_url }}"
+                    style="flex:1; max-width: 400px;">
+            </div>
+        </div>
+        <button class="btn-save-section" onclick="saveGeneralSettings()">儲存一般設定</button>
+    </div>
+
     <!-- ===== 園路願望 Tab ===== -->
-    <div class="settings-panel active" data-panel="petition">
+    <div class="settings-panel" data-panel="petition">
         <!-- 附議門檻 -->
         <div class="settings-section">
             <h4><span class="material-symbols-outlined">gavel</span> 附議成案門檻</h4>
@@ -302,7 +363,7 @@
     <!-- ===== 研發專案 Tab ===== -->
     <div class="settings-panel" data-panel="rnd">
         <div class="settings-section">
-            <h4><span class="material-symbols-outlined">science</span> 研發案管理員設定</h4>
+            <h4><span class="material-symbols-outlined">terminal</span> 研發案管理員設定</h4>
             <p class="settings-help">步驟: 新增研發案 → 為每個研發案指定管理人 → 勾選是否接收 Email 通知。每個研發案可有多個管理人。</p>
             <div id="rndProjectsContainer"></div>
             <div class="add-row" style="margin-top:12px;">
@@ -327,7 +388,8 @@
                         data-email="{{ u.email }}">{{ u.get_full_name|default:u.username }} ({{ u.username }})</option>
                     {% endfor %}
                 </select>
-                <input type="email" id="mailboxEmailInput" placeholder="Email (自動帶入)" style="flex:none;width:200px;">
+                <input type="email" id="mailboxEmailInput" placeholder="Email (自動帶入)" style="flex:none;width:180px;">
+                <input type="text" id="mailboxTitleInput" placeholder="職稱" style="flex:none;width:120px;">
                 <button class="btn-add-small" onclick="addMailboxManager()">+ 新增</button>
             </div>
         </div>
@@ -371,6 +433,9 @@
     </div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 <script>
     // ========== Data Init ==========
     var boardAdmins = {{ board_admins_json| safe }};
@@ -402,7 +467,7 @@
 
     function getUserName(uid) {
         var u = allUsers[String(uid)];
-        return u ? u.name : 'UID:' + uid;
+        return u ? u.name + ' (' + u.username + ')' : 'UID:' + uid;
     }
 
     // ========== Tab switching ==========
@@ -479,11 +544,11 @@
                     '</div>';
             });
             block.innerHTML =
-                '<div class="group-header"><span><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;">folder_shared</span>' + gName + '</span>' +
+                '<div class="group-header" style="cursor: move; display: flex; align-items: center; justify-content: space-between;"><span><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;color:var(--wish-text-muted);">drag_indicator</span><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;">folder_shared</span>' + gName + '</span>' +
                 '<button onclick="removePetitionGroup(\'' + gName.replace(/'/g, "\\'") + '\')">刪除組別</button></div>' +
                 '<div class="group-admins">' + adminHtml +
                 '<div class="add-row">' +
-                '<select id="petitionAdminSel_' + gName.replace(/\s/g, '_') + '">' +
+                '<select class="petition-admin-select" id="petitionAdminSel_' + gName.replace(/\s/g, '_') + '">' +
                 '<option value="">選擇管理人</option>' +
                 buildUserOptions() +
                 '</select>' +
@@ -491,6 +556,7 @@
                 '</div></div>';
             container.appendChild(block);
         });
+        $('.petition-admin-select').select2({ width: '100%' });
     }
 
     function buildUserOptions() {
@@ -565,14 +631,14 @@
                     '</div>';
             });
             block.innerHTML =
-                '<div class="group-header"><span><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;">science</span>' + pName + '</span>' +
+                '<div class="group-header" style="cursor: move; display: flex; align-items: center; justify-content: space-between;"><span><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;color:var(--wish-text-muted);">drag_indicator</span><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;">terminal</span>' + pName + '</span>' +
                 '<div>' +
                 '<button onclick="renameRndProject(\'' + pName.replace(/'/g, "\\'") + '\')" style="margin-right:12px;color:var(--wish-primary);">重新命名</button>' +
                 '<button onclick="removeRndProject(\'' + pName.replace(/'/g, "\\'") + '\')">刪除研發案</button>' +
                 '</div></div>' +
                 '<div class="group-admins">' + adminHtml +
                 '<div class="add-row">' +
-                '<select id="rndAdminSel_' + pName.replace(/\s/g, '_') + '">' +
+                '<select class="rnd-admin-select" id="rndAdminSel_' + pName.replace(/\s/g, '_') + '">' +
                 '<option value="">選擇管理人</option>' +
                 buildUserOptions() +
                 '</select>' +
@@ -580,6 +646,7 @@
                 '</div></div>';
             container.appendChild(block);
         });
+        $('.rnd-admin-select').select2({ width: '100%' });
     }
 
     function renameRndProject(pName) {
@@ -664,6 +731,7 @@
                 '<button class="admin-remove" onclick="removeSimpleAdmin(\'' + board + '\',' + i + ')">✕</button>';
             list.appendChild(row);
         });
+        $('#' + board + 'AdminSelect').select2({ width: '100%' });
     }
 
     function addSimpleAdmin(board) {
@@ -697,7 +765,7 @@
             var row = document.createElement('div');
             row.className = 'admin-row';
             row.innerHTML =
-                '<span class="admin-name">' + (m.name || '') + '</span>' +
+                '<span class="admin-name">' + (m.name || '') + (m.title ? ' ' + m.title : '') + '</span>' +
                 '<span style="color:var(--wish-text-muted);flex:1;">' + (m.email || '') + '</span>' +
                 '<button class="admin-remove" onclick="removeMailboxManager(' + i + ')">✕</button>';
             el.appendChild(row);
@@ -707,14 +775,19 @@
     function addMailboxManager() {
         var sel = document.getElementById('mailboxUserSelect');
         var emailInput = document.getElementById('mailboxEmailInput');
+        var titleInput = document.getElementById('mailboxTitleInput');
         var opt = sel.options[sel.selectedIndex];
         var name = opt ? opt.dataset.name : '';
         var email = emailInput.value.trim();
+        var title = titleInput ? titleInput.value.trim() : '';
         if (!name || !email) { alert('請選擇使用者並確認 Email'); return; }
         if (managerEmails.some(m => m.email === email)) { alert('此 Email 已存在'); return; }
-        managerEmails.push({ name: name, email: email });
-        sel.value = '';
+        managerEmails.push({ name: name, email: email, title: title });
+
+        // Reset inputs
+        $(sel).val(null).trigger('change');
         emailInput.value = '';
+        if (titleInput) titleInput.value = '';
         renderMailboxManagers();
     }
 
@@ -733,6 +806,14 @@
             },
             body: JSON.stringify(data)
         }).then(r => r.json());
+    }
+
+    function saveGeneralSettings() {
+        doSave({
+            show_old_version: document.getElementById('showOldVersion').checked,
+            old_version_text: document.getElementById('oldVersionText').value.trim() || '回舊版',
+            old_version_url: document.getElementById('oldVersionUrl').value.trim()
+        }).then(d => alert(d.success ? '一般設定已儲存！' : (d.error || '儲存失敗')));
     }
 
     function savePetitionSettings() {
@@ -775,6 +856,49 @@
         renderSimpleAdmins('market');
         renderSimpleAdmins('gossip');
         renderMailboxManagers();
+
+        // 靜態的 Select 起始化
+        $('#mailboxUserSelect').select2({ width: '100%' });
+        $('#petitionAllAdminSelect').select2({ width: '100%' });
+        $('#marketAdminSelect').select2({ width: '100%' });
+        $('#gossipAdminSelect').select2({ width: '100%' });
+
+        // 拖曳排序初始化 (園路願望組別)
+        var petitionContainer = document.getElementById('petitionGroupsContainer');
+        if (petitionContainer) {
+            new Sortable(petitionContainer, {
+                animation: 150,
+                handle: '.group-header',
+                onEnd: function (evt) {
+                    var newOrder = [];
+                    // 只取最後一個 text node 的內容才是真正的名稱
+                    document.querySelectorAll('#petitionGroupsContainer .group-block .group-header > span').forEach(function (el) {
+                        var gName = el.childNodes[el.childNodes.length - 1].textContent.trim();
+                        var found = groupChoices.find(g => g.label === gName);
+                        if (found) newOrder.push(found);
+                    });
+                    groupChoices = newOrder;
+                }
+            });
+        }
+
+        // 拖曳排序初始化 (研發專案)
+        var rndContainer = document.getElementById('rndProjectsContainer');
+        if (rndContainer) {
+            new Sortable(rndContainer, {
+                animation: 150,
+                handle: '.group-header',
+                onEnd: function (evt) {
+                    var newOrder = [];
+                    document.querySelectorAll('#rndProjectsContainer .group-block .group-header > span').forEach(function (el) {
+                        var pName = el.childNodes[el.childNodes.length - 1].textContent.trim();
+                        var found = rndProjectChoices.find(p => p.label === pName);
+                        if (found) newOrder.push(found);
+                    });
+                    rndProjectChoices = newOrder;
+                }
+            });
+        }
     });
 </script>
 {% endblock %}
