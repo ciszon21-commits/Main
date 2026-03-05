@@ -21,13 +21,21 @@
         <nav class="wish-nav">
             <div class="wish-nav-inner">
                 <div class="wish-nav-top">
-                    <a href="{% url 'lhawish:petition_list' %}" class="wish-nav-brand">
+                    <a href="{% if is_core_user %}{% url 'lhawish:petition_list' %}{% else %}{% url 'lhawish:dashboard' %}{% endif %}"
+                        class="wish-nav-brand">
                         <img src="{% static 'LHAWish/園路人logo.svg' %}" alt="許願池" class="wish-nav-logo"
-                            style="height:28px;width:auto;">
+                            style="height:36px;width:auto;">
                         <span class="wish-nav-title">許願池</span>
                     </a>
                     <div class="wish-nav-actions">
-                        <a href="{% url 'lhawish:profile' %}" class="wish-avatar-wrap" title="個人中心">
+                        {% if site_config.show_old_version and site_config.old_version_url %}
+                        <a href="{{ site_config.old_version_url }}" class="wish-btn-outline"
+                            style="padding: 4px 8px; font-size: 13px; height: 26px;border-radius: var(--wish-radius-sm); border-color: var(--wish-text-muted); color: var(--wish-text-muted); margin-right: 8px;">
+                            {{ site_config.old_version_text }}
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'lhawish:profile' %}" class="wish-avatar-wrap" title="個人中心"
+                            style="text-decoration: none;">
                             <div class="wish-avatar">
                                 <span class="material-symbols-outlined" style="font-size:20px;">person</span>
                             </div>
@@ -37,16 +45,19 @@
 
                 {% block tabs %}
                 <div class="wish-tabs" id="tabsUser">
+                    {% if is_core_user %}
                     <a href="{% url 'lhawish:petition_list' %}"
                         class="wish-tab {% if active_tab == 'petition' %}active{% endif %}">
                         <span class="material-symbols-outlined">star</span>
                         園路願望
                     </a>
+                    {% endif %}
                     <a href="{% url 'lhawish:dashboard' %}"
                         class="wish-tab {% if active_tab == 'rnd' %}active{% endif %}">
                         <span class="material-symbols-outlined">terminal</span>
                         研發專案
                     </a>
+                    {% if is_core_user %}
                     <a href="{% url 'lhawish:market_list' %}"
                         class="wish-tab {% if active_tab == 'market' %}active{% endif %}">
                         <span class="material-symbols-outlined">shopping_bag</span>
@@ -62,6 +73,7 @@
                         <span class="material-symbols-outlined">mail</span>
                         主管信箱
                     </a>
+                    {% endif %}
                     <!-- 管理 Tabs（權限判斷顯示） -->
                     {% if is_board_admin %}
                     <span class="wish-tab-divider"></span>
@@ -71,7 +83,7 @@
                         管理儀表板
                     </a>
                     {% endif %}
-                    {% if user.is_superuser or is_project_admin %}
+                    {% if is_core_user and user.is_superuser or is_core_user and is_project_admin %}
                     <a href="{% url 'lhawish:settings' %}"
                         class="wish-tab wish-tab-admin {% if active_tab == 'settings' %}active{% endif %}">
                         <span class="material-symbols-outlined">settings</span>

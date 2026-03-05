@@ -462,9 +462,12 @@
                                     {% if admin_front_edit %}
                                     <a href="{% url 'lhawish:post_detail' p.pk %}" class="admin-btn-pill">
                                         <span class="material-symbols-outlined"
-                                            style="font-size:16px;">edit_document</span>
-                                        回應/狀態
+                                            style="font-size:16px;">edit</span>
                                     </a>
+                                    <button onclick="deleteRndPost({{ p.pk }})" class="admin-btn-pill"
+                                        style="color:#ef4444; border-color:#ef4444; margin-left:6px;">
+                                        <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
+                                    </button>
                                     {% else %}
                                     <span class="admin-btn-pill admin-btn-disabled">
                                         <span class="material-symbols-outlined" style="font-size:16px;">lock</span>
@@ -540,6 +543,20 @@
                 badge.className = 'wish-badge ' + (statusClasses[newStatus] || '');
             }
         });
-    } 
+    }
+
+    function deleteRndPost(pk) {
+        if (!confirm('確定要刪除這篇文章嗎？此操作無法復原。')) return;
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/lhawish/post/' + pk + '/delete/';
+        var csrf = document.createElement('input');
+        csrf.type = 'hidden';
+        csrf.name = 'csrfmiddlewaretoken';
+        csrf.value = getCookie('csrftoken');
+        form.appendChild(csrf);
+        document.body.appendChild(form);
+        form.submit();
+    }
 </script>
 {% endblock %}
