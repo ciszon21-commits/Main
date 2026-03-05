@@ -204,9 +204,12 @@ def _send_board_notification(board_name, subject, message, rnd_project=None):
     recipient_list = [u.email for u in users]
 
     if recipient_list:
+        # 處理字串中可能被跳脫的 \n，轉成真正的斷行符號後再換為 HTML 的 <br>
+        real_message = message.replace('\\n', '\n')
+        
         html_content = f"""
         <div style="font-family: 'Microsoft JhengHei', sans-serif;">
-            {message.replace('\\n', '<br>').replace('\n', '<br>')}
+            {real_message.replace('\n', '<br>')}
         </div>
         """
         try:
@@ -280,16 +283,29 @@ class DashboardView(LHAWishAccessMixin, PostListMixin, ListView):
     def get_queryset(self):
         qs = Post.objects.filter(type='rnd').select_related('author')
         qs = self.filter_by_search(qs)
+        
         # 分類篩選
         cat = self.request.GET.get('category', 'all')
         if cat and cat != 'all':
             qs = qs.filter(category=cat)
+
+        # 專案選單篩選
+        rnd_proj_val = self.request.GET.get('rnd_project', '')
+        if rnd_proj_val:
+            config = SiteConfig.load()
+            for p in config.rnd_project_choices:
+                if p.get('value') == rnd_proj_val:
+                    qs = qs.filter(rnd_project__icontains=p.get('label', ''))
+                    break
+                    
         return qs
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['active_tab'] = 'rnd'
         ctx['selected_category'] = self.request.GET.get('category', 'all')
+        # 提供下拉選單選項
+        ctx['rnd_project_choices'] = SiteConfig.load().rnd_project_choices or []
         return ctx
 
 
@@ -404,6 +420,7 @@ class ManagerDashboardView(LHAWishAccessMixin, PostListMixin, ListView):
 
         is_super = self.request.user.is_superuser
         admin_groups = admin_perms['groups']
+        ctx['rnd_project_choices'] = SiteConfig.load().rnd_project_choices or []
 
         # 園路願望 — 統計與清單
         if 'petition' in admin_perms['boards']:
@@ -446,6 +463,15 @@ class ManagerDashboardView(LHAWishAccessMixin, PostListMixin, ListView):
                 rnd_qs = rnd_qs.filter(query)
             elif not is_super and not admin_perms.get('rnd_projects'):
                 rnd_qs = Post.objects.none()
+
+            # 額外支援使用者透過 GET parameter 篩選特定專案
+            rnd_proj_pk = self.request.GET.get('rnd_project', '')
+            if rnd_proj_pk:
+                config = SiteConfig.load()
+                for p in config.rnd_project_choices:
+                    if str(p.get('pk')) == rnd_proj_pk:
+                        rnd_qs = rnd_qs.filter(rnd_project__icontains=p.get('name', ''))
+                        break
 
             ctx['rnd_pending'] = rnd_qs.filter(status='pending').count()
             ctx['rnd_in_progress'] = rnd_qs.filter(status='in_progress').count()
@@ -832,8 +858,8 @@ def add_comment(request, pk):
     if not content:
         return JsonResponse({'error': '留言不能為空'}, status=400)
 
-    # 跳蚤市場強制禁止匿名
-    if post.type == 'market':
+    # 跳蚤市場、研發專案 強制禁止匿名
+    if post.type in ['market', 'rnd']:
         is_anonymous = False
 
     comment = Comment.objects.create(

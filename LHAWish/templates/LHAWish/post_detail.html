@@ -215,16 +215,12 @@
                 <div class="wish-comment wish-fade-in-up" data-comment-id="{{ c.id }}">
                     <div class="wish-comment-avatar"
                         style="background:var(--wish-primary-light);color:var(--wish-primary);">
-                        {% if c.is_anonymous %}
-                        {{ c.author.last_name|default:c.author.username|truncatechars:1 }}
-                        {% else %}
                         <span class="material-symbols-outlined" style="font-size:20px;">person</span>
-                        {% endif %}
                     </div>
                     <div class="wish-comment-bubble">
                         <div class="wish-comment-top">
                             <span class="wish-comment-author">
-                                {{ c.author.get_full_name|default:c.author.username }}
+                                {{ c.display_author }}
                                 {% if post.type == 'market' and c.author == post.author %}
                                 <span class="wish-comment-official"
                                     style="background:var(--wish-primary-light);color:var(--wish-primary);">賣家</span>
@@ -280,7 +276,7 @@
             </button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 0;margin-left:40px;width:100%;">
-            {% if post.type != 'market' %}
+            {% if post.type == 'gossip' %}
             <label
                 style="font-size:12px;color:var(--wish-text-muted);display:flex;align-items:center;gap:4px;cursor:pointer;">
                 <input type="checkbox" id="commentAnonymous" style="accent-color:var(--wish-primary);"
@@ -401,7 +397,7 @@
             var html =
                 '<div class="wish-comment wish-fade-in-up" data-comment-id="' + data.id + '">' +
                 '<div class="wish-comment-avatar" style="background:var(--wish-primary-light);color:var(--wish-primary);">' +
-                data.author.charAt(0) + '</div>' +
+                '<span class="material-symbols-outlined" style="font-size:20px;">person</span></div>' +
                 '<div class="wish-comment-bubble"><div class="wish-comment-top">' +
                 '<span class="wish-comment-author">' + data.author +
                 ('{{ post.type }}' === 'market' && data.is_author ? ' <span class="wish-comment-official" style="background:var(--wish-primary-light);color:var(--wish-primary);">賣家</span>' : '') +
