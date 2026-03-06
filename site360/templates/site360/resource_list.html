@@ -4,20 +4,28 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         {% if project %}
-        <h2>{{ project.name }} - 資源列表</h2>
-        <div class="d-flex gap-2">
+        <h2>{{ project.name }} - 資源總表</h2>
+        <div class="d-flex gap-2 align-items-center">
             <a href="{% url 'site360:project_detail' project.pk %}" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left"></i> 返回專案頁面
             </a>
             <a href="{% url 'site360:project_tour' project.pk %}" class="btn btn-outline-secondary">
                 <i class="fas fa-cube"></i> 返回全景導覽
             </a>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createResourceModal">
+                <i class="fas fa-plus-circle"></i> 新增素材
+            </button>
         </div>
         {% else %}
-        <h2>全部專案 - 資源列表</h2>
-        <a href="{% url 'site360:project_list' %}" class="btn btn-outline-secondary">
-            <i class="fas fa-home"></i> 返回首頁
-        </a>
+        <h2>全部專案 - 資源總表</h2>
+        <div class="d-flex gap-2 align-items-center">
+            <a href="{% url 'site360:project_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-home"></i> 返回首頁
+            </a>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createResourceModal">
+                <i class="fas fa-plus-circle"></i> 新增素材
+            </button>
+        </div>
         {% endif %}
     </div>
 
@@ -32,6 +40,7 @@
                     <label class="form-label">專案篩選</label>
                     <select class="form-select" id="projectSelect">
                         <option value="">全部專案</option>
+                        <option value="__none__">未分配專案</option>
                         {% for proj in all_projects %}
                         <option value="{{ proj.name }}">{{ proj.name }}</option>
                         {% endfor %}
@@ -101,6 +110,117 @@
 
     <div class="card shadow-sm">
         <div class="card-body">
+
+            {% if unassigned_hotspots %}
+            <div class="scene-section mb-4" data-scene-title="__unassigned__">
+                <h4 class="mt-2 mb-3 border-bottom pb-2 text-warning">
+                    <i class="fas fa-box-open"></i> 未分配至場景的素材
+                    <span class="badge bg-warning text-dark ms-2" style="font-size:0.7rem;">{{ unassigned_hotspots|length }}</span>
+                </h4>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover align-middle resource-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 8%;">類型</th>
+                                <th style="width: 17%;">標題</th>
+                                <th style="width: 22%;">說明內容</th>
+                                <th style="width: 12%;">危害類型</th>
+                                <th style="width: 12%;">狀態 / 引用</th>
+                                <th style="width: 12%;">媒體預覽</th>
+                                <th style="width: 17%;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for hotspot in unassigned_hotspots %}
+                            <tr class="resource-row" data-scene="__unassigned__" data-project="__none__"
+                                data-type="{{ hotspot.hotspot_type }}"
+                                data-has-image="{% if hotspot.image %}true{% else %}false{% endif %}"
+                                data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
+                                data-title="{{ hotspot.title }}" data-desc="{{ hotspot.description }}"
+                                data-status="{% if hotspot.source_hotspot %}referencing{% elif hotspot.usage_count > 0 %}source{% else %}independent{% endif %}">
+                                <td>
+                                    <span class="badge badge-{{ hotspot.hotspot_type }}">{{ hotspot.get_hotspot_type_display }}</span>
+                                </td>
+                                <td class="fw-bold">{{ hotspot.title }}</td>
+                                <td>
+                                    <div class="description-text">{{ hotspot.description|default:"-"|linebreaksbr }}
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    {% if hotspot.hazard_type %}
+                                    <span class="badge bg-danger">{{ hotspot.hazard_type.serial_number }}. {{ hotspot.hazard_type.name }}</span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex flex-column align-items-center gap-1">
+                                        {% if hotspot.source_hotspot %}
+                                        <span class="badge border border-secondary text-secondary bg-transparent"
+                                            data-bs-toggle="tooltip" title="引用來源：{{ hotspot.source_hotspot.title }}">
+                                            <i class="fas fa-link"></i> 正在引用其他資源
+                                        </span>
+                                        {% elif hotspot.usage_count > 0 %}
+                                        <button class="btn btn-sm btn-info text-white py-0 px-1 view-references-btn"
+                                            style="font-size: 0.75rem;" data-resource-id="{{ hotspot.id }}"
+                                            data-resource-title="{{ hotspot.title }}" title="點擊查看引用細節">
+                                            <i class="fas fa-network-wired"></i> 被 {{ hotspot.usage_count }} 處引用中
+                                        </button>
+                                        {% else %}
+                                        <span class="badge bg-warning bg-opacity-25 text-warning border border-warning">
+                                            <i class="fas fa-box-open"></i> 未放入場景
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    {% if hotspot.image %}
+                                    <a href="{{ hotspot.image.url }}" target="_blank">
+                                        <img src="{{ hotspot.image.url }}" alt="預覽" class="img-thumbnail"
+                                            style="max-height: 100px;">
+                                    </a>
+                                    {% elif hotspot.video %}
+                                    <video src="{{ hotspot.video.url }}" class="img-thumbnail"
+                                        style="max-height: 100px;" controls muted></video>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-sm btn-primary edit-resource-btn"
+                                            data-id="{{ hotspot.id }}" data-title="{{ hotspot.title }}"
+                                            data-desc="{{ hotspot.description }}" data-type="{{ hotspot.hotspot_type }}"
+                                            data-usage-count="{{ hotspot.usage_count|default:0 }}"
+                                            data-has-image="{% if hotspot.image %}true{% else %}false{% endif %}"
+                                            data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
+                                            data-image-url="{% if hotspot.image %}{{ hotspot.image.url }}{% endif %}"
+                                            data-video-url="{% if hotspot.video %}{{ hotspot.video.url }}{% endif %}"
+                                            data-is-referencing="{% if hotspot.source_hotspot %}true{% else %}false{% endif %}">
+                                            <i class="fas fa-edit"></i> 編輯
+                                        </button>
+                                        {% if hotspot.image %}
+                                        <a href="{{ hotspot.image.url }}" download
+                                            class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-download"></i> 下載圖片
+                                        </a>
+                                        {% endif %}
+                                        {% if hotspot.video %}
+                                        <a href="{{ hotspot.video.url }}" download
+                                            class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-download"></i> 下載影片
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
             {% if scenes %}
             {% for scene in scenes %}
             <div class="scene-section" data-scene-title="{{ scene.title }}">
@@ -110,13 +230,14 @@
                     <table class="table table-bordered table-hover align-middle resource-table">
                         <thead class="table-light">
                             <tr>
-                                {% if all_projects %}<th style="width: 15%;">專案</th>{% endif %}
-                                <th style="width: 10%;">類型</th>
-                                <th style="width: {% if all_projects %}15%{% else %}20%{% endif %};">標題</th>
-                                <th style="width: 20%;">說明內容</th>
-                                <th style="width: 12%;">狀態 / 引用</th>
-                                <th style="width: 15%;">媒體預覽</th>
-                                <th style="width: 20%;">操作</th>
+                                {% if all_projects %}<th style="width: 12%;">專案</th>{% endif %}
+                                <th style="width: 8%;">類型</th>
+                                <th style="width: {% if all_projects %}12%{% else %}15%{% endif %};">標題</th>
+                                <th style="width: 15%;">說明內容</th>
+                                <th style="width: 10%;">危害類型</th>
+                                <th style="width: 10%;">狀態 / 引用</th>
+                                <th style="width: 12%;">媒體預覽</th>
+                                <th style="width: 15%;">操作</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -137,6 +258,15 @@
                                 <td>
                                     <div class="description-text">{{ hotspot.description|default:"-"|linebreaksbr }}
                                     </div>
+                                </td>
+                                <td class="text-center">
+                                    {% if hotspot.hazard_type %}
+                                    <span class="badge bg-danger">
+                                        {{ hotspot.hazard_type.serial_number }}. {{ hotspot.hazard_type.name }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
                                 </td>
                                 <td class="text-center">
                                     <div class="d-flex flex-column align-items-center gap-1">
@@ -182,7 +312,8 @@
                                             data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
                                             data-image-url="{% if hotspot.image %}{{ hotspot.image.url }}{% endif %}"
                                             data-video-url="{% if hotspot.video %}{{ hotspot.video.url }}{% endif %}"
-                                            data-is-referencing="{% if hotspot.source_hotspot %}true{% else %}false{% endif %}">
+                                            data-is-referencing="{% if hotspot.source_hotspot %}true{% else %}false{% endif %}"
+                                            data-hazard-type-id="{{ hotspot.hazard_type_id|default:'' }}">
                                             <i class="fas fa-edit"></i> 編輯
                                         </button>
 
@@ -232,6 +363,74 @@
     </div>
 </div>
 
+<!-- Create Standalone Resource Modal -->
+<div class="modal fade" id="createResourceModal" tabindex="-1" aria-labelledby="createResourceModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="createResourceModalLabel"><i class="fas fa-plus-circle"></i> 新增素材到資源庫</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    在此建立的素材將儲存在資源庫中，<strong>尚未放入任何場景</strong>。您可以之後在全景導覽頁面將素材引用至指定場景。
+                </div>
+                <form id="createResourceForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="create_title" class="form-label">標題 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="create_title" name="title" required
+                            placeholder="例如：安全告示 A">
+                    </div>
+                    <div class="mb-3">
+                        <label for="create_description" class="form-label">說明內容</label>
+                        <textarea class="form-control" id="create_description" name="description" rows="4"
+                            placeholder="詳細說明文字..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="create_type" class="form-label">類型 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="create_type" name="type" required>
+                            <option value="text">文字</option>
+                            <option value="text_hover">懸浮文字</option>
+                            <option value="image" selected>圖片</option>
+                            <option value="image_hover">懸浮圖片</option>
+                            <option value="video">影片</option>
+                            <option value="video_hover">懸浮影片</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="create_hazard_type" class="form-label">危害類型</label>
+                        <select class="form-select" id="create_hazard_type" name="hazard_type">
+                            <option value="">— 不指定 —</option>
+                            {% for ht in hazard_types %}
+                            <option value="{{ ht.id }}">{{ ht.serial_number }}. {{ ht.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3" id="create_imageSection">
+                        <label for="create_image" class="form-label">上傳圖片</label>
+                        <input type="file" class="form-control" id="create_image" name="image" accept="image/*">
+                        <small class="form-text text-muted">支援 JPG, PNG, GIF 等格式</small>
+                    </div>
+                    <div class="mb-3 d-none" id="create_videoSection">
+                        <label for="create_video" class="form-label">上傳影片</label>
+                        <input type="file" class="form-control" id="create_video" name="video" accept="video/*">
+                        <small class="form-text text-muted">支援 MP4, WebM 等格式</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" id="createResourceBtn">
+                    <i class="fas fa-save"></i> 建立素材
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Edit Resource Modal -->
 <div class="modal fade" id="editResourceModal" tabindex="-1" aria-labelledby="editResourceModalLabel"
     aria-hidden="true">
@@ -249,7 +448,7 @@
                     <div class="alert alert-warning d-none" id="referenceWarning">
                         <i class="fas fa-exclamation-triangle"></i>
                         <strong>注意：</strong>此資源已被引用 <span id="usageCountDisplay">0</span> 次。
-                        編輯後將創建新版本，原有引用不受影響，但可選擇更新到新版本。
+                        編輯來源，引用資源不受影響。
                     </div>
 
                     <div class="mb-3">
@@ -271,6 +470,16 @@
                             <option value="image_hover">懸浮圖片</option>
                             <option value="video">影片</option>
                             <option value="video_hover">懸浮影片</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_hazard_type" class="form-label">危害類型</label>
+                        <select class="form-select" id="edit_hazard_type" name="hazard_type">
+                            <option value="">— 不指定 —</option>
+                            {% for ht in hazard_types %}
+                            <option value="{{ ht.id }}">{{ ht.serial_number }}. {{ ht.name }}</option>
+                            {% endfor %}
                         </select>
                     </div>
 
@@ -358,7 +567,9 @@
                                     <th style="width: 8%;">標題比對</th>
                                     <th style="width: 8%;">類型比對</th>
                                     <th style="width: 8%;">說明比對</th>
+                                    <!-- 暫時取消同步狀態顯示
                                     <th style="width: 15%;">同步狀態</th>
+                                    -->
                                     <th style="width: 12%;">操作</th>
                                 </tr>
                             </thead>
@@ -453,6 +664,9 @@
                 // Project check
                 if (project && rowProject !== project) {
                     isMatch = false;
+                } else if (!project && rowProject === '__none__') {
+                    // Exclude "未分配專案" (unassigned hotspots) when "全部專案" is selected
+                    isMatch = false;
                 }
 
                 // Status check
@@ -540,6 +754,12 @@
 
                 filterResources();
             });
+
+            {% if project %}
+            // Set default project filter for project resource view
+            projectSelect.value = '{{ project.name|escapejs }}';
+            projectSelect.dispatchEvent(new Event('change'));
+            {% endif %}
         }
 
         // Auto-filter based on URL parameter
@@ -550,9 +770,24 @@
             const options = Array.from(sceneSelect.options).map(opt => opt.value);
             if (options.includes(sceneParam)) {
                 sceneSelect.value = sceneParam;
-                filterResources();
             }
         }
+
+        // Auto-select project filter from URL ?project= param
+        const projectParam = urlParams.get('project');
+        if (projectParam && document.getElementById('projectSelect')) {
+            const pSel = document.getElementById('projectSelect');
+            const matchingOption = Array.from(pSel.options).find(opt => opt.value === projectParam);
+            if (matchingOption) {
+                pSel.value = projectParam;
+                pSel.dispatchEvent(new Event('change'));
+            }
+        }
+
+        {% if not project %}
+        // Apply initial filter to enforce default dropdown states (e.g., hiding unassigned resources in "All Projects" view)
+        filterResources();
+        {% endif %}
 
         // Edit Resource Functionality
         const editModal = new bootstrap.Modal(document.getElementById('editResourceModal'));
@@ -578,6 +813,9 @@
                 document.getElementById('edit_title').value = title;
                 document.getElementById('edit_description').value = desc;
                 document.getElementById('edit_type').value = type;
+                // Populate hazard type
+                const hazardTypeId = this.dataset.hazardTypeId || '';
+                document.getElementById('edit_hazard_type').value = hazardTypeId;
 
                 // Store referencing status and media info for updateMediaSections to use
                 document.getElementById('editResourceForm').dataset.isReferencing = isReferencing;
@@ -799,6 +1037,7 @@
                                             '<span class="badge bg-warning text-dark"><i class="fas fa-exclamation-circle"></i> 已修改</span>' :
                                             '<span class="badge bg-success"><i class="fas fa-check"></i> 相同</span>'}
                                         </td>
+                                        <!-- 暫時取消同步狀態顯示
                                         <td class="text-center">
                                             ${ref.is_outdated ?
                                             `<span class="badge bg-warning text-dark">
@@ -806,21 +1045,22 @@
                                                 </span>` :
                                             `<span class="badge bg-success">
                                                     <i class="fas fa-check"></i> 已同步
-                                                </span>`
-                                        }
+                                                </span>`}
                                         </td>
+                                        -->
                                         <td class="text-center">
                                             <button class="btn btn-sm btn-outline-info toggle-desc-btn mb-1" data-row-index="${index}">
                                                 <i class="fas fa-eye"></i> 查看詳情
                                             </button>
+                                            <!-- 暫時取消單一更新功能
                                             ${ref.is_outdated ?
                                             `<button class="btn btn-sm btn-warning update-single-ref-btn" 
                                                     data-ref-id="${ref.id}"
                                                     data-latest-version="${ref.latest_version}">
                                                     <i class="fas fa-sync-alt"></i> 更新
                                                 </button>` :
-                                            ``
-                                        }
+                                            ``}
+                                            -->
                                         </td>
                                     `;
                                     tbody.appendChild(row);
@@ -875,8 +1115,7 @@
                                                             ${ref.hotspot_description || '<span class="text-muted">無說明</span>'}
                                                             ${ref.description_modified ?
                                             '<span class="badge bg-warning text-dark ms-2">已修改</span>' :
-                                            ''
-                                        }
+                                            ''}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -888,6 +1127,9 @@
 
                                 // Show/hide update all button
                                 const updateAllBtn = document.getElementById('updateAllBtn');
+                                // 暫時取消全部更新功能
+                                updateAllBtn.classList.add('d-none');
+                                /*
                                 if (hasOutdated) {
                                     updateAllBtn.classList.remove('d-none');
                                     updateAllBtn.onclick = function () {
@@ -896,6 +1138,7 @@
                                 } else {
                                     updateAllBtn.classList.add('d-none');
                                 }
+                                */
 
                                 // Attach event listeners to individual update buttons
                                 document.querySelectorAll('.update-single-ref-btn').forEach(updateBtn => {
@@ -1001,6 +1244,91 @@
                     updateAllBtn.disabled = false;
                     updateAllBtn.innerHTML = originalHtml;
                 });
+        }
+    });
+
+    // ============================================================
+    // Create Standalone Resource Modal Logic
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', function () {
+        const createTypeSelect = document.getElementById('create_type');
+        const createImageSection = document.getElementById('create_imageSection');
+        const createVideoSection = document.getElementById('create_videoSection');
+
+        if (createTypeSelect) {
+            function updateCreateSections(type) {
+                if (type === 'text' || type === 'text_hover') {
+                    createImageSection.classList.add('d-none');
+                    createVideoSection.classList.add('d-none');
+                } else if (type === 'image' || type === 'image_hover') {
+                    createImageSection.classList.remove('d-none');
+                    createVideoSection.classList.add('d-none');
+                } else if (type === 'video' || type === 'video_hover') {
+                    createImageSection.classList.add('d-none');
+                    createVideoSection.classList.remove('d-none');
+                }
+            }
+
+            createTypeSelect.addEventListener('change', function () {
+                updateCreateSections(this.value);
+            });
+            updateCreateSections(createTypeSelect.value);
+
+            const createBtn = document.getElementById('createResourceBtn');
+            const createForm = document.getElementById('createResourceForm');
+
+            createBtn.addEventListener('click', function () {
+                const title = document.getElementById('create_title').value.trim();
+                if (!title) {
+                    alert('請填寫標題！');
+                    return;
+                }
+
+                const formData = new FormData(createForm);
+                createBtn.disabled = true;
+                createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 建立中...';
+
+                fetch('/site360/api/resource/create/', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            const createModal = bootstrap.Modal.getInstance(document.getElementById('createResourceModal'));
+                            createModal.hide();
+
+                            // Show success banner
+                            const alertDiv = document.createElement('div');
+                            alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                            alertDiv.innerHTML = `
+                                <i class="fas fa-check-circle"></i> 素材「${title}」已成功建立並儲存至資源庫！
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            `;
+                            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
+
+                            setTimeout(() => { location.reload(); }, 1500);
+                        } else {
+                            alert('錯誤：' + data.message);
+                            createBtn.disabled = false;
+                            createBtn.innerHTML = '<i class="fas fa-save"></i> 建立素材';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('建立失敗：' + error.message);
+                        createBtn.disabled = false;
+                        createBtn.innerHTML = '<i class="fas fa-save"></i> 建立素材';
+                    });
+            });
+
+            // Reset form when modal closes
+            document.getElementById('createResourceModal').addEventListener('hidden.bs.modal', function () {
+                createForm.reset();
+                updateCreateSections('image');
+                createBtn.disabled = false;
+                createBtn.innerHTML = '<i class="fas fa-save"></i> 建立素材';
+            });
         }
     });
 </script>
