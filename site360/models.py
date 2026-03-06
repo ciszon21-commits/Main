@@ -44,6 +44,10 @@ class Scene(models.Model):
     prev_pitch = models.FloatField(_("上一張熱點 Pitch"), default=-5)
     prev_yaw = models.FloatField(_("上一張熱點 Yaw"), default=180)
 
+    # Navigation Hotspot Custom Icons
+    next_icon = models.CharField(_("下一張熱點圖示"), max_length=50, default='fas fa-arrow-right')
+    prev_icon = models.CharField(_("上一張熱點圖示"), max_length=50, default='fas fa-arrow-left')
+
     class Meta:
         verbose_name = _("場景")
         verbose_name_plural = _("場景")

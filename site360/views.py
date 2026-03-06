@@ -293,23 +293,26 @@ def delete_hotspot(request, pk):
 @user_action_logging
 def update_scene_nav(request, pk):
     """
-    Updates the position of the Next or Prev navigation hotspot for a scene.
+    Updates the position or icon of the Next or Prev navigation hotspot for a scene.
     pk: Scene ID
-    POST data: nav_type ('next' or 'prev'), pitch, yaw
+    POST data: nav_type ('next' or 'prev'), pitch, yaw, icon (optional)
     """
     if request.method == 'POST':
         try:
             scene = get_object_or_404(Scene, pk=pk)
             nav_type = request.POST.get('nav_type') # 'next' or 'prev'
-            pitch = float(request.POST.get('pitch'))
-            yaw = float(request.POST.get('yaw'))
+            pitch = request.POST.get('pitch')
+            yaw = request.POST.get('yaw')
+            icon = request.POST.get('icon')  # optional
             
             if nav_type == 'next':
-                scene.next_pitch = pitch
-                scene.next_yaw = yaw
+                if pitch is not None: scene.next_pitch = float(pitch)
+                if yaw is not None: scene.next_yaw = float(yaw)
+                if icon: scene.next_icon = icon
             elif nav_type == 'prev':
-                scene.prev_pitch = pitch
-                scene.prev_yaw = yaw
+                if pitch is not None: scene.prev_pitch = float(pitch)
+                if yaw is not None: scene.prev_yaw = float(yaw)
+                if icon: scene.prev_icon = icon
             else:
                  return JsonResponse({'status': 'error', 'message': 'Invalid nav_type'}, status=400)
             
@@ -747,10 +750,12 @@ def project_tour_data(request, pk):
                 "createTooltipFunc": "hotspotTooltip",
                 "createTooltipArgs": { 
                     "type": "scene", 
-                    "id": f"nav_next_{scene.id}", 
+                    "id": f"nav_next_{scene.id}",
+                    "nav_type": "next",
+                    "scene_id": str(scene.id),
                     "sceneId": str(next_scene.id),
-                    "icon": "fas fa-arrow-circle-right",
-                    "icon_color": "#000000",
+                    "icon": scene.next_icon or "fas fa-arrow-right",
+                    "icon_color": "#00d2ff",
                     "title": f"下一個場景：{next_scene.title}"
                 }
             })
@@ -765,10 +770,12 @@ def project_tour_data(request, pk):
                 "createTooltipFunc": "hotspotTooltip",
                 "createTooltipArgs": { 
                     "type": "scene", 
-                    "id": f"nav_prev_{scene.id}", 
+                    "id": f"nav_prev_{scene.id}",
+                    "nav_type": "prev",
+                    "scene_id": str(scene.id),
                     "sceneId": str(prev_scene.id),
-                    "icon": "fas fa-arrow-circle-left",
-                    "icon_color": "#000000",
+                    "icon": scene.prev_icon or "fas fa-arrow-left",
+                    "icon_color": "#00d2ff",
                     "title": f"上一個場景：{prev_scene.title}"
                 }
             })
