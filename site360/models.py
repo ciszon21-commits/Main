@@ -44,6 +44,10 @@ class Scene(models.Model):
     prev_pitch = models.FloatField(_("上一張熱點 Pitch"), default=-5)
     prev_yaw = models.FloatField(_("上一張熱點 Yaw"), default=180)
 
+    # Navigation Hotspot Custom Icons
+    next_icon = models.CharField(_("下一張熱點圖示"), max_length=50, default='fas fa-arrow-right')
+    prev_icon = models.CharField(_("上一張熱點圖示"), max_length=50, default='fas fa-arrow-left')
+
     class Meta:
         verbose_name = _("場景")
         verbose_name_plural = _("場景")
@@ -62,7 +66,7 @@ class Hotspot(models.Model):
         ('video_hover', '懸浮影片'),
     )
 
-    scene = models.ForeignKey(Scene, on_delete=models.CASCADE, related_name='hotspots', verbose_name=_("所屬場景"))
+    scene = models.ForeignKey(Scene, on_delete=models.SET_NULL, null=True, blank=True, related_name='hotspots', verbose_name=_("所屬場景"))
     hotspot_type = models.CharField(_("類型"), max_length=20, choices=TYPE_CHOICES, default='text')
     pitch = models.FloatField(_("俯仰角 (Pitch)"))
     yaw = models.FloatField(_("偏航角 (Yaw)"))
@@ -72,9 +76,26 @@ class Hotspot(models.Model):
     video = models.FileField(_("影片內容"), upload_to='site360/hotspots/videos/', blank=True, null=True)
     icon = models.CharField(_("圖示"), max_length=50, default='fas fa-info-circle')
     icon_color = models.CharField(_("圖示顏色"), max_length=20, default='#ffffff')
+    hazard_type = models.ForeignKey(
+        'HazardType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hotspots',
+        verbose_name=_("危害類型"),
+    )
     
     # Data Provenance
     source_hotspot = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='copied_by', help_text="The original hotspot this was imported from")
+    preset_source = models.ForeignKey(
+        'PresetHotspot',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='imported_hotspots',
+        verbose_name=_("預設素材來源"),
+        help_text="若此熱點是從預設資料庫匯入，記錄對應的 PresetHotspot",
+    )
 
     # Version Control
     version_number = models.PositiveIntegerField(_("版本號"), default=1, help_text="Version number of this resource")
@@ -90,6 +111,60 @@ class Hotspot(models.Model):
 
     def __str__(self):
         return f"{self.get_hotspot_type_display()} - {self.title}"
+
+
+class HazardType(models.Model):
+    """危害類型資料表"""
+    serial_number = models.PositiveIntegerField(_("項次"), unique=True, help_text="危害類型的項次編號")
+    name = models.CharField(_("危害類型名稱"), max_length=200)
+    description = models.TextField(_("危害類型說明"), blank=True)
+
+    class Meta:
+        verbose_name = _("危害類型")
+        verbose_name_plural = _("危害類型")
+        ordering = ['serial_number']
+
+    def __str__(self):
+        return f"{self.serial_number}. {self.name}"
+
+
+class PresetHotspot(models.Model):
+    """
+    360 預設資料庫熱點
+    從「360預設資料庫整理.xlsx」匯入的標準安全素材資料庫。
+    """
+    SOURCE_CHOICES = [
+        ('台北勞檢', '台北勞檢'),
+        ('桃園勞檢', '桃園勞檢'),
+        ('職安署', '職安署'),
+        ('其他', '其他'),
+    ]
+
+    serial_number  = models.PositiveIntegerField(_("項次"), help_text="Excel 中的項次編號")
+    source_folder  = models.CharField(_("資料夾名稱"), max_length=50, choices=SOURCE_CHOICES, blank=True)
+    original_filename = models.CharField(_("原始檔案名稱"), max_length=255, blank=True)
+    image          = models.ImageField(_("圖片"), upload_to='site360/preset_hotspots/', blank=True, null=True)
+    title          = models.CharField(_("標題"), max_length=200)
+    description    = models.TextField(_("詳細說明"), blank=True)
+    hazard_type    = models.ForeignKey(
+        HazardType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='preset_hotspots',
+        verbose_name=_("危害類型"),
+    )
+
+    created_at = models.DateTimeField(_("建立時間"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("更新時間"), auto_now=True)
+
+    class Meta:
+        verbose_name = _("預設熱點")
+        verbose_name_plural = _("預設熱點")
+        ordering = ['serial_number']
+
+    def __str__(self):
+        return f"[{self.source_folder}] {self.serial_number}. {self.title}"
 
 
 class UserActionLog(models.Model):

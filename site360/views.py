@@ -259,80 +259,7 @@ class SceneCreateView(UserActionLoggingMixin, CreateView):
         return reverse('site360:project_detail', kwargs={'pk': self.kwargs['pk']})
 
 
-@csrf_exempt
-def save_hotspot(request):
-    if request.method == 'POST':
-        try:
-            hotspot_id = request.POST.get('hotspot_id')
-            scene_id = request.POST.get('scene_id')
-            hotspot_type = request.POST.get('type')
-            pitch = request.POST.get('pitch')
-            yaw = request.POST.get('yaw')
-            title = request.POST.get('title')
-            description = request.POST.get('description')
-            icon = request.POST.get('icon', 'fas fa-info-circle')
-            icon_color = request.POST.get('icon_color', '#ffffff')
-            
-            if hotspot_id:
-                # Update existing
-                hotspot = get_object_or_404(Hotspot, id=hotspot_id)
-                hotspot.hotspot_type = hotspot_type
-                hotspot.title = title
-                hotspot.description = description
-                hotspot.icon = icon
-                hotspot.icon_color = icon_color
-                # Only update pitch/yaw if provided (though usually they are hidden fields)
-                if pitch: hotspot.pitch = float(pitch)
-                if yaw: hotspot.yaw = float(yaw)
-            else:
-                # Create new
-                scene = get_object_or_404(Scene, id=scene_id)
 
-                if not icon_color: icon_color = '#ffffff'
-                
-                hotspot = Hotspot(
-                    scene=scene,
-                    hotspot_type=hotspot_type,
-                    pitch=float(pitch),
-                    yaw=float(yaw),
-                    title=title,
-                    description=description,
-                    icon=icon,
-                    icon_color=icon_color
-                )
-            
-            # Handle source reference (copy_from_id from frontend)
-            copy_from_id = request.POST.get('copy_from_id')
-            clear_source = request.POST.get('clear_source')
-            
-            if clear_source == 'true':
-                # Explicitly clear the relationship
-                hotspot.source_hotspot = None
-                hotspot.original_resource = None
-            elif copy_from_id:
-                try:
-                    source_hotspot = Hotspot.objects.get(id=copy_from_id)
-                    hotspot.source_hotspot = source_hotspot
-                    # Inherit original_resource if source has one, otherwise source IS the original
-                    hotspot.original_resource = source_hotspot.original_resource if source_hotspot.original_resource else source_hotspot
-                except Hotspot.DoesNotExist:
-                     # If source not found, we return error as this shouldn't happen in normal flow
-                    return JsonResponse({'status': 'error', 'message': f'Target hotspot {copy_from_id} not found'})
-            
-            if 'image' in request.FILES:
-                hotspot.image = request.FILES['image']
-            if 'video' in request.FILES:
-                hotspot.video = request.FILES['video']
-                
-            hotspot.save()
-            
-            return JsonResponse({'status': 'success', 'id': hotspot.id})
-
-            
-            return JsonResponse({'status': 'success', 'id': hotspot.id})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=405)
 
 @csrf_exempt
 @user_action_logging
@@ -366,23 +293,26 @@ def delete_hotspot(request, pk):
 @user_action_logging
 def update_scene_nav(request, pk):
     """
-    Updates the position of the Next or Prev navigation hotspot for a scene.
+    Updates the position or icon of the Next or Prev navigation hotspot for a scene.
     pk: Scene ID
-    POST data: nav_type ('next' or 'prev'), pitch, yaw
+    POST data: nav_type ('next' or 'prev'), pitch, yaw, icon (optional)
     """
     if request.method == 'POST':
         try:
             scene = get_object_or_404(Scene, pk=pk)
             nav_type = request.POST.get('nav_type') # 'next' or 'prev'
-            pitch = float(request.POST.get('pitch'))
-            yaw = float(request.POST.get('yaw'))
+            pitch = request.POST.get('pitch')
+            yaw = request.POST.get('yaw')
+            icon = request.POST.get('icon')  # optional
             
             if nav_type == 'next':
-                scene.next_pitch = pitch
-                scene.next_yaw = yaw
+                if pitch is not None: scene.next_pitch = float(pitch)
+                if yaw is not None: scene.next_yaw = float(yaw)
+                if icon: scene.next_icon = icon
             elif nav_type == 'prev':
-                scene.prev_pitch = pitch
-                scene.prev_yaw = yaw
+                if pitch is not None: scene.prev_pitch = float(pitch)
+                if yaw is not None: scene.prev_yaw = float(yaw)
+                if icon: scene.prev_icon = icon
             else:
                  return JsonResponse({'status': 'error', 'message': 'Invalid nav_type'}, status=400)
             
@@ -406,6 +336,9 @@ def save_hotspot(request):
             description = request.POST.get('description')
             icon = request.POST.get('icon')
             icon_color = request.POST.get('icon_color')
+            
+            hazard_type_val = request.POST.get('hazard_type')
+            hazard_type_id = int(hazard_type_val) if hazard_type_val else None
             
             # Import Logic
             copy_from_id = request.POST.get('copy_from_id')
@@ -434,6 +367,7 @@ def save_hotspot(request):
                 hotspot.description = description
                 hotspot.icon = icon
                 hotspot.icon_color = icon_color
+                hotspot.hazard_type_id = hazard_type_id
                 
                 # 處理清除引用的請求
                 if clear_source == 'true':
@@ -448,7 +382,8 @@ def save_hotspot(request):
                     title=title,
                     description=description,
                     icon=icon,
-                    icon_color=icon_color
+                    icon_color=icon_color,
+                    hazard_type_id=hazard_type_id
                 )
 
             # Handle Import (Copy/Reference fields)
@@ -501,6 +436,7 @@ def save_hotspot(request):
 def list_resources(request):
     """
     API to list all available resources (hotspots) for the library.
+    Handles hotspots that have no scene (standalone resources).
     """
     try:
         hotspots = Hotspot.objects.select_related('scene', 'scene__project').all().order_by('-created_at')
@@ -512,8 +448,9 @@ def list_resources(request):
                 'description': h.description,
                 'type': h.hotspot_type,
                 'type_display': h.get_hotspot_type_display(),
-                'project_name': h.scene.project.name,
-                'scene_title': h.scene.title,
+                'project_name': h.scene.project.name if h.scene else '（未分配）',
+                'scene_title': h.scene.title if h.scene else '（未分配至場景）',
+                'is_unassigned': h.scene is None,
                 'thumb_url': f"{h.image.url}?v={int(h.updated_at.timestamp())}" if h.image and h.hotspot_type in ['image', 'image_hover'] else None,
                 'video_url': f"{h.video.url}?v={int(h.updated_at.timestamp())}" if h.video else None,
                 'has_video': bool(h.video),
@@ -525,6 +462,57 @@ def list_resources(request):
         return JsonResponse({'status': 'success', 'resources': data})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@csrf_exempt
+@user_action_logging
+def create_standalone_hotspot(request):
+    """
+    Creates a standalone hotspot (not tied to any scene) for the resource library.
+    """
+    if request.method == 'POST':
+        try:
+            title = request.POST.get('title', '').strip()
+            if not title:
+                return JsonResponse({'status': 'error', 'message': '標題不能為空'}, status=400)
+
+            hotspot_type = request.POST.get('type', 'text')
+            description = request.POST.get('description', '')
+            icon = request.POST.get('icon', 'fas fa-info-circle')
+            icon_color = request.POST.get('icon_color', '#ffffff')
+            hazard_type_id = request.POST.get('hazard_type') or None
+
+            hotspot = Hotspot(
+                scene=None,
+                hotspot_type=hotspot_type,
+                pitch=0.0,
+                yaw=0.0,
+                title=title,
+                description=description,
+                icon=icon,
+                icon_color=icon_color,
+                hazard_type_id=hazard_type_id,
+            )
+
+            if 'image' in request.FILES:
+                hotspot.image = request.FILES['image']
+            if 'video' in request.FILES:
+                hotspot.video = request.FILES['video']
+
+            # Enforce media exclusivity based on type
+            if hotspot_type in ['text', 'text_hover']:
+                hotspot.image = None
+                hotspot.video = None
+            elif hotspot_type in ['image', 'image_hover']:
+                hotspot.video = None
+            elif hotspot_type in ['video', 'video_hover']:
+                hotspot.image = None
+
+            hotspot.save()
+            return JsonResponse({'status': 'success', 'id': hotspot.id, 'message': '素材已成功建立'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
 
 @csrf_exempt
 @user_action_logging
@@ -656,42 +644,61 @@ def serve_hotspot_video(request, pk):
 
 def project_resource_list(request, pk):
     """
-    Displays a list of all resources (hotspots) in a project defined by pk.
+    Displays a list of all resources (hotspots), optionally defaults to the specified project.
     """
+    from django.db.models import Prefetch, Count
+    from .models import HazardType
+
     project = get_object_or_404(Project, pk=pk)
-    # Get all scenes ordered by 'order'
-    scenes = project.scenes.all().order_by('order')
-    
-    # We want to display resources grouped by scene.
-    # The template can iterate over scenes and then their hotspots.
-    # Hotspots should be pre-fetched to avoid N+1 queries.
-    from django.db.models import Prefetch
-    scenes = scenes.prefetch_related(
-        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot').order_by('created_at'))
+
+    scenes = Scene.objects.all().order_by('project', 'order').prefetch_related(
+        'project',
+        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot', 'hazard_type').order_by('created_at'))
     )
-    
+
+    all_projects = Project.objects.all().order_by('name')
+    hazard_types = HazardType.objects.all().order_by('serial_number')
+
+    # Unassigned hotspots: scene is null
+    unassigned_hotspots = Hotspot.objects.filter(scene__isnull=True).annotate(
+        usage_count=Count('copied_by')
+    ).select_related('source_hotspot', 'hazard_type').order_by('-created_at')
+
     context = {
         'project': project,
+        'all_projects': all_projects,
         'scenes': scenes,
+        'hazard_types': hazard_types,
+        'unassigned_hotspots': unassigned_hotspots,
     }
     return render(request, 'site360/resource_list.html', context)
 
 def all_resource_list(request):
     """
     Displays a list of all resources (hotspots) across all projects.
+    Also includes standalone hotspots that have no scene.
     """
     from django.db.models import Prefetch
+    from .models import HazardType
 
     scenes = Scene.objects.all().order_by('project', 'order').prefetch_related(
         'project',
-        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot').order_by('created_at'))
+        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot', 'hazard_type').order_by('created_at'))
     )
-    
+
     projects = Project.objects.all().order_by('name')
+    hazard_types = HazardType.objects.all().order_by('serial_number')
+
+    # Unassigned hotspots: scene is null
+    unassigned_hotspots = Hotspot.objects.filter(scene__isnull=True).annotate(
+        usage_count=Count('copied_by')
+    ).select_related('source_hotspot', 'hazard_type').order_by('-created_at')
 
     context = {
         'scenes': scenes,
         'all_projects': projects,
+        'unassigned_hotspots': unassigned_hotspots,
+        'hazard_types': hazard_types,
     }
     return render(request, 'site360/resource_list.html', context)
 
@@ -743,10 +750,12 @@ def project_tour_data(request, pk):
                 "createTooltipFunc": "hotspotTooltip",
                 "createTooltipArgs": { 
                     "type": "scene", 
-                    "id": f"nav_next_{scene.id}", 
+                    "id": f"nav_next_{scene.id}",
+                    "nav_type": "next",
+                    "scene_id": str(scene.id),
                     "sceneId": str(next_scene.id),
-                    "icon": "fas fa-arrow-circle-right",
-                    "icon_color": "#000000",
+                    "icon": scene.next_icon or "fas fa-arrow-right",
+                    "icon_color": "#00d2ff",
                     "title": f"下一個場景：{next_scene.title}"
                 }
             })
@@ -761,10 +770,12 @@ def project_tour_data(request, pk):
                 "createTooltipFunc": "hotspotTooltip",
                 "createTooltipArgs": { 
                     "type": "scene", 
-                    "id": f"nav_prev_{scene.id}", 
+                    "id": f"nav_prev_{scene.id}",
+                    "nav_type": "prev",
+                    "scene_id": str(scene.id),
                     "sceneId": str(prev_scene.id),
-                    "icon": "fas fa-arrow-circle-left",
-                    "icon_color": "#000000",
+                    "icon": scene.prev_icon or "fas fa-arrow-left",
+                    "icon_color": "#00d2ff",
                     "title": f"上一個場景：{prev_scene.title}"
                 }
             })
@@ -790,7 +801,9 @@ def project_tour_data(request, pk):
                     "video": f"{reverse('site360:serve_hotspot_video', kwargs={'pk': hs.id})}?v={int(hs.updated_at.timestamp())}" if hs.video else "",
                     "video_raw": hs.video.url if hs.video else "", # Raw URL for comparison checks
                     "source_hotspot_id": hs.source_hotspot.id if hs.source_hotspot else None,
-                    "source_hotspot_title": hs.source_hotspot.title if hs.source_hotspot else None
+                    "source_hotspot_title": hs.source_hotspot.title if hs.source_hotspot else None,
+                    "hazard_type_id": hs.hazard_type_id,
+                    "hazard_type_name_with_serial": f"{hs.hazard_type.serial_number}. {hs.hazard_type.name}" if hs.hazard_type else None,
                 }
             }
             hotspots.append(hs_data)
@@ -808,8 +821,10 @@ def project_tour_data(request, pk):
     return JsonResponse(tour_config)
 
 def tour_view(request, pk):
+    from .models import HazardType
     projet = get_object_or_404(Project, pk=pk)
-    return render(request, 'site360/tour.html', {'project': projet})
+    hazard_types = HazardType.objects.all().order_by('serial_number')
+    return render(request, 'site360/tour.html', {'project': projet, 'hazard_types': hazard_types})
 
 @csrf_exempt
 @user_action_logging
@@ -827,12 +842,13 @@ def edit_resource(request, pk):
             title = request.POST.get('title')
             description = request.POST.get('description')
             hotspot_type = request.POST.get('type')
-            
+            hazard_type_id = request.POST.get('hazard_type') or None
+
             # Always update directly - no version creation in basic edit
-            # Version control is for resource library references, not direct edits
             hotspot.title = title
             hotspot.description = description
             hotspot.hotspot_type = hotspot_type
+            hotspot.hazard_type_id = hazard_type_id
             
             # Check if this is a referencing hotspot
             if hotspot.source_hotspot:
