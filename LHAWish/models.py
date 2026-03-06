@@ -387,7 +387,7 @@ class Petition(models.Model):
     def title_display(self):
         """標題（含修改標記）"""
         if self.is_edited:
-            return f"{self.title}（有修改）"
+            return f"{self.title}✏️"
         return self.title
 
 

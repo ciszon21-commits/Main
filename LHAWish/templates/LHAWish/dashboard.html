@@ -5,6 +5,28 @@
 <!-- Toolbar -->
 <div class="wish-toolbar">
     <div class="wish-toolbar-left">
+        <form method="get" id="rndFilterForm"
+            style="display:flex; align-items:center; gap:4px; margin-right:12px; flex-shrink:0;">
+            {% if selected_category != 'all' %}
+            <input type="hidden" name="category" value="{{ selected_category }}">
+            {% endif %}
+            {% if search_term %}
+            <input type="hidden" name="q" value="{{ search_term }}">
+            {% endif %}
+            <label for="rndProjectSelect" style="display:flex; align-items:center; margin:0; cursor:pointer;"
+                title="篩選研發專案">
+                <span class="material-symbols-outlined"
+                    style="font-size:20px; color:var(--wish-primary);">action_key</span>
+            </label>
+            <select id="rndProjectSelect" name="rnd_project"
+                style="max-width:80px; border:none; background:transparent; outline:none; font-size:14px; color:var(--wish-text-dark); cursor:pointer; text-overflow:ellipsis;"
+                onchange="this.form.submit()">
+                <option value="">研發案</option>
+                {% for proj in rnd_project_choices %}
+                <option value="{{ proj.value }}" {% if request.GET.rnd_project == proj.value|stringformat:"s" %}selected{% endif %}>{{ proj.label }}</option>
+                {% endfor %}
+            </select>
+        </form>
         <form method="get" class="wish-search" id="searchForm">
             <svg class="wish-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="11" cy="11" r="8" />
