@@ -773,6 +773,17 @@
             }
         }
 
+        // Auto-select project filter from URL ?project= param
+        const projectParam = urlParams.get('project');
+        if (projectParam && document.getElementById('projectSelect')) {
+            const pSel = document.getElementById('projectSelect');
+            const matchingOption = Array.from(pSel.options).find(opt => opt.value === projectParam);
+            if (matchingOption) {
+                pSel.value = projectParam;
+                pSel.dispatchEvent(new Event('change'));
+            }
+        }
+
         {% if not project %}
         // Apply initial filter to enforce default dropdown states (e.g., hiding unassigned resources in "All Projects" view)
         filterResources();
