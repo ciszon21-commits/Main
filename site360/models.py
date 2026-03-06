@@ -87,6 +87,15 @@ class Hotspot(models.Model):
     
     # Data Provenance
     source_hotspot = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='copied_by', help_text="The original hotspot this was imported from")
+    preset_source = models.ForeignKey(
+        'PresetHotspot',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='imported_hotspots',
+        verbose_name=_("預設素材來源"),
+        help_text="若此熱點是從預設資料庫匯入，記錄對應的 PresetHotspot",
+    )
 
     # Version Control
     version_number = models.PositiveIntegerField(_("版本號"), default=1, help_text="Version number of this resource")

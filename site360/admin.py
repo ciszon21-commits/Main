@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Project, Scene, UserActionLog, HazardType, PresetHotspot
+from .models import Project, Scene, UserActionLog, HazardType, PresetHotspot, Hotspot
 from django.utils.html import format_html
 import json
 
@@ -51,6 +51,47 @@ class PresetHotspotAdmin(admin.ModelAdmin):
     preview_image_large.short_description = '圖片'
 
 
+
+@admin.register(Hotspot)
+class HotspotAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'hotspot_type', 'scene', 'hazard_type', 'preset_source_link', 'preview_image', 'created_at')
+    list_filter = ('hotspot_type', 'hazard_type', ('preset_source', admin.RelatedOnlyFieldListFilter), ('scene__project', admin.RelatedOnlyFieldListFilter))
+    search_fields = ('title', 'description', 'scene__title', 'scene__project__name')
+    ordering = ('-created_at',)
+    raw_id_fields = ('scene', 'source_hotspot', 'preset_source', 'original_resource')
+    readonly_fields = ('created_at', 'updated_at', 'preview_image_large')
+    list_per_page = 50
+
+    fieldsets = (
+        ('基本資訊', {'fields': ('hotspot_type', 'title', 'description', 'hazard_type')}),
+        ('位置', {'fields': ('scene', 'pitch', 'yaw')}),
+        ('圖示設定', {'fields': ('icon', 'icon_color')}),
+        ('媒體', {'fields': ('image', 'preview_image_large', 'video')}),
+        ('來源關聯', {'fields': ('source_hotspot', 'preset_source')}),
+        ('版本控制', {'fields': ('version_number', 'is_latest_version', 'original_resource'), 'classes': ('collapse',)}),
+        ('時間戳記', {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
+    )
+
+    def preview_image(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" style="max-height:48px;border-radius:4px;">', obj.image.url)
+        return '—'
+    preview_image.short_description = '圖片'
+
+    def preview_image_large(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" style="max-height:300px;border-radius:6px;">', obj.image.url)
+        return '—'
+    preview_image_large.short_description = '圖片預覽'
+
+    def preset_source_link(self, obj):
+        if obj.preset_source:
+            return format_html('<span style="color:#0d6efd;">[{}] {}</span>', obj.preset_source.source_folder, obj.preset_source.title[:20])
+        return '—'
+    preset_source_link.short_description = '預設來源'
+
+
+@admin.register(Scene)
 class SceneAdmin(admin.ModelAdmin):
     list_display = ('title', 'project', 'order', 'preview_image')
     list_filter = ('project',)
