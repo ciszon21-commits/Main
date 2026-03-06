@@ -196,7 +196,8 @@
                 {% for c in comments %}
                 <div class="wish-comment wish-fade-in-up" data-comment-id="{{ c.id }}">
                     <div class="wish-comment-avatar"
-                        style="background:var(--wish-primary-light);color:var(--wish-primary);">{% if c.is_anonymous %}匿{% else %}{{ c.author.last_name|default:c.author.username|truncatechars:1 }}{% endif %}</div>
+                        style="background:var(--wish-primary-light);color:var(--wish-primary);"><span
+                            class="material-symbols-outlined" style="font-size:20px;">person</span></div>
                     <div class="wish-comment-bubble">
                         <div class="wish-comment-top">
                             <span class="wish-comment-author">{% if c.is_anonymous %}匿名{% else %}{{ c.author.get_full_name|default:c.author.username }}{% endif %}{% if c.is_official %}<span class="wish-comment-official">管理</span>{% endif %}</span>
@@ -442,12 +443,11 @@
             var list = document.getElementById('commentsList');
             var empty = list.querySelector('.wish-empty');
             if (empty) empty.remove();
-            var avatarText = data.is_anonymous ? '匿' : data.author.charAt(0);
             var authorName = data.is_anonymous ? '匿名' : data.author;
             var officialBadge = data.is_official ? '<span class="wish-comment-official">管理</span>' : '';
             var html = '<div class="wish-comment wish-fade-in-up" data-comment-id="' + data.id + '">' +
                 '<div class="wish-comment-avatar" style="background:var(--wish-primary-light);color:var(--wish-primary);">' +
-                avatarText + '</div>' +
+                '<span class="material-symbols-outlined" style="font-size:20px;">person</span></div>' +
                 '<div class="wish-comment-bubble"><div class="wish-comment-top">' +
                 '<span class="wish-comment-author">' + authorName + officialBadge + '</span>' +
                 '<span class="wish-comment-date">' + data.created_at + '</span></div>' +
