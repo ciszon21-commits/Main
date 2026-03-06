@@ -5,63 +5,434 @@
 
 {% block content %}
 <div class="rpg-container">
-    <div class="exam-header mb-lg">
-        <div class="d-flex justify-content-between align-items-center">
-            <h1>{{ trial.title }}</h1>
-            <div class="exam-timer" id="examTimer">
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+    {% if not is_completed %}
+    <div class="exam-header mb-lg d-flex flex-column" style="gap: 10px;">
+        <!-- 第 1 排：標題與倒數計時 -->
+        <div class="flex flex-between w-100" style="align-items: center; width: 100%;">
+            <h1 class="mb-0" style="white-space: nowrap;">{{ trial.title }}</h1>
+            <div class="exam-timer mb-0" id="examTimer" style="white-space: nowrap;">
                 <i class="fas fa-stopwatch"></i> <span id="timeRemaining">--:--</span>
             </div>
         </div>
 
-        <!-- HP/MP 狀態列 -->
-        <div class="status-bars mt-md">
-            <div class="hp-container">
-                <span class="status-label"><i class="fas fa-heart text-danger"></i> HP</span>
-                <div class="hp-bar-bg">
-                    <div class="hp-bar-fill" id="hpBar"
-                        style="width: {% widthratio initial_hp base_hp 100 %}%; background: {% if initial_hp <= 0 %}linear-gradient(90deg, #dc3545, #8b0000){% else %}{% widthratio initial_hp base_hp 100 as hp_percentage %}{% if hp_percentage <= 20 %}linear-gradient(90deg, #dc3545, #8b0000){% else %}linear-gradient(90deg, #28a745, #1e7e34){% endif %}{% endif %};">
+        <!-- 第 2 排：怪物資訊 (獨立區塊) -->
+        {% if current_monster %}
+        <div style="width: 100%;">
+            <div class="monster-info text-center mx-auto"
+                style="font-size: 1.1rem; font-weight: bold; padding: 6px 12px; border-radius: 6px; background: rgba(0,0,0,0.4); color: {% if current_monster.type == 'ELITE' %}#ff4d4d{% elif current_monster.type == 'MUTANT' %}#e040fb{% else %}#adb5bd{% endif %};">
+                {% if current_monster.type == 'ELITE' %}
+                <i class="fas fa-skull"></i> 遭遇菁英種！(答錯扣除30HP)
+                {% elif current_monster.type == 'MUTANT' %}
+                <i class="fas fa-biohazard"></i> 遭遇變異種：{{ current_monster.mutant_name }}
+                {% else %}
+                <i class="fas fa-ghost"></i> 遭遇普通種 (答錯扣除10HP)
+                {% endif %}
+
+                {% if current_monster.type == 'MUTANT' and current_monster.mutant_desc %}
+                <span style="font-size: 0.9rem; color: #ffb74d; margin-left: 10px;"><i
+                        class="fas fa-exclamation-triangle"></i> 特效：{{ current_monster.mutant_desc }}</span>
+                {% endif %}
+
+                {% if broken_equipments %}
+                <span style="color: #dc3545; font-size: 0.9rem; margin-left: 8px;">
+                    <i class="fas fa-unlink"></i> 失效：
+                    {% if 'helmet' in broken_equipments %}[頭盔] {% endif %}
+                    {% if 'armor' in broken_equipments %}[護甲] {% endif %}
+                    {% if 'boots' in broken_equipments %}[靴子] {% endif %}
+                </span>
+                {% endif %}
+
+                {% if is_tools_sealed %}
+                <span style="color: #dc3545; font-size: 0.9rem; margin-left: 8px;">
+                    <i class="fas fa-ban"></i> 工具封印！
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 第 3 排：HP/MP 與技能按鈕整併為同一列 (一左一右，如果在小螢幕則換行) -->
+        <div class="status-bars flex flex-between"
+            style="gap: 20px; align-items: center; width: 100%; flex-wrap: wrap;">
+            <!-- HP/MP 左側群組 -->
+            <div class="flex gap-md" style="align-items: center;">
+                <div class="hp-container">
+                    <span class="status-label"><i class="fas fa-heart text-danger"></i> HP</span>
+                    <div class="hp-bar-bg">
+                        {% widthratio initial_hp base_hp 100 as hp_percentage %}
+                        <div class="hp-bar-fill" id="hpBar"
+                            style="width: {{ hp_percentage }}%; background: {% if initial_hp <= 0 or hp_percentage <= 20 %}linear-gradient(90deg, #dc3545, #8b0000){% else %}linear-gradient(90deg, #28a745, #1e7e34){% endif %};">
+                        </div>
+                        <span class="bar-value" id="hpValue">{{ initial_hp }}/{{ base_hp }}</span>
                     </div>
-                    <span class="bar-value" id="hpValue">{{ initial_hp }}/{{ base_hp }}</span>
+                </div>
+                <div class="mp-container">
+                    <span class="status-label"><i class="fas fa-bolt text-warning"></i> MP</span>
+                    <div class="mp-bar-bg">
+                        <div class="mp-bar-fill" id="mpBar" style="width: {% widthratio initial_mp base_mp 100 %}%;">
+                        </div>
+                        <span class="bar-value" id="mpValue">{{ initial_mp }}/{{ base_mp }}</span>
+                    </div>
                 </div>
             </div>
-            <div class="mp-container">
-                <span class="status-label"><i class="fas fa-bolt text-warning"></i> MP</span>
-                <div class="mp-bar-bg">
-                    <div class="mp-bar-fill" id="mpBar" style="width: {{ initial_mp }}%;"></div>
-                    <span class="bar-value" id="mpValue">{{ initial_mp }}/100</span>
+
+            <!-- 技能按鈕 右側群組 (圓形小按鈕，帶有自訂 Tooltip) -->
+            <div class="skill-control-panel flex" style="align-items: center; gap: 2rem;">
+                {% if has_engineering_app %}
+                <div class="position-relative">
+                    {% if is_tools_sealed %}
+                    <button type="button"
+                        class="rpg-btn rpg-btn-circle rpg-btn-secondary disabled-skill m-0 rpg-tooltip-container"
+                        disabled style="opacity: 0.5; cursor: not-allowed;" onclick="alert('🚫 禁語默僧的詛咒發作！工具技能已被封印！')">
+                        <i class="fas fa-tools"></i>
+                        <span class="rpg-tooltip-text">工程查驗APP<br><span class="text-danger text-xs mt-xs">🚫 封印中 (剩餘 {{ sealed_tools_turns }} 題)</span></span>
+                    </button>
+                    {% else %}
+                    <button type="button" class="rpg-btn rpg-btn-circle rpg-btn-secondary m-0 rpg-tooltip-container"
+                        id="engineeringAppBtn" onclick="toggleEngineeringApp()">
+                        <i class="fas fa-tools"></i>
+                        <span class="rpg-tooltip-text" id="engineeringAppTooltip">工程查驗APP({{ engineering_app_mp_cost|default:20 }}MP)</span>
+                    </button>
+                    </button>
+                    {% endif %}
                 </div>
+                {% endif %}
+
+                {% if has_uav and question.question_type == 'SINGLE' %}
+                <div class="position-relative">
+                    {% if is_tools_sealed %}
+                    <button type="button"
+                        class="rpg-btn rpg-btn-circle rpg-btn-info disabled-skill m-0 rpg-tooltip-container" disabled
+                        style="opacity: 0.5; cursor: not-allowed;" onclick="alert('🚫 禁語默僧的詛咒發作！工具技能已被封印！')">
+                        <i class="fas fa-paper-plane"></i>
+                        <span class="rpg-tooltip-text">無人機<br><span class="text-danger text-xs mt-xs">🚫 封印中 (剩餘 {{
+                                sealed_tools_turns }} 題)</span></span>
+                    </button>
+                    {% else %}
+                    <button type="button" class="rpg-btn rpg-btn-circle rpg-btn-info m-0 rpg-tooltip-container"
+                        id="uavBtn" onclick="activateUAV()">
+                        <i class="fas fa-paper-plane"></i>
+                        <span class="rpg-tooltip-text" id="uavTooltip">無人機({{ uav_mp_cost }}MP)</span>
+                    </button>
+                    </button>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if has_vr and question.question_type == 'SINGLE' %}
+                <div class="position-relative">
+                    {% if is_tools_sealed %}
+                    <button type="button"
+                        class="rpg-btn rpg-btn-circle rpg-btn-warning disabled-skill m-0 rpg-tooltip-container" disabled
+                        style="opacity: 0.5; cursor: not-allowed;" onclick="alert('🚫 禁語默僧的詛咒發作！工具技能已被封印！')">
+                        <i class="fas fa-glasses"></i>
+                        <span class="rpg-tooltip-text">VR解題<br><span class="text-danger text-xs mt-xs">🚫 封印中 (剩餘 {{
+                                sealed_tools_turns }} 題)</span></span>
+                    </button>
+                    {% else %}
+                    <button type="button" class="rpg-btn rpg-btn-circle rpg-btn-warning m-0 rpg-tooltip-container"
+                        id="vrBtn" onclick="activateVR()">
+                        <i class="fas fa-glasses"></i>
+                        <span class="rpg-tooltip-text" id="vrTooltip">VR解題({{ vr_mp_cost }}MP)<br><span
+                                class="text-warning text-xs mt-xs">⚠️每場試煉限用一次</span></span>
+                    </button>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <!-- 進度條 -->
+        <div class="progress-info mt-md">
+            <span class="progress-text">第 <span id="currentIndex">{{ current_index|add:1 }}</span>
+                / {{ total_questions }} 題</span>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar"
+                    style="width: {% widthratio current_index total_questions 100 %}%;"></div>
             </div>
         </div>
+        {% endif %}
     </div>
 
-    <!-- 進度條 -->
-    <div class="progress-info mt-md">
-        <span class="progress-text">第 <span id="currentIndex">{{ current_index|add:1 }}</span>
-            / {{ total_questions }} 題</span>
-        <div class="progress-bar-container">
-            <div class="progress-bar" id="progressBar"
-                style="width: {% widthratio current_index total_questions 100 %}%"></div>
+    <!-- 單題顯示區 -->
+    <div class="rpg-card mb-lg question-card" id="questionCard">
+        {% if is_completed %}
+        <div class="completion-result text-center py-xl">
+            {% if is_timeout %}
+            <div class="result-icon mb-lg">
+                <i class="fas fa-clock text-warning" style="font-size: 5rem;"></i>
+            </div>
+            <h2 class="text-warning mb-md">⏰ 時間到!</h2>
+            <p class="text-lg text-stone mb-lg">時間已用盡,試煉失敗。</p>
+
+            {% elif final_hp <= 0 %} <div class="result-icon mb-lg">
+                <i class="fas fa-heart-broken text-danger" style="font-size: 5rem;"></i>
         </div>
-    </div>
-</div>
+        <h2 class="text-danger mb-md">💀 生命值歸零!</h2>
+        <p class="text-lg text-stone mb-lg">很遺憾,您未能完成試煉。</p>
 
-<!-- 單題顯示區 -->
-<div class="rpg-card mb-lg question-card" id="questionCard">
-    {% if is_completed %}
-    <!-- 結算畫面 -->
-    <div class="completion-result text-center py-xl">
-        {% if is_passed %}
+        {% elif is_passed %}
+        {% if is_perfect %}
+        <div class="result-icon mb-lg">
+            <i class="fas fa-crown text-warning" style="font-size: 5rem;"></i>
+        </div>
+        <h2 class="text-warning mb-md">🎉 PERFECT CLEAR!</h2>
+        <p class="text-lg text-stone mb-lg">完美通關！獲得雙倍經驗值與額外獎勵！</p>
+        {% else %}
         <div class="result-icon mb-lg">
             <i class="fas fa-trophy text-primary" style="font-size: 5rem;"></i>
         </div>
-        <h2 class="text-primary mb-md">🎉 挑戰成功！</h2>
-        <p class="text-lg text-stone mb-lg">恭喜您完成了本次每日試煉！</p>
+        <h2 class="text-primary mb-md">🎉 挑戰成功!</h2>
+        <p class="text-lg text-stone mb-lg">恭喜您完成了本次每日試煉!</p>
+        {% endif %}
+
+        <div class="row justify-content-center mb-4">
+            <div class="col-md-8">
+                <div class="card bg-dark text-light border-secondary">
+                    <div class="card-body">
+                        <h5 class="card-title text-center mb-3">獲得獎勵</h5>
+                        <div class="d-flex justify-content-around align-items-center">
+                            <div class="text-center">
+                                <i class="fas fa-star text-warning fa-2x mb-2"></i>
+                                <p class="mb-0 text-muted">經驗值</p>
+                                <h4 class="text-warning">+{{ exp_reward }}</h4>
+                            </div>
+                            {% if ticket_reward > 0 %}
+                            <div class="text-center">
+                                <i class="fas fa-ticket-alt text-info fa-2x mb-2"></i>
+                                <p class="mb-0 text-muted">強化券</p>
+                                <h4 class="text-info">+{{ ticket_reward }}</h4>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if chests %}
+        <div class="bonus-stage mt-xl mb-xl text-center">
+            <h3 class="text-warning text-2xl mb-lg animate-pulse">✨ 隱藏獎勵 ✨</h3>
+            <p class="text-stone-light mb-sm">你的剩餘 HP 超過了 60%！請選擇一個寶箱開啟！</p>
+            <p class="text-xs text-stone-dark mb-lg">(剩餘HP60%以上觸發)</p>
+
+            <div class="chests-container"
+                style="display: flex; justify-content: center; align-items: center; flex-direction: row; gap: 20px; flex-wrap: wrap; margin: 0 auto; width: 100%;">
+                {% for key, chest in chests.items %}
+                <div class="chest-wrapper perspective-1000">
+                    <div class="chest-card {% if chest.is_opened %}opened{% endif %}" id="chest-{{ key }}"
+                        onclick="openChest('{{ daily_task_id|default:0 }}', '{{ key }}')">
+                        <div class="chest-front">
+                            <i
+                                class="fas fa-box-open text-warning text-5xl hover:scale-110 transition-transform cursor-pointer"></i>
+                            <p class="text-stone text-sm mt-2">神秘寶箱</p>
+                        </div>
+                        <div class="chest-back bg-black/50 p-4 rounded border border-warning/30">
+                            {% if chest.is_opened %}
+                            <div class="reward-reveal">
+                                {% if chest.type == 'MIMIC' %}
+                                <i class="fas fa-teeth-open text-danger text-4xl mb-2"></i>
+                                <p class="text-danger font-bold">寶箱怪!</p>
+                                <p class="text-xs text-danger">-5 HP</p>
+                                {% elif chest.type == 'TICKETS_3' %}
+                                <i class="fas fa-ticket-alt text-info text-4xl mb-2"></i>
+                                <p class="text-info font-bold">強化券</p>
+                                <p class="text-xs text-stone-light">x3</p>
+                                {% elif chest.type == 'POTION' %}
+                                <i class="fas fa-flask text-success text-4xl mb-2"></i>
+                                <p class="text-success font-bold">回復藥水</p>
+                                <p class="text-xs text-stone-light">HP+10</p>
+                                {% elif chest.type == 'TICKET_POTION' %}
+                                <div class="flex justify-center gap-2">
+                                    <i class="fas fa-ticket-alt text-info text-2xl"></i>
+                                    <i class="fas fa-flask text-success text-2xl"></i>
+                                </div>
+                                <p class="text-warning font-bold text-sm mt-1">大禮包</p>
+                                <p class="text-xs text-stone-light">券x1 + 藥水</p>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <div class="locked-state">
+                                <i class="fas fa-lock text-stone-dark text-3xl"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <script>
+            function openChest(taskId, chestIndex) {
+                const chestEl = document.getElementById(`chest-${chestIndex}`);
+                if (chestEl.classList.contains('opened') || document.querySelector('.chest-card.opened')) {
+                    // Prevent opening if this one is opened OR any other is likely opened (if we want to limit to 1 visually instant)
+                    // But server checks limit.
+                    // If this specific chest is opened, do nothing.
+                    if (chestEl.classList.contains('opened')) return;
+
+                    // If we want to strictly enforce one choice in UI before server callback:
+                    if (document.querySelector('.chest-card.opened')) {
+                        alert('只能選擇一個寶箱喔！');
+                        return;
+                    }
+                }
+
+                // Animation
+                chestEl.classList.add('shaking');
+
+                fetch(`/rpg/daily-trial/${taskId}/chest/${chestIndex}/open/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        chestEl.classList.remove('shaking');
+                        if (data.success) {
+                            chestEl.classList.add('opened');
+                            // Render content dynamically based on data.reward_type
+                            // Or reload? Reloading might be safer to show persistent state but less smooth.
+                            // Let's update standard UI.
+
+                            let contentHtml = '';
+                            if (data.reward_type === 'MIMIC') {
+                                contentHtml = `<i class="fas fa-teeth-open text-danger text-4xl mb-2"></i><p class="text-danger font-bold">寶箱怪!</p><p class="text-xs text-danger">-5 HP</p>`;
+                                // Update HP
+                                if (data.changes.hp) {
+                                    const hpVal = document.getElementById('hpValue'); // Assuming element exists
+                                    // Wait, this is result screen, hpValue might be in stat card
+                                    // "final_hp" in stat grid
+                                    // stat-value text-3xl font-bold ...
+                                    // I need a reliable selector.
+                                    // But simplified: Just alert message.
+                                }
+                            } else if (data.reward_type === 'TICKETS_3') {
+                                contentHtml = `<i class="fas fa-ticket-alt text-info text-4xl mb-2"></i><p class="text-info font-bold">強化券</p><p class="text-xs text-stone-light">x3</p>`;
+                            } else if (data.reward_type === 'POTION') {
+                                contentHtml = `<i class="fas fa-flask text-success text-4xl mb-2"></i><p class="text-success font-bold">回復藥水</p><p class="text-xs text-stone-light">HP+10</p>`;
+                            } else if (data.reward_type === 'TICKET_POTION') {
+                                contentHtml = `<div class="flex justify-center gap-2"><i class="fas fa-ticket-alt text-info text-2xl"></i><i class="fas fa-flask text-success text-2xl"></i></div><p class="text-warning font-bold text-sm mt-1">大禮包</p><p class="text-xs text-stone-light">券x1 + 藥水</p>`;
+                            }
+
+                            const backFace = chestEl.querySelector('.chest-back');
+                            backFace.innerHTML = `<div class="reward-reveal animate-bounce-in">${contentHtml}</div>`;
+
+                            alert(data.message);
+
+                            // Disable others
+                            document.querySelectorAll('.chest-card').forEach(el => {
+                                if (el !== chestEl) el.classList.add('disabled opacity-50 cursor-not-allowed');
+                            });
+
+                        } else {
+                            alert(data.error);
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        chestEl.classList.remove('shaking');
+                        alert('發生錯誤，請重試');
+                    });
+            }
+        </script>
+
+        <style>
+            .perspective-1000 {
+                perspective: 1000px;
+            }
+
+            .chest-card {
+                position: relative;
+                width: 120px;
+                height: 120px;
+                transition: transform 0.6s;
+                transform-style: preserve-3d;
+            }
+
+            .chest-card.opened {
+                transform: rotateY(180deg);
+            }
+
+            .chest-front,
+            .chest-back {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                -webkit-backface-visibility: hidden;
+                backface-visibility: hidden;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .chest-back {
+                transform: rotateY(180deg);
+            }
+
+            .shaking {
+                animation: shake 0.5s;
+            }
+
+            @keyframes shake {
+                0% {
+                    transform: translate(1px, 1px) rotate(0deg);
+                }
+
+                10% {
+                    transform: translate(-1px, -2px) rotate(-1deg);
+                }
+
+                20% {
+                    transform: translate(-3px, 0px) rotate(1deg);
+                }
+
+                30% {
+                    transform: translate(3px, 2px) rotate(0deg);
+                }
+
+                40% {
+                    transform: translate(1px, -1px) rotate(1deg);
+                }
+
+                50% {
+                    transform: translate(-1px, 2px) rotate(-1deg);
+                }
+
+                60% {
+                    transform: translate(-3px, 1px) rotate(0deg);
+                }
+
+                70% {
+                    transform: translate(3px, 1px) rotate(-1deg);
+                }
+
+                80% {
+                    transform: translate(-1px, -1px) rotate(1deg);
+                }
+
+                90% {
+                    transform: translate(1px, 2px) rotate(0deg);
+                }
+
+                100% {
+                    transform: translate(1px, -2px) rotate(-1deg);
+                }
+            }
+        </style>
+        {% endif %}
+
         {% else %}
         <div class="result-icon mb-lg">
-            <i class="fas fa-skull text-danger" style="font-size: 5rem;"></i>
+            <i class="fas fa-times-circle text-danger" style="font-size: 5rem;"></i>
         </div>
-        <h2 class="text-danger mb-md">💀 挑戰失敗</h2>
-        <p class="text-lg text-stone mb-lg">很遺憾，您的 HP 已歸零...</p>
+        <h2 class="text-danger mb-md">❌ 挑戰失敗!</h2>
+        <p class="text-lg text-stone mb-lg">正確率未達 60% (目前: {{ accuracy|floatformat:1 }}%)</p>
         {% endif %}
 
         <!-- 統計數據 -->
@@ -79,27 +450,15 @@
                 <div class="stat-label text-stone text-sm">正確率</div>
             </div>
             <div class="stat-card bg-black/30 p-md rounded">
-                <div class="stat-value text-3xl font-bold text-success">+{{ exp_reward }}</div>
-                <div class="stat-label text-stone text-sm">獲得經驗</div>
-            </div>
-        </div>
-
-        <!-- HP 狀態 -->
-        <div class="hp-result mb-xl max-w-md mx-auto">
-            <div class="flex justify-between text-sm mb-xs">
-                <span class="text-stone"><i class="fas fa-heart text-danger"></i> 最終 HP</span>
-                <span class="{% if final_hp > 0 %}text-success{% else %}text-danger{% endif %}">
-                    {{ final_hp }} / {{initial_hp }}
-                </span>
-            </div>
-            <div class="hp-bar-container bg-black/40 rounded-full h-6 overflow-hidden">
-                <div class="hp-bar bg-gradient-to-r from-danger to-primary h-full transition-all duration-500"
-                    style="width: {% widthratio final_hp initial_hp 100 %}%"></div>
+                <div
+                    class="stat-value text-3xl font-bold {% if final_hp > 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ final_hp }} / {{ initial_hp }}</div>
+                <div class="stat-label text-stone text-sm">最終 HP</div>
             </div>
         </div>
 
         <!-- 返回按鈕 -->
-        <a href="{% url 'engineer_rpg:daily_trial_list' %}" class="rpg-btn rpg-btn-primary btn-large">
+        <a href="{% url 'engineer_rpg:daily_trial_list' %}" class="rpg-btn rpg-btn-primary btn-large mb-lg">
             <i class="fas fa-home"></i> 返回每日挑戰列表
         </a>
     </div>
@@ -121,20 +480,42 @@
     <form id="answerForm">
         {% csrf_token %}
 
-        <!-- MP 技能按鈕 -->
-        <div class="skill-buttons mb-lg" id="skillButtons">
-            {% if 'HINT' in available_skills %}
-            <button type="button" class="skill-btn" id="hintBtn" onclick="useHint()">
-                <i class="fas fa-lightbulb"></i> 提示 (30 MP)
-            </button>
-            {% endif %}
+        <!-- 工程查驗 APP 技能按鈕 已移至上方 -->
+        <input type="hidden" name="use_engineering_app" id="useEngineeringApp" value="false">
+        <input type="hidden" name="use_uav" id="useUAV" value="false">
+        <input type="hidden" name="use_vr" id="useVR" value="false">
 
-            {% if 'REMOVE_OPTION' in available_skills %}
-            <button type="button" class="skill-btn" id="fiftyFiftyBtn" onclick="useFiftyFifty()">
-                <i class="fas fa-cut"></i> 二選一 (50 MP)
-            </button>
-            {% endif %}
+        <!-- 錯題回顧 -->
+        {% if wrong_answers_list %}
+        <div class="mt-lg">
+            <h3 class="text-xl font-bold mb-md text-danger"><i class="fas fa-exclamation-circle"></i> 錯題回顧</h3>
+            <div class="space-y-md">
+                {% for wrong in wrong_answers_list %}
+                <div class="bg-stone-dark p-md rounded-lg border border-danger/30">
+                    <div class="mb-sm">
+                        <span class="text-stone-light text-sm">題目：</span>
+                        <p class="font-bold text-white">{{ wrong.question_text }}</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-sm mb-sm">
+                        <div class="bg-danger/10 p-sm rounded border border-danger/20">
+                            <span class="text-danger text-xs block mb-xs">你的答案</span>
+                            <span class="text-danger font-mono">{{ wrong.user_answer }}</span>
+                        </div>
+                        <div class="bg-success/10 p-sm rounded border border-success/20">
+                            <span class="text-success text-xs block mb-xs">正確答案</span>
+                            <span class="text-success font-mono">{{ wrong.correct_answer }}</span>
+                        </div>
+                    </div>
+                    {% if wrong.explanation and wrong.explanation != '無解析' and wrong.explanation != 'None' %}
+                    <div class="bg-primary/5 p-sm rounded text-sm text-stone-light border-l-4 border-primary">
+                        <strong class="text-primary">解析：</strong> {{ wrong.explanation }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
         </div>
+        {% endif %}
 
         <!-- 道具欄 -->
         {% if user_items %}
@@ -192,6 +573,8 @@
             {% endif %}
         </div>
 
+
+
         <div class="action-buttons mt-xl text-center">
             <button type="submit" class="rpg-btn rpg-btn-primary btn-large" id="submitBtn">
                 <i class="fas fa-check"></i> 提交答案
@@ -199,731 +582,1188 @@
         </div>
     </form>
 
-    <!-- 反饋區域（初始隱藏） -->
-    <div class="feedback-area" id="feedbackArea" style="display: none;">
-        <div class="feedback-content">
+    <div class="feedback-area mt-lg" id="feedbackArea" style="display: none;">
+        <div class="feedback-content text-center">
             <div class="feedback-icon" id="feedbackIcon"></div>
             <h3 class="feedback-title" id="feedbackTitle"></h3>
-            <div class="feedback-details" id="feedbackDetails"></div>
-            <button class="rpg-btn rpg-btn-secondary btn-large mt-lg" id="nextBtn">
+            <div class="feedback-details text-left mb-md" id="feedbackDetails"></div>
+            <button class="rpg-btn rpg-btn-secondary btn-large" id="nextBtn">
                 <i class="fas fa-arrow-right"></i> 下一題
             </button>
         </div>
     </div>
+
+    <!-- 360 環景相機回溯確認 Modal -->
+    <div id="cameraModal" style="display:none; position:fixed; inset:0; z-index:9999;
+     background:rgba(0,0,0,0.65); align-items:center; justify-content:center;">
+        <div style="background:#1e293b; border:2px solid #f59e0b; border-radius:16px;
+              padding:2rem; max-width:420px; width:90%; text-align:center; box-shadow:0 8px 40px rgba(0,0,0,0.6);">
+            <div style="font-size:3rem; margin-bottom:0.5rem;">🎥</div>
+            <h3 style="color:#f59e0b; margin-bottom:0.75rem; font-size:1.2rem;">答錯了，但別灰心！</h3>
+            <p style="color:#cbd5e1; margin-bottom:0.25rem;">是否使用 <strong style="color:#fbbf24;">360 環景相機</strong>
+                回溯此題重新作答？
+            </p>
+            <p id="cameraModalInfo" style="color:#94a3b8; font-size:0.85rem; margin-bottom:1.5rem;"></p>
+            <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
+                <button id="cameraModalUseBtn" class="rpg-btn rpg-btn-warning" style="min-width:130px;"
+                    onclick="handleCameraModalUse()">
+                    🎥 使用相機回溯
+                </button>
+                <button class="rpg-btn rpg-btn-secondary" style="min-width:130px;" onclick="handleCameraModalSkip()">
+                    放棄，看答案
+                </button>
+            </div>
+        </div>
+    </div>
+
     {% else %}
-    <p class="text-center">沒有可用的題目</p>
+    <p class="text-center mt-xl">沒有可用的題目</p>
     {% endif %}
-</div>
-</div>
 
-<script>
-    const trialId = {{ trial.id }};
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    let currentHP = {{ initial_hp }};
-    const maxHP = {{ base_hp }};
+    <script>
+        // 初始化變數
+        const trialId = "{{ trial.id|default:'0' }}";
+        const csrfTokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
+        let currentHP = parseInt("{{ initial_hp|default:'0' }}", 10);
+        const maxHP = parseInt("{{ base_hp|default:'0' }}", 10);
+        let currentMP = parseInt("{{ initial_mp|default:'0' }}", 10);
+        const maxMP = parseInt("{{ base_mp|default:'0' }}", 10);
+        let remainingSeconds = parseInt("{{ remaining_seconds|default:'0' }}", 10);
+        const isTrialCompleted = ("{{ is_completed|yesno:'true,false' }}" === "true");
 
-    // 防止意外離開頁面
-    let isSubmitting = false;
+        // Engineering App Cost
+        const engineeringAppMpCost = parseInt("{{ engineering_app_mp_cost|default:'20' }}", 10);
+        // UAV 資訊
+        const hasUAV = ("{{ has_uav|yesno:'true,false' }}" === "true");
+        const uavMpCost = parseInt("{{ uav_mp_cost|default:'30' }}", 10);
+        const uavEliminateCount = parseInt("{{ uav_eliminate_count|default:'1' }}", 10);
+        const questionId = "{{ question.id|default:'0' }}";
+        const questionType = "{{ question.question_type|default:'' }}";
+        // VR 資訊
+        const hasVR = ("{{ has_vr|yesno:'true,false' }}" === "true");
+        const vrMpCost = parseInt("{{ vr_mp_cost|default:'70' }}", 10);
+        let vrAlreadyUsed = ("{{ vr_already_used|yesno:'true,false' }}" === "true");
+        // 360 環景相機資訊
+        const hasCamera = ("{{ has_camera|yesno:'true,false' }}" === "true");
+        let cameraMpCost = parseInt("{{ camera_mp_cost|default:'30' }}", 10);
+        let cameraUsesLeft = parseInt("{{ camera_uses_left|default:'0' }}", 10);
+        let currentQuestionRewound = false; // 當前題是否已回溯
+        const isToolsSealed = ("{{ is_tools_sealed|yesno:'true,false' }}" === "true");
+        const sealedToolsTurns = parseInt("{{ sealed_tools_turns|default:'0' }}", 10);
 
-    window.addEventListener('beforeunload', function (e) {
-        if (!isSubmitting) {
-            // 現代瀏覽器通常忽略自定義消息，只顯示標準警告
-            const message = "離開此頁面將可能導致任務失敗或進度異常，確定要離開嗎？";
-            e.preventDefault();
-            e.returnValue = message;
-            return message;
-        }
-    });
 
-    // 提交表單時設置標誌，避免觸發警告
-    document.getElementById('answerForm').addEventListener('submit', function () {
-        isSubmitting = true;
-    });
+        // Update MP Bar Helper
+        function updateMPDisplay(newMP) {
+            const mpBar = document.getElementById('mpBar');
+            const mpValue = document.getElementById('mpValue');
 
-    // 倒數計時（使用後端計算的剩餘時間）
-    let remainingSeconds = {{ remaining_seconds }};
-    const timerElement = document.getElementById('timeRemaining');
+            if (mpBar && mpValue) {
+                // Clamp value
+                newMP = Math.max(0, Math.min(newMP, maxMP));
 
-    function updateTimer() {
-        const minutes = Math.floor(remainingSeconds / 60);
-        const seconds = remainingSeconds % 60;
-        timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
-        if (remainingSeconds <= 0) {
-            clearInterval(timerInterval);
-            alert('時間到！');
-            window.location.href = "{% url 'engineer_rpg:daily_trial_list' %}";
-        } else {
-            remainingSeconds--;
-        }
-    }
-
-    const timerInterval = setInterval(updateTimer, 1000);
-    updateTimer();
-
-    // 提交答案
-    document.getElementById('answerForm').addEventListener('submit', function (e) {
-        e.preventDefault();
-
-        const formData = new FormData(this);
-        formData.append('current_mp', currentMP);  // 傳送當前 MP 到後端
-        const submitBtn = document.getElementById('submitBtn');
-        submitBtn.disabled = true;
-
-        fetch(`/rpg/trial/${trialId}/submit-answer/`, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': csrfToken
+                const percentage = (newMP / maxMP) * 100;
+                mpBar.style.width = percentage + '%';
+                mpValue.textContent = newMP + '/' + maxMP;
             }
-        })
-            .then(response => response.json())
-            .then(data => {
-                showFeedback(data);
+        }
+
+        // Toggle Engineering App Logic
+        function toggleEngineeringApp() {
+            const btn = document.getElementById('engineeringAppBtn');
+            const input = document.getElementById('useEngineeringApp');
+
+            if (!btn || !input) return;
+            const icon = btn.querySelector('i.fas');
+
+            if (input.value === 'false') {
+                // Check if enough MP (using currentMP which tracks state)
+                // Note: We use a temp check. Real deduction happens on submit, 
+                // but we visualize it now.
+                if (currentMP < engineeringAppMpCost) {
+                    alert('MP 不足，無法啟動技能！');
+                    return;
+                }
+
+                input.value = 'true';
+                btn.classList.remove('rpg-btn-secondary');
+                btn.classList.add('rpg-btn-warning');
+                document.getElementById('engineeringAppTooltip').innerText = '關閉工程APP';
+                if (icon) {
+                    icon.classList.remove('fa-tools');
+                    icon.classList.add('fa-shield-alt');
+                }
+
+                // 動畫效果
+                btn.classList.add('skill-activated-anim');
+                setTimeout(() => btn.classList.remove('skill-activated-anim'), 500);
+
+                // Visual MP deduction
+                updateMPDisplay(currentMP - engineeringAppMpCost);
+
+            } else {
+                input.value = 'false';
+                btn.classList.remove('rpg-btn-warning');
+                btn.classList.add('rpg-btn-secondary');
+                document.getElementById('engineeringAppTooltip').innerText = '工程查驗APP(' + engineeringAppMpCost + 'MP)';
+                if (icon) {
+                    icon.classList.remove('fa-shield-alt');
+                    icon.classList.add('fa-tools');
+                }
+
+                // Restore MP display
+                updateMPDisplay(currentMP);
+            }
+        }
+
+        // ===== UAV 選項刪去技能 =====
+        function activateUAV() {
+            const uavInput = document.getElementById('useUAV');
+            const uavBtn = document.getElementById('uavBtn');
+
+            if (!uavInput || !uavBtn) return;
+            const icon = uavBtn.querySelector('i.fas');
+            if (uavInput.value === 'true') return; // 防止重複使用
+
+            // MP 檢查
+            if (currentMP < uavMpCost) {
+                alert('MP 不足，無法啟動 UAV！');
+                return;
+            }
+
+            // 呼叫後端 API 取得要刪去的選項
+            fetch(`/rpg/trial/${trialId}/uav-eliminate/?question_id=${questionId}&count=${uavEliminateCount}`, {
+                headers: { 'X-CSRFToken': csrfToken }
             })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('提交失敗，請重試');
-                submitBtn.disabled = false;
+                .then(r => r.json())
+                .then(data => {
+                    const eliminated = data.eliminated || [];
+                    if (eliminated.length === 0) {
+                        alert('這題無法使用 UAV 選項刪去（可能不是單選題）');
+                        return;
+                    }
+
+                    // 隱藏錯誤選項
+                    eliminated.forEach(key => {
+                        document.querySelectorAll('#optionsList .option-item').forEach(label => {
+                            const radio = label.querySelector('input[type="radio"]');
+                            if (radio && radio.value === key) {
+                                label.style.opacity = '0.3';
+                                label.style.textDecoration = 'line-through';
+                                label.style.pointerEvents = 'none';
+                                radio.disabled = true;
+                                // 如果這個選項本來被選中，清除選擇
+                                if (radio.checked) radio.checked = false;
+                            }
+                        });
+                    });
+
+                    // 標記 UAV 已使用
+                    uavInput.value = 'true';
+                    // 視覺更新 MP
+                    updateMPDisplay(currentMP - uavMpCost);
+                    // 按鈕 disable + 狀態文字
+                    uavBtn.disabled = true;
+                    uavBtn.classList.remove('rpg-btn-info');
+                    uavBtn.classList.add('rpg-btn-secondary');
+                    if (icon) {
+                        icon.classList.remove('fa-paper-plane');
+                        icon.classList.add('fa-check');
+                    }
+
+                    // 動畫效果
+                    uavBtn.classList.add('skill-activated-anim');
+                    setTimeout(() => uavBtn.classList.remove('skill-activated-anim'), 500);
+
+                    document.getElementById('uavTooltip').innerText = 'UAV 已啟動';
+                })
+                .catch(err => {
+                    console.error('UAV API error:', err);
+                    alert('UAV 啟動失敗，請重試');
+                });
+        }
+        // ============================
+
+        // ===== VR 虛擬實境眼鏡「絕對解答」技能 =====
+        function setVRButtonUsed() {
+            const vrBtn = document.getElementById('vrBtn');
+            if (!vrBtn) return;
+            vrBtn.disabled = true;
+            vrBtn.onclick = null;  // 移除點擊事件
+            vrBtn.classList.remove('rpg-btn-warning', 'rpg-btn-info', 'rpg-btn-secondary');
+            // 灯暗灰色樣式 + 禁用 pointer
+            vrBtn.style.cssText = `
+            background: #555 !important;
+            border-color: #444 !important;
+            color: #888 !important;
+            opacity: 0.6;
+            cursor: not-allowed !important;
+            pointer-events: none;
+            box-shadow: none;
+        `;
+
+            // 動畫效果
+            vrBtn.classList.add('skill-activated-anim');
+            setTimeout(() => vrBtn.classList.remove('skill-activated-anim'), 500);
+
+            document.getElementById('vrTooltip').innerText = 'VR 絕對解答（本場已使用，每場限一次）';
+        }
+
+        // ===== 360 環景相機「存檔與回溯」技能 =====
+        function resetQuestion() {
+            // 隱藏 feedbackArea，恢復題目表單讓使用者重答
+            const feedbackArea = document.getElementById('feedbackArea');
+            const answerForm = document.getElementById('answerForm');
+            const submitBtn = document.getElementById('submitBtn');
+            if (feedbackArea) feedbackArea.style.display = 'none';
+            if (answerForm) answerForm.style.display = 'block';
+            // 清除所有 radio 選取
+            if (answerForm) {
+                answerForm.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
+            }
+            // 清除 UAV/VR 高亮殘留
+            document.querySelectorAll('#optionsList .option-item').forEach(label => {
+                label.style.border = '';
+                label.style.backgroundColor = '';
+                label.style.borderRadius = '';
+                label.style.padding = '';
             });
-    });
+            if (submitBtn) submitBtn.disabled = false;
+            isSubmitting = false;
+            currentQuestionRewound = true; // 標記當前題已回溯
+        }
 
-    // 顯示反饋
-    function showFeedback(data) {
-        console.log('Feedback data:', data); // Debug
-        console.log('Remaining HP:', data.remaining_hp); // Debug
+        function activateCamera(hpDamage) {
+            const btn = document.getElementById('cameraRewindBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '🎥 回溯中...';
+            }
 
-        const feedbackArea = document.getElementById('feedbackArea');
-        const feedbackIcon = document.getElementById('feedbackIcon');
-        const feedbackTitle = document.getElementById('feedbackTitle');
-        const feedbackDetails = document.getElementById('feedbackDetails');
+            const formData = new FormData();
+            formData.append('question_id', questionId);
+            formData.append('hp_damage', hpDamage);
+
+            fetch(`/rpg/trial/${trialId}/camera-rewind/`, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': csrfToken }
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) {
+                        if (data.uses_exceeded) {
+                            alert('本場回溯次數已用盡！');
+                        } else if (data.mp_insufficient) {
+                            alert('MP 不足，無法回溯！');
+                        } else if (data.already_rewound) {
+                            alert('此題已回溯過，無法再次回溯！');
+                        } else {
+                            alert(data.error);
+                        }
+                        if (btn) { btn.disabled = false; btn.textContent = '🎥 360 相機回溯'; }
+                        return;
+                    }
+
+                    // 成功回溯
+                    cameraUsesLeft = data.uses_left;
+                    cameraMpCost = 30; // 回溯後折扣清除，下題重新從 context 取
+                    updateMPDisplay(data.remaining_mp);
+                    updateHPDisplay(data.remaining_hp);
+
+                    // 顯示成功提示
+                    if (typeof showItemEffect === 'function') {
+                        showItemEffect(`🎥 相機回溯成功！HP +${data.hp_restored} 恢復，剩餘 ${data.uses_left} 次`, 'success');
+                        if (data.newbie_luck_msg) {
+                            setTimeout(() => showItemEffect(data.newbie_luck_msg, 'success'), 1500);
+                        }
+                    }
+
+                    // 重設題目 UI
+                    resetQuestion();
+                })
+                .catch(err => {
+                    console.error('Camera rewind error:', err);
+                    alert('回溯系統異常，請重試');
+                    if (btn) { btn.disabled = false; btn.textContent = '🎥 360 相機回溯'; }
+                });
+        }
+        // ============================================
+
+        function activateVR() {
+            if (vrAlreadyUsed) return; // 本場已使用過
+
+            const vrBtn = document.getElementById('vrBtn');
+            if (!vrBtn || vrBtn.disabled) return;
+
+            // MP 檢查
+            if (currentMP < vrMpCost) {
+                alert('MP 不足，無法啟動 VR 絕對解答！');
+                return;
+            }
+
+            // 呼叫後端安全 API 取得正確選項 key（正確答案不會暴露在前端 HTML）
+            fetch(`/rpg/trial/${trialId}/vr-reveal/?question_id=${questionId}`, {
+                headers: { 'X-CSRFToken': csrfToken }
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) {
+                        if (data.already_used) {
+                            vrAlreadyUsed = true;
+                            setVRButtonUsed();
+                        } else if (data.mp_insufficient) {
+                            alert('MP 不足！');
+                        } else {
+                            alert(data.error);
+                        }
+                        return;
+                    }
+
+                    const correctKey = data.correct_key;
+
+                    // 高亮正確選項（金色邊框）
+                    document.querySelectorAll('#optionsList .option-item').forEach(label => {
+                        const radio = label.querySelector('input[type="radio"]');
+                        if (radio && radio.value === correctKey) {
+                            label.style.border = '2px solid gold';
+                            label.style.backgroundColor = 'rgba(255, 215, 0, 0.15)';
+                            label.style.borderRadius = '8px';
+                            label.style.padding = '6px 10px';
+                            label.style.transition = 'all 0.3s ease';
+                            // 加 VR 提示圖示
+                            const hint = document.createElement('span');
+                            hint.innerHTML = ' &#x1F97D;&#10003; 正確';
+                            hint.style.color = 'gold';
+                            hint.style.fontWeight = 'bold';
+                            hint.style.fontSize = '0.9em';
+                            label.appendChild(hint);
+                        }
+                    });
+
+                    // 更新 MP 顯示
+                    updateMPDisplay(data.remaining_mp);
+
+                    // +9【沉浸學習】：HP 回復提示
+                    if (data.heal_amount > 0) {
+                        // 更新 HP 顯示（若有 updateHPDisplay 函數）
+                        if (typeof updateHPDisplay === 'function') {
+                            updateHPDisplay(data.remaining_hp);
+                        }
+                        // 顯示效果訊息
+                        if (typeof showItemEffect === 'function') {
+                            showItemEffect(`&#x1F97D; VR 絕對解答！HP +${data.heal_amount} 回復`, 'success');
+                        }
+                    }
+
+                    if (data.newbie_luck_msg && typeof showItemEffect === 'function') {
+                        setTimeout(() => showItemEffect(data.newbie_luck_msg, 'success'), data.heal_amount > 0 ? 1500 : 0);
+                    }
+
+                    // 標記已使用，按鈕變灯暗
+                    vrAlreadyUsed = true;
+                    setVRButtonUsed();
+                })
+                .catch(err => {
+                    console.error('VR API error:', err);
+                    alert('VR 系統異常，請重試');
+                });
+        }
+        // ==================================================
+
+        // 頁面初始化：若本場已使用 VR，直接變灯暗
+        if (typeof vrAlreadyUsed !== 'undefined' && vrAlreadyUsed) {
+            setVRButtonUsed();
+        }
+
+        // 防止意 外離開頁面
+        let isSubmitting = false;
+
+        window.addEventListener('beforeunload', function (e) {
+            if (!isSubmitting && !isTrialCompleted) {
+                const message = "離開此頁面將可能導致任務失敗或進度異常，確定要離開嗎？";
+                e.preventDefault();
+                e.returnValue = message;
+                return message;
+            }
+        });
+
+        // 倒數計時器
+        const timerElement = document.getElementById('timeRemaining');
+        function updateTimer() {
+            if (!timerElement || isTrialCompleted) return;
+
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+            timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            if (remainingSeconds <= 0) {
+                clearInterval(timerInterval);
+                isSubmitting = true; // Auto-submit/reload, suppress warning
+                window.location.reload(); // 時間到，刷新頁面觸發結算
+            } else {
+                remainingSeconds--;
+            }
+        }
+
+        const timerInterval = setInterval(updateTimer, 1000);
+        updateTimer();
+
+        // 提交答案邏輯
         const answerForm = document.getElementById('answerForm');
+        const submitBtn = document.getElementById('submitBtn');
 
-        // 隱藏表單，顯示反饋
-        answerForm.style.display = 'none';
-        feedbackArea.style.display = 'block';
+        if (answerForm && submitBtn) {
+            answerForm.addEventListener('submit', function (e) {
+                e.preventDefault();
 
-        // 更新 HP 顯示
-        updateHPDisplay(data.remaining_hp);
+                // 標記正在提交，避免觸發離開警告
+                isSubmitting = true;
+                submitBtn.disabled = true;
 
-        if (data.is_correct) {
-            feedbackIcon.innerHTML = '<i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>';
-            feedbackTitle.textContent = '✓ 答對了！';
-            feedbackTitle.className = 'feedback-title text-success';
-            feedbackDetails.innerHTML = `<p class="text-lg">${data.explanation || '太棒了！繼續加油！'}</p>`;
-        } else {
+                const formData = new FormData(this);
+                formData.append('current_mp', currentMP);
+
+                fetch(`/rpg/trial/${trialId}/submit-answer/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        showFeedback(data);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('提交失敗，請重試');
+                        submitBtn.disabled = false;
+                        isSubmitting = false; // 失敗時重置標誌
+                    });
+            });
+        }
+
+        // 顯示反饋
+        let _pendingWrongData = null; // 暫存答錯資料，待 Modal 決定後才顯示
+
+        function showFeedback(data) {
+            console.log('Feedback data:', data);
+
+            if (data.error) {
+                alert(data.error);
+                document.getElementById('submitBtn').disabled = false;
+                isSubmitting = false;
+                return;
+            }
+
+            // 進入解答環節時，停用三個輔助小技能按鈕
+            ['engineeringAppBtn', 'uavBtn', 'vrBtn'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.disabled = true;
+            });
+
+            const answerForm = document.getElementById('answerForm');
+            const feedbackArea = document.getElementById('feedbackArea');
+            const feedbackIcon = document.getElementById('feedbackIcon');
+            const feedbackTitle = document.getElementById('feedbackTitle');
+            const feedbackDetails = document.getElementById('feedbackDetails');
+
+            updateHPDisplay(data.remaining_hp);
+
+            if (data.is_correct) {
+                // 答對：正常顯示 feedbackArea
+                answerForm.style.display = 'none';
+                feedbackArea.style.display = 'block';
+                feedbackIcon.innerHTML = '<i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>';
+                feedbackTitle.textContent = '✓ 答對了！';
+                feedbackTitle.className = 'feedback-title text-success';
+                let feedbackHTML = `<p class="text-lg">${data.explanation || '太棒了！繼續加油！'}</p>`;
+                if (data.boots_messages && data.boots_messages.length > 0) {
+                    feedbackHTML += '<div class="mt-md p-md bg-primary/10 rounded-lg border border-primary/30">';
+                    data.boots_messages.forEach(msg => {
+                        if (!msg.includes('[DEBUG]')) feedbackHTML += `<div class="text-sm text-stone mb-xs">${msg}</div>`;
+                    });
+                    feedbackHTML += '</div>';
+                }
+                if (data.camera_discount_activated) {
+                    feedbackHTML += `<div class="mt-sm" style="color:#f59e0b; font-size:0.85rem;">🎥 【縮時攝影】已啟動！下次使用相機消耗 15 MP</div>`;
+                }
+                feedbackDetails.innerHTML = feedbackHTML;
+                setupNextBtn(data);
+
+            } else {
+                // 答錯：先判斷是否能回溯
+                _pendingWrongData = data;
+
+                const canRewind = hasCamera && cameraUsesLeft > 0 &&
+                    currentMP >= cameraMpCost && !data.camera_already_rewound &&
+                    !data.is_game_over && !isToolsSealed;
+
+                if (canRewind) {
+                    // 顯示相機 Modal，不洩漏正確答案
+                    const discountNote = cameraMpCost === 15 ? '（縮時攝影折半）' : '';
+                    document.getElementById('cameraModalInfo').textContent =
+                        `消耗 ${cameraMpCost} MP${discountNote}・本場剩餘 ${cameraUsesLeft} 次・HP -${data.hp_damage || 0} 已扣除`;
+                    const modal = document.getElementById('cameraModal');
+                    modal.style.display = 'flex';
+                } else {
+                    // 無法回溯，直接顯示答錯畫面
+                    answerForm.style.display = 'none';
+                    showWrongFeedback(data);
+                }
+            }
+        }
+
+        // 顯示答錯的完整 feedback（含正確答案），在放棄回溯後才呼叫
+        function showWrongFeedback(data) {
+            const feedbackArea = document.getElementById('feedbackArea');
+            const feedbackIcon = document.getElementById('feedbackIcon');
+            const feedbackTitle = document.getElementById('feedbackTitle');
+            const feedbackDetails = document.getElementById('feedbackDetails');
+            const answerForm = document.getElementById('answerForm');
+
+            answerForm.style.display = 'none';
+            feedbackArea.style.display = 'block';
             feedbackIcon.innerHTML = '<i class="fas fa-times-circle text-danger" style="font-size: 4rem;"></i>';
             feedbackTitle.textContent = '✗ 答錯了';
             feedbackTitle.className = 'feedback-title text-danger';
-            feedbackDetails.innerHTML = `
-            <p class="text-lg mb-md"><strong>正確答案：</strong>${data.correct_answer}</p>
-            <p class="text-md">${data.explanation || '請再接再厲！'}</p>
-            <p class="text-danger mt-md"><strong>❤️ HP -${data.hp_damage || 10}</strong></p>
+
+            let feedbackHTML = `
+        <p class="text-lg mb-md"><strong>正確答案：</strong>${data.correct_answer}</p>
+        <p class="text-md">${data.explanation || '請再接再厲！'}</p>
+        <p class="text-danger mt-md"><strong>❤️ HP -${data.hp_damage || 10}</strong></p>
         `;
-        }
-
-        // 檢查是否 Game Over
-        if (data.is_game_over) {
-            feedbackDetails.innerHTML += '<p class="text-danger text-xl mt-lg"><strong>❌ HP 歸零！挑戰失敗！</strong></p>';
-            document.getElementById('nextBtn').textContent = '查看結果';
-            document.getElementById('nextBtn').onclick = function () {
-                window.location.href = "{% url 'engineer_rpg:daily_trial_list' %}";
-            };
-        }
-    }
-
-    // 更新 HP 顯示
-    function updateHPDisplay(hp) {
-        const hpBar = document.getElementById('hpBar');
-        const hpValue = document.getElementById('hpValue');
-        const percentage = Math.max(0, Math.min(100, (hp / maxHP) * 100));
-        hpBar.style.width = `${percentage}%`;
-        hpValue.textContent = `${hp}/${maxHP}`;
-
-        // 顏色變化 (低血量警示)
-        if (percentage <= 20) {
-            hpBar.style.background = 'linear-gradient(90deg, #dc3545, #8b0000)';
-        } else {
-            hpBar.style.background = 'linear-gradient(90deg, #28a745, #1e7e34)';
-        }
-
-        currentHP = hp;
-    }
-
-    // 下一題按鈕
-    document.getElementById('nextBtn').addEventListener('click', function () {
-        window.location.href = `/rpg/trial/${trialId}/next-question/`;
-    });
-
-    // MP 技能功能
-    let currentMP = {{ initial_mp }};
-    let hintUsed = false;
-    let fiftyFiftyUsed = false;
-
-    function useHint() {
-        if (hintUsed) {
-            alert('本題已使用過提示！');
-            return;
-        }
-        if (currentMP < 30) {
-            alert('MP 不足！需要 30 MP');
-            return;
-        }
-
-        // 扣除 MP
-        currentMP -= 30;
-        updateMPDisplay(currentMP);
-        hintUsed = true;
-        document.getElementById('hintBtn').disabled = true;
-
-        // 顯示提示（假設是題目解析）
-        const hintBox = document.createElement('div');
-        hintBox.className = 'hint-box';
-        hintBox.innerHTML = `
-            <i class="fas fa-lightbulb"></i> 
-            <strong>提示：</strong>{{ question.explanation|default:"思考一下題目的關鍵字..." }}
-        `;
-        document.getElementById('optionsList').insertAdjacentElement('beforebegin', hintBox);
-    }
-
-    function useFiftyFifty() {
-        if (fiftyFiftyUsed) {
-            alert('本題已使用過二選一！');
-            return;
-        }
-        if (currentMP < 50) {
-            alert('MP 不足！需要 50 MP');
-            return;
-        }
-
-        // 扣除 MP
-        currentMP -= 50;
-        updateMPDisplay(currentMP);
-        fiftyFiftyUsed = true;
-        document.getElementById('fiftyFiftyBtn').disabled = true;
-
-        // 隨機移除兩個錯誤選項
-        const options = document.querySelectorAll('.option-item');
-        const wrongOptions = Array.from(options).filter(opt => {
-            const input = opt.querySelector('input');
-            return input.value !== '{{ question.correct_answer }}';
-        });
-
-        // 隨機選擇兩個錯誤選項並禁用
-        const toRemove = wrongOptions.sort(() => 0.5 - Math.random()).slice(0, 2);
-        toRemove.forEach(opt => {
-            opt.style.opacity = '0.3';
-            opt.querySelector('input').disabled = true;
-        });
-    }
-
-    function updateMPDisplay(mp) {
-        const mpBar = document.getElementById('mpBar');
-        const mpValue = document.getElementById('mpValue');
-        const percentage = (mp / 100) * 100;
-        mpBar.style.width = `${percentage}%`;
-        mpValue.textContent = `${mp}/100`;
-    }
-
-    // 使用道具
-    function useItem(button) {
-        const itemId = button.dataset.itemId;
-        const itemName = button.dataset.itemName;
-        const effectType = button.dataset.effectType;
-        const effectValue = parseInt(button.dataset.effectValue);
-
-        if (!confirm(`確定要使用「${itemName}」嗎？\n使用後道具將會消失。`)) {
-            return;
-        }
-
-        // 根據道具效果類型執行不同的邏輯
-        switch (effectType) {
-            case 'HEAL':
-                // 回復 HP
-                const healAmount = Math.ceil({{ initial_hp }} * effectValue / 100);
-        currentHP = Math.min(currentHP + healAmount, {{ initial_hp }});
-    updateHPDisplay(currentHP);
-    showItemEffect(`❤️ HP +${healAmount}`, 'success');
-    break;
-            
-            case 'HINT':
-    // 顯示提示（類似 MP 技能的提示）
-    const hintBox = document.createElement('div');
-    hintBox.className = 'hint-box';
-    hintBox.innerHTML = `
-                    <i class="fas fa-lightbulb"></i> 
-                    <strong>道具提示：</strong>{{ question.explanation|default:"仔細思考題目的關鍵概念..." }}
-                `;
-    document.getElementById('optionsList').insertAdjacentElement('beforebegin', hintBox);
-    showItemEffect('💡 獲得提示', 'info');
-    break;
-            
-            case 'REMOVE_OPTION':
-    // 移除錯誤選項
-    const options = document.querySelectorAll('.option-item');
-    const wrongOptions = Array.from(options).filter(opt => {
-        const input = opt.querySelector('input');
-        return input.value !== '{{ question.correct_answer }}' && !input.disabled;
-    });
-
-    if (wrongOptions.length > 0) {
-        const toRemove = wrongOptions.sort(() => 0.5 - Math.random()).slice(0, effectValue);
-        toRemove.forEach(opt => {
-            opt.style.opacity = '0.3';
-            opt.querySelector('input').disabled = true;
-        });
-        showItemEffect(`✂️ 移除 ${effectValue} 個錯誤選項`, 'info');
-    }
-    break;
-            
-            case 'SHIELD':
-    // 設置護盾標記（在下次答錯時不扣 HP）
-    window.hasShield = true;
-    showItemEffect('🛡️ 獲得護盾保護', 'success');
-    // 顯示護盾圖示
-    const shieldIndicator = document.createElement('div');
-    shieldIndicator.id = 'shieldIndicator';
-    shieldIndicator.className = 'shield-indicator';
-    shieldIndicator.innerHTML = '<i class="fas fa-shield-alt"></i> 護盾啟動';
-    document.querySelector('.status-bars').appendChild(shieldIndicator);
-    break;
-            
-            case 'TIME_EXTEND':
-    // 延長時間
-    remainingSeconds += effectValue;
-    updateTimer();
-    showItemEffect(`⏰ 時間 +${effectValue}秒`, 'success');
-    break;
-            
-            case 'SKIP':
-    // 跳過當前題目（標記為正確）
-    if (confirm('確定要跳過此題嗎？將自動標記為正確答案。')) {
-        // 自動選擇正確答案並提交
-        const correctInput = document.querySelector(`input[value="{{ question.correct_answer }}"]`);
-        if (correctInput) {
-            correctInput.checked = true;
-            document.getElementById('answerForm').dispatchEvent(new Event('submit'));
-        }
-    }
-    return; // 不消耗道具，由提交邏輯處理
-            
-            default:
-    alert('未知的道具效果');
-    return;
-        }
-
-    // 消耗道具（發送到後端）
-    fetch(`/rpg/item/${itemId}/consume/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': csrfToken,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            trial_id: trialId
-        })
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // 更新道具數量顯示
-                const quantityEl = button.querySelector('.item-quantity');
-                const newQuantity = data.remaining_quantity;
-                if (newQuantity > 0) {
-                    quantityEl.textContent = `x${newQuantity}`;
-                } else {
-                    button.remove();
-                }
-            } else {
-                alert(data.error || '使用道具失敗');
+            if (data.boots_messages && data.boots_messages.length > 0) {
+                feedbackHTML += '<div class="mt-md p-md bg-primary/10 rounded-lg border border-primary/30">';
+                data.boots_messages.forEach(msg => {
+                    if (!msg.includes('[DEBUG]')) feedbackHTML += `<div class="text-sm text-stone mb-xs">${msg}</div>`;
+                });
+                feedbackHTML += '</div>';
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-    }
-
-    // 顯示道具效果提示
-    function showItemEffect(message, type) {
-        const effectBox = document.createElement('div');
-        effectBox.className = `item-effect-notification ${type}`;
-        effectBox.textContent = message;
-        document.body.appendChild(effectBox);
-
-        setTimeout(() => {
-            effectBox.classList.add('fade-out');
-            setTimeout(() => effectBox.remove(), 500);
-        }, 2000);
-    }
-</script>
-
-<style>
-    .exam-header {
-        position: sticky;
-        top: 0;
-        background: rgba(10, 10, 20, 0.95);
-        padding: var(--spacing-md);
-        z-index: 100;
-        border-bottom: 2px solid var(--color-primary);
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-        margin: -20px -20px 20px -20px;
-    }
-
-    .exam-timer {
-        font-size: 1.5rem;
-        font-family: monospace;
-        color: var(--color-warning);
-        background: rgba(0, 0, 0, 0.5);
-        padding: 5px 15px;
-        border-radius: 4px;
-        border: 1px solid var(--color-warning);
-    }
-
-    .question-card {
-        border-left: 4px solid var(--color-stone);
-    }
-
-    .question-number {
-        font-size: 1.2rem;
-        font-weight: bold;
-        color: var(--color-secondary);
-        margin-right: var(--spacing-md);
-    }
-
-    .options-list {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .option-item {
-        display: flex;
-        align-items: center;
-        background: rgba(255, 255, 255, 0.05);
-        padding: 15px;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        border: 1px solid transparent;
-    }
-
-    .option-item:hover {
-        background: rgba(255, 255, 255, 0.1);
-        border-color: var(--color-secondary);
-    }
-
-    .option-item input {
-        margin-right: 15px;
-        transform: scale(1.2);
-    }
-
-    .progress-info {
-        text-align: center;
-        color: var(--color-stone);
-    }
-
-    .progress-bar-container {
-        height: 6px;
-        background: #333;
-        border-radius: 3px;
-        overflow: hidden;
-        margin-top: 5px;
-    }
-
-    .progress-bar {
-        height: 100%;
-        background: var(--color-primary);
-        transition: width 0.3s ease;
-    }
-
-    .badge {
-        font-size: 0.8rem;
-        padding: 2px 6px;
-        border-radius: 4px;
-        margin-left: 5px;
-        border: 1px solid currentColor;
-    }
-
-    .badge-info {
-        color: var(--color-blue);
-    }
-
-    .badge-S,
-    .badge-A {
-        color: var(--color-danger);
-    }
-
-    .badge-B {
-        color: var(--color-warning);
-    }
-
-    .badge-C {
-        color: var(--color-success);
-    }
-
-    /* HP/MP Status Bars */
-    .status-bars {
-        display: flex;
-        justify-content: space-between;
-        background: rgba(0, 0, 0, 0.3);
-        padding: 10px 15px;
-        border-radius: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .hp-container,
-    .mp-container {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .status-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 3px;
-    }
-
-    .status-value {
-        font-family: monospace;
-        font-size: 0.9rem;
-        font-weight: bold;
-        color: #fff;
-    }
-
-    .status-label {
-        font-weight: bold;
-        font-family: monospace;
-        font-size: 1.1rem;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-
-    .hp-bar-bg,
-    .mp-bar-bg {
-        width: 150px;
-        height: 16px;
-        background: rgba(0, 0, 0, 0.5);
-        border-radius: 8px;
-        overflow: hidden;
-        border: 1px solid var(--color-stone);
-        position: relative;
-    }
-
-    .bar-value {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.7rem;
-        font-weight: bold;
-        color: #fff;
-        text-shadow: 0 0 3px rgba(0, 0, 0, 0.8), 0 0 5px rgba(0, 0, 0, 0.6);
-        pointer-events: none;
-        z-index: 2;
-    }
-
-    .hp-bar-fill,
-    .mp-bar-fill {
-        height: 100%;
-        transition: width 0.3s ease, background 0.3s ease;
-        position: relative;
-        z-index: 1;
-    }
-
-    .hp-bar-fill {
-        background: linear-gradient(90deg, #28a745, #1e7e34);
-    }
-
-    .mp-bar-fill {
-        background: linear-gradient(90deg, #ffd700, #ffa500);
-    }
-
-    /* 反饋區域 */
-    .feedback-area {
-        text-align: center;
-        padding: var(--spacing-xl);
-        background: rgba(0, 0, 0, 0.3);
-        border-radius: 12px;
-        margin-top: var(--spacing-lg);
-    }
-
-    .feedback-title {
-        font-size: 2rem;
-        margin: var(--spacing-md) 0;
-    }
-
-    .feedback-details {
-        font-size: 1.1rem;
-        line-height: 1.6;
-    }
-
-    /* 技能按鈕 */
-    .skill-buttons {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-    }
-
-    .skill-btn {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-    }
-
-    .skill-btn:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
-    }
-
-    .skill-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    .hint-box {
-        background: rgba(255, 193, 7, 0.1);
-        border: 1px solid #ffc107;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 15px;
-        color: #ffc107;
-    }
-
-    /* 道具欄樣式 */
-    .items-toolbar {
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 8px;
-        padding: 15px;
-    }
-
-    .items-label {
-        font-weight: bold;
-        color: var(--color-secondary);
-        margin-bottom: 10px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .items-list {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .item-btn {
-        background: linear-gradient(135deg, rgba(74, 55, 40, 0.8) 0%, rgba(44, 24, 16, 0.8) 100%);
-        border: 2px solid var(--color-secondary);
-        border-radius: 8px;
-        padding: 10px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        min-width: 120px;
-    }
-
-    .item-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
-        border-color: var(--color-primary);
-    }
-
-    .item-icon {
-        width: 32px;
-        height: 32px;
-        background: rgba(0, 0, 0, 0.3);
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.2rem;
-        color: var(--color-secondary);
-    }
-
-    .item-info {
-        flex: 1;
-        text-align: left;
-    }
-
-    .item-name {
-        font-size: 0.9rem;
-        font-weight: bold;
-        color: white;
-        margin-bottom: 2px;
-    }
-
-    .item-quantity {
-        font-size: 0.75rem;
-        color: var(--color-stone);
-    }
-
-    /* 道具效果通知 */
-    .item-effect-notification {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(0, 0, 0, 0.9);
-        color: white;
-        padding: 20px 40px;
-        border-radius: 12px;
-        font-size: 1.5rem;
-        font-weight: bold;
-        z-index: 10000;
-        animation: popIn 0.3s ease;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    }
-
-    .item-effect-notification.success {
-        border: 2px solid var(--color-success);
-    }
-
-    .item-effect-notification.info {
-        border: 2px solid var(--color-info);
-    }
-
-    .item-effect-notification.fade-out {
-        animation: fadeOut 0.5s ease forwards;
-    }
-
-    @keyframes popIn {
-        0% {
-            transform: translate(-50%, -50%) scale(0.5);
-            opacity: 0;
+            feedbackDetails.innerHTML = feedbackHTML;
+            setupNextBtn(data);
         }
 
-        100% {
-            transform: translate(-50%, -50%) scale(1);
+        // 設定「下一題」按鈕行為
+        function setupNextBtn(data) {
+            const nextBtn = document.getElementById('nextBtn');
+            if (data.is_game_over) {
+                document.getElementById('feedbackDetails').innerHTML += '<p class="text-danger text-xl mt-lg"><strong>❌ HP 歸零!挑戰失敗!</strong></p>';
+                nextBtn.textContent = '查看結果';
+                nextBtn.onclick = function () { isSubmitting = true; window.location.reload(); };
+            } else if (data.current_index + 1 >= data.total_questions) {
+                nextBtn.innerHTML = '<i class="fas fa-flag-checkered"></i> 結束副本';
+                nextBtn.onclick = function () { isSubmitting = true; window.location.reload(); };
+            } else {
+                nextBtn.innerHTML = '<i class="fas fa-arrow-right"></i> 下一題';
+                nextBtn.onclick = function () { isSubmitting = true; window.location.href = `/rpg/trial/${trialId}/next-question/`; };
+            }
+        }
+
+        // Modal：選擇使用相機回溯
+        function handleCameraModalUse() {
+            const modal = document.getElementById('cameraModal');
+            modal.style.display = 'none';
+            const btn = document.getElementById('cameraModalUseBtn');
+            if (btn) { btn.disabled = true; btn.textContent = '🎥 回溯中...'; }
+            activateCamera(_pendingWrongData ? (_pendingWrongData.hp_damage || 0) : 0);
+        }
+
+        // Modal：放棄回溯，顯示正確答案
+        function handleCameraModalSkip() {
+            const modal = document.getElementById('cameraModal');
+            modal.style.display = 'none';
+            if (_pendingWrongData) showWrongFeedback(_pendingWrongData);
+        }
+
+        function updateHPDisplay(hp) {
+            const hpBar = document.getElementById('hpBar');
+            const hpValue = document.getElementById('hpValue');
+            const percentage = Math.max(0, Math.min(100, (hp / maxHP) * 100));
+            hpBar.style.width = `${percentage}%`;
+            hpValue.textContent = `${hp}/${maxHP}`;
+            currentHP = hp;
+        }
+
+        // useHint 與 use FiftyFifty 函數已移除
+
+        function useItem(button) {
+            const itemId = button.dataset.itemId;
+            const itemName = button.dataset.itemName;
+            const effectType = button.dataset.effectType;
+            const effectValue = parseInt(button.dataset.effectValue);
+
+            if (!confirm(`確定要使用「${itemName}」嗎？\n使用後道具將會消失。`)) { return; }
+
+            // Call API to consume item
+            fetch(`/rpg/item/${itemId}/consume/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update UI based on effect type
+                        if (effectType === 'HEAL') {
+                            if (data.changes && data.changes.hp) {
+                                currentHP = data.changes.hp;
+                                updateHPDisplay(currentHP);
+                            }
+                            showItemEffect(`❤️ 回復生命`, 'success');
+                        } else if (effectType === 'TIME_EXTEND') {
+                            remainingSeconds += effectValue;
+                            updateTimer();
+                            showItemEffect(`⏰ 時間 +${effectValue}秒`, 'success');
+                        } else {
+                            showItemEffect(data.message, 'success');
+                        }
+
+                        // Update item quantity
+                        const quantityEl = button.querySelector('.item-quantity');
+                        const newQuantity = data.remaining_quantity;
+
+                        if (newQuantity > 0) {
+                            quantityEl.textContent = `x${newQuantity}`;
+                        } else {
+                            button.remove();
+                        }
+                    } else {
+                        alert(data.error || '使用道具失敗');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('發生錯誤，請稍後再試');
+                });
+        }
+
+        function showItemEffect(message, type) {
+            const effectBox = document.createElement('div');
+            effectBox.className = `item-effect-notification ${type}`;
+            effectBox.innerHTML = message;
+            document.body.appendChild(effectBox);
+            setTimeout(() => effectBox.classList.add('show'), 100);
+            setTimeout(() => {
+                effectBox.classList.remove('show');
+                setTimeout(() => effectBox.remove(), 300);
+            }, 3000);
+        }
+
+        // 開啟寶箱
+
+        function openChest(taskId, chestIndex) {
+            const chestEl = document.getElementById(`chest-${chestIndex}`);
+            if (chestEl.classList.contains('opened') || document.querySelector('.chest-card.opened')) {
+                if (chestEl.classList.contains('opened')) return;
+                alert('只能選擇一個寶箱喔！');
+                return;
+            }
+
+            // Animation
+            chestEl.classList.add('shaking');
+
+            fetch(`/rpg/daily-trial/${taskId}/chest/${chestIndex}/open/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    chestEl.classList.remove('shaking');
+                    if (data.success) {
+                        chestEl.classList.add('opened');
+
+                        let contentHtml = '';
+                        if (data.reward_type === 'MIMIC') {
+                            contentHtml = `<i class="fas fa-teeth-open text-danger text-4xl mb-2"></i><p class="text-danger font-bold">寶箱怪!</p><p class="text-xs text-danger">-5 HP</p>`;
+                        } else if (data.reward_type === 'TICKETS_3') {
+                            contentHtml = `<i class="fas fa-ticket-alt text-info text-4xl mb-2"></i><p class="text-info font-bold">強化券</p><p class="text-xs text-stone-light">x3</p>`;
+                        } else if (data.reward_type === 'POTION') {
+                            contentHtml = `<i class="fas fa-flask text-success text-4xl mb-2"></i><p class="text-success font-bold">回復藥水</p><p class="text-xs text-stone-light">HP+10</p>`;
+                        } else if (data.reward_type === 'TICKET_POTION') {
+                            contentHtml = `<div class="flex justify-center gap-2"><i class="fas fa-ticket-alt text-info text-2xl"></i><i class="fas fa-flask text-success text-2xl"></i></div><p class="text-warning font-bold text-sm mt-1">大禮包</p><p class="text-xs text-stone-light">券x1 + 藥水</p>`;
+                        }
+
+                        const backFace = chestEl.querySelector('.chest-back');
+                        backFace.innerHTML = `<div class="reward-reveal animate-bounce-in">${contentHtml}</div>`;
+
+                        // Disable others
+                        document.querySelectorAll('.chest-card').forEach(el => {
+                            if (el !== chestEl) {
+                                el.classList.add('disabled');
+                                el.style.opacity = '0.5';
+                                el.style.cursor = 'not-allowed';
+                                el.onclick = null;
+                            }
+                        });
+
+                        setTimeout(() => alert(data.message), 500);
+
+                    } else {
+                        alert(data.message || '無法開啟寶箱');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    chestEl.classList.remove('shaking');
+                    alert('發生錯誤，請重試');
+                });
+        }
+    </script>
+
+    <style>
+        .exam-header {
+            position: sticky;
+            top: 0;
+            background: rgba(10, 10, 20, 0.95);
+            padding: var(--spacing-md);
+            z-index: 100;
+            border-bottom: 2px solid var(--color-primary);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            margin: -20px -20px 20px -20px;
+        }
+
+        .exam-timer {
+            font-size: 1.5rem;
+            font-family: monospace;
+            color: var(--color-warning);
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 15px;
+            border-radius: 4px;
+            border: 1px solid var(--color-warning);
+        }
+
+        .rpg-btn-circle {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            font-size: 1.2rem;
+            position: relative;
+            overflow: visible !important;
+        }
+
+        /* 自訂懸浮提示框 (Tooltip) */
+        .rpg-tooltip-container {
+            position: relative;
+        }
+
+        .rpg-tooltip-container .rpg-tooltip-text {
+            visibility: hidden;
+            width: max-content;
+            max-width: 200px;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px 12px;
+            position: absolute;
+            z-index: 1000;
+            top: 130%;
+            /* 出現在圖示下方 */
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s, visibility 0.3s;
+            font-size: 0.85rem;
+            border: 1px solid var(--color-secondary);
+            pointer-events: none;
+            /* 防止遮擋滑鼠事件 */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+        }
+
+        .rpg-tooltip-container .rpg-tooltip-text::after {
+            content: "";
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: transparent transparent var(--color-secondary) transparent;
+        }
+
+        /* Hover 時漸變浮現 */
+        .rpg-tooltip-container:hover .rpg-tooltip-text {
+            visibility: visible;
             opacity: 1;
         }
-    }
 
-    .shield-indicator {
-        background: rgba(0, 191, 255, 0.2);
-        border: 1px solid #00bfff;
-        border-radius: 6px;
-        padding: 5px 10px;
-        color: #00bfff;
-        font-size: 0.9rem;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-</style>
-{% endblock %}
+        .question-card {
+            border-left: 4px solid var(--color-stone);
+        }
+
+        .question-number {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--color-secondary);
+            margin-right: var(--spacing-md);
+        }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .option-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--color-secondary);
+        }
+
+        .option-item input {
+            margin-right: 15px;
+            transform: scale(1.2);
+        }
+
+        .progress-info {
+            text-align: center;
+            color: var(--color-stone);
+        }
+
+        .progress-bar-container {
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--color-primary);
+            transition: width 0.3s ease;
+        }
+
+        .badge {
+            font-size: 0.8rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 5px;
+            border: 1px solid currentColor;
+        }
+
+        .badge-info {
+            color: var(--color-blue);
+        }
+
+        .badge-S,
+        .badge-A {
+            color: var(--color-danger);
+        }
+
+        .badge-B {
+            color: var(--color-warning);
+        }
+
+        .badge-C {
+            color: var(--color-success);
+        }
+
+        /* HP/MP Status Bars */
+        .status-bars {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .hp-container,
+        .mp-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3px;
+        }
+
+        .status-value {
+            font-family: monospace;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .status-label {
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .hp-bar-bg,
+        .mp-bar-bg {
+            width: 150px;
+            height: 16px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--color-stone);
+            position: relative;
+        }
+
+        .bar-value {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 3px rgba(0, 0, 0, 0.8), 0 0 5px rgba(0, 0, 0, 0.6);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .hp-bar-fill,
+        .mp-bar-fill {
+            height: 100%;
+            transition: width 0.3s ease, background 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hp-bar-fill {
+            background: linear-gradient(90deg, #28a745, #1e7e34);
+        }
+
+        .mp-bar-fill {
+            background: linear-gradient(90deg, #ffd700, #ffa500);
+        }
+
+        /* 反饋區域 */
+        .feedback-area {
+            text-align: center;
+            padding: var(--spacing-xl);
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            margin-top: var(--spacing-lg);
+        }
+
+        .feedback-title {
+            font-size: 2rem;
+            margin: var(--spacing-md) 0;
+        }
+
+        .feedback-details {
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        /* 技能按鈕 */
+        .skill-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .skill-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .skill-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+        }
+
+        .skill-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 技能發動動畫效果 */
+        @keyframes skillActivate {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0px 0px rgba(255, 193, 7, 0);
+            }
+
+            50% {
+                transform: scale(1.15);
+                box-shadow: 0 0 20px 10px rgba(255, 193, 7, 0.8);
+                z-index: 10;
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0px 0px rgba(255, 193, 7, 0);
+            }
+        }
+
+        .skill-activated-anim {
+            animation: skillActivate 0.4s ease-out !important;
+        }
+
+        .hint-box {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            color: #ffc107;
+        }
+
+        /* 道具欄樣式 */
+        .items-toolbar {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .items-label {
+            font-weight: bold;
+            color: var(--color-secondary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .items-list {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .item-btn {
+            background: linear-gradient(135deg, rgba(74, 55, 40, 0.8) 0%, rgba(44, 24, 16, 0.8) 100%);
+            border: 2px solid var(--color-secondary);
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 120px;
+        }
+
+        .item-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+            border-color: var(--color-primary);
+        }
+
+        .item-icon {
+            width: 32px;
+            height: 32px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: var(--color-secondary);
+        }
+
+        .item-info {
+            flex: 1;
+            text-align: left;
+        }
+
+        .item-name {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 2px;
+        }
+
+        .item-quantity {
+            font-size: 0.75rem;
+            color: var(--color-stone);
+        }
+
+        /* 道具效果通知 */
+        .item-effect-notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 12px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            z-index: 10000;
+            animation: popIn 0.3s ease;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        }
+
+        .item-effect-notification.success {
+            border: 2px solid var(--color-success);
+        }
+
+        .item-effect-notification.info {
+            border: 2px solid var(--color-info);
+        }
+
+        .item-effect-notification.fade-out {
+            animation: fadeOut 0.5s ease forwards;
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .shield-indicator {
+            background: rgba(0, 191, 255, 0.2);
+            border: 1px solid #00bfff;
+            border-radius: 6px;
+            padding: 5px 10px;
+            color: #00bfff;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+    </style>
+    {% endblock %}

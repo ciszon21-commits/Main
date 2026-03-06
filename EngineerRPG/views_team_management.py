@@ -210,10 +210,19 @@ def manage_team_members(request, team_id):
 
 @login_required
 def team_dashboard(request):
-    """隊伍頁面 - 顯示使用者所屬隊伍"""
+    """隊伍頁面 - 顯示隊伍資訊，公會幹部/會長可透過 team_id 查看其他隊伍"""
     profile = get_or_create_user_profile(request.user)
     
-    if not profile.current_team:
+    is_guild_manager = profile.role in ['MANAGER', 'OFFICER']
+    target_team = None
+    team_id_param = request.GET.get('team_id')
+    
+    if team_id_param and is_guild_manager:
+        target_team = get_object_or_404(Team, id=team_id_param)
+    else:
+        target_team = profile.current_team
+    
+    if not target_team:
         # 沒有隊伍
         context = {
             'profile': profile,
@@ -221,8 +230,30 @@ def team_dashboard(request):
         }
     else:
         # 有隊伍，顯示隊伍資訊
-        team = profile.current_team
+        team = target_team
         members = team.current_members.all().select_related('user', 'character_class').order_by('-level')
+        
+        # 判斷是否為隊長或副隊長
+        is_dept_manager = False
+        try:
+            membership = TeamMembership.objects.get(team=team, user=request.user)
+            if membership.role in ['LEADER', 'VICE_LEADER']:
+                is_dept_manager = True
+        except TeamMembership.DoesNotExist:
+            pass
+            
+        can_review_promotions = is_dept_manager
+        can_view_promotions = is_dept_manager or is_guild_manager
+            
+        # 取得該隊伍成員的待審核晉升申請
+        pending_promotions = []
+        if can_view_promotions:
+            from .models import PromotionRequest
+            # 撈取 current_team 為此團隊，且 status 為 PENDING 的申請
+            pending_promotions = PromotionRequest.objects.filter(
+                applicant__current_team=team,
+                status='PENDING'
+            ).select_related('applicant__user', 'applicant__character_class')
         
         context = {
             'profile': profile,
@@ -230,6 +261,10 @@ def team_dashboard(request):
             'team': team,
             'members': members,
             'is_leader': team.is_leader(request.user),
+            'is_dept_manager': is_dept_manager,
+            'can_review_promotions': can_review_promotions,
+            'can_view_promotions': can_view_promotions,
+            'pending_promotions': pending_promotions,
         }
     
     return render(request, 'EngineerRPG/team_dashboard.html', context)

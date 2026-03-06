@@ -1,0 +1,561 @@
+{% extends "LHAWish/base.html" %}
+{% block title %}管理儀表板 - 部門許願池{% endblock %}
+
+{% block content %}
+<style>
+    /* ===== Manager Dashboard 專屬樣式 ===== */
+    :root {
+        --admin-bg: #f8fafc;
+        --admin-card-bg: #ffffff;
+        --admin-primary: #00A0B0;
+        --admin-primary-hover: #4338ca;
+        --admin-text-dark: #1e293b;
+        --admin-text: #334155;
+        --admin-text-muted: #64748b;
+        --admin-border: #e2e8f0;
+        --admin-border-light: #f1f5f9;
+        --admin-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --admin-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --admin-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        --admin-radius: 16px;
+        --admin-radius-sm: 8px;
+    }
+
+    .admin-container {
+        padding: 40px 20px;
+        background-color: var(--admin-bg);
+        min-height: calc(100vh - 100px);
+    }
+
+    .admin-wrapper {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+
+    .admin-page-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--admin-text-dark);
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    /* 統計卡片 */
+    .admin-dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 32px;
+    }
+
+    .admin-stat-card {
+        background: var(--admin-card-bg);
+        border-radius: var(--admin-radius);
+        padding: 24px;
+        box-shadow: var(--admin-shadow-sm);
+        border: 2px solid transparent;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .admin-stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--admin-shadow-lg);
+    }
+
+    .admin-stat-card.active {
+        border-color: var(--admin-primary);
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    }
+
+    .admin-stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+    }
+
+    .admin-stat-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .admin-stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: #fef3c7;
+        color: #d97706;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .admin-stat-icon .material-symbols-outlined {
+        font-size: 24px;
+    }
+
+    .admin-stat-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--admin-text);
+        margin: 0;
+    }
+
+    .admin-stat-count {
+        font-size: 36px;
+        font-weight: 700;
+        color: var(--admin-text-dark);
+        line-height: 1;
+    }
+
+    .admin-stat-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* 區塊樣式 */
+    .admin-section {
+        background: var(--admin-card-bg);
+        border-radius: var(--admin-radius);
+        box-shadow: var(--admin-shadow-sm);
+        padding: 32px;
+        margin-bottom: 32px;
+        animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .admin-section-header {
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid var(--admin-border-light);
+    }
+
+    .admin-section-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--admin-text-dark);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* 群組與列表 */
+    .mgr-status-group {
+        margin-bottom: 32px;
+    }
+
+    .mgr-status-group:last-child {
+        margin-bottom: 0;
+    }
+
+    .admin-group-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--admin-text-dark);
+        margin: 0 0 16px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .admin-group-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #10b981;
+    }
+
+    .admin-table-wrap {
+        border-radius: var(--admin-radius-sm);
+        border: 1px solid var(--admin-border);
+        overflow: hidden;
+    }
+
+    .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+    }
+
+    .admin-table th {
+        background: #f8fafc;
+        padding: 12px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--admin-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid var(--admin-border);
+    }
+
+    .admin-table td {
+        padding: 16px;
+        border-bottom: 1px solid var(--admin-border-light);
+        vertical-align: middle;
+        transition: background-color 0.2s;
+    }
+
+    .admin-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .admin-table tbody tr:hover td {
+        background-color: #fcfcfd;
+    }
+
+    .admin-cell-title {
+        font-weight: 600;
+        color: var(--admin-text-dark);
+        font-size: 15px;
+        margin-bottom: 4px;
+    }
+
+    .admin-cell-meta {
+        font-size: 13px;
+        color: var(--admin-text-muted);
+    }
+
+    /* 按鈕與標籤 */
+    .admin-btn-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 16px;
+        border-radius: 20px;
+        background: white;
+        border: 1px solid var(--admin-border);
+        color: var(--admin-text);
+        font-size: 13px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .admin-btn-pill:hover:not(.admin-btn-disabled) {
+        border-color: var(--admin-primary);
+        color: var(--admin-primary);
+        background: #f5f3ff;
+    }
+
+    .admin-btn-disabled {
+        background: #f1f5f9;
+        color: #94a3b8;
+        cursor: not-allowed;
+        border-color: transparent;
+    }
+
+    /* 空狀態 */
+    .admin-empty-state {
+        text-align: center;
+        padding: 48px 24px;
+        background: var(--admin-card-bg);
+        border-radius: var(--admin-radius-sm);
+        border: 1px dashed var(--admin-border);
+    }
+
+    .admin-empty-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: #f1f5f9;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+    }
+
+    .admin-empty-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--admin-text-dark);
+        margin: 0 0 8px 0;
+    }
+
+    .admin-empty-desc {
+        color: var(--admin-text-muted);
+        font-size: 14px;
+        margin: 0;
+    }
+</style>
+<div class="admin-container">
+    <div class="admin-wrapper">
+        <h2 class="admin-page-title">
+            <span class="material-symbols-outlined" style="font-size:28px;">analytics</span>
+            管理儀表板
+        </h2>
+
+        <!-- 統計卡片列 -->
+        <div class="admin-dashboard-grid">
+            <!-- 園路願望 -->
+            {% if 'petition' in admin_boards %}
+            <div class="admin-stat-card {% if active_section == 'petition' %}active{% endif %}"
+                onclick="switchSection('petition')" style="cursor:pointer;">
+                <div class="admin-stat-header">
+                    <div class="admin-stat-title-wrap">
+                        <div class="admin-stat-icon">
+                            <span class="material-symbols-outlined">star</span>
+                        </div>
+                        <h3 class="admin-stat-title">園路願望</h3>
+                    </div>
+                    <div class="admin-stat-count">{{ petition_total }}</div>
+                </div>
+                <div class="admin-stat-badges">
+                    <span class="wish-badge badge-done">已成案 {{ petition_established }}</span>
+                    <span class="wish-badge badge-progress">已回應 {{ petition_responded }}</span>
+                    <span class="wish-badge badge-pending">已撤案 {{ petition_withdrawn }}</span>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 研發專案 -->
+            {% if 'rnd' in admin_boards %}
+            <div class="admin-stat-card {% if active_section == 'rnd' %}active{% endif %}"
+                onclick="switchSection('rnd')" style="cursor:pointer;">
+                <div class="admin-stat-header">
+                    <div class="admin-stat-title-wrap">
+                        <div class="admin-stat-icon" style="background:#eef2ff; color:#4f46e5;">
+                            <span class="material-symbols-outlined">terminal</span>
+                        </div>
+                        <h3 class="admin-stat-title">研發專案</h3>
+                    </div>
+                    <div class="admin-stat-count">{{ rnd_total }}</div>
+                </div>
+                <div class="admin-stat-badges">
+                    <span class="wish-badge badge-pending">待確認 {{ rnd_pending }}</span>
+                    <span class="wish-badge badge-scheduled">已排定 {{ rnd_scheduled }}</span>
+                    <span class="wish-badge badge-progress">處理中 {{ rnd_in_progress }}</span>
+                    <span class="wish-badge badge-done">已完成 {{ rnd_done }}</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ===== 園路願望 Section ===== -->
+        {% if 'petition' in admin_boards %}
+        <div id="section-petition" class="admin-section mgr-section"
+            style="{% if active_section != 'petition' %}display:none;{% endif %}">
+            <div class="admin-section-header">
+                <h3 class="admin-section-title">
+                    <span class="material-symbols-outlined">list_alt</span>
+                    園路願望案件列表
+                </h3>
+            </div>
+
+            {% for status_label, petitions in petition_groups.items %}
+            <div class="mgr-status-group">
+                <h4 class="admin-group-title">
+                    <div class="admin-group-dot"></div>
+                    {{ status_label }} <span
+                        style="color:var(--admin-text-muted); font-weight:normal; font-size:14px;">({{ petitions|length }})</span>
+                </h4>
+                <div class="admin-table-wrap">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th style="width:60%;">標題</th>
+                                <th>組別</th>
+                                <th>附議數</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in petitions %}
+                            <tr style="cursor:pointer;"
+                                onclick="window.location='{% url 'lhawish:petition_detail' p.pk %}'">
+                                <td>
+                                    <div class="admin-cell-title">{{ p.title|truncatechars:50 }}</div>
+                                    <div class="admin-cell-meta">
+                                        {{ p.proposer_display }} · {{ p.created_at|date:"Y/m/d" }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="wish-badge" style="background:#f1f5f9;color:#475569;">{{ p.assigned_group|default:"未指定" }}</span>
+                                </td>
+                                <td>
+                                    <div style="font-weight:600; color:var(--admin-text-dark);">{{ p.endorsement_count }}</div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% empty %}
+            <div class="admin-empty-state">
+                <div class="admin-empty-icon">
+                    <span class="material-symbols-outlined"
+                        style="font-size:32px; color:var(--admin-text-muted);">inbox</span>
+                </div>
+                <h3 class="admin-empty-title">目前沒有案件</h3>
+                <p class="admin-empty-desc">尚無任何園路願望案件需要處理</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- ===== 研發專案 Section ===== -->
+        {% if 'rnd' in admin_boards %}
+        <div id="section-rnd" class="admin-section mgr-section"
+            style="{% if active_section != 'rnd' %}display:none;{% endif %}">
+            <div class="admin-section-header">
+                <h3 class="admin-section-title">
+                    <span class="material-symbols-outlined">terminal</span>
+                    研發專案案件列表
+                </h3>
+            </div>
+
+            {% for status_label, posts in rnd_groups.items %}
+            <div class="mgr-status-group">
+                <h4 class="admin-group-title">
+                    <div class="admin-group-dot" style="background:#4f46e5;"></div>
+                    {{ status_label }} <span
+                        style="color:var(--admin-text-muted); font-weight:normal; font-size:14px;">({{ posts|length }})</span>
+                </h4>
+                <div class="admin-table-wrap">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th style="width:40%;">標題</th>
+                                <th style="width:25%;">研發案</th>
+                                <th style="width:15%;">分類</th>
+                                <th style="width:20%;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in posts %}
+                            <tr id="rnd-row-{{ p.pk }}">
+                                <td>
+                                    <a href="{% url 'lhawish:post_detail' p.pk %}" style="text-decoration:none;">
+                                        <div class="admin-cell-title" style="color:var(--admin-text-dark);">{{ p.title|truncatechars:50 }}</div>
+                                    </a>
+                                    <div class="admin-cell-meta">
+                                        {% if p.is_anonymous %}匿名{% else %}{{ p.author.get_full_name|default:p.author.username }}{% endif %} · {{ p.created_at|date:"Y/m/d" }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="wish-badge"
+                                        style="background:#f1f5f9;color:#475569;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:bottom;"
+                                        title="{{ p.rnd_project }}">{{ p.rnd_project|default:"未指定" }}</span>
+                                </td>
+                                <td>
+                                    <span style="font-size:14px; color:var(--admin-text);">{{ p.get_category_display }}</span>
+                                </td>
+                                <td style="text-align:right;">
+                                    {% if admin_front_edit %}
+                                    <a href="{% url 'lhawish:post_detail' p.pk %}" class="admin-btn-pill">
+                                        <span class="material-symbols-outlined" style="font-size:16px;">edit</span>
+                                    </a>
+                                    <button onclick="deleteRndPost({{ p.pk }})" class="admin-btn-pill"
+                                        style="color:#ef4444; border-color:#ef4444; margin-left:6px;">
+                                        <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
+                                    </button>
+                                    {% else %}
+                                    <span class="admin-btn-pill admin-btn-disabled">
+                                        <span class="material-symbols-outlined" style="font-size:16px;">lock</span>
+                                        無權限
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% empty %}
+            <div class="admin-empty-state">
+                <div class="admin-empty-icon">
+                    <span class="material-symbols-outlined"
+                        style="font-size:32px; color:var(--admin-text-muted);">inbox</span>
+                </div>
+                <h3 class="admin-empty-title">目前沒有研發專案</h3>
+                <p class="admin-empty-desc">尚無任何研發專案需要處理</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function getCookie(name) {
+        let v = '; ' + document.cookie;
+        let parts = v.split('; ' + name + '=');
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    function switchSection(name) {
+        document.querySelectorAll('.mgr-section').forEach(s => s.style.display = 'none');
+        document.querySelectorAll('.admin-stat-card').forEach(c => c.classList.remove('active'));
+
+        var section = document.getElementById('section-' + name);
+        if (section) section.style.display = '';
+
+        // Highlight active tab card
+        var cards = document.querySelectorAll('.admin-stat-card');
+        var idx = name === 'petition' ? 0 : 1;
+        if (cards[idx]) cards[idx].classList.add('active');
+
+        // Update URL without reload
+        var url = new URL(window.location);
+        url.searchParams.set('section', name);
+        history.replaceState(null, '', url);
+    }
+
+    function toggleRndStatus(pk, newStatus) {
+        var statusLabels = { 'pending': '待確認', 'scheduled': '已排定', 'in_progress': '處理中', 'done': '已完成' };
+        var statusClasses = { 'pending': 'badge-pending', 'scheduled': 'badge-scheduled', 'in_progress': 'badge-progress', 'done': 'badge-done' };
+
+        fetch('/lhawish/api/status/' + pk + '/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        }).then(r => r.json()).then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            // 即時更新 badge
+            var badge = document.getElementById('rnd-badge-' + pk);
+            if (badge) {
+                badge.textContent = statusLabels[newStatus] || newStatus;
+                badge.className = 'wish-badge ' + (statusClasses[newStatus] || '');
+            }
+        });
+    }
+
+    function deleteRndPost(pk) {
+        if (!confirm('確定要刪除這篇文章嗎？此操作無法復原。')) return;
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/lhawish/post/' + pk + '/delete/';
+        var csrf = document.createElement('input');
+        csrf.type = 'hidden';
+        csrf.name = 'csrfmiddlewaretoken';
+        csrf.value = getCookie('csrftoken');
+        form.appendChild(csrf);
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+{% endblock %}

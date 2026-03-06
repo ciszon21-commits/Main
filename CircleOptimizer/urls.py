@@ -19,4 +19,5 @@ urlpatterns = [
     
     # API endpoints
     path('api/', include(router.urls)),
+    path('api/export_excel/', views.export_excel, name='export_excel'),
 ]

@@ -14,7 +14,7 @@
         <div class="header-right">
             <select id="classSelect" class="rpg-select" onchange="filterSkills()">
                 {% for class in classes %}
-                <option value="{{ class.code }}" {% if selected_clas == class.code %}selected{% endif %}>
+                <option value="{{ class.code }}" {% if selected_class == class.code %}selected{% endif %}>
                     {{ class.name }}
                 </option>
                 {% endfor %}
@@ -24,6 +24,10 @@
             </button>
             <button onclick="autoLayout()" class="rpg-btn rpg-btn-primary">
                 <i class="fas fa-magic"></i> 自動佈局
+            </button>
+            <button onclick="previewLayout()" class="rpg-btn rpg-btn-info"
+                style="background: linear-gradient(135deg, #667eea, #764ba2); border: none;">
+                <i class="fas fa-eye"></i> 預覽佈局
             </button>
         </div>
     </div>
@@ -40,11 +44,20 @@
                 <div class="progress-bar {% if root_xp_current > root_xp_limit %}over-limit{% endif %}"
                     style="width: {% widthratio root_xp_current root_xp_limit 100 %}%;"></div>
             </div>
-            {% if root_xp_current < root_xp_limit %} <button onclick="autoDistribute('ROOT')"
-                class="rpg-btn rpg-btn-sm rpg-btn-warning mt-sm">
-                <i class="fas fa-balance-scale"></i> 自動分配剩餘 {{ root_xp_limit|add:"-"|add:root_xp_current }} XP
-                </button>
-                {% endif %}
+            <div class="mt-sm" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                {% if root_xp_current < root_xp_limit %} <button
+                    onclick="autoDistribute('ROOT', 'distribute_remaining')" class="rpg-btn rpg-btn-sm rpg-btn-primary">
+                    <i class="fas fa-plus-circle"></i> 分配剩餘
+                    </button>
+                    {% endif %}
+                    <button onclick="autoDistribute('ROOT', 'reset_and_average')"
+                        class="rpg-btn rpg-btn-sm rpg-btn-warning">
+                        <i class="fas fa-balance-scale"></i> 平均重設 ({{ root_xp_limit }} XP)
+                    </button>
+                    <button onclick="autoDistribute('ROOT', 'reset_to_zero')" class="rpg-btn rpg-btn-sm rpg-btn-danger">
+                        <i class="fas fa-trash"></i> 全部歸零
+                    </button>
+            </div>
         </div>
 
         <!-- CORE Budget -->
@@ -57,11 +70,20 @@
                 <div class="progress-bar {% if core_xp_current > core_xp_limit %}over-limit{% endif %}"
                     style="width: {% widthratio core_xp_current core_xp_limit 100 %}%;"></div>
             </div>
-            {% if core_xp_current < core_xp_limit %} <button onclick="autoDistribute('CORE')"
-                class="rpg-btn rpg-btn-sm rpg-btn-warning mt-sm">
-                <i class="fas fa-balance-scale"></i> 自動分配剩餘 {{ core_xp_limit|add:"-"|add:core_xp_current }} XP
-                </button>
-                {% endif %}
+            <div class="mt-sm" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                {% if core_xp_current < core_xp_limit %} <button
+                    onclick="autoDistribute('CORE', 'distribute_remaining')" class="rpg-btn rpg-btn-sm rpg-btn-primary">
+                    <i class="fas fa-plus-circle"></i> 分配剩餘
+                    </button>
+                    {% endif %}
+                    <button onclick="autoDistribute('CORE', 'reset_and_average')"
+                        class="rpg-btn rpg-btn-sm rpg-btn-warning">
+                        <i class="fas fa-balance-scale"></i> 平均重設 ({{ core_xp_limit }} XP)
+                    </button>
+                    <button onclick="autoDistribute('CORE', 'reset_to_zero')" class="rpg-btn rpg-btn-sm rpg-btn-danger">
+                        <i class="fas fa-trash"></i> 全部歸零
+                    </button>
+            </div>
         </div>
     </div>
 
@@ -159,6 +181,18 @@
             <div class="modal-body">
                 <input type="hidden" id="skillId" name="skill_id">
 
+                <div class="form-group" id="skillPoolContainer"
+                    style="display: none; background: rgba(255,193,7,0.1); padding: 15px; border-radius: 4px; border: 1px dashed var(--color-warning); margin-bottom: 25px;">
+                    <label for="skillPoolSelect" style="color: var(--color-warning);">
+                        <i class="fas fa-magic"></i> 從現有技能庫引用 (選填)
+                        <small
+                            style="display:block; color:var(--color-stone); font-weight:normal; margin-top:5px;">選擇後將自動帶入技能名稱、類型與設定，建立為本職業的獨立新技能。</small>
+                    </label>
+                    <select id="skillPoolSelect" class="form-control" onchange="applySkillFromPool(this)">
+                        <option value="">-- 不引用，建立全新技能 --</option>
+                    </select>
+                </div>
+
                 <div class="form-group">
                     <label for="skillName">技能名稱 <span class="required">*</span></label>
                     <input type="text" id="skillName" name="name" class="form-control" required>
@@ -214,6 +248,45 @@
                 </button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- 佈局預覽 Modal -->
+<div id="previewModal" class="modal">
+    <div class="modal-content"
+        style="width: 95%; max-width: 1400px; max-height: 95vh; display: flex; flex-direction: column;">
+        <div class="modal-header">
+            <h3 id="previewModalTitle"><i class="fas fa-eye"></i> 佈局預覽</h3>
+            <button class="close-btn" onclick="closePreviewModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="flex: 1; overflow: hidden; padding: 0;">
+            <div id="preview-tree-container"
+                style="width: 100%; height: 70vh; overflow: auto; cursor: grab; background-color: #0c0c0c; background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 50px 50px; position: relative;">
+                <svg id="preview-tree-svg" width="100%" height="800">
+                    <defs>
+                        <marker id="preview-arrow" markerWidth="7" markerHeight="4" refX="7" refY="2" orient="auto">
+                            <polygon points="0 0, 7 2, 0 4" fill="#666" />
+                        </marker>
+                    </defs>
+                </svg>
+            </div>
+        </div>
+        <div class="modal-footer" style="justify-content: center; gap: 15px;">
+            <div style="display: flex; align-items: center; gap: 15px; font-size: 0.85rem; color: var(--color-stone);">
+                <span><span
+                        style="display:inline-block;width:12px;height:12px;background:var(--color-safety);border-radius:2px;vertical-align:middle;"></span>
+                    共同必修 (ROOT)</span>
+                <span><span
+                        style="display:inline-block;width:12px;height:12px;background:var(--color-civil);border-radius:2px;vertical-align:middle;"></span>
+                    職業核心 (CORE)</span>
+                <span><span
+                        style="display:inline-block;width:12px;height:12px;background:var(--color-me);border-radius:2px;vertical-align:middle;"></span>
+                    進階選修 (ADVANCED)</span>
+            </div>
+            <button onclick="closePreviewModal()" class="rpg-btn rpg-btn-secondary">
+                <i class="fas fa-times"></i> 關閉
+            </button>
+        </div>
     </div>
 </div>
 
@@ -547,6 +620,12 @@
         resize: vertical;
     }
 
+    .form-control option,
+    .rpg-select option {
+        background-color: #1a1a2e;
+        color: #ffffff;
+    }
+
     .modal-footer {
         display: flex;
         justify-content: flex-end;
@@ -633,6 +712,82 @@
     .mt-sm {
         margin-top: 10px;
     }
+
+    /* 預覽 Modal 額外樣式 */
+    #previewModal .modal-content {
+        background: linear-gradient(135deg, #0d0d1a 0%, #1a1a2e 50%, #16213e 100%);
+        border: 2px solid #667eea;
+    }
+
+    #previewModal .modal-header {
+        border-bottom: 1px solid rgba(102, 126, 234, 0.3);
+    }
+
+    #previewModal .modal-header h3 {
+        color: #667eea;
+    }
+
+    .preview-node-frame {
+        fill: #1e1e1e;
+        stroke: #444;
+        stroke-width: 2px;
+        rx: 4px;
+    }
+
+    .preview-node-ROOT .preview-node-frame {
+        stroke: var(--color-safety);
+    }
+
+    .preview-node-CORE .preview-node-frame {
+        stroke: var(--color-civil);
+    }
+
+    .preview-node-ADVANCED .preview-node-frame {
+        stroke: var(--color-me);
+    }
+
+    .preview-text-name {
+        fill: #e0e0e0;
+        font-size: 14px;
+        font-weight: bold;
+        text-anchor: middle;
+        pointer-events: none;
+    }
+
+    .preview-connection {
+        fill: none;
+        stroke: #555;
+        stroke-width: 2px;
+    }
+
+    .rpg-btn-info {
+        color: white;
+    }
+
+    .rpg-btn-info:hover {
+        filter: brightness(1.2);
+        transform: translateY(-1px);
+    }
+
+    .preview-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: var(--color-secondary);
+        font-size: 1.2rem;
+    }
+
+    .preview-loading i {
+        animation: spin 1s linear infinite;
+        margin-right: 10px;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
 </style>
 
 <script>
@@ -678,29 +833,85 @@
         window.location.href = `?class=${classCode}`;
     }
 
+    function applySkillFromPool(selectElement) {
+        if (!selectElement.value) return;
+
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+
+        document.getElementById('skillName').value = selectedOption.dataset.name || '';
+        document.getElementById('skillType').value = selectedOption.dataset.type || 'CORE';
+        document.getElementById('skillDescription').value = selectedOption.dataset.description || '';
+        document.getElementById('expReward').value = selectedOption.dataset.exp || 50;
+
+        // 觸發 type 改變的事件來更新前置技能過濾
+        const skillTypeSelect = document.getElementById('skillType');
+        if (skillTypeSelect) {
+            skillTypeSelect.dispatchEvent(new Event('change'));
+        }
+    }
+
     function showCreateModal() {
-        document.getElementById('modalTitle').textContent = '新增技能';
-        document.getElementById('skillForm').reset();
-        document.getElementById('skillId').value = '';
+        fetch(`{% url 'engineer_rpg:api_skill_editor_data' %}?class=${currentClass}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('modalTitle').textContent = '新增技能';
+                document.getElementById('skillForm').reset();
+                document.getElementById('skillId').value = '';
 
-        // Uncheck all checkboxes
-        document.querySelectorAll('input[name="parent_skills"]').forEach(cb => cb.checked = false);
-        document.querySelectorAll('input[name="courses"]').forEach(cb => cb.checked = false);
+                const poolSelect = document.getElementById('skillPoolSelect');
+                if (poolSelect) {
+                    poolSelect.innerHTML = '<option value="">-- 不引用，建立全新技能 --</option>';
+                    if (data.skill_pool && data.skill_pool.length > 0) {
+                        data.skill_pool.forEach(ps => {
+                            const option = document.createElement('option');
+                            option.value = ps.id;
+                            option.dataset.name = ps.name;
+                            option.dataset.type = ps.type;
+                            option.dataset.description = ps.description;
+                            option.dataset.exp = ps.exp_reward;
+                            // 顯示格式： [職業] 技能名稱
+                            option.textContent = `[${ps.class_name}] ${ps.name}`;
+                            poolSelect.appendChild(option);
+                        });
+                        poolSelect.disabled = false;
+                    } else {
+                        const option = document.createElement('option');
+                        option.value = "";
+                        option.textContent = "(目前沒有其他職業的技能可供引用)";
+                        option.disabled = true;
+                        poolSelect.appendChild(option);
+                    }
+                    document.getElementById('skillPoolContainer').style.display = 'block';
+                }
 
-        // Filter parent skills based on type
-        filterParentSkillsByType('ROOT');
+                // Uncheck all checkboxes
+                document.querySelectorAll('input[name="parent_skills"]').forEach(cb => cb.checked = false);
+                document.querySelectorAll('input[name="courses"]').forEach(cb => cb.checked = false);
 
-        document.getElementById('skillModal').style.display = 'flex';
+                // Filter parent skills based on type
+                filterParentSkillsByType('ROOT');
+
+                document.getElementById('skillModal').style.display = 'flex';
+            })
+            .catch(err => {
+                console.error('載入技能池資料失敗:', err);
+                alert('載入資料失敗: ' + err.message);
+            });
     }
 
     function editSkill(skillId) {
         fetch(`{% url 'engineer_rpg:api_skill_editor_data' %}?class=${currentClass}`)
             .then(res => res.json())
             .then(data => {
-                const skill = data.skills.find(n => n.id === skillId);
+                const skill = data.nodes.find(n => n.id === skillId);
                 if (skill) {
                     document.getElementById('modalTitle').textContent = '編輯技能';
                     document.getElementById('skillId').value = skill.id;
+
+                    // 編輯時隱藏引用選單
+                    const poolContainer = document.getElementById('skillPoolContainer');
+                    if (poolContainer) poolContainer.style.display = 'none';
+
                     document.getElementById('skillName').value = skill.name;
                     document.getElementById('skillType').value = skill.type;
                     document.getElementById('skillDescription').value = skill.description;
@@ -890,11 +1101,19 @@
             });
     }
 
-    function autoDistribute(type) {
+    function autoDistribute(type, action = 'reset_and_average') {
         const classCode = document.getElementById('classSelect').value;
-        const confirmMsg = type === 'ROOT' ?
-            '確定要將剩餘經驗值平均分配給所有「共同必修」技能嗎？' :
-            `確定要將剩餘經驗值平均分配給 [${currentClass}] 的「職業核心」技能嗎？`;
+        const typeName = type === 'ROOT' ? '共同必修' : `[${currentClass}]的職業核心`;
+        const limitStr = type === 'ROOT' ? '1000' : '4000';
+        let confirmMsg = '';
+
+        if (action === 'distribute_remaining') {
+            confirmMsg = `確定要將剩餘預算平均分配給目前「經驗值為 0」的${typeName}技能嗎？已經設定經驗值的技能將不會被改變。`;
+        } else if (action === 'reset_to_zero') {
+            confirmMsg = `⚠️ 警告！確定要將所有「${typeName}」技能的經驗值全部強制歸零嗎？`;
+        } else {
+            confirmMsg = `確定要將所有「${typeName}」技能的經驗值強制重設，並將 ${limitStr} XP 預算平均重新分配嗎？`;
+        }
 
         if (!confirm(confirmMsg)) return;
 
@@ -908,7 +1127,8 @@
             },
             body: JSON.stringify({
                 type: type,
-                class_code: classCode
+                class_code: classCode,
+                action: action
             })
         })
             .then(res => res.json())
@@ -953,11 +1173,263 @@
             });
     }
 
+    // ==================== 佈局預覽 ====================
+
+    function previewLayout() {
+        const classCode = document.getElementById('classSelect').value;
+        const classSelect = document.getElementById('classSelect');
+        const className = classSelect.options[classSelect.selectedIndex].text;
+
+        // 更新標題
+        document.getElementById('previewModalTitle').innerHTML =
+            `<i class="fas fa-eye"></i> 佈局預覽 — ${className}`;
+
+        // 顯示 Modal 與 Loading 狀態
+        const modal = document.getElementById('previewModal');
+        modal.style.display = 'flex';
+
+        const container = document.getElementById('preview-tree-container');
+        container.innerHTML = '<div class="preview-loading"><i class="fas fa-spinner"></i> 正在計算佈局...</div>';
+
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')
+            ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
+
+        fetch('/rpg/api/skill-tree/preview-data/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({ class_code: classCode })
+        })
+            .then(res => res.json())
+            .then(result => {
+                if (result.error) {
+                    container.innerHTML = `<div class="preview-loading" style="color:#dc3545;"><i class="fas fa-exclamation-triangle"></i> ${result.error}</div>`;
+                    return;
+                }
+                drawPreviewTree(result.nodes);
+            })
+            .catch(err => {
+                container.innerHTML = `<div class="preview-loading" style="color:#dc3545;"><i class="fas fa-exclamation-triangle"></i> 載入失敗: ${err.message}</div>`;
+            });
+    }
+
+    function closePreviewModal() {
+        document.getElementById('previewModal').style.display = 'none';
+    }
+
+    function drawPreviewTree(nodes) {
+        const container = document.getElementById('preview-tree-container');
+
+        // 重建 SVG
+        container.innerHTML = '';
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('id', 'preview-tree-svg');
+
+        // Arrow marker
+        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        marker.setAttribute('id', 'preview-arrow');
+        marker.setAttribute('markerWidth', '7');
+        marker.setAttribute('markerHeight', '4');
+        marker.setAttribute('refX', '7');
+        marker.setAttribute('refY', '2');
+        marker.setAttribute('orient', 'auto');
+        const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        polygon.setAttribute('points', '0 0, 7 2, 0 4');
+        polygon.setAttribute('fill', '#666');
+        marker.appendChild(polygon);
+        defs.appendChild(marker);
+        svg.appendChild(defs);
+        container.appendChild(svg);
+
+        if (!nodes || nodes.length === 0) {
+            container.innerHTML = '<div class="preview-loading"><i class="fas fa-inbox"></i> 此職業尚無技能節點</div>';
+            return;
+        }
+
+        const CONFIG = {
+            nodeWidth: 60,
+            nodeHeight: 60,
+            padding: 50
+        };
+
+        // 建立位置字典
+        const positions = {};
+        nodes.forEach(node => {
+            positions[node.id] = {
+                x: (node.position_x || 0) + CONFIG.padding,
+                y: (node.position_y || 0) + CONFIG.padding,
+                node: node
+            };
+        });
+
+        // 計算 SVG 尺寸
+        const allX = Object.values(positions).map(p => p.x);
+        const allY = Object.values(positions).map(p => p.y);
+        const maxX = allX.length > 0 ? Math.max(...allX) : 800;
+        const maxY = allY.length > 0 ? Math.max(...allY) : 800;
+        svg.setAttribute('width', maxX + CONFIG.padding + CONFIG.nodeWidth);
+        svg.setAttribute('height', maxY + CONFIG.padding + CONFIG.nodeHeight);
+
+        // 繪製連接線
+        nodes.forEach(node => {
+            const childPos = positions[node.id];
+            if (!childPos || !node.parent_ids) return;
+
+            node.parent_ids.forEach(pid => {
+                const parentPos = positions[pid];
+                if (!parentPos) return;
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                let d = '';
+                let sx, sy, ex, ey;
+
+                if (Math.abs(parentPos.y - childPos.y) < 10) {
+                    // 水平連線
+                    sx = parentPos.x + CONFIG.nodeWidth / 2;
+                    sy = parentPos.y;
+                    ex = childPos.x - CONFIG.nodeWidth / 2;
+                    ey = childPos.y;
+                    d = `M ${sx} ${sy} L ${ex} ${ey}`;
+                } else if (Math.abs(parentPos.x - childPos.x) < 10) {
+                    // 垂直連線
+                    sx = parentPos.x;
+                    sy = parentPos.y + CONFIG.nodeHeight / 2;
+                    ex = childPos.x;
+                    ey = childPos.y - CONFIG.nodeHeight / 2;
+                    d = `M ${sx} ${sy} L ${ex} ${ey}`;
+                } else {
+                    // 折線
+                    sx = parentPos.x;
+                    sy = parentPos.y + CONFIG.nodeHeight / 2;
+                    ex = childPos.x;
+                    ey = childPos.y - CONFIG.nodeHeight / 2;
+                    const midY = (sy + ey) / 2;
+                    d = `M ${sx} ${sy} L ${sx} ${midY} L ${ex} ${midY} L ${ex} ${ey}`;
+                }
+
+                path.setAttribute('d', d);
+                path.setAttribute('class', 'preview-connection');
+                path.setAttribute('marker-end', 'url(#preview-arrow)');
+                svg.insertBefore(path, svg.firstChild.nextSibling);
+            });
+        });
+
+        // 繪製節點
+        Object.values(positions).forEach(pos => {
+            const node = pos.node;
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            g.setAttribute('class', `preview-node-${node.node_type}`);
+            g.setAttribute('transform', `translate(${pos.x}, ${pos.y})`);
+
+            // 節點框
+            const frame = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            frame.setAttribute('x', -CONFIG.nodeWidth / 2);
+            frame.setAttribute('y', -CONFIG.nodeHeight / 2);
+            frame.setAttribute('width', CONFIG.nodeWidth);
+            frame.setAttribute('height', CONFIG.nodeHeight);
+            frame.setAttribute('class', 'preview-node-frame');
+            g.appendChild(frame);
+
+            // 圖示
+            const iconText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            iconText.setAttribute('y', 5);
+            iconText.setAttribute('text-anchor', 'middle');
+            iconText.setAttribute('fill', '#fff');
+            iconText.setAttribute('font-size', '24px');
+            iconText.style.pointerEvents = 'none';
+
+            let iconChar = '⚔️';
+            if (node.node_type === 'ROOT') iconChar = '🌱';
+            else if (node.name.includes('無人機')) iconChar = '🚁';
+            else if (node.name.includes('測繪')) iconChar = '🗺️';
+            else if (node.name.includes('BIM')) iconChar = '🏢';
+            else if (node.name.includes('熱影像')) iconChar = '🌡️';
+            else if (node.name.includes('MR')) iconChar = '👓';
+            else if (node.name.includes('氣體')) iconChar = '🌫️';
+            else if (node.name.includes('噪音')) iconChar = '🔊';
+            else if (node.name.includes('VR')) iconChar = '🥽';
+            else if (node.name.includes('環景')) iconChar = '📷';
+
+            iconText.textContent = iconChar;
+            g.appendChild(iconText);
+
+            // 名稱標籤（自動換行）
+            const nameStr = node.name;
+            const MAX_CHARS_PER_LINE = 6;
+            let lines = [];
+            for (let i = 0; i < nameStr.length; i += MAX_CHARS_PER_LINE) {
+                lines.push(nameStr.substring(i, i + MAX_CHARS_PER_LINE));
+            }
+            const bgHeight = 20 + (lines.length - 1) * 16;
+
+            const textBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            textBg.setAttribute('x', -50);
+            textBg.setAttribute('y', CONFIG.nodeHeight / 2 + 5);
+            textBg.setAttribute('width', 100);
+            textBg.setAttribute('height', bgHeight);
+            textBg.setAttribute('rx', 4);
+            textBg.setAttribute('fill', 'rgba(0,0,0,0.8)');
+            g.appendChild(textBg);
+
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('class', 'preview-text-name');
+            lines.forEach((lineText, idx) => {
+                const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                tspan.setAttribute('x', 0);
+                tspan.setAttribute('y', CONFIG.nodeHeight / 2 + 19 + idx * 16);
+                tspan.setAttribute('text-anchor', 'middle');
+                tspan.textContent = lineText;
+                text.appendChild(tspan);
+            });
+            g.appendChild(text);
+
+            svg.appendChild(g);
+        });
+
+        // 拖曳功能
+        let isDown = false, startX, startY, scrollLeft, scrollTop;
+
+        container.addEventListener('mousedown', (e) => {
+            isDown = true;
+            startX = e.pageX - container.offsetLeft;
+            scrollLeft = container.scrollLeft;
+            startY = e.pageY - container.offsetTop;
+            scrollTop = container.scrollTop;
+            container.style.cursor = 'grabbing';
+        });
+
+        container.addEventListener('mouseleave', () => {
+            isDown = false;
+            container.style.cursor = 'grab';
+        });
+
+        container.addEventListener('mouseup', () => {
+            isDown = false;
+            container.style.cursor = 'grab';
+        });
+
+        container.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - container.offsetLeft;
+            container.scrollLeft = scrollLeft - (x - startX) * 2;
+            const y = e.pageY - container.offsetTop;
+            container.scrollTop = scrollTop - (y - startY) * 2;
+        });
+    }
+
     // Close modal when clicking outside
     window.onclick = function (event) {
         const modal = document.getElementById('skillModal');
         if (event.target === modal) {
             closeModal();
+        }
+        const previewModal = document.getElementById('previewModal');
+        if (event.target === previewModal) {
+            closePreviewModal();
         }
     }
 </script>

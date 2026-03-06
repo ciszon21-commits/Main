@@ -1,0 +1,3104 @@
+/* ===================================================
+   LHAWish — 部門許願池 Design System
+   主色系: #00A0B0 (Teal) / #F4F6F8 (淺灰背景)
+   =================================================== */
+
+/* ---------- CSS Variables ---------- */
+:root {
+    --wish-primary: #00A0B0;
+    --wish-primary-hover: #00808D;
+    --wish-primary-light: #E6F6F7;
+    --wish-bg: #F4F6F8;
+    --wish-white: #ffffff;
+    --wish-border: #e2e8f0;
+    --wish-border-light: #f0f0f0;
+    --wish-text-dark: #1e293b;
+    --wish-text: #334155;
+    --wish-text-muted: #94a3b8;
+    --wish-text-light: #cbd5e1;
+    --wish-red: #ef4444;
+    --wish-orange: #f97316;
+    --wish-purple: #8b5cf6;
+    --wish-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --wish-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.04);
+    --wish-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+    --wish-radius: 12px;
+    --wish-radius-sm: 8px;
+    --wish-radius-full: 9999px;
+    --wish-transition: 0.2s ease;
+    --wish-font: 'Inter', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ---------- Reset & Base ---------- */
+.wish-app {
+    font-family: var(--wish-font);
+    background: var(--wish-bg);
+    min-height: 100vh;
+    color: var(--wish-text);
+    line-height: 1.6;
+}
+
+.wish-app * {
+    box-sizing: border-box;
+}
+
+.wish-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px 16px;
+}
+
+/* ---------- Animations ---------- */
+@keyframes wishFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes wishFadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes wishSlideInRight {
+    from {
+        transform: translateX(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.wish-fade-in {
+    animation: wishFadeIn 0.3s ease;
+}
+
+.wish-fade-in-up {
+    animation: wishFadeInUp 0.3s ease;
+}
+
+/* ---------- Navbar ---------- */
+.wish-nav {
+    background: var(--wish-white);
+    box-shadow: var(--wish-shadow);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.wish-nav-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+.wish-nav-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 60px;
+}
+
+.wish-nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.wish-nav-brand:hover {
+    text-decoration: none;
+}
+
+.wish-nav-logo {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--wish-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.wish-nav-title {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--wish-text-dark);
+    letter-spacing: 1px;
+}
+
+.wish-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* 角色切換 */
+.wish-role-switcher {
+    display: flex;
+    background: var(--wish-bg);
+    border-radius: var(--wish-radius-full);
+    padding: 3px;
+    font-size: 12px;
+}
+
+.wish-role-btn {
+    padding: 4px 12px;
+    border-radius: var(--wish-radius-full);
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: var(--wish-transition);
+    background: transparent;
+    color: var(--wish-text-muted);
+}
+
+.wish-role-btn.active {
+    background: var(--wish-white);
+    box-shadow: var(--wish-shadow);
+    color: var(--wish-text-dark);
+}
+
+.wish-role-btn.active-manager {
+    background: var(--wish-primary);
+    color: white;
+    box-shadow: var(--wish-shadow);
+}
+
+/* 使用者頭像 */
+.wish-avatar-wrap {
+    position: relative;
+    cursor: pointer;
+    text-decoration: none !important;
+    border: none !important;
+}
+
+.wish-avatar-wrap:hover {
+    text-decoration: none !important;
+    border: none !important;
+}
+
+.wish-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--wish-white);
+    box-shadow: var(--wish-shadow);
+    object-fit: cover;
+    background: var(--wish-primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--wish-primary);
+}
+
+.wish-avatar-online {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 10px;
+    height: 10px;
+    background: #22c55e;
+    border: 2px solid var(--wish-white);
+    border-radius: 50%;
+}
+
+/* Tabs */
+.wish-tabs {
+    display: flex;
+    gap: 24px;
+    overflow-x: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.wish-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.wish-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 0;
+    border-bottom: 2px solid transparent;
+    color: var(--wish-text-muted);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--wish-transition);
+    white-space: nowrap;
+    text-decoration: none;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+}
+
+.wish-tab:hover {
+    color: var(--wish-text);
+    text-decoration: none;
+}
+
+.wish-tab.active {
+    color: var(--wish-primary);
+    border-bottom-color: var(--wish-primary);
+    font-weight: 600;
+}
+
+.wish-tab svg {
+    width: 18px;
+    height: 18px;
+}
+
+.wish-tab .material-symbols-outlined {
+    font-size: 18px;
+}
+
+/* Mode Toggle — 一般同仁 / 管理功能 */
+.wish-mode-toggle-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0 4px;
+}
+
+.wish-mode-toggle {
+    display: flex;
+    position: relative;
+    background: var(--wish-bg);
+    border-radius: var(--wish-radius-full);
+    padding: 3px;
+    width: 240px;
+}
+
+.wish-mode-slider {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: calc(50% - 3px);
+    height: calc(100% - 6px);
+    background: var(--wish-white);
+    border-radius: var(--wish-radius-full);
+    box-shadow: var(--wish-shadow-md);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0;
+}
+
+.wish-mode-btn {
+    flex: 1;
+    padding: 6px 0;
+    border: none;
+    border-radius: var(--wish-radius-full);
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--wish-text-muted);
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    transition: color 0.2s ease;
+    font-family: inherit;
+}
+
+.wish-mode-btn.active {
+    color: var(--wish-primary);
+}
+
+/* ---------- Toolbar (搜尋 + 篩選 + 發文) ---------- */
+.wish-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.wish-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.wish-search {
+    position: relative;
+    flex: 1;
+    max-width: 360px;
+}
+
+.wish-search input {
+    width: 100%;
+    padding: 8px 16px 8px 40px;
+    border-radius: var(--wish-radius-full);
+    border: none;
+    background: var(--wish-white);
+    box-shadow: var(--wish-shadow);
+    font-size: 13px;
+    color: var(--wish-text);
+    font-family: inherit;
+    outline: none;
+    transition: var(--wish-transition);
+}
+
+.wish-search input:focus {
+    box-shadow: 0 0 0 2px var(--wish-primary), var(--wish-shadow);
+}
+
+.wish-search input::placeholder {
+    color: var(--wish-text-light);
+}
+
+.wish-search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--wish-text-muted);
+    width: 16px;
+    height: 16px;
+}
+
+/* 分類篩選 */
+.wish-filter-group {
+    display: flex;
+    background: var(--wish-bg);
+    border-radius: var(--wish-radius-full);
+    padding: 3px;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.wish-filter-btn {
+    padding: 5px 12px;
+    border-radius: var(--wish-radius-full);
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    background: transparent;
+    color: var(--wish-text-muted);
+    transition: var(--wish-transition);
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.wish-filter-btn:hover {
+    color: var(--wish-text);
+    text-decoration: none;
+}
+
+.wish-filter-btn.active {
+    background: var(--wish-white);
+    box-shadow: var(--wish-shadow);
+    color: var(--wish-primary);
+    font-weight: 700;
+}
+
+/* 主要 CTA 按鈕 */
+.wish-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    background: var(--wish-primary);
+    color: white;
+    border-radius: var(--wish-radius-full);
+    border: none;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: var(--wish-shadow-md);
+    transition: var(--wish-transition);
+    text-decoration: none;
+    white-space: nowrap;
+    font-family: inherit;
+}
+
+.wish-btn-primary:hover {
+    background: var(--wish-primary-hover);
+    box-shadow: var(--wish-shadow-lg);
+    color: white;
+    text-decoration: none;
+}
+
+.wish-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border: 1px solid var(--wish-primary);
+    color: var(--wish-primary);
+    border-radius: var(--wish-radius-sm);
+    background: transparent;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--wish-transition);
+    text-decoration: none;
+    font-family: inherit;
+}
+
+.wish-btn-outline:hover {
+    background: var(--wish-primary-light);
+    text-decoration: none;
+}
+
+.wish-btn-sm {
+    padding: 4px 12px;
+    font-size: 12px;
+}
+
+.wish-btn-disabled {
+    background: var(--wish-bg);
+    color: var(--wish-text-muted);
+    cursor: not-allowed;
+    border: none;
+}
+
+.wish-btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    background: transparent;
+    border: none;
+    color: var(--wish-text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: var(--wish-radius-full);
+    transition: var(--wish-transition);
+    text-decoration: none;
+    font-family: inherit;
+}
+
+.wish-btn-back:hover {
+    color: var(--wish-text-dark);
+    background: var(--wish-bg);
+    text-decoration: none;
+}
+
+/* ---------- Cards ---------- */
+.wish-card {
+    background: var(--wish-white);
+    border-radius: var(--wish-radius);
+    padding: 20px;
+    box-shadow: var(--wish-shadow);
+    border: 1px solid var(--wish-border-light);
+    transition: var(--wish-transition);
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    height: 100%;
+}
+
+.wish-card:hover {
+    box-shadow: var(--wish-shadow-md);
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Card header */
+.wish-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.wish-card-badges {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.wish-card-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--wish-text-dark);
+    margin: 0 0 8px;
+    line-height: 1.4;
+    transition: var(--wish-transition);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    display: block;
+}
+
+.wish-card:hover .wish-card-title {
+    color: var(--wish-primary);
+}
+
+.wish-card-content {
+    font-size: 13px;
+    color: var(--wish-text);
+    margin-bottom: 10;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.6;
+    white-space: pre-line;
+}
+
+.wish-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--wish-text-muted);
+    border-top: 1px solid var(--wish-border-light);
+    padding-top: 10px;
+}
+
+.wish-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.wish-card-stats {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.wish-stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.wish-stat svg {
+    width: 14px;
+    height: 14px;
+}
+
+.wish-stat.liked svg {
+    fill: var(--wish-red);
+    color: var(--wish-red);
+}
+
+/* ---------- Badges / Status ---------- */
+.wish-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.status-warning {
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+.status-info {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.status-primary {
+    background: var(--wish-primary-light);
+    color: var(--wish-primary);
+}
+
+.status-muted {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.status-danger {
+    background: #fef2f2;
+    color: var(--wish-red);
+}
+
+.badge-category {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.badge-priority-critical {
+    background: var(--wish-red);
+    color: white;
+    font-size: 11px;
+}
+
+/* ---------- Market and Wish Grid ---------- */
+.wish-card-grid,
+.wish-market-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.wish-market-card {
+    background: var(--wish-white);
+    border-radius: var(--wish-radius);
+    overflow: hidden;
+    box-shadow: var(--wish-shadow);
+    border: 1px solid var(--wish-border-light);
+    transition: var(--wish-transition);
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    height: 100%;
+}
+
+.wish-market-card:hover {
+    box-shadow: var(--wish-shadow-md);
+    text-decoration: none;
+    color: inherit;
+}
+
+.wish-market-card:hover .wish-market-img img {
+    transform: scale(1.05);
+}
+
+.wish-market-img {
+    position: relative;
+    height: 180px;
+    overflow: hidden;
+    background: var(--wish-bg);
+}
+
+.wish-market-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.wish-market-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+}
+
+.wish-market-price-tag {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    color: white;
+    padding: 4px 12px;
+    border-radius: var(--wish-radius-full);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.wish-market-body {
+    padding: 16px;
+}
+
+.wish-market-body h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--wish-text-dark);
+    margin: 0 0 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wish-market-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--wish-text-muted);
+    margin-bottom: 12px;
+}
+
+.wish-market-condition {
+    background: var(--wish-bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+
+/* ---------- Gossip Card ---------- */
+.wish-gossip-card {
+    position: relative;
+}
+
+.wish-gossip-vis-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-bottom-left-radius: var(--wish-radius);
+    border-top-right-radius: var(--wish-radius);
+}
+
+.wish-gossip-author {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.wish-gossip-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.wish-gossip-avatar.anon {
+    background: var(--wish-bg);
+}
+
+.wish-gossip-avatar.named {
+    background: var(--wish-primary-light);
+}
+
+.wish-gossip-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.wish-gossip-name {
+    font-weight: 700;
+    color: var(--wish-text-dark);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.wish-gossip-anon-badge {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--wish-text-muted);
+    background: var(--wish-bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--wish-border);
+}
+
+.wish-gossip-date {
+    font-size: 12px;
+    color: var(--wish-text-muted);
+}
+
+.wish-gossip-text {
+    color: var(--wish-text);
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-line;
+    margin-bottom: 14px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.wish-gossip-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 13px;
+    color: var(--wish-text-muted);
+}
+
+.wish-gossip-actions button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: inherit;
+    font-size: inherit;
+    font-family: inherit;
+    padding: 2px;
+    transition: var(--wish-transition);
+}
+
+.wish-gossip-actions button:hover {
+    color: var(--wish-primary);
+}
+
+/* ---------- Manager Mailbox ---------- */
+.wish-mailbox-hero {
+    text-align: center;
+    padding: 48px 24px;
+}
+
+.wish-mailbox-icon {
+    width: 56px;
+    height: 56px;
+    background: var(--wish-primary-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    color: var(--wish-primary);
+}
+
+.wish-mailbox-hero h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--wish-text-dark);
+    margin: 0 0 6px;
+}
+
+.wish-mailbox-hero p {
+    color: var(--wish-text-muted);
+    font-size: 14px;
+    margin: 0 0 24px;
+}
+
+/* ---------- Profile ---------- */
+.wish-profile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.wish-profile-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.wish-profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 4px solid var(--wish-bg);
+    object-fit: cover;
+    background: var(--wish-primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--wish-primary);
+}
+
+.wish-profile-name {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--wish-text-dark);
+    margin: 0;
+}
+
+.wish-profile-dept {
+    color: var(--wish-text-muted);
+    font-size: 14px;
+}
+
+.wish-profile-stats {
+    display: flex;
+    gap: 12px;
+}
+
+.wish-profile-stat {
+    text-align: center;
+    padding: 8px 20px;
+    background: var(--wish-bg);
+    border-radius: var(--wish-radius-sm);
+}
+
+.wish-profile-stat-num {
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.wish-profile-stat-num.primary {
+    color: var(--wish-primary);
+}
+
+.wish-profile-stat-num.orange {
+    color: var(--wish-orange);
+}
+
+.wish-profile-stat-label {
+    font-size: 11px;
+    color: var(--wish-text-muted);
+}
+
+.wish-profile-tabs {
+    display: flex;
+    gap: 4px;
+    background: #e2e8f0;
+    border-radius: var(--wish-radius-sm);
+    padding: 4px;
+    width: fit-content;
+    margin-bottom: 24px;
+}
+
+.wish-profile-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: var(--wish-transition);
+    background: transparent;
+    color: var(--wish-text-muted);
+    text-decoration: none;
+    font-family: inherit;
+}
+
+.wish-profile-tab:hover {
+    color: var(--wish-text);
+    text-decoration: none;
+}
+
+.wish-profile-tab.active {
+    background: var(--wish-white);
+    box-shadow: var(--wish-shadow);
+    color: var(--wish-text-dark);
+}
+
+/* ---------- Manager Dashboard ---------- */
+.wish-dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.wish-stat-card {
+    background: var(--wish-white);
+    padding: 16px 20px;
+    border-radius: var(--wish-radius);
+    box-shadow: var(--wish-shadow);
+    border: 2px solid var(--wish-border-light);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.wish-stat-card.mgr-tab-card:hover {
+    border-color: var(--wish-primary);
+    box-shadow: var(--wish-shadow-md);
+}
+
+.wish-stat-card.mgr-tab-card.active {
+    border-color: var(--wish-primary);
+    background: var(--wish-primary-light);
+    box-shadow: var(--wish-shadow-md);
+}
+
+.wish-stat-card-label {
+    font-size: 12px;
+    color: var(--wish-text-muted);
+    margin: 0 0 4px;
+}
+
+.wish-stat-card-value {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.wish-stat-card-value.orange {
+    color: var(--wish-orange);
+}
+
+.wish-stat-card-value.primary {
+    color: var(--wish-primary);
+}
+
+.wish-stat-card-unit {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--wish-text-muted);
+}
+
+/* Dashboard table */
+.wish-mgr-table {
+    background: var(--wish-white);
+    border-radius: var(--wish-radius);
+    box-shadow: var(--wish-shadow);
+    border: 1px solid var(--wish-border-light);
+    overflow: hidden;
+}
+
+.wish-mgr-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--wish-border-light);
+    background: #fafbfc;
+    font-weight: 700;
+    color: var(--wish-text-dark);
+}
+
+.wish-mgr-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--wish-border-light);
+    transition: var(--wish-transition);
+    cursor: pointer;
+}
+
+.wish-mgr-row:last-child {
+    border-bottom: none;
+}
+
+.wish-mgr-row:hover {
+    background: var(--wish-bg);
+}
+
+.wish-mgr-row-info {
+    flex: 1;
+}
+
+.wish-mgr-row-info-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.wish-mgr-row-info-bottom {
+    font-size: 12px;
+    color: var(--wish-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.wish-mgr-row-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--wish-text-dark);
+}
+
+.wish-mgr-row-title:hover {
+    color: var(--wish-primary);
+}
+
+.wish-mgr-select {
+    font-size: 12px;
+    border: 1px solid var(--wish-border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    background: var(--wish-white);
+    font-family: inherit;
+    font-weight: 500;
+    color: var(--wish-text);
+    cursor: pointer;
+    outline: none;
+    transition: var(--wish-transition);
+}
+
+.wish-mgr-select:hover {
+    border-color: var(--wish-primary);
+}
+
+.wish-mgr-select:focus {
+    border-color: var(--wish-primary);
+    box-shadow: 0 0 0 2px var(--wish-primary-light);
+}
+
+/* ---------- Detail Page ---------- */
+.wish-detail-header {
+    position: sticky;
+    top: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    z-index: 10;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--wish-border-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 12px 12px 0 0;
+}
+
+.wish-detail-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.wish-detail-action-btn {
+    padding: 6px;
+    border-radius: var(--wish-radius-full);
+    border: none;
+    background: transparent;
+    color: var(--wish-text-muted);
+    cursor: pointer;
+    transition: var(--wish-transition);
+}
+
+.wish-detail-action-btn:hover {
+    color: var(--wish-primary);
+    background: var(--wish-primary-light);
+}
+
+.wish-detail-body {
+    padding: 24px;
+}
+
+.wish-detail-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--wish-text-dark);
+    line-height: 1.4;
+    margin: 0 0 16px;
+}
+
+.wish-detail-author {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--wish-border-light);
+}
+
+.wish-detail-author-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--wish-primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+
+.wish-detail-author-name {
+    font-weight: 700;
+    color: var(--wish-text-dark);
+    font-size: 14px;
+}
+
+.wish-detail-author-meta {
+    font-size: 12px;
+    color: var(--wish-text-muted);
+}
+
+.wish-detail-content {
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--wish-text);
+    white-space: pre-line;
+    margin-bottom: 24px;
+}
+
+.wish-detail-interactions {
+    display: flex;
+    gap: 24px;
+    padding: 14px 0;
+    border-top: 1px solid var(--wish-border-light);
+    border-bottom: 1px solid var(--wish-border-light);
+    margin-bottom: 24px;
+}
+
+.wish-detail-interactions button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--wish-text-muted);
+    font-weight: 500;
+    font-family: inherit;
+    padding: 4px;
+    transition: var(--wish-transition);
+}
+
+.wish-detail-interactions button:hover {
+    color: var(--wish-primary);
+}
+
+.wish-detail-interactions button.liked {
+    color: var(--wish-red);
+}
+
+.wish-detail-interactions button.liked svg {
+    fill: currentColor;
+}
+
+/* ---------- Comments ---------- */
+.wish-comments-title {
+    font-weight: 700;
+    color: var(--wish-text-dark);
+    margin: 0 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wish-comments-count {
+    font-size: 12px;
+    background: var(--wish-bg);
+    padding: 2px 8px;
+    border-radius: var(--wish-radius-full);
+    color: var(--wish-text-muted);
+    font-weight: 400;
+}
+
+.wish-comment {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.wish-comment-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--wish-bg);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--wish-primary);
+}
+
+.wish-comment-bubble {
+    background: var(--wish-bg);
+    padding: 10px 14px;
+    border-radius: 12px;
+    border-top-left-radius: 0;
+    flex: 1;
+}
+
+.wish-comment-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.wish-comment-author {
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--wish-text-dark);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.wish-comment-official {
+    background: var(--wish-primary);
+    color: white;
+    font-size: 10px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 500;
+}
+
+.wish-comment-date {
+    font-size: 10px;
+    color: var(--wish-text-muted);
+}
+
+.wish-comment-text {
+    font-size: 13px;
+    color: var(--wish-text);
+    line-height: 1.5;
+}
+
+/* 留言輸入 */
+.wish-comment-input {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--wish-border-light);
+    background: var(--wish-white);
+    border-radius: 0 0 var(--wish-radius) var(--wish-radius);
+    flex-wrap: wrap;
+}
+
+.wish-comment-input .wish-comment-avatar {
+    margin-top: 4px;
+}
+
+.wish-comment-input-wrap {
+    flex: 1;
+    position: relative;
+}
+
+.wish-comment-input textarea {
+    width: 100%;
+    background: var(--wish-bg);
+    border: none;
+    border-radius: var(--wish-radius);
+    padding: 10px 14px;
+    font-size: 13px;
+    font-family: inherit;
+    resize: none;
+    height: 44px;
+    outline: none;
+    color: var(--wish-text);
+    transition: var(--wish-transition);
+}
+
+.wish-comment-input textarea:focus {
+    box-shadow: 0 0 0 2px var(--wish-primary);
+}
+
+.wish-comment-input textarea::placeholder {
+    color: var(--wish-text-light);
+}
+
+.wish-comment-submit {
+    padding: 4px;
+    color: var(--wish-primary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: var(--wish-radius-full);
+    transition: var(--wish-transition);
+}
+
+.wish-comment-submit:hover {
+    background: var(--wish-primary-light);
+}
+
+/* ---------- Market Detail ---------- */
+.wish-market-detail-img {
+    width: 100%;
+    border-radius: var(--wish-radius);
+    overflow: hidden;
+    margin-bottom: 24px;
+    position: relative;
+}
+
+.wish-market-detail-img img {
+    width: 100%;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+}
+
+.wish-market-detail-price {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--wish-primary);
+    margin-bottom: 8px;
+}
+
+/* ---------- Image Gallery ---------- */
+.wish-image-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.wish-gallery-item {
+    border-radius: var(--wish-radius);
+    overflow: hidden;
+    aspect-ratio: 1;
+    cursor: pointer;
+    transition: var(--wish-transition);
+}
+
+.wish-gallery-item:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.wish-gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* 如果只有 1 張圖片，佔滿寬度 */
+.wish-image-gallery:has(.wish-gallery-item:only-child) {
+    grid-template-columns: 1fr;
+}
+
+.wish-image-gallery .wish-gallery-item:only-child {
+    aspect-ratio: 16/9;
+}
+
+/* ---------- Image Preview (Form Dropzone) ---------- */
+.wish-image-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.wish-image-preview-item {
+    position: relative;
+    border-radius: var(--wish-radius);
+    overflow: hidden;
+    aspect-ratio: 1;
+}
+
+.wish-image-preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.wish-image-remove-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    font-size: 12px;
+    cursor: pointer;
+    transition: var(--wish-transition);
+}
+
+.wish-image-remove-btn:hover {
+    background: rgba(239, 68, 68, 0.85);
+}
+
+/* ---------- Image Lightbox ---------- */
+.wish-lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+    cursor: zoom-out;
+}
+
+.wish-lightbox-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.wish-lightbox-overlay img {
+    max-width: 90vw;
+    max-height: 88vh;
+    border-radius: 8px;
+    object-fit: contain;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+    transform: scale(0.92);
+    transition: transform 0.3s ease;
+    cursor: default;
+}
+
+.wish-lightbox-overlay.active img {
+    transform: scale(1);
+}
+
+.wish-lightbox-close {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.wish-lightbox-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.wish-lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.wish-lightbox-nav:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.wish-lightbox-prev {
+    left: 16px;
+}
+
+.wish-lightbox-next {
+    right: 16px;
+}
+
+.wish-lightbox-counter {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+/* ---------- Form ---------- */
+.wish-form .wish-form-group {
+    margin-bottom: 16px;
+}
+
+.wish-form label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--wish-text);
+    margin-bottom: 6px;
+}
+
+.wish-form label .required {
+    color: var(--wish-red);
+}
+
+.wish-form input[type="text"],
+.wish-form input[type="number"],
+.wish-form textarea,
+.wish-form select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--wish-border);
+    border-radius: var(--wish-radius-sm);
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--wish-text);
+    outline: none;
+    transition: var(--wish-transition);
+    background: var(--wish-white);
+}
+
+.wish-form input:focus,
+.wish-form textarea:focus,
+.wish-form select:focus {
+    border-color: var(--wish-primary);
+    box-shadow: 0 0 0 2px var(--wish-primary-light);
+}
+
+.wish-form textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.wish-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.wish-form-actions {
+    margin-top: 24px;
+}
+
+/* Image upload */
+.wish-upload-area {
+    border: 2px dashed var(--wish-border);
+    border-radius: var(--wish-radius-sm);
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--wish-transition);
+    color: var(--wish-text-muted);
+}
+
+.wish-upload-area:hover {
+    background: var(--wish-bg);
+    border-color: var(--wish-primary);
+}
+
+.wish-upload-icon {
+    width: 32px;
+    height: 32px;
+    margin: 0 auto 8px;
+    opacity: 0.5;
+}
+
+/* Checkbox inline */
+.wish-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--wish-bg);
+    border-radius: var(--wish-radius-sm);
+    border: 1px solid var(--wish-border-light);
+}
+
+.wish-checkbox input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--wish-primary);
+}
+
+.wish-checkbox-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--wish-text);
+}
+
+.wish-checkbox-desc {
+    font-size: 11px;
+    color: var(--wish-text-muted);
+}
+
+/* Visibility selector */
+.wish-vis-group {
+    display: flex;
+    gap: 8px;
+}
+
+.wish-vis-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--wish-border);
+    border-radius: var(--wish-radius-sm);
+    font-size: 13px;
+    background: transparent;
+    cursor: pointer;
+    transition: var(--wish-transition);
+    color: var(--wish-text);
+    font-family: inherit;
+}
+
+.wish-vis-btn:hover {
+    border-color: var(--wish-primary);
+    color: var(--wish-primary);
+}
+
+.wish-vis-btn.active {
+    border-color: var(--wish-primary);
+    color: var(--wish-primary);
+    background: var(--wish-primary-light);
+    font-weight: 600;
+}
+
+/* Author info box */
+.wish-author-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--wish-bg);
+    padding: 12px 16px;
+    border-radius: var(--wish-radius-sm);
+    border: 1px solid var(--wish-border-light);
+    margin-bottom: 20px;
+}
+
+/* ---------- Empty state ---------- */
+.wish-empty {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--wish-text-muted);
+}
+
+.wish-empty svg {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 12px;
+    opacity: 0.3;
+}
+
+.wish-empty p {
+    font-size: 14px;
+    margin: 0;
+}
+
+/* ---------- Django form error ---------- */
+.wish-form .errorlist {
+    list-style: none;
+    padding: 0;
+    margin: 4px 0 0;
+}
+
+.wish-form .errorlist li {
+    font-size: 12px;
+    color: var(--wish-red);
+}
+
+/* ---------- Hidden helper ---------- */
+.wish-hidden {
+    display: none !important;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+    .wish-market-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .wish-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .wish-toolbar-left {
+        flex-direction: column;
+    }
+
+    .wish-search {
+        max-width: 100%;
+    }
+
+    .wish-dashboard-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .wish-profile-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .wish-form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .wish-detail-title {
+        font-size: 20px;
+    }
+}
+
+/* ---------- Petition Feature ---------- */
+.petition-card {
+    background: var(--wish-white);
+    border-radius: var(--wish-radius);
+    box-shadow: var(--wish-shadow);
+    border: 1px solid var(--wish-border-light);
+    padding: 20px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    transition: var(--wish-transition);
+}
+
+.petition-card:hover {
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.petition-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.petition-card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--wish-text-dark);
+    margin: 0 0 8px;
+    line-height: 1.4;
+}
+
+.petition-card-excerpt {
+    font-size: 13px;
+    color: var(--wish-text-muted);
+    margin: 0 0 16px;
+    line-height: 1.5;
+}
+
+.petition-progress {
+    margin-bottom: 16px;
+}
+
+.petition-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--wish-bg);
+    border-radius: var(--wish-radius-full);
+    overflow: hidden;
+}
+
+.petition-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--wish-primary), #818cf8);
+    border-radius: var(--wish-radius-full);
+    transition: width 0.6s ease;
+}
+
+.petition-progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--wish-text-muted);
+    margin-top: 6px;
+}
+
+.petition-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--wish-text-muted);
+    padding-top: 12px;
+    border-top: 1px solid var(--wish-border-light);
+}
+
+.petition-card-author {
+    font-weight: 600;
+    color: var(--wish-text);
+}
+
+.petition-card-comments {
+    margin-left: auto;
+}
+
+.petition-deadline {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: var(--wish-radius-full);
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.petition-deadline.overdue {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* Filter tabs for petition */
+.wish-filter-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.wish-filter-tab {
+    padding: 6px 14px;
+    border-radius: var(--wish-radius-full);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--wish-text-muted);
+    background: var(--wish-bg);
+    transition: var(--wish-transition);
+    white-space: nowrap;
+    border: 1px solid transparent;
+}
+
+.wish-filter-tab:hover {
+    color: var(--wish-primary);
+    text-decoration: none;
+    border-color: var(--wish-primary);
+}
+
+.wish-filter-tab.active {
+    background: var(--wish-primary);
+    color: var(--wish-white);
+    font-weight: 600;
+}
+
+/* Petition detail progress */
+.petition-detail-progress {
+    background: var(--wish-bg);
+    padding: 20px;
+    border-radius: var(--wish-radius-sm);
+    margin-bottom: 24px;
+}
+
+/* Response box */
+.petition-response-box {
+    border-left: 4px solid #16a34a;
+    background: var(--wish-bg);
+    padding: 16px 20px;
+    border-radius: 0 var(--wish-radius-sm) var(--wish-radius-sm) 0;
+    margin-bottom: 24px;
+}
+
+/* Modal */
+.petition-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.petition-modal {
+    background: var(--wish-white);
+    border-radius: var(--wish-radius);
+    padding: 24px;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* Search bar for petition */
+.wish-search-bar {
+    position: relative;
+}
+
+.wish-search-bar input {
+    width: 100%;
+    padding: 10px 14px 10px 40px;
+    border: 1px solid var(--wish-border);
+    border-radius: var(--wish-radius-full);
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--wish-text);
+    outline: none;
+    transition: var(--wish-transition);
+    background: var(--wish-white);
+}
+
+.wish-search-bar input:focus {
+    border-color: var(--wish-primary);
+    box-shadow: 0 0 0 2px var(--wish-primary-light);
+}
+
+.wish-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    color: var(--wish-text-muted);
+    pointer-events: none;
+}
+
+/* Outline button */
+.wish-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 20px;
+    border: 1px solid var(--wish-border);
+    border-radius: var(--wish-radius-full);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--wish-text);
+    text-decoration: none;
+    cursor: pointer;
+    transition: var(--wish-transition);
+    background: var(--wish-white);
+    font-family: inherit;
+}
+
+.wish-btn-outline:hover {
+    border-color: var(--wish-primary);
+    color: var(--wish-primary);
+    text-decoration: none;
+}
+
+/* ---------- Petition Grid Tiles ---------- */
+.petition-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.petition-tile {
+    display: flex;
+    flex-direction: column;
+    padding: 18px 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.petition-tile:hover {
+    border-color: #00A0B0;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.petition-tile-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--wish-text-dark);
+    margin: 0 0 6px;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.petition-tile-excerpt {
+    font-size: 13px;
+    color: var(--wish-text-muted);
+    margin: 0 0 12px;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.petition-tile-progress {
+    margin-bottom: 12px;
+}
+
+.petition-tile-progress-bar {
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.petition-tile-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00A0B0, #00c4d6);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.petition-tile-progress-label {
+    font-size: 11px;
+    color: var(--wish-text-muted);
+    font-weight: 500;
+}
+
+.petition-tile-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--wish-text-muted);
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.petition-tile-date {
+    margin-left: auto;
+}
+
+@media (max-width: 768px) {
+    .petition-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ========== Settings Page ========== */
+.settings-section {
+    margin-bottom: 4px;
+}
+
+.settings-section-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--wish-text-dark);
+    margin: 0 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-section-title .material-symbols-outlined {
+    font-size: 20px;
+    color: var(--wish-primary);
+}
+
+.settings-desc {
+    font-size: 13px;
+    color: var(--wish-text-muted);
+    margin: 0 0 12px;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.settings-row label {
+    font-size: 14px;
+    color: var(--wish-text);
+    min-width: 180px;
+}
+
+.settings-input {
+    padding: 8px 12px;
+    border: 1px solid var(--wish-border);
+    border-radius: var(--wish-radius-sm);
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.2s ease;
+}
+
+.settings-input:focus {
+    outline: none;
+    border-color: var(--wish-primary);
+}
+
+.settings-list-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.settings-btn-danger {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: #fee2e2;
+    color: #ef4444;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.settings-btn-danger:hover {
+    background: #fecaca;
+}
+
+.settings-btn-add {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 14px;
+    border: 1px dashed var(--wish-border);
+    border-radius: var(--wish-radius-sm);
+    background: transparent;
+    color: var(--wish-primary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 8px;
+    font-family: inherit;
+}
+
+.settings-btn-add:hover {
+    background: var(--wish-primary-light);
+}
+
+.settings-divider {
+    border: none;
+    border-top: 1px solid var(--wish-border-light);
+    margin: 20px 0;
+}
+
+.settings-board-block {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: var(--wish-bg);
+    border-radius: var(--wish-radius-sm);
+}
+
+.settings-admin-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: var(--wish-primary-light);
+    color: var(--wish-primary);
+    border-radius: var(--wish-radius-full);
+    font-size: 12px;
+    font-weight: 500;
+    margin: 2px 4px 2px 0;
+}
+
+.settings-admin-tag button {
+    border: none;
+    background: transparent;
+    color: var(--wish-primary);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 0;
+    margin-left: 2px;
+}
+
+/* ========== Manager Dashboard ========== */
+.mgr-stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.mgr-tab-card {
+    background: var(--wish-white);
+    border-radius: var(--wish-radius-md);
+    padding: 20px;
+    box-shadow: var(--wish-shadow);
+    cursor: pointer;
+    transition: var(--wish-transition);
+    border: 2px solid transparent;
+}
+
+.mgr-tab-card:hover {
+    box-shadow: var(--wish-shadow-md);
+}
+
+.mgr-tab-card.active {
+    border-color: var(--wish-primary);
+}
+
+.mgr-tab-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--wish-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.mgr-tab-card-title .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.mgr-tab-card-count {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--wish-text-dark);
+    margin-bottom: 4px;
+}
+
+.mgr-tab-card-sub {
+    font-size: 12px;
+    color: var(--wish-text-muted);
+    margin-bottom: 8px;
+}
+
+.mgr-tab-card-detail {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--wish-text-muted);
+}
+
+.mgr-section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--wish-text-dark);
+    margin: 0 0 16px;
+}
+
+.mgr-group-block {
+    margin-bottom: 20px;
+}
+
+.mgr-group-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--wish-text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--wish-primary-light);
+}
+
+.mgr-group-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--wish-primary);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 4px;
+}
+
+.mgr-case-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--wish-white);
+    border-radius: var(--wish-radius-sm);
+    box-shadow: var(--wish-shadow);
+    margin-bottom: 8px;
+    transition: var(--wish-transition);
+}
+
+.mgr-case-card:hover {
+    box-shadow: var(--wish-shadow-md);
+}
+
+.mgr-case-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.mgr-case-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--wish-text-dark);
+    text-decoration: none;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.mgr-case-title:hover {
+    color: var(--wish-primary);
+    text-decoration: none;
+}
+
+.mgr-case-meta {
+    font-size: 12px;
+    color: var(--wish-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.mgr-case-actions {
+    flex-shrink: 0;
+    margin-left: 12px;
+}
+
+.mgr-status-select {
+    padding: 6px 10px;
+    border: 1px solid var(--wish-border);
+    border-radius: var(--wish-radius-sm);
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+/* ========== Market Filters ========== */
+.wish-filter-group {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.wish-filter-btn {
+    padding: 6px 14px;
+    border-radius: var(--wish-radius-full);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--wish-text-muted);
+    text-decoration: none;
+    background: var(--wish-bg);
+    transition: var(--wish-transition);
+}
+
+.wish-filter-btn:hover {
+    color: var(--wish-text);
+    text-decoration: none;
+}
+
+.wish-filter-btn.active {
+    background: var(--wish-primary);
+    color: white;
+}
+
+.wish-market-condition {
+    background: var(--wish-bg);
+    padding: 2px 8px;
+    border-radius: var(--wish-radius-full);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--wish-text);
+}
+
+.wish-btn-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* ========== General Content Image Fix ========== */
+.wish-detail-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--wish-radius-sm);
+}
+
+/* ========== Comment Like Button ========== */
+.wish-comment-actions {
+    margin-top: 6px;
+}
+
+.wish-comment-like-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border: none;
+    background: transparent;
+    color: var(--wish-text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: var(--wish-radius-full);
+    transition: var(--wish-transition);
+    font-family: inherit;
+}
+
+.wish-comment-like-btn:hover {
+    background: var(--wish-bg);
+    color: var(--wish-text);
+}
+
+.wish-comment-like-btn.liked {
+    color: var(--wish-primary);
+    background: var(--wish-primary-light);
+}
+
+.wish-comment-like-btn.liked .material-symbols-outlined {
+    font-variation-settings: 'FILL' 1;
+}
+
+/* ========== Btn Icon ========== */
+.wish-btn-icon {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.wish-btn-icon:hover {
+    background: var(--wish-bg);
+}
+
+/* ========== Switch Toggle ========== */
+.wish-switch-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--wish-text-muted);
+}
+
+.wish-switch-label input[type="checkbox"] {
+    display: none;
+}
+
+.wish-switch-slider {
+    position: relative;
+    width: 34px;
+    height: 18px;
+    background: #ccc;
+    border-radius: 18px;
+    transition: background 0.3s;
+    flex-shrink: 0;
+}
+
+.wish-switch-slider::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.3s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.wish-switch-label input:checked+.wish-switch-slider {
+    background: var(--wish-primary);
+}
+
+.wish-switch-label input:checked+.wish-switch-slider::after {
+    transform: translateX(16px);
+}
+
+.wish-switch-text {
+    user-select: none;
+}
+
+/* ========== Action Dropdown ========== */
+.mgr-action-dropdown {
+    position: relative;
+}
+
+.mgr-action-menu {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background: var(--wish-white);
+    border: 1px solid var(--wish-border);
+    border-radius: var(--wish-radius-sm);
+    box-shadow: var(--wish-shadow-md);
+    min-width: 120px;
+    z-index: 100;
+    overflow: hidden;
+}
+
+.mgr-action-menu button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    font-size: 13px;
+    color: var(--wish-text);
+    cursor: pointer;
+    text-align: left;
+}
+
+.mgr-action-menu button:hover {
+    background: var(--wish-bg);
+}
+
+/* ========== Gossip Title ========== */
+.wish-gossip-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--wish-text-dark);
+    margin: 8px 0 4px;
+    line-height: 1.4;
+}
+
+/* ========== RND Grid (two-column) ========== */
+.wish-rnd-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+@media (max-width: 640px) {
+    .wish-rnd-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ========== Comment Actions ========== */
+.wish-comment-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    align-items: center;
+}
+
+.wish-comment-actions button {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    font-size: 12px;
+    background: none;
+    border: 1px solid var(--wish-border);
+    border-radius: var(--wish-radius-full);
+    cursor: pointer;
+    color: var(--wish-text-muted);
+    transition: all 0.2s;
+}
+
+.wish-comment-actions button:hover {
+    background: var(--wish-bg);
+    color: var(--wish-text);
+}
+
+.wish-comment-actions button.liked {
+    background: var(--wish-primary-light);
+    border-color: var(--wish-primary);
+    color: var(--wish-primary);
+}
+
+.wish-comment-edited {
+    font-size: 11px;
+    color: var(--wish-text-muted);
+    margin-left: 6px;
+}
+
+/* ========== Admin Identity Selector ========== */
+.wish-identity-select {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.wish-identity-select label {
+    font-size: 13px;
+    color: var(--wish-text-muted);
+}
+
+.wish-identity-select select {
+    padding: 4px 8px;
+    font-size: 13px;
+    border: 1px solid var(--wish-border);
+    border-radius: var(--wish-radius-sm);
+    background: var(--wish-white);
+}
+
+/* ========== Filter Group ========== */
+.wish-filter-group {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.wish-filter-btn {
+    padding: 4px 12px;
+    font-size: 13px;
+    border-radius: var(--wish-radius-full);
+    color: var(--wish-text-muted);
+    text-decoration: none;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.wish-filter-btn:hover {
+    background: var(--wish-bg);
+    color: var(--wish-text);
+}
+
+.wish-filter-btn.active {
+    background: var(--wish-primary-light);
+    color: var(--wish-primary);
+    border-color: var(--wish-primary);
+    font-weight: 600;
+}
+
+/* ========== Tab Divider ========== */
+.wish-tab-divider {
+    display: inline-block;
+    width: 1px;
+    height: 24px;
+    background: var(--wish-border);
+    margin: 0 4px;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+.wish-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.wish-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+/* ========== Icon Button ========== */
+.wish-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--wish-text-muted);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.wish-icon-btn:hover {
+    background: var(--wish-bg);
+    color: var(--wish-primary);
+}
+
+/* ========== Dropzone ========== */
+.wish-dropzone {
+    border: 2px dashed var(--wish-border);
+    border-radius: var(--wish-radius);
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.wish-dropzone:hover,
+.wish-dropzone.dragover {
+    border-color: var(--wish-primary);
+    background: var(--wish-primary-light);
+}
+
+/* ========== Image Preview Grid ========== */
+.wish-image-preview-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.wish-image-preview-item {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--wish-border);
+}
+
+.wish-image-preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.wish-image-remove-btn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+/* ========== Detail Title Row ========== */
+.wish-detail-title-row {
+    margin-bottom: 16px;
+}
+
+.wish-market-title-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.wish-market-title-row .wish-detail-title {
+    margin: 0;
+    flex: 1;
+}
+
+.wish-market-title-row .wish-market-detail-price {
+    flex-shrink: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: #ef4444;
+    white-space: nowrap;
+}
+
+/* ========== Segment Control ========== */
+.mgr-segment-control {
+    display: inline-flex;
+    background: var(--wish-bg);
+    border-radius: var(--wish-radius-full);
+    padding: 2px;
+    gap: 0;
+    border: 1px solid var(--wish-border);
+}
+
+.mgr-segment-btn {
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border: none;
+    background: transparent;
+    color: var(--wish-text-muted);
+    border-radius: var(--wish-radius-full);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.mgr-segment-btn:hover {
+    color: var(--wish-text);
+}
+
+.mgr-segment-btn.active {
+    background: var(--wish-primary);
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* ========== Admin Tab styles ========== */
+.wish-tab-admin {
+    opacity: 0.8;
+}
+
+.wish-tab-admin:hover {
+    opacity: 1;
+}
+
+/* ========== Tab Divider (管理分隔線) ========== */
+.wish-tab-divider {
+    display: inline-block;
+    width: 1px;
+    height: 20px;
+    background: var(--wish-border);
+    align-self: center;
+    margin: 0 4px;
+    flex-shrink: 0;
+}
+
+.wish-tabs {
+    align-items: center;
+}
+
+/* ========== Card Grid (兩欄) ========== */
+.wish-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+@media (max-width: 640px) {
+    .wish-card-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ========== Table (管理儀表板) ========== */
+.wish-table-wrap {
+    overflow-x: auto;
+}
+
+.wish-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.wish-table th {
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--wish-text-muted);
+    font-size: 12px;
+    border-bottom: 2px solid var(--wish-border);
+    white-space: nowrap;
+}
+
+.wish-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--wish-border-light);
+    color: var(--wish-text);
+}
+
+.wish-table tbody tr:hover {
+    background: var(--wish-bg);
+}
+
+.wish-select-sm {
+    padding: 4px 8px;
+    font-size: 12px;
+    border: 1px solid var(--wish-border);
+    border-radius: var(--wish-radius-sm);
+    background: var(--wish-white);
+    color: var(--wish-text);
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+    transition: var(--wish-transition);
+}
+
+.wish-select-sm:focus {
+    border-color: var(--wish-primary);
+    box-shadow: 0 0 0 2px var(--wish-primary-light);
+}
+
+/* ========== Profile Tabs (個人中心) ========== */
+.wish-profile-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--wish-border);
+}
+
+.wish-profile-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--wish-text-muted);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: var(--wish-transition);
+}
+
+.wish-profile-tab:hover {
+    color: var(--wish-text);
+    text-decoration: none;
+}
+
+.wish-profile-tab.active {
+    color: var(--wish-primary);
+    border-bottom-color: var(--wish-primary);
+    font-weight: 600;
+}
+
+.wish-profile-sub-tabs {
+    display: flex;
+    gap: 0;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--wish-border-light);
+    background: var(--wish-bg);
+}
+
+.wish-sub-tab {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--wish-text-muted);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: var(--wish-transition);
+}
+
+.wish-sub-tab:hover {
+    color: var(--wish-text);
+    text-decoration: none;
+}
+
+.wish-sub-tab.active {
+    color: var(--wish-primary);
+    border-bottom-color: var(--wish-primary);
+    font-weight: 600;
+    background: var(--wish-white);
+}
+
+.wish-item-link:hover {
+    background: var(--wish-bg);
+}
+
+/* =========================================================================
+   Wish Table Styles (Manager Dashboard)
+   ========================================================================= */
+.wish-table-wrap {
+    background: #ffffff;
+    border: 1px solid var(--wish-border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.025);
+}
+
+.wish-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 14px;
+}
+
+.wish-table thead th {
+    background: #f8fafc;
+    color: var(--wish-text-muted);
+    font-weight: 600;
+    padding: 14px 20px;
+    border-bottom: 2px solid var(--wish-border);
+    white-space: nowrap;
+}
+
+.wish-table tbody tr {
+    border-bottom: 1px solid var(--wish-border);
+    transition: background-color 0.2s ease;
+}
+
+.wish-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.wish-table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+.wish-table td {
+    padding: 16px 20px;
+    color: var(--wish-text-dark);
+    vertical-align: middle;
+}

@@ -1,7 +1,7 @@
 {% extends "LunchOrder/base.html" %}
 {% load static %}
 
-{% block title %}訂便當系統 | 消費統計{% endblock %}
+{% block title %}南工中心訂便當系統 | 每日訂單彙總{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -18,16 +18,16 @@
         font-weight: 600;
     }
 
-    .total-card {
+    .summary-card {
         background: white;
         border-radius: 12px;
-        padding: 24px;
+        padding: 20px;
         text-align: center;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
     }
 
-    .total-amount {
-        font-size: 2.5rem;
+    .summary-value {
+        font-size: 2rem;
         font-weight: 700;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         -webkit-background-clip: text;
@@ -35,10 +35,52 @@
         background-clip: text;
     }
 
-    .filter-card {
+    .summary-label {
+        color: #6c757d;
+        font-size: 0.85rem;
+        margin-bottom: 4px;
+    }
+
+    .date-nav {
         background: white;
         border-radius: 12px;
-        padding: 20px;
+        padding: 16px 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+    }
+
+    .date-nav .btn-nav {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 8px 16px;
+        color: #495057;
+        text-decoration: none;
+        transition: all 0.2s;
+        font-weight: 500;
+    }
+
+    .date-nav .btn-nav:hover {
+        background: #e9ecef;
+        color: #212529;
+    }
+
+    .date-nav .current-date {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #212529;
+        min-width: 180px;
+        text-align: center;
+    }
+
+    .date-picker-form {
+        background: white;
+        border-radius: 12px;
+        padding: 16px 24px;
         margin-bottom: 24px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     }
@@ -66,54 +108,46 @@
         vertical-align: middle;
     }
 
-    .rank-badge {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 0.9rem;
-    }
-
-    .rank-1 {
-        background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
+    .badge-restaurant {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
         color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
     }
 
-    .rank-2 {
-        background: linear-gradient(135deg, #bdc3c7 0%, #2c3e50 100%);
+    .price-tag {
+        background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
         color: white;
-    }
-
-    .rank-3 {
-        background: linear-gradient(135deg, #b68d4c 0%, #d4a269 100%);
-        color: white;
-    }
-
-    .rank-default {
-        background: #e9ecef;
-        color: #495057;
-    }
-
-    .amount-highlight {
-        font-size: 1.1rem;
+        padding: 4px 12px;
+        border-radius: 20px;
         font-weight: 600;
-        color: #667eea;
     }
 
-    .nav-tabs-custom .nav-link {
-        border: none;
-        color: #6c757d;
-        padding: 12px 24px;
-        font-weight: 500;
+    .today-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        margin-left: 8px;
     }
 
-    .nav-tabs-custom .nav-link.active {
+    .restaurant-info {
+        background: white;
+        border-radius: 12px;
+        padding: 16px 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #000;
+    }
+
+    .restaurant-info i {
+        font-size: 1.5rem;
         color: #11998e;
-        border-bottom: 3px solid #11998e;
-        background: transparent;
     }
 </style>
 {% endblock %}
@@ -123,91 +157,207 @@
     <!-- Header -->
     <div class="stats-header">
         <div class="row align-items-center">
-            <div class="col-md-8">
-                <h2><i class="fas fa-chart-pie me-2"></i>消費統計報表</h2>
-                <p class="mb-0 mt-2 opacity-75">追蹤每位員工的訂餐消費</p>
+            <div class="col-md-6">
+                <h2><i class="fas fa-clipboard-list me-2"></i>每日訂單彙總</h2>
+                <p class="mb-0 mt-2 opacity-75">查看每日全部訂購內容</p>
             </div>
-            <div class="col-md-4">
-                <div class="total-card">
-                    <div class="text-muted small">總消費金額</div>
-                    <div class="total-amount">${{ total_amount|default:0 }}</div>
+            <div class="col-md-6">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="summary-card">
+                            <div class="summary-label">訂購份數</div>
+                            <div class="summary-value">{{ total_quantity }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="summary-card">
+                            <div class="summary-label">總金額</div>
+                            <div class="summary-value">${{ total_amount|default:0 }}</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Navigation Tabs -->
-    <ul class="nav nav-tabs nav-tabs-custom mb-4">
-        <li class="nav-item">
-            <a class="nav-link" href="{% url 'lunchorder:order_list' %}">
-                <i class="fas fa-list me-1"></i> 訂單列表
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link active" href="{% url 'lunchorder:order_statistics' %}">
-                <i class="fas fa-chart-pie me-1"></i> 消費統計
-            </a>
-        </li>
-    </ul>
+    <!-- Date Navigation -->
+    <div class="date-nav">
+        <a href="?date={{ prev_date|date:'Y-m-d' }}" class="btn-nav">
+            <i class="fas fa-chevron-left me-1"></i> 前一天
+        </a>
+        <div class="current-date">
+            <i class="fas fa-calendar-day me-2"></i>{{ selected_date|date:"Y/m/d (D)" }}
+            {% if selected_date == today %}
+            <span class="today-badge">今天</span>
+            {% endif %}
+        </div>
+        <a href="?date={{ next_date|date:'Y-m-d' }}" class="btn-nav">
+            後一天 <i class="fas fa-chevron-right ms-1"></i>
+        </a>
+    </div>
 
-    <!-- Filter -->
-    <div class="filter-card">
-        <form method="get" class="row g-3 align-items-end">
-            <div class="col-md-4">
-                <label class="form-label"><i class="fas fa-calendar me-1"></i>開始日期</label>
-                <input type="date" name="date_from" class="form-control" value="{{ date_from|default:'' }}">
+    <!-- Date Picker -->
+    <div class="date-picker-form">
+        <form method="get" class="row g-3 align-items-center justify-content-center">
+            <div class="col-auto">
+                <label class="form-label mb-0 fw-bold"><i class="fas fa-search me-1"></i>選擇日期</label>
             </div>
-            <div class="col-md-4">
-                <label class="form-label"><i class="fas fa-calendar me-1"></i>結束日期</label>
-                <input type="date" name="date_to" class="form-control" value="{{ date_to|default:'' }}">
+            <div class="col-auto">
+                <input type="date" name="date" class="form-control" value="{{ selected_date|date:'Y-m-d' }}">
             </div>
-            <div class="col-md-4">
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="fas fa-filter me-1"></i> 篩選
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-arrow-right me-1"></i> 查詢
                 </button>
+            </div>
+            <div class="col-auto">
+                <a href="{% url 'lunchorder:order_statistics' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-redo me-1"></i> 回到今天
+                </a>
             </div>
         </form>
     </div>
 
-    <!-- Statistics Table -->
-    <div class="table-stats">
-        <table class="table table-hover mb-0">
-            <thead>
-                <tr>
-                    <th style="width: 80px;">排名</th>
-                    <th>員工姓名</th>
-                    <th>訂單數量</th>
-                    <th>消費總額</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for stat in employee_stats %}
-                <tr>
-                    <td>
-                        {% if forloop.counter == 1 %}
-                        <span class="rank-badge rank-1">1</span>
-                        {% elif forloop.counter == 2 %}
-                        <span class="rank-badge rank-2">2</span>
-                        {% elif forloop.counter == 3 %}
-                        <span class="rank-badge rank-3">3</span>
-                        {% else %}
-                        <span class="rank-badge rank-default">{{ forloop.counter }}</span>
-                        {% endif %}
-                    </td>
-                    <td><strong>{{ stat.employee_name }}</strong></td>
-                    <td>{{ stat.total_orders }} 份</td>
-                    <td><span class="amount-highlight">${{ stat.total_amount }}</span></td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="4" class="text-center py-5 text-muted">
-                        <i class="fas fa-chart-bar fa-3x mb-3 d-block opacity-50"></i>
-                        目前沒有統計資料
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- Restaurant Info -->
+    {% if schedule %}
+    <div class="restaurant-info">
+        <i class="fas fa-store"></i>
+        <div>
+            <strong>當日店家：</strong>{{ schedule.restaurant.name }}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Item Statistics -->
+    {% if item_stats %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                <div class="card-header bg-white border-bottom-0 py-3" style="border-radius: 12px 12px 0 0;">
+                    <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-list-ol me-2"></i>品項統計</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">品項名稱</th>
+                                    <th>單價</th>
+                                    <th>總數量</th>
+                                    <th>備註</th>
+                                    <th class="text-end pe-4">總金額</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in item_stats %}
+                                <tr>
+                                    <td class="ps-4">
+                                        <strong>{{ item.menu_item__name }}</strong>
+                                    </td>
+                                    <td>${{ item.menu_item__price }}</td>
+                                    <td>
+                                        <span class="badge bg-primary rounded-pill px-3">{{ item.total_qty }}</span>
+                                    </td>
+                                    <td>
+                                        {% with notes=notes_by_item|default_if_none:"" %}
+                                        {% for note in notes_by_item.items %}
+                                        {% if note.0 == item.menu_item__name %}
+                                        {% for n in note.1 %}
+                                        <small class="d-block text-muted">{{ n }}</small>
+                                        {% endfor %}
+                                        {% endif %}
+                                        {% endfor %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="text-end pe-4 fw-bold text-success">
+                                        ${{ item.total_price }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Orders Table -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                <div class="card-header bg-white border-bottom-0 py-3" style="border-radius: 12px 12px 0 0;">
+                    <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-table me-2"></i>詳細資料</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 60px;">#</th>
+                                    <th>員工姓名</th>
+                                    <th>便當店</th>
+                                    <th>品項</th>
+                                    <th>數量</th>
+                                    <th>備註</th>
+                                    <th>小計</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td><strong>{{ order.employee_name }}</strong></td>
+                                    <td><span class="badge-restaurant"
+                                            data-restaurant="{{ order.menu_item.restaurant.name }}"></span>
+                                    </td>
+                                    <td>{{ order.menu_item.name }}</td>
+                                    <td>{{ order.quantity }}</td>
+                                    <td><small class="text-muted">{{ order.notes }}</small></td>
+                                    <td><span class="price-tag">${{ order.subtotal }}</span></td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-5 text-muted">
+                                        <i class="fas fa-inbox fa-3x mb-3 d-block opacity-50"></i>
+                                        {{ selected_date|date:"Y/m/d" }} 尚無訂單
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 為不同便當店分配不同顏色 (與個人訂單列表統一)
+    const badgeColors = [
+        '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+        '#ec4899', '#06b6d4', '#f97316', '#14b8a6', '#a855f7',
+        '#e11d48', '#84cc16'
+    ];
+    const restaurantColorMap = {};
+    let colorIndex = 0;
+
+    document.querySelectorAll('.badge-restaurant').forEach(function (el) {
+        const name = el.getAttribute('data-restaurant');
+        if (name) {
+            if (!(name in restaurantColorMap)) {
+                restaurantColorMap[name] = badgeColors[colorIndex % badgeColors.length];
+                colorIndex++;
+            }
+            el.style.background = restaurantColorMap[name];
+            el.style.color = 'white';
+            el.style.display = 'inline-block';
+            el.textContent = name;
+        }
+    });
+</script>
 {% endblock %}

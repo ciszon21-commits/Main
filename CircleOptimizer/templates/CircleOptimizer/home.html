@@ -5,98 +5,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>隧道斷面淨空包絡線檢核工具</title>
+    <title>SinoNATM:SHAPE</title>
     <link rel="stylesheet" href="{% static 'CircleOptimizer/css/style.css' %}">
 </head>
 
 <body>
     <div class="container">
         <header>
-            <h1>🚇 隧道斷面淨空包絡線檢核工具</h1>
-            <p class="subtitle">輸入8個控制點，自動生成最小化面積的3心圓或4心圓隧道斷面</p>
+            <h1> ⛰️ SinoNATM:SHAPE</h1>
+            <p class="subtitle">山岳隧道斷面設計及淨空包絡線檢核工具</p>
         </header>
 
         <div class="main-content">
             <!-- 左側：輸入區 -->
             <div class="input-section">
                 <div class="card">
-                    <h2>📍 淨空包絡線隧道斷面控制點座標</h2>
-                    <p class="hint">請輸入8個控制點的座標，或在右側視覺化區域直接拖拉調整</p>
-
-                    <div class="points-grid">
-                        <div class="point-input" data-index="0">
-                            <label>點 1:</label>
-                            <input type="number" class="coord-x" placeholder="X" step="0.1" value="20">
-                            <input type="number" class="coord-y" placeholder="Y" step="0.1" value="0">
-                        </div>
-                        <div class="point-input" data-index="1">
-                            <label>點 2:</label>
-                            <input type="number" class="coord-x" placeholder="X" step="0.1" value="20">
-                            <input type="number" class="coord-y" placeholder="Y" step="0.1" value="15">
-                        </div>
-                        <div class="point-input" data-index="2">
-                            <label>點 3:</label>
-                            <input type="number" class="coord-x" placeholder="X" step="0.1" value="15">
-                            <input type="number" class="coord-y" placeholder="Y" step="0.1" value="15">
-                        </div>
-                        <div class="point-input" data-index="3">
-                            <label>點 4:</label>
-                            <input type="number" class="coord-x" placeholder="X" step="0.1" value="15">
-                            <input type="number" class="coord-y" placeholder="Y" step="0.1" value="20">
-                        </div>
-                        <div class="point-input" data-index="4">
-                            <label>點 5:</label>
-                            <input type="number" class="coord-x" placeholder="X" step="0.1" value="-15">
-                            <input type="number" class="coord-y" placeholder="Y" step="0.1" value="20">
-                        </div>
-                        <div class="point-input" data-index="5">
-                            <label>點 6:</label>
-                            <input type="number" class="coord-x" placeholder="X" step="0.1" value="-15">
-                            <input type="number" class="coord-y" placeholder="Y" step="0.1" value="15">
-                        </div>
-                        <div class="point-input" data-index="6">
-                            <label>點 7:</label>
-                            <input type="number" class="coord-x" placeholder="X" step="0.1" value="-20">
-                            <input type="number" class="coord-y" placeholder="Y" step="0.1" value="15">
-                        </div>
-                        <div class="point-input" data-index="7">
-                            <label>點 8:</label>
-                            <input type="number" class="coord-x" placeholder="X" step="0.1" value="-20">
-                            <input type="number" class="coord-y" placeholder="Y" step="0.1" value="0">
-                        </div>
-                    </div>
-
-                    <button id="loadSampleBtn" class="btn btn-secondary">載入範例數據</button>
-                </div>
-
-                <div class="card">
-                    <h2>⚙️ 圖形資訊</h2>
+                    <h2>📋 隧道專案資訊</h2>
                     <div class="form-group">
-                        <label for="shapeName">圖形名稱:</label>
-                        <input type="text" id="shapeName" placeholder="例：測試圖形01" value="測試圖形">
+                        <label for="projectNumber">計畫編號:</label>
+                        <input type="text" id="projectNumber" placeholder="例：8888B" value="0000B">
+                        <label for="projectName">工程名稱:</label>
+                        <input type="text" id="projectName" placeholder="例：XX隧道工程" value="中興大業隧道工程">
+                        <label for="tunnelName">隧道名稱:</label>
+                        <input type="text" id="tunnelName" placeholder="例：XX隧道" value="南京三民隧道">
+                        <div class="row-buttons"
+                            style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
+                            <button id="openProjectBtn" class="btn btn-primary" style="font-size: 1.2rem;">📂
+                                讀取隧道專案</button>
+                            <button id="saveProjectBtn" class="btn btn-primary" style="font-size: 1.2rem;">💾
+                                儲存隧道專案</button>
+                        </div>
                     </div>
-                    <button id="createShapeBtn" class="btn btn-primary">創建圖形</button>
                     <div id="shapeInfo" class="info-box" style="display:none;">
-                        <p><strong>圖形 ID:</strong> <span id="shapeId">-</span></p>
                     </div>
                 </div>
 
                 <div class="card">
-                    <h2>🎯 斷面生成選項</h2>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h2 style="margin: 0;">🚇 淨空包絡線模組</h2>
 
-                    <!-- 手動模式說明 -->
+                    </div>
+                    <div id="envelopesContainer" class="envelopes-container">
+                        <!-- Dynamic envelopes will be rendered here -->
+                    </div>
+                    <label for="projectNumber"
+                        style="font-weight: bold; font-size: 1.2rem; display: block; margin-bottom: 8px;">需要更多淨空包絡線嗎?</label>
+                    <div class="row-buttons" style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
+                        <button id="addEnvelopeBtn" class="btn btn-primary"
+                            style="margin-bottom: 16px; font-size: 1.2rem; ">🖕🏼 手動建立</button>
+                        <button id="importDxfBtn" class="btn btn-primary"
+                            style="margin-bottom: 16px; font-size: 1.2rem; ">📥 匯入圖檔</button>
+                        <input type="file" id="dxfInput" multiple accept=".dxf" style="display:none;">
+                    </div>
+
+
+                    <p class="hint">說明：<BR>
+                        1. 可套用多組淨空包絡線，採用手動繪製或匯入DXF圖檔<br>
+                        2. 控制點座標採用手動輸入或直接拖曳調整。
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h2>🎯 輔助說明</h2>
                     <div id="interactiveModeControls" class="mode-controls">
                         <div id="interactiveInstructions"
                             style="margin-top:15px; padding:15px; background:#e3f2fd; border-radius:6px;">
                             <p style="margin:0; color:#1976d2;">
-                                <strong>使用說明：</strong><br>
-                                1. 拖動圓心調整位置 (Arc 3/4 限制在垂直平分線上)<br>
-                                2. 拖動圓周/角度點調整參數<br>
-                                3. 圓弧1與圓弧2保持對稱
+                                <strong>程式簡介：</strong><br>
+                                本程式適用於山岳隧道斷面設計，內建「隧道斷面設計模組」與「淨空包絡線模組」，可直接套用多組淨空包絡線樣板(如公路、鐵路等)或匯入淨空包絡線DXF檔，進行隧道內空檢核及斷面調整，使用者可依據實際需求快速建立隧道斷面，並產出設計成果(如CSV或DXF)。<br><br>
+                                <strong>協助資訊：</strong><br>
+                                如有使用上問題，請聯絡開發者 C.M. CHANG<br>
+                                聯絡信箱：
+                                <a href="mailto:cmchang@mail.sinotech.com.tw">cmchang@mail.sinotech.com.tw</a>
                             </p>
                         </div>
                     </div>
-
                     <div id="optimizeStatus" class="status-box"></div>
                 </div>
             </div>
@@ -104,39 +88,64 @@
             <!-- 右側：視覺化區 -->
             <div class="visualization-section">
                 <div class="card">
-                    <h2>📊 隧道斷面視覺化</h2>
+                    <h2>✏️ 隧道斷面設計模組</h2>
+                    <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                        <label for="tunnelType" style="margin: 0;">隧道斷面類型:</label>
+                        <select id="tunnelType" class="form-control" style="font-size: 1em; padding: 2px;">
+                            <option value="triple">三心圓</option>
+                        </select>
+                        <label for="minThicknessTop" style="margin: 0;">頂拱最小厚度(m):</label>
+                        <input type="number" id="minThicknessTop" class="form-control"
+                            style="width: 70px; font-size: 1em; padding: 2px;" step="0.01" value="0.30" min="0">
+                        <label for="minThicknessBottom" style="margin: 0;">仰拱最小厚度(m):</label>
+                        <input type="number" id="minThicknessBottom" class="form-control"
+                            style="width: 70px; font-size: 1em; padding: 2px;" step="0.01" value="0.30" min="0">
+                        <label for="excavationThickness" style="margin: 0;">預估開挖厚度(m):</label>
+                        <input type="number" id="excavationThickness" class="form-control"
+                            style="width: 80px; font-size: 1em; padding: 2px;" step="0.01" value="0.20" min="0">
+                    </div>
+                    <div class="row-buttons"
+                        style="margin-top: 10px; margin-bottom: 16px; display: flex; gap: 10px; align-items: center;">
+                        <button id="initSectionBtn" class="btn btn-secondary" style="font-size: 1.2rem;">🆕
+                            重設斷面</button>
+                        <button id="tempSaveSectionBtn" class="btn btn-secondary" style="font-size: 1.2rem;">📍
+                            暫存斷面</button>
+                        <button id="restoreSectionBtn" class="btn btn-secondary" style="font-size: 1.2rem;">↩️
+                            復原斷面</button>
+                        <button id="autoFitBtn" class="btn btn-secondary" style="font-size: 1.2rem;">🔍 最適畫面</button>
+                    </div>
+                    <div id="shapeInfo" class="info-box" style="display:none;">
+                    </div>
                     <div id="svgContainer">
-                        <svg id="canvas" width="600" height="600" viewBox="-50 -50 100 100">
+                        <svg id="canvas" width="300" height="300" viewBox="-5 -5 10 10">
                             <defs>
                                 <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="5" refY="3"
                                     orient="auto">
                                     <polygon points="0 0, 10 3, 0 6" fill="#999" />
                                 </marker>
                             </defs>
-
-                            <!-- 座標軸將由 JavaScript 動態繪製 -->
-
-                            <!-- 控制點與圖形 -->
                             <g id="shapeGroup"></g>
-
-                            <!-- 圓 -->
                             <g id="circlesGroup"></g>
+                            <g id="overlayGroup"></g>
                         </svg>
                     </div>
+                    <div id="areaResultsContainer" style="margin-top: 15px;"></div>
+                    <p class="hint">說明：拖曳畫面上(●)或(■)調整控制圓弧之位置、半徑及弧角；拖曳畫面上(○)調整控制淨空包絡線節點位置。<br>
+                    </p>
                 </div>
 
                 <!-- 結果顯示 -->
                 <div class="card" id="resultsCard" style="display:none;">
-                    <h2>📈 斷面參數</h2>
+                    <h2>🧮 隧道斷面設計成果</h2>
                     <div id="resultsContainer"></div>
+                    <div class="row-buttons" style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
+                        <button id="saveAsCSVBtn" class="btn btn-success" style="font-size: 1.2rem;">📄 匯出CSV檔案</button>
+                        <button id="saveAsDXFBtn" class="btn btn-success" style="font-size: 1.2rem;">🎨 匯出DXF檔案</button>
+                    </div>
                 </div>
-
-                <!-- 手動調整 -->
-                <div class="card" id="adjustCard" style="display:none;">
-                    <h2>🔧 手動微調</h2>
-                    <div id="adjustContainer"></div>
-                    <button id="saveAdjustBtn" class="btn btn-primary">保存調整</button>
-                </div>
+                <p class="hint center" style="color: white;">
+                    © 2026 Geotechnical Engineering Department, SINOTECH Engineering Consultants, Inc.
+                </p>
             </div>
         </div>
     </div>

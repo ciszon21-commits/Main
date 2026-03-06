@@ -1,5 +1,12 @@
 {% extends 'EngineerRPG/management/base_management.html' %}
 
+{% block page_header %}
+<div class="page-header mb-lg">
+    <h1><i class="fas fa-book"></i> 課程與題庫管理</h1>
+    <p class="text-stone">管理課程內容、題庫、分類與匯入匯出</p>
+</div>
+{% endblock %}
+
 {% block management_content %}
 <div class="rpg-card">
     <div class="rpg-card-header flex justify-between items-center">
@@ -29,8 +36,8 @@
                         <form method="post" onsubmit="return confirm('確定要刪除此分類嗎？關聯的題目將會變成無分類狀態。');"
                             style="display:inline;">
                             {% csrf_token %}
-                            <input type="hidden" name="category_id" value="{{ category.id }}">
-                            <input type="hidden" name="delete" value="true">
+                            <input type="hidden" name="id" value="{{ category.id }}">
+                            <input type="hidden" name="action" value="delete">
                             <button type="submit" class="rpg-btn rpg-btn-xs rpg-btn-danger">
                                 <i class="fas fa-trash"></i>
                             </button>
@@ -56,7 +63,7 @@
         </div>
         <form method="post" class="mt-md">
             {% csrf_token %}
-            <input type="hidden" name="create" value="true">
+            <input type="hidden" name="action" value="create">
 
             <div class="form-group mb-md">
                 <label class="form-label">分類名稱</label>

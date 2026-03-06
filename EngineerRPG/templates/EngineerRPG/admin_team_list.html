@@ -35,6 +35,7 @@
                     <thead>
                         <tr>
                             <th>隊伍名稱</th>
+                            <th>所屬隊伍</th>
                             <th>隊長</th>
                             <th>成員數</th>
                             <th>建立時間</th>
@@ -51,6 +52,13 @@
                                 {% endif %}
                             </td>
                             <td>
+                                {% if team.emp_dept %}
+                                <i class="fas fa-building text-primary"></i> {{ team.get_dept_display }}
+                                {% else %}
+                                <span class="text-stone">未設定</span>
+                                {% endif %}
+                            </td>
+                            <td>
                                 {% if team.leader %}
                                 <i class="fas fa-crown text-gold"></i> {{ team.leader.username }}
                                 {% else %}
@@ -64,7 +72,6 @@
                                 <small class="text-stone">{{ team.created_at|date:"Y-m-d" }}</small>
                             </td>
                             <td>
-                            <td>
                                 <div style="display: flex; gap: 5px;">
                                     <a href="{% url 'engineer_rpg:edit_team' team.id %}"
                                         class="rpg-btn-sm rpg-btn-outline">
@@ -73,6 +80,11 @@
                                     <a href="{% url 'engineer_rpg:manage_team_members' team.id %}"
                                         class="rpg-btn-sm rpg-btn-primary">
                                         <i class="fas fa-users"></i> 成員管理
+                                    </a>
+                                    <a href="{% url 'engineer_rpg:team_dashboard' %}?team_id={{ team.id }}"
+                                        class="rpg-btn-sm rpg-btn-outline"
+                                        style="border-color: var(--color-gold); color: var(--color-gold);">
+                                        <i class="fas fa-eye"></i> 儀表板
                                     </a>
                                     <form method="post" action="{% url 'engineer_rpg:delete_team' team.id %}"
                                         style="display: inline;"

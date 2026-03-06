@@ -1,0 +1,58 @@
+{% extends "LunchOrder/base.html" %}
+
+{% block title %}南工中心訂便當系統 | 預約確認{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden" style="background: var(--bg-card);">
+                <div class="card-body p-5 text-center">
+                    <div class="mb-4">
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-warning bg-opacity-10 p-4"
+                            style="width: 100px; height: 100px;">
+                            <i class="fas fa-calendar-check fa-4x text-warning"></i>
+                        </div>
+                    </div>
+
+                    <h2 class="fw-bold mb-3" style="color: var(--text-main);">預約訂單確認</h2>
+
+                    <p class="fs-5 mb-4 text-muted">提醒您，這是一筆預約訂單<br>
+                        您預約的日期是 <span class="fw-bold text-warning">{{ target_date|date:"Y-m-d (D)" }}</span></p>
+
+                    <div class="alert alert-light border mb-4 text-start d-inline-block px-4">
+                        <ul class="mb-0 small text-muted">
+                            <li>訂購人：{{ form.employee_name.value }}</li>
+                            <li>餐點：{{ menu_item_name }}</li>
+                            <li>數量：{{ form.quantity.value }}</li>
+                            <li>備註：{{ form.notes.value|default:"無" }}</li>
+                        </ul>
+                    </div>
+
+                    <form method="post"
+                        action="{% url 'lunchorder:order_create' %}?date={{ target_date|date:'Y-m-d' }}{% if target_restaurant %}&restaurant_id={{ target_restaurant.id }}{% endif %}">
+                        {% csrf_token %}
+                        <!-- 傳遞原始表單資料 -->
+                        <input type="hidden" name="menu_item" value="{{ form.menu_item.value }}">
+                        <input type="hidden" name="quantity" value="{{ form.quantity.value }}">
+                        <input type="hidden" name="employee_name" value="{{ form.employee_name.value }}">
+                        <input type="hidden" name="notes" value="{{ form.notes.value|default:'' }}">
+                        <!-- 標記為已確認 -->
+                        <input type="hidden" name="confirmed" value="true">
+
+                        <div class="d-grid gap-3 d-sm-flex justify-content-sm-center mt-2">
+                            <a href="{% url 'lunchorder:order_create' %}?date={{ target_date|date:'Y-m-d' }}{% if target_restaurant %}&restaurant_id={{ target_restaurant.id }}{% endif %}"
+                                class="btn btn-outline-secondary btn-lg px-4 fw-bold">
+                                <i class="fas fa-arrow-left me-2"></i>返回修改
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-lg px-4 fw-bold">
+                                <i class="fas fa-check me-2"></i>確認送單
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

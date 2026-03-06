@@ -286,7 +286,7 @@ class DroneReservation(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.applicant.get_full_name() or self.applicant.username} - {self.usage_start_datetime.strftime('%Y/%m/%d %H:%M')}"
+        return f"{self.applicant.get_full_name() or self.applicant.username} - {self.usage_start_datetime.strftime('%Y/%m/%d')}"
 
     def get_status_display_class(self):
         """取得狀態對應的 CSS class"""
@@ -338,3 +338,66 @@ class DroneReservation(models.Model):
             return reviewer_profile.is_active
         except DroneReviewer.DoesNotExist:
             return False
+
+
+class MissionRecord(models.Model):
+    """飛行任務紀錄 - 記錄已完成的無人機飛行任務"""
+    
+    # 關聯預約單（可選，用於自動帶入欄位）
+    reservation = models.ForeignKey(
+        DroneReservation,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='mission_records',
+        verbose_name="關聯預約單"
+    )
+    
+    # 基本資訊
+    mission_start_date = models.DateField(verbose_name="任務開始日期")
+    mission_end_date = models.DateField(verbose_name="任務結束日期")
+    project_number = models.CharField(max_length=100, verbose_name="計畫編號")
+    project_short_name = models.CharField(max_length=100, verbose_name="計畫簡稱")
+    
+    # 地點資訊（用於地圖顯示）
+    location_name = models.CharField(max_length=200, verbose_name="任務地點")
+    latitude = models.FloatField(verbose_name="緯度", help_text="例如：25.0478")
+    longitude = models.FloatField(verbose_name="經度", help_text="例如：121.5319")
+    
+    # 任務詳情
+    mission_description = models.TextField(verbose_name="任務說明")
+    drone_payload = models.CharField(max_length=200, verbose_name="無人機/酬載")
+    pilot = models.CharField(
+        max_length=100,
+        verbose_name="任務飛手",
+        help_text="輸入飛手姓名",
+        default=''
+    )
+    result_location = models.CharField(
+        max_length=500,
+        verbose_name="成果存放位置",
+        help_text="檔案路徑或雲端連結"
+    )
+    
+    # 管理欄位
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_mission_records',
+        verbose_name="建立者"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新時間")
+
+    class Meta:
+        verbose_name = "飛行任務紀錄"
+        verbose_name_plural = "飛行任務紀錄"
+        ordering = ['-mission_start_date', '-created_at']
+
+    def __str__(self):
+        start = self.mission_start_date.strftime('%Y/%m/%d')
+        end = self.mission_end_date.strftime('%Y/%m/%d')
+        if start == end:
+            return f"{start} - {self.project_short_name}"
+        return f"{start}~{end} - {self.project_short_name}"
