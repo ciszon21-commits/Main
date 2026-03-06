@@ -36,7 +36,7 @@ urlpatterns = [
     path('geodatahub/', include('GeoDataHub.urls')),  # 地圖導向資料管理平台
     path('geocoding/', include('GeoCoding.urls')),  # 地址編碼服務
     path('bidqa/', include('BidQA.urls')),  # 標案問答管理
-    path('circle-optimizer/', include('CircleOptimizer.urls')),  # 圓優化工具
+    path('SinoNATM/Shape/', include('CircleOptimizer.urls')),  # 圓優化工具
     path('chat/', include('SinoChat.urls', namespace='sinochat')),  # Sinotech 聊天室
     path('sinoVR/', include('sinoVR.urls')),  # sinoVR 虛擬實境
     path('interview/', include('InterviewAssessment.urls', namespace='interview_assessment')),
@@ -48,6 +48,10 @@ urlpatterns = [
     path('expense/', include('FriendExpense.urls')),  # 朋友間記帳
     path('lunch/', include('LunchOrder.urls', namespace='lunchorder')),  # 訂便當系統
     path('badminton/', include('Badminton.urls')),  # 記帳系統
+    path('news-insight/', include('NewsInsight.urls', namespace='NewsInsight')),  # GoogleNews輿情分析
+    path('wind-rose/', include('CODiS_WindRose_Plotter.urls')),  # 風玫瑰圖繪製工具
+    path('lhawish/', include('LHAWish.urls')),  # 部門許願池
+    path('duplicate-checker/', include('duplicate_checker.urls')),  # 重複檔案檢查器
 ]
 
 # 條件載入 ClashClassifier API

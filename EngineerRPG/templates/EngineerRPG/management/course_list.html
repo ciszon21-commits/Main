@@ -28,7 +28,7 @@
                 <i class="fas fa-search"></i> 搜尋
             </button>
             <a href="{% url 'engineer_rpg:course_management' %}" class="rpg-btn rpg-btn-outline" title="清除篩選">
-                <i class="fas fa-times"></i>
+                <i class="fas fa-times"></i> 清除
             </a>
         </form>
     </div>
@@ -78,9 +78,12 @@
                                 <i class="fas fa-sort-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
                                 {% endif %}
                             </th>
+                            <th class="text-center">
+                                課程時長
+                            </th>
                             <th class="text-center" style="cursor: pointer;"
                                 onclick="window.location.href='?sort=exam_time_limit&order={% if current_sort == 'exam_time_limit' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}';">
-                                時限 {% if current_sort == 'exam_time_limit' %}
+                                考試時限 {% if current_sort == 'exam_time_limit' %}
                                 <i class="fas fa-sort-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
                                 {% endif %}
                             </th>
@@ -104,6 +107,9 @@
                             </td>
                             <td class="text-center">
                                 <span class="text-sm">{{ course.questions.count }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="text-sm">{{ course.duration_minutes }} 分鐘</span>
                             </td>
                             <td class="text-center">
                                 <span class="text-sm">{{ course.exam_time_limit }} 分鐘</span>

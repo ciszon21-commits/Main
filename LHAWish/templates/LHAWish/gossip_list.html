@@ -1,0 +1,94 @@
+{% extends "LHAWish/base.html" %}
+{% block title %}七嘴八舌 - 部門許願池{% endblock %}
+
+{% block content %}
+<!-- Toolbar -->
+<div class="wish-toolbar">
+    <div class="wish-toolbar-left">
+        <form method="get" class="wish-search">
+            <svg class="wish-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="text" name="q" value="{{ search_term }}" placeholder="搜尋話題...">
+            {% if current_filter %}
+            <input type="hidden" name="filter" value="{{ current_filter }}">
+            {% endif %}
+        </form>
+        <div class="wish-filter-group">
+            <a href="?{% if search_term %}q={{ search_term }}{% endif %}"
+                class="wish-filter-btn {% if not current_filter %}active{% endif %}">全部</a>
+            <a href="?filter=newest{% if search_term %}&q={{ search_term }}{% endif %}"
+                class="wish-filter-btn {% if current_filter == 'newest' %}active{% endif %}">最新</a>
+            <a href="?filter=hot{% if search_term %}&q={{ search_term }}{% endif %}"
+                class="wish-filter-btn {% if current_filter == 'hot' %}active{% endif %}">熱門</a>
+        </div>
+    </div>
+    <a href="{% url 'lhawish:post_create' %}?type=gossip" class="wish-btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        發布話題
+    </a>
+</div>
+
+<!-- Gossip List -->
+<div class="wish-card-grid">
+    {% for post in posts %}
+    <a href="{% url 'lhawish:post_detail' post.pk %}" class="wish-card wish-gossip-card">
+        <div class="wish-gossip-author">
+            <div class="wish-gossip-avatar {% if post.is_anonymous %}anon{% else %}named{% endif %}">
+                {% if post.is_anonymous %}😎{% else %}<span class="material-symbols-outlined"
+                    style="font-size:16px;">person</span>{% endif %}
+            </div>
+            <div>
+                <div class="wish-gossip-name">
+                    {% if post.is_anonymous %}{{ post.display_name|default:"某同事" }}{% else %}{{ post.author.get_full_name|default:post.author.username }}{% endif %}
+                    {% if post.is_anonymous %}<span class="wish-gossip-anon-badge">匿名</span>{% endif %}
+                </div>
+                <div class="wish-gossip-date">{{ post.created_at|date:"Y/m/d H:i" }}</div>
+            </div>
+        </div>
+        {% if post.title %}
+        <h3 class="wish-gossip-title">{{ post.title }}</h3>
+        {% endif %}
+        <div class="wish-gossip-text">{{ post.content|striptags|truncatechars:100 }}</div>
+        <div class="wish-gossip-actions">
+            <span style="display:flex;align-items:center;gap:4px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+                {{ post.like_count }}
+            </span>
+            <span style="display:flex;align-items:center;gap:4px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                {{ post.comment_count }}
+            </span>
+        </div>
+    </a>
+    {% empty %}
+    <div class="wish-empty" style="grid-column: 1 / -1;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+        <p>目前沒有任何話題</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 從 detail 返回時自動刷新以更新按讚/留言數
+    window.addEventListener('pageshow', function (e) {
+        if (sessionStorage.getItem('lhawish_need_refresh') === '1') {
+            sessionStorage.removeItem('lhawish_need_refresh');
+            location.reload();
+        }
+    });
+</script>
+{% endblock %}

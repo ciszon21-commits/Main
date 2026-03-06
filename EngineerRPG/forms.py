@@ -202,28 +202,33 @@ class CourseForm(forms.ModelForm):
         model = Course
         fields = [
             'title', 'description', 'content_type', 'content_url',
-            'content_file', 'skill_nodes', 'duration_minutes'
+            'content_file', 'exam_time_limit', 'duration_minutes'
         ]
         widgets = {
             'title': forms.TextInput(attrs={
-                'class': 'rpg-input',
+                'class': 'rpg-input w-full',
                 'placeholder': '課程標題'
             }),
             'description': forms.Textarea(attrs={
-                'class': 'rpg-input',
+                'class': 'rpg-input w-full',
                 'rows': 3,
                 'placeholder': '課程描述...'
             }),
-            'content_type': forms.Select(attrs={'class': 'rpg-input'}),
+            'content_type': forms.Select(attrs={'class': 'rpg-input w-full'}),
             'content_url': forms.URLInput(attrs={
-                'class': 'rpg-input',
+                'class': 'rpg-input w-full',
                 'placeholder': 'https://...'
             }),
-            'content_file': forms.FileInput(attrs={'class': 'rpg-input'}),
-            'skill_nodes': forms.CheckboxSelectMultiple(),
+            'content_file': forms.FileInput(attrs={'class': 'rpg-input w-full'}),
+            'exam_time_limit': forms.NumberInput(attrs={
+                'class': 'rpg-input w-full',
+                'min': 1,
+                'max': 120
+            }),
             'duration_minutes': forms.NumberInput(attrs={
-                'class': 'rpg-input',
-                'min': 1
+                'class': 'rpg-input w-full',
+                'min': 1,
+                'max': 600
             }),
         }
         labels = {
@@ -232,9 +237,29 @@ class CourseForm(forms.ModelForm):
             'content_type': '內容類型',
             'content_url': '內容網址',
             'content_file': '內容檔案',
-            'skill_nodes': '關聯技能',
+            'exam_time_limit': '考試時限（分鐘）',
             'duration_minutes': '課程時長（分鐘）',
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['description'].required = False
+        self.fields['content_url'].required = False
+        
+    def clean(self):
+        cleaned_data = super().clean()
+        content_type = cleaned_data.get('content_type')
+        content_url = cleaned_data.get('content_url')
+        content_file = cleaned_data.get('content_file')
+        
+        if content_type == 'LINK' and not content_url:
+            self.add_error('content_url', '選擇外部連結時，必須填寫內容網址')
+        elif content_type == 'PDF' and not content_file:
+            # Check if we already have a file in the instance
+            if not self.instance.pk or not self.instance.content_file:
+                self.add_error('content_file', '選擇 PDF 文件時，必須上傳檔案')
+                
+        return cleaned_data
 
 
 

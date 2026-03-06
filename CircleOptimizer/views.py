@@ -229,3 +229,92 @@ class CircleViewSet(viewsets.ReadOnlyModelViewSet):
     """Circle API ViewSet (Read Only)"""
     queryset = Circle.objects.all()
     serializer_class = CircleSerializer
+
+
+from rest_framework.decorators import api_view
+from django.http import HttpResponse
+import pandas as pd
+import io
+
+@api_view(['POST'])
+def export_excel(request):
+    """
+    匯出斷面參數與淨空包絡線至 Excel 檔案
+    """
+    try:
+        data = request.data
+        project_number = data.get('projectNumber', '')
+        project_name = data.get('projectName', '')
+        tunnel_name = data.get('tunnelName', 'Tunnel_Design')
+        
+        # 組合檔名: 計畫編號+工程名稱+隧道名稱
+        full_filename = f"{project_number}{project_name}{tunnel_name}"
+        if not full_filename.strip():
+            full_filename = "Tunnel_Design_Export"
+
+        arcs_data = data.get('arcs', [])
+        envelopes_data = data.get('envelopes', [])
+
+        # 1. 準備"隧道斷面"工作表數據
+        tunnel_df = pd.DataFrame(arcs_data)
+        if not tunnel_df.empty:
+            # 重命名列以符合要求
+            column_mapping = {
+                'name': 'NO',
+                'cx': 'Center Xc(m)',
+                'cy': 'Center Yc(m)',
+                'r': 'Radius(m)',
+                'startAngle': 'Start Angle(Deg.)',
+                'endAngle': 'End Angle(Deg.)',
+                'startX': 'Start Point Xs(m)',
+                'startY': 'Start Point Ys(m)',
+                'endX': 'End Point Xe(m)',
+                'endY': 'End Point Ye(m)'
+            }
+            tunnel_df = tunnel_df.rename(columns=column_mapping)
+            # 只保留需要的列並依序排列
+            final_cols = [
+                'NO', 'Center Xc(m)', 'Center Yc(m)', 'Radius(m)', 
+                'Start Angle(Deg.)', 'End Angle(Deg.)', 
+                'Start Point Xs(m)', 'Start Point Ys(m)', 
+                'End Point Xe(m)', 'End Point Ye(m)'
+            ]
+            # 過濾掉不存在的列
+            final_cols = [c for c in final_cols if c in tunnel_df.columns]
+            tunnel_df = tunnel_df[final_cols]
+
+        # 2. 準備"淨空包絡線"工作表數據
+        env_rows = []
+        for env in envelopes_data:
+            env_name = env.get('name', 'Unknown')
+            points = env.get('points', [])
+            for p in points:
+                env_rows.append({
+                    '包絡線名稱': env_name,
+                    '點名稱': p.get('name', ''),
+                    'X(m)': p.get('x', 0),
+                    'Y(m)': p.get('y', 0)
+                })
+        
+        env_df = pd.DataFrame(env_rows)
+
+        # 3. 寫入到 Excel
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            tunnel_df.to_excel(writer, sheet_name='隧道斷面', index=False)
+            env_df.to_excel(writer, sheet_name='淨空包絡線', index=False)
+
+        output.seek(0)
+        
+        response = HttpResponse(
+            output.read(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{full_filename}.xlsx"'
+        return response
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

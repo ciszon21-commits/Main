@@ -33,11 +33,11 @@ class CharacterClass(models.Model):
 # ==================== Team System Models ====================
 
 class Team(models.Model):
-    name = models.CharField(max_length=200, verbose_name='隊伍名稱')
-    description = models.TextField(blank=True, verbose_name='隊伍說明')
+    name = models.CharField(max_length=200, verbose_name='部門名稱')
+    description = models.TextField(blank=True, verbose_name='部門說明')
     emp_dept = models.CharField(max_length=20, verbose_name='所屬部門', blank=True, null=True)
     leader = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
-                               related_name='led_teams', verbose_name='隊長')
+                               related_name='led_teams', verbose_name='部門主管')
     created_by = models.ForeignKey(User, on_delete=models.CASCADE,
                                    related_name='created_teams', verbose_name='建立者')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
@@ -73,14 +73,14 @@ class TeamMembership(models.Model):
     
     team = models.ForeignKey(Team, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    role = models.CharField(max_length=20)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'EngineerRPG_rpgteammembership'
         unique_together = (('team', 'user'),)
-        verbose_name = '隊伍成員'
-        verbose_name_plural = '隊伍成員列表'
+        verbose_name = '部門成員'
+        verbose_name_plural = '部門成員列表'
         
     def __str__(self):
         return f"{self.user.username} - {self.team.name}"
@@ -93,7 +93,6 @@ class UserProfile(models.Model):
         ('ADVENTURER', '冒險者'),
         ('OFFICER', '公會幹部'),
         ('MANAGER', '公會會長'),
-        ('ADMIN', '創世神'),
     ]
     
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='rpg_profile')
@@ -358,6 +357,7 @@ class UserCourseProgress(models.Model):
     is_completed = models.BooleanField('已完成', default=False)
     score = models.IntegerField('最高分數', default=0)
     completed_at = models.DateTimeField('完成時間', null=True, blank=True)
+    started_at = models.DateTimeField('開始時間', null=True, blank=True)
     
     class Meta:
         verbose_name = '使用者課程進度'

@@ -1,24 +1,10 @@
 {% extends "LunchOrder/base.html" %}
 {% load static %}
 
-{% block title %}訂便當系統 | 新增訂單{% endblock %}
+{% block title %}南工中心訂便當系統 | 新增訂單{% endblock %}
 
 {% block extra_css %}
 <style>
-    .menu-image {
-        width: 100%;
-        max-width: 100%;
-        border-radius: 16px;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
-        margin-bottom: 32px;
-        opacity: 0.9;
-        transition: opacity 0.3s;
-    }
-
-    .menu-image:hover {
-        opacity: 1;
-    }
-
     .order-card {
         background: var(--bg-card);
         border-radius: 20px;
@@ -249,14 +235,22 @@
 <div class="container py-4" style="padding-bottom: 140px;">
     <div class="row justify-content-center">
         <div class="col-lg-10">
-            <!-- 菜單圖片 -->
-            <img src="{% static 'LunchOrder/menu_2026.jpg' %}" alt="2026年1月版便當菜單" class="menu-image">
 
+            <!-- 菜單圖片 -->
+
+            {% if target_restaurant %}
             <form method="post" id="order-form">
                 {% csrf_token %}
 
                 <div class="order-card p-4 mb-4">
                     <div class="order-header">
+                        {% if target_restaurant.image_file %}
+                        <div class="mb-3">
+                            <img src="{% static 'LunchOrder/' %}{{ target_restaurant.image_file }}"
+                                alt="{{ target_restaurant.name }}" class="img-fluid rounded-4 shadow-sm"
+                                style="width: 100%;">
+                        </div>
+                        {% endif %}
                         <h2><i class="fas fa-utensils me-2"></i>選擇餐點</h2>
                         <p class="text-muted">請點擊下方卡片選擇</p>
                     </div>
@@ -316,6 +310,11 @@
                 <!-- 底部懸浮列 -->
                 <div class="bottom-bar" id="bottom-bar">
                     <div class="container">
+                        {% if is_past_cutoff %}
+                        <div class="alert alert-danger mb-0 text-center fw-bold">
+                            <i class="fas fa-clock me-2"></i>今日已超過 10:15 截止時間，無法訂餐
+                        </div>
+                        {% else %}
                         <div class="row align-items-center">
                             <div class="col-md-6 mb-3 mb-md-0 d-flex align-items-center">
                                 <div class="fw-bold fs-5 me-3" id="selected-item-name">尚未選擇餐點</div>
@@ -338,10 +337,29 @@
                                 </button>
                             </div>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
 
             </form>
+            {% else %}
+            <div class="order-card p-5 text-center">
+                <div class="mb-4">
+                    <i class="fas fa-calendar-times fa-4x text-muted"></i>
+                </div>
+                <h2 class="mb-3">本日無便當訂購選項</h2>
+                <p class="text-muted fs-5 mb-4">今天尚未安排便當店，或是您選擇的日期沒有供餐。</p>
+
+                <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                    <a href="{% url 'lunchorder:calendar_view' %}" class="btn btn-primary btn-lg px-4 gap-3">
+                        <i class="fas fa-calendar-alt me-2"></i>查看行事曆
+                    </a>
+                    <a href="{% url 'lunchorder:restaurant_list' %}" class="btn btn-outline-light btn-lg px-4">
+                        <i class="fas fa-store me-2"></i>瀏覽所有店家
+                    </a>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

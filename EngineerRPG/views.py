@@ -12,6 +12,7 @@ import random
 import json
 import csv
 from django.http import HttpResponse
+from django.urls import reverse
 
 from .models import (
     CharacterClass, UserProfile, SkillNode, Course, UserSkill,
@@ -28,6 +29,7 @@ from .forms import (
 )
 
 from .utils.course_importer import CourseImporter, generate_template_excel
+from .utils.skill_layout import transitive_reduction
 
 # Import team management functions
 from .views_team_management import edit_team, manage_team_members, create_team
@@ -49,8 +51,8 @@ def get_or_create_user_profile(user):
     
     # Sync Roles from Whitelist or Superuser status
     if user.is_superuser:
-        if profile.role != 'ADMIN':
-            profile.role = 'ADMIN'
+        if profile.role not in ['MANAGER', 'OFFICER']:
+            profile.role = 'OFFICER'
             profile.save(update_fields=['role'])
     else:
         # Check Whitelist
@@ -60,7 +62,7 @@ def get_or_create_user_profile(user):
                 profile.role = whitelist.role
                 profile.save(update_fields=['role'])
         else:
-            if profile.role in ['ADMIN', 'MANAGER', 'OFFICER']:
+            if profile.role in ['MANAGER', 'OFFICER']:
                 profile.role = 'ADVENTURER'
                 profile.save(update_fields=['role'])
 
@@ -68,10 +70,33 @@ def get_or_create_user_profile(user):
 
 
 def check_skill_unlocked(user_profile, skill_node):
-    """檢查技能是否已解鎖（等級足夠且前置技能皆已完成）"""
+    """檢查技能是否已解鎖（等級足夠、前置技能皆已完成，且職業核心/進階選修需完修所有共同必修）"""
+    # 1. 等級檢查
     if user_profile.level < skill_node.min_level:
         return False
 
+    # 2. 共同必修 (ROOT) 限制：如果是 CORE 或 ADVANCED，必須先完成所有 ROOT 技能
+    if skill_node.node_type in ['CORE', 'ADVANCED']:
+        from django.db.models import Q
+        # 找出該職業對應的所有 ROOT 技能（包含通用與專屬）
+        all_root_skills = SkillNode.objects.filter(
+            node_type='ROOT'
+        ).filter(
+            Q(character_class=user_profile.character_class) | Q(character_class__isnull=True)
+        )
+        
+        root_count = all_root_skills.count()
+        if root_count > 0:
+            completed_roots = UserSkill.objects.filter(
+                user_profile=user_profile,
+                skill_node__in=all_root_skills,
+                status='COMPLETED'
+            ).count()
+            
+            if completed_roots < root_count:
+                return False
+
+    # 3. 前置技能檢查
     parent_skills = skill_node.parent_skills.all()
     if parent_skills.exists():
         completed_parents = UserSkill.objects.filter(
@@ -80,7 +105,38 @@ def check_skill_unlocked(user_profile, skill_node):
             status='COMPLETED'
         ).count()
         return completed_parents == parent_skills.count()
+    
     return True
+
+
+def update_skill_progress(user_profile, skill_node):
+    """更新技能完成進度：計算該技能下所有課程的完成比例"""
+    total_courses = skill_node.courses.count()
+    if total_courses == 0:
+        # 無課程的技能，手動觸發時設為 100% (通常不應發生，或由其他邏輯處理)
+        new_progress = 100
+    else:
+        completed_count = UserCourseProgress.objects.filter(
+            user_profile=user_profile,
+            course__in=skill_node.courses.all(),
+            is_completed=True
+        ).count()
+        new_progress = round((completed_count * 100) / total_courses)
+
+    user_skill, _ = UserSkill.objects.get_or_create(
+        user_profile=user_profile,
+        skill_node=skill_node,
+        defaults={'status': 'IN_PROGRESS', 'started_at': timezone.now()}
+    )
+
+    user_skill.progress = new_progress
+    if new_progress >= 100:
+        if user_skill.status != 'COMPLETED':
+            user_skill.status = 'COMPLETED'
+            user_skill.completed_at = timezone.now()
+            # 首次完成，給予獎勵 (這裡不給，由呼叫端處理重複給予問題，或在此判斷)
+    user_skill.save()
+    return user_skill
 
 
 # ==================== Authentication Views ====================
@@ -322,6 +378,10 @@ def skill_tree(request):
     root_xp_current = SkillNode.objects.filter(node_type='ROOT').aggregate(Sum('exp_reward'))['exp_reward__sum'] or 0
     core_xp_current = SkillNode.objects.filter(node_type='CORE', character_class__code=selected_class_code).aggregate(Sum('exp_reward'))['exp_reward__sum'] or 0
     
+    # 原則 3: 執行遞移簡化 (Transitive Reduction) 移除冗餘連線
+    all_parent_ids = {s.id: [p.id for p in s.parent_skills.all()] for s in skills}
+    reduced_parents = transitive_reduction(all_parent_ids)
+
     # 格式化 JSON 資料
     data = []
     for skill in skills:
@@ -332,7 +392,7 @@ def skill_tree(request):
                 'node_type': skill.node_type,
                 'position_x': skill.position_x,
                 'position_y': skill.position_y,
-                'parent_skills': [p.id for p in skill.parent_skills.all()]
+                'parent_skills': reduced_parents.get(skill.id, [])
             },
             'status': user_skill_dict.get(skill.id, 'LOCKED')
         })
@@ -374,6 +434,12 @@ def skill_detail(request, skill_id):
     # 相關課程
     courses = skill.courses.all()
     
+    # 獲取已完成課程 ID
+    completed_course_ids = UserCourseProgress.objects.filter(
+        user_profile=profile,
+        course__in=courses,
+        is_completed=True
+    ).values_list('course_id', flat=True)
     # 前置技能狀態
     parent_skills = skill.parent_skills.all()
     parents_with_status = []
@@ -384,13 +450,37 @@ def skill_detail(request, skill_id):
             'status': parent_user_skill.status if parent_user_skill else 'LOCKED'
         })
         
+    # 檢查並自動清除失效的修練狀態
+    learning_course_id = request.session.get('learning_course_id')
+    current_learning_course = None
+    if learning_course_id:
+        try:
+            learning_course = Course.objects.get(id=learning_course_id)
+            # 檢查這堂課是否其實已經完成了
+            is_learning_course_completed = UserCourseProgress.objects.filter(
+                user_profile=profile,
+                course=learning_course,
+                is_completed=True
+            ).exists()
+            
+            if is_learning_course_completed:
+                del request.session['learning_course_id']
+                request.session.modified = True
+            else:
+                current_learning_course = learning_course
+        except Course.DoesNotExist:
+            del request.session['learning_course_id']
+            request.session.modified = True
+
     context = {
         'profile': profile,
         'skill': skill,
         'user_skill': user_skill,
         'is_unlocked': is_unlocked,
         'courses': courses,
+        'completed_course_ids': list(completed_course_ids),
         'parents_with_status': parents_with_status,
+        'current_learning_course': current_learning_course,
     }
     return render(request, 'EngineerRPG/skill_detail_fixed.html', context)
 
@@ -2044,22 +2134,22 @@ def start_daily_trial(request, task_id):
         }
     )
     
+    total_questions_count = daily_task.questions.count()
+    is_questions_finished = (progress.current_question_index >= total_questions_count) or (progress.answers and len(progress.answers) >= total_questions_count)
+
     # 檢查是否已完成或超時
-    elapsed_minutes = (timezone.now() - progress.started_at).total_seconds() / 60
-    is_timeout = elapsed_minutes > daily_task.trial.time_limit_minutes
-    
-    
-    
-    # 檢查是否已完成或超時
-    # elapsed_minutes = (timezone.now() - progress.started_at).total_seconds() / 60
-    # is_timeout = elapsed_minutes > daily_task.trial.time_limit_minutes
+    if progress.is_completed:
+        # 如果已經結算，超時的判斷應該基於「當初是否因為超時失敗」。
+        # 也就是：未通關 + 還有血量 + 題目沒答完
+        is_timeout = not progress.is_passed and progress.current_hp > 0 and not is_questions_finished
+    else:
+        elapsed_minutes = (timezone.now() - progress.started_at).total_seconds() / 60
+        is_timeout = elapsed_minutes > daily_task.trial.time_limit_minutes
+
     # 第一題開始時生成第一隻怪物
     if created or not progress.chest_data.get('current_monster'):
         generate_daily_monster(progress, profile, request)
         
-    total_questions_count = daily_task.questions.count()
-    is_questions_finished = (progress.current_question_index >= total_questions_count) or (progress.answers and len(progress.answers) >= total_questions_count)
-    
     if progress.is_completed or is_timeout or progress.current_hp <= 0 or is_questions_finished:
         # 顯示結算畫面
         trial = daily_task.trial
@@ -2142,20 +2232,20 @@ def start_daily_trial(request, task_id):
             progress.save()
 
         # 額外獎勵判定：每日試煉且 HP >= 60%
-        if not getattr(progress, 'chest_data', {}):
+        chest_data = getattr(progress, 'chest_data', {}) or {}
+        if '1' not in chest_data:
              # 確保 initial_hp > 0
              initial = progress.initial_hp if progress.initial_hp > 0 else 1
              hp_percent = progress.current_hp / initial
              if hp_percent >= 0.6:
                  chest_options = ['MIMIC', 'TICKETS_3', 'POTION', 'TICKET_POTION']
                  import random
-                 chests = {}
                  for i in range(1, 5):
-                     chests[str(i)] = {
+                     chest_data[str(i)] = {
                          'type': random.choice(chest_options),
                          'is_opened': False
                      }
-                 progress.chest_data = chests
+                 progress.chest_data = chest_data
                  progress.save()
 
         context = {
@@ -2174,7 +2264,7 @@ def start_daily_trial(request, task_id):
             'final_hp': progress.current_hp,
             'initial_hp': progress.initial_hp,
             'wrong_answers_list': wrong_answers_list,
-            'chests': getattr(progress, 'chest_data', {}),
+            'chests': {k: v for k, v in getattr(progress, 'chest_data', {}).items() if k in ['1', '2', '3', '4']},
         }
         return render(request, 'EngineerRPG/trial_exam.html', context)
         
@@ -2727,13 +2817,13 @@ def open_daily_chest(request, task_id, chest_index):
         return JsonResponse({'error': 'No chests available'}, status=400)
         
     # Check if already opened (limit to 1)
-    # 檢查是否已經開啟過任何寶箱
-    if any(c.get('is_opened', False) for c in chest_data.values()):
+    # 檢查是否已經開啟過任何寶箱 (只檢查 '1', '2', '3', '4' 對應的寶箱)
+    if any(chest_data.get(str(i), {}).get('is_opened', False) for i in range(1, 5)):
         return JsonResponse({'error': '只能開啟一個寶箱！'}, status=400)
         
     # Check specific chest
     chest_key = str(chest_index)
-    if chest_key not in chest_data:
+    if chest_key not in ['1', '2', '3', '4'] or chest_key not in chest_data:
         return JsonResponse({'error': 'Invalid chest index'}, status=400)
         
     chest = chest_data[chest_key]
@@ -2821,13 +2911,17 @@ def apply_promotion(request):
     ).first()
 
     if request.method == 'POST' and eligible and not pending_request:
+        if not profile.current_team:
+            messages.error(request, '無法申請晉升：您尚未加入任何隊伍，沒有所屬隊長可以審核您的申請。請先加入隊伍。')
+            return redirect('engineer_rpg:apply_promotion')
+            
         # 建立申請紀錄
         PromotionRequest.objects.create(
             applicant=profile,
             current_level=profile.level,
             target_level=target_level,
         )
-        messages.success(request, '晉升申請已提交，請等待管理員審核。')
+        messages.success(request, '晉升申請已提交，請等待所屬隊長審核。')
         return redirect('engineer_rpg:dashboard')
 
     context = {
@@ -2908,7 +3002,7 @@ def leaderboard(request):
 def manager_dashboard(request):
     """主管/管理員儀表板"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ['MANAGER', 'ADMIN']:
+    if profile.role not in ['MANAGER', 'OFFICER']:
         messages.error(request, '權限不足')
         return redirect('engineer_rpg:dashboard')
         
@@ -2927,7 +3021,7 @@ def manager_dashboard(request):
 def promotion_requests(request):
     """晉升申請列表"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ['MANAGER', 'ADMIN']:
+    if profile.role not in ['MANAGER', 'OFFICER']:
         messages.error(request, '權限不足')
         return redirect('engineer_rpg:dashboard')
         
@@ -2940,37 +3034,101 @@ def promotion_requests(request):
 
 @login_required
 def review_request(request, request_id):
-    """Review promotion request"""
+    """Review promotion request - Redirects to applicant's team dashboard"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ['MANAGER', 'ADMIN']:
+    if profile.role not in ['MANAGER', 'OFFICER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
-    context = {'profile': profile}
-    return render(request, 'EngineerRPG/review_request.html', context)
+        
+    promotion_req = get_object_or_404(PromotionRequest, id=request_id)
+    applicant_team = promotion_req.applicant.current_team
+    if applicant_team:
+        return redirect(f"{reverse('engineer_rpg:team_dashboard')}?team_id={applicant_team.id}")
+    else:
+        messages.error(request, '該申請人目前不屬於任何隊伍，無法審核。')
+        return redirect('engineer_rpg:promotion_requests')
 
 @login_required
 def approve_request(request, request_id):
     """Approve promotion request"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ['MANAGER', 'ADMIN']:
-        messages.error(request, 'Permission denied')
+    promotion_req = get_object_or_404(PromotionRequest, id=request_id)
+    
+    # 檢查是否為同部門的主管或副主管
+    applicant = promotion_req.applicant
+    applicant_team = applicant.current_team
+    
+    has_permission = False
+    if applicant_team:
+        try:
+            membership = TeamMembership.objects.get(team=applicant_team, user=request.user)
+            if membership.role in ['LEADER', 'VICE_LEADER']:
+                has_permission = True
+        except TeamMembership.DoesNotExist:
+            pass
+            
+    if not has_permission:
+        messages.error(request, '您沒有權限核准此申請，僅限該隊伍長官操作')
+        if applicant_team:
+            return redirect(f"{reverse('engineer_rpg:team_dashboard')}?team_id={applicant_team.id}")
         return redirect('engineer_rpg:dashboard')
-    return redirect('engineer_rpg:promotion_requests')
+        
+    promotion_req.status = 'APPROVED'
+    promotion_req.save()
+    
+    applicant.level = promotion_req.target_level
+    
+    # 同步更新職銜 (Rank)
+    if promotion_req.target_level == 10:
+        applicant.rank = 'ASSISTANT'
+    elif promotion_req.target_level == 50:
+        applicant.rank = 'ENGINEER'
+        
+    applicant.save()
+    
+    messages.success(request, f'已核准 {applicant.display_name} 的晉升申請！')
+    if applicant_team:
+        return redirect(f"{reverse('engineer_rpg:team_dashboard')}?team_id={applicant_team.id}")
+    return redirect('engineer_rpg:dashboard')
 
 @login_required
 def reject_request(request, request_id):
     """Reject promotion request"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ['MANAGER', 'ADMIN']:
-        messages.error(request, 'Permission denied')
+    promotion_req = get_object_or_404(PromotionRequest, id=request_id)
+    
+    # 檢查是否為同部門的主管或副主管
+    applicant = promotion_req.applicant
+    applicant_team = applicant.current_team
+    
+    has_permission = False
+    if applicant_team:
+        try:
+            membership = TeamMembership.objects.get(team=applicant_team, user=request.user)
+            if membership.role in ['LEADER', 'VICE_LEADER']:
+                has_permission = True
+        except TeamMembership.DoesNotExist:
+            pass
+            
+    if not has_permission:
+        messages.error(request, '您沒有權限拒絕此申請，僅限該隊伍長官操作')
+        if applicant_team:
+            return redirect(f"{reverse('engineer_rpg:team_dashboard')}?team_id={applicant_team.id}")
         return redirect('engineer_rpg:dashboard')
-    return redirect('engineer_rpg:promotion_requests')
+        
+    promotion_req.status = 'REJECTED'
+    promotion_req.save()
+    
+    messages.success(request, f'已拒絕 {applicant.display_name} 的晉升申請。')
+    if applicant_team:
+        return redirect(f"{reverse('engineer_rpg:team_dashboard')}?team_id={applicant_team.id}")
+    return redirect('engineer_rpg:dashboard')
 
 @login_required
 def manage_skill_tree(request):
     """Manage skill tree"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ['MANAGER', 'ADMIN']:
+    if profile.role not in ['MANAGER', 'OFFICER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
     context = {'profile': profile}
@@ -2980,7 +3138,7 @@ def manage_skill_tree(request):
 def manage_questions(request):
     """Manage questions"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ['MANAGER', 'ADMIN']:
+    if profile.role not in ['MANAGER', 'OFFICER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
     context = {'profile': profile}
@@ -2993,7 +3151,7 @@ def manage_questions(request):
 def admin_dashboard(request):
     """Admin dashboard"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role != 'ADMIN':
+    if profile.role not in ['MANAGER', 'OFFICER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
     
@@ -3011,7 +3169,7 @@ def admin_dashboard(request):
 def user_management(request):
     """User management"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role != 'ADMIN':
+    if profile.role not in ['MANAGER', 'OFFICER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
     context = {'profile': profile}
@@ -3021,7 +3179,7 @@ def user_management(request):
 def create_user(request):
     """Create user"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role != 'ADMIN':
+    if profile.role not in ['MANAGER', 'OFFICER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
     context = {'profile': profile}
@@ -3031,7 +3189,7 @@ def create_user(request):
 def edit_user(request, user_id):
     """Edit user"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role != 'ADMIN':
+    if profile.role not in ['MANAGER', 'OFFICER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
     context = {'profile': profile}
@@ -3041,7 +3199,7 @@ def edit_user(request, user_id):
 def question_management(request):
     """Question management"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role != 'ADMIN':
+    if profile.role not in ['MANAGER', 'OFFICER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
     context = {'profile': profile}
@@ -3051,7 +3209,7 @@ def question_management(request):
 def create_question(request):
     """Create question"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role != 'ADMIN':
+    if profile.role not in ['MANAGER', 'OFFICER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
     context = {'profile': profile}
@@ -3061,7 +3219,7 @@ def create_question(request):
 def edit_question(request, question_id):
     """Edit question"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role != 'ADMIN':
+    if profile.role not in ['MANAGER', 'OFFICER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
     
@@ -3087,7 +3245,7 @@ def edit_question(request, question_id):
 def category_management(request):
     """Category management"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role != 'ADMIN':
+    if profile.role not in ['MANAGER', 'OFFICER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
     context = {'profile': profile}
@@ -3097,7 +3255,7 @@ def category_management(request):
 def dungeon_management(request):
     """Dungeon management"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role != 'ADMIN':
+    if profile.role not in ['MANAGER', 'OFFICER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
     context = {'profile': profile}
@@ -3107,7 +3265,7 @@ def dungeon_management(request):
 def create_dungeon(request):
     """Create dungeon"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role != 'ADMIN':
+    if profile.role not in ['MANAGER', 'OFFICER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
     context = {'profile': profile}
@@ -3117,7 +3275,7 @@ def create_dungeon(request):
 def edit_dungeon(request, dungeon_id):
     """Edit dungeon"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role != 'ADMIN':
+    if profile.role not in ['MANAGER', 'OFFICER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
     context = {'profile': profile}
@@ -3127,7 +3285,7 @@ def edit_dungeon(request, dungeon_id):
 def import_questions_view(request):
     """Import questions"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role != 'ADMIN':
+    if profile.role not in ['MANAGER', 'OFFICER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
     context = {'profile': profile}
@@ -3142,7 +3300,7 @@ def download_template(request, format):
 def skill_tree_editor(request):
     """Skill tree editor"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ['MANAGER', 'ADMIN']:
+    if profile.role not in ['MANAGER', 'OFFICER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
     
@@ -3153,8 +3311,8 @@ def skill_tree_editor(request):
     courses = Course.objects.all()
 
     # XP 預算計算 (每等級 100 XP)
-    ROOT_XP_LIMIT = 10 * 100   # Lv.10 共同必修上限 = 1000 XP
-    CORE_XP_LIMIT = 40 * 100   # Lv.50 - Lv.10 = 40 等，職業核心上限 = 4000 XP
+    ROOT_XP_LIMIT = 4500   # Lv.10 共同必修上限 = 4500 XP (100+200+...+900)
+    CORE_XP_LIMIT = 118000 # Lv.50 - Lv.10 = 40 等，職業核心上限 = 118000 XP (1000+1100+...+4900)
 
     root_xp_current = SkillNode.objects.filter(
         node_type='ROOT'
@@ -3238,7 +3396,7 @@ def guild_dashboard(request):
     from UserProfile.models import UserProfile as EmpProfile
 
     profile = get_or_create_user_profile(request.user)
-    is_manager = profile.role in ['OFFICER', 'MANAGER', 'ADMIN']
+    is_manager = profile.role in ['OFFICER', 'MANAGER']
 
     # 布告欄摘要
     announcements = GuildPost.objects.filter(category='ANNOUNCEMENT').order_by('-created_at')[:5]
@@ -3326,7 +3484,7 @@ def api_skill_tree_data(request):
 def api_skill_editor_data(request):
     """API: Get skill editor data"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ['MANAGER', 'ADMIN']:
+    if profile.role not in ['MANAGER', 'OFFICER']:
         return JsonResponse({'error': 'Permission denied'}, status=403)
         
     class_code = request.GET.get('class', 'CIVIL')
@@ -3389,7 +3547,7 @@ def api_save_skill_layout(request):
         return JsonResponse({'error': 'Method not allowed'}, status=405)
         
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ['MANAGER', 'ADMIN']:
+    if profile.role not in ['MANAGER', 'OFFICER']:
         return JsonResponse({'error': 'Permission denied'}, status=403)
         
     try:
@@ -3414,7 +3572,7 @@ def api_save_skill_node(request):
         return JsonResponse({'error': 'Method not allowed'}, status=405)
         
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ['MANAGER', 'ADMIN']:
+    if profile.role not in ['MANAGER', 'OFFICER']:
         return JsonResponse({'error': 'Permission denied'}, status=403)
         
     try:
@@ -3469,7 +3627,7 @@ def api_delete_skill_node(request):
         return JsonResponse({'error': 'Method not allowed'}, status=405)
         
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ['MANAGER', 'ADMIN']:
+    if profile.role not in ['MANAGER', 'OFFICER']:
         return JsonResponse({'error': 'Permission denied'}, status=403)
         
     try:
@@ -3488,66 +3646,46 @@ def api_manage_skill_course(request):
 @csrf_exempt
 @login_required
 def api_auto_layout_skill_tree(request):
-    """API: Auto layout skill tree"""
+    """API: 自動佈局技能樹（會存檔至資料庫）"""
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
         
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ['MANAGER', 'ADMIN']:
+    if profile.role not in ['MANAGER', 'OFFICER']:
         return JsonResponse({'error': 'Permission denied'}, status=403)
         
     try:
         data = json.loads(request.body)
         class_code = data.get('class_code')
         
-        skills = SkillNode.objects.filter(
-            Q(node_type='ROOT') | Q(character_class__code=class_code)
-        ).prefetch_related('parent_skills')
-        
-        levels = {} 
-        skill_map = {s.id: s for s in skills}
-        
-        for s in skills:
-            levels[s.id] = 0
-            
-        changed = True
-        iterations = 0
-        while changed and iterations < 100:
-            changed = False
-            iterations += 1
-            for s in skills:
-                current_level = levels[s.id]
-                max_parent_level = -1
-                for p in s.parent_skills.all():
-                    if p.id in levels:
-                        max_parent_level = max(max_parent_level, levels[p.id])
-                
-                if max_parent_level >= current_level:
-                    levels[s.id] = max_parent_level + 1
-                    changed = True
-                    
-        level_groups = {}
-        for s_id, lvl in levels.items():
-            if lvl not in level_groups:
-                level_groups[lvl] = []
-            level_groups[lvl].append(skill_map[s_id])
-            
-        count = 0
-        for lvl in sorted(level_groups.keys()):
-            nodes = level_groups[lvl]
-            nodes.sort(key=lambda x: x.name)
-            
-            x_pos = lvl * 250 + 50
-            start_y = 50
-            
-            for i, node in enumerate(nodes):
-                y_pos = start_y + i * 150
-                node.position_x = x_pos
-                node.position_y = y_pos
-                node.save()
-                count += 1
+        from .utils.skill_layout import apply_layout_to_db
+        count = apply_layout_to_db(class_code)
                 
         return JsonResponse({'success': True, 'count': count})
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@csrf_exempt
+@login_required
+def api_skill_tree_preview_data(request):
+    """API: 取得技能樹佈局預覽資料（不會存檔）"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+        
+    profile = get_or_create_user_profile(request.user)
+    if profile.role not in ['MANAGER', 'OFFICER']:
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+        
+    try:
+        data = json.loads(request.body)
+        class_code = data.get('class_code')
+        
+        from .utils.skill_layout import calculate_layout_data
+        layout_data = calculate_layout_data(class_code)
+        
+        return JsonResponse({'success': True, 'nodes': layout_data})
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
@@ -3619,7 +3757,7 @@ def member_profile_detail(request, member_id):
 def team_management(request):
     """Team management list"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ['OFFICER', 'MANAGER', 'ADMIN']:
+    if profile.role not in ['OFFICER', 'MANAGER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
     
@@ -3636,7 +3774,7 @@ def team_management(request):
 def create_team(request):
     """Create team"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ['OFFICER', 'MANAGER', 'ADMIN']:
+    if profile.role not in ['OFFICER', 'MANAGER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
     
@@ -3683,7 +3821,7 @@ def create_team(request):
 def edit_team(request, team_id):
     """Edit team"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ['OFFICER', 'MANAGER', 'ADMIN']:
+    if profile.role not in ['OFFICER', 'MANAGER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
     
@@ -3733,7 +3871,7 @@ def edit_team(request, team_id):
 def delete_team(request, team_id):
     """Disband team"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ['OFFICER', 'MANAGER', 'ADMIN']:
+    if profile.role not in ['OFFICER', 'MANAGER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:team_management')
     
@@ -3751,7 +3889,7 @@ def delete_team(request, team_id):
 def manage_team_members(request, team_id):
     """Manage team members"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ['OFFICER', 'MANAGER', 'ADMIN']:
+    if profile.role not in ['OFFICER', 'MANAGER']:
         messages.error(request, 'Permission denied')
         return redirect('engineer_rpg:dashboard')
     
@@ -3807,26 +3945,35 @@ def manage_team_members(request, team_id):
 
 @login_required
 def team_dashboard(request):
-    """隊伍儀表板 — 顯示使用者所屬部門的成員"""
+    """隊伍儀表板 — 顯示使用者所屬部門的成員，及晉升審核清單（若具備長官權限）"""
     from StudioBase.constants import SINO_DEPT_DB
     from UserProfile.models import UserProfile as EmpProfile
+    from .models import Team, TeamMembership, PromotionRequest
 
     rpg_profile = get_or_create_user_profile(request.user)
-
-    # 取得使用者的部門代碼（來自 UserProfile app）
+    is_guild_manager = rpg_profile.role in ['MANAGER', 'OFFICER']
+    
+    # 判斷是否為會長/幹部跨區檢視
+    team_id_param = request.GET.get('team_id')
     emp_dept = None
-    dept_name = None
+    target_rpg_team = None
     
-    # 使用 get_or_create 確保 UserProfile 存在
-    emp_profile, created = EmpProfile.objects.get_or_create(
-        user=request.user,
-        defaults={
-            'emp_name': request.user.get_full_name() or request.user.username,
-            'emp_email': request.user.email,
-        }
-    )
-    
-    emp_dept = emp_profile.emp_dept
+    if team_id_param and is_guild_manager:
+        target_rpg_team = get_object_or_404(Team, id=team_id_param)
+        emp_dept = target_rpg_team.emp_dept
+    else:
+        # 使用 get_or_create 確保 UserProfile 存在
+        emp_profile, created = EmpProfile.objects.get_or_create(
+            user=request.user,
+            defaults={
+                'emp_name': request.user.get_full_name() or request.user.username,
+                'emp_email': request.user.email,
+            }
+        )
+        emp_dept = emp_profile.emp_dept
+        if emp_dept:
+            target_rpg_team = Team.objects.filter(emp_dept=emp_dept).first()
+
     dept_name = SINO_DEPT_DB.get(emp_dept, emp_dept) if emp_dept else None
 
     if not emp_dept:
@@ -3846,6 +3993,27 @@ def team_dashboard(request):
             .select_related('user', 'character_class')
             .order_by('-level')
         )
+        
+        # 審核權限判斷
+        is_dept_manager = False
+        if target_rpg_team:
+            try:
+                membership = TeamMembership.objects.get(team=target_rpg_team, user=request.user)
+                if membership.role in ['LEADER', 'VICE_LEADER']:
+                    is_dept_manager = True
+            except TeamMembership.DoesNotExist:
+                pass
+                
+        can_review_promotions = is_dept_manager
+        can_view_promotions = is_dept_manager or is_guild_manager
+        
+        pending_promotions = []
+        if can_view_promotions and target_rpg_team:
+            # 由於 apply_promotion 中，申請人必須要有 current_team 才能申請
+            pending_promotions = PromotionRequest.objects.filter(
+                applicant__current_team=target_rpg_team,
+                status='PENDING'
+            ).select_related('applicant__user', 'applicant__character_class')
 
         context = {
             'profile': rpg_profile,
@@ -3853,6 +4021,10 @@ def team_dashboard(request):
             'dept_name': dept_name,
             'dept_code': emp_dept,
             'dept_members': dept_members,
+            'can_view_promotions': can_view_promotions,
+            'can_review_promotions': can_review_promotions,
+            'pending_promotions': pending_promotions,
+            'rpg_team': target_rpg_team,
         }
 
     return render(request, 'EngineerRPG/team_dashboard.html', context)
@@ -3865,7 +4037,7 @@ def api_search_users(request):
     from UserProfile.models import UserProfile as EmpProfile
 
     profile = get_or_create_user_profile(request.user)
-    if not (request.user.is_superuser or profile.role == 'ADMIN'):
+    if not (request.user.is_superuser or profile.role in ['MANAGER', 'OFFICER']):
         return JsonResponse({'results': []})
 
     q = request.GET.get('q', '').strip()
@@ -3898,7 +4070,7 @@ def admin_whitelist_view(request):
     """白名單管理 (Superuser Only)"""
     # 檢查權限：必須是 superuser 或是 'ADMIN' 角色
     profile = get_or_create_user_profile(request.user)
-    if not (request.user.is_superuser or profile.role == 'ADMIN'):
+    if not (request.user.is_superuser or profile.role in ['MANAGER', 'OFFICER']):
         messages.error(request, '權限不足')
         return redirect('engineer_rpg:dashboard')
         
@@ -3973,9 +4145,8 @@ def has_whitelist_permission(user, required_role='MANAGER'):
     # 權限層級定義
     ROLE_LEVELS = {
         'ADVENTURER': 0,
-        'OFFICER': 1,
+        'OFFICER': 2,
         'MANAGER': 2,
-        'ADMIN': 3
     }
     
     try:
@@ -4006,7 +4177,7 @@ def guild_dashboard(request):
                  .annotate(comment_count=Count('comments'))
                  .order_by('-comment_count', '-views')[:5])
 
-    is_manager = profile.role in ('OFFICER', 'MANAGER', 'ADMIN')
+    is_manager = profile.role in ('OFFICER', 'MANAGER')
 
     # 建立部門分組
     dept_groups = _build_dept_groups(SINO_DEPT_DB, EmpProfile)
@@ -4077,7 +4248,7 @@ def guild_post_detail(request, post_id):
 def guild_announcement_create(request):
     """發布系統級公告"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ('OFFICER', 'MANAGER', 'ADMIN'):
+    if profile.role not in ('OFFICER', 'MANAGER'):
         return redirect('engineer_rpg:guild_dashboard')
     if request.method == 'POST':
         GuildPost.objects.create(
@@ -4100,7 +4271,7 @@ def guild_announcement_create(request):
 def user_management(request):
     """使用者管理"""
     profile = get_or_create_user_profile(request.user)
-    if not has_whitelist_permission(request.user, 'ADMIN'):
+    if not has_whitelist_permission(request.user, 'OFFICER'):
         return redirect('engineer_rpg:dashboard')
     
     users = UserProfile.objects.all().select_related('user', 'character_class')
@@ -4264,7 +4435,7 @@ def delete_question(request, question_id):
 def category_management(request):
     """題目分類管理"""
     profile = get_or_create_user_profile(request.user)
-    if not has_whitelist_permission(request.user, 'ADMIN'):
+    if not has_whitelist_permission(request.user, 'OFFICER'):
         return redirect('engineer_rpg:dashboard')
         
     if request.method == 'POST':
@@ -4290,7 +4461,7 @@ def category_management(request):
 def dungeon_management(request):
     """地下城副本管理"""
     profile = get_or_create_user_profile(request.user)
-    if not has_whitelist_permission(request.user, 'ADMIN'):
+    if not has_whitelist_permission(request.user, 'OFFICER'):
         return redirect('engineer_rpg:dashboard')
         
     dungeons = Trial.objects.filter(trial_type='DUNGEON').order_by('-created_at')
@@ -4310,7 +4481,99 @@ def course_study(request, course_id):
     """課程學習頁面"""
     profile = get_or_create_user_profile(request.user)
     course = get_object_or_404(Course, id=course_id)
-    return render(request, 'EngineerRPG/course_study.html', {'profile': profile, 'course': course})
+    
+    has_questions = course.questions.filter(is_active=True).exists()
+    
+    # 檢查是否已完成
+    progress, created = UserCourseProgress.objects.get_or_create(
+        user_profile=profile,
+        course=course
+    )
+    
+    if not progress.is_completed:
+        # 僅未完成課程才紀錄為「修練中」，避免已完成課程卡住互斥邏輯
+        request.session['learning_course_id'] = course.id
+        request.session.modified = True
+    
+    remaining_seconds = 0
+    if not has_questions and not progress.is_completed:
+        # 無測驗課程，處理定時器
+        progress, created = UserCourseProgress.objects.get_or_create(
+            user_profile=profile,
+            course=course
+        )
+        if not progress.is_completed:
+            if not progress.started_at:
+                progress.started_at = timezone.now()
+                progress.save(update_fields=['started_at'])
+            
+            # 計算剩餘秒數
+            elapsed = (timezone.now() - progress.started_at).total_seconds()
+            total_needed = course.duration_minutes * 60
+            remaining_seconds = max(0, int(total_needed - elapsed))
+    
+    return render(request, 'EngineerRPG/course_study.html', {
+        'profile': profile, 
+        'course': course,
+        'has_questions': has_questions,
+        'remaining_seconds': remaining_seconds,
+    })
+
+@login_required
+def complete_course_timer(request, course_id):
+    """處理無測驗課程的定時完成"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid method'}, status=405)
+        
+    profile = get_or_create_user_profile(request.user)
+    course = get_object_or_404(Course, id=course_id)
+    
+    # 檢查是否有題目。如果有題目，應走測驗流程
+    if course.questions.filter(is_active=True).exists():
+         return JsonResponse({'success': False, 'message': '此課程有測驗，請通過測驗以完成'}, status=400)
+
+    # 建立 / 更新進度
+    progress, created = UserCourseProgress.objects.get_or_create(
+        user_profile=profile,
+        course=course,
+    )
+    
+    if not progress.is_completed:
+        progress.is_completed = True
+        progress.score = 100
+        progress.completed_at = timezone.now()
+        progress.save()
+        
+        # 獎勵經驗值與更新技能狀態
+        exp_reward = 0
+        for skill_node in course.skill_nodes.all():
+            exp_reward += skill_node.exp_reward
+            update_skill_progress(profile, skill_node)
+        
+        if exp_reward > 0:
+            profile.experience += exp_reward
+            while profile.experience >= profile.experience_to_next_level():
+                profile.experience -= profile.experience_to_next_level()
+                profile.level += 1
+            profile.save()
+            
+        # 清除學習狀態
+        if request.session.get('learning_course_id') == course.id:
+            del request.session['learning_course_id']
+            
+        return JsonResponse({
+            'success': True, 
+            'message': f'恭喜完成修練！獲得 {exp_reward} 經驗值。',
+            'exp_gained': exp_reward
+        })
+    else:
+        return JsonResponse({
+            'success': True, 
+            'message': '您之前已完成此課程修練。',
+            'exp_gained': 0
+        })
+        
+    return JsonResponse({'success': True, 'message': '課程已完成'})
 
 
 
@@ -4392,16 +4655,7 @@ def submit_course_exam(request, course_id):
             exp_reward += skill_node.exp_reward
 
             # 更新關聯的 UserSkill 進度
-            user_skill, _ = UserSkill.objects.get_or_create(
-                user_profile=profile,
-                skill_node=skill_node,
-                defaults={'status': 'IN_PROGRESS', 'started_at': timezone.now()}
-            )
-            if user_skill.status not in ('COMPLETED',):
-                user_skill.status = 'COMPLETED'
-                user_skill.progress = 100
-                user_skill.completed_at = timezone.now()
-                user_skill.save()
+            update_skill_progress(profile, skill_node)
 
         if exp_reward > 0:
             profile.experience += exp_reward
@@ -4427,6 +4681,11 @@ def submit_course_exam(request, course_id):
             f'及格分數 {course.passing_score} 分），請再接再厲！'
         )
 
+    # 清除學習狀態 (只要通過就清除)
+    if is_passed and request.session.get('learning_course_id') == course.id:
+        del request.session['learning_course_id']
+        request.session.modified = True
+
     return redirect('engineer_rpg:skill_tree')
 
 
@@ -4434,7 +4693,7 @@ def submit_course_exam(request, course_id):
 def create_question(request):
     """建立新題目"""
     profile = get_or_create_user_profile(request.user)
-    if not has_whitelist_permission(request.user, 'ADMIN'): return redirect('engineer_rpg:dashboard')
+    if not has_whitelist_permission(request.user, 'OFFICER'): return redirect('engineer_rpg:dashboard')
     
     if request.method == 'POST':
         # 複製 POST data 以便修改
@@ -4488,7 +4747,7 @@ def create_question(request):
 def edit_question(request, question_id):
     """編輯題目"""
     profile = get_or_create_user_profile(request.user)
-    if not has_whitelist_permission(request.user, 'ADMIN'): return redirect('engineer_rpg:dashboard')
+    if not has_whitelist_permission(request.user, 'OFFICER'): return redirect('engineer_rpg:dashboard')
     
     question = get_object_or_404(Question, id=question_id)
     
@@ -4542,7 +4801,7 @@ def edit_question(request, question_id):
 def import_questions_view(request):
     """批量匯入題目"""
     profile = get_or_create_user_profile(request.user)
-    if not has_whitelist_permission(request.user, 'ADMIN'): return redirect('engineer_rpg:dashboard')
+    if not has_whitelist_permission(request.user, 'OFFICER'): return redirect('engineer_rpg:dashboard')
     if request.method == 'POST':
         from .utils.question_importer import QuestionImporter
         form = QuestionImportForm(request.POST, request.FILES)
@@ -4615,7 +4874,7 @@ def guild_announcement_list(request):
     profile = get_or_create_user_profile(request.user)
     announcements = GuildPost.objects.filter(category='ANNOUNCEMENT').order_by('-is_pinned', '-created_at')
     page_obj = Paginator(announcements, 20).get_page(request.GET.get('page'))
-    is_manager = profile.role in ('OFFICER', 'MANAGER', 'ADMIN')
+    is_manager = profile.role in ('OFFICER', 'MANAGER')
     return render(request, 'EngineerRPG/guild_announcement_list.html', {
         'profile': profile,
         'page_obj': page_obj,
@@ -4627,7 +4886,7 @@ def guild_announcement_list(request):
 def guild_announcement_edit(request, post_id):
     """編輯公會公告"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ('OFFICER', 'MANAGER', 'ADMIN'):
+    if profile.role not in ('OFFICER', 'MANAGER'):
         return redirect('engineer_rpg:guild_dashboard')
     post = get_object_or_404(GuildPost, id=post_id, category='ANNOUNCEMENT')
     if request.method == 'POST':
@@ -4646,7 +4905,7 @@ def guild_announcement_edit(request, post_id):
 def guild_announcement_delete(request, post_id):
     """刪除公會公告"""
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ('OFFICER', 'MANAGER', 'ADMIN'):
+    if profile.role not in ('OFFICER', 'MANAGER'):
         return redirect('engineer_rpg:guild_dashboard')
     post = get_object_or_404(GuildPost, id=post_id, category='ANNOUNCEMENT')
     if request.method == 'POST':
@@ -4722,7 +4981,7 @@ def course_management(request):
 def create_course(request):
     """創建課程"""
     profile = get_or_create_user_profile(request.user)
-    if not has_whitelist_permission(request.user, 'ADMIN'):
+    if not has_whitelist_permission(request.user, 'OFFICER'):
         return redirect('engineer_rpg:dashboard')
         
     if request.method == 'POST':
@@ -4753,7 +5012,7 @@ def create_course(request):
 def edit_course(request, course_id):
     """編輯課程"""
     profile = get_or_create_user_profile(request.user)
-    if not has_whitelist_permission(request.user, 'ADMIN'):
+    if not has_whitelist_permission(request.user, 'OFFICER'):
         return redirect('engineer_rpg:dashboard')
         
     course = get_object_or_404(Course, id=course_id)
@@ -4786,7 +5045,7 @@ def edit_course(request, course_id):
 def delete_course(request, course_id):
     """刪除課程"""
     profile = get_or_create_user_profile(request.user)
-    if not has_whitelist_permission(request.user, 'ADMIN'):
+    if not has_whitelist_permission(request.user, 'OFFICER'):
         return redirect('engineer_rpg:dashboard')
         
     if request.method == 'POST':
@@ -4838,6 +5097,10 @@ def api_skill_tree_data(request):
     else:
         skills = SkillNode.objects.none()
         
+    # 原則 3: 執行遞移簡化 (Transitive Reduction) 移除冗餘連線
+    all_parent_ids = {s.id: [p.id for p in s.parent_skills.all()] for s in skills}
+    reduced_parents = transitive_reduction(all_parent_ids)
+
     data = []
     for skill in skills:
         # Check status
@@ -4855,7 +5118,7 @@ def api_skill_tree_data(request):
             'x': skill.position_x,
             'y': skill.position_y,
             'status': status,
-            'parents': list(skill.parent_skills.values_list('id', flat=True)),
+            'parents': reduced_parents.get(skill.id, []),
             'level_required': skill.level_required,
         })
         
@@ -4879,7 +5142,7 @@ def api_auto_distribute_xp(request):
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     profile = get_or_create_user_profile(request.user)
-    if profile.role not in ['MANAGER', 'ADMIN']:
+    if profile.role not in ['MANAGER', 'OFFICER']:
         return JsonResponse({'error': 'Permission denied'}, status=403)
 
     try:
@@ -4888,8 +5151,8 @@ def api_auto_distribute_xp(request):
         class_code = data.get('class_code', 'CIVIL')
 
         # 預算定義
-        ROOT_XP_LIMIT = 10 * 100   # 1000 XP
-        CORE_XP_LIMIT = 40 * 100   # 4000 XP
+        ROOT_XP_LIMIT = 4500   # 4500 XP
+        CORE_XP_LIMIT = 118000 # 118000 XP
 
         if node_type == 'ROOT':
             xp_limit = ROOT_XP_LIMIT
@@ -5068,7 +5331,7 @@ def open_daily_chest(request, task_id, chest_index):
 @login_required
 def batch_manage_courses(request):
     """批量管理課程"""
-    if not has_whitelist_permission(request.user, 'ADMIN'):
+    if not has_whitelist_permission(request.user, 'OFFICER'):
         return messages.warning(request, '權限不足') or redirect('engineer_rpg:dashboard')
 
     if request.method == 'POST':
@@ -5114,7 +5377,7 @@ def batch_manage_courses(request):
 def import_courses(request):
     """匯入課程"""
     profile = get_or_create_user_profile(request.user)
-    if not has_whitelist_permission(request.user, 'ADMIN'):
+    if not has_whitelist_permission(request.user, 'OFFICER'):
         return redirect('engineer_rpg:dashboard')
         
     if request.method == 'POST':
@@ -5151,7 +5414,7 @@ def import_courses(request):
 @login_required
 def download_course_template(request, format):
     """下載課程匯入範本"""
-    if not has_whitelist_permission(request.user, 'ADMIN'):
+    if not has_whitelist_permission(request.user, 'OFFICER'):
         return redirect('engineer_rpg:dashboard')
         
     if format == 'excel':

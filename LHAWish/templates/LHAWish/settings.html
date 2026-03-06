@@ -1,0 +1,904 @@
+{% extends "LHAWish/base.html" %}
+{% block title %}系統設定 - 許願池{% endblock %}
+
+{% block extra_css %}
+<style>
+    .settings-tabs {
+        display: flex;
+        gap: 4px;
+        border-bottom: 2px solid var(--wish-border);
+        margin-bottom: 20px;
+        overflow-x: auto;
+    }
+
+    .settings-tab {
+        padding: 10px 18px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--wish-text-muted);
+        border: none;
+        background: none;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: 0px;
+        white-space: nowrap;
+        transition: all .2s;
+    }
+
+    .settings-tab:hover {
+        color: var(--wish-primary);
+    }
+
+    .settings-tab.active {
+        color: var(--wish-primary);
+        border-bottom-color: var(--wish-primary);
+    }
+
+    .settings-panel {
+        display: none;
+    }
+
+    .settings-panel.active {
+        display: block;
+    }
+
+    .settings-section {
+        background: var(--wish-surface);
+        border: 1px solid var(--wish-border);
+        border-radius: var(--wish-radius);
+        padding: 20px;
+        margin-bottom: 16px;
+    }
+
+    .settings-section h4 {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--wish-text-dark);
+        margin: 0 0 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .settings-section h4 .material-symbols-outlined {
+        font-size: 18px;
+        color: var(--wish-primary);
+    }
+
+    .group-block {
+        border: 1px solid var(--wish-border);
+        border-radius: var(--wish-radius-sm);
+        margin-bottom: 12px;
+        overflow: hidden;
+    }
+
+    .group-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        background: #f8fafc;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--wish-text);
+    }
+
+    .group-header button {
+        background: none;
+        border: none;
+        color: var(--wish-danger, #ef4444);
+        cursor: pointer;
+        font-size: 14px;
+        padding: 2px 6px;
+    }
+
+    .group-admins {
+        padding: 8px 14px;
+    }
+
+    .admin-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        background: var(--wish-bg);
+        border-radius: var(--wish-radius-sm);
+        font-size: 13px;
+        margin-bottom: 4px;
+    }
+
+    .admin-row .admin-name {
+        font-weight: 600;
+        min-width: 100px;
+    }
+
+    .admin-row .admin-remove {
+        color: var(--wish-danger, #ef4444);
+        cursor: pointer;
+        background: none;
+        border: none;
+        font-size: 14px;
+        padding: 2px;
+        margin-left: auto;
+    }
+
+    .add-row {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .add-row select,
+    .add-row input {
+        padding: 7px 12px;
+        border: 1px solid var(--wish-border);
+        border-radius: var(--wish-radius-sm);
+        font-size: 13px;
+        font-family: inherit;
+    }
+
+    .add-row select {
+        flex: 1;
+        min-width: 150px;
+    }
+
+    .tag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+    }
+
+    .tag-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        background: var(--wish-primary-light);
+        color: var(--wish-primary);
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .tag-item button {
+        background: none;
+        border: none;
+        color: inherit;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 0;
+        line-height: 1;
+    }
+
+    .settings-input-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-top: 8px;
+    }
+
+    .settings-input-row input,
+    .settings-input-row select {
+        padding: 7px 12px;
+        border: 1px solid var(--wish-border);
+        border-radius: var(--wish-radius-sm);
+        font-size: 13px;
+        font-family: inherit;
+    }
+
+    .settings-input-row input[type="number"] {
+        width: 100px;
+    }
+
+    .btn-save-section {
+        margin-top: 16px;
+        padding: 8px 24px;
+        background: var(--wish-primary);
+        color: #fff;
+        border: none;
+        border-radius: var(--wish-radius-sm);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background .2s;
+    }
+
+    .btn-save-section:hover {
+        filter: brightness(1.1);
+    }
+
+    .btn-add-small {
+        padding: 6px 14px;
+        background: var(--wish-primary);
+        color: #fff;
+        border: none;
+        border-radius: var(--wish-radius-sm);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .settings-help {
+        font-size: 12px;
+        color: var(--wish-text-muted);
+        margin-top: 4px;
+        margin-bottom: 8px;
+    }
+
+    .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+    }
+
+    .admin-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    /* Sortable highlight line */
+    .sortable-ghost {
+        opacity: 0.4;
+        background-color: #f1f5f9;
+        border: 1px dashed var(--wish-primary);
+    }
+
+    .sortable-drag {
+        cursor: grabbing !important;
+    }
+
+    .group-block .group-header {
+        cursor: grab;
+    }
+
+    /* Select2 overrides to match UI */
+    .select2-container .select2-selection--single {
+        height: 33px;
+        border: 1px solid var(--wish-border);
+        border-radius: var(--wish-radius-sm);
+        display: flex;
+        align-items: center;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: normal;
+        font-size: 13px;
+        color: var(--wish-text);
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 31px;
+    }
+</style>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+<div class="wish-card" style="padding:24px;">
+    <h2
+        style="font-size:20px;font-weight:700;color:var(--wish-text-dark);margin:0 0 20px;display:flex;align-items:center;gap:8px;">
+        <span class="material-symbols-outlined" style="color:var(--wish-primary);">settings</span>
+        系統設定
+    </h2>
+
+    <!-- Tabs -->
+    <div class="settings-tabs">
+        <button class="settings-tab active" data-tab="general">一般設定</button>
+        <button class="settings-tab" data-tab="petition">園路願望</button>
+        <button class="settings-tab" data-tab="rnd">研發專案</button>
+        <button class="settings-tab" data-tab="mailbox">主管信箱</button>
+        <button class="settings-tab" data-tab="market">跳蚤市場</button>
+        <button class="settings-tab" data-tab="gossip">七嘴八舌</button>
+    </div>
+
+    <!-- ===== 一般設定 Tab ===== -->
+    <div class="settings-panel active" data-panel="general">
+        <div class="settings-section">
+            <h4><span class="material-symbols-outlined">toggle_on</span> 導覽列設定</h4>
+            <div class="settings-input-row" style="margin-bottom: 12px;">
+                <label class="checkbox-row" style="font-size: 14px; font-weight: 600;">
+                    <input type="checkbox" id="showOldVersion"
+                        style="accent-color:var(--wish-primary); width:16px; height:16px;" {% if config.show_old_version %}checked{% endif %}>
+                    顯示導覽列(右上角)按鈕
+                </label>
+            </div>
+            <div class="settings-input-row" style="margin-bottom: 12px;">
+                <span style="font-size:13px; font-weight:600; width:70px;">按鈕文字：</span>
+                <input type="text" id="oldVersionText" placeholder="回舊版" value="{{ config.old_version_text }}"
+                    style="flex:1; max-width: 200px;">
+            </div>
+            <div class="settings-input-row">
+                <span style="font-size:13px; font-weight:600; width:70px;">舊版網址：</span>
+                <input type="url" id="oldVersionUrl" placeholder="https://" value="{{ config.old_version_url }}"
+                    style="flex:1; max-width: 400px;">
+            </div>
+        </div>
+        <button class="btn-save-section" onclick="saveGeneralSettings()">儲存一般設定</button>
+    </div>
+
+    <!-- ===== 園路願望 Tab ===== -->
+    <div class="settings-panel" data-panel="petition">
+        <!-- 附議門檻 -->
+        <div class="settings-section">
+            <h4><span class="material-symbols-outlined">gavel</span> 附議成案門檻</h4>
+            <div class="settings-input-row">
+                <input type="number" id="endorsementThreshold" min="1" value="{{ config.endorsement_threshold }}">
+                <span style="font-size:13px;color:var(--wish-text-muted);">人附議後自動成案</span>
+            </div>
+        </div>
+        <!-- 所有組別管理員 -->
+        <div class="settings-section">
+            <h4><span class="material-symbols-outlined">shield_person</span> 所有組別管理員</h4>
+            <p class="settings-help">此處指定的管理員擁有整個園路願望版的權限，可管理所有組別。</p>
+            <div class="admin-list" id="petitionAllAdminList"></div>
+            <div class="add-row">
+                <select id="petitionAllAdminSelect">
+                    <option value="">選擇使用者</option>
+                    {% for u in all_users %}
+                    <option value="{{ u.id }}" data-name="{{ u.get_full_name|default:u.username }}">{{ u.get_full_name|default:u.username }} ({{ u.username }})</option>
+                    {% endfor %}
+                </select>
+                <button class="btn-add-small" onclick="addPetitionAllAdmin()">+ 新增管理員</button>
+            </div>
+        </div>
+        <!-- 組別 + 管理員 -->
+        <div class="settings-section">
+            <h4><span class="material-symbols-outlined">groups</span> 組別管理員設定</h4>
+            <p class="settings-help">步驟: 新增組別 → 為每個組別指定管理人 → 勾選是否接收 Email 通知。每個組別可有多個管理人。</p>
+            <div id="petitionGroupsContainer"></div>
+            <div class="add-row" style="margin-top:12px;">
+                <input type="text" id="newGroupInput" placeholder="輸入新組別名稱" style="flex:1;">
+                <button class="btn-add-small" onclick="addPetitionGroup()">+ 新增組別</button>
+            </div>
+        </div>
+        <button class="btn-save-section" onclick="savePetitionSettings()">儲存園路願望設定</button>
+    </div>
+
+    <!-- ===== 研發專案 Tab ===== -->
+    <div class="settings-panel" data-panel="rnd">
+        <div class="settings-section">
+            <h4><span class="material-symbols-outlined">terminal</span> 研發案管理員設定</h4>
+            <p class="settings-help">步驟: 新增研發案 → 為每個研發案指定管理人 → 勾選是否接收 Email 通知。每個研發案可有多個管理人。</p>
+            <div id="rndProjectsContainer"></div>
+            <div class="add-row" style="margin-top:12px;">
+                <input type="text" id="newRndProjectInput" placeholder="輸入研發案名稱" style="flex:1;">
+                <button class="btn-add-small" onclick="addRndProject()">+ 新增研發案</button>
+            </div>
+        </div>
+        <button class="btn-save-section" onclick="saveRndSettings()">儲存研發專案設定</button>
+    </div>
+
+    <!-- ===== 主管信箱 Tab ===== -->
+    <div class="settings-panel" data-panel="mailbox">
+        <div class="settings-section">
+            <h4><span class="material-symbols-outlined">mail</span> 收件主管清單</h4>
+            <p class="settings-help">選擇使用者後會自動帶入其 Email。使用者在「主管信箱」選擇收件人後，會帶入預設主旨開啟 Outlook。</p>
+            <div class="admin-list" id="mailboxManagerList"></div>
+            <div class="add-row">
+                <select id="mailboxUserSelect" onchange="autoFillEmail(this, 'mailboxEmailInput')">
+                    <option value="">選擇使用者</option>
+                    {% for u in all_users %}
+                    <option value="{{ u.id }}" data-name="{{ u.get_full_name|default:u.username }}"
+                        data-email="{{ u.email }}">{{ u.get_full_name|default:u.username }} ({{ u.username }})</option>
+                    {% endfor %}
+                </select>
+                <input type="email" id="mailboxEmailInput" placeholder="Email (自動帶入)" style="flex:none;width:180px;">
+                <input type="text" id="mailboxTitleInput" placeholder="職稱" style="flex:none;width:120px;">
+                <button class="btn-add-small" onclick="addMailboxManager()">+ 新增</button>
+            </div>
+        </div>
+        <button class="btn-save-section" onclick="saveMailboxSettings()">儲存主管信箱設定</button>
+    </div>
+
+    <!-- ===== 跳蚤市場 Tab ===== -->
+    <div class="settings-panel" data-panel="market">
+        <div class="settings-section">
+            <h4><span class="material-symbols-outlined">admin_panel_settings</span> 管理員名單</h4>
+            <div class="admin-list" id="marketAdminList"></div>
+            <div class="add-row">
+                <select id="marketAdminSelect">
+                    <option value="">選擇使用者</option>
+                    {% for u in all_users %}
+                    <option value="{{ u.id }}" data-name="{{ u.get_full_name|default:u.username }}">{{ u.get_full_name|default:u.username }} ({{ u.username }})</option>
+                    {% endfor %}
+                </select>
+                <button class="btn-add-small" onclick="addSimpleAdmin('market')">+ 新增管理員</button>
+            </div>
+        </div>
+        <button class="btn-save-section" onclick="saveSimpleBoard('market')">儲存跳蚤市場設定</button>
+    </div>
+
+    <!-- ===== 七嘴八舌 Tab ===== -->
+    <div class="settings-panel" data-panel="gossip">
+        <div class="settings-section">
+            <h4><span class="material-symbols-outlined">admin_panel_settings</span> 管理員名單</h4>
+            <div class="admin-list" id="gossipAdminList"></div>
+            <div class="add-row">
+                <select id="gossipAdminSelect">
+                    <option value="">選擇使用者</option>
+                    {% for u in all_users %}
+                    <option value="{{ u.id }}" data-name="{{ u.get_full_name|default:u.username }}">{{ u.get_full_name|default:u.username }} ({{ u.username }})</option>
+                    {% endfor %}
+                </select>
+                <button class="btn-add-small" onclick="addSimpleAdmin('gossip')">+ 新增管理員</button>
+            </div>
+        </div>
+        <button class="btn-save-section" onclick="saveSimpleBoard('gossip')">儲存七嘴八舌設定</button>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script>
+    // ========== Data Init ==========
+    var boardAdmins = {{ board_admins_json| safe }};
+    var groupChoices = {{ group_choices| safe }};
+    var rndProjectChoices = {{ rnd_project_choices_json| safe }};
+    var managerEmails = {{ config.manager_emails| safe }};
+    var allUsers = {{ all_users_json| safe }};
+    var rndProjectRenames = [];
+
+    if (!boardAdmins || typeof boardAdmins !== 'object' || Array.isArray(boardAdmins)) boardAdmins = {};
+    if (!Array.isArray(groupChoices)) groupChoices = [];
+    if (!Array.isArray(rndProjectChoices)) rndProjectChoices = [];
+    if (!Array.isArray(managerEmails)) managerEmails = [];
+
+    // board_admins.petition = [{group:"組別", uid:1, receive_emails:true}, ...]
+    // board_admins.rnd = [{rnd_project:"案名", uid:1, receive_emails:true}, ...]
+    // board_admins.market = [{uid:1}, ...]
+    // board_admins.gossip = [{uid:1}, ...]
+    if (!boardAdmins.petition) boardAdmins.petition = [];
+    if (!boardAdmins.rnd) boardAdmins.rnd = [];
+    if (!boardAdmins.market) boardAdmins.market = [];
+    if (!boardAdmins.gossip) boardAdmins.gossip = [];
+
+    function getCookie(name) {
+        let v = '; ' + document.cookie;
+        let p = v.split('; ' + name + '=');
+        if (p.length === 2) return p.pop().split(';').shift();
+    }
+
+    function getUserName(uid) {
+        var u = allUsers[String(uid)];
+        return u ? u.name + ' (' + u.username + ')' : 'UID:' + uid;
+    }
+
+    // ========== Tab switching ==========
+    document.querySelectorAll('.settings-tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelector('[data-panel="' + tab.dataset.tab + '"]').classList.add('active');
+        });
+    });
+
+    // ========== 園路願望：所有組別管理員 ==========
+    function getPetitionAllAdmins() {
+        return boardAdmins.petition.filter(a => a.group === '__all__');
+    }
+
+    function renderPetitionAllAdmins() {
+        var list = document.getElementById('petitionAllAdminList');
+        var admins = getPetitionAllAdmins();
+        list.innerHTML = '';
+        admins.forEach(function (a) {
+            var idx = boardAdmins.petition.indexOf(a);
+            var row = document.createElement('div');
+            row.className = 'admin-row';
+            row.innerHTML =
+                '<span class="admin-name">' + getUserName(a.uid) + '</span>' +
+                '<label class="checkbox-row" style="margin-left:auto;"><input type="checkbox" ' +
+                (a.receive_emails ? 'checked' : '') +
+                ' onchange="togglePetitionEmail(' + idx + ',this.checked)"> 接收email通知</label>' +
+                '<button class="admin-remove" onclick="removePetitionAdmin(' + idx + ')">✕</button>';
+            list.appendChild(row);
+        });
+    }
+
+    function addPetitionAllAdmin() {
+        var sel = document.getElementById('petitionAllAdminSelect');
+        var uid = parseInt(sel.value);
+        if (!uid) return;
+        if (boardAdmins.petition.some(a => a.group === '__all__' && a.uid === uid)) {
+            alert('此使用者已在所有組別管理員中'); return;
+        }
+        boardAdmins.petition.push({ group: '__all__', uid: uid, receive_emails: false });
+        sel.value = '';
+        renderPetitionAllAdmins();
+    }
+
+    // ========== 園路願望：組別 → 管理人 ==========
+    function getGroupNames() {
+        return groupChoices.map(g => g.label);
+    }
+
+    function getAdminsForGroup(groupName) {
+        return boardAdmins.petition.filter(a => a.group === groupName);
+    }
+
+    function renderPetitionGroups() {
+        var container = document.getElementById('petitionGroupsContainer');
+        container.innerHTML = '';
+        var groups = getGroupNames();
+        groups.forEach(function (gName) {
+            var admins = getAdminsForGroup(gName);
+            var block = document.createElement('div');
+            block.className = 'group-block';
+            var adminHtml = '';
+            admins.forEach(function (a, i) {
+                var idx = boardAdmins.petition.indexOf(a);
+                adminHtml += '<div class="admin-row">' +
+                    '<span class="admin-name">' + getUserName(a.uid) + '</span>' +
+                    '<label class="checkbox-row"><input type="checkbox" ' +
+                    (a.receive_emails ? 'checked' : '') +
+                    ' onchange="togglePetitionEmail(' + idx + ',this.checked)"> 接收email通知</label>' +
+                    '<button class="admin-remove" onclick="removePetitionAdmin(' + idx + ')">✕</button>' +
+                    '</div>';
+            });
+            block.innerHTML =
+                '<div class="group-header" style="cursor: move; display: flex; align-items: center; justify-content: space-between;"><span><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;color:var(--wish-text-muted);">drag_indicator</span><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;">folder_shared</span>' + gName + '</span>' +
+                '<button onclick="removePetitionGroup(\'' + gName.replace(/'/g, "\\'") + '\')">刪除組別</button></div>' +
+                '<div class="group-admins">' + adminHtml +
+                '<div class="add-row">' +
+                '<select class="petition-admin-select" id="petitionAdminSel_' + gName.replace(/\s/g, '_') + '">' +
+                '<option value="">選擇管理人</option>' +
+                buildUserOptions() +
+                '</select>' +
+                '<button class="btn-add-small" onclick="addPetitionAdmin(\'' + gName.replace(/'/g, "\\'") + '\')">+ 新增</button>' +
+                '</div></div>';
+            container.appendChild(block);
+        });
+        $('.petition-admin-select').select2({ width: '100%' });
+    }
+
+    function buildUserOptions() {
+        var html = '';
+        Object.keys(allUsers).forEach(function (uid) {
+            html += '<option value="' + uid + '">' + allUsers[uid].name + '</option>';
+        });
+        return html;
+    }
+
+    function addPetitionGroup() {
+        var input = document.getElementById('newGroupInput');
+        var label = input.value.trim();
+        if (!label) return;
+        if (groupChoices.some(g => g.label === label)) { alert('此組別已存在'); return; }
+        groupChoices.push({ value: label.toLowerCase().replace(/\s+/g, '_'), label: label });
+        input.value = '';
+        renderPetitionGroups();
+    }
+
+    function removePetitionGroup(gName) {
+        if (!confirm('確定要刪除「' + gName + '」組別及其所有管理人？')) return;
+        groupChoices = groupChoices.filter(g => g.label !== gName);
+        boardAdmins.petition = boardAdmins.petition.filter(a => a.group !== gName);
+        renderPetitionGroups();
+    }
+
+    function addPetitionAdmin(gName) {
+        var sel = document.getElementById('petitionAdminSel_' + gName.replace(/\s/g, '_'));
+        var uid = parseInt(sel.value);
+        if (!uid) return;
+        boardAdmins.petition.push({ group: gName, uid: uid, receive_emails: false });
+        sel.value = '';
+        renderPetitionGroups();
+    }
+
+    function removePetitionAdmin(idx) {
+        boardAdmins.petition.splice(idx, 1);
+        renderPetitionGroups();
+    }
+
+    function togglePetitionEmail(idx, checked) {
+        boardAdmins.petition[idx].receive_emails = checked;
+    }
+
+    // ========== 研發專案：研發案 → 管理人 ==========
+    function getRndProjectNames() {
+        return rndProjectChoices.map(p => p.label);
+    }
+
+    function getAdminsForProject(projName) {
+        return boardAdmins.rnd.filter(a => a.rnd_project === projName);
+    }
+
+    function renderRndProjects() {
+        var container = document.getElementById('rndProjectsContainer');
+        container.innerHTML = '';
+        var projects = getRndProjectNames();
+        projects.forEach(function (pName) {
+            var admins = getAdminsForProject(pName);
+            var block = document.createElement('div');
+            block.className = 'group-block';
+            var adminHtml = '';
+            admins.forEach(function (a, i) {
+                var idx = boardAdmins.rnd.indexOf(a);
+                adminHtml += '<div class="admin-row">' +
+                    '<span class="admin-name">' + getUserName(a.uid) + '</span>' +
+                    '<label class="checkbox-row"><input type="checkbox" ' +
+                    (a.receive_emails ? 'checked' : '') +
+                    ' onchange="toggleRndEmail(' + idx + ',this.checked)"> 接收email通知</label>' +
+                    '<button class="admin-remove" onclick="removeRndAdmin(' + idx + ')">✕</button>' +
+                    '</div>';
+            });
+            block.innerHTML =
+                '<div class="group-header" style="cursor: move; display: flex; align-items: center; justify-content: space-between;"><span><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;color:var(--wish-text-muted);">drag_indicator</span><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;">terminal</span>' + pName + '</span>' +
+                '<div>' +
+                '<button onclick="renameRndProject(\'' + pName.replace(/'/g, "\\'") + '\')" style="margin-right:12px;color:var(--wish-primary);">重新命名</button>' +
+                '<button onclick="removeRndProject(\'' + pName.replace(/'/g, "\\'") + '\')">刪除研發案</button>' +
+                '</div></div>' +
+                '<div class="group-admins">' + adminHtml +
+                '<div class="add-row">' +
+                '<select class="rnd-admin-select" id="rndAdminSel_' + pName.replace(/\s/g, '_') + '">' +
+                '<option value="">選擇管理人</option>' +
+                buildUserOptions() +
+                '</select>' +
+                '<button class="btn-add-small" onclick="addRndAdmin(\'' + pName.replace(/'/g, "\\'") + '\')">+ 新增</button>' +
+                '</div></div>';
+            container.appendChild(block);
+        });
+        $('.rnd-admin-select').select2({ width: '100%' });
+    }
+
+    function renameRndProject(pName) {
+        var newName = prompt('請輸入「' + pName + '」的新名稱:', pName);
+        if (!newName || newName.trim() === '' || newName === pName) return;
+        newName = newName.trim();
+        if (rndProjectChoices.some(p => p.label === newName)) { alert('此研發案名稱已存在'); return; }
+
+        // Update choices
+        var proj = rndProjectChoices.find(p => p.label === pName);
+        if (proj) {
+            proj.label = newName;
+            proj.value = newName.toLowerCase().replace(/\s+/g, '_');
+        }
+
+        // Update admins
+        if (boardAdmins.rnd) {
+            boardAdmins.rnd.forEach(a => {
+                if (a.rnd_project === pName) {
+                    a.rnd_project = newName;
+                }
+            });
+        }
+
+        // Track renames for backend update
+        rndProjectRenames.push({ old: pName, new: newName });
+        // Fix chaining if they renamed X -> Y then Y -> Z
+        rndProjectRenames.forEach(r => {
+            if (r.new === pName) {
+                r.new = newName;
+            }
+        });
+
+        renderRndProjects();
+    }
+
+    function addRndProject() {
+        var input = document.getElementById('newRndProjectInput');
+        var label = input.value.trim();
+        if (!label) return;
+        if (rndProjectChoices.some(p => p.label === label)) { alert('此研發案已存在'); return; }
+        rndProjectChoices.push({ value: label.toLowerCase().replace(/\s+/g, '_'), label: label });
+        input.value = '';
+        renderRndProjects();
+    }
+
+    function removeRndProject(pName) {
+        if (!confirm('確定要刪除「' + pName + '」研發案及其所有管理人？')) return;
+        rndProjectChoices = rndProjectChoices.filter(p => p.label !== pName);
+        boardAdmins.rnd = boardAdmins.rnd.filter(a => a.rnd_project !== pName);
+        renderRndProjects();
+    }
+
+    function addRndAdmin(pName) {
+        var sel = document.getElementById('rndAdminSel_' + pName.replace(/\s/g, '_'));
+        var uid = parseInt(sel.value);
+        if (!uid) return;
+        boardAdmins.rnd.push({ rnd_project: pName, uid: uid, receive_emails: false });
+        sel.value = '';
+        renderRndProjects();
+    }
+
+    function removeRndAdmin(idx) {
+        boardAdmins.rnd.splice(idx, 1);
+        renderRndProjects();
+    }
+
+    function toggleRndEmail(idx, checked) {
+        boardAdmins.rnd[idx].receive_emails = checked;
+    }
+
+    // ========== 跳蚤市場 / 七嘴八舌（簡單管理員） ==========
+    function renderSimpleAdmins(board) {
+        var list = document.getElementById(board + 'AdminList');
+        var admins = boardAdmins[board] || [];
+        list.innerHTML = '';
+        admins.forEach(function (a, i) {
+            var row = document.createElement('div');
+            row.className = 'admin-row';
+            row.innerHTML =
+                '<span class="admin-name">' + getUserName(a.uid) + '</span>' +
+                '<button class="admin-remove" onclick="removeSimpleAdmin(\'' + board + '\',' + i + ')">✕</button>';
+            list.appendChild(row);
+        });
+        $('#' + board + 'AdminSelect').select2({ width: '100%' });
+    }
+
+    function addSimpleAdmin(board) {
+        var sel = document.getElementById(board + 'AdminSelect');
+        var uid = parseInt(sel.value);
+        if (!uid) return;
+        if (!boardAdmins[board]) boardAdmins[board] = [];
+        if (boardAdmins[board].some(a => a.uid === uid)) { alert('此使用者已在名單中'); return; }
+        boardAdmins[board].push({ uid: uid });
+        sel.value = '';
+        renderSimpleAdmins(board);
+    }
+
+    function removeSimpleAdmin(board, idx) {
+        boardAdmins[board].splice(idx, 1);
+        renderSimpleAdmins(board);
+    }
+
+    // ========== 主管信箱 ==========
+    function autoFillEmail(sel, emailInputId) {
+        var opt = sel.options[sel.selectedIndex];
+        if (opt && opt.dataset.email) {
+            document.getElementById(emailInputId).value = opt.dataset.email;
+        }
+    }
+
+    function renderMailboxManagers() {
+        var el = document.getElementById('mailboxManagerList');
+        el.innerHTML = '';
+        managerEmails.forEach(function (m, i) {
+            var row = document.createElement('div');
+            row.className = 'admin-row';
+            row.innerHTML =
+                '<span class="admin-name">' + (m.name || '') + (m.title ? ' ' + m.title : '') + '</span>' +
+                '<span style="color:var(--wish-text-muted);flex:1;">' + (m.email || '') + '</span>' +
+                '<button class="admin-remove" onclick="removeMailboxManager(' + i + ')">✕</button>';
+            el.appendChild(row);
+        });
+    }
+
+    function addMailboxManager() {
+        var sel = document.getElementById('mailboxUserSelect');
+        var emailInput = document.getElementById('mailboxEmailInput');
+        var titleInput = document.getElementById('mailboxTitleInput');
+        var opt = sel.options[sel.selectedIndex];
+        var name = opt ? opt.dataset.name : '';
+        var email = emailInput.value.trim();
+        var title = titleInput ? titleInput.value.trim() : '';
+        if (!name || !email) { alert('請選擇使用者並確認 Email'); return; }
+        if (managerEmails.some(m => m.email === email)) { alert('此 Email 已存在'); return; }
+        managerEmails.push({ name: name, email: email, title: title });
+
+        // Reset inputs
+        $(sel).val(null).trigger('change');
+        emailInput.value = '';
+        if (titleInput) titleInput.value = '';
+        renderMailboxManagers();
+    }
+
+    function removeMailboxManager(idx) {
+        managerEmails.splice(idx, 1);
+        renderMailboxManagers();
+    }
+
+    // ========== Save ==========
+    function doSave(data) {
+        return fetch('{% url "lhawish:save_settings" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data)
+        }).then(r => r.json());
+    }
+
+    function saveGeneralSettings() {
+        doSave({
+            show_old_version: document.getElementById('showOldVersion').checked,
+            old_version_text: document.getElementById('oldVersionText').value.trim() || '回舊版',
+            old_version_url: document.getElementById('oldVersionUrl').value.trim()
+        }).then(d => alert(d.success ? '一般設定已儲存！' : (d.error || '儲存失敗')));
+    }
+
+    function savePetitionSettings() {
+        doSave({
+            endorsement_threshold: parseInt(document.getElementById('endorsementThreshold').value) || 10,
+            group_choices: groupChoices,
+            board_admins: boardAdmins
+        }).then(d => alert(d.success ? '園路願望設定已儲存！' : (d.error || '儲存失敗')));
+    }
+
+    function saveRndSettings() {
+        doSave({
+            rnd_project_choices: rndProjectChoices,
+            board_admins: boardAdmins,
+            rnd_project_renames: rndProjectRenames
+        }).then(d => {
+            alert(d.success ? '研發專案設定已儲存！' : (d.error || '儲存失敗'));
+            if (d.success) rndProjectRenames = [];
+        });
+    }
+
+    function saveMailboxSettings() {
+        doSave({
+            manager_emails: managerEmails
+        }).then(d => alert(d.success ? '主管信箱設定已儲存！' : (d.error || '儲存失敗')));
+    }
+
+    function saveSimpleBoard(board) {
+        doSave({ board_admins: boardAdmins }).then(function (d) {
+            var labels = { market: '跳蚤市場', gossip: '七嘴八舌' };
+            alert(d.success ? (labels[board] || board) + '設定已儲存！' : (d.error || '儲存失敗'));
+        });
+    }
+
+    // ========== Init ==========
+    document.addEventListener('DOMContentLoaded', function () {
+        renderPetitionAllAdmins();
+        renderPetitionGroups();
+        renderRndProjects();
+        renderSimpleAdmins('market');
+        renderSimpleAdmins('gossip');
+        renderMailboxManagers();
+
+        // 靜態的 Select 起始化
+        $('#mailboxUserSelect').select2({ width: '100%' });
+        $('#petitionAllAdminSelect').select2({ width: '100%' });
+        $('#marketAdminSelect').select2({ width: '100%' });
+        $('#gossipAdminSelect').select2({ width: '100%' });
+
+        // 拖曳排序初始化 (園路願望組別)
+        var petitionContainer = document.getElementById('petitionGroupsContainer');
+        if (petitionContainer) {
+            new Sortable(petitionContainer, {
+                animation: 150,
+                handle: '.group-header',
+                onEnd: function (evt) {
+                    var newOrder = [];
+                    // 只取最後一個 text node 的內容才是真正的名稱
+                    document.querySelectorAll('#petitionGroupsContainer .group-block .group-header > span').forEach(function (el) {
+                        var gName = el.childNodes[el.childNodes.length - 1].textContent.trim();
+                        var found = groupChoices.find(g => g.label === gName);
+                        if (found) newOrder.push(found);
+                    });
+                    groupChoices = newOrder;
+                }
+            });
+        }
+
+        // 拖曳排序初始化 (研發專案)
+        var rndContainer = document.getElementById('rndProjectsContainer');
+        if (rndContainer) {
+            new Sortable(rndContainer, {
+                animation: 150,
+                handle: '.group-header',
+                onEnd: function (evt) {
+                    var newOrder = [];
+                    document.querySelectorAll('#rndProjectsContainer .group-block .group-header > span').forEach(function (el) {
+                        var pName = el.childNodes[el.childNodes.length - 1].textContent.trim();
+                        var found = rndProjectChoices.find(p => p.label === pName);
+                        if (found) newOrder.push(found);
+                    });
+                    rndProjectChoices = newOrder;
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
