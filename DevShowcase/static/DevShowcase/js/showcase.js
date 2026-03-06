@@ -295,16 +295,23 @@ function showNotification(message, type = 'info') {
     notification.textContent = message;
     notification.style.cssText = `
         position: fixed;
-        top: 20px;
+        top: 68px;
         right: 20px;
-        padding: 16px 24px;
-        background: ${type === 'success' ? '#48bb78' : '#f56565'};
-        color: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        padding: 14px 20px;
+        background: ${type === 'success' ? 'rgba(52, 199, 89, 0.12)' : 'rgba(255, 59, 48, 0.10)'};
+        color: ${type === 'success' ? '#1A7F37' : '#BF2600'};
+        border: 0.5px solid ${type === 'success' ? 'rgba(52, 199, 89, 0.35)' : 'rgba(255, 59, 48, 0.3)'};
+        border-radius: 12px;
+        backdrop-filter: saturate(180%) blur(20px);
+        -webkit-backdrop-filter: saturate(180%) blur(20px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
         z-index: 9999;
         animation: slideInRight 0.3s ease;
-        max-width: 400px;
+        max-width: 380px;
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+        font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     `;
 
     document.body.appendChild(notification);
@@ -380,16 +387,32 @@ document.addEventListener('DOMContentLoaded', function () {
             // Set modal content
             modalVideo.src = videoUrl;
             modalTitle.textContent = achievementTitle;
-            modalDetailLink.href = achievementUrl;
+            if (modalDetailLink) {
+                modalDetailLink.dataset.href = achievementUrl;
+            }
 
             // Show modal
             modal.classList.add('active');
             document.body.style.overflow = 'hidden'; // Prevent background scroll
 
             // Play video
-            modalVideo.play();
+            modalVideo.load();
+            modalVideo.play().catch(() => { }); // ignore autoplay policy errors
         });
     });
+
+    // Detail link — close modal then navigate
+    if (modalDetailLink) {
+        modalDetailLink.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const url = this.dataset.href || this.getAttribute('href');
+            closeModal();
+            if (url && url !== '#') {
+                setTimeout(() => { window.location.href = url; }, 180);
+            }
+        });
+    }
 
     // Close modal function
     function closeModal() {

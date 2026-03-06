@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
@@ -9,6 +10,35 @@ from django.contrib import messages
 from .models import Achievement, Category, ViewLog, Comment
 from .forms import AchievementForm, CommentForm, CategoryForm
 from .utils import send_comment_notification
+
+User = get_user_model()
+
+
+@login_required
+def user_search(request):
+    """搜尋使用者 AJAX API（協同開發者選擇用）"""
+    q = request.GET.get('q', '').strip()
+    if len(q) < 1:
+        return JsonResponse({'users': []})
+
+    users = User.objects.filter(
+        Q(username__icontains=q) |
+        Q(first_name__icontains=q) |
+        Q(last_name__icontains=q)
+    ).exclude(pk=request.user.pk).values(
+        'id', 'username', 'first_name', 'last_name'
+    )[:10]
+
+    results = []
+    for u in users:
+        full_name = f"{u['first_name']} {u['last_name']}".strip()
+        results.append({
+            'id': u['id'],
+            'username': u['username'],
+            'display': full_name if full_name else u['username'],
+        })
+
+    return JsonResponse({'users': results})
 
 
 class AchievementListView(ListView):

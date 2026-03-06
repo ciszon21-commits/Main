@@ -6,78 +6,77 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ achievement.name }} - 開發成果展示</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'DevShowcase/css/showcase.css' %}">
     <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
 </head>
 
 <body>
-    <div class="detail-container">
-        <!-- Back Button -->
-        <a href="{% url 'devshowcase:achievement_list' %}" class="back-button">
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                <path fill-rule="evenodd"
-                    d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
-            </svg>
-            返回列表
-        </a>
-
-        <!-- Achievement Header -->
-        <div class="detail-header">
-            <div class="header-content">
-                <div class="category-tag">{{ achievement.category.name }}</div>
-                <h1 class="detail-title">{{ achievement.name }}</h1>
-                <p class="detail-summary">{{ achievement.summary }}</p>
-
-                <div class="detail-meta">
-                    <div class="meta-item">
-                        <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                            <path
-                                d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z" />
-                            <path
-                                d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z" />
-                        </svg>
-                        <span>{{ achievement.view_count }} 次瀏覽</span>
-                    </div>
-
-                    {% if achievement.url %}
-                    <a href="{{ achievement.url }}" target="_blank" class="meta-link">
-                        <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                            <path
-                                d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z" />
-                            <path
-                                d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243L6.586 4.672z" />
-                        </svg>
-                        相關網址
-                    </a>
-                    {% endif %}
-                </div>
-
-                <div class="developers">
-                    <h3>開發團隊</h3>
-                    <div class="developer-list">
-                        {% for developer in achievement.get_all_developers %}
-                        <div class="developer-item">
-                            <div class="developer-avatar">
-                                {{developer.get_full_name|first|default:developer.get_full_name|first }}</div>
-                            <span>{{ developer.get_full_name|default:developer.get_full_name }}</span>
-                            {% if developer == achievement.created_by %}
-                            <span class="badge-creator">建立者</span>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
+    <!-- Sticky Nav -->
+    <div class="banner">
+        <div class="banner-content">
+            <div class="banner-info">
+                <h1 class="banner-title">開發成果展示</h1>
+            </div>
+            <div class="banner-actions">
+                <a href="{% url 'devshowcase:achievement_list' %}" class="btn btn-secondary">
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+                    </svg>
+                    返回列表
+                </a>
                 {% if user.is_authenticated and user in achievement.get_all_developers %}
-                <a href="{% url 'devshowcase:achievement_update' achievement.pk %}" class="btn btn-secondary">
-                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                        <path
-                            d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z" />
+                <a href="{% url 'devshowcase:achievement_update' achievement.pk %}" class="btn btn-primary">
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z"/>
                     </svg>
                     編輯成果
                 </a>
                 {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="detail-container">
+        <!-- Achievement Header -->
+        <div class="detail-header">
+            <div class="category-tag">{{ achievement.category.name }}</div>
+            <h1 class="detail-title">{{ achievement.name }}</h1>
+            <p class="detail-summary">{{ achievement.summary }}</p>
+
+            <div class="detail-meta">
+                <div class="meta-item">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                    </svg>
+                    {{ achievement.view_count }} 次瀏覽
+                </div>
+
+                {% if achievement.url %}
+                <a href="{{ achievement.url }}" target="_blank" class="meta-link">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/>
+                        <path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243L6.586 4.672z"/>
+                    </svg>
+                    相關網址
+                </a>
+                {% endif %}
+            </div>
+
+            <div class="developers">
+                <h3>開發團隊</h3>
+                <div class="developer-list">
+                    {% for developer in achievement.get_all_developers %}
+                    <div class="developer-item">
+                        <div class="developer-avatar">{{ developer.get_full_name|first|default:developer.username|first }}</div>
+                        <span>{{ developer.get_full_name|default:developer.username }}</span>
+                        {% if developer == achievement.created_by %}
+                        <span class="badge-creator">建立者</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
 
@@ -117,10 +116,9 @@
                 {% for comment in comments %}
                 <div class="comment-item">
                     <div class="comment-header">
-                        <div class="comment-avatar">{{
-                            comment.user.get_full_name|first|default:comment.user.get_full_name|first }}</div>
+                        <div class="comment-avatar">{{ comment.user.get_full_name|first|default:comment.user.username|first }}</div>
                         <div class="comment-info">
-                            <strong>{{ comment.user.get_full_name|default:comment.user.get_full_name }}</strong>
+                            <strong>{{ comment.user.get_full_name|default:comment.user.username }}</strong>
                             <span class="comment-time">{{ comment.created_at|date:"Y-m-d H:i" }}</span>
                         </div>
                         {% if comment.is_resolved %}
@@ -139,7 +137,11 @@
     <script src="{% static 'DevShowcase/js/showcase.js' %}"></script>
     <script>
         const achievementId = {{ achievement.pk }};
+        {% if user.is_authenticated %}
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        {% else %}
+        const csrfToken = '';
+        {% endif %}
     </script>
 </body>
 
