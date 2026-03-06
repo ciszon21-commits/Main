@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Project, Scene, UserActionLog, HazardType
+from .models import Project, Scene, UserActionLog, HazardType, PresetHotspot
 from django.utils.html import format_html
 import json
 
@@ -30,7 +30,27 @@ class HazardTypeAdmin(admin.ModelAdmin):
     description_short.short_description = "危害類型說明"
 
 
-@admin.register(Scene)
+@admin.register(PresetHotspot)
+class PresetHotspotAdmin(admin.ModelAdmin):
+    list_display = ('serial_number', 'source_folder', 'title', 'hazard_type', 'preview_image', 'created_at')
+    list_filter = ('source_folder', 'hazard_type')
+    search_fields = ('title', 'description', 'original_filename')
+    ordering = ('serial_number',)
+    readonly_fields = ('original_filename', 'created_at', 'updated_at', 'preview_image_large')
+
+    def preview_image(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" style="max-height:50px;border-radius:4px;">', obj.image.url)
+        return '—'
+    preview_image.short_description = '圖片預覽'
+
+    def preview_image_large(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" style="max-height:300px;border-radius:6px;">', obj.image.url)
+        return '—'
+    preview_image_large.short_description = '圖片'
+
+
 class SceneAdmin(admin.ModelAdmin):
     list_display = ('title', 'project', 'order', 'preview_image')
     list_filter = ('project',)
