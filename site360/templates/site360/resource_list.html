@@ -198,7 +198,8 @@
                                             data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
                                             data-image-url="{% if hotspot.image %}{{ hotspot.image.url }}{% endif %}"
                                             data-video-url="{% if hotspot.video %}{{ hotspot.video.url }}{% endif %}"
-                                            data-is-referencing="{% if hotspot.source_hotspot %}true{% else %}false{% endif %}">
+                                            data-is-referencing="{% if hotspot.source_hotspot %}true{% else %}false{% endif %}"
+                                            data-hazard-types="{% for ht in hotspot.hazard_types.all %}{{ ht.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
                                             <i class="fas fa-edit"></i> 編輯
                                         </button>
                                         {% if hotspot.image %}
@@ -642,6 +643,12 @@
             const status = document.getElementById('statusSelect').value;
             const project = document.getElementById('projectSelect') ? document.getElementById('projectSelect').value : '';
 
+            // Update URL without reloading to preserve filter state on refresh
+            const url = new URL(window.location);
+            if (project) { url.searchParams.set('project', project); } else { url.searchParams.delete('project'); }
+            if (scene) { url.searchParams.set('scene', scene); } else { url.searchParams.delete('scene'); }
+            window.history.replaceState({}, '', url);
+
             // Get allowed type categories from checkboxes
             const allowedCategories = new Set();
             typeCheckboxes.forEach(cb => {
@@ -825,7 +832,12 @@
                 document.getElementById('edit_description').value = desc;
                 document.getElementById('edit_type').value = type;
                 // Populate hazard type
-                const hazardTypesRaw = this.dataset.hazardTypes || '';
+                let hazardTypesRaw = this.dataset.hazardTypes;
+
+                // Remove trailing comma if exists and split
+                if (hazardTypesRaw && hazardTypesRaw.endsWith(',')) {
+                    hazardTypesRaw = hazardTypesRaw.slice(0, -1);
+                }
                 const hazardTypesIds = hazardTypesRaw ? hazardTypesRaw.split(',') : [];
 
                 // Use jQuery for Select2 multiple selection
