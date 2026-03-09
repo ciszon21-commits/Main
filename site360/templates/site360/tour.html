@@ -1254,6 +1254,17 @@
                         }
                     });
 
+                    viewer.on('scenechange', function (sceneId) {
+                        if (data.scenes[sceneId]) {
+                            document.getElementById('scene-title').innerText = data.scenes[sceneId].title;
+
+                            // Update URL so refreshing keeps the user on the new scene
+                            const url = new URL(window.location);
+                            url.searchParams.set('scene_id', sceneId);
+                            window.history.replaceState({}, '', url);
+                        }
+                    });
+
                     // Double click event for adding hotspots
 
                 })
