@@ -337,8 +337,8 @@ def save_hotspot(request):
             icon = request.POST.get('icon')
             icon_color = request.POST.get('icon_color')
             
-            hazard_type_val = request.POST.get('hazard_type')
-            hazard_type_id = int(hazard_type_val) if hazard_type_val else None
+            hazard_types_vals = request.POST.getlist('hazard_types')
+            hazard_types_ids = [int(val) for val in hazard_types_vals if val]
             
             # Import Logic
             copy_from_id = request.POST.get('copy_from_id')
@@ -367,7 +367,9 @@ def save_hotspot(request):
                 hotspot.description = description
                 hotspot.icon = icon
                 hotspot.icon_color = icon_color
-                hotspot.hazard_type_id = hazard_type_id
+                # hotspot.hazard_type_id = hazard_type_id # Legacy field
+                hotspot.save() # Save first before setting M2M
+                hotspot.hazard_types.set(hazard_types_ids)
                 
                 # 處理清除引用的請求
                 if clear_source == 'true':
@@ -382,9 +384,9 @@ def save_hotspot(request):
                     title=title,
                     description=description,
                     icon=icon,
-                    icon_color=icon_color,
-                    hazard_type_id=hazard_type_id
                 )
+                hotspot.save()
+                hotspot.hazard_types.set(hazard_types_ids)
 
             # Handle Import (Copy/Reference fields)
             if source_hotspot:
@@ -480,7 +482,8 @@ def create_standalone_hotspot(request):
             description = request.POST.get('description', '')
             icon = request.POST.get('icon', 'fas fa-info-circle')
             icon_color = request.POST.get('icon_color', '#ffffff')
-            hazard_type_id = request.POST.get('hazard_type') or None
+            hazard_types_ids = request.POST.getlist('hazard_types')
+            hazard_types_ids = [int(val) for val in hazard_types_ids if val]
 
             hotspot = Hotspot(
                 scene=None,
@@ -489,9 +492,7 @@ def create_standalone_hotspot(request):
                 yaw=0.0,
                 title=title,
                 description=description,
-                icon=icon,
                 icon_color=icon_color,
-                hazard_type_id=hazard_type_id,
             )
 
             if 'image' in request.FILES:
@@ -509,6 +510,7 @@ def create_standalone_hotspot(request):
                 hotspot.image = None
 
             hotspot.save()
+            hotspot.hazard_types.set(hazard_types_ids)
             return JsonResponse({'status': 'success', 'id': hotspot.id, 'message': '素材已成功建立'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
@@ -653,7 +655,7 @@ def project_resource_list(request, pk):
 
     scenes = Scene.objects.all().order_by('project', 'order').prefetch_related(
         'project',
-        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot', 'hazard_type').order_by('created_at'))
+        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot').prefetch_related('hazard_types').order_by('created_at'))
     )
 
     all_projects = Project.objects.all().order_by('name')
@@ -662,7 +664,7 @@ def project_resource_list(request, pk):
     # Unassigned hotspots: scene is null
     unassigned_hotspots = Hotspot.objects.filter(scene__isnull=True).annotate(
         usage_count=Count('copied_by')
-    ).select_related('source_hotspot', 'hazard_type').order_by('-created_at')
+    ).select_related('source_hotspot').prefetch_related('hazard_types').order_by('-created_at')
 
     context = {
         'project': project,
@@ -683,7 +685,7 @@ def all_resource_list(request):
 
     scenes = Scene.objects.all().order_by('project', 'order').prefetch_related(
         'project',
-        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot', 'hazard_type').order_by('created_at'))
+        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot').prefetch_related('hazard_types').order_by('created_at'))
     )
 
     projects = Project.objects.all().order_by('name')
@@ -692,7 +694,7 @@ def all_resource_list(request):
     # Unassigned hotspots: scene is null
     unassigned_hotspots = Hotspot.objects.filter(scene__isnull=True).annotate(
         usage_count=Count('copied_by')
-    ).select_related('source_hotspot', 'hazard_type').order_by('-created_at')
+    ).select_related('source_hotspot').prefetch_related('hazard_types').order_by('-created_at')
 
     context = {
         'scenes': scenes,
@@ -802,8 +804,10 @@ def project_tour_data(request, pk):
                     "video_raw": hs.video.url if hs.video else "", # Raw URL for comparison checks
                     "source_hotspot_id": hs.source_hotspot.id if hs.source_hotspot else None,
                     "source_hotspot_title": hs.source_hotspot.title if hs.source_hotspot else None,
-                    "hazard_type_id": hs.hazard_type_id,
-                    "hazard_type_name_with_serial": f"{hs.hazard_type.serial_number}. {hs.hazard_type.name}" if hs.hazard_type else None,
+                    "hazard_types": [
+                        {"id": ht.id, "name_with_serial": f"{ht.serial_number}. {ht.name}"}
+                        for ht in hs.hazard_types.all()
+                    ],
                 }
             }
             hotspots.append(hs_data)
@@ -842,13 +846,14 @@ def edit_resource(request, pk):
             title = request.POST.get('title')
             description = request.POST.get('description')
             hotspot_type = request.POST.get('type')
-            hazard_type_id = request.POST.get('hazard_type') or None
+            hazard_types_ids = request.POST.getlist('hazard_types')
+            hazard_types_ids = [int(val) for val in hazard_types_ids if val]
 
             # Always update directly - no version creation in basic edit
             hotspot.title = title
             hotspot.description = description
             hotspot.hotspot_type = hotspot_type
-            hotspot.hazard_type_id = hazard_type_id
+            # hotspot.hazard_type_id = hazard_type_id # Legacy field
             
             # Check if this is a referencing hotspot
             if hotspot.source_hotspot:
@@ -904,6 +909,7 @@ def edit_resource(request, pk):
                 hotspot.image = None
             
             hotspot.save()
+            hotspot.hazard_types.set(hazard_types_ids)
             
             return JsonResponse({
                 'status': 'success',

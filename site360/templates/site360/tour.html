@@ -606,9 +606,9 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">危害類型</label>
-                            <select class="form-select" name="hazard_type" id="hazardTypeSelect">
-                                <option value="">— 不指定 —</option>
+                            <label class="form-label">危害類型（可多選）</label>
+                            <select class="form-select select2-multiple" name="hazard_types" id="hazardTypeSelect"
+                                multiple="multiple">
                                 {% for ht in hazard_types %}
                                 <option value="{{ ht.id }}">{{ ht.serial_number }}. {{ ht.name }}</option>
                                 {% endfor %}
@@ -695,6 +695,11 @@
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+    <!-- Include Select2 CSS and JS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+        rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <script>
         let viewer;
@@ -874,7 +879,11 @@
                 }
 
                 content += `<div class="d-flex flex-wrap gap-1 mb-1">`;
-                if (args.hazard_type_name_with_serial) {
+                if (args.hazard_types && args.hazard_types.length > 0) {
+                    args.hazard_types.forEach(ht => {
+                        content += `<span class="badge bg-danger">${ht.name_with_serial}</span>`;
+                    });
+                } else if (args.hazard_type_name_with_serial) {
                     content += `<span class="badge bg-danger">${args.hazard_type_name_with_serial}</span>`;
                 }
                 content += `</div>`;
@@ -897,7 +906,11 @@
                 }
 
                 content += `<div class="d-flex flex-wrap gap-1 mb-1">`;
-                if (args.hazard_type_name_with_serial) {
+                if (args.hazard_types && args.hazard_types.length > 0) {
+                    args.hazard_types.forEach(ht => {
+                        content += `<span class="badge bg-danger">${ht.name_with_serial}</span>`;
+                    });
+                } else if (args.hazard_type_name_with_serial) {
                     content += `<span class="badge bg-danger">${args.hazard_type_name_with_serial}</span>`;
                 }
                 content += `</div>`;
@@ -939,7 +952,11 @@
                 label.className = 'hover-text-label';
 
                 let content = `<div class="d-flex flex-wrap gap-1 mb-1">`;
-                if (args.hazard_type_name_with_serial) {
+                if (args.hazard_types && args.hazard_types.length > 0) {
+                    args.hazard_types.forEach(ht => {
+                        content += `<span class="badge bg-danger">${ht.name_with_serial}</span>`;
+                    });
+                } else if (args.hazard_type_name_with_serial) {
                     content += `<span class="badge bg-danger">${args.hazard_type_name_with_serial}</span>`;
                 }
                 content += `</div>`;
@@ -992,7 +1009,10 @@
             if (!data) return;
             currentHotspotId = data.id;
             let titleHtml = data.title || '無標題';
-            if (data.hazard_type_name_with_serial) {
+            if (data.hazard_types && data.hazard_types.length > 0) {
+                let badges = data.hazard_types.map(ht => `<span class="badge bg-danger align-middle me-2">${ht.name_with_serial}</span>`).join('');
+                titleHtml = badges + titleHtml;
+            } else if (data.hazard_type_name_with_serial) {
                 titleHtml = `<span class="badge bg-danger align-middle me-2">${data.hazard_type_name_with_serial}</span>` + titleHtml;
             }
             $('#viewTitle').html(titleHtml);
@@ -1058,8 +1078,15 @@
 
             $('input[name="title"]').val(hsData.createTooltipArgs.title);
             $('textarea[name="description"]').val(hsData.createTooltipArgs.description);
-            // Fill hazard_type
-            $('#hazardTypeSelect').val(hsData.createTooltipArgs.hazard_type_id || '');
+            // Fill hazard_types
+            if (hsData.createTooltipArgs.hazard_types && hsData.createTooltipArgs.hazard_types.length > 0) {
+                const hazardTypeIds = hsData.createTooltipArgs.hazard_types.map(ht => ht.id);
+                $('#hazardTypeSelect').val(hazardTypeIds).trigger('change');
+            } else if (hsData.createTooltipArgs.hazard_type_id) {
+                $('#hazardTypeSelect').val([hsData.createTooltipArgs.hazard_type_id]).trigger('change');
+            } else {
+                $('#hazardTypeSelect').val(null).trigger('change');
+            }
 
             // Show Current Media Preview (Even if not imported)
             // Reset inputs first
@@ -1609,6 +1636,21 @@
 
             // Reset type select enable state (in case it was restricted by import)
             $('#typeSelect option').prop('disabled', false);
+
+
+            // Initialize Select2 in the modal
+            $(document).ready(function () {
+                $('.select2-multiple').select2({
+                    theme: 'bootstrap-5',
+                    width: '100%',
+                    placeholder: '— 請選擇危害類型 —',
+                    allowClear: true,
+                    dropdownParent: $('#addHotspotModal')
+                });
+            });
+
+            // clear select2 selection on add new
+            $('#hazardTypeSelect').val(null).trigger('change');
 
             updateFormFields();
             const modalEl = document.getElementById('addHotspotModal');

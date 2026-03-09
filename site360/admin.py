@@ -32,11 +32,16 @@ class HazardTypeAdmin(admin.ModelAdmin):
 
 @admin.register(PresetHotspot)
 class PresetHotspotAdmin(admin.ModelAdmin):
-    list_display = ('serial_number', 'source_folder', 'title', 'hazard_type', 'preview_image', 'created_at')
-    list_filter = ('source_folder', 'hazard_type')
+    list_display = ('serial_number', 'source_folder', 'title', 'get_hazard_types', 'preview_image', 'created_at')
+    list_filter = ('source_folder', 'hazard_types')
     search_fields = ('title', 'description', 'original_filename')
     ordering = ('serial_number',)
     readonly_fields = ('original_filename', 'created_at', 'updated_at', 'preview_image_large')
+    filter_horizontal = ('hazard_types',)
+
+    def get_hazard_types(self, obj):
+        return ", ".join([f"{ht.serial_number}. {ht.name}" for ht in obj.hazard_types.all()])
+    get_hazard_types.short_description = '危害類型'
 
     def preview_image(self, obj):
         if obj.image:
@@ -54,16 +59,17 @@ class PresetHotspotAdmin(admin.ModelAdmin):
 
 @admin.register(Hotspot)
 class HotspotAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'hotspot_type', 'scene', 'hazard_type', 'preset_source_link', 'preview_image', 'created_at')
-    list_filter = ('hotspot_type', 'hazard_type', ('preset_source', admin.RelatedOnlyFieldListFilter), ('scene__project', admin.RelatedOnlyFieldListFilter))
+    list_display = ('id', 'title', 'hotspot_type', 'scene', 'get_hazard_types', 'preset_source_link', 'preview_image', 'created_at')
+    list_filter = ('hotspot_type', 'hazard_types', ('preset_source', admin.RelatedOnlyFieldListFilter), ('scene__project', admin.RelatedOnlyFieldListFilter))
     search_fields = ('title', 'description', 'scene__title', 'scene__project__name')
     ordering = ('-created_at',)
     raw_id_fields = ('scene', 'source_hotspot', 'preset_source', 'original_resource')
     readonly_fields = ('created_at', 'updated_at', 'preview_image_large')
     list_per_page = 50
+    filter_horizontal = ('hazard_types',)
 
     fieldsets = (
-        ('基本資訊', {'fields': ('hotspot_type', 'title', 'description', 'hazard_type')}),
+        ('基本資訊', {'fields': ('hotspot_type', 'title', 'description', 'hazard_types', 'hazard_type')}),
         ('位置', {'fields': ('scene', 'pitch', 'yaw')}),
         ('圖示設定', {'fields': ('icon', 'icon_color')}),
         ('媒體', {'fields': ('image', 'preview_image_large', 'video')}),
@@ -71,6 +77,10 @@ class HotspotAdmin(admin.ModelAdmin):
         ('版本控制', {'fields': ('version_number', 'is_latest_version', 'original_resource'), 'classes': ('collapse',)}),
         ('時間戳記', {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
     )
+
+    def get_hazard_types(self, obj):
+        return ", ".join([f"{ht.serial_number}. {ht.name}" for ht in obj.hazard_types.all()])
+    get_hazard_types.short_description = '危害類型'
 
     def preview_image(self, obj):
         if obj.image:
