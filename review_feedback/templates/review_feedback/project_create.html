@@ -1,0 +1,346 @@
+{% extends "review_feedback/base.html" %}
+{% load static %}
+
+{% block title %}新增專案{% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block content %}
+<ul class="breadcrumb">
+    <li><a href="{% url 'review_feedback:project_list' %}">專案總覽</a></li>
+    <li><span class="current">新增專案</span></li>
+</ul>
+
+<div class="page-header">
+    <h1>新增專案</h1>
+    <p class="subtitle">建立新專案並設定可上傳檔案的管理員</p>
+</div>
+
+<div style="max-width:680px">
+    <form method="post" id="createForm">
+        {% csrf_token %}
+
+        <!-- 基本資料 -->
+        <div class="card" style="margin-bottom:20px">
+            <div class="card-header" style="display:flex;align-items:center;gap:8px">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                專案基本資料
+            </div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:16px">
+                <div>
+                    <label for="{{ form.name.id_for_label }}" style="display:block;font-size:0.85rem;font-weight:600;color:var(--text);margin-bottom:6px">
+                        {{ form.name.label }} <span style="color:var(--danger)">*</span>
+                    </label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                    <p style="font-size:0.8rem;color:var(--danger);margin-top:4px">{{ form.name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.description.id_for_label }}" style="display:block;font-size:0.85rem;font-weight:600;color:var(--text);margin-bottom:6px">
+                        {{ form.description.label }}
+                    </label>
+                    {{ form.description }}
+                </div>
+            </div>
+        </div>
+
+        <!-- 管理員搜尋設定 -->
+        <div class="card" style="margin-bottom:24px">
+            <div class="card-header" style="display:flex;align-items:center;gap:8px">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cta)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                專案管理員
+            </div>
+            <div class="card-body">
+                <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px">
+                    搜尋並加入可上傳 JSON / PDF 檔案的管理員帳號。
+                </p>
+
+                <!-- Search input -->
+                <div style="position:relative;margin-bottom:14px">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                         style="position:absolute;left:11px;top:50%;transform:translateY(-50%);pointer-events:none">
+                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <input type="text" id="adminSearch"
+                           placeholder="輸入使用者名稱或姓名搜尋…"
+                           autocomplete="off"
+                           style="width:100%;padding:9px 12px 9px 36px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.9rem;font-family:inherit;color:var(--text);background:var(--bg);box-sizing:border-box;transition:border-color var(--transition)"
+                           onfocus="this.style.borderColor='var(--primary)'"
+                           onblur="this.style.borderColor='var(--border)'">
+                    <!-- Dropdown -->
+                    <div id="adminDropdown"
+                         style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:var(--radius-sm);z-index:200;box-shadow:0 4px 16px rgba(0,0,0,0.1);max-height:220px;overflow-y:auto">
+                    </div>
+                </div>
+
+                <!-- Selected chips -->
+                <div id="adminChips" style="display:flex;flex-wrap:wrap;gap:8px;min-height:32px;margin-bottom:10px"></div>
+
+                <!-- Hidden inputs container (JS-managed) -->
+                <div id="adminHiddenInputs"></div>
+
+                {% if form.admins.errors %}
+                <p style="font-size:0.8rem;color:var(--danger);margin-top:4px">{{ form.admins.errors.0 }}</p>
+                {% endif %}
+
+                <p style="font-size:0.78rem;color:var(--text-light);margin-top:8px">
+                    建立者（您）將自動成為管理員，無須另行選取。
+                </p>
+            </div>
+        </div>
+
+        <!-- 專家審查員設定 -->
+        <div class="card" style="margin-bottom:24px">
+            <div class="card-header" style="display:flex;align-items:center;gap:8px">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M3 21v-2a7 7 0 0 1 7-7h4a7 7 0 0 1 7 7v2"/><polyline points="16 11 18 13 22 9" stroke-width="2.5"/></svg>
+                專家審查員
+            </div>
+            <div class="card-body">
+                <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px">
+                    搜尋並加入可審查比對結果的專家帳號（無上傳權限）。
+                </p>
+                <div style="position:relative;margin-bottom:14px">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                         style="position:absolute;left:11px;top:50%;transform:translateY(-50%);pointer-events:none">
+                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <input type="text" id="expertSearch"
+                           placeholder="輸入使用者名稱或姓名搜尋…"
+                           autocomplete="off"
+                           style="width:100%;padding:9px 12px 9px 36px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.9rem;font-family:inherit;color:var(--text);background:var(--bg);box-sizing:border-box;transition:border-color var(--transition)"
+                           onfocus="this.style.borderColor='var(--success)'"
+                           onblur="this.style.borderColor='var(--border)'">
+                    <div id="expertDropdown"
+                         style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:var(--radius-sm);z-index:200;box-shadow:0 4px 16px rgba(0,0,0,0.1);max-height:220px;overflow-y:auto">
+                    </div>
+                </div>
+                <div id="expertChips" style="display:flex;flex-wrap:wrap;gap:8px;min-height:32px;margin-bottom:10px"></div>
+                <div id="expertHiddenInputs"></div>
+                {% if form.experts.errors %}
+                <p style="font-size:0.8rem;color:var(--danger);margin-top:4px">{{ form.experts.errors.0 }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="display:flex;gap:12px">
+            <button type="submit" class="btn btn-primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                建立專案
+            </button>
+            <a href="{% url 'review_feedback:project_list' %}" class="btn btn-outline">取消</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-input, .form-textarea {
+        width: 100%;
+        padding: 9px 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        font-size: 0.9rem;
+        font-family: inherit;
+        color: var(--text);
+        background: var(--bg);
+        transition: border-color var(--transition);
+        box-sizing: border-box;
+    }
+    .form-input:focus, .form-textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    .admin-result-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        cursor: pointer;
+        font-size: 0.88rem;
+        transition: background var(--transition);
+        border-bottom: 1px solid var(--border-light);
+    }
+    .admin-result-item:last-child { border-bottom: none; }
+    .admin-result-item:hover:not(.already-added) { background: var(--primary-light); }
+    .admin-result-item.already-added { opacity: 0.5; cursor: default; }
+    .admin-result-username { font-weight: 600; color: var(--text); }
+    .admin-result-fullname { color: var(--text-muted); font-size: 0.82rem; }
+    .admin-result-badge {
+        margin-left: auto;
+        font-size: 0.72rem;
+        color: var(--success);
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    .admin-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 6px 4px 12px;
+        background: var(--primary-light);
+        color: var(--primary);
+        border: 1px solid rgba(59,130,246,0.25);
+        border-radius: 999px;
+        font-size: 0.82rem;
+        font-weight: 500;
+        animation: chipIn 0.15s ease;
+    }
+    @keyframes chipIn { from { opacity:0; transform:scale(0.85); } to { opacity:1; transform:scale(1); } }
+    .admin-chip-remove {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        border: none;
+        background: rgba(59,130,246,0.15);
+        border-radius: 50%;
+        cursor: pointer;
+        color: var(--primary);
+        padding: 0;
+        transition: background var(--transition);
+        flex-shrink: 0;
+    }
+    .admin-chip-remove:hover { background: rgba(59,130,246,0.35); }
+    .no-results {
+        padding: 12px 14px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        text-align: center;
+    }
+    .expert-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 6px 4px 12px;
+        background: var(--success-light);
+        color: #065f46;
+        border: 1px solid rgba(16,185,129,0.3);
+        border-radius: 999px;
+        font-size: 0.82rem;
+        font-weight: 500;
+        animation: chipIn 0.15s ease;
+    }
+    .expert-chip-remove {
+        display: flex; align-items: center; justify-content: center;
+        width: 18px; height: 18px;
+        border: none; background: rgba(16,185,129,0.2); border-radius: 50%;
+        cursor: pointer; color: #059669; padding: 0;
+        transition: background var(--transition); flex-shrink: 0;
+    }
+    .expert-chip-remove:hover { background: rgba(16,185,129,0.4); }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const SEARCH_URL = "{% url 'review_feedback:user_search' %}";
+const selectedAdmins  = new Map();
+const selectedExperts = new Map();
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── Generic chip manager factory ────────────────────────────
+function createChipManager({ searchId, dropdownId, chipsId, hiddenId, selectedMap, inputName, chipClass, chipRemoveClass }) {
+    const searchEl  = document.getElementById(searchId);
+    const dropEl    = document.getElementById(dropdownId);
+    const chipsEl   = document.getElementById(chipsId);
+    const hiddenEl  = document.getElementById(hiddenId);
+
+    let timer;
+    searchEl.addEventListener('input', () => {
+        clearTimeout(timer);
+        const q = searchEl.value.trim();
+        if (!q) { dropEl.style.display = 'none'; return; }
+        timer = setTimeout(async () => {
+            try {
+                const resp = await fetch(SEARCH_URL + '?q=' + encodeURIComponent(q));
+                const data = await resp.json();
+                if (!data.users.length) {
+                    dropEl.innerHTML = '<div class="no-results">找不到符合的使用者</div>';
+                } else {
+                    dropEl.innerHTML = data.users.map(u => {
+                        const added = selectedMap.has(u.id);
+                        return `<div class="admin-result-item${added ? ' already-added' : ''}"
+                                     data-id="${u.id}" data-username="${escHtml(u.username)}" data-fullname="${escHtml(u.full_name)}"
+                                     onclick="pick_${searchId}(this)">
+                            <span class="admin-result-username">${escHtml(u.full_name || u.username)}</span>
+                            ${u.full_name ? `<span class="admin-result-fullname">${escHtml(u.username)}</span>` : ''}
+                            ${added ? '<span class="admin-result-badge">✓ 已新增</span>' : ''}
+                        </div>`;
+                    }).join('');
+                }
+                dropEl.style.display = 'block';
+            } catch { dropEl.style.display = 'none'; }
+        }, 250);
+    });
+
+    document.addEventListener('click', e => {
+        if (!searchEl.contains(e.target) && !dropEl.contains(e.target)) dropEl.style.display = 'none';
+    });
+
+    return {
+        add(user, animate = true) {
+            if (selectedMap.has(user.id)) return;
+            selectedMap.set(user.id, user);
+            const inp = document.createElement('input');
+            inp.type = 'hidden'; inp.name = inputName; inp.value = user.id; inp.id = `${inputName}-hidden-${user.id}`;
+            hiddenEl.appendChild(inp);
+            const label = user.full_name || user.username;
+            const chip = document.createElement('div');
+            chip.className = chipClass; chip.id = `${inputName}-chip-${user.id}`;
+            if (!animate) chip.style.animation = 'none';
+            chip.innerHTML = `<span>${escHtml(label)}</span>
+                <button type="button" class="${chipRemoveClass}" onclick="remove_${searchId}(${user.id})" title="移除">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+                </button>`;
+            chipsEl.appendChild(chip);
+        },
+        remove(id) {
+            selectedMap.delete(id);
+            document.getElementById(`${inputName}-hidden-${id}`)?.remove();
+            document.getElementById(`${inputName}-chip-${id}`)?.remove();
+        },
+    };
+}
+
+// ── Admin manager ────────────────────────────────────────────
+const adminMgr = createChipManager({
+    searchId: 'adminSearch', dropdownId: 'adminDropdown', chipsId: 'adminChips', hiddenId: 'adminHiddenInputs',
+    selectedMap: selectedAdmins, inputName: 'admins', chipClass: 'admin-chip', chipRemoveClass: 'admin-chip-remove',
+});
+function pick_adminSearch(el) {
+    if (el.classList.contains('already-added')) return;
+    adminMgr.add({ id: parseInt(el.dataset.id), username: el.dataset.username, full_name: el.dataset.fullname });
+    document.getElementById('adminSearch').value = '';
+    document.getElementById('adminDropdown').style.display = 'none';
+}
+function remove_adminSearch(id) { adminMgr.remove(id); }
+function addAdmin(user, animate = true) { adminMgr.add(user, animate); }
+
+// ── Expert manager ───────────────────────────────────────────
+const expertMgr = createChipManager({
+    searchId: 'expertSearch', dropdownId: 'expertDropdown', chipsId: 'expertChips', hiddenId: 'expertHiddenInputs',
+    selectedMap: selectedExperts, inputName: 'experts', chipClass: 'expert-chip', chipRemoveClass: 'expert-chip-remove',
+});
+function pick_expertSearch(el) {
+    if (el.classList.contains('already-added')) return;
+    expertMgr.add({ id: parseInt(el.dataset.id), username: el.dataset.username, full_name: el.dataset.fullname });
+    document.getElementById('expertSearch').value = '';
+    document.getElementById('expertDropdown').style.display = 'none';
+}
+function remove_expertSearch(id) { expertMgr.remove(id); }
+function addExpert(user, animate = true) { expertMgr.add(user, animate); }
+
+// ── Pre-populate from server (error re-render) — must run after managers are defined ──
+const initialAdmins  = {{ initial_admins_json|safe }};
+const initialExperts = {{ initial_experts_json|safe }};
+initialAdmins.forEach(u => addAdmin(u, false));
+initialExperts.forEach(u => addExpert(u, false));
+</script>
+{% endblock %}
