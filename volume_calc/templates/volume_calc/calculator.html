@@ -629,7 +629,18 @@
                     {% for row in sheet.rows %}
                     <tr class="hover:bg-slate-50 transition-colors">
                         {% for cell in row %}
-                        <td class="px-6 py-4 text-slate-700 text-xs align-top break-words">{{ cell }}</td>
+                        <td class="px-6 py-4 text-slate-700 text-xs align-top break-words"
+                            data-sheet-key="{{ sheet.key }}" data-cell-address="{{ cell.address }}">
+                            {% if cell.is_input %}
+                            <input type="number" step="0.01"
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary text-xs"
+                                data-sheet-key="{{ sheet.key }}" data-cell-address="{{ cell.address }}"
+                                value="{{ cell.display }}">
+                            {% else %}
+                            <span data-sheet-key="{{ sheet.key }}" data-cell-address="{{ cell.address }}"
+                                {% if cell.is_formula %}data-formula-cell="1"{% endif %}>{{ cell.display }}</span>
+                            {% endif %}
+                        </td>
                         {% endfor %}
                     </tr>
                     {% endfor %}
@@ -648,6 +659,7 @@
         volumeRatio: Number("{{ default_volume_ratio }}")
     };
 </script>
+{{ building_mass_engine|json_script:"building-mass-engine-data" }}
 <script src="{% static 'volume_calc/js/calculator.js' %}"></script>
 
 {% endblock %}
