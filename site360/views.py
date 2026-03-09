@@ -458,7 +458,8 @@ def list_resources(request):
                 'has_video': bool(h.video),
                 'icon': h.icon,
                 'icon_color': h.icon_color,
-                'usage_count': h.copied_by.count()
+                'usage_count': h.copied_by.count(),
+                'hazard_types': [ht.id for ht in h.hazard_types.all()]
             }
             data.append(item)
         return JsonResponse({'status': 'success', 'resources': data})
