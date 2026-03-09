@@ -600,6 +600,46 @@
     </div>
 </div>
 
+<div class="max-w-7xl mx-auto space-y-8 pb-8">
+    <!-- 建築量體工作表（北市 / 新北） -->
+    {% if building_mass_error %}
+    <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-6 py-4 text-sm">
+        {{ building_mass_error }}
+    </div>
+    {% endif %}
+
+    {% for sheet in building_mass_sheets %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-slate-50/50">
+            <h2 class="text-lg font-semibold text-slate-900">{{ sheet.title }}</h2>
+        </div>
+        <div class="overflow-hidden">
+            <table class="w-full table-fixed divide-y divide-gray-200 text-sm">
+                <thead class="bg-slate-50">
+                    <tr>
+                        {% for header in sheet.headers %}
+                        <th scope="col"
+                            class="px-6 py-3 text-left font-medium text-slate-500 uppercase tracking-wider text-xs break-words">
+                            {{ header }}
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for row in sheet.rows %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        {% for cell in row %}
+                        <td class="px-6 py-4 text-slate-700 text-xs align-top break-words">{{ cell }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
 <script>
     window.__volumeCalcDefaults = {
         baseArea: Number("{{ default_base_area }}"),
