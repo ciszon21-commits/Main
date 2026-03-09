@@ -52,6 +52,7 @@ urlpatterns = [
     path('wind-rose/', include('CODiS_WindRose_Plotter.urls')),  # 風玫瑰圖繪製工具
     path('lhawish/', include('LHAWish.urls')),  # 部門許願池
     path('duplicate-checker/', include('duplicate_checker.urls')),  # 重複檔案檢查器
+    path('review/', include('review_feedback.urls')),
 ]
 
 # 條件載入 ClashClassifier API

@@ -1,0 +1,829 @@
+{% extends "review_feedback/base.html" %}
+
+{% block title %}{{ comparison_file.original_filename }}{% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<ul class="breadcrumb">
+    <li><a href="{% url 'review_feedback:project_list' %}">專案總覽</a></li>
+    <li><a href="{% url 'review_feedback:project_detail' project.pk %}">{{ project.name }}</a></li>
+    <li><span class="current">{{ comparison_file.original_filename }}</span></li>
+</ul>
+
+<div id="mainLayout" class="layout-normal">
+
+  <!-- ── Left: Entry List ── -->
+  <div id="entryPanel">
+
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+            <h1 style="font-size:1.4rem">{{ comparison_file.original_filename }}</h1>
+            <p class="subtitle">共 {{ entry_forms|length }} 筆比對結果</p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            {% if has_pdf %}
+            <span class="stat-chip green" style="cursor:default">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                已有 PDF，點頁碼可預覽
+            </span>
+            {% else %}
+            <span class="stat-chip orange" style="cursor:default">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                尚未上傳 PDF
+            </span>
+            {% endif %}
+            <span id="reviewedCount" class="stat-chip blue">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <span id="reviewedNum">0</span> 已審查
+            </span>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;font-size:0.78rem;color:var(--text-muted)">
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:var(--success);display:inline-block"></span>匹配</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:var(--text-light);display:inline-block"></span>不匹配</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:4px;height:14px;border-radius:2px;background:var(--success);display:inline-block"></span>已審查(正確)</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:4px;height:14px;border-radius:2px;background:var(--danger);display:inline-block"></span>已審查(不正確)</span>
+        {% if has_pdf %}
+        <span style="display:flex;align-items:center;gap:4px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>點擊頁碼或文字在右側預覽
+        </span>
+        {% endif %}
+    </div>
+
+    <!-- Entries -->
+    {% for entry, form, feedback in entry_forms %}
+    <div class="entry-card {% if feedback %}{% if feedback.is_correct %}has-feedback{% elif feedback.is_correct == False %}not-correct{% endif %}{% endif %}"
+         id="entry-{{ entry.pk }}">
+
+        <div class="entry-header">
+            {% if has_pdf %}
+            <button type="button"
+                    class="entry-page entry-page-btn"
+                    data-page="{{ entry.source_page }}"
+                    data-excerpt="{{ entry.excerpt_text|escapejs|truncatechars:120 }}"
+                    data-decision="{{ entry.final_decision_class|escapejs }}"
+                    data-char-start="{{ entry.char_start_pos|default:'' }}"
+                    data-char-end="{{ entry.char_end_pos|default:'' }}"
+                    title="點擊預覽第 {{ entry.source_page }} 頁"
+                    onclick="openPdfPage('{{ entry.source_page }}', this.dataset.excerpt, this.dataset.decision, this.dataset.charStart, this.dataset.charEnd)">
+                P.{{ entry.source_page }}
+                <svg class="eye-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+            {% else %}
+            <div class="entry-page" title="來源頁碼: {{ entry.source_page }}">P.{{ entry.source_page }}</div>
+            {% endif %}
+
+            <div class="entry-meta">
+                {% if has_pdf %}
+                <div class="entry-excerpt excerpt-clickable"
+                     title="點擊開啟 PDF 第 {{ entry.source_page }} 頁"
+                     onclick="openPdfPage('{{ entry.source_page }}', '{{ entry.excerpt_text|escapejs|truncatechars:120 }}', '{{ entry.final_decision_class|escapejs }}', '{{ entry.char_start_pos|default:'' }}', '{{ entry.char_end_pos|default:'' }}')">{{ entry.excerpt_text }}</div>
+                {% else %}
+                <div class="entry-excerpt">{{ entry.excerpt_text }}</div>
+                {% endif %}
+                <div class="entry-details">
+                    {% if entry.is_match %}
+                    <span class="badge badge-match">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>&nbsp;匹配
+                    </span>
+                    {% else %}
+                    <span class="badge badge-no-match">不匹配</span>
+                    {% endif %}
+                    {% if entry.arbitration_status %}
+                    <span class="badge {% if entry.arbitration_status == 'confirmed' %}badge-confirmed{% elif entry.arbitration_status == 'reclassified' %}badge-reclassified{% endif %}">{{ entry.arbitration_status }}</span>
+                    {% endif %}
+                    {% if entry.final_decision_class %}
+                    <span class="decision-tag">{{ entry.final_decision_class }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="entry-strategy">
+            <details>
+                <summary>AI 推論詳情 &amp; 減碳策略</summary>
+                <div class="reasoning">
+                    <p><strong>減碳策略：</strong>{{ entry.strategy_name }}</p>
+                    {% if entry.reasoning %}<p style="margin-top:8px"><strong>推論說明：</strong>{{ entry.reasoning }}</p>{% endif %}
+                    {% if entry.arbitration_note %}
+                    <p style="margin-top:8px"><strong>候選分類：</strong></p>
+                    <ul style="margin-left:16px;margin-top:4px">
+                        {% for note in entry.arbitration_note %}<li>{{ note }}</li>{% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+            </details>
+        </div>
+
+        <div class="entry-feedback" id="feedback-area-{{ entry.pk }}">
+            <form class="feedback-form fb-vertical" onsubmit="return submitFeedback(event, {{ entry.pk }})">
+                {% csrf_token %}
+
+                <!-- 1. 分類判定 -->
+                <div class="fb-field">
+                    <label class="form-label">分類判定</label>
+                    <div class="fb-radios">
+                        {% with ic=form.is_correct.value %}
+                        <label class="fb-radio{% if ic == 'true' %} fb-yes{% endif %}">
+                            <input type="radio" name="{{ form.is_correct.html_name }}" value="true"
+                                   {% if ic == 'true' %}checked{% endif %}
+                                   onchange="onIsCorrectChange(this,'{{ entry.pk }}')">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            分類正確
+                        </label>
+                        <label class="fb-radio{% if ic == 'false' %} fb-no{% endif %}">
+                            <input type="radio" name="{{ form.is_correct.html_name }}" value="false"
+                                   {% if ic == 'false' %}checked{% endif %}
+                                   onchange="onIsCorrectChange(this,'{{ entry.pk }}')">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+                            分類錯誤
+                        </label>
+                        {% endwith %}
+                    </div>
+                </div>
+
+                <!-- 2. 正確分類（分類錯誤時顯示） -->
+                <div class="fb-field" id="cls-row-{{ entry.pk }}"
+                     style="{% if form.is_correct.value == 'false' %}display:flex{% else %}display:none{% endif %}">
+                    <label class="form-label">正確分類 <span style="color:var(--danger)">*</span></label>
+                    {{ form.correct_classification }}
+                </div>
+
+                <!-- 3. 備註說明 -->
+                <div class="fb-field">
+                    <label class="form-label">備註說明</label>
+                    {{ form.feedback_reason }}
+                </div>
+
+                <!-- 4. 手段描述擴充 -->
+                <div class="fb-field">
+                    <label class="form-label">手段描述擴充</label>
+                    {{ form.additional_description }}
+                </div>
+
+                <div style="display:flex;justify-content:flex-end">
+                    <button type="submit" class="btn btn-cta btn-sm" id="btn-{{ entry.pk }}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        儲存
+                    </button>
+                </div>
+            </form>
+            {% if feedback %}
+            <div class="feedback-saved {% if feedback.is_correct %}correct{% elif feedback.is_correct == False %}incorrect{% endif %}" style="margin-top:8px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                {% if feedback.is_correct %}分類正確{% elif feedback.is_correct == False %}分類錯誤{% if feedback.correct_classification %} → {{ feedback.correct_classification }}{% endif %}{% endif %}
+                {% if feedback.reviewer %} — {{ feedback.reviewer }}{% endif %}
+                &middot; {{ feedback.reviewed_at|date:"Y-m-d H:i" }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="empty-state">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <h3>此檔案無比對結果</h3>
+        <p>可能是 JSON 解析尚未完成或檔案格式不符。</p>
+    </div>
+    {% endfor %}
+
+  </div><!-- end #entryPanel -->
+
+  <!-- ── Right: PDF.js Viewer Panel ── -->
+  {% if has_pdf %}
+  <div id="pdfPanel" class="pdf-panel">
+
+    <!-- Header -->
+    <div class="pdf-panel-header">
+        <div style="display:flex;align-items:center;gap:8px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cta)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span style="font-weight:600;font-size:0.9rem">PDF 預覽</span>
+        </div>
+        <button type="button" class="btn btn-sm" onclick="closePdfPanel()"
+                style="background:var(--border);color:var(--text-muted)" title="關閉">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+        </button>
+    </div>
+
+    <!-- Page Navigation Controls -->
+    <div id="pdfControls" class="pdf-controls">
+        <div class="pdf-nav-group">
+            <button class="pdf-ctrl-btn" onclick="changePage(-1)" title="上一頁" id="btnPrev">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <div class="pdf-page-input-wrap">
+                <input type="number" id="pageNumInput" min="1" value="1"
+                       onchange="goToPage(parseInt(this.value))"
+                       onkeydown="if(event.key==='Enter') goToPage(parseInt(this.value))">
+                <span style="color:var(--text-muted);font-size:0.75rem">/ <span id="totalPagesLabel">—</span></span>
+            </div>
+            <button class="pdf-ctrl-btn" onclick="changePage(1)" title="下一頁" id="btnNext">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+        </div>
+        <div class="pdf-zoom-group">
+            <button class="pdf-ctrl-btn" onclick="changeZoom(-0.25)" title="縮小">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="8" x2="14" y1="11" y2="11"/></svg>
+            </button>
+            <span id="zoomLabel" style="font-size:0.75rem;color:var(--text-muted);min-width:36px;text-align:center">150%</span>
+            <button class="pdf-ctrl-btn" onclick="changeZoom(0.25)" title="放大">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading indicator -->
+    <div id="pdfLoading" class="pdf-loading">
+        <div class="pdf-spinner"></div>
+        <span>載入 PDF 中…</span>
+    </div>
+
+    <!-- Canvas Container: canvas + text layer stacked -->
+    <div id="pdfCanvasWrap" class="pdf-canvas-wrap">
+        <div id="pdfViewport" style="position:relative;display:inline-block">
+            <canvas id="pdfCanvas"></canvas>
+            <div id="pdfTextLayer" class="pdf-text-layer"></div>
+        </div>
+    </div>
+
+    <!-- Entry context strip at bottom -->
+    <div id="pdfContextStrip" class="pdf-context-strip" style="display:none">
+        <div id="pdfContextText" class="pdf-context-text"></div>
+    </div>
+
+    <!-- Placeholder when no page selected yet -->
+    <div id="pdfPlaceholder" class="pdf-placeholder">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
+        <p>點擊左側頁碼或摘錄文字<br>PDF 頁面將直接在此呈現</p>
+    </div>
+
+  </div><!-- end #pdfPanel -->
+  {% endif %}
+
+</div><!-- end #mainLayout -->
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ─── Layout ─── */
+    .layout-normal { display: block; }
+    .layout-split {
+        display: grid;
+        /* PDF panel gets ~60% of full viewport width */
+        grid-template-columns: minmax(320px, 5fr) minmax(480px, 7fr);
+        gap: 16px;
+        align-items: start;
+    }
+
+    /* ─── PDF Panel ─── */
+    .pdf-panel {
+        display: none;
+        position: sticky;
+        top: 80px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg-white);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+        height: calc(100vh - 100px);
+        flex-direction: column;
+    }
+    .pdf-panel.open { display: flex; }
+
+    .pdf-panel-header {
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+        background: var(--bg-white);
+    }
+
+    /* Controls bar */
+    .pdf-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: var(--border-light);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+        gap: 8px;
+    }
+    .pdf-nav-group, .pdf-zoom-group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .pdf-ctrl-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--bg-white);
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all var(--transition);
+    }
+    .pdf-ctrl-btn:hover { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+    .pdf-ctrl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .pdf-page-input-wrap {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    #pageNumInput {
+        width: 50px;
+        padding: 4px 8px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 0.8rem;
+        text-align: center;
+        font-family: var(--font-heading);
+    }
+    #pageNumInput:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-light); }
+
+    /* Loading */
+    .pdf-loading {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        flex: 1;
+        color: var(--text-muted);
+        font-size: 0.875rem;
+    }
+    .pdf-loading.visible { display: flex; }
+    .pdf-spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--border);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    /* Canvas */
+    .pdf-canvas-wrap {
+        flex: 1;
+        overflow: auto;
+        display: none;
+        background: #525659;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 12px;
+    }
+    .pdf-canvas-wrap.visible { display: flex; }
+    #pdfCanvas {
+        box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+        display: block;
+    }
+
+    /* Context strip */
+    .pdf-context-strip {
+        border-top: 1px solid var(--border);
+        background: var(--bg);
+        flex-shrink: 0;
+        max-height: 120px;
+        overflow-y: auto;
+    }
+    .pdf-context-text {
+        padding: 10px 14px;
+        font-size: 0.8rem;
+        line-height: 1.6;
+        color: var(--text-muted);
+        border-left: 3px solid var(--primary);
+    }
+
+    /* Placeholder */
+    .pdf-placeholder {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: var(--text-muted);
+        gap: 12px;
+        padding: 24px;
+    }
+    .pdf-placeholder p { font-size: 0.85rem; line-height: 1.7; }
+
+    /* ─── Feedback Form ─── */
+    .fb-vertical { flex-direction: column !important; gap: 10px; }
+    .fb-field { display: flex; flex-direction: column; gap: 4px; }
+    .fb-radios { display: flex; gap: 8px; }
+    .fb-radio {
+        display: flex; align-items: center; gap: 6px;
+        padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px;
+        cursor: pointer; font-size: 0.82rem; font-weight: 500;
+        transition: all var(--transition); flex: 1; justify-content: center; user-select: none;
+    }
+    .fb-radio:hover { border-color: var(--primary); background: var(--primary-light); }
+    .fb-radio.fb-yes { border-color: var(--success); background: var(--success-light); color: #059669; }
+    .fb-radio.fb-no  { border-color: var(--danger);  background: var(--danger-light);  color: var(--danger); }
+    .fb-radio input[type=radio] { display: none; }
+    .fb-text {
+        width: 100%; padding: 7px 10px; border: 1px solid var(--border);
+        border-radius: 6px; font-size: 0.85rem; font-family: inherit; box-sizing: border-box;
+    }
+    .fb-text:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-light); }
+    .fb-textarea {
+        width: 100%; padding: 7px 10px; border: 1px solid var(--border);
+        border-radius: 6px; font-size: 0.85rem; font-family: inherit; resize: vertical; box-sizing: border-box;
+    }
+    .fb-textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-light); }
+
+    /* ─── Clickable page + excerpt ─── */
+    .entry-page-btn {
+        cursor: pointer;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 52px;
+        min-height: 52px;
+        border-radius: var(--radius-sm);
+        background: var(--primary-light);
+        color: var(--primary);
+        font-weight: 700;
+        font-size: 0.8rem;
+        font-family: var(--font-heading);
+        border: 2px solid transparent;
+        transition: all var(--transition);
+        gap: 2px;
+    }
+    .entry-page-btn:hover {
+        border-color: var(--primary);
+        transform: scale(1.05);
+        box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    .entry-page-btn.active {
+        background: var(--primary);
+        color: white;
+    }
+    .eye-icon { opacity: 0.7; }
+    .excerpt-clickable {
+        cursor: pointer;
+        border-radius: 4px;
+        padding: 2px 4px;
+        margin: -2px -4px;
+        transition: background var(--transition);
+    }
+    .excerpt-clickable:hover { background: var(--primary-light); }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 1200px) {
+        .layout-split { grid-template-columns: 1fr 360px; }
+    }
+    @media (max-width: 1024px) {
+        .layout-split { grid-template-columns: 1fr; }
+        .pdf-panel {
+            position: fixed;
+            top: 0; right: 0; bottom: 0;
+            width: min(92vw, 520px);
+            height: 100vh;
+            border-radius: 0;
+            z-index: 50;
+        }
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    /* ─── PDF Text Layer ─── */
+    .pdf-text-layer {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        pointer-events: none;
+        overflow: hidden;
+        opacity: 1;
+        line-height: 1;
+    }
+    .pdf-text-layer span {
+        color: transparent;
+        position: absolute;
+        white-space: pre;
+        cursor: default;
+        transform-origin: 0% 0%;
+    }
+    .pdf-text-layer span.pdf-highlight {
+        background: rgba(255, 195, 0, 0.5);
+        border-radius: 2px;
+        mix-blend-mode: multiply;
+    }
+
+    /* ─── Full-width when PDF panel is open ─── */
+    /* Override .container max-width to use full browser width */
+    body:has(#pdfPanel.open) main.container {
+        max-width: 100%;
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- PDF.js from CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+// ─── Reviewed Count ───
+function updateReviewedCount() {
+    const cards = document.querySelectorAll('.entry-card');
+    let count = 0;
+    cards.forEach(c => {
+        if (c.classList.contains('has-feedback') || c.classList.contains('not-correct')) count++;
+    });
+    const el = document.getElementById('reviewedNum');
+    if (el) el.textContent = count;
+}
+updateReviewedCount();
+
+// ─── PDF.js Viewer with Text Highlight ───
+{% if has_pdf %}
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const PDF_URL = "{{ pdf_url }}";
+let pdfDoc      = null;   // loaded PDF document
+let currentPage = null;   // currently displayed page number
+let scale       = 1.5;    // zoom level
+let rendering   = false;  // prevent concurrent renders
+// Current char interval to highlight (page-level offsets)
+let hlStart = null;
+let hlEnd   = null;
+
+// DOM refs
+const pdfPanel       = document.getElementById('pdfPanel');
+const mainLayout     = document.getElementById('mainLayout');
+const pdfLoading     = document.getElementById('pdfLoading');
+const pdfCanvasWrap  = document.getElementById('pdfCanvasWrap');
+const pdfCanvas      = document.getElementById('pdfCanvas');
+const pdfTextLayer   = document.getElementById('pdfTextLayer');
+const pdfPlaceholder = document.getElementById('pdfPlaceholder');
+const pdfContextStrip = document.getElementById('pdfContextStrip');
+const pdfContextText  = document.getElementById('pdfContextText');
+const pageNumInput    = document.getElementById('pageNumInput');
+const totalPagesLabel = document.getElementById('totalPagesLabel');
+const zoomLabel       = document.getElementById('zoomLabel');
+
+// Load PDF document (only once)
+async function ensurePdfLoaded() {
+    if (pdfDoc) return true;
+    showLoading(true);
+    try {
+        pdfDoc = await pdfjsLib.getDocument(PDF_URL).promise;
+        totalPagesLabel.textContent = pdfDoc.numPages;
+        pageNumInput.max = pdfDoc.numPages;
+        showLoading(false);
+        return true;
+    } catch (err) {
+        showLoading(false);
+        console.error('PDF load error:', err);
+        pdfPlaceholder.innerHTML = `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg><p>PDF 載入失敗<br><small style="color:var(--danger)">${err.message}</small></p>`;
+        pdfPlaceholder.style.display = 'flex';
+        return false;
+    }
+}
+
+// Render canvas + build text layer with optional highlight
+async function renderPage(num, autoFit = false) {
+    if (!pdfDoc || rendering) return;
+    rendering = true;
+    try {
+        const page = await pdfDoc.getPage(num);
+
+        // Auto-fit: calculate scale so PDF width fills the panel
+        if (autoFit) {
+            const panelW = pdfCanvasWrap.clientWidth - 24; // 12px padding each side
+            const baseVP = page.getViewport({ scale: 1.0 });
+            scale = Math.max(0.5, Math.min(3.0, panelW / baseVP.width));
+            zoomLabel.textContent = Math.round(scale * 100) + '%';
+        }
+
+        const viewport = page.getViewport({ scale });
+
+        // --- Canvas ---
+        const ctx = pdfCanvas.getContext('2d');
+        pdfCanvas.width  = viewport.width;
+        pdfCanvas.height = viewport.height;
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        // --- Text layer ---
+        pdfTextLayer.innerHTML = '';
+        pdfTextLayer.style.width  = viewport.width  + 'px';
+        pdfTextLayer.style.height = viewport.height + 'px';
+
+        const textContent = await page.getTextContent();
+        await pdfjsLib.renderTextLayer({
+            textContentSource: textContent,
+            container: pdfTextLayer,
+            viewport,
+            textDivs: [],
+        }).promise;
+
+        // --- Apply highlight if char interval is set ---
+        if (hlStart !== null && hlEnd !== null) {
+            applyCharHighlight(textContent, hlStart, hlEnd);
+        }
+
+        currentPage = num;
+        pageNumInput.value = num;
+        syncButtons();
+    } finally {
+        rendering = false;
+    }
+}
+
+/**
+ * Map page-level char offsets to text layer spans and highlight them.
+ * PDF.js textContent.items is an array of { str, ... }.
+ * We accumulate char offsets across items to find which spans to mark.
+ */
+function applyCharHighlight(textContent, start, end) {
+    const spans = pdfTextLayer.querySelectorAll('span');
+    const items = textContent.items;
+    if (!spans.length || !items.length) return;
+
+    let pos = 0;  // running char offset through the page text
+    let spanIdx = 0;
+
+    for (let i = 0; i < items.length; i++) {
+        const item    = items[i];
+        const itemLen = (item.str || '').length;
+        const itemEnd = pos + itemLen;
+        const span    = spans[spanIdx];
+
+        if (!span) break;
+
+        // Check overlap with [start, end)
+        if (itemEnd > start && pos < end) {
+            span.classList.add('pdf-highlight');
+        }
+
+        pos = itemEnd;
+        spanIdx++;
+    }
+}
+
+function syncButtons() {
+    document.getElementById('btnPrev').disabled = currentPage <= 1;
+    document.getElementById('btnNext').disabled = pdfDoc && currentPage >= pdfDoc.numPages;
+    zoomLabel.textContent = Math.round(scale * 100) + '%';
+}
+
+function showLoading(on) {
+    pdfLoading.classList.toggle('visible', on);
+    pdfCanvasWrap.classList.toggle('visible', !on && !!pdfDoc);
+    pdfPlaceholder.style.display = (!on && !pdfDoc) ? 'flex' : 'none';
+}
+
+// Called when user clicks page badge or excerpt
+async function openPdfPage(page, excerpt, decision, charStart, charEnd) {
+    const pageNum = parseInt(page);
+    if (isNaN(pageNum)) return;
+
+    // Store highlight range (clear if not provided)
+    hlStart = (charStart !== '' && charStart !== undefined) ? parseInt(charStart) : null;
+    hlEnd   = (charEnd   !== '' && charEnd   !== undefined) ? parseInt(charEnd)   : null;
+
+    // Activate layout split
+    mainLayout.className = 'layout-split';
+    pdfPanel.classList.add('open');
+    pdfPlaceholder.style.display = 'none';
+
+    // Load PDF if needed
+    const loaded = await ensurePdfLoaded();
+    if (!loaded) return;
+
+    // Show canvas
+    pdfCanvasWrap.classList.add('visible');
+
+    // Render page (auto-fit to panel width + text layer + highlight)
+    await renderPage(pageNum, true);
+
+    // Update context strip
+    if (excerpt) {
+        const hlBadge = (hlStart !== null)
+            ? ` <span style="font-size:0.7rem;background:rgba(255,200,0,0.5);padding:1px 6px;border-radius:4px;margin-left:4px">已 highlight</span>`
+            : '';
+        pdfContextText.innerHTML = `<strong>第 ${pageNum} 頁 ${decision ? '｜' + decision : ''}</strong>${hlBadge}<br>${excerpt}`;
+        pdfContextStrip.style.display = 'block';
+    } else {
+        pdfContextStrip.style.display = 'none';
+    }
+
+    // Highlight active page buttons
+    document.querySelectorAll('.entry-page-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.page === String(pageNum));
+    });
+}
+
+// Navigation
+async function changePage(delta) {
+    if (!pdfDoc || !currentPage) return;
+    const next = currentPage + delta;
+    if (next < 1 || next > pdfDoc.numPages) return;
+    // Clear highlight when manually navigating
+    hlStart = hlEnd = null;
+    await renderPage(next);
+}
+
+async function goToPage(num) {
+    if (!pdfDoc) return;
+    hlStart = hlEnd = null;
+    const n = Math.max(1, Math.min(num, pdfDoc.numPages));
+    await renderPage(n);
+}
+
+// Zoom
+async function changeZoom(delta) {
+    scale = Math.max(0.5, Math.min(3.0, scale + delta));
+    zoomLabel.textContent = Math.round(scale * 100) + '%';
+    if (currentPage) await renderPage(currentPage);
+}
+
+// Close
+function closePdfPanel() {
+    pdfPanel.classList.remove('open');
+    mainLayout.className = 'layout-normal';
+    document.querySelectorAll('.entry-page-btn').forEach(b => b.classList.remove('active'));
+}
+
+// Keyboard navigation when panel is open
+document.addEventListener('keydown', e => {
+    if (!pdfPanel.classList.contains('open')) return;
+    if (e.target === pageNumInput) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); changePage(1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'PageUp')   { e.preventDefault(); changePage(-1); }
+    if (e.key === 'Escape') closePdfPanel();
+});
+{% endif %}
+
+// ─── Feedback radio toggle ───
+function onIsCorrectChange(radio, entryId) {
+    const row = document.getElementById('cls-row-' + entryId);
+    if (row) row.style.display = (radio.value === 'false') ? 'flex' : 'none';
+    const group = radio.closest('.fb-radios');
+    group.querySelectorAll('.fb-radio').forEach(l => l.classList.remove('fb-yes', 'fb-no'));
+    radio.closest('.fb-radio').classList.add(radio.value === 'true' ? 'fb-yes' : 'fb-no');
+}
+
+// ─── AJAX Feedback ───
+function submitFeedback(e, entryId) {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+    const btn = document.getElementById('btn-' + entryId);
+    btn.disabled = true;
+    btn.textContent = '儲存中...';
+
+    fetch(`/review/entry/${entryId}/feedback/`, {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrftoken },
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> 儲存';
+        if (data.success) {
+            const card = document.getElementById('entry-' + entryId);
+            card.classList.remove('has-feedback', 'not-correct');
+            if (data.is_correct === true) card.classList.add('has-feedback');
+            else if (data.is_correct === false) card.classList.add('not-correct');
+
+            const area = document.getElementById('feedback-area-' + entryId);
+            let saved = area.querySelector('.feedback-saved');
+            if (!saved) { saved = document.createElement('div'); saved.style.marginTop = '8px'; area.appendChild(saved); }
+            saved.className = 'feedback-saved ' + (data.is_correct === true ? 'correct' : (data.is_correct === false ? 'incorrect' : ''));
+            let st;
+            if (data.is_correct === true) st = '分類正確';
+            else if (data.is_correct === false) st = data.correct_classification ? `分類錯誤 → ${data.correct_classification}` : '分類錯誤';
+            else st = '已儲存';
+            saved.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> ${st} &middot; ${data.reviewed_at}`;
+
+            showToast('審查回饋已儲存');
+            updateReviewedCount();
+        } else showToast('儲存失敗，請重試');
+    })
+    .catch(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> 儲存';
+        showToast('儲存失敗，請檢查網路連線');
+    });
+    return false;
+}
+</script>
+{% endblock %}

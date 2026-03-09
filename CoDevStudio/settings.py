@@ -112,6 +112,7 @@ INSTALLED_APPS = [
     'CODiS_WindRose_Plotter',
     'LHAWish',  # 部門許願池
     'duplicate_checker',  # 重複檔案檢查器
+    'review_feedback',
 ] + local.STAGE_INSTALLED_APPS
 
 
