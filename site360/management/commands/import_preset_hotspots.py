@@ -228,10 +228,13 @@ class Command(BaseCommand):
                     "original_filename": r["original_filename"],
                     "title": r["title"],
                     "description": r["description"],
-                    "hazard_type": r["hazard_type"],
+                    "hazard_type": r["hazard_type"], # Keep legacy field
                     "image": image_field_value,
                 },
             )
+            if r["hazard_type"]:
+                obj.hazard_types.add(r["hazard_type"])
+
             if created:
                 created_count += 1
             else:
