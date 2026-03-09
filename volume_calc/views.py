@@ -31,7 +31,14 @@ def _is_red_font(cell) -> bool:
     return False
 
 
-def _build_sheet_payload(ws_formula, ws_value, sheet_key: str, title: str):
+def _build_sheet_payload(
+    ws_formula,
+    ws_value,
+    sheet_key: str,
+    title: str,
+    hidden_display_cols: set[int] | None = None,
+):
+    hidden_display_cols = hidden_display_cols or set()
     max_row = 0
     max_col = 0
 
@@ -44,7 +51,7 @@ def _build_sheet_payload(ws_formula, ws_value, sheet_key: str, title: str):
                 max_row = max(max_row, r)
                 max_col = max(max_col, c)
 
-    headers = [f'欄位 {i + 1}' for i in range(max_col)]
+    headers = [f'欄位 {i + 1}' for i in range(max_col) if (i + 1) not in hidden_display_cols]
     rows = []
     formulas = {}
     cell_values = {}
@@ -73,15 +80,16 @@ def _build_sheet_payload(ws_formula, ws_value, sheet_key: str, title: str):
             if is_percent:
                 percent_cells.append(addr)
 
-            row_cells.append(
-                {
-                    'address': addr,
-                    'display': _format_cell(raw_value, is_percent=is_percent),
-                    'is_input': is_input,
-                    'is_formula': bool(formula),
-                    'is_percent': is_percent,
-                }
-            )
+            if c not in hidden_display_cols:
+                row_cells.append(
+                    {
+                        'address': addr,
+                        'display': _format_cell(raw_value, is_percent=is_percent),
+                        'is_input': is_input,
+                        'is_formula': bool(formula),
+                        'is_percent': is_percent,
+                    }
+                )
 
         rows.append(row_cells)
 
@@ -108,18 +116,19 @@ def _load_building_mass_data(excel_path: Path):
     wb_value = load_workbook(excel_path, data_only=True)
 
     sheet_defs = [
-        (2, 'taipei', '北市建築量體'),
-        (3, 'new_taipei', '新北建築量體'),
+        (2, 'taipei', '北市建築量體', {8, 9}),
+        (3, 'new_taipei', '新北建築量體', {8, 9, 10}),
     ]
 
     sheets = []
-    for idx, key, title in sheet_defs:
+    for idx, key, title, hidden_cols in sheet_defs:
         sheets.append(
             _build_sheet_payload(
                 wb_formula.worksheets[idx],
                 wb_value.worksheets[idx],
                 key,
                 title,
+                hidden_display_cols=hidden_cols,
             )
         )
 
