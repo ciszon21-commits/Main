@@ -81,8 +81,16 @@ class Hotspot(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        related_name='legacy_hotspots',
+        verbose_name=_("危害類型(單選-舊版)"),
+        help_text="舊版單選欄位，將停用，請改用 hazard_types。"
+    )
+    hazard_types = models.ManyToManyField(
+        'HazardType',
+        blank=True,
         related_name='hotspots',
         verbose_name=_("危害類型"),
+        help_text="可選擇多個危害類型",
     )
     
     # Data Provenance
@@ -151,8 +159,16 @@ class PresetHotspot(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        related_name='legacy_preset_hotspots',
+        verbose_name=_("危害類型(單選-舊版)"),
+        help_text="舊版單選欄位，將停用，請改用 hazard_types。"
+    )
+    hazard_types = models.ManyToManyField(
+        HazardType,
+        blank=True,
         related_name='preset_hotspots',
         verbose_name=_("危害類型"),
+        help_text="可選擇多個危害類型",
     )
 
     created_at = models.DateTimeField(_("建立時間"), auto_now_add=True)

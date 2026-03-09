@@ -137,7 +137,7 @@
                                 data-has-image="{% if hotspot.image %}true{% else %}false{% endif %}"
                                 data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
                                 data-title="{{ hotspot.title }}" data-desc="{{ hotspot.description }}"
-                                data-status="{% if hotspot.source_hotspot %}referencing{% elif hotspot.usage_count > 0 %}source{% else %}independent{% endif %}">
+                                data-status="{% if hotspot.source_hotspot %}referencing {% endif %}{% if hotspot.usage_count > 0 %}source {% endif %}{% if not hotspot.source_hotspot and hotspot.usage_count == 0 %}independent{% endif %}">
                                 <td>
                                     <span class="badge badge-{{ hotspot.hotspot_type }}">{{ hotspot.get_hotspot_type_display }}</span>
                                 </td>
@@ -147,25 +147,30 @@
                                     </div>
                                 </td>
                                 <td class="text-center">
-                                    {% if hotspot.hazard_type %}
-                                    <span class="badge bg-danger">{{ hotspot.hazard_type.serial_number }}. {{ hotspot.hazard_type.name }}</span>
+                                    {% if hotspot.hazard_types.all %}
+                                    {% for ht in hotspot.hazard_types.all %}
+                                    <span class="badge bg-danger">{{ ht.serial_number }}. {{ ht.name }}</span><br>
+                                    {% endfor %}
                                     {% else %}
                                     <span class="text-muted">-</span>
                                     {% endif %}
                                 </td>
                                 <td class="text-center">
                                     <div class="d-flex flex-column align-items-center gap-1">
+                                        {% if hotspot.source_hotspot or hotspot.usage_count > 0 %}
                                         {% if hotspot.source_hotspot %}
                                         <span class="badge border border-secondary text-secondary bg-transparent"
                                             data-bs-toggle="tooltip" title="引用來源：{{ hotspot.source_hotspot.title }}">
                                             <i class="fas fa-link"></i> 正在引用其他資源
                                         </span>
-                                        {% elif hotspot.usage_count > 0 %}
+                                        {% endif %}
+                                        {% if hotspot.usage_count > 0 %}
                                         <button class="btn btn-sm btn-info text-white py-0 px-1 view-references-btn"
                                             style="font-size: 0.75rem;" data-resource-id="{{ hotspot.id }}"
                                             data-resource-title="{{ hotspot.title }}" title="點擊查看引用細節">
                                             <i class="fas fa-network-wired"></i> 被 {{ hotspot.usage_count }} 處引用中
                                         </button>
+                                        {% endif %}
                                         {% else %}
                                         <span class="badge bg-warning bg-opacity-25 text-warning border border-warning">
                                             <i class="fas fa-box-open"></i> 未放入場景
@@ -196,7 +201,8 @@
                                             data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
                                             data-image-url="{% if hotspot.image %}{{ hotspot.image.url }}{% endif %}"
                                             data-video-url="{% if hotspot.video %}{{ hotspot.video.url }}{% endif %}"
-                                            data-is-referencing="{% if hotspot.source_hotspot %}true{% else %}false{% endif %}">
+                                            data-is-referencing="{% if hotspot.source_hotspot %}true{% else %}false{% endif %}"
+                                            data-hazard-types="{% for ht in hotspot.hazard_types.all %}{{ ht.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
                                             <i class="fas fa-edit"></i> 編輯
                                         </button>
                                         {% if hotspot.image %}
@@ -247,7 +253,7 @@
                                 data-has-image="{% if hotspot.image %}true{% else %}false{% endif %}"
                                 data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
                                 data-title="{{ hotspot.title }}" data-desc="{{ hotspot.description }}"
-                                data-status="{% if hotspot.source_hotspot %}referencing{% elif hotspot.usage_count > 0 %}source{% else %}independent{% endif %}">
+                                data-status="{% if hotspot.source_hotspot %}referencing {% endif %}{% if hotspot.usage_count > 0 %}source {% endif %}{% if not hotspot.source_hotspot and hotspot.usage_count == 0 %}independent{% endif %}">
                                 {% if all_projects %}
                                 <td><span class="badge bg-secondary">{{ scene.project.name }}</span></td>
                                 {% endif %}
@@ -260,10 +266,12 @@
                                     </div>
                                 </td>
                                 <td class="text-center">
-                                    {% if hotspot.hazard_type %}
+                                    {% if hotspot.hazard_types.all %}
+                                    {% for ht in hotspot.hazard_types.all %}
                                     <span class="badge bg-danger">
-                                        {{ hotspot.hazard_type.serial_number }}. {{ hotspot.hazard_type.name }}
-                                    </span>
+                                        {{ ht.serial_number }}. {{ ht.name }}
+                                    </span><br>
+                                    {% endfor %}
                                     {% else %}
                                     <span class="text-muted">-</span>
                                     {% endif %}
@@ -271,17 +279,20 @@
                                 <td class="text-center">
                                     <div class="d-flex flex-column align-items-center gap-1">
                                         <!-- Status Badge -->
+                                        {% if hotspot.source_hotspot or hotspot.usage_count > 0 %}
                                         {% if hotspot.source_hotspot %}
                                         <span class="badge border border-secondary text-secondary bg-transparent"
                                             data-bs-toggle="tooltip" title="引用來源：{{ hotspot.source_hotspot.title }}">
                                             <i class="fas fa-link"></i> 正在引用其他資源
                                         </span>
-                                        {% elif hotspot.usage_count > 0 %}
+                                        {% endif %}
+                                        {% if hotspot.usage_count > 0 %}
                                         <button class="btn btn-sm btn-info text-white py-0 px-1 view-references-btn"
                                             style="font-size: 0.75rem;" data-resource-id="{{ hotspot.id }}"
                                             data-resource-title="{{ hotspot.title }}" title="點擊查看引用細節">
                                             <i class="fas fa-network-wired"></i> 被 {{ hotspot.usage_count }} 處引用中
                                         </button>
+                                        {% endif %}
                                         {% else %}
                                         <span class="badge bg-secondary-subtle text-secondary border">
                                             <i class="fas fa-square"></i> 獨立
@@ -313,7 +324,7 @@
                                             data-image-url="{% if hotspot.image %}{{ hotspot.image.url }}{% endif %}"
                                             data-video-url="{% if hotspot.video %}{{ hotspot.video.url }}{% endif %}"
                                             data-is-referencing="{% if hotspot.source_hotspot %}true{% else %}false{% endif %}"
-                                            data-hazard-type-id="{{ hotspot.hazard_type_id|default:'' }}">
+                                            data-hazard-types="{% for ht in hotspot.hazard_types.all %}{{ ht.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
                                             <i class="fas fa-edit"></i> 編輯
                                         </button>
 
@@ -401,9 +412,9 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="create_hazard_type" class="form-label">危害類型</label>
-                        <select class="form-select" id="create_hazard_type" name="hazard_type">
-                            <option value="">— 不指定 —</option>
+                        <label for="create_hazard_type" class="form-label">危害類型（可多選）</label>
+                        <select class="form-select select2-multiple" id="create_hazard_type" name="hazard_types"
+                            multiple="multiple">
                             {% for ht in hazard_types %}
                             <option value="{{ ht.id }}">{{ ht.serial_number }}. {{ ht.name }}</option>
                             {% endfor %}
@@ -474,9 +485,9 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="edit_hazard_type" class="form-label">危害類型</label>
-                        <select class="form-select" id="edit_hazard_type" name="hazard_type">
-                            <option value="">— 不指定 —</option>
+                        <label for="edit_hazard_type" class="form-label">危害類型（可多選）</label>
+                        <select class="form-select select2-multiple" id="edit_hazard_type" name="hazard_types"
+                            multiple="multiple">
                             {% for ht in hazard_types %}
                             <option value="{{ ht.id }}">{{ ht.serial_number }}. {{ ht.name }}</option>
                             {% endfor %}
@@ -587,6 +598,13 @@
     </div>
 </div>
 
+<!-- Include jQuery and Select2 CSS and JS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+    rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         // Copy Button Logic
@@ -631,6 +649,12 @@
             const status = document.getElementById('statusSelect').value;
             const project = document.getElementById('projectSelect') ? document.getElementById('projectSelect').value : '';
 
+            // Update URL without reloading to preserve filter state on refresh
+            const url = new URL(window.location);
+            if (project) { url.searchParams.set('project', project); } else { url.searchParams.delete('project'); }
+            if (scene) { url.searchParams.set('scene', scene); } else { url.searchParams.delete('scene'); }
+            window.history.replaceState({}, '', url);
+
             // Get allowed type categories from checkboxes
             const allowedCategories = new Set();
             typeCheckboxes.forEach(cb => {
@@ -670,7 +694,7 @@
                 }
 
                 // Status check
-                if (status && rowStatus !== status) {
+                if (status && !rowStatus.includes(status)) {
                     isMatch = false;
                 }
 
@@ -814,8 +838,16 @@
                 document.getElementById('edit_description').value = desc;
                 document.getElementById('edit_type').value = type;
                 // Populate hazard type
-                const hazardTypeId = this.dataset.hazardTypeId || '';
-                document.getElementById('edit_hazard_type').value = hazardTypeId;
+                let hazardTypesRaw = this.dataset.hazardTypes;
+
+                // Remove trailing comma if exists and split
+                if (hazardTypesRaw && hazardTypesRaw.endsWith(',')) {
+                    hazardTypesRaw = hazardTypesRaw.slice(0, -1);
+                }
+                const hazardTypesIds = hazardTypesRaw ? hazardTypesRaw.split(',') : [];
+
+                // Use jQuery for Select2 multiple selection
+                $('#edit_hazard_type').val(hazardTypesIds).trigger('change');
 
                 // Store referencing status and media info for updateMediaSections to use
                 document.getElementById('editResourceForm').dataset.isReferencing = isReferencing;
@@ -1325,11 +1357,22 @@
             // Reset form when modal closes
             document.getElementById('createResourceModal').addEventListener('hidden.bs.modal', function () {
                 createForm.reset();
+                $('#create_hazard_type').val(null).trigger('change');
                 updateCreateSections('image');
                 createBtn.disabled = false;
                 createBtn.innerHTML = '<i class="fas fa-save"></i> 建立素材';
             });
         }
+
+        // Initialize Select2
+        $(document).ready(function () {
+            $('.select2-multiple').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: '— 請選擇危害類型 —',
+                allowClear: true
+            });
+        });
     });
 </script>
 {% endblock %}
