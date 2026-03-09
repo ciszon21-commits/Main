@@ -137,7 +137,7 @@
                                 data-has-image="{% if hotspot.image %}true{% else %}false{% endif %}"
                                 data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
                                 data-title="{{ hotspot.title }}" data-desc="{{ hotspot.description }}"
-                                data-status="{% if hotspot.source_hotspot %}referencing{% elif hotspot.usage_count > 0 %}source{% else %}independent{% endif %}">
+                                data-status="{% if hotspot.source_hotspot %}referencing {% endif %}{% if hotspot.usage_count > 0 %}source {% endif %}{% if not hotspot.source_hotspot and hotspot.usage_count == 0 %}independent{% endif %}">
                                 <td>
                                     <span class="badge badge-{{ hotspot.hotspot_type }}">{{ hotspot.get_hotspot_type_display }}</span>
                                 </td>
@@ -157,17 +157,20 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="d-flex flex-column align-items-center gap-1">
+                                        {% if hotspot.source_hotspot or hotspot.usage_count > 0 %}
                                         {% if hotspot.source_hotspot %}
                                         <span class="badge border border-secondary text-secondary bg-transparent"
                                             data-bs-toggle="tooltip" title="引用來源：{{ hotspot.source_hotspot.title }}">
                                             <i class="fas fa-link"></i> 正在引用其他資源
                                         </span>
-                                        {% elif hotspot.usage_count > 0 %}
+                                        {% endif %}
+                                        {% if hotspot.usage_count > 0 %}
                                         <button class="btn btn-sm btn-info text-white py-0 px-1 view-references-btn"
                                             style="font-size: 0.75rem;" data-resource-id="{{ hotspot.id }}"
                                             data-resource-title="{{ hotspot.title }}" title="點擊查看引用細節">
                                             <i class="fas fa-network-wired"></i> 被 {{ hotspot.usage_count }} 處引用中
                                         </button>
+                                        {% endif %}
                                         {% else %}
                                         <span class="badge bg-warning bg-opacity-25 text-warning border border-warning">
                                             <i class="fas fa-box-open"></i> 未放入場景
@@ -250,7 +253,7 @@
                                 data-has-image="{% if hotspot.image %}true{% else %}false{% endif %}"
                                 data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
                                 data-title="{{ hotspot.title }}" data-desc="{{ hotspot.description }}"
-                                data-status="{% if hotspot.source_hotspot %}referencing{% elif hotspot.usage_count > 0 %}source{% else %}independent{% endif %}">
+                                data-status="{% if hotspot.source_hotspot %}referencing {% endif %}{% if hotspot.usage_count > 0 %}source {% endif %}{% if not hotspot.source_hotspot and hotspot.usage_count == 0 %}independent{% endif %}">
                                 {% if all_projects %}
                                 <td><span class="badge bg-secondary">{{ scene.project.name }}</span></td>
                                 {% endif %}
@@ -276,17 +279,20 @@
                                 <td class="text-center">
                                     <div class="d-flex flex-column align-items-center gap-1">
                                         <!-- Status Badge -->
+                                        {% if hotspot.source_hotspot or hotspot.usage_count > 0 %}
                                         {% if hotspot.source_hotspot %}
                                         <span class="badge border border-secondary text-secondary bg-transparent"
                                             data-bs-toggle="tooltip" title="引用來源：{{ hotspot.source_hotspot.title }}">
                                             <i class="fas fa-link"></i> 正在引用其他資源
                                         </span>
-                                        {% elif hotspot.usage_count > 0 %}
+                                        {% endif %}
+                                        {% if hotspot.usage_count > 0 %}
                                         <button class="btn btn-sm btn-info text-white py-0 px-1 view-references-btn"
                                             style="font-size: 0.75rem;" data-resource-id="{{ hotspot.id }}"
                                             data-resource-title="{{ hotspot.title }}" title="點擊查看引用細節">
                                             <i class="fas fa-network-wired"></i> 被 {{ hotspot.usage_count }} 處引用中
                                         </button>
+                                        {% endif %}
                                         {% else %}
                                         <span class="badge bg-secondary-subtle text-secondary border">
                                             <i class="fas fa-square"></i> 獨立
@@ -688,7 +694,7 @@
                 }
 
                 // Status check
-                if (status && rowStatus !== status) {
+                if (status && !rowStatus.includes(status)) {
                     isMatch = false;
                 }
 
