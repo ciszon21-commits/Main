@@ -1,5 +1,5 @@
 "use strict";
-const DEFAULT_ZONE_TYPE = "第�?種�?宅�?";
+const DEFAULT_ZONE_TYPE = "?????????";
 const REWARD_RULE_KEYS = [
     "rule_0", "rule_1", "rule_2", "rule_3", "rule_4", "rule_5", "rule_6", "rule_7", "rule_8", "rule_9",
     "rule_10", "rule_11", "rule_12", "rule_14", "rule_15", "rule_16", "rule_17", "rule_18", "rule_19", "rule_20",
@@ -63,8 +63,11 @@ function createVolumeCalculator() {
         baseArea: defaults.baseArea,
         originalVolume: defaults.originalVolume,
         zoneType: defaults.zoneType,
-        volumeRatio: defaults.volumeRatio,
+        volumeRatioPercent: defaults.volumeRatio * 100,
         rules: createDefaultRules(),
+        get volumeRatio() {
+            return this.volumeRatioPercent / 100;
+        },
         get statutoryVolume() {
             return this.baseArea * this.volumeRatio;
         },
@@ -85,7 +88,7 @@ function createVolumeCalculator() {
             this.baseArea = defaults.baseArea;
             this.originalVolume = defaults.originalVolume;
             this.zoneType = defaults.zoneType;
-            this.volumeRatio = defaults.volumeRatio;
+            this.volumeRatioPercent = defaults.volumeRatio * 100;
             this.rules = createDefaultRules();
         }
     };
