@@ -54,7 +54,7 @@ class Command(BaseCommand):
         overwrite = options["overwrite"]
 
         # ---- 1. 取得要處理的 PresetHotspot ----
-        qs = PresetHotspot.objects.select_related('hazard_type').all()
+        qs = PresetHotspot.objects.prefetch_related('hazard_types').all()
         if folder:
             qs = qs.filter(source_folder=folder)
             self.stdout.write(f"🔍 只處理資料夾：{folder}")
@@ -98,7 +98,7 @@ class Command(BaseCommand):
                 "hotspot_type": hotspot_type,
                 "title": preset.title,
                 "description": preset.description,
-                "hazard_type": preset.hazard_type,
+                "hazard_type": preset.hazard_type, # Keep legacy field
                 "image": preset.image if preset.image else None,
                 "pitch": 0.0,
                 "yaw": 0.0,
@@ -124,9 +124,11 @@ class Command(BaseCommand):
                 for k, v in defaults.items():
                     setattr(existing, k, v)
                 existing.save()
+                existing.hazard_types.set(preset.hazard_types.all())
                 updated_count += 1
             else:
-                Hotspot.objects.create(preset_source=preset, **defaults)
+                new_hotspot = Hotspot.objects.create(preset_source=preset, **defaults)
+                new_hotspot.hazard_types.set(preset.hazard_types.all())
                 created_count += 1
 
         # ---- 4. 輸出結果 ----
