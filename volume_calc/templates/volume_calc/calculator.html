@@ -632,12 +632,19 @@
                         <td class="px-6 py-4 text-slate-700 text-xs align-top break-words"
                             data-sheet-key="{{ sheet.key }}" data-cell-address="{{ cell.address }}">
                             {% if cell.is_input %}
-                            <input type="number" step="0.01"
-                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary text-xs"
+                            <div class="relative">
+                                <input type="number" step="0.01"
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary text-xs {% if cell.is_percent %}pr-6{% endif %}"
                                 data-sheet-key="{{ sheet.key }}" data-cell-address="{{ cell.address }}"
-                                value="{{ cell.display }}">
+                                {% if cell.is_percent %}data-is-percent="1"{% endif %}
+                                value="{% if cell.is_percent %}{{ cell.display|cut:'%' }}{% else %}{{ cell.display }}{% endif %}">
+                                {% if cell.is_percent %}
+                                <span class="absolute inset-y-0 right-2 flex items-center text-gray-500 text-xs pointer-events-none">%</span>
+                                {% endif %}
+                            </div>
                             {% else %}
                             <span data-sheet-key="{{ sheet.key }}" data-cell-address="{{ cell.address }}"
+                                {% if cell.is_percent %}data-is-percent="1"{% endif %}
                                 {% if cell.is_formula %}data-formula-cell="1"{% endif %}>{{ cell.display }}</span>
                             {% endif %}
                         </td>

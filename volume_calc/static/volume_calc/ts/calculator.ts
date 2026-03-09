@@ -36,6 +36,7 @@ interface BuildingMassSheetEngine {
     formulas: Record<string, string>;
     cell_values: Record<string, CellValue>;
     input_cells: string[];
+    percent_cells: string[];
 }
 
 interface BuildingMassEnginePayload {
@@ -175,8 +176,10 @@ class BuildingMassFormulaEngine {
     }
 
     public setInputValue(sheetKey: string, address: string, rawInput: string): void {
+        const isPercent = this.isPercentCell(sheetKey, address);
         const val = rawInput.trim() === "" ? 0 : Number(rawInput);
-        this.runtimeValues[sheetKey][address] = Number.isFinite(val) ? val : 0;
+        const normalized = Number.isFinite(val) ? val : 0;
+        this.runtimeValues[sheetKey][address] = isPercent ? normalized / 100 : normalized;
         this.recalculateSheet(sheetKey);
     }
 
@@ -188,7 +191,7 @@ class BuildingMassFormulaEngine {
 
         Object.keys(this.runtimeValues[sheetKey]).forEach((address) => {
             const value = this.runtimeValues[sheetKey][address];
-            const text = this.formatDisplay(value);
+            const text = this.formatDisplay(value, this.isPercentCell(sheetKey, address));
             const selector = `span[data-sheet-key="${sheetKey}"][data-cell-address="${address}"]`;
             const node = document.querySelector(selector);
             if (node) {
@@ -444,11 +447,19 @@ class BuildingMassFormulaEngine {
         return out || "A";
     }
 
-    private formatDisplay(value: CellValue): string {
+    private isPercentCell(sheetKey: string, address: string): boolean {
+        const cells = this.sheets[sheetKey]?.percent_cells ?? [];
+        return cells.includes(address);
+    }
+
+    private formatDisplay(value: CellValue, isPercent = false): string {
         if (value === null || value === undefined || value === "") {
             return "";
         }
         if (typeof value === "number") {
+            if (isPercent) {
+                return `${(value * 100).toFixed(2)}%`;
+            }
             if (Number.isInteger(value)) {
                 return `${value}`;
             }
@@ -456,6 +467,9 @@ class BuildingMassFormulaEngine {
         }
         const parsed = Number(value);
         if (!Number.isNaN(parsed) && `${value}`.trim() !== "") {
+            if (isPercent) {
+                return `${(parsed * 100).toFixed(2)}%`;
+            }
             if (Number.isInteger(parsed)) {
                 return `${parsed}`;
             }

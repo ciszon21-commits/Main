@@ -107,8 +107,10 @@ class BuildingMassFormulaEngine {
         Object.keys(this.sheets).forEach((sheetKey) => this.recalculateSheet(sheetKey));
     }
     setInputValue(sheetKey, address, rawInput) {
+        const isPercent = this.isPercentCell(sheetKey, address);
         const val = rawInput.trim() === "" ? 0 : Number(rawInput);
-        this.runtimeValues[sheetKey][address] = Number.isFinite(val) ? val : 0;
+        const normalized = Number.isFinite(val) ? val : 0;
+        this.runtimeValues[sheetKey][address] = isPercent ? normalized / 100 : normalized;
         this.recalculateSheet(sheetKey);
     }
     renderSheet(sheetKey) {
@@ -118,7 +120,7 @@ class BuildingMassFormulaEngine {
         }
         Object.keys(this.runtimeValues[sheetKey]).forEach((address) => {
             const value = this.runtimeValues[sheetKey][address];
-            const text = this.formatDisplay(value);
+            const text = this.formatDisplay(value, this.isPercentCell(sheetKey, address));
             const selector = `span[data-sheet-key="${sheetKey}"][data-cell-address="${address}"]`;
             const node = document.querySelector(selector);
             if (node) {
@@ -315,11 +317,19 @@ class BuildingMassFormulaEngine {
         }
         return out || "A";
     }
-    formatDisplay(value) {
+    isPercentCell(sheetKey, address) {
+        var _a, _b;
+        const cells = (_b = (_a = this.sheets[sheetKey]) === null || _a === void 0 ? void 0 : _a.percent_cells) !== null && _b !== void 0 ? _b : [];
+        return cells.includes(address);
+    }
+    formatDisplay(value, isPercent = false) {
         if (value === null || value === undefined || value === "") {
             return "";
         }
         if (typeof value === "number") {
+            if (isPercent) {
+                return `${(value * 100).toFixed(2)}%`;
+            }
             if (Number.isInteger(value)) {
                 return `${value}`;
             }
@@ -327,6 +337,9 @@ class BuildingMassFormulaEngine {
         }
         const parsed = Number(value);
         if (!Number.isNaN(parsed) && `${value}`.trim() !== "") {
+            if (isPercent) {
+                return `${(parsed * 100).toFixed(2)}%`;
+            }
             if (Number.isInteger(parsed)) {
                 return `${parsed}`;
             }

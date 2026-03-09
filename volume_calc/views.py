@@ -8,9 +8,11 @@ from django.views.generic import TemplateView
 from openpyxl import load_workbook
 
 
-def _format_cell(value):
+def _format_cell(value, *, is_percent: bool = False):
     if value is None:
         return ''
+    if isinstance(value, Real) and is_percent:
+        return f'{float(value) * 100:.2f}%'
     if isinstance(value, Real) and float(value).is_integer():
         return str(int(value))
     if isinstance(value, Real):
@@ -47,6 +49,7 @@ def _build_sheet_payload(ws_formula, ws_value, sheet_key: str, title: str):
     formulas = {}
     cell_values = {}
     input_cells = []
+    percent_cells = []
 
     for r in range(1, max_row + 1):
         row_cells = []
@@ -59,19 +62,24 @@ def _build_sheet_payload(ws_formula, ws_value, sheet_key: str, title: str):
             # For formula cells, use cached computed value as initial display.
             raw_value = cell_v.value if formula else cell_f.value
             is_input = _is_red_font(cell_f) and not formula and isinstance(raw_value, (int, float))
+            number_format = str(cell_f.number_format or '')
+            is_percent = '%' in number_format
 
             if formula:
                 formulas[addr] = formula
             cell_values[addr] = raw_value
             if is_input:
                 input_cells.append(addr)
+            if is_percent:
+                percent_cells.append(addr)
 
             row_cells.append(
                 {
                     'address': addr,
-                    'display': _format_cell(raw_value),
+                    'display': _format_cell(raw_value, is_percent=is_percent),
                     'is_input': is_input,
                     'is_formula': bool(formula),
+                    'is_percent': is_percent,
                 }
             )
 
@@ -90,6 +98,7 @@ def _build_sheet_payload(ws_formula, ws_value, sheet_key: str, title: str):
             'formulas': formulas,
             'cell_values': cell_values,
             'input_cells': input_cells,
+            'percent_cells': percent_cells,
         },
     }
 
@@ -137,7 +146,7 @@ class CalculatorView(TemplateView):
         context = super().get_context_data(**kwargs)
         context['default_base_area'] = 1029
         context['default_original_volume'] = 2000
-        context['default_zone_type'] = '蝚砌?蝔桐?摰?'
+        context['default_zone_type'] = '第三種住宅區'
         context['default_volume_ratio'] = 2.25
 
         context['building_mass_sheets'] = []
