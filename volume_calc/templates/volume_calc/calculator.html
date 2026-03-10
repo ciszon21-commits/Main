@@ -1,0 +1,780 @@
+﻿{% extends 'SinoTemplate/base.html' %}
+{% load static %}
+
+{% block main_block %}
+<!-- Include Tailwind CSS via CDN (if not already globally available) -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="{% static 'volume_calc/js/tailwind-config.js' %}"></script>
+<!-- Include Alpine.js for Reactivity -->
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+<!-- Add Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'volume_calc/css/calculator.css' %}">
+
+<div class="product-shell min-h-screen py-8 px-4 sm:px-6 lg:px-8 text-slate-900" x-data="{ ...volumeCalculator(), activeRightTab: 'limits' }">
+
+    <div class="w-full max-w-[96vw] 2xl:max-w-[1800px] mx-auto space-y-8">
+        <!-- Header -->
+        <div class="product-card flex items-center justify-between px-6 py-4 rounded-xl">
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                    <i data-lucide="calculator" class="w-6 h-6 text-primary"></i>
+                    臺北市都市更新建築容積獎勵計算平台
+                </h1>
+                <!-- <h1 class="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                    <i data-lucide="calculator" class="w-6 h-6 text-primary"></i>
+                    容積獎勵及建築量體計算平台
+                </h1> -->
+                <p class="mt-1 text-base text-slate-500">本表依照臺北市都市更新相關法規進行計算</p>
+            </div>
+            <!-- <div>
+                <button @click="resetForm"
+                    class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors duration-200 cursor-pointer shadow-sm">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    重設參數
+                </button>
+            </div> -->
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+            <div class="xl:col-span-3 space-y-8">
+        <!-- Input Section -->
+        <div class="product-card rounded-xl overflow-hidden">
+            <div class="section-head px-6 py-4 border-b border-gray-200">
+                <h2 class="text-2xl font-semibold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="settings-2" class="w-5 h-5 text-slate-500"></i>
+                    基地基本資料
+                </h2>
+            </div>
+            <div class="p-6 grid grid-cols-1 gap-6">
+                <!-- Base Area -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-700">基地面積 (㎡)</label>
+                    <div class="relative rounded-md shadow-sm">
+                        <input type="number" x-model.number="baseArea"
+                            class="block w-full rounded-lg border-gray-300 pl-3 pr-12 focus:border-primary focus:ring-primary sm:text-sm h-11 border bg-slate-50 hover:bg-white transition-colors">
+                    </div>
+                </div>
+                <!-- Original Volume -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-700">建物原容積 (㎡)</label>
+                    <div class="relative rounded-md shadow-sm">
+                        <input type="number" x-model.number="originalVolume"
+                            class="block w-full rounded-lg border-gray-300 pl-3 pr-12 focus:border-primary focus:ring-primary sm:text-sm h-11 border bg-slate-50 hover:bg-white transition-colors">
+                    </div>
+                </div>
+                <!-- Zone Type -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-700">使用分區</label>
+                    <input type="text" x-model="zoneType"
+                        class="block w-full rounded-lg border-gray-300 pl-3 focus:border-primary focus:ring-primary sm:text-sm h-11 border bg-slate-50 hover:bg-white transition-colors">
+                </div>
+                <!-- Volume Ratio -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-700">容積率(%)</label>
+                    <input type="number" step="1" x-model.number="volumeRatioPercent"
+                        class="block w-full rounded-lg border-gray-300 pl-3 focus:border-primary focus:ring-primary sm:text-sm h-11 border bg-slate-50 hover:bg-white transition-colors">
+                </div>
+            </div>
+            <!-- Calculated Statutory Volume -->
+            <div class="px-6 py-4 bg-indigo-50 border-t border-indigo-100 flex items-center justify-between">
+                <span class="text-sm font-medium text-indigo-900">法定容積 (基地面積 × 容積率)</span>
+                <span class="text-xl font-bold text-indigo-700" x-text="statutoryVolume.toFixed(2) + ' ㎡'"></span>
+            </div>
+        </div>
+
+            </div>
+
+            <div class="xl:col-span-9 space-y-6">
+                <div class="product-card rounded-xl px-3 py-3">
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                        <button type="button" @click="activeRightTab = 'limits'"
+                            :class="activeRightTab === 'limits' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'"
+                            class="rounded-lg px-4 py-2 text-sm font-semibold transition-colors">
+                            可申請獎勵上限
+                        </button>
+                        <button type="button" @click="activeRightTab = 'urban'"
+                            :class="activeRightTab === 'urban' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'"
+                            class="rounded-lg px-4 py-2 text-sm font-semibold transition-colors">
+                            都更獎勵
+                        </button>
+                        <!-- <button type="button" @click="activeRightTab = 'sheet_taipei'"
+                            :class="activeRightTab === 'sheet_taipei' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'"
+                            class="rounded-lg px-4 py-2 text-sm font-semibold transition-colors">
+                            建築量體分析表
+                        </button> -->
+                        <!-- <button type="button" @click="activeRightTab = 'sheet_new_taipei'"
+                            :class="activeRightTab === 'sheet_new_taipei' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'"
+                            class="rounded-lg px-4 py-2 text-sm font-semibold transition-colors">
+                            新北建築量體
+                        </button> -->
+                    </div>
+                </div>
+
+                {% if building_mass_error %}
+                <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-6 py-4 text-sm">
+                    {{ building_mass_error }}
+                </div>
+                {% endif %}
+
+                <div x-show="activeRightTab === 'limits'" x-cloak>
+        <!-- Limits Section (可申請獎勵上限) -->
+        <div class="product-card rounded-xl overflow-hidden">
+            <!-- <div class="section-head px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h2 class="text-lg font-semibold text-slate-900">可申請獎勵上限 (基地)</h2>
+            </div> -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th scope="col"
+                                class="px-6 py-3 text-left font-medium text-slate-500 uppercase tracking-wider">法令規定項目
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-right font-medium text-slate-500 uppercase tracking-wider">原容積
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-right font-medium text-slate-500 uppercase tracking-wider">法定容積
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-right font-medium text-slate-500 uppercase tracking-wider">獎勵加成
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-right font-medium text-slate-500 uppercase tracking-wider">允建上限總容積
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-right font-medium text-slate-500 uppercase tracking-wider">本案可申請
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-left font-medium text-slate-500 uppercase tracking-wider">備註</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">1.2倍原容積</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600" x-text="originalVolume">
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600"
+                                x-text="statutoryVolume.toFixed(2)"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600">1.2</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-900 font-semibold"
+                                x-text="(originalVolume * 1.2).toFixed(2)"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-primary font-bold"
+                                x-text="Math.max(0, originalVolume * 1.2 - originalVolume).toFixed(2)"></td>
+                            <!-- <td class="px-6 py-4 whitespace-nowrap text-slate-500 text-xs">擇優</td> -->
+                        </tr>
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">原容積+0.3倍法定容積</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600" x-text="originalVolume">
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600"
+                                x-text="statutoryVolume.toFixed(2)"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600">0.3</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-900 font-semibold"
+                                x-text="(originalVolume + statutoryVolume * 0.3).toFixed(2)"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-primary font-bold"
+                                x-text="Math.max(0, (originalVolume + statutoryVolume * 0.3) - statutoryVolume).toFixed(2)">
+                            </td>
+                            <!-- <td class="px-6 py-4 whitespace-nowrap text-slate-500"></td> -->
+                            <td class="px-6 py-4 whitespace-nowrap text-slate-500 text-xs">擇優</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">法定容積+0.5倍法定容積</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600" x-text="originalVolume">
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600"
+                                x-text="statutoryVolume.toFixed(2)"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600">0.5</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-900 font-semibold"
+                                x-text="(statutoryVolume + statutoryVolume * 0.5).toFixed(2)"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-primary font-bold"
+                                x-text="Math.max(0, (statutoryVolume + statutoryVolume * 0.5) - statutoryVolume).toFixed(2)">
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-slate-500"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="px-6 py-4 bg-slate-100 border-t border-gray-200 flex items-center justify-between">
+                <span class="text-sm font-semibold text-slate-700">合計允建容積上限 (本案可申請)</span>
+                <span class="text-xl font-bold text-slate-900" x-text="maxAllowedReward.toFixed(2) + ' ㎡'"></span>
+            </div>
+        </div>
+
+                </div>
+
+                <div x-show="activeRightTab === 'urban'" x-cloak>
+        <!-- Urban Renewal (北市) -->
+        <div class="product-card rounded-xl overflow-hidden">
+            <!-- <div class="section-head px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-slate-900">都更獎勵 (北市)</h2>
+            </div> -->
+
+            <div class="overflow-x-auto overflow-y-visible">
+                <table class="urban-reward-table min-w-full table-auto divide-y divide-gray-200 text-sm">
+                    <colgroup>
+                        <col class="w-[8%]">
+                        <col class="w-[9%]">
+                        <col class="w-[9%]">
+                        <col class="w-[26%]">
+                        <col class="w-[26%]">
+                        <col class="w-[11%]">
+                        <col class="w-[11%]">
+                    </colgroup>
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 text-center font-medium text-slate-500 uppercase tracking-wider text-xs whitespace-nowrap">法規</th>
+                            <th scope="col" colspan="2" class="px-4 py-3 text-center font-medium text-slate-500 uppercase tracking-wider text-xs whitespace-nowrap">項目</th>
+                            <th scope="col" class="px-4 py-3 text-center font-medium text-slate-500 uppercase tracking-wider text-xs">獎勵基準</th>
+                            <th scope="col" class="px-4 py-3 text-center font-medium text-slate-500 uppercase tracking-wider text-xs">核計說明</th>
+                            <th scope="col" class="px-4 py-3 text-center font-medium text-slate-500 uppercase tracking-wider text-xs whitespace-nowrap">擬申請獎勵值(%)</th>
+                            <th scope="col" class="px-4 py-3 text-center font-medium text-slate-500 uppercase tracking-wider text-xs whitespace-nowrap">獎勵面積(㎡)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 font-medium text-slate-900 align-middle text-center text-xs" rowspan="13"><span class="vertical-label">都市更新建築容積獎勵辦法</span></td>
+                            <td colspan="2" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">第六條</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">都市更新事業計畫範圍內之建築物符合下列情形之一者，依原建築基地基準容積一定比率給予獎勵容積：<br>1.經建築主管機關依建築法規、災害防救法規通知限期拆除、逕予強制拆除或評估有危險之虞應限期補強或拆除：10%<br>2.經結構安全性能評估結果未達最低等級：8%</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況，以有謄本或使用執照之建築物經結構初評未達最低等級計算；有建物謄本無使用執照之建物，應請建築師檢討是否可以申請認定為合法建築且需取得該棟建築物100%地主同意；另需請結構技師或相關專業技師針對合法建築物鑑定及評估</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <select x-model.number="rules.rule_1" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <option value="0">0%</option>
+                                    <option value="8">8%</option>
+                                    <option value="10">10%</option>
+                                </select></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_1 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td colspan="2" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">第七條</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">依主管機關公告提供指定之社會福利設施或其他公益設施，建築物及其土地產權無償登記為公有者，除不計入容積外，其獎勵額度以基準容積之30%為上限</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況，並應以主管機關公告指定社會福利設施或其他公益設施為主</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <div class="relative">
+                                    <input type="number" step="1" x-model.number="rules.rule_2" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_2 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td colspan="2" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">第八條</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">協助取得及開闢都市更新事業計畫範圍內或其周邊公共設施用地，產權登記為公有者，其獎勵額度以基準容積之15%為上限</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況，協助取得及開闢道路用地應取得土地捐贈同意書</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <div class="relative">
+                                    <input type="number" step="1" x-model.number="rules.rule_3" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_3 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td colspan="2" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">第九條</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">都市更新事業計畫範圍內之古蹟、歷史建築、紀念建築及聚落建築群，辦理整體性保存、修復、再利用及管理維護者，除不計入容積外，並得依該建築物實際面積之1.5倍，給予獎勵容積；而依本條例第36條第11款規定保存或維護計畫辦理之都市計畫表明應予保存或有保存價值建築物，除不計入容積外，並得依該建築物之實際面積，給予獎勵容積</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案區位是否涉及古蹟、歷史建築等</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <div class="relative">
+                                    <input type="number" step="1" x-model.number="rules.rule_4" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_4 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td colspan="2" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">第十條</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">取得候選綠建築證書，依下列等級給予獎勵容積：<br>鑽石級：10%；黃金級：8%；銀級：6%；銅級：4%；合格級：2% <br>(銅級及合格級，僅限面積未達五百平方公尺者適用)</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況與建築師討論結果而定，暫以取得綠建築銀級候選證書估計。</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <select x-model.number="rules.rule_5" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <option value="0">0%</option>
+                                    <option value="2">2%</option>
+                                    <option value="4">4%</option>
+                                    <option value="6">6%</option>
+                                    <option value="8">8%</option>
+                                    <option value="10">10%</option>
+                                </select></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_5 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td colspan="2" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">第十一條</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">取得候選智慧建築證書，依下列等級給予獎勵容積：<br>鑽石級：10%；黃金級：8%；銀級：6%；銅級：4%；合格級：2%<br> (銅級及合格級，僅限面積未達五百平方公尺者適用)</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況與建築師討論結果而定，暫以取得智慧建築銀級候選證書估計</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <select x-model.number="rules.rule_6" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <option value="0">0%</option>
+                                    <option value="2">2%</option>
+                                    <option value="4">4%</option>
+                                    <option value="6">6%</option>
+                                    <option value="8">8%</option>
+                                    <option value="10">10%</option>
+                                </select></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_6 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td colspan="2" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">第十二條</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">採無障礙環境設計者，依下列規定給予獎勵容積(住宅適用)：<br>1.取得無障礙住宅建築標章：5%<br>2.依住宅性能評估實施辦法辦理新建住宅性能評估之無障礙環境：<br>第一級：4%；第二級：3%</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況與建築師討論結果而定
+暫以依住宅性能評估實施辦法辦理新建住宅性能評估之無障礙環境第二級估計</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <select x-model.number="rules.rule_7" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <option value="0">0%</option>
+                                    <option value="3">3%</option>
+                                    <option value="4">4%</option>
+                                    <option value="5">5%</option>
+                                </select></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_7 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td colspan="2" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">第十三條</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">採建築物耐震設計者，依下列規定給予獎勵容積：<br>1.取得耐震設計標章：10%<br>2.依住宅性能評估實施辦法辦理新建住宅性能評估之結構安全性能：<br>第一級：6%；第二級：4%；第三級：2% (住宅適用)</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況與建築師討論結果而定
+暫以依住宅性能評估實施辦法辦理新建住宅性能評估之結構安全性能第三級估計</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <select x-model.number="rules.rule_8" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <option value="0">0%</option>
+                                    <option value="2">2%</option>
+                                    <option value="4">4%</option>
+                                    <option value="6">6%</option>
+                                    <option value="10">10%</option>
+                                </select></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_8 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td colspan="2" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">第十四條</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">本辦法108.5.15修正之條文施行日起一定期間內，擬訂都市更新事業計畫報核者，依下列規定給予獎勵容積：<br>1.劃定應實施更新地區：修正施行日起五年內：10%；前述期間屆滿之次日起五年內：5%<br>2.未經劃定應實施更新地區：修正施行日起五年內：7%；前述期間屆滿之次日起五年內：3.5%</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案基地區位是否位於更新地區而定
+暫以劃定應實施更新地區，於113.5.16至118.5.16之期間內擬定都更事業計畫報核估計</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <select x-model.number="rules.rule_9" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <option value="0">0%</option>
+                                    <option value="3.5">3.5%</option>
+                                    <option value="5">5%</option>
+                                </select></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_9 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td colspan="2" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">第十五條</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">都市更新事業計畫範圍重建區段含一個以上完整計畫街廓或土地面積達一定規模以上者，依下列規定給予獎勵容積：<br>1.一個以上完整計畫街廓：5%<br>2.面積達3,000㎡以上未滿10,000㎡：5%，每增加100㎡，另給予基準容積0.3%<br>3.面積達10,000㎡以上：30%</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案基地區位是否位於更新地區而定
+暫以劃定應實施更新地區，於113.5.16至118.5.16之期間內擬定都更事業計畫報核估計</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <div class="relative">
+                                    <input type="number" step="1" x-model.number="rules.rule_10" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_10 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td colspan="2" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">第十六條</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">更新前門牌戶達二十戶以上，依本條例第43條第1項但書後段規定，於都市更新事業計畫報核時經全體土地及合法建築物所有權人同意以協議合建方式實施之都市更新事業，給予基準容積之5%獎勵容積</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況而定</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <select x-model.number="rules.rule_11" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <option value="0">0%</option>
+                                    <option value="5">5%</option>
+                                </select></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_11 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td colspan="2" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">第十七條</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">處理占有他人土地之舊違章建築戶，依都市更新事業計畫報核前之實測面積給予獎勵容積，且每戶不得超過最近一次行政院主計總處人口及住宅普查報告各該直轄市、縣（市）平均每戶住宅樓地板面積，其獎勵額度以基準容積之20%為上限</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況而定，舊違章戶之認定以民國77年8月1日以前興建完成者為限，並以實測面積為準</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <div class="relative">
+                                    <input type="number" step="1" x-model.number="rules.rule_12" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_12 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="transition-colors">
+                            <td colspan="4" class="px-4 py-3 font-semibold text-slate-900 text-center align-middle text-xs whitespace-nowrap">小計</td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs"
+                                x-text="(rules.rule_1 + rules.rule_2 + rules.rule_3 + rules.rule_4 + rules.rule_5 + rules.rule_6 + rules.rule_7 + rules.rule_8 + rules.rule_9 + rules.rule_10 + rules.rule_11 + rules.rule_12).toFixed(2) + '%'"></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs"
+                                x-text="(statutoryVolume * ((rules.rule_1 + rules.rule_2 + rules.rule_3 + rules.rule_4 + rules.rule_5 + rules.rule_6 + rules.rule_7 + rules.rule_8 + rules.rule_9 + rules.rule_10 + rules.rule_11 + rules.rule_12) / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 font-medium text-slate-900 align-middle text-center text-xs" rowspan="10"><span class="vertical-label">臺北市都市更新建築容積獎勵辦法</span></td>
+                            <td rowspan="6" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">一、都市環境之貢獻</td>
+                            <td class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">建築規劃設計(一)</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">符合下列3項者，給予1%；符合4項者，給予2%；符合5項以上者，給予3%。<br>1.建築物鄰8公尺以下道路境界線之退縮，自人行道及建築物高度比檢討範圍外起算，一側建築物退縮距離達2公尺以上。<br>2.建築物與鄰地境界線距離平均寬度達3公尺，最小淨寬達2公尺以上。<br>3.基地內留設寬度4公尺以上供公眾通行之通道，最小淨寬達2.5公尺以上，且通道兩端均銜接公共設施用地或道路。<br>4.建築基地集中設置開放空間廣場達200平方公尺以上，其任一邊最小淨寬達8公尺以上，且長寬比不得超過三。<br>5.建築物地面層鄰接公共空間側留設供公眾使用之挑高半戶外空間，其樑下淨高達6公尺以上，留設面積達36平方公尺以上，任一邊最小淨寬達6公尺以上，且長寬比不得超過3。<br>6.建築物斜對角距離平均未超過45公尺；倘超過45公尺，以設計手法規劃建物立面，避免形成連續性牆面。</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況與建築師檢討結果而定</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <select x-model.number="rules.rule_14" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <option value="0">0%</option>
+                                    <option value="2">2%</option>
+                                    <option value="3">3%</option>
+                                </select></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_14 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">建築規劃設計(二)</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">基地設置雨水流出抑制設施，達法定雨水貯留量二倍以上，給予1%獎勵。<br>1.法定雨水貯留量依「臺北市基地開發排入雨水下水道逕流量標準」規定，視基地規模檢討之<br>2.應檢附相關設施及排水系統分析資料、圖說</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況與建築師設計內容而定
+暫以基地設置雨水流出抑制設施，達法定雨水貯留量二倍以上，申請1%獎勵估算</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <select x-model.number="rules.rule_15" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <option value="0">0%</option>
+                                    <option value="1">1%</option>
+                                </select></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_15 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">建築規劃設計(三)</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">基地面臨都市計畫道路、公共設施或指定建築線之既成巷道沿街面，留設供人行走之地面道路或騎樓且具延續性，並配合基地周遭相鄰街廓整體考量設置，無遮簷部分須以滲透設計，其設計經由建築師簽證。<br>1.留設供人行走之地面道路或騎樓，各部分淨寬均達2公尺以上至6公尺以下，依實際留設面積給予獎勵。<br>2.依都市計畫、臺北市土地使用分區管制自治條例及其他法令規定留設供人行走之地面道路或騎樓，須留設法定規定以上之供人行走地面道路或騎樓，始得申請本項獎勵。</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況與建築師設計內容而定</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <div class="relative">
+                                    <input type="number" step="1" x-model.number="rules.rule_16" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_16 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">建築規劃設計(四)</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">符合臺北市都市更新及爭議處理審議會歷次會議通案重要審議原則之建築設計類別全部審議原則者，給予3%。</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況與建築師設計內容而定
+暫以3%估算</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <select x-model.number="rules.rule_17" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <option value="0">0%</option>
+                                    <option value="3">3%</option>
+                                </select></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_17 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">建築規劃設計(五)</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">建築物採屋頂平臺綠化及立面方式垂直綠化，綠覆率達「臺北市新建建築物綠化實施規則」以下簡稱本規則第五條所定各類建築基地綠覆率一點六倍以上，且屋頂平臺及立面方式垂直綠覆面積占總綠覆面積二分之一以上者。下列三項計算方式擇一適用：<br>1.依本規則計算達各類建築基地綠覆率1.6倍以上，未滿1.8倍者，給予基準容積2%。<br>2.依本規則計算達各類建築基地綠覆率1.8倍以上，未滿2倍者，給予基準容積3%。<br>3.依本規則計算達各類建築基地綠覆率2倍以上者，給予基準容積4%。</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況與建築師設計內容而定</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <select x-model.number="rules.rule_18" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <option value="0">0%</option>
+                                    <option value="2">2%</option>
+                                    <option value="3">3%</option>
+                                    <option value="4">4%</option>
+                                </select></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_18 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">改善都市環境</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">協助建築基地所坐落同一街廓或毗鄰街廓整修順平騎樓或無遮簷人行道，並取得其土地及建物全體所有權人同意自行維護管理文件者。整修一棟建築物之騎樓、無遮簷人行道，給予0.25%獎勵。</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況與建築師設計內容而定</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <select x-model.number="rules.rule_19" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <option value="0">0%</option>
+                                    <option value="0.25">0.25%</option>
+                                </select></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_19 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">二、新技術之應用</td>
+                            <td class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">新技術應用</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">建築基地之法定停車位總數量以外，所提供之充電汽車及機車停車位，其數量達法定停車位總數量3%以上，給予1%獎勵。<br>1.充電汽車及機車停車位為社區共用車位，其管理規範應納入住戶管理規約。<br>2.充電柱之設備規格，得比照臺北市停車管理工程處接受民間充電柱捐贈注意事項之規定辦理。</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況與建築師設計內容而定
+暫以提供足量充電車位，獎勵1%估算</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <select x-model.number="rules.rule_20" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <option value="0">0%</option>
+                                    <option value="1">1%</option>
+                                </select></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_20 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td rowspan="2"class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">三、有助於都市更新事業之實施</td>
+                            <td class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">促進都市更新(一)</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">提供經費予本市都市更新基金，有助於推動都市更新事業之實施<br>獎勵容積＝(提供經費予本市都市更新基金金額)/(都市更新事業計畫報核日當期之建築基地平均公告現值×0.7)<br>申請本項獎勵於事業計畫核定時應與本府簽訂契約書，並應於領得使用執照前完成提供經費作業。</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <div class="relative">
+                                    <input type="number" step="1" x-model.number="rules.rule_21" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_21 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">促進都市更新(二)</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">更新單元內現有合法建築物之屋齡達30年以上，且樓層數達四、五層樓無設置電梯設備或法定停車位數低於戶數7/10以下者<br>1.合法建築物為四層樓者，給予該棟合法建築物坐落之建築基地基準容積之2%<br>2.合法建築物為五層樓者，給予該棟合法建築物坐落之建築基地基準容積之4%</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況
+暫以四層樓且無設置電梯、法停低於戶數7/10以下計算</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <select x-model.number="rules.rule_22" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <option value="0">0%</option>
+                                    <option value="2">2%</option>
+                                    <option value="4">4%</option>
+                                </select></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_22 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="transition-colors">
+                            <td colspan="4" class="px-4 py-3 font-semibold text-slate-900 text-center align-middle text-xs whitespace-nowrap">小計</td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs"
+                                x-text="(rules.rule_14 + rules.rule_15 + rules.rule_16 + rules.rule_17 + rules.rule_18 + rules.rule_19 + rules.rule_20 + rules.rule_21 + rules.rule_22).toFixed(2) + '%'"></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs"
+                                x-text="(statutoryVolume * ((rules.rule_14 + rules.rule_15 + rules.rule_16 + rules.rule_17 + rules.rule_18 + rules.rule_19 + rules.rule_20 + rules.rule_21 + rules.rule_22) / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="transition-colors">
+                            <td colspan="5" class="px-4 py-3 font-semibold text-slate-900 text-center align-middle text-xs whitespace-nowrap">都更容獎總計</td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs"
+                                x-text="(rules.rule_1 + rules.rule_2 + rules.rule_3 + rules.rule_4 + rules.rule_5 + rules.rule_6 + rules.rule_7 + rules.rule_8 + rules.rule_9 + rules.rule_10 + rules.rule_11 + rules.rule_12 + rules.rule_14 + rules.rule_15 + rules.rule_16 + rules.rule_17 + rules.rule_18 + rules.rule_19 + rules.rule_20 + rules.rule_21 + rules.rule_22).toFixed(2) + '%'"></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs"
+                                x-text="(statutoryVolume * ((rules.rule_1 + rules.rule_2 + rules.rule_3 + rules.rule_4 + rules.rule_5 + rules.rule_6 + rules.rule_7 + rules.rule_8 + rules.rule_9 + rules.rule_10 + rules.rule_11 + rules.rule_12 + rules.rule_14 + rules.rule_15 + rules.rule_16 + rules.rule_17 + rules.rule_18 + rules.rule_19 + rules.rule_20 + rules.rule_21 + rules.rule_22) / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td colspan="3" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">臺北市防災型都市更新細部計畫</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">民國63年以前之建物，或依「都市更新耐震能力不足建築物而有明顯危害公共安全認定辦法」規定，經結構安全性能評估初評或詳評結果認定，評估結果ID值小於0.35之建築物，依各建築物原建築基地面積計算獎勵值</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況，由結構技師評估</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <div class="relative">
+                                    <input type="number" step="1" x-model.number="rules.rule_25" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_25 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td rowspan="6"class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap"><span class="vertical-label">臺北市大眾運輸導向(TOD)開發許可獎勵</span></td>
+                            <td colspan="2"  class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">△D1</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">移設捷運設施或增設捷運出入口<br>容積獎勵按設施所占樓地板面積依地面層1倍、地下層及地上二層以上各0.5倍總和計算之</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況及基地區位</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <div class="relative">
+                                    <input type="number" step="1" x-model.number="rules.rule_26" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_26 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td colspan="2" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">△D2</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">設置自行車轉乘停放空間<br>依實際留設面積給予容積獎勵</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">基地提供設置公共自行車停車空間或提供公眾使用之一般自行車停車空間者，該自行車空間應留設於地面層且臨道路側。</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <div class="relative">
+                                    <input type="number" step="1" x-model.number="rules.rule_27" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_27 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td colspan="2" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">△D3</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">留設友善人行空間：標準級、進階級擇一<br>標準級：<br>1.基地退縮：臨8公尺以下道路退縮達2公尺以上<br>2.基地退縮：與鄰地境界線距離平均寬度達3公尺、最小淨寬達2公尺<br>3.人行通道：基地內留設寬4公尺以上之通道，最小淨寬達2.5公尺以上，且兩端均銜接公設用地或道路<br>4.開放空間：集中設置開放空間廣場達200平方公尺以上，最小淨寬達8公尺<br>5.附頂蓋開放空間：地面層鄰接開放空間側留設挑高半戶外空間，樑下淨高達6公尺以上，面積達36平方公尺以上，最小淨寬達6公尺以上<br>6.環境設計：建物斜對角距離平均未超過45公尺<br>前述符合3項以上：1%；4項以上：2%；5項以上：3%<br>7.人行通道騎樓設置：淨寬均達2公尺至6公尺，依實際留設面積給予容積獎勵<br>8.友善人行：協助基地同一街廓或毗鄰街廓整修騎樓或人行道，1棟給予基準容積0.25%<br>進階級：<br>1.基地退縮：臨8公尺以下道路退縮達4公尺以上<br>2.基地退縮：與鄰地境界線距離平均寬度達6公尺、最小淨寬達4公尺<br>3.人行通道：基地內留設寬8公尺以上之通道，最小淨寬達4公尺以上，且兩端均銜接公設用地或道路<br>4.開放空間：集中設置開放空間廣場達300平方公尺以上，最小淨寬達10公尺<br>5.附頂蓋開放空間：地面層鄰接開放空間側留設挑高半戶外空間，樑下淨高達6公尺以上，面積達72平方公尺以上，最小淨寬達8公尺以上<br>6.環境設計：建物斜對角距離平均未超過45公尺<br>前述符合3項以上：2%；4項以上：4%；5項以上：6%<br>7.人行通道騎樓設置：淨寬均達2公尺至6公尺，依實際留設面積給予容積獎勵<br>8.友善人行：協助基地同一街廓或毗鄰街廓整修騎樓或人行道，1棟給予基準容積0.25%</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況與建築師設計內容而定</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <div class="relative">
+                                    <input type="number" step="1" x-model.number="rules.rule_28" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_28 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td colspan="2" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">△D4</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">回饋公益設施空間</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed"></td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <div class="relative">
+                                    <input type="number" step="1" x-model.number="rules.rule_29" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_29 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td colspan="2" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">△D5</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">繳納代金(應繳納本容積獎勵值50%之回饋代金)</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed"></td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <div class="relative">
+                                    <input type="number" step="1" x-model.number="rules.rule_30" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_30 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="transition-colors">
+                            <td colspan="4" class="px-4 py-3 font-semibold text-slate-900 text-center align-middle text-xs whitespace-nowrap">小計</td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs"
+                                x-text="(rules.rule_26 + rules.rule_27 + rules.rule_28 + rules.rule_29 + rules.rule_30).toFixed(2) + '%'"></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs"
+                                x-text="(statutoryVolume * ((rules.rule_26 + rules.rule_27 + rules.rule_28 + rules.rule_29 + rules.rule_30) / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td colspan="3" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">容積移轉</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">上限為基準容積30% <br>(實施都市更新地區、整體開發地區或面臨永久性空地可酌增至40%)</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況與設計內容而定</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <div class="relative">
+                                    <input type="number" step="1" x-model.number="rules.rule_32" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_32 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
+                            <td colspan="3" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">增額容積</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">一般區上限為基準容積40%、核心區上限為基準容積50%</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況與設計內容而定</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">                                <div class="relative">
+                                    <input type="number" step="1" x-model.number="rules.rule_33" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div></td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_33 / 100)).toFixed(2)"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Total Reward Summary -->
+            <div
+                class="px-6 py-4 bg-indigo-600 border-t border-indigo-700 flex items-center justify-between text-white rounded-b-xl">
+                <span class="font-semibold">合計</span>
+                <div class="flex items-center gap-8 text-right">
+                    <div>
+                        <div class="text-xs text-indigo-100">擬申請獎勵值</div>
+                        <div class="text-2xl font-bold tracking-tight" x-text="totalRewardPercent.toFixed(2) + '%'"></div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-indigo-100">獎勵面積</div>
+                        <div class="text-2xl font-bold tracking-tight" x-text="totalRewardArea.toFixed(2) + ' ㎡'"></div>
+                    </div>
+                </div>
+            </div>
+<!-- 
+            <div x-show="totalRewardArea > maxAllowedReward"
+                class="px-6 py-3 bg-red-50 text-red-700 border-t border-red-200 text-sm flex items-center gap-2">
+                <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                注意：目前申請獎勵面積已超過可申請容積上限。
+            </div> -->
+        </div>
+                </div>
+
+                {% for sheet in building_mass_sheets %}
+                <div x-show="activeRightTab === 'sheet_{{ sheet.key }}'" x-cloak>
+                    <div class="product-card rounded-xl overflow-hidden">
+                        <div class="section-head px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-slate-900">{{ sheet.title }}</h2>
+                        </div>
+                        <div class="overflow-hidden">
+                            <table class="min-w-full table-fixed divide-y divide-gray-200 text-sm">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        {% for header in sheet.headers %}
+                                        <th scope="col"
+                                            class="px-6 py-3 text-left font-medium text-slate-500 uppercase tracking-wider break-words">
+                                            {{ header }}
+                                        </th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    {% for row in sheet.rows %}
+                                    <tr class="hover:bg-slate-50 transition-colors">
+                                        {% for cell in row %}
+                                        <td class="px-6 py-4 text-slate-700 text-xs align-top break-words"
+                                            data-sheet-key="{{ sheet.key }}" data-cell-address="{{ cell.address }}">
+                                            {% if cell.is_input %}
+                                            <div class="relative">
+                                                <input type="number" step="0.01"
+                                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary text-xs {% if cell.is_percent %}pr-6{% endif %}"
+                                                    data-sheet-key="{{ sheet.key }}" data-cell-address="{{ cell.address }}"
+                                                    {% if cell.is_percent %}data-is-percent="1"{% endif %}
+                                                    value="{% if cell.is_percent %}{{ cell.display|cut:'%' }}{% else %}{{ cell.display }}{% endif %}">
+                                                {% if cell.is_percent %}
+                                                <span class="absolute inset-y-0 right-2 flex items-center text-gray-500 text-xs pointer-events-none">%</span>
+                                                {% endif %}
+                                            </div>
+                                            {% else %}
+                                            <span data-sheet-key="{{ sheet.key }}" data-cell-address="{{ cell.address }}"
+                                                {% if cell.is_percent %}data-is-percent="1"{% endif %}
+                                                {% if cell.is_formula %}data-formula-cell="1"{% endif %}>{{ cell.display }}</span>
+                                            {% endif %}
+                                        </td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% comment %}
+<div class="max-w-7xl mx-auto space-y-8 pb-8 hidden">
+    <!-- 建築量體工作表（北市 / 新北） -->
+    {% if building_mass_error %}
+    <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-6 py-4 text-sm">
+        {{ building_mass_error }}
+    </div>
+    {% endif %}
+
+    {% for sheet in building_mass_sheets %}
+    <div class="product-card rounded-xl overflow-hidden">
+        <div class="section-head px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-slate-900">{{ sheet.title }}</h2>
+        </div>
+        <div class="overflow-hidden">
+            <table class="min-w-full table-fixed divide-y divide-gray-200 text-sm">
+                <thead class="bg-slate-50">
+                    <tr>
+                        {% for header in sheet.headers %}
+                        <th scope="col"
+                            class="px-6 py-3 text-left font-medium text-slate-500 uppercase tracking-wider break-words">
+                            {{ header }}
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for row in sheet.rows %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        {% for cell in row %}
+                        <td class="px-6 py-4 text-slate-700 text-xs align-top break-words"
+                            data-sheet-key="{{ sheet.key }}" data-cell-address="{{ cell.address }}">
+                            {% if cell.is_input %}
+                            <div class="relative">
+                                <input type="number" step="0.01"
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary text-xs {% if cell.is_percent %}pr-6{% endif %}"
+                                data-sheet-key="{{ sheet.key }}" data-cell-address="{{ cell.address }}"
+                                {% if cell.is_percent %}data-is-percent="1"{% endif %}
+                                value="{% if cell.is_percent %}{{ cell.display|cut:'%' }}{% else %}{{ cell.display }}{% endif %}">
+                                {% if cell.is_percent %}
+                                <span class="absolute inset-y-0 right-2 flex items-center text-gray-500 text-xs pointer-events-none">%</span>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <span data-sheet-key="{{ sheet.key }}" data-cell-address="{{ cell.address }}"
+                                {% if cell.is_percent %}data-is-percent="1"{% endif %}
+                                {% if cell.is_formula %}data-formula-cell="1"{% endif %}>{{ cell.display }}</span>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endcomment %}
+
+<script>
+    window.__volumeCalcDefaults = {
+        baseArea: Number("{{ default_base_area }}"),
+        originalVolume: Number("{{ default_original_volume }}"),
+        zoneType: "{{ default_zone_type|escapejs }}",
+        volumeRatio: Number("{{ default_volume_ratio }}")
+    };
+</script>
+{{ building_mass_engine|json_script:"building-mass-engine-data" }}
+<script src="{% static 'volume_calc/js/calculator.js' %}"></script>
+
+{% endblock %}
+
+
+
+
