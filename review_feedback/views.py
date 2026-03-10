@@ -122,7 +122,7 @@ def project_list(request):
         entry_count=Count("comparison_files__entries", distinct=True),
         confirmed_count=Count(
             "comparison_files__entries",
-            filter=Q(comparison_files__entries__arbitration_status="confirmed"),
+            filter=Q(comparison_files__entries__arbitration_status__in=["confirmed", "no_conflict"]),
             distinct=True,
         ),
         reviewed_count=Count(
@@ -230,10 +230,10 @@ def project_detail(request, project_id):
         .order_by("-count")
     )
 
-    # 第二階段待審查：arbitration_status="confirmed" 才需要人工審查
+    # 第二階段待審查：arbitration_status 為 "confirmed" 或 "no_conflict" 才需要人工審查
     confirmed_count = ComparisonEntry.objects.filter(
         comparison_file__project=project,
-        arbitration_status="confirmed",
+        arbitration_status__in=["confirmed", "no_conflict"],
     ).count()
 
     total_match = all_entries.count()
@@ -255,7 +255,7 @@ def project_detail(request, project_id):
     })
 
 def project_confirmed_review(request, project_id):
-    """第二階段人工審查 — 顯示所有 arbitration_status='confirmed' 的比對結果"""
+    """第二階段人工審查 — 顯示所有 arbitration_status='confirmed' 或 'no_conflict' 的比對結果"""
     project = get_object_or_404(Project, pk=project_id)
 
     if not request.user.is_authenticated:
@@ -273,7 +273,7 @@ def project_confirmed_review(request, project_id):
 
     entries = (
         ComparisonEntry.objects
-        .filter(comparison_file__project=project, arbitration_status="confirmed")
+        .filter(comparison_file__project=project, arbitration_status__in=["confirmed", "no_conflict"])
         .select_related("comparison_file")
         .prefetch_related("review_feedbacks__reviewer")
         .order_by("final_decision_class", "source_page", "char_start_pos")
