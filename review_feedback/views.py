@@ -276,7 +276,7 @@ def project_confirmed_review(request, project_id):
         .filter(comparison_file__project=project, arbitration_status="confirmed")
         .select_related("comparison_file")
         .prefetch_related("review_feedbacks__reviewer")
-        .order_by("comparison_file__original_filename", "source_page", "char_start_pos")
+        .order_by("final_decision_class", "source_page", "char_start_pos")
     )
 
     entry_forms = []
