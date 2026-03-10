@@ -5,6 +5,11 @@ const REWARD_RULE_KEYS = [
     "rule_10", "rule_11", "rule_12", "rule_14", "rule_15", "rule_16", "rule_17", "rule_18", "rule_19", "rule_20",
     "rule_21", "rule_22", "rule_25", "rule_26", "rule_27", "rule_28", "rule_29", "rule_30", "rule_32", "rule_33"
 ];
+const TOTAL_REWARD_RULE_KEYS = [
+    "rule_1", "rule_2", "rule_3", "rule_4", "rule_5", "rule_6", "rule_7", "rule_8", "rule_9", "rule_10",
+    "rule_11", "rule_12", "rule_14", "rule_15", "rule_16", "rule_17", "rule_18", "rule_19", "rule_20",
+    "rule_21", "rule_22", "rule_26", "rule_27", "rule_28", "rule_29", "rule_30", "rule_32", "rule_33"
+];
 const DEFAULT_RULES = {
     rule_0: 0,
     rule_1: 8.0,
@@ -77,12 +82,14 @@ function createVolumeCalculator() {
             const c3 = Math.max(0, (this.statutoryVolume + this.statutoryVolume * 0.5) - this.statutoryVolume);
             return Math.max(c1, c2, c3);
         },
-        get totalRewardArea() {
-            return REWARD_RULE_KEYS.reduce((sum, key) => {
+        get totalRewardPercent() {
+            return TOTAL_REWARD_RULE_KEYS.reduce((sum, key) => {
                 var _a;
-                const value = (_a = this.rules[key]) !== null && _a !== void 0 ? _a : 0;
-                return sum + (this.statutoryVolume * (value / 100));
+                return sum + ((_a = this.rules[key]) !== null && _a !== void 0 ? _a : 0);
             }, 0);
+        },
+        get totalRewardArea() {
+            return this.statutoryVolume * (this.totalRewardPercent / 100);
         },
         resetForm() {
             this.baseArea = defaults.baseArea;

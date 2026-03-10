@@ -22,6 +22,7 @@ interface VolumeCalculatorState {
     rules: Rules;
     readonly statutoryVolume: number;
     readonly maxAllowedReward: number;
+    readonly totalRewardPercent: number;
     readonly totalRewardArea: number;
     resetForm: () => void;
 }
@@ -55,6 +56,12 @@ const REWARD_RULE_KEYS = [
     "rule_0", "rule_1", "rule_2", "rule_3", "rule_4", "rule_5", "rule_6", "rule_7", "rule_8", "rule_9",
     "rule_10", "rule_11", "rule_12", "rule_14", "rule_15", "rule_16", "rule_17", "rule_18", "rule_19", "rule_20",
     "rule_21", "rule_22", "rule_25", "rule_26", "rule_27", "rule_28", "rule_29", "rule_30", "rule_32", "rule_33"
+] as const;
+
+const TOTAL_REWARD_RULE_KEYS = [
+    "rule_1", "rule_2", "rule_3", "rule_4", "rule_5", "rule_6", "rule_7", "rule_8", "rule_9", "rule_10",
+    "rule_11", "rule_12", "rule_14", "rule_15", "rule_16", "rule_17", "rule_18", "rule_19", "rule_20",
+    "rule_21", "rule_22", "rule_26", "rule_27", "rule_28", "rule_29", "rule_30", "rule_32", "rule_33"
 ] as const;
 
 const DEFAULT_RULES: Readonly<Rules> = {
@@ -139,11 +146,12 @@ function createVolumeCalculator(): VolumeCalculatorState {
             return Math.max(c1, c2, c3);
         },
 
+        get totalRewardPercent(): number {
+            return TOTAL_REWARD_RULE_KEYS.reduce((sum, key) => sum + (this.rules[key] ?? 0), 0);
+        },
+
         get totalRewardArea(): number {
-            return REWARD_RULE_KEYS.reduce((sum, key) => {
-                const value = this.rules[key] ?? 0;
-                return sum + (this.statutoryVolume * (value / 100));
-            }, 0);
+            return this.statutoryVolume * (this.totalRewardPercent / 100);
         },
 
         resetForm(): void {
