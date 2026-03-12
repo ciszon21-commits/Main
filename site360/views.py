@@ -1253,3 +1253,66 @@ class UserActivityLogListView(ListView):
         }
         
         return context
+
+import requests
+import logging
+from django.http import JsonResponse, HttpResponseRedirect
+from django.urls import reverse
+from site360.services.third_party_sync import SinoTechAPIParser, cms_api_get
+
+logger = logging.getLogger(__name__)
+
+def integrate_from_cms(request):
+    """
+    接收外部平台（PMIS）轉跳，自動拉取表單資料並建立 360 專案。
+
+    流程：
+    1. 從 GET 參數取得 form_uid
+    2. 使用兩段式 Middleware Auth 呼叫 CMS API 取得 JSON 資料
+    3. 呼叫 SinoTechAPIParser 解析並建立 Project / Scene / Hotspot
+    4. Redirect 使用者到該專案的 360 Tour 頁面
+
+    預期 GET 參數：
+        form_uid (str): CMS 平台的表單唯一識別碼
+    """
+    form_uid = request.GET.get('form_uid')
+    if not form_uid:
+        return JsonResponse({"success": False, "error": "缺少必要參數 form_uid"}, status=400)
+
+    base_url = "https://cmservice.sinotech.com.tw"
+    api_url  = f"{base_url}/HN/api/form-basic/{form_uid}/"
+
+    try:
+        # Step 1：使用兩段式 Middleware Auth 向 CMS 取得 JSON 資料
+        logger.info(f"[CMS Integrate] 開始處理 form_uid={form_uid}")
+        response, cookie_header = cms_api_get(api_url)
+
+        content_type = response.headers.get("content-type", "")
+        if "application/json" not in content_type:
+            logger.error(f"[CMS Integrate] CMS 回傳非 JSON 內容：{content_type}")
+            return JsonResponse({
+                "success": False,
+                "error": f"CMS API 回傳非 JSON 格式（Content-Type: {content_type}），請確認認證設定"
+            }, status=502)
+
+        json_resp = response.json()
+
+        if not json_resp.get("success"):
+            logger.error(f"[CMS Integrate] CMS API 回傳失敗：{json_resp}")
+            return JsonResponse({"success": False, "error": "CMS API 回傳 success=false"}, status=502)
+
+        data = json_resp.get("data", {})
+
+        # Step 2：解析資料並建立 Project / Scene / Hotspot
+        # 傳入 cookie_header 讓圖片下載可重用同一 Session，不需再次登入
+        parser  = SinoTechAPIParser(data=data, base_url=base_url, session_cookie=cookie_header)
+        project = parser.process()
+
+        logger.info(f"[CMS Integrate] 完成！Project pk={project.pk}，Redirect 至 Tour 頁面")
+
+        # Step 3：成功後將使用者 Redirect 到 360 Tour 檢視頁面
+        return HttpResponseRedirect(reverse('site360:project_tour', kwargs={'pk': project.pk}))
+
+    except Exception as e:
+        logger.error(f"[CMS Integrate] 失敗：{e}", exc_info=True)
+        return JsonResponse({"success": False, "error": str(e)}, status=500)

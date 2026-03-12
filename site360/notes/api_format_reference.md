@@ -240,3 +240,69 @@
   }
 }
 ```
+
+---
+
+## 預計介接流程分析
+
+整個介接流程可以分為 **四個主要階段**：
+
+### 階段一：接收轉跳與身分驗證 (Receive & Authenticate)
+當使用者在對方平台點擊 Button 轉跳到我們的平台時，流程如下：
+1. **接收參數**：對方轉跳過來時，網址（如 `GET` 參數）理應會帶著 `form_uid`（例如：`?form_uid=1cbdc54d-...`）。
+2. **呼叫對方 API**：我們的 Backend (Django) 接收到請求後，使用對方提供的資訊，在後台發起一個 API 請求去拉取完整表單資料。
+   * **Endpoint**: `https://cmservice.sinotech.com.tw/HN/api/form-basic/{FORM_UID}/`
+   * **Auth**: 根據對方提供的 `API_TOKEN`、`USERNAME`、`PASSWORD`，判斷是使用 Basic Authentication 或是 Header 帶入 Bearer Token。
+
+### 階段二：解析資料與資料庫對應 (Data Parsing & Mapping)
+成功取得 JSON 資料後，我們需要將對方的資料欄位映射到我們 360 系統的資料模型 (Models) 中：
+
+* **專案層級 (Project)**
+  * `name`: `project_code` + `tender_code` + `tender_name` (例: "6732D_第七標_機場捷運...")
+  * `description`: 可組合 `workitem`, `first_worklayer`, `doc_date` 等表單資訊
+  * `latitude` / `longitude`: 根據 `geo_bounds.type` 決定：
+    1. `"單點"`：直接取 `lat`、`lng`
+    2. `"圓形"`：取 `center` 陣列的 `[0]`, `[1]`
+    3. `"方形"`：取四個點位 `north`、`south`、`east`、`west` 計算平均值 `((north+south)/2, (east+west)/2)`
+    4. `"多邊形"`：取 `points` 陣列中所有點的經度與緯度平均值
+* **場景層級 (Scene)**
+  * **當有多張照片時，會建立多個 Scene，但危害評估熱點只統一加在「第一張照片」對應的 Scene 上**。
+  * `title`: `workitem` + " - " + `first_worklayer`
+  * `image`: 將 `photos[i].url` 下載後存入
+* **熱點層級 (Hotspot)** (只加在首張 Scene)
+  * `title`: `assessments[i].survey_content`
+  * `description`: 組合 `hazard_status` 與 `safety_measure`
+  * `pitch` / `yaw`: 自動給定預設值。為了避免重疊，可以在建立時根據 index 稍微偏移（例如第一個 `yaw=0`, 第二個 `yaw=30`...）。
+  * 取 `assessments[i].category` 作為危害類別：
+    * 檢查系統的 `HazardType` 是否有包含此名稱。
+    * **若無，則自動新增該 `HazardType`。**
+    * 接著將該 `HazardType` 關聯至 `Hotspot` 的 `hazard_types` (ManyToManyField)。
+
+### 階段三：自動化建立流程演算法 (Automated Creation Logic)
+在 Backend 進行的業務邏輯處理：
+
+1. **Get or Create 專案 (Project)**
+   * 根據 `project_code` 或 `tender_code` 查詢資料庫。如果專案已存在則取得該實例；若不存在，則自動新建一個 360 Project。
+2. **下載與處理圖片 (Process Photos)**
+   * 針對 `data.photos` 陣列進行迭代。
+   * **圖片下載**：使用腳本組合完整網址發起 Request 下載圖片實體檔案。
+   * （建議：這段使用背景任務 (如 Celery) 或是先快速建立草稿狀態）。
+3. **建立 360 場景 (Create Scenes)**
+   * 將下載好的圖片存入。
+   * 在資料庫中新建「場景實例」，並將經緯度 `geo_bounds` 寫入該場景，讓照片可以在地圖上正確定位。
+4. **自動建立危害評估熱點 (Create Hazard Hotspots)**
+   * 讀取 `data.assessments`。
+   * 將 `survey_content`、`hazard_status`、`safety_measure` 結合起來，在剛剛建立的場景中，自動生成（或附加）相關的 Info Hotspots 或 Hazard 標記。
+
+### 階段四：前端呈現 (Frontend Rendering)
+1. 後台自動建立完成後，Django 回傳一個 Redirect，將使用者的瀏覽器導向我們平台該 Project 或該 Scene 的 360 檢視頁面。
+2. 使用者一進來，就能直接看到對方傳來的圖片已經變成 360 全景，並且畫面上已經帶有對應的危害評估熱點。
+
+---
+
+### 開發前需釐清事項
+
+1. **Authentication Mode**：確認呼叫 API 時的 Header 驗證方式。
+2. **圖片格式**：確認傳來的圖片是否都是 2:1 的 360 等距柱狀投影圖 (Equirectangular)。
+3. **單點 VS 多點照片**：若提供單點範圍卻有多張照片，是否預設堆疊在同個座標。
+4. **背景處理機制**：若高畫質照片多，考慮轉跳當下非同步處理以免 Timeout。
