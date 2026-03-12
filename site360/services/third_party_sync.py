@@ -167,7 +167,7 @@ class SinoTechAPIParser:
         return None, None
 
     def _get_or_create_project(self) -> Project:
-        """建立或取得 Project 實例"""
+        """建立或取得 Project 實例，並更新經緯度與描述以符合外部資料"""
         project_code = self.data.get('project_code', '')
         tender_code = self.data.get('tender_code', '')
         tender_name = self.data.get('tender_name', '')
@@ -191,7 +191,8 @@ class SinoTechAPIParser:
         # 計算經緯度
         lat, lng = self._calculate_geo_bounds()
         
-        project, created = Project.objects.get_or_create(
+        # 使用 update_or_create 確保經緯度與描述會隨外部表單更新
+        project, created = Project.objects.update_or_create(
             name=project_name,
             defaults={
                 'description': description,
@@ -200,24 +201,8 @@ class SinoTechAPIParser:
             }
         )
         
-        # 若專案已存在，更新描述與經緯度
-        if not created:
-            update_fields = []
-            if project.description != description:
-                project.description = description
-                update_fields.append('description')
-            if lat and project.latitude != lat:
-                project.latitude = lat
-                update_fields.append('latitude')
-            if lng and project.longitude != lng:
-                project.longitude = lng
-                update_fields.append('longitude')
-                
-            if update_fields:
-                project.save(update_fields=update_fields)
-                
-        action = "建立" if created else "取得已存在的"
-        logger.info(f"[CMS Sync] {action}專案：{project_name} (pk={project.pk})")
+        status = "建立" if created else "更新"
+        logger.info(f"[CMS Sync] {status}專案：{project_name} (pk={project.pk}, lat={lat}, lng={lng})")
         return project
 
     def _create_hazard_types(self, assessments: list) -> dict:
