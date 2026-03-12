@@ -59,9 +59,9 @@ class PresetHotspotAdmin(admin.ModelAdmin):
 
 @admin.register(Hotspot)
 class HotspotAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'hotspot_type', 'scene', 'get_hazard_types', 'preset_source_link', 'preview_image', 'created_at')
+    list_display = ('id', 'title', 'hotspot_type', 'scene', 'external_form_uid', 'get_hazard_types', 'preset_source_link', 'preview_image', 'created_at')
     list_filter = ('hotspot_type', 'hazard_types', ('preset_source', admin.RelatedOnlyFieldListFilter), ('scene__project', admin.RelatedOnlyFieldListFilter))
-    search_fields = ('title', 'description', 'scene__title', 'scene__project__name')
+    search_fields = ('title', 'description', 'scene__title', 'scene__project__name', 'external_form_uid')
     ordering = ('-created_at',)
     raw_id_fields = ('scene', 'source_hotspot', 'preset_source', 'original_resource')
     readonly_fields = ('created_at', 'updated_at', 'preview_image_large')
@@ -74,6 +74,7 @@ class HotspotAdmin(admin.ModelAdmin):
         ('圖示設定', {'fields': ('icon', 'icon_color')}),
         ('媒體', {'fields': ('image', 'preview_image_large', 'video')}),
         ('來源關聯', {'fields': ('source_hotspot', 'preset_source')}),
+        ('外部來源（PMIS / CMS）', {'fields': ('external_form_uid',), 'description': '從外部平台匯入時自動填入，可用於篩選或推薦同表單的危害評估內容。'}),
         ('版本控制', {'fields': ('version_number', 'is_latest_version', 'original_resource'), 'classes': ('collapse',)}),
         ('時間戳記', {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
     )

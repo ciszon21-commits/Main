@@ -110,6 +110,16 @@ class Hotspot(models.Model):
     is_latest_version = models.BooleanField(_("是否為最新版本"), default=True, help_text="Indicates if this is the latest version")
     original_resource = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='versions', help_text="Points to the original resource in the version chain")
 
+    # 外部平台來源追蹤
+    external_form_uid = models.CharField(
+        _("外部表單 UID"),
+        max_length=100,
+        blank=True,
+        default='',
+        db_index=True,
+        help_text="從外部平台（如 PMIS / CMS）匯入時，記錄來源表單的 UUID，供未來推薦或對應使用。"
+    )
+
     created_at = models.DateTimeField(_("建立時間"), auto_now_add=True)
     updated_at = models.DateTimeField(_("更新時間"), auto_now=True)
 

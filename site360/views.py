@@ -1308,10 +1308,10 @@ def integrate_from_cms(request):
         parser  = SinoTechAPIParser(data=data, base_url=base_url, session_cookie=cookie_header)
         project = parser.process()
 
-        logger.info(f"[CMS Integrate] 完成！Project pk={project.pk}，Redirect 至 Tour 頁面")
+        logger.info(f"[CMS Integrate] 完成！Project pk={project.pk}，Redirect 至 Project 詳情頁")
 
-        # Step 3：成功後將使用者 Redirect 到 360 Tour 檢視頁面
-        return HttpResponseRedirect(reverse('site360:project_tour', kwargs={'pk': project.pk}))
+        # Step 3：成功後將使用者 Redirect 到 360 專案詳情頁面
+        return HttpResponseRedirect(reverse('site360:project_detail', kwargs={'pk': project.pk}))
 
     except Exception as e:
         logger.error(f"[CMS Integrate] 失敗：{e}", exc_info=True)
