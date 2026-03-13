@@ -166,19 +166,19 @@ class SinoTechAPIParser:
             
         return None, None
 
-    def _reverse_geocode(self, lat: float, lng: float) -> str:
+    def _reverse_geocode(self, lat: float, lng: float) -> tuple[str, str]:
         """
-        使用 Nominatim API 根據經緯度推估縣市名稱。
+        使用 Nominatim API 根據經緯度推估縣市與區域名稱。
         """
         if not lat or not lng:
-            return ""
+            return "", ""
             
         url = "https://nominatim.openstreetmap.org/reverse"
         params = {
             "format": "json",
             "lat": lat,
             "lon": lng,
-            "zoom": 10,  # 取得縣市層級
+            "zoom": 18,  # 提高縮放層級以取得區域 (district)
             "addressdetails": 1,
             "accept-language": "zh-TW"
         }
@@ -194,16 +194,18 @@ class SinoTechAPIParser:
             address = data.get("address", {})
             
             # 臺灣地址的縣市名稱可能出現在不同欄位
-            city = address.get("city") or address.get("state") or address.get("county") or address.get("suburb")
+            city = address.get("city") or address.get("state") or address.get("county")
+            # 臺灣區域名稱通常在 town (例如：龜山區)，其次才是 suburb, district, 或 city_district
+            district = address.get("town") or address.get("suburb") or address.get("district") or address.get("city_district")
             
-            if city:
-                logger.info(f"[Geocode] 辨識出縣市：{city}")
-                return city
+            if city or district:
+                logger.info(f"[Geocode] 辨識結果：縣市={city}, 區域={district}")
+                return city or "", district or ""
                 
         except Exception as e:
             logger.warning(f"[Geocode] 逆向地理編碼失敗：{e}")
             
-        return ""
+        return "", ""
 
     def _get_or_create_project(self) -> Project:
         """建立或取得 Project 實例，並更新經緯度與描述以符合外部資料"""
@@ -230,10 +232,10 @@ class SinoTechAPIParser:
         # 計算經緯度
         lat, lng = self._calculate_geo_bounds()
         
-        # 自動推估縣市
-        city = ""
+        # 自動推估縣市與區域
+        city, district = "", ""
         if lat and lng:
-            city = self._reverse_geocode(lat, lng)
+            city, district = self._reverse_geocode(lat, lng)
         
         # 使用 update_or_create 確保經緯度與描述會隨外部表單更新
         project, created = Project.objects.update_or_create(
@@ -242,7 +244,8 @@ class SinoTechAPIParser:
                 'description': description,
                 'latitude': lat,
                 'longitude': lng,
-                'city': city
+                'city': city,
+                'district': district
             }
         )
         
