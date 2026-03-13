@@ -242,6 +242,9 @@ class SinoTechAPIParser:
             name=project_name,
             defaults={
                 'description': description,
+                'project_code': project_code,
+                'tender_code': tender_code,
+                'tender_name': tender_name,
                 'latitude': lat,
                 'longitude': lng,
                 'city': city,

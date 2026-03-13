@@ -46,6 +46,21 @@ class ProjectListView(UserActionLoggingMixin, ListView):
     template_name = 'site360/project_list.html'
     context_object_name = 'projects'
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        project_code = self.request.GET.get('project_code')
+        tender_code = self.request.GET.get('tender_code')
+        tender_name = self.request.GET.get('tender_name')
+
+        if project_code:
+            queryset = queryset.filter(project_code__icontains=project_code)
+        if tender_code:
+            queryset = queryset.filter(tender_code__icontains=tender_code)
+        if tender_name:
+            queryset = queryset.filter(tender_name__icontains=tender_name)
+            
+        return queryset
+
 class ProjectCreateView(UserActionLoggingMixin, CreateView):
     model = Project
     form_class = ProjectForm
