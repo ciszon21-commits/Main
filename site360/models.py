@@ -32,6 +32,15 @@ class Scene(models.Model):
     title = models.CharField(_("場景標題"), max_length=200)
     image = models.ImageField(_("360全景圖"), upload_to='site360/scenes/')
     order = models.PositiveIntegerField(_("排序"), default=0)
+    external_id = models.CharField(
+        _("外部 ID"), 
+        max_length=100, 
+        blank=True, 
+        null=True, 
+        unique=True, 
+        db_index=True, 
+        help_text="外部平台的圖片 UUID"
+    )
     
     # Initial view settings
     pitch = models.FloatField(_("初始俯仰角 (Pitch)"), default=0, help_text="Starting pitch in degrees")

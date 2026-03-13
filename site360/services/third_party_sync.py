@@ -280,9 +280,23 @@ class SinoTechAPIParser:
         first_worklayer = self.data.get('first_worklayer', '')
         scene_title_base = f"{workitem} - {first_worklayer}"
         
+        # 取得現有的 Scene external_ids，避免重複建立
+        existing_external_ids = set(project.scenes.values_list('external_id', flat=True))
+        
+        # 取得目前最大的排序值，用於累加
+        max_order = project.scenes.aggregate(models.Max('order'))['order__max']
+        next_order = (max_order or 0) + 1 if max_order is not None else 0
+
         created_scenes = []
         for idx, photo in enumerate(photos):
-            if not photo.get('url') and not photo.get('uuid'):
+            photo_uuid = photo.get('uuid')
+            
+            # 使用者需求：偵測到已建立過的 360 圖片 (UID可比對)，就不動他 (不更新)
+            if photo_uuid and photo_uuid in existing_external_ids:
+                logger.info(f"[CMS Sync] 跳過 Scene (UUID={photo_uuid})：已存在於專案中")
+                continue
+
+            if not photo.get('url') and not photo_uuid:
                 continue
                 
             scene_title = f"{scene_title_base} ({idx+1})"
@@ -295,34 +309,44 @@ class SinoTechAPIParser:
             scene = Scene(
                 project=project,
                 title=scene_title,
-                order=idx,
+                order=next_order,
+                external_id=photo_uuid,
             )
             scene.image.save(image_content.name, image_content, save=False)
             scene.save()
             created_scenes.append(scene)
-            logger.info(f"[CMS Sync] 建立 Scene：{scene_title} (pk={scene.pk})")
+            next_order += 1
+            logger.info(f"[CMS Sync] 建立 Scene：{scene_title} (pk={scene.pk}, external_id={photo_uuid})")
             
         # 3. 處理 Hotspot（設為「未分配專案」，不放入任何 Scene）
-        # 對應規則：
-        #   - survey_content → 熱點標題
-        #   - hazard_status  → 描述的「危害狀態」（category 忽略，危害類別暫不設定）
-        #   - safety_measure → 描述的「安全措施」
         assessments = self.data.get('assessments', [])
         form_uid    = self.data.get('form_uid', '')
 
         for item in assessments:
+            title = item.get('survey_content', '未命名危害')
             hazard_status  = item.get('hazard_status', '')
             safety_measure = item.get('safety_measure', '')
+            description = f"**危害狀態**：\n{hazard_status}\n\n**安全措施**：\n{safety_measure}"
+            
+            # 使用者需求：比對標題與內容，相同建立過且 form_id 都一樣的就不再新增
+            duplicate_hotspot = Hotspot.objects.filter(
+                title=title,
+                description=description,
+                external_form_uid=form_uid
+            ).exists()
+            
+            if duplicate_hotspot:
+                logger.info(f"[CMS Sync] 跳過 Hotspot (Title={title})：內容與 form_uid 已存在")
+                continue
 
             hotspot = Hotspot.objects.create(
                 scene=None,              # 未分配到任何場景
                 hotspot_type='text_hover',
-                title=item.get('survey_content', '未命名危害'),
-                description=f"**危害狀態**：\n{hazard_status}\n\n**安全措施**：\n{safety_measure}",
+                title=title,
+                description=description,
                 pitch=0,
                 yaw=0,
                 external_form_uid=form_uid,
-                # 危害類別（hazard_types）暫不設定，待後續整理規則後再對應
             )
 
             logger.info(f"[CMS Sync] 建立未分配 Hotspot：{hotspot.title} (form_uid={form_uid})")
