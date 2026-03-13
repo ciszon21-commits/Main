@@ -246,6 +246,7 @@ class SinoTechAPIParser:
                 'tender_code': tender_code,
                 'tender_name': tender_name,
                 'doc_date': doc_date,
+                'form_uid': self.data.get('form_uid'),
                 'latitude': lat,
                 'longitude': lng,
                 'city': city,

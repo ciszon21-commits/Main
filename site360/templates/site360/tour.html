@@ -438,23 +438,34 @@
                 </div>
                 <div class="modal-body">
                     <!-- Filters -->
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6">
-                            <input type="text" class="form-control" id="libSearchInput" placeholder="搜尋標題、說明...">
+                    <div class="row g-2 mb-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted">關鍵字搜尋</label>
+                            <input type="text" class="form-control" id="libSearchInput" placeholder="標題、說明...">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">類型</label>
                             <select class="form-select" id="libTypeSelect">
-                                <option value="">所有類型</option>
-                                <option value="text">文字類</option>
-                                <option value="image">圖片類</option>
-                                <option value="video">影片類</option>
+                                <option value="">所有</option>
+                                <option value="text">文字</option>
+                                <option value="image">圖片</option>
+                                <option value="video">影片</option>
                             </select>
                         </div>
                         <div class="col-md-3">
+                            <label class="form-label small text-muted">所屬專案</label>
                             <select class="form-select" id="libProjectSelect">
                                 <option value="">所有專案</option>
                                 <!-- Populated by JS -->
                             </select>
+                        </div>
+                        <div class="col-md-3">
+                            {% if project.form_uid %}
+                            <button class="btn btn-primary active w-100" type="button" id="recommendBtn"
+                                title="推薦目前表單相關內容">
+                                <i class="fas fa-magic"></i> 推薦表單匯入內容
+                            </button>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -1693,11 +1704,27 @@
     <script>
         // Resource Library Logic
         let libraryResources = [];
+        const currentProjectFormUid = "{{ project.form_uid|default:'' }}";
+        let isRecommendationMode = true; // Default to ON
 
         $('#openLibraryBtn').click(function () {
             const libraryModal = new bootstrap.Modal(document.getElementById('resourceLibraryModal'));
             libraryModal.show();
+            // Reset recommendation to default ON if applicable
+            if (currentProjectFormUid) {
+                isRecommendationMode = true;
+                $('#recommendBtn').addClass('active btn-primary').removeClass('btn-outline-primary');
+            } else {
+                isRecommendationMode = false;
+                $('#recommendBtn').removeClass('active btn-primary').addClass('btn-outline-primary');
+            }
             loadLibraryResources();
+        });
+
+        $('#recommendBtn').click(function () {
+            isRecommendationMode = !isRecommendationMode;
+            $(this).toggleClass('active btn-primary btn-outline-primary');
+            renderLibrary();
         });
 
         function loadLibraryResources() {
@@ -1744,10 +1771,15 @@
 
                 const matchProject = !projectFilter || r.project_name === projectFilter;
 
+                let matchRecommendation = true;
+                if (isRecommendationMode && currentProjectFormUid) {
+                    matchRecommendation = r.external_form_uid === currentProjectFormUid;
+                }
+
                 // Exclude current hotspot (self)
                 const isSelf = currentHotspotId && String(r.id) === String(currentHotspotId);
 
-                return matchSearch && matchType && matchProject && !isSelf;
+                return matchSearch && matchType && matchProject && matchRecommendation && !isSelf;
             });
 
             if (filtered.length === 0) {

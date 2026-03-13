@@ -13,6 +13,7 @@ class Project(models.Model):
     tender_code = models.CharField(_("標別"), max_length=100, blank=True, null=True)
     tender_name = models.CharField(_("工程名稱"), max_length=200, blank=True, null=True)
     doc_date = models.DateField(_("表單建立日期"), blank=True, null=True)
+    form_uid = models.CharField(_("外部表單 UID"), max_length=100, blank=True, null=True, db_index=True)
 
     created_at = models.DateTimeField(_("建立時間"), auto_now_add=True)
     cover_image = models.ImageField(_("封面圖片"), upload_to='site360/projects/', blank=True, null=True)

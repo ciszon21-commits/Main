@@ -474,7 +474,8 @@ def list_resources(request):
                 'icon': h.icon,
                 'icon_color': h.icon_color,
                 'usage_count': h.copied_by.count(),
-                'hazard_types': [ht.id for ht in h.hazard_types.all()]
+                'hazard_types': [ht.id for ht in h.hazard_types.all()],
+                'external_form_uid': h.external_form_uid
             }
             data.append(item)
         return JsonResponse({'status': 'success', 'resources': data})
