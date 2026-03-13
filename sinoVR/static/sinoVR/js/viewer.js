@@ -69,12 +69,30 @@ function init() {
         logUserActivity('EXIT_VR', { duration: 'unknown' });
     });
 
+    // Dirt Floor
+    const textureLoader = new THREE.TextureLoader();
+    const floorTexture = textureLoader.load('/static/sinoVR/images/dirt_floor.png');
+    floorTexture.wrapS = THREE.RepeatWrapping;
+    floorTexture.wrapT = THREE.RepeatWrapping;
+    floorTexture.repeat.set(10, 10);
+    floorTexture.colorSpace = THREE.SRGBColorSpace;
+
+    const floorGeometry = new THREE.PlaneGeometry(20, 20);
+    const floorMaterial = new THREE.MeshPhongMaterial({
+        map: floorTexture,
+        side: THREE.DoubleSide
+    });
+    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -0.01;
+    scene.add(floor);
+
     // Create Boundary (Visual Reference) - Techno Fluorescent (Thick Lines using Mesh)
     console.log("Creating VR Boundary...");
     const boundarySize = 20; // Total width/depth
     const halfSize = boundarySize / 2;
     const thickness = 0.3; // Increased to 30cm thick
-    const boundaryY = 0.1; // Raised to 10cm to avoid Z-fighting
+    const boundaryY = 0.05; // Slightly above dirt floor to avoid Z-fighting
 
     // Neon Cyan Material
     boundaryMat = new THREE.MeshBasicMaterial({

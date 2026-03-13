@@ -63,9 +63,23 @@ export function init() {
     dirLight.position.set(5, 10, 7.5);
     scene.add(dirLight);
 
-    // Grid Helper
-    const gridHelper = new THREE.GridHelper(20, 20, 0x555555, 0x333333);
-    scene.add(gridHelper);
+    // Dirt Floor instead of Grid Helper
+    const textureLoader = new THREE.TextureLoader();
+    const floorTexture = textureLoader.load('/static/sinoVR/images/dirt_floor.png');
+    floorTexture.wrapS = THREE.RepeatWrapping;
+    floorTexture.wrapT = THREE.RepeatWrapping;
+    floorTexture.repeat.set(10, 10);
+    floorTexture.colorSpace = THREE.SRGBColorSpace;
+
+    const floorGeometry = new THREE.PlaneGeometry(20, 20);
+    const floorMaterial = new THREE.MeshPhongMaterial({ 
+        map: floorTexture,
+        side: THREE.DoubleSide
+    });
+    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -0.01; // Slightly below zero to avoid z-fighting with objects at 0
+    scene.add(floor);
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
