@@ -84,6 +84,7 @@ class Hotspot(models.Model):
     )
 
     scene = models.ForeignKey(Scene, on_delete=models.SET_NULL, null=True, blank=True, related_name='hotspots', verbose_name=_("所屬場景"))
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=True, blank=True, related_name='hotspots', verbose_name=_("所屬專案"))
     hotspot_type = models.CharField(_("類型"), max_length=20, choices=TYPE_CHOICES, default='text')
     pitch = models.FloatField(_("俯仰角 (Pitch)"))
     yaw = models.FloatField(_("偏航角 (Yaw)"))

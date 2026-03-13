@@ -466,7 +466,7 @@ def list_resources(request):
         is_recommend = request.GET.get('recommend', 'true').lower() == 'true'
 
         # Base queryset
-        queryset = Hotspot.objects.select_related('scene', 'scene__project').all().order_by('-created_at')
+        queryset = Hotspot.objects.select_related('scene', 'scene__project', 'project').all().order_by('-created_at')
 
         # Filtering
         if search:
@@ -485,7 +485,10 @@ def list_resources(request):
                 queryset = queryset.filter(hotspot_type=ht_type)
         
         if project_name:
-            queryset = queryset.filter(scene__project__name=project_name)
+            if project_name == '__none__':
+                queryset = queryset.filter(scene__isnull=True, project__isnull=True)
+            else:
+                queryset = queryset.filter(Q(scene__project__name=project_name) | Q(project__name=project_name))
         
         if form_uid:
             if is_recommend:
@@ -505,9 +508,10 @@ def list_resources(request):
                 'description': h.description,
                 'type': h.hotspot_type,
                 'type_display': h.get_hotspot_type_display(),
-                'project_name': h.scene.project.name if h.scene else '（未分配）',
+                'project_name': h.project.name if h.project else (h.scene.project.name if h.scene else '（未分配）'),
                 'scene_title': h.scene.title if h.scene else '（未分配至場景）',
                 'is_unassigned': h.scene is None,
+                'is_external_card': h.scene is None and h.project is not None,
                 'thumb_url': f"{h.image.url}?v={int(h.updated_at.timestamp())}" if h.image and h.hotspot_type in ['image', 'image_hover'] else None,
                 'video_url': f"{h.video.url}?v={int(h.updated_at.timestamp())}" if h.video else None,
                 'has_video': bool(h.video),
@@ -719,7 +723,7 @@ def project_resource_list(request, pk):
 
     scenes = Scene.objects.all().order_by('project', 'order').prefetch_related(
         'project',
-        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot').prefetch_related('hazard_types').order_by('created_at'))
+        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot', 'project').prefetch_related('hazard_types').order_by('created_at'))
     )
 
     all_projects = Project.objects.all().order_by('name')
@@ -728,7 +732,7 @@ def project_resource_list(request, pk):
     # Unassigned hotspots: scene is null
     unassigned_hotspots = Hotspot.objects.filter(scene__isnull=True).annotate(
         usage_count=Count('copied_by')
-    ).select_related('source_hotspot').prefetch_related('hazard_types').order_by('-created_at')
+    ).select_related('source_hotspot', 'project').prefetch_related('hazard_types').order_by('-created_at')
 
     context = {
         'project': project,
@@ -749,7 +753,7 @@ def all_resource_list(request):
 
     scenes = Scene.objects.all().order_by('project', 'order').prefetch_related(
         'project',
-        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot').prefetch_related('hazard_types').order_by('created_at'))
+        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot', 'project').prefetch_related('hazard_types').order_by('created_at'))
     )
 
     projects = Project.objects.all().order_by('name')
@@ -758,7 +762,7 @@ def all_resource_list(request):
     # Unassigned hotspots: scene is null
     unassigned_hotspots = Hotspot.objects.filter(scene__isnull=True).annotate(
         usage_count=Count('copied_by')
-    ).select_related('source_hotspot').prefetch_related('hazard_types').order_by('-created_at')
+    ).select_related('source_hotspot', 'project').prefetch_related('hazard_types').order_by('-created_at')
 
     context = {
         'scenes': scenes,
@@ -1150,7 +1154,7 @@ def get_resource_references(request, pk):
         resource = get_object_or_404(Hotspot, pk=pk)
         
         # Get all hotspots that reference this resource (via source_hotspot)
-        references = Hotspot.objects.filter(source_hotspot=resource).select_related('scene', 'scene__project')
+        references = Hotspot.objects.filter(source_hotspot=resource).select_related('scene', 'scene__project', 'project')
         
         # Build reference details
         reference_list = []
@@ -1167,9 +1171,9 @@ def get_resource_references(request, pk):
             
             reference_list.append({
                 'id': ref.id,
-                'project_name': ref.scene.project.name,
-                'scene_title': ref.scene.title,
-                'scene_id': ref.scene.id,
+                'project_name': ref.project.name if ref.project else (ref.scene.project.name if ref.scene else '（未分配）'),
+                'scene_title': ref.scene.title if ref.scene else '（未分配至場景）',
+                'scene_id': ref.scene.id if ref.scene else None,
                 'hotspot_title': ref.title,
                 'hotspot_type': ref.hotspot_type,
                 'hotspot_type_display': ref.get_hotspot_type_display(),

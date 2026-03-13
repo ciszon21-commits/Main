@@ -403,6 +403,7 @@ class SinoTechAPIParser:
 
             hotspot = Hotspot.objects.create(
                 scene=None,              # 未分配到任何場景
+                project=project,         # 分配至專案 (外部匯入字卡概念)
                 hotspot_type='text_hover',
                 title=title,
                 description=description,
