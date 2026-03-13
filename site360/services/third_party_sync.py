@@ -369,6 +369,13 @@ class SinoTechAPIParser:
             )
             scene.image.save(image_content.name, image_content, save=False)
             scene.save()
+
+            # 使用者需求：若專案尚未有封面圖，則將第一張成功匯入的照片設為封面
+            if not project.cover_image:
+                # 重新利用 image_content 以免重複下載
+                project.cover_image.save(image_content.name, image_content, save=True)
+                logger.info(f"[CMS Sync] 設定專案預設封面：{scene_title} (pk={project.pk})")
+
             created_scenes.append(scene)
             next_order += 1
             logger.info(f"[CMS Sync] 建立 Scene：{scene_title} (pk={scene.pk}, external_id={photo_uuid})")
