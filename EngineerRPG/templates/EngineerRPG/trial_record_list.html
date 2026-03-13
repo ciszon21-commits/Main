@@ -1,0 +1,98 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}冒險日誌 - 試煉紀錄{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <div class="text-center mb-xl">
+        <h1>
+            <i class="fas fa-journal-whills"></i> 試煉紀錄
+        </h1>
+        <p class="text-stone-light">記錄著您每一場試煉的成果與榮耀</p>
+    </div>
+
+    <div class="rpg-card">
+        {% if page_obj %}
+        <div class="table-responsive">
+            <table class="rpg-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">試煉名稱</th>
+                        <th style="width: 15%;">結果</th>
+                        <th style="width: 15%;">分數</th>
+                        <th style="width: 20%;">完成時間</th>
+                        <th style="width: 10%;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in page_obj %}
+                    <tr>
+                        <td>
+                            <div style="font-weight: bold;">{{ record.trial.title }}</div>
+                            <div style="font-size: 0.8rem; color: var(--color-stone);">
+                                耗時: {{ record.time_spent_seconds }} 秒
+                            </div>
+                        </td>
+                        <td>
+                            {% if record.is_passed %}
+                            <span class="text-success"><i class="fas fa-check-circle"></i> 通過</span>
+                            {% else %}
+                            <span class="text-danger"><i class="fas fa-times-circle"></i> 失敗</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="{% if record.is_passed %}text-warning{% endif %}">{{ record.score }}</span>
+                        </td>
+                        <td>{{ record.completed_at|date:"Y-m-d H:i" }}</td>
+                        <td>
+                            <a href="{% url 'engineer_rpg:trial_record_detail' record.id %}" class="rpg-btn rpg-btn-sm">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="pagination mt-lg text-center">
+            <div class="btn-group">
+                {% if page_obj.has_previous %}
+                <a href="?page=1" class="rpg-btn rpg-btn-sm">&laquo; 第一頁</a>
+                <a href="?page={{ page_obj.previous_page_number }}" class="rpg-btn rpg-btn-sm">上一頁</a>
+                {% endif %}
+
+                <span class="rpg-btn rpg-btn-sm disabled"
+                    style="opacity: 1; cursor: default; background: rgba(255,255,255,0.1);">
+                    第 {{ page_obj.number }} 頁 / 共 {{ page_obj.paginator.num_pages }} 頁
+                </span>
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="rpg-btn rpg-btn-sm">下一頁</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}" class="rpg-btn rpg-btn-sm">最後一頁 &raquo;</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-xl">
+            <i class="fas fa-scroll fa-3x text-stone mb-md"></i>
+            <p class="text-stone">目前尚無試煉紀錄</p>
+            <a href="{% url 'engineer_rpg:daily_trial_list' %}" class="rpg-btn rpg-btn-primary mt-md">
+                前往試煉場
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="text-center mt-lg">
+        <a href="{% url 'engineer_rpg:dashboard' %}" class="rpg-btn rpg-btn-secondary">
+            <i class="fas fa-undo"></i> 返回冒險日誌首頁
+        </a>
+    </div>
+</div>
+{% endblock %}

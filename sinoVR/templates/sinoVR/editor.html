@@ -1,0 +1,453 @@
+{% extends 'sinoVR/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<!-- Import Map for Three.js -->
+<link rel="stylesheet" href="{% static 'sinoVR/css/editor.css' %}">
+<!-- Import Map for Three.js -->
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="editor-container">
+    <!-- Center / Left Viewport -->
+    <div class="viewport-panel">
+        <div class="toolbar">
+            <div class="d-flex gap-2">
+                <button onclick="saveAndExit('{% url 'sinoVR:scene_list' %}')" class="btn btn-sm btn-outline-light"
+                    title="保存並返回場景列表">
+                    <i class="fas fa-arrow-left"></i> 返回
+                </button>
+                <div class="border-start border-secondary mx-1"></div>
+                <button class="btn btn-sm btn-secondary" onclick="setTool('translate')" title="Move (T)"><i
+                        class="fas fa-arrows-alt"></i></button>
+                <button class="btn btn-sm btn-secondary" onclick="setTool('rotate')" title="Rotate (R)"><i
+                        class="fas fa-sync"></i></button>
+                <button class="btn btn-sm btn-secondary" onclick="setTool('scale')" title="Scale (S)"><i
+                        class="fas fa-expand"></i></button>
+            </div>
+
+            <div class="d-flex gap-2">
+                {% comment %} <button class="btn btn-sm btn-outline-info" onclick="showAllCards()"
+                    title="顯示所有字卡 (Show All Cards)">
+                    <i class="fas fa-eye"></i> Show All
+                </button> {% endcomment %}
+                <a href="{% url 'sinoVR:scene_view' scene.pk %}" class="btn btn-sm btn-light" id="btn-play-toggle"
+                    target="_blank" title="在新視窗開啟預覽 (Preview in New Window)">
+                    <i class="fas fa-play"></i> Preview
+                </a>
+                <button class="btn btn-sm btn-success" id="btn-save" onclick="saveScene(false)">
+                    <i class="fas fa-save"></i> Save
+                </button>
+                <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#helpModal">
+                    <i class="fas fa-question-circle"></i> Help
+                </button>
+            </div>
+        </div>
+
+
+
+        <!-- Help Modal -->
+        <div class="modal fade" id="helpModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content bg-dark text-light border-secondary">
+                    <div class="modal-header border-secondary">
+                        <h5 class="modal-title"><i class="fas fa-gamepad"></i> 編輯器操作說明</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        {% comment %} <h6 class="text-info">攝影機導覽 (Camera)</h6>
+                        <ul class="small mb-3">
+                            <li><strong>左鍵拖曳：</strong> 環繞旋轉 (Orbit)</li>
+                            <li><strong>滾輪滑動：</strong> 縮放 (Zoom)</li>
+                            <li><strong>右鍵拖曳：</strong> 平移 (Pan)</li>
+                        </ul> {% endcomment %}
+                        <h6 class="text-warning">物件編輯 (Object)</h6>
+                        <ul class="small mb-0">
+                            <li><strong>點擊物件：</strong> 選取</li>
+                            <li><strong>T 鍵：</strong> 移動工具 (Translate)</li>
+                            <li><strong>R 鍵：</strong> 旋轉工具 (Rotate)</li>
+                            <li><strong>S 鍵：</strong> 縮放工具 (Scale)</li>
+                            <li><strong>Del 鍵：</strong> 刪除選取物件</li>
+                        </ul>
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <small class="text-muted me-auto">按 'ESC' 可退出 Play Mode</small>
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">關閉</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- InfoCard Create Modal -->
+        <div class="modal fade" id="createCardModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content bg-dark text-light border-secondary">
+                    <div class="modal-header border-secondary">
+                        <h5 class="modal-title"><i class="fas fa-plus-square"></i> 建立資訊字卡</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="card-title" class="form-label">標題</label>
+                            <input type="text" class="form-control bg-secondary text-white border-0" id="card-title"
+                                placeholder="例如：注意高處作業">
+                        </div>
+                        <div class="mb-3">
+                            <label for="card-content" class="form-label">內容</label>
+                            <textarea class="form-control bg-secondary text-white border-0" id="card-content" rows="4"
+                                placeholder="在高處作業時，必須配戴安全帶並檢查鷹架穩固性"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="card-bg-color" class="form-label">背景顏色</label>
+                                <select class="form-select bg-secondary text-white border-0" id="card-bg-color">
+                                    <option value="rgba(173, 216, 230, 0.95)">淺藍色</option>
+                                    <option value="rgba(144, 238, 144, 0.95)">淺綠色</option>
+                                    <option value="rgba(255, 218, 185, 0.95)">淺橘色</option>
+                                    <option value="rgba(255, 182, 193, 0.95)">粉紅色</option>
+                                    <option value="rgba(255, 255, 224, 0.95)">淺黃色</option>
+                                    <option value="rgba(230, 230, 250, 0.95)">淡紫色</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="card-font-size" class="form-label">內容字體大小(px)</label>
+                                <input type="number" class="form-control bg-secondary text-white border-0"
+                                    id="card-font-size" value="50" min="30" max="80" step="5">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="createInfoCard()">建立</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit InfoCard Modal -->
+        <div class="modal fade" id="editCardModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content bg-dark text-light border-secondary">
+                    <div class="modal-header border-secondary">
+                        <h5 class="modal-title"><i class="fas fa-edit"></i> 編輯資訊字卡</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="edit-card-id">
+                        <div class="mb-3">
+                            <label for="edit-card-title" class="form-label">標題</label>
+                            <input type="text" class="form-control bg-secondary text-white border-0"
+                                id="edit-card-title">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-card-content" class="form-label">內容</label>
+                            <textarea class="form-control bg-secondary text-white border-0" id="edit-card-content"
+                                rows="4"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="edit-card-bg-color" class="form-label">背景顏色</label>
+                                <select class="form-select bg-secondary text-white border-0" id="edit-card-bg-color">
+                                    <option value="rgba(173, 216, 230, 0.95)">淺藍色</option>
+                                    <option value="rgba(144, 238, 144, 0.95)">淺綠色</option>
+                                    <option value="rgba(255, 218, 185, 0.95)">淺橘色</option>
+                                    <option value="rgba(255, 182, 193, 0.95)">粉紅色</option>
+                                    <option value="rgba(255, 255, 224, 0.95)">淺黃色</option>
+                                    <option value="rgba(230, 230, 250, 0.95)">淡紫色</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="edit-card-font-size" class="form-label">內容字體大小(px)</label>
+                                <input type="number" class="form-control bg-secondary text-white border-0"
+                                    id="edit-card-font-size" value="50" min="30" max="80" step="5">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="updateInfoCard()">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Asset Selection Modal -->
+        <div class="modal fade" id="assetSelectionModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content bg-dark text-light border-secondary">
+                    <div class="modal-header border-secondary">
+                        <h5 class="modal-title"><i class="fas fa-cubes"></i> 選擇素材庫模型</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Search Bar -->
+                        <div class="mb-3">
+                            <input type="text" id="asset-search-input"
+                                class="form-control bg-secondary text-white border-0" placeholder="搜尋素材名稱..."
+                                onkeyup="filterAssets()">
+                        </div>
+
+                        <div class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3" id="asset-grid-container">
+                            {% for asset in assets %}
+                            <div class="col asset-item-col" data-title="{{ asset.title|lower }}">
+                                <div class="card h-100 bg-secondary text-white border-secondary asset-item position-relative"
+                                    style="cursor: pointer; transition: all 0.2s;"
+                                    onclick="addModel('{{ asset.pk }}', '{{ asset.file.url }}', '{{ asset.title }}');">
+                                    <div
+                                        class="card-body text-center p-3 d-flex flex-column align-items-center justify-content-center">
+                                        {% if asset.thumbnail %}
+                                        <img src="{{ asset.thumbnail.url }}" class="img-fluid mb-2 rounded"
+                                            style="max-height: 100px; object-fit: contain;">
+                                        {% else %}
+                                        <i class="fas fa-cube fa-3x mb-2 text-info"></i>
+                                        {% endif %}
+                                        <div class="small text-truncate w-100 fw-bold" title="{{ asset.title }}">{{ asset.title }}</div>
+                                    </div>
+                                    <!-- Hover effect could be added via CSS, keeping inline simple for now -->
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="col-12 text-center text-muted py-5">
+                                <i class="fas fa-box-open fa-3x mb-3"></i>
+                                <p>目前沒有可用的專案素材，請先至素材管理頁面新增。</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="modal-footer border-secondary justify-content-between">
+                        <div class="text-muted small">
+                            <i class="fas fa-info-circle"></i> 想要上傳新的模型？請前往
+                            <a href="{% url 'sinoVR:asset_list' %}" class="text-info text-decoration-none"
+                                target="_blank">
+                                素材管理頁面 <i class="fas fa-external-link-alt"></i>
+                            </a>
+                        </div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- InfoCard Detail Overlay (Play Mode) -->
+        <div id="card-detail-overlay"
+            style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); z-index:9999; justify-content:center; align-items:center;">
+            <div
+                style="background:#2d2d2d; padding:30px; border-radius:8px; max-width:600px; width:90%; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
+                <h3 id="card-detail-title" style="color:#fff; margin-bottom:15px;"></h3>
+                <p id="card-detail-content" style="color:#ddd; white-space:pre-wrap; line-height:1.6;"></p>
+                <button onclick="closeCardDetail()" class="btn btn-secondary mt-3">關閉</button>
+            </div>
+        </div>
+
+        <div id="vr-container">
+            <div id="loading" class="loading-overlay"
+                style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:999; justify-content:center; align-items:center;">
+                <div class="text-white text-center">
+                    <div class="spinner-border" role="status"></div>
+                    <div class="mt-2 text-center" id="loading-text">Loading...</div>
+                </div>
+            </div>
+            {% comment %} <div
+                class="play-mode-overlay text-white d-flex flex-column align-items-center justify-content-center p-3"
+                style="pointer-events: none;">
+                <div class="badge bg-dark border border-secondary p-3 shadow-lg">
+                    <h5 class="m-0"><i class="fas fa-gamepad"></i> Play Mode Active</h5>
+                    <div class="small text-muted mt-1">Press ESC to Exit</div>
+                </div>
+            </div> {% endcomment %}
+        </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="sidebar-panel">
+
+        <!-- Hierarchy Panel -->
+        <div class="panel-section" style="flex: 1; max-height: 50%;">
+            <div class="panel-header">
+                <span><i class="fas fa-sitemap small"></i> Hierarchy</span>
+                <button class="btn btn-xs btn-outline-light py-0" onclick="updateHierarchy()"><i
+                        class="fas fa-sync-alt"></i></button>
+            </div>
+            <div class="panel-content" id="hierarchy-tree">
+                <!-- Items injected via JS -->
+                <div class="text-muted small text-center">No objects</div>
+            </div>
+            <div class="p-2 border-top border-secondary bg-dark">
+                <div class="d-flex gap-2 mb-2">
+                    <button class="btn btn-sm btn-primary w-100" data-bs-toggle="modal"
+                        data-bs-target="#createCardModal">
+                        <i class="fas fa-plus-square"></i> 建立字卡
+                    </button>
+                    <button class="btn btn-sm btn-warning w-100" id="btn-edit-card" onclick="editSelectedCard()"
+                        title="編輯選中的字卡">
+                        <i class="fas fa-edit"></i> 編輯
+                    </button>
+                </div>
+                <button class="btn btn-sm btn-outline-danger w-100" onclick="deleteSelected()">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+
+        <!-- Inspector Panel -->
+        <div class="panel-section fixed-height">
+            <div class="panel-header">
+                <span><i class="fas fa-info-circle small"></i> Inspector</span>
+            </div>
+            <div class="panel-content">
+                <div id="inspector-transform">
+                    <h6 class="small text-muted mb-2 font-weight-bold">Transform</h6>
+
+                    <div class="transform-row">
+                        <span class="transform-label">Position</span>
+                        <div class="transform-input-group">
+                            <span class="transform-axis-label text-danger">X</span>
+                            <input type="number" id="inp-pos-x" class="transform-input" step="0.1">
+                        </div>
+                        <div class="transform-input-group">
+                            <span class="transform-axis-label text-success">Y</span>
+                            <input type="number" id="inp-pos-y" class="transform-input" step="0.1">
+                        </div>
+                        <div class="transform-input-group">
+                            <span class="transform-axis-label text-primary">Z</span>
+                            <input type="number" id="inp-pos-z" class="transform-input" step="0.1">
+                        </div>
+                    </div>
+
+                    <div class="transform-row">
+                        <span class="transform-label">Rotation</span>
+                        <div class="transform-input-group">
+                            <span class="transform-axis-label text-danger">X</span>
+                            <input type="number" id="inp-rot-x" class="transform-input" step="1">
+                        </div>
+                        <div class="transform-input-group">
+                            <span class="transform-axis-label text-success">Y</span>
+                            <input type="number" id="inp-rot-y" class="transform-input" step="1">
+                        </div>
+                        <div class="transform-input-group">
+                            <span class="transform-axis-label text-primary">Z</span>
+                            <input type="number" id="inp-rot-z" class="transform-input" step="1">
+                        </div>
+                    </div>
+
+                    <div class="transform-row">
+                        <span class="transform-label">Scale</span>
+                        <div class="transform-input-group">
+                            <span class="transform-axis-label text-danger">X</span>
+                            <input type="number" id="inp-scale-x" class="transform-input" step="0.001">
+                        </div>
+                        <div class="transform-input-group">
+                            <span class="transform-axis-label text-success">Y</span>
+                            <input type="number" id="inp-scale-y" class="transform-input" step="0.001">
+                        </div>
+                        <div class="transform-input-group">
+                            <span class="transform-axis-label text-primary">Z</span>
+                            <input type="number" id="inp-scale-z" class="transform-input" step="0.001">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <h6 class="small text-muted mb-2 font-weight-bold">Tools</h6>
+                    <div class="btn-group w-100 mb-2">
+                        <button class="btn btn-sm btn-outline-warning" onclick="centerSelected()">
+                            Fix Pivot
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="scaleSelected()">
+                            Auto Scale
+                        </button>
+                    </div>
+                    <!-- Quick Scale Text Buttons -->
+                    <div class="btn-group w-100 mb-2">
+                        <button class="btn btn-sm btn-outline-warning" onclick="quickScale(0.8)">
+                            Scale x0.8
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="quickScale(1.25)">
+                            Scale x1.25
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Project / Assets Panel -->
+        <div class="panel-section" style="flex: 0 0 auto;">
+            <div class="panel-header">
+                <span><i class="fas fa-folder small"></i> 專案素材庫</span>
+            </div>
+            <div class="panel-content p-2">
+                <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#assetSelectionModal">
+                    <i class="fas fa-cubes"></i> 瀏覽專案素材
+                </button>
+                <small class="text-muted d-block mt-2 text-center" style="font-size: 0.8rem;">
+                    點擊按鈕開啟素材庫視窗，選擇並將模型加入場景。
+                </small>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script type="module">
+    import { init, animate, initializeDjangoVars, loadExistingObject, loadSkybox } from "{% static 'sinoVR/js/editor.js' %}?v={% now "YmdHis" %}";
+
+    // Initialize Django variables
+    const SCENE_ID = {{ scene.pk }};
+    const SAVE_URL = "{% url 'sinoVR:scene_save' scene.pk %}";
+    const UPLOAD_URL = "{% url 'sinoVR:asset_upload' %}";
+    const CSRF_TOKEN = "{{ csrf_token }}";
+
+    initializeDjangoVars(SCENE_ID, SAVE_URL, UPLOAD_URL, CSRF_TOKEN);
+
+    // Initialize Scene
+    init();
+
+    // Load Background
+    {% if scene.background %}
+    loadSkybox('{{ scene.background.image.url }}');
+    {% endif %}
+
+    // Load Existing Objects
+    {% for obj in scene.scene_objects.all %}
+    {% if obj.info_card %}
+    loadExistingObject({
+        isInfoCard: true,
+        id: '{{ obj.info_card.pk }}',
+        title: '{{ obj.info_card.title|escapejs }}',
+        content: '{{ obj.info_card.content|escapejs }}',
+        bgColor: '{{ obj.info_card.bg_color }}',
+        fontSize: {{ obj.info_card.content_font_size }},
+        position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }} },
+        rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }} },
+        scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} }
+    });
+    {% elif obj.asset %}
+    loadExistingObject({
+        isInfoCard: false,
+        assetId: '{{ obj.asset.pk }}',
+        url: '{{ obj.asset.file.url }}',
+        title: '{{ obj.asset.title|escapejs }}',
+        position: { x: {{ obj.position_x }}, y: {{ obj.position_y }}, z: {{ obj.position_z }} },
+        rotation: { x: {{ obj.rotation_x }}, y: {{ obj.rotation_y }}, z: {{ obj.rotation_z }} },
+        scale: { x: {{ obj.scale_x }}, y: {{ obj.scale_y }}, z: {{ obj.scale_z }} }
+    });
+    {% endif %}
+    {% endfor %}
+
+    // Start Animation Loop
+    animate();
+</script>
+{% endblock %}

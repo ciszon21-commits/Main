@@ -70,9 +70,9 @@ class AppSettings:
     GEMINI_API_KEY: str | None = None
     GEMINI_MODEL: str | None = None
 
-    SINO_AUTH_SERVICE_TOKEN: str | None = None
-    SINO_AUTH_SERVICE_DOMAIN: str | None = None
-    SINO_AUTH_SERVICE_APP_PATH: str | None = None
+    SINO_AUTH_SERVICE_TOKEN: str = "875e09d079b08dd02616f27e7f48720d5b40a205"
+    SINO_AUTH_SERVICE_DOMAIN: str = "https://50-129.sinotech.com.tw:1127/"
+    SINO_AUTH_SERVICE_APP_PATH: str = "sas"
 
     ANYTHINGLLM_KEY: str | None = None
 

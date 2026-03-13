@@ -62,18 +62,14 @@ CoDev Studio 是中興工程顧問股份有限公司專為全體同仁打造的�
 
 ## 🚀 快速開始
 
-請參考 https://single.sinotech.com.tw/redirect/token/codev/tutorials/
-
-裡面的 「CoDev Studio操作基本步驟」筆記
-
-### 1️⃣ Fork 並 Clone Repository
+### 1️⃣ Clone Repository
 
 ```bash
 # 使用 HTTPS
-git clone https://50-129.sinotech.com.tw:6981/你的帳號/CoDevStudio.git
+git clone https://50-129.sinotech.com.tw:6981/public/CoDevStudio.git
 
 # 或使用 SSH
-git clone git@50-129.sinotech.com.tw:6981/你的帳號/CoDevStudio.git
+git clone git@50-129.sinotech.com.tw:6981:public/CoDevStudio.git
 
 # 進入專案目錄
 cd CoDevStudio

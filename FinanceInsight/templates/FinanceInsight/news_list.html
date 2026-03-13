@@ -1,0 +1,62 @@
+{% extends 'FinanceInsight/base.html' %}
+{% load finance_tags %}
+
+{% block title %}財經新聞 - FinanceInsight{% endblock %}
+
+{% block content %}
+<div class="card-header" style="border-bottom: none; margin-bottom: 24px;">
+    <div>
+        <h1 style="margin: 0; font-size: 2.5rem; font-weight: 900; letter-spacing: -1px;">財經新聞總覽</h1>
+        <p style="color: var(--text-subdued); margin-top: 8px;">每日最新市場動態與 AI 摘要</p>
+    </div>
+    <span style="color: var(--text-subdued); font-size: 0.9rem;">{{ today|date:"Y年m月d日" }}</span>
+</div>
+
+{% for category in categories %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">{{ category.name }}</h2>
+        {% if category.code == 'TW_FINANCE' %}
+        <span class="badge badge-tw">TW</span>
+        {% elif category.code == 'US_FINANCE' %}
+        <span class="badge badge-us">US</span>
+        {% else %}
+        <span class="badge">{{ category.code }}</span>
+        {% endif %}
+    </div>
+
+    {% with summary=daily_summaries|get_item:category.id %}
+    {% if summary %}
+    <div class="summary-box">
+        <h4>🤖 AI 摘要</h4>
+        <p>{{ summary.summary|linebreaksbr }}</p>
+    </div>
+    <div class="conclusion-box">
+        <h4>💡 市場總結</h4>
+        <p>{{ summary.conclusion|linebreaksbr }}</p>
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="news-list">
+        {% with news_list=news_dict|get_item:category.id %}
+        {% for news in news_list %}
+        <div class="news-item">
+            <a href="{{ news.source_url }}" target="_blank"
+                style="display: flex; justify-content: space-between; align-items: start; gap: 12px;">
+                <span class="news-title-text">{{ news.title }}</span>
+                <span style="font-size: 0.8rem; color: var(--text-subdued); white-space: nowrap;">🔗 閱讀</span>
+            </a>
+            <div class="news-meta" style="margin-top: 8px;">
+                <span style="color: var(--brand-green);">{{ news.source }}</span> • {{ news.published_at|date:"Y/m/d
+                H:i" }}
+            </div>
+        </div>
+        {% empty %}
+        <p style="color: var(--text-subdued); padding: 16px;">尚無新聞資料。</p>
+        {% endfor %}
+        {% endwith %}
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

@@ -58,6 +58,154 @@ class SiteSettings(models.Model):
         return settings
 
 
+class EmailTemplate(models.Model):
+    """郵件模板設定"""
+    EMAIL_TYPE_CHOICES = [
+        ('new_application', '新申請待審核通知'),
+        ('approved', '核准通知'),
+        ('rejected', '拒絕通知'),
+        ('cancelled', '取消通知'),
+        ('time_changed', '時間變更通知'),
+    ]
+    
+    # 預設模板內容
+    DEFAULT_TEMPLATES = {
+        'new_application': {
+            'subject': '[無人機預約] 新申請待審核 - {applicant_name}',
+            'body': '''您好，
+
+有一筆新的無人機預約申請待審核：
+
+申請人：{applicant_name}
+使用時間：{start_time} ~ {end_time}
+地點：{location}
+計畫編號：{project_number}
+申請理由：{reason}
+
+請登入系統進行審核。
+
+此為系統自動發送郵件，請勿直接回覆。'''
+        },
+        'approved': {
+            'subject': '[無人機預約] 您的申請已核准',
+            'body': '''您好，
+
+您的無人機預約申請已核准：
+
+使用時間：{start_time} ~ {end_time}
+地點：{location}
+簽核人：{reviewer_name}
+
+請依照流程，聯繫簽核人(#07130)，確認行程安排。
+
+此為系統自動發送郵件，請勿直接回覆。'''
+        },
+        'rejected': {
+            'subject': '[無人機預約] 您的申請已被拒絕',
+            'body': '''您好，
+
+您的無人機預約申請已被拒絕：
+
+使用時間：{start_time} ~ {end_time}
+地點：{location}
+簽核人：{reviewer_name}
+拒絕理由：{rejection_reason}
+
+如有疑問，請聯繫簽核人(#07130)。
+
+此為系統自動發送郵件，請勿直接回覆。'''
+        },
+        'cancelled': {
+            'subject': '[無人機預約] 預約已取消 - {applicant_name}',
+            'body': '''您好，
+
+以下無人機預約已被取消：
+
+申請人：{applicant_name}
+使用時間：{start_time} ~ {end_time}
+地點：{location}
+
+此為系統自動發送郵件，請勿直接回覆。'''
+        },
+        'time_changed': {
+            'subject': '[無人機預約] 已核准預約時間變更 - {applicant_name}',
+            'body': '''您好，
+
+以下已核准的無人機預約時間已被修改：
+
+申請人：{applicant_name}
+地點：{location}
+計畫編號：{project_number}
+
+【時間變更】
+原時間：{old_start_time} ~ {old_end_time}
+新時間：{start_time} ~ {end_time}
+
+如有疑問，請聯繫相關人員。
+
+此為系統自動發送郵件，請勿直接回覆。'''
+        },
+    }
+
+    email_type = models.CharField(
+        max_length=30,
+        choices=EMAIL_TYPE_CHOICES,
+        unique=True,
+        verbose_name="郵件類型"
+    )
+    subject_template = models.CharField(
+        max_length=200,
+        verbose_name="郵件主旨模板"
+    )
+    body_template = models.TextField(
+        verbose_name="郵件內容模板"
+    )
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新時間")
+
+    class Meta:
+        verbose_name = "郵件模板"
+        verbose_name_plural = "郵件模板"
+
+    def __str__(self):
+        return self.get_email_type_display()
+
+    @classmethod
+    def get_template(cls, email_type):
+        """取得郵件模板，若不存在則使用預設值"""
+        try:
+            return cls.objects.get(email_type=email_type)
+        except cls.DoesNotExist:
+            # 使用預設模板
+            defaults = cls.DEFAULT_TEMPLATES.get(email_type, {})
+            return cls(
+                email_type=email_type,
+                subject_template=defaults.get('subject', ''),
+                body_template=defaults.get('body', '')
+            )
+
+    @classmethod
+    def ensure_all_templates(cls):
+        """確保所有模板都存在於資料庫中"""
+        for email_type, defaults in cls.DEFAULT_TEMPLATES.items():
+            cls.objects.get_or_create(
+                email_type=email_type,
+                defaults={
+                    'subject_template': defaults['subject'],
+                    'body_template': defaults['body']
+                }
+            )
+
+    def render(self, context):
+        """渲染模板，替換變數"""
+        subject = self.subject_template
+        body = self.body_template
+        for key, value in context.items():
+            placeholder = '{' + key + '}'
+            subject = subject.replace(placeholder, str(value))
+            body = body.replace(placeholder, str(value))
+        return subject, body
+
+
 class DroneReviewer(models.Model):
     """無人機簽核人（飛手）設定"""
     user = models.OneToOneField(
@@ -138,7 +286,7 @@ class DroneReservation(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.applicant.get_full_name() or self.applicant.username} - {self.usage_start_datetime.strftime('%Y/%m/%d %H:%M')}"
+        return f"{self.applicant.get_full_name() or self.applicant.username} - {self.usage_start_datetime.strftime('%Y/%m/%d')}"
 
     def get_status_display_class(self):
         """取得狀態對應的 CSS class"""
@@ -152,7 +300,7 @@ class DroneReservation(models.Model):
 
     def can_edit(self, user):
         """檢查使用者是否可以編輯此預約"""
-        # 只有申請人且狀態為申請中時可以編輯
+        # 申請人只能在申請中狀態下編輯（已核准後只有審核人可修改時間）
         return user == self.applicant and self.status == 'pending'
 
     def can_cancel(self, user):
@@ -162,6 +310,16 @@ class DroneReservation(models.Model):
 
     def can_reviewer_cancel(self, user):
         """檢查簽核人是否可以取消已核准的預約"""
+        if self.status != 'approved':
+            return False
+        try:
+            reviewer_profile = user.drone_reviewer_profile
+            return reviewer_profile.is_active
+        except DroneReviewer.DoesNotExist:
+            return False
+
+    def can_reviewer_edit(self, user):
+        """檢查審核人是否可以編輯已核准預約的時間"""
         if self.status != 'approved':
             return False
         try:
@@ -180,3 +338,66 @@ class DroneReservation(models.Model):
             return reviewer_profile.is_active
         except DroneReviewer.DoesNotExist:
             return False
+
+
+class MissionRecord(models.Model):
+    """飛行任務紀錄 - 記錄已完成的無人機飛行任務"""
+    
+    # 關聯預約單（可選，用於自動帶入欄位）
+    reservation = models.ForeignKey(
+        DroneReservation,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='mission_records',
+        verbose_name="關聯預約單"
+    )
+    
+    # 基本資訊
+    mission_start_date = models.DateField(verbose_name="任務開始日期")
+    mission_end_date = models.DateField(verbose_name="任務結束日期")
+    project_number = models.CharField(max_length=100, verbose_name="計畫編號")
+    project_short_name = models.CharField(max_length=100, verbose_name="計畫簡稱")
+    
+    # 地點資訊（用於地圖顯示）
+    location_name = models.CharField(max_length=200, verbose_name="任務地點")
+    latitude = models.FloatField(verbose_name="緯度", help_text="例如：25.0478")
+    longitude = models.FloatField(verbose_name="經度", help_text="例如：121.5319")
+    
+    # 任務詳情
+    mission_description = models.TextField(verbose_name="任務說明")
+    drone_payload = models.CharField(max_length=200, verbose_name="無人機/酬載")
+    pilot = models.CharField(
+        max_length=100,
+        verbose_name="任務飛手",
+        help_text="輸入飛手姓名",
+        default=''
+    )
+    result_location = models.CharField(
+        max_length=500,
+        verbose_name="成果存放位置",
+        help_text="檔案路徑或雲端連結"
+    )
+    
+    # 管理欄位
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_mission_records',
+        verbose_name="建立者"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新時間")
+
+    class Meta:
+        verbose_name = "飛行任務紀錄"
+        verbose_name_plural = "飛行任務紀錄"
+        ordering = ['-mission_start_date', '-created_at']
+
+    def __str__(self):
+        start = self.mission_start_date.strftime('%Y/%m/%d')
+        end = self.mission_end_date.strftime('%Y/%m/%d')
+        if start == end:
+            return f"{start} - {self.project_short_name}"
+        return f"{start}~{end} - {self.project_short_name}"

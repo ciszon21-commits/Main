@@ -1,0 +1,509 @@
+{% extends 'CarbonPLBC/base.html' %}
+
+<style>
+    .section-title {
+        color: var(--primary-color);
+        font-weight: 700;
+    }
+
+    .section-title i {
+        color: var(--primary-color);
+    }
+</style>
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- 係數顯示區（可收合） -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center" data-bs-toggle="collapse"
+                    data-bs-target="#coefficientsCollapse" style="cursor: pointer;">
+                    <span><i class="bi bi-info-circle-fill"></i> 當前碳排放係數</span>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+                <div class="collapse" id="coefficientsCollapse">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <h6 class="text-primary"><i class="bi bi-car-front-fill"></i> 私人運具 (kg CO2e/延人公里)</h6>
+                                <ul class="list-unstyled small">
+                                    <li><strong>汽車：</strong> {{ settings.car_factor }}</li>
+                                    <li><strong>機車：</strong> {{ settings.motorcycle_factor }}</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-3">
+                                <h6 class="text-success"><i class="bi bi-bus-front-fill"></i> 大眾運具 (kg CO2e/延人公里)</h6>
+                                <ul class="list-unstyled small">
+                                    <li><strong>公車：</strong> {{ settings.bus_factor }}</li>
+                                    <li><strong>客運：</strong> {{ settings.intercity_bus_factor }}</li>
+                                    <li><strong>捷運：</strong> {{ settings.metro_factor }}</li>
+                                    <li><strong>鐵路：</strong> {{ settings.railway_factor }}</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-3">
+                                <h6 class="text-warning"><i class="bi bi-sun-fill"></i> 再生能源 (kg CO2e/kWh)</h6>
+                                <ul class="list-unstyled small">
+                                    <li><strong>太陽能：</strong> {{ settings.solar_factor }}</li>
+                                    <li><strong>風力：</strong> {{ settings.wind_factor }}</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-3">
+                                <h6 class="text-info"><i class="bi bi-droplet-fill"></i> 其他</h6>
+                                <ul class="list-unstyled small">
+                                    <li><strong>自來水碳足跡：</strong> {{ settings.water_recycling_factor }} kg CO2e/m³</li>
+                                    <li><strong>焚化爐碳足跡：</strong> {{ settings.waste_recycling_factor }} kg CO2e/噸</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 輸入表單 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-pencil-square"></i> 碳排放數據輸入
+                </div>
+                <div class="card-body">
+                    <form method="post" id="calculationForm">
+                        {% csrf_token %}
+
+                        <!-- 基本資訊 -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.name.label }}</label>
+                                    {{ form.name }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.description.label }}</label>
+                            {{ form.description }}
+                        </div>
+
+                        <!-- BC1 混合旅次產生量 -->
+                        <div class="section-title"><i class="bi bi-signpost-split-fill"></i> 混合旅次產生量</div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.trip_count.label }}</label>
+                                    {{ form.trip_count }}
+                                    <small class="text-muted">{{ form.trip_count.help_text }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.private_transport_ratio.label }}</label>
+                                    {{ form.private_transport_ratio }}
+                                    <small class="text-muted">{{ form.private_transport_ratio.help_text }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.public_transport_ratio.label }}</label>
+                                    {{ form.public_transport_ratio }}
+                                    <small class="text-muted">{{ form.public_transport_ratio.help_text }}</small>
+                                </div>
+                            </div>
+                        </div>
+
+
+
+                        <!-- 私人運具旅次量 -->
+                        <div class="section-title"><i class="bi bi-car-front-fill"></i> 私人運具旅次量</div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.car_trip_volume.label }}</label>
+                                    {{ form.car_trip_volume }}
+                                    <small class="text-muted">{{ form.car_trip_volume.help_text }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.motorcycle_trip_volume.label }}</label>
+                                    {{ form.motorcycle_trip_volume }}
+                                    <small class="text-muted">{{ form.motorcycle_trip_volume.help_text }}</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 大眾運具旅次量 -->
+                        <div class="section-title"><i class="bi bi-bus-front-fill"></i> 大眾運具旅次量</div>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.bus_trip_volume.label }}</label>
+                                    {{ form.bus_trip_volume }}
+                                    <small class="text-muted">{{ form.bus_trip_volume.help_text }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.intercity_bus_trip_volume.label }}</label>
+                                    {{ form.intercity_bus_trip_volume }}
+                                    <small class="text-muted">{{ form.intercity_bus_trip_volume.help_text }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.metro_trip_volume.label }}</label>
+                                    {{ form.metro_trip_volume }}
+                                    <small class="text-muted">{{ form.metro_trip_volume.help_text }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.railway_trip_volume.label }}</label>
+                                    {{ form.railway_trip_volume }}
+                                    <small class="text-muted">{{ form.railway_trip_volume.help_text }}</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 再生能源 -->
+                        <div class="section-title"><i class="bi bi-sun-fill"></i> 再生能源</div>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.solar_area.label }}</label>
+                                    {{ form.solar_area }}
+                                    <small class="text-muted">{{ form.solar_area.help_text }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.solar_capacity_factor.label }}</label>
+                                    {{ form.solar_capacity_factor }}
+                                    <small class="text-muted">{{ form.solar_capacity_factor.help_text }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.wind_area.label }}</label>
+                                    {{ form.wind_area }}
+                                    <small class="text-muted">{{ form.wind_area.help_text }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.wind_capacity_factor.label }}</label>
+                                    {{ form.wind_capacity_factor }}
+                                    <small class="text-muted">{{ form.wind_capacity_factor.help_text }}</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 其他 -->
+                        <div class="section-title"><i class="bi bi-recycle"></i> 水資源與廢棄物</div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.recycled_water_volume.label }}</label>
+                                    {{ form.recycled_water_volume }}
+                                    <small class="text-muted">{{ form.recycled_water_volume.help_text }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.waste_recycled_volume.label }}</label>
+                                    {{ form.waste_recycled_volume }}
+                                    <small class="text-muted">{{ form.waste_recycled_volume.help_text }}</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-calculator"></i> 開始計算
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 計算結果 -->
+    {% if result %}
+    <div class="row" id="resultSection">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-graph-up-arrow"></i> 計算結果
+                </div>
+                <div class="card-body">
+                    <!-- 總計摘要 -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="result-card">
+                                <div class="small text-secondary mb-1">總碳排量</div>
+                                <div class="result-value text-danger">{{ result.total_emission|floatformat:2 }}</div>
+                                <div class="small text-secondary">kg CO2e</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="result-card">
+                                <div class="small text-secondary mb-1">總減碳量</div>
+                                <div class="result-value text-success">{{ result.total_reduction|floatformat:2 }}</div>
+                                <div class="small text-secondary">kg CO2e</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="result-card">
+                                <div class="small text-secondary mb-1">淨碳排量</div>
+                                <div
+                                    class="result-value {% if result.net_emission > 0 %}text-warning{% else %}text-success{% endif %}">
+                                    {{ result.net_emission|floatformat:2 }}
+                                </div>
+                                <div class="small text-secondary">kg CO2e</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 圖表 -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="text-center mb-3">碳排放與減量比較</h5>
+                            <div class="chart-container">
+                                <canvas id="emissionChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-center mb-3">碳排放來源分布</h5>
+                            <div class="chart-container">
+                                <canvas id="sourceChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 詳細數據 -->
+
+                    <div class="col-md-12">
+                        <h6 class="section-title-small mb-3"><i class="bi bi-bar-chart-fill"></i> 混合旅次產生量明細</h6>
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <td>私人</td>
+                                    <td class="text-end">{{ result.mixed_private_emission|floatformat:2 }} kg
+                                        CO2e</td>
+                                </tr>
+                                <tr>
+                                    <td>大眾</td>
+                                    <td class="text-end">{{ result.mixed_public_emission|floatformat:2 }} kg CO2e
+                                    </td>
+                                </tr>
+                                <tr class="table-active fw-bold">
+                                    <td>小計</td>
+                                    <td class="text-end">{{ result.mixed_total_emission|floatformat:2 }} kg CO2e
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="col-md-12">
+                        <h6 class="section-title-small mb-3"><i class="bi bi-bar-chart-fill"></i> 私人運具碳排量明細</h6>
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <td>汽車</td>
+                                    <td class="text-end">{{ result.car_emission|floatformat:2 }} kg CO2e</td>
+                                </tr>
+                                <tr>
+                                    <td>機車</td>
+                                    <td class="text-end">{{ result.motorcycle_emission|floatformat:2 }} kg CO2e</td>
+                                </tr>
+                                <tr class="table-active fw-bold">
+                                    <td>小計</td>
+                                    <td class="text-end">{{ result.private_vehicle_total|floatformat:2 }} kg CO2e
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="col-md-12">
+                        <h6 class="section-title-small mb-3"><i class="bi bi-bar-chart-fill"></i> 大眾運具碳排量明細</h6>
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <td>公車</td>
+                                    <td class="text-end">{{ result.bus_emission|floatformat:2 }} kg CO2e</td>
+                                </tr>
+                                <tr>
+                                    <td>客運</td>
+                                    <td class="text-end">{{ result.intercity_bus_emission|floatformat:2 }} kg CO2e
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>捷運</td>
+                                    <td class="text-end">{{ result.metro_emission|floatformat:2 }} kg CO2e</td>
+                                </tr>
+                                <tr>
+                                    <td>鐵路</td>
+                                    <td class="text-end">{{ result.railway_emission|floatformat:2 }} kg CO2e</td>
+                                </tr>
+                                <tr class="table-active fw-bold">
+                                    <td>小計</td>
+                                    <td class="text-end">{{ result.public_transport_total|floatformat:2 }} kg CO2e
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="col-md-12 mt-3">
+                        <h6 class="section-title-small mb-3"><i class="bi bi-arrow-down-circle-fill"></i> 減碳量明細</h6>
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <td>太陽能</td>
+                                    <td class="text-end">{{ result.solar_reduction|floatformat:2 }} kg CO2e</td>
+                                </tr>
+                                <tr>
+                                    <td>風力</td>
+                                    <td class="text-end">{{ result.wind_reduction|floatformat:2 }} kg CO2e</td>
+                                </tr>
+                                <tr>
+                                    <td>回收水</td>
+                                    <td class="text-end">{{ result.water_recycling_reduction|floatformat:2 }} kg
+                                        CO2e</td>
+                                </tr>
+                                <tr>
+                                    <td>廢棄物回收</td>
+                                    <td class="text-end">{{ result.waste_recycling_reduction|floatformat:2 }} kg
+                                        CO2e</td>
+                                </tr>
+                                <tr class="table-active fw-bold">
+                                    <td>小計</td>
+                                    <td class="text-end">{{ result.total_reduction|floatformat:2 }} kg CO2e</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+</div>
+
+{% if result %}
+<script>
+    // Chart.js Default Font
+    Chart.defaults.font.family = "'Nunito', sans-serif";
+    Chart.defaults.color = '#344E41';
+
+    // 碳排放與減量比較圖
+    const emissionCtx = document.getElementById('emissionChart').getContext('2d');
+    new Chart(emissionCtx, {
+        type: 'bar',
+        data: {
+            labels: ['私人運具', '大眾運具', '再生能源', '回收水', '廢棄物回收'],
+            datasets: [{
+                label: '碳排量 (kg CO2e)',
+                data: [
+                    parseFloat('{{ result.private_vehicle_total|default:0 }}'),
+                    parseFloat('{{ result.public_transport_total|default:0 }}'),
+                    0, 0, 0
+                ],
+                backgroundColor: 'rgba(58, 90, 64, 0.8)', // Hunter Green
+                borderColor: 'rgba(58, 90, 64, 1)',
+                borderWidth: 1,
+                borderRadius: 8,
+                barPercentage: 0.6
+            }, {
+                label: '減碳量 (kg CO2e)',
+                data: [
+                    0, 0,
+                    parseFloat('{{ result.renewable_energy_total|default:0 }}'),
+                    parseFloat('{{ result.water_recycling_reduction|default:0 }}'),
+                    parseFloat('{{ result.waste_recycling_reduction|default:0 }}')
+                ],
+                backgroundColor: 'rgba(163, 177, 138, 0.8)', // Sage Green
+                borderColor: 'rgba(163, 177, 138, 1)',
+                borderWidth: 1,
+                borderRadius: 8,
+                barPercentage: 0.6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        font: { size: 12 }
+                    }
+                },
+                title: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+
+    // 碳排放來源分布圖
+    const sourceCtx = document.getElementById('sourceChart').getContext('2d');
+    new Chart(sourceCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['私人運具', '大眾運具'],
+            datasets: [{
+                data: [
+                    parseFloat('{{ result.private_vehicle_total|default:0 }}'),
+                    parseFloat('{{ result.public_transport_total|default:0 }}')
+                ],
+                backgroundColor: [
+                    'rgba(58, 90, 64, 0.8)',  // Hunter Green
+                    'rgba(163, 177, 138, 0.8)' // Sage Green
+                ],
+                borderColor: [
+                    '#ffffff',
+                    '#ffffff'
+                ],
+                borderWidth: 3,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20
+                    }
+                }
+            }
+        }
+    });
+
+    // 自動滾動到結果區域
+    document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+</script>
+{% endif %}
+{% endblock %}

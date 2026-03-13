@@ -1,0 +1,42 @@
+{% extends 'FriendExpense/base.html' %}
+{% load expense_filters %}
+{% block title %}結算 - {{ group.name }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1 class="page-title">💵 結算明細</h1><p class="page-subtitle">{{ group.name }}</p></div>
+<a href="{% url 'friend_expense:group_detail' pk=group.pk %}" class="btn btn-outline" style="margin-bottom:24px;">← 返回群組</a>
+<div class="grid grid-4" style="margin-bottom:32px;">
+<div class="stat-card"><div class="stat-value" style="color:var(--brand-primary);">${{ total_expense|floatformat:0 }}</div><div class="stat-label">總支出</div></div>
+<div class="stat-card"><div class="stat-value">{{ members_stats|length }}</div><div class="stat-label">成員數</div></div>
+<div class="stat-card"><div class="stat-value">{{ group.expenses.count }}</div><div class="stat-label">記帳筆數</div></div>
+<div class="stat-card"><div class="stat-value">{{ settlements|length }}</div><div class="stat-label">需結算筆數</div></div>
+</div>
+<div class="card" style="margin-bottom:32px;"><div class="card-header"><h3 class="card-title">📊 成員明細</h3></div>
+<table style="width:100%;border-collapse:collapse;">
+<thead><tr style="border-bottom:1px solid rgba(255,255,255,0.1);"><th style="text-align:left;padding:12px;color:var(--text-subdued);font-weight:500;">成員</th><th style="text-align:right;padding:12px;color:var(--text-subdued);font-weight:500;">已付金額</th><th style="text-align:right;padding:12px;color:var(--text-subdued);font-weight:500;">應付金額</th><th style="text-align:right;padding:12px;color:var(--text-subdued);font-weight:500;">淨額</th></tr></thead>
+<tbody>
+{% for stats in members_stats %}
+<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+<td style="padding:16px;"><strong>{{ stats.member.name }}</strong></td>
+<td style="text-align:right;padding:16px;">${{ stats.paid|floatformat:0 }}</td>
+<td style="text-align:right;padding:16px;">${{ stats.owed|floatformat:0 }}</td>
+<td style="text-align:right;padding:16px;">{% if stats.balance > 0 %}<span class="badge badge-positive">+${{ stats.balance|floatformat:0 }}</span>{% elif stats.balance < 0 %}<span class="badge badge-negative">-${{ stats.balance|abs_value|floatformat:0 }}</span>{% else %}<span class="badge badge-amount">$0</span>{% endif %}</td>
+</tr>
+{% endfor %}
+</tbody></table></div>
+<div class="card"><div class="card-header"><h3 class="card-title">🤝 結算方案</h3></div>
+{% if settlements %}
+<p style="color:var(--text-subdued);margin-bottom:20px;">以下是最簡化的還款方案：</p>
+{% for s in settlements %}
+<div class="settlement-item">
+<div style="display:flex;align-items:center;"><span style="font-size:1.5rem;margin-right:10px;">👤</span><strong>{{ s.from_member.name }}</strong></div>
+<div class="settlement-arrow">→</div>
+<div style="display:flex;align-items:center;"><span style="font-size:1.5rem;margin-right:10px;">👤</span><strong>{{ s.to_member.name }}</strong></div>
+<div class="settlement-amount">${{ s.amount|floatformat:0 }}</div>
+</div>
+{% endfor %}
+<div style="margin-top:24px;padding:20px;background:rgba(0,210,106,0.1);border-radius:12px;border:1px solid rgba(0,210,106,0.3);"><p style="color:#00D26A;margin:0;">✨ 只需 {{ settlements|length }} 筆轉帳即可完成結算！</p></div>
+{% else %}
+<div class="empty-state" style="padding:40px;"><div class="empty-state-icon">✅</div><p class="empty-state-text" style="font-size:1.2rem;">帳務已結清，無需任何轉帳！</p></div>
+{% endif %}
+</div>
+{% endblock %}

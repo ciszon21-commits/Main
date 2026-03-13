@@ -1,0 +1,331 @@
+{% extends "LunchOrder/base.html" %}
+{% load static %}
+
+{% block title %}南工中心訂便當系統 | 個人訂單列表{% endblock %}
+
+{% block extra_css %}
+<style>
+    .order-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        color: white;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+
+    .order-card h2 {
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .btn-action {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        transition: all 0.3s;
+    }
+
+    .btn-action:hover {
+        background: rgba(255, 255, 255, 0.3);
+        color: white;
+    }
+
+    .table-modern {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .table-modern thead {
+        background: #f8f9fa;
+    }
+
+    .table-modern th {
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 2px solid #e9ecef;
+        padding: 16px;
+    }
+
+    .table-modern td {
+        padding: 16px;
+        vertical-align: middle;
+    }
+
+    .badge-restaurant {
+        display: inline-block;
+        background: #11998e;
+        color: white !important;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+    }
+
+    .price-tag {
+        background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+
+    .nav-tabs-custom .nav-link {
+        border: none;
+        color: #6c757d;
+        padding: 12px 24px;
+        font-weight: 500;
+    }
+
+    .nav-tabs-custom .nav-link.active {
+        color: #667eea;
+        border-bottom: 3px solid #667eea;
+        background: transparent;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header Card -->
+    <div class="order-card">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2><i class="fas fa-list me-2"></i>個人訂單列表</h2>
+                <p class="mb-0 mt-2 opacity-75">查看您的訂購記錄</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'lunchorder:order_create' %}" class="btn btn-action">
+                    <i class="fas fa-plus me-1"></i> 新增訂單
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Month Filter Bar -->
+    <div class="table-modern p-3 mb-4">
+        <form method="get" action="{% url 'lunchorder:order_list' %}" class="d-flex align-items-center flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fas fa-filter text-primary"></i>
+                <label class="fw-bold mb-0" style="white-space: nowrap;">月份篩選：</label>
+            </div>
+            <select name="month_combo" id="monthCombo" class="form-select" style="max-width: 220px;"
+                onchange="applyMonthFilter(this.value)">
+                {% for m in available_months %}
+                <option value="{{ m.year }}-{{ m.month }}" {% if m.selected %}selected{% endif %}>
+                    {{ m.label }}
+                </option>
+                {% endfor %}
+            </select>
+            <span class="badge bg-primary fs-6 ms-auto">
+                <i class="fas fa-wallet me-1"></i>
+                {{ filter_year }}年{{ filter_month }}月 合計：${{ filter_month_total|default:"0" }}
+            </span>
+        </form>
+    </div>
+
+    <script>
+        function applyMonthFilter(val) {
+            const parts = val.split('-');
+            window.location.href = '{% url "lunchorder:order_list" %}?year=' + parts[0] + '&month=' + parts[1];
+        }
+        function applyChartYear(yr) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('chart_year', yr);
+            window.location.href = url.toString();
+        }
+    </script>
+
+    <!-- Charts Section -->
+    <div class="row mb-4 g-4">
+        <div class="col-md-6">
+            <div class="order-card h-100 mb-0">
+                <h5 class="mb-2 text-center">
+                    <i class="fas fa-chart-pie me-2 text-warning"></i>
+                    {{ current_year }} 年每月花費
+                </h5>
+                <h3 class="text-center fw-bold mb-3" style="color: var(--text-main);">
+                    ${{ total_year_spending }}
+                </h3>
+                <div style="position: relative; height: 250px;">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+                <div class="text-center mt-3">
+                    <select id="chartYearSelect" class="form-select form-select-sm d-inline-block"
+                        style="width: auto; background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3);"
+                        onchange="applyChartYear(this.value)">
+                        {% for y in available_years %}
+                        <option value="{{ y.year }}" {% if y.selected %}selected{% endif %}>{{ y.year }} 年</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="order-card h-100 mb-0">
+                <h5 class="mb-4 text-center">
+                    <i class="fas fa-chart-pie me-2 text-info"></i>
+                    {% if filter_month %}
+                    {{ current_year }}年{{ filter_month }}月 種類分佈
+                    {% else %}
+                    {{ current_year }} 年種類分佈
+                    {% endif %}
+                </h5>
+                <div style="position: relative; height: 250px;">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="table-modern">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>訂購日期</th>
+                    <th>員工姓名</th>
+                    <th>便當店</th>
+                    <th>品項</th>
+                    <th>數量</th>
+                    <th>小計</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.order_date|date:"Y/m/d" }}</td>
+                    <td><strong>{{ order.employee_name }}</strong></td>
+                    <td><span class="badge-restaurant" data-restaurant="{{ order.menu_item.restaurant.name }}"></span>
+                    </td>
+                    <td>{{ order.menu_item.name }}</td>
+                    <td>{{ order.quantity }}</td>
+                    <td><span class="price-tag">${{ order.subtotal }}</span></td>
+                    <td>
+                        {% if order.order_date >= today %}
+                        <form action="{% url 'lunchorder:order_delete' order.id %}" method="post" class="d-inline"
+                            onsubmit="return confirm('確定要刪除這筆訂單嗎？');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger border-0">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <i class="fas fa-inbox fa-3x mb-3 d-block opacity-50"></i>
+                        目前沒有訂單，<a href="{% url 'lunchorder:order_create' %}">立即新增</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    // Pie Chart 配色
+    const chartColors = [
+        '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
+        '#ec4899', '#06b6d4', '#f97316', '#14b8a6', '#a855f7',
+        '#e11d48', '#84cc16', '#6366f1'
+    ];
+
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    color: '#e2e8f0',
+                    padding: 12,
+                    font: { size: 12 },
+                    usePointStyle: true,
+                    pointStyleWidth: 10,
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function (ctx) {
+                        const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                        const pct = ((ctx.raw / total) * 100).toFixed(1);
+                        return ` ${ctx.label}: $${ctx.raw.toLocaleString()} (${pct}%)`;
+                    }
+                }
+            }
+        }
+    };
+
+    // 1. 每月花費
+    const monthLabels = {{ month_labels_json| safe }};
+    const monthData = {{ month_data_json| safe }};
+
+    if (monthData.length > 0) {
+        new Chart(document.getElementById('monthlyChart'), {
+            type: 'doughnut',
+            data: {
+                labels: monthLabels,
+                datasets: [{
+                    data: monthData,
+                    backgroundColor: chartColors.slice(0, monthData.length),
+                    borderWidth: 0,
+                    hoverOffset: 8
+                }]
+            },
+            options: chartOptions
+        });
+    } else {
+        document.getElementById('monthlyChart').parentElement.innerHTML =
+            '<p class="text-center text-white-50 mt-5">尚無訂購紀錄</p>';
+    }
+
+    // 2. 種類分佈
+    const catLabels = {{ cat_labels_json| safe }};
+    const catData = {{ cat_data_json| safe }};
+
+    if (catData.length > 0) {
+        new Chart(document.getElementById('categoryChart'), {
+            type: 'doughnut',
+            data: {
+                labels: catLabels,
+                datasets: [{
+                    data: catData,
+                    backgroundColor: chartColors.slice(0, catData.length),
+                    borderWidth: 0,
+                    hoverOffset: 8
+                }]
+            },
+            options: chartOptions
+        });
+    } else {
+        document.getElementById('categoryChart').parentElement.innerHTML =
+            '<p class="text-center text-white-50 mt-5">尚無訂購紀錄</p>';
+    }
+
+    // 為不同便當店分配不同顏色
+    const badgeColors = [
+        '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+        '#ec4899', '#06b6d4', '#f97316', '#14b8a6', '#a855f7',
+        '#e11d48', '#84cc16'
+    ];
+    const restaurantColorMap = {};
+    let colorIndex = 0;
+    document.querySelectorAll('.badge-restaurant').forEach(function (el) {
+        const name = el.getAttribute('data-restaurant');
+        if (!(name in restaurantColorMap)) {
+            restaurantColorMap[name] = badgeColors[colorIndex % badgeColors.length];
+            colorIndex++;
+        }
+        el.style.background = restaurantColorMap[name];
+        el.textContent = name;
+    });
+</script>
+{% endblock %}

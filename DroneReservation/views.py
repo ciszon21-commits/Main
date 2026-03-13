@@ -3,16 +3,43 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
 from django.urls import reverse_lazy, reverse
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.db.models import Q
 from django.contrib import messages
 from django.utils import timezone
+from django.utils.timezone import localtime
 from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth.models import User
+import csv
 
-from .models import Announcement, DroneReservation, DroneReviewer, SiteSettings
-from .forms import ReservationForm, ReviewForm, AnnouncementForm, SiteSettingsForm, ReviewerCancelForm
+from .models import Announcement, DroneReservation, DroneReviewer, SiteSettings, EmailTemplate, MissionRecord
+from .forms import ReservationForm, ReviewForm, AnnouncementForm, SiteSettingsForm, ReviewerCancelForm, ReviewerTimeEditForm, EmailTemplateForm, MissionRecordForm
+
+
+def format_local_datetime(dt):
+    """將 datetime 轉換為本地時區並格式化"""
+    return localtime(dt).strftime('%Y/%m/%d %H:%M')
+
+
+def send_templated_email(email_type, context, recipient_list):
+    """使用資料庫模板發送郵件"""
+    if not recipient_list:
+        return
+    
+    template = EmailTemplate.get_template(email_type)
+    subject, body = template.render(context)
+    
+    try:
+        send_mail(
+            subject=subject,
+            message=body,
+            from_email=settings.EMAIL_HOST_USER,
+            recipient_list=recipient_list,
+            fail_silently=True,
+        )
+    except Exception as e:
+        print(f"Failed to send email: {e}")
 
 
 class ReviewerRequiredMixin(UserPassesTestMixin):
@@ -41,6 +68,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         
         # 取得啟用的公告
         context['announcements'] = Announcement.objects.filter(is_active=True)[:5]
+        context['pinned_announcements'] = Announcement.objects.filter(is_active=True, is_pinned=True)
         
         # 檢查使用者是否為簽核人
         try:
@@ -94,30 +122,15 @@ class ReservationCreateView(LoginRequiredMixin, CreateView):
         reviewers = DroneReviewer.objects.filter(is_active=True, receive_email=True).select_related('user')
         reviewer_emails = [r.user.email for r in reviewers if r.user.email]
         
-        if reviewer_emails:
-            try:
-                send_mail(
-                    subject=f'[無人機預約] 新申請待審核 - {reservation.applicant.get_full_name() or reservation.applicant.username}',
-                    message=f"""您好，
-
-有一筆新的無人機預約申請待審核：
-
-申請人：{reservation.applicant.get_full_name() or reservation.applicant.username}
-使用時間：{reservation.usage_start_datetime.strftime('%Y/%m/%d %H:%M')} ~ {reservation.usage_end_datetime.strftime('%Y/%m/%d %H:%M')}
-地點：{reservation.location}
-計畫編號：{reservation.project_number}
-申請理由：{reservation.reason}
-
-請登入系統進行審核。
-
-此為系統自動發送郵件，請勿直接回覆。
-""",
-                    from_email=settings.EMAIL_HOST_USER,
-                    recipient_list=reviewer_emails,
-                    fail_silently=True,
-                )
-            except Exception as e:
-                print(f"Failed to send email: {e}")
+        context = {
+            'applicant_name': reservation.applicant.get_full_name() or reservation.applicant.username,
+            'start_time': format_local_datetime(reservation.usage_start_datetime),
+            'end_time': format_local_datetime(reservation.usage_end_datetime),
+            'location': reservation.location,
+            'project_number': reservation.project_number,
+            'reason': reservation.reason,
+        }
+        send_templated_email('new_application', context, reviewer_emails)
 
 
 class ReservationUpdateView(LoginRequiredMixin, UpdateView):
@@ -128,7 +141,7 @@ class ReservationUpdateView(LoginRequiredMixin, UpdateView):
     success_url = reverse_lazy('drone:my_reservations')
 
     def get_queryset(self):
-        # 只允許申請人編輯自己的申請，且狀態為申請中
+        # 申請人只能編輯申請中的預約（已核准後只有審核人可修改時間）
         return DroneReservation.objects.filter(
             applicant=self.request.user,
             status='pending'
@@ -144,41 +157,156 @@ class ReservationUpdateView(LoginRequiredMixin, UpdateView):
         return context
 
     def form_valid(self, form):
+        # 儲存舊的時間資訊（用於已核准預約的時間變更通知）
+        reservation = self.get_object()
+        old_start = reservation.usage_start_datetime
+        old_end = reservation.usage_end_datetime
+        old_status = reservation.status
+        
         response = super().form_valid(form)
-        # 發送編輯通知給簽核人
-        self.send_edit_notification_to_reviewers(form.instance)
-        messages.success(self.request, '預約申請已更新。')
+        
+        # 取得更新後的預約
+        updated_reservation = form.instance
+        
+        # 檢查時間是否變動
+        time_changed = (
+            old_start != updated_reservation.usage_start_datetime or
+            old_end != updated_reservation.usage_end_datetime
+        )
+        
+        if old_status == 'approved' and time_changed:
+            # 已核准預約且時間有變動，發送通知給申請人與審核人
+            self.send_time_change_notification(
+                updated_reservation, old_start, old_end
+            )
+            messages.success(self.request, '預約時間已更新，已通知相關人員。')
+        elif old_status == 'pending':
+            # 申請中的預約編輯，通知簽核人
+            self.send_edit_notification_to_reviewers(updated_reservation)
+            messages.success(self.request, '預約申請已更新。')
+        else:
+            messages.success(self.request, '預約申請已更新。')
+        
         return response
+
+    def send_time_change_notification(self, reservation, old_start, old_end):
+        """發送時間變更通知給申請人與審核人"""
+        recipients = []
+        if reservation.applicant.email:
+            recipients.append(reservation.applicant.email)
+        if reservation.reviewer and reservation.reviewer.email:
+            recipients.append(reservation.reviewer.email)
+        
+        context = {
+            'applicant_name': reservation.applicant.get_full_name() or reservation.applicant.username,
+            'start_time': format_local_datetime(reservation.usage_start_datetime),
+            'end_time': format_local_datetime(reservation.usage_end_datetime),
+            'location': reservation.location,
+            'project_number': reservation.project_number,
+            'old_start_time': format_local_datetime(old_start),
+            'old_end_time': format_local_datetime(old_end),
+        }
+        send_templated_email('time_changed', context, recipients)
 
     def send_edit_notification_to_reviewers(self, reservation):
         """發送編輯通知給所有啟用且接收郵件的簽核人"""
         reviewers = DroneReviewer.objects.filter(is_active=True, receive_email=True).select_related('user')
         reviewer_emails = [r.user.email for r in reviewers if r.user.email]
         
-        if reviewer_emails:
-            try:
-                send_mail(
-                    subject=f'[無人機預約] 申請已修改 - {reservation.applicant.get_full_name() or reservation.applicant.username}',
-                    message=f"""您好，
+        context = {
+            'applicant_name': reservation.applicant.get_full_name() or reservation.applicant.username,
+            'start_time': format_local_datetime(reservation.usage_start_datetime),
+            'end_time': format_local_datetime(reservation.usage_end_datetime),
+            'location': reservation.location,
+            'project_number': reservation.project_number,
+            'reason': reservation.reason,
+        }
+        send_templated_email('new_application', context, reviewer_emails)
 
-以下無人機預約申請已被修改：
 
-申請人：{reservation.applicant.get_full_name() or reservation.applicant.username}
-使用時間：{reservation.usage_start_datetime.strftime('%Y/%m/%d %H:%M')} ~ {reservation.usage_end_datetime.strftime('%Y/%m/%d %H:%M')}
+class ReviewerUpdateView(LoginRequiredMixin, ReviewerRequiredMixin, UpdateView):
+    """審核人編輯已核准預約時間"""
+    model = DroneReservation
+    form_class = ReviewerTimeEditForm
+    template_name = 'DroneReservation/reviewer_edit_form.html'
+    
+    def get_success_url(self):
+        return reverse('drone:reservation_detail', kwargs={'pk': self.object.pk})
+
+    def get_queryset(self):
+        # 只能編輯已核准的預約
+        return DroneReservation.objects.filter(status='approved')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['reservation'] = self.object
+        return context
+
+    def form_valid(self, form):
+        # 儲存舊的時間資訊
+        reservation = self.get_object()
+        old_start = reservation.usage_start_datetime
+        old_end = reservation.usage_end_datetime
+        
+        response = super().form_valid(form)
+        
+        # 取得更新後的預約
+        updated_reservation = form.instance
+        
+        # 檢查時間是否變動
+        time_changed = (
+            old_start != updated_reservation.usage_start_datetime or
+            old_end != updated_reservation.usage_end_datetime
+        )
+        
+        if time_changed:
+            # 發送時間變更通知給申請人
+            self.send_reviewer_time_change_notification(
+                updated_reservation, old_start, old_end
+            )
+            messages.success(self.request, '預約時間已更新，已通知申請人。')
+        else:
+            messages.info(self.request, '預約時間未變更。')
+        
+        return response
+
+    def send_reviewer_time_change_notification(self, reservation, old_start, old_end):
+        """發送時間變更通知給申請人"""
+        if not reservation.applicant.email:
+            return
+        
+        applicant_name = reservation.applicant.get_full_name() or reservation.applicant.username
+        reviewer_name = self.request.user.get_full_name() or self.request.user.username
+        
+        message = f"""您好，
+
+您的無人機預約時間已被審核人修改：
+
+申請人：{applicant_name}
 地點：{reservation.location}
 計畫編號：{reservation.project_number}
-申請理由：{reservation.reason}
 
-請登入系統進行審核。
+【時間變更】
+原時間：{format_local_datetime(old_start)} ~ {format_local_datetime(old_end)}
+新時間：{format_local_datetime(reservation.usage_start_datetime)} ~ {format_local_datetime(reservation.usage_end_datetime)}
+
+修改人：{reviewer_name}
+
+如有疑問，請聯繫簽核人(#07130)。
 
 此為系統自動發送郵件，請勿直接回覆。
-""",
-                    from_email=settings.EMAIL_HOST_USER,
-                    recipient_list=reviewer_emails,
-                    fail_silently=True,
-                )
-            except Exception as e:
-                print(f"Failed to send email: {e}")
+"""
+        
+        try:
+            send_mail(
+                subject=f'[無人機預約] 您的預約時間已被修改',
+                message=message,
+                from_email=settings.EMAIL_HOST_USER,
+                recipient_list=[reservation.applicant.email],
+                fail_silently=True,
+            )
+        except Exception as e:
+            print(f"Failed to send email: {e}")
 
 
 class MyReservationsView(LoginRequiredMixin, ListView):
@@ -262,6 +390,7 @@ class ReservationDetailView(LoginRequiredMixin, DetailView):
         context['can_cancel'] = reservation.can_cancel(user)
         context['can_review'] = reservation.can_review(user)
         context['can_reviewer_cancel'] = reservation.can_reviewer_cancel(user)
+        context['can_reviewer_edit'] = reservation.can_reviewer_edit(user)
         
         if context['can_review']:
             context['review_form'] = ReviewForm()
@@ -292,7 +421,41 @@ def review_reservation(request, pk):
             
             if action == 'approve':
                 reservation.status = 'approved'
-                messages.success(request, '預約已核准。')
+                
+                # 處理審核人修改的日期
+                new_start = request.POST.get('usage_start_datetime')
+                new_end = request.POST.get('usage_end_datetime')
+                date_changed = False
+                
+                if new_start and new_end:
+                    from datetime import datetime
+                    try:
+                        new_start_date = datetime.strptime(new_start, '%Y-%m-%d').date()
+                        new_end_date = datetime.strptime(new_end, '%Y-%m-%d').date()
+                        
+                        if new_end_date < new_start_date:
+                            messages.error(request, '結束日期不能早於開始日期')
+                            return redirect('drone:reservation_detail', pk=pk)
+                        
+                        old_start = reservation.usage_start_datetime
+                        old_end = reservation.usage_end_datetime
+                        
+                        # 轉為 aware datetime 來比較
+                        from django.utils import timezone as tz
+                        new_start_dt = tz.make_aware(datetime.combine(new_start_date, datetime.min.time()))
+                        new_end_dt = tz.make_aware(datetime.combine(new_end_date, datetime.min.time()))
+                        
+                        if new_start_dt != old_start or new_end_dt != old_end:
+                            reservation.usage_start_datetime = new_start_dt
+                            reservation.usage_end_datetime = new_end_dt
+                            date_changed = True
+                    except (ValueError, TypeError):
+                        pass  # 日期格式錯誤，忽略日期修改
+                
+                if date_changed:
+                    messages.success(request, '預約已核准，日期已同步修改。')
+                else:
+                    messages.success(request, '預約已核准。')
             else:
                 reservation.status = 'rejected'
                 reservation.rejection_reason = form.cleaned_data['rejection_reason']
@@ -337,46 +500,17 @@ def send_review_notification(reservation):
     if not reservation.applicant.email:
         return
     
-    if reservation.status == 'approved':
-        subject = f'[無人機預約] 您的申請已核准'
-        message = f"""您好，
-
-您的無人機預約申請已核准：
-
-使用時間：{reservation.usage_start_datetime.strftime('%Y/%m/%d %H:%M')} ~ {reservation.usage_end_datetime.strftime('%Y/%m/%d %H:%M')}
-地點：{reservation.location}
-簽核人：{reservation.reviewer.get_full_name() or reservation.reviewer.username}
-
-請依照流程，聯繫簽核人(#07130)，確認行程安排。
-
-此為系統自動發送郵件，請勿直接回覆。
-"""
-    else:
-        subject = f'[無人機預約] 您的申請已被拒絕'
-        message = f"""您好，
-
-您的無人機預約申請已被拒絕：
-
-使用時間：{reservation.usage_start_datetime.strftime('%Y/%m/%d %H:%M')} ~ {reservation.usage_end_datetime.strftime('%Y/%m/%d %H:%M')}
-地點：{reservation.location}
-簽核人：{reservation.reviewer.get_full_name() or reservation.reviewer.username}
-拒絕理由：{reservation.rejection_reason}
-
-如有疑問，請聯繫簽核人(#07130)。
-
-此為系統自動發送郵件，請勿直接回覆。
-"""
+    context = {
+        'applicant_name': reservation.applicant.get_full_name() or reservation.applicant.username,
+        'start_time': format_local_datetime(reservation.usage_start_datetime),
+        'end_time': format_local_datetime(reservation.usage_end_datetime),
+        'location': reservation.location,
+        'reviewer_name': reservation.reviewer.get_full_name() or reservation.reviewer.username,
+        'rejection_reason': reservation.rejection_reason or '',
+    }
     
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=settings.EMAIL_HOST_USER,
-            recipient_list=[reservation.applicant.email],
-            fail_silently=True,
-        )
-    except Exception as e:
-        print(f"Failed to send email: {e}")
+    email_type = 'approved' if reservation.status == 'approved' else 'rejected'
+    send_templated_email(email_type, context, [reservation.applicant.email])
 
 
 def send_cancel_notification(reservation):
@@ -384,25 +518,13 @@ def send_cancel_notification(reservation):
     if not reservation.reviewer or not reservation.reviewer.email:
         return
     
-    try:
-        send_mail(
-            subject=f'[無人機預約] 預約已取消 - {reservation.applicant.get_full_name() or reservation.applicant.username}',
-            message=f"""您好，
-
-以下無人機預約已被申請人取消：
-
-申請人：{reservation.applicant.get_full_name() or reservation.applicant.username}
-使用時間：{reservation.usage_start_datetime.strftime('%Y/%m/%d %H:%M')} ~ {reservation.usage_end_datetime.strftime('%Y/%m/%d %H:%M')}
-地點：{reservation.location}
-
-此為系統自動發送郵件，請勿直接回覆。
-""",
-            from_email=settings.EMAIL_HOST_USER,
-            recipient_list=[reservation.reviewer.email],
-            fail_silently=True,
-        )
-    except Exception as e:
-        print(f"Failed to send email: {e}")
+    context = {
+        'applicant_name': reservation.applicant.get_full_name() or reservation.applicant.username,
+        'start_time': format_local_datetime(reservation.usage_start_datetime),
+        'end_time': format_local_datetime(reservation.usage_end_datetime),
+        'location': reservation.location,
+    }
+    send_templated_email('cancelled', context, [reservation.reviewer.email])
 
 
 @login_required
@@ -435,12 +557,22 @@ def calendar_events_api(request):
         
         applicant_name = reservation.applicant.get_full_name() or reservation.applicant.username
         
+        # FullCalendar 的 allDay 事件，結束日期需要 +1 天才能正確顯示
+        # 例如：1/5 ~ 1/7 需要設定 end 為 1/8 才會顯示完整區間
+        # 注意：必須先轉換為當地時間，否則在 UTC+8 時區會因時差導致日期減一
+        from datetime import timedelta
+        start_local = timezone.localtime(reservation.usage_start_datetime)
+        end_local = timezone.localtime(reservation.usage_end_datetime)
+        
+        end_date = end_local + timedelta(days=1)
+        
         events.append({
             'id': reservation.id,
             'title': f"{title_prefix}{reservation.project_number} - {applicant_name}",
-            'start': reservation.usage_start_datetime.isoformat(),
-            'end': reservation.usage_end_datetime.isoformat(),
+            'start': start_local.strftime('%Y-%m-%d'),
+            'end': end_date.strftime('%Y-%m-%d'),
             'color': color,
+            'allDay': True,  # 設定為全天事件，顯示為整條橫條
             'url': reverse('drone:reservation_detail', kwargs={'pk': reservation.id}),
             'extendedProps': {
                 'status': reservation.status,
@@ -557,6 +689,11 @@ class SettingsView(LoginRequiredMixin, AdminRequiredMixin, TemplateView):
         context['site_settings_form'] = SiteSettingsForm(instance=context['site_settings'])
         context['reviewers'] = DroneReviewer.objects.select_related('user').order_by('-can_manage_reviewers', '-is_active', 'user__last_name')
         context['all_users'] = User.objects.filter(is_active=True).order_by('last_name', 'username')
+        
+        # 確保所有郵件模板都存在
+        EmailTemplate.ensure_all_templates()
+        context['email_templates'] = EmailTemplate.objects.all().order_by('email_type')
+        
         return context
 
     def post(self, request, *args, **kwargs):
@@ -603,6 +740,17 @@ class SettingsView(LoginRequiredMixin, AdminRequiredMixin, TemplateView):
                 reviewer.save()
                 messages.success(request, f'已停用簽核人：{reviewer.user.get_full_name() or reviewer.user.username}')
         
+        elif action == 'update_template':
+            template_id = request.POST.get('template_id')
+            if template_id:
+                template = get_object_or_404(EmailTemplate, pk=template_id)
+                form = EmailTemplateForm(request.POST, instance=template)
+                if form.is_valid():
+                    form.save()
+                    messages.success(request, f'已更新郵件模板：{template.get_email_type_display()}')
+                else:
+                    messages.error(request, '郵件模板更新失敗。')
+        
         return redirect('drone:settings')
 
 
@@ -646,7 +794,7 @@ def send_reviewer_cancel_notification(reservation, reviewer):
 
 您的無人機預約已被簽核人取消：
 
-使用時間：{reservation.usage_start_datetime.strftime('%Y/%m/%d %H:%M')} ~ {reservation.usage_end_datetime.strftime('%Y/%m/%d %H:%M')}
+使用時間：{format_local_datetime(reservation.usage_start_datetime)} ~ {format_local_datetime(reservation.usage_end_datetime)}
 地點：{reservation.location}
 取消人：{reviewer.get_full_name() or reviewer.username}
 取消理由：{reservation.cancellation_reason}
@@ -661,3 +809,208 @@ def send_reviewer_cancel_notification(reservation, reviewer):
         )
     except Exception as e:
         print(f"Failed to send email: {e}")
+
+
+# ========================================
+# 飛行任務紀錄視圖（僅限簽核人）
+# ========================================
+
+class MissionMapView(LoginRequiredMixin, ReviewerRequiredMixin, TemplateView):
+    """任務地圖頁面 - 展示所有任務位置"""
+    template_name = 'DroneReservation/mission_map.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['missions'] = MissionRecord.objects.all().order_by('-mission_start_date')[:100]
+        return context
+
+
+class MissionListView(LoginRequiredMixin, ReviewerRequiredMixin, ListView):
+    """任務列表管理頁面"""
+    model = MissionRecord
+    template_name = 'DroneReservation/mission_list.html'
+    context_object_name = 'missions'
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = MissionRecord.objects.select_related(
+            'created_by', 'reservation'
+        ).order_by('-mission_start_date')
+
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(project_short_name__icontains=q) |
+                Q(project_number__icontains=q) |
+                Q(location_name__icontains=q) |
+                Q(drone_payload__icontains=q) |
+                Q(pilot__icontains=q) |
+                Q(result_location__icontains=q) |
+                Q(mission_description__icontains=q)
+            )
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['search_query'] = self.request.GET.get('q', '').strip()
+        return context
+
+
+class MissionCreateView(LoginRequiredMixin, ReviewerRequiredMixin, CreateView):
+    """新增任務紀錄"""
+    model = MissionRecord
+    form_class = MissionRecordForm
+    template_name = 'DroneReservation/mission_form.html'
+    success_url = reverse_lazy('drone:mission_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form_title'] = '新增飛行任務紀錄'
+        context['submit_text'] = '儲存紀錄'
+        return context
+
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        messages.success(self.request, '任務紀錄已新增。')
+        return super().form_valid(form)
+
+
+class MissionUpdateView(LoginRequiredMixin, ReviewerRequiredMixin, UpdateView):
+    """編輯任務紀錄"""
+    model = MissionRecord
+    form_class = MissionRecordForm
+    template_name = 'DroneReservation/mission_form.html'
+    success_url = reverse_lazy('drone:mission_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form_title'] = '編輯飛行任務紀錄'
+        context['submit_text'] = '更新紀錄'
+        context['is_edit'] = True
+        return context
+
+    def form_valid(self, form):
+        messages.success(self.request, '任務紀錄已更新。')
+        return super().form_valid(form)
+
+
+class MissionDeleteView(LoginRequiredMixin, ReviewerRequiredMixin, DeleteView):
+    """刪除任務紀錄"""
+    model = MissionRecord
+    success_url = reverse_lazy('drone:mission_list')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, '任務紀錄已刪除。')
+        return super().delete(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.delete(request, *args, **kwargs)
+
+
+@login_required
+def mission_api(request):
+    """任務地圖 API - 返回 GeoJSON 格式的任務位置"""
+    # 檢查是否為簽核人
+    try:
+        reviewer_profile = request.user.drone_reviewer_profile
+        if not reviewer_profile.is_active:
+            return JsonResponse({'error': 'Unauthorized'}, status=403)
+    except DroneReviewer.DoesNotExist:
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    
+    missions = MissionRecord.objects.all()
+    
+    features = []
+    for mission in missions:
+        features.append({
+            'type': 'Feature',
+            'geometry': {
+                'type': 'Point',
+                'coordinates': [mission.longitude, mission.latitude]
+            },
+            'properties': {
+                'id': mission.id,
+                'start_date': mission.mission_start_date.strftime('%Y/%m/%d'),
+                'end_date': mission.mission_end_date.strftime('%Y/%m/%d'),
+                'project_number': mission.project_number,
+                'project_short_name': mission.project_short_name,
+                'location_name': mission.location_name,
+                'mission_description': mission.mission_description,
+                'drone_payload': mission.drone_payload,
+                'pilot': mission.pilot,
+                'result_location': mission.result_location,
+            }
+        })
+    
+    return JsonResponse({
+        'type': 'FeatureCollection',
+        'features': features
+    })
+
+
+@login_required
+def get_reservation_data(request):
+    """取得預約單資料，用於表單自動帶入"""
+    reservation_id = request.GET.get('reservation_id')
+    if not reservation_id:
+        return JsonResponse({'error': 'Missing reservation_id'}, status=400)
+    
+    try:
+        reservation = DroneReservation.objects.get(pk=reservation_id, status='approved')
+        return JsonResponse({
+            'project_number': reservation.project_number,
+            'location': reservation.location,
+            'mission_start_date': reservation.usage_start_datetime.strftime('%Y-%m-%d'),
+            'mission_end_date': reservation.usage_end_datetime.strftime('%Y-%m-%d') if reservation.usage_end_datetime else reservation.usage_start_datetime.strftime('%Y-%m-%d'),
+        })
+    except DroneReservation.DoesNotExist:
+        return JsonResponse({'error': 'Reservation not found'}, status=404)
+
+
+@login_required
+def mission_csv_download(request):
+    """下載任務紀錄 CSV 檔"""
+    # 檢查是否為簽核人
+    try:
+        reviewer_profile = request.user.drone_reviewer_profile
+        if not reviewer_profile.is_active:
+            messages.error(request, '您沒有權限執行此操作。')
+            return redirect('drone:dashboard')
+    except DroneReviewer.DoesNotExist:
+        messages.error(request, '您沒有權限執行此操作。')
+        return redirect('drone:dashboard')
+    
+    missions = MissionRecord.objects.all().order_by('-mission_start_date')
+    
+    today = timezone.now().strftime('%Y%m%d')
+    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    response['Content-Disposition'] = f'attachment; filename="mission_records_{today}.csv"'
+    
+    # 加入 BOM 讓 Excel 正確辨識 UTF-8
+    response.write('\ufeff')
+    
+    writer = csv.writer(response)
+    writer.writerow([
+        '開始日期', '結束日期', '計畫編號', '計畫簡稱', '任務地點',
+        '緯度', '經度', '任務說明', '無人機/酬載',
+        '任務飛手', '成果存放位置'
+    ])
+    
+    for mission in missions:
+        writer.writerow([
+            mission.mission_start_date.strftime('%Y/%m/%d'),
+            mission.mission_end_date.strftime('%Y/%m/%d'),
+            mission.project_number,
+            mission.project_short_name,
+            mission.location_name,
+            mission.latitude,
+            mission.longitude,
+            mission.mission_description,
+            mission.drone_payload,
+            mission.pilot,
+            mission.result_location,
+        ])
+    
+    return response
+

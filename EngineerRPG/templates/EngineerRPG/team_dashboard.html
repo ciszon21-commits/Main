@@ -1,0 +1,299 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+
+{% block title %}我的隊伍 | 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container fade-in">
+    {% if has_dept %}
+    <!-- 有隊伍 -->
+    <div class="text-center mb-xl">
+        <h2 class="rpg-title">
+            <i class="fas fa-building"></i> {{ dept_name }}
+        </h2>
+        <p class="text-stone">你所屬的隊伍冒險者</p>
+    </div>
+
+    <!-- 隊伍資訊卡片 -->
+    <div class="rpg-card mb-lg" style="max-width: 800px; margin: 0 auto;">
+        <div class="rpg-card-header">
+            <h3 class="rpg-card-title"><i class="fas fa-info-circle"></i> 隊伍資訊</h3>
+        </div>
+        <div class="rpg-card-body">
+            <div class="team-info-grid">
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-building"></i> 隊伍名稱</div>
+                    <div class="info-value">{{ dept_name }}</div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-hashtag"></i> 隊伍代碼</div>
+                    <div class="info-value">{{ dept_code }}</div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-users"></i> 冒險者人數</div>
+                    <div class="info-value">{{ dept_members.count }} 人</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 待審核晉升申請 (隊長/副隊長/公會高層可見) -->
+    {% if can_view_promotions and pending_promotions %}
+    <div class="rpg-card mb-lg" style="max-width: 1200px; margin: 0 auto;">
+        <div class="rpg-card-header">
+            <h3 class="rpg-card-title"><i class="fas fa-arrow-up"></i> 待審核的晉升申請</h3>
+        </div>
+        <div class="rpg-card-body">
+            <div class="table-responsive">
+                <table class="rpg-table w-100 text-center" style="margin: 0 auto;">
+                    <thead>
+                        <tr>
+                            <th>申請人</th>
+                            <th>目前職業</th>
+                            <th>此階目標等級</th>
+                            <th>申請時間</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in pending_promotions %}
+                        <tr>
+                            <td>
+                                <img src="{{ req.applicant.get_avatar_url }}" alt="avatar"
+                                    style="width: 30px; height: 30px; border-radius: 50%; vertical-align: middle; margin-right: 8px;">
+                                {{ req.applicant.display_name|default:req.applicant.user.username }}
+                            </td>
+                            <td>{{ req.applicant.character_class.name|default:"未轉職" }}</td>
+                            <td><span class="text-gold">Lv.{{ req.target_level }}</span></td>
+                            <td>{{ req.applied_at|date:"Y-m-d H:i" }}</td>
+                            <td>
+                                {% if can_review_promotions %}
+                                <a href="{% url 'engineer_rpg:approve_request' req.id %}"
+                                    class="rpg-btn rpg-btn-primary rpg-btn-sm mr-xs"
+                                    onclick="return confirm('確定要核准此申請嗎？');">
+                                    <i class="fas fa-check"></i> 核准
+                                </a>
+                                <a href="{% url 'engineer_rpg:reject_request' req.id %}"
+                                    class="rpg-btn rpg-btn-danger rpg-btn-sm" onclick="return confirm('確定要拒絕此申請嗎？');">
+                                    <i class="fas fa-times"></i> 拒絕
+                                </a>
+                                {% else %}
+                                <span class="text-stone" style="font-size: 0.85rem;"><i class="fas fa-lock"></i>
+                                    僅限該隊伍長官審核</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 隊伍成員 -->
+    <div class="rpg-card" style="max-width: 1200px; margin: 0 auto;">
+        <div class="rpg-card-header">
+            <h3 class="rpg-card-title"><i class="fas fa-users"></i> 隊伍冒險者</h3>
+        </div>
+        <div class="rpg-card-body">
+            <div class="member-grid">
+                {% for member in dept_members %}
+                <a href="{% url 'engineer_rpg:member_profile_detail' member.id %}?from=team" class="member-card-link">
+                    <div class="member-card {% if member.user == user %}current-user{% endif %}">
+                        <img src="{{ member.get_avatar_url }}"
+                            alt="{{ member.display_name|default:member.user.username }}" class="member-avatar"
+                            style="border-color: {% if member.role == 'ADMIN' %}var(--color-danger){% elif member.role == 'MANAGER' %}var(--color-mech){% else %}var(--color-border){% endif %};">
+
+                        <div class="member-info">
+                            <div class="member-name">
+                                {{ member.display_name|default:member.user.username }}
+                                {% if member.user == user %}
+                                <span class="badge badge-primary ml-xs">你</span>
+                                {% endif %}
+                            </div>
+                            <div class="member-meta">
+                                <span>Lv.{{ member.level }}</span>
+                                {% if member.character_class %}
+                                <span>{{ member.character_class.name }}</span>
+                                {% else %}
+                                <span class="text-stone">未選擇職業</span>
+                                {% endif %}
+                            </div>
+                            {% if member.role == 'ADMIN' %}
+                            <div class="member-role">
+                                <span class="badge badge-danger">創世神</span>
+                            </div>
+                            {% elif member.role == 'MANAGER' %}
+                            <div class="member-role">
+                                <span class="badge badge-mech">公會會長</span>
+                            </div>
+                            {% elif member.role == 'OFFICER' %}
+                            <div class="member-role">
+                                <span class="badge badge-officer">公會幹部</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- 沒有隊伍資訊 -->
+    <div class="text-center mb-xl">
+        <h2 class="rpg-title">
+            <i class="fas fa-user-tag"></i> 自由冒險者
+        </h2>
+        <p class="text-stone">尚未取得隊伍資訊</p>
+    </div>
+
+    <div class="rpg-card" style="max-width: 600px; margin: 0 auto;">
+        <div class="rpg-card-body text-center py-xl">
+            <i class="fas fa-users-slash" style="font-size: 4rem; color: var(--color-stone); margin-bottom: 2rem;"></i>
+            <h3 class="mb-md">尚未指派隊伍</h3>
+            <p class="text-stone mb-lg">
+                系統尚未取得你的隊伍資訊，<br>
+                請聯繫管理員確認你的帳號資料。
+            </p>
+            <a href="{% url 'engineer_rpg:guild_dashboard' %}" class="rpg-btn rpg-btn-primary">
+                <i class="fas fa-crown"></i> 前往公會大廳
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .team-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--spacing-lg);
+        padding: var(--spacing-md);
+    }
+
+    .info-item {
+        text-align: center;
+        padding: var(--spacing-md);
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: var(--border-radius);
+    }
+
+    .info-label {
+        color: var(--color-secondary);
+        font-size: 0.9rem;
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .info-value {
+        color: var(--color-text);
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+
+    .member-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: var(--spacing-md);
+        margin-top: var(--spacing-sm);
+    }
+
+    .member-card-link {
+        text-decoration: none;
+        display: block;
+    }
+
+    .member-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: var(--border-radius);
+        padding: var(--spacing-md);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        transition: transform 0.2s, background 0.2s;
+    }
+
+    .member-card:hover {
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateY(-2px);
+        cursor: pointer;
+    }
+
+    .member-card.current-user {
+        border-color: var(--color-primary);
+        background: rgba(var(--rgb-primary), 0.1);
+    }
+
+    .member-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 2px solid var(--color-border);
+        object-fit: cover;
+    }
+
+    .member-info {
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .member-name {
+        font-weight: bold;
+        color: var(--color-secondary);
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .member-meta {
+        display: flex;
+        gap: var(--spacing-xs);
+        font-size: 0.85rem;
+        color: var(--color-stone);
+        margin-bottom: 4px;
+    }
+
+    .member-role {
+        margin-top: 4px;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+
+    .badge-gold {
+        background: rgba(255, 215, 0, 0.2);
+        color: var(--color-secondary);
+    }
+
+    .badge-primary {
+        background: rgba(var(--rgb-primary), 0.3);
+        color: var(--color-primary);
+    }
+
+    .badge-danger {
+        background: rgba(var(--rgb-danger), 0.3);
+        color: #ffffff;
+    }
+
+    .badge-mech {
+        background: rgba(var(--rgb-mech), 0.3);
+        color: var(--color-mech);
+    }
+
+    .badge-officer {
+        background: rgba(100, 150, 255, 0.3);
+        color: #6496FF;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,265 @@
+{% comment %}
+XML Preview Partial Template - Rendered via JavaScript from JSON response
+This template is for reference; actual rendering is done client-side.
+{% endcomment %}
+
+<div class="preview-container">
+    <div class="preview-header">
+        <h3>📄 預算書結構預覽</h3>
+        <div class="preview-filename">{{ filename }}</div>
+    </div>
+    
+    {% if contract_info %}
+    <div class="contract-info">
+        <div class="contract-title">📋 合約資訊</div>
+        <div class="contract-grid">
+            <div class="contract-item">
+                <span class="contract-label">標案編號</span>
+                <span class="contract-value">{{ contract_info.contract_no }}</span>
+            </div>
+            <div class="contract-item">
+                <span class="contract-label">工程名稱</span>
+                <span class="contract-value">{{ contract_info.contract_title }}</span>
+            </div>
+            <div class="contract-item">
+                <span class="contract-label">機關</span>
+                <span class="contract-value">{{ contract_info.procuring_entity }}</span>
+            </div>
+            {% if contract_info.contract_location %}
+            <div class="contract-item">
+                <span class="contract-label">地點</span>
+                <span class="contract-value">{{ contract_info.contract_location }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="preview-summary">
+        <div class="summary-item">
+            <span class="summary-label">總項目數</span>
+            <span class="summary-value">{{ summary.total_items }}</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">有數量項目</span>
+            <span class="summary-value">{{ summary.items_with_quantity }}</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">大項數量</span>
+            <span class="summary-value">{{ summary.top_level_items }}</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">最大層級</span>
+            <span class="summary-value">{{ summary.max_depth }}</span>
+        </div>
+    </div>
+    
+    <div class="type-distribution">
+        <div class="section-title">📊 項目類型分佈</div>
+        <div class="type-grid">
+            {% for item in item_type_distribution %}
+            <div class="type-item">
+                <span class="type-label">{{ item.label }}</span>
+                <span class="type-count">{{ item.count }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="hierarchy-section">
+        <div class="section-title">📑 層級結構</div>
+        <div class="hierarchy-list">
+            {% for item in hierarchy %}
+            <div class="hierarchy-item">
+                <div class="hierarchy-header">
+                    <span class="hierarchy-no">{{ item.item_no }}</span>
+                    <span class="hierarchy-desc">{{ item.description }}</span>
+                    <span class="hierarchy-count">{{ item.total_descendants }} 子項目</span>
+                </div>
+                {% if item.children_preview %}
+                <div class="hierarchy-children">
+                    {% for child in item.children_preview %}
+                    <div class="child-item">
+                        └ {{ child.item_no }} {{ child.description }}
+                    </div>
+                    {% endfor %}
+                    {% if item.total_descendants > item.children_preview|length %}
+                    <div class="child-more">... 更多 {{ item.total_descendants|add:"-"|add:item.children_preview|length }} 項</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+.preview-container {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.preview-header {
+    margin-bottom: 16px;
+}
+
+.preview-header h3 {
+    margin: 0 0 4px 0;
+    font-size: 18px;
+}
+
+.preview-filename {
+    font-size: 12px;
+    color: var(--ink-soft);
+}
+
+.contract-info {
+    padding: 12px;
+    background: rgba(31, 228, 193, 0.05);
+    border-radius: 10px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(31, 228, 193, 0.2);
+}
+
+.contract-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.contract-grid {
+    display: grid;
+    gap: 8px;
+}
+
+.contract-item {
+    display: flex;
+    gap: 8px;
+}
+
+.contract-label {
+    font-size: 12px;
+    color: var(--ink-soft);
+    min-width: 60px;
+}
+
+.contract-value {
+    font-size: 13px;
+}
+
+.preview-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.summary-item {
+    padding: 12px;
+    background: rgba(31, 228, 193, 0.08);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.summary-label {
+    display: block;
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.summary-value {
+    display: block;
+    font-size: 20px;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+.section-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.type-distribution {
+    margin-bottom: 16px;
+}
+
+.type-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.type-item {
+    display: flex;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    border: 1px solid rgba(12, 21, 32, 0.12);
+}
+
+.type-label {
+    font-size: 12px;
+}
+
+.type-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0f6b61;
+}
+
+.hierarchy-list {
+    display: grid;
+    gap: 8px;
+}
+
+.hierarchy-item {
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 10px;
+    border: 1px solid rgba(12, 21, 32, 0.12);
+}
+
+.hierarchy-header {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.hierarchy-no {
+    font-weight: 600;
+    background: rgba(31, 228, 193, 0.2);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.hierarchy-desc {
+    flex: 1;
+    font-size: 13px;
+}
+
+.hierarchy-count {
+    font-size: 11px;
+    color: var(--ink-soft);
+}
+
+.hierarchy-children {
+    margin-top: 8px;
+    padding-left: 16px;
+}
+
+.child-item {
+    font-size: 12px;
+    color: var(--ink-soft);
+    padding: 2px 0;
+}
+
+.child-more {
+    font-size: 11px;
+    color: var(--ink-soft);
+    font-style: italic;
+}
+</style>

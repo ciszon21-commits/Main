@@ -1,0 +1,100 @@
+{% extends 'FinanceInsight/base.html' %}
+
+{% block title %}{{ stock.stock_name }} - 個股詳情{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 24px;">
+    <a href="{% url 'finance_insight:stock_list' %}" class="btn"
+        style="background-color: rgba(255,255,255,0.1); color: var(--text-base);">
+        ← 返回選股列表
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h1 class="card-title" style="font-size: 1.6rem; display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 2rem;">{% if stock.market.code == 'TWSE' %}🏦{% else %}🗽{% endif %}</span>
+            {{ stock.stock_code }} - {{ stock.stock_name }}
+        </h1>
+        <span class="badge {% if stock.market.code == 'TWSE' %}badge-tw{% else %}badge-us{% endif %}">
+            {{ stock.market.name }}
+        </span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; margin: 24px 0;">
+        <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 0.9rem; color: var(--text-subdued); margin-bottom: 8px;">當前盤價</div>
+            <div
+                style="font-size: 2rem; font-weight: 700; color: var(--text-base); font-family: 'Circular Std', sans-serif;">
+                {% if stock.market.code == 'TWSE' %}NT${% else %}${% endif %}{{ stock.current_price|floatformat:2 }}
+            </div>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 0.9rem; color: var(--text-subdued); margin-bottom: 8px;">漲跌幅</div>
+            <div style="font-size: 2rem; font-weight: 700; font-family: 'Circular Std', sans-serif;"
+                class="{% if stock.price_change_percent >= 0 %}price-up{% else %}price-down{% endif %}">
+                {% if stock.price_change_percent >= 0 %}▲{% else %}▼{% endif %}
+                {{ stock.price_change_percent|floatformat:2 }}%
+            </div>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 0.9rem; color: var(--text-subdued); margin-bottom: 8px;">漲跌金額</div>
+            <div style="font-size: 2rem; font-weight: 700; font-family: 'Circular Std', sans-serif;"
+                class="{% if stock.price_change >= 0 %}price-up{% else %}price-down{% endif %}">
+                {% if stock.price_change >= 0 %}+
+                {% endif %}{{ stock.price_change|floatformat:2 }}
+            </div>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 0.9rem; color: var(--text-subdued); margin-bottom: 8px;">推薦日期</div>
+            <div
+                style="font-size: 1.6rem; font-weight: 600; color: var(--brand-green); font-family: 'Circular Std', sans-serif;">
+                {{ stock.recommendation_date|date:"Y/m/d" }}
+            </div>
+        </div>
+    </div>
+
+    {% if stock.recommendation_reason %}
+    <div class="summary-box">
+        <h4>💡 推薦原因</h4>
+        <p>{{ stock.recommendation_reason }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">📊 趨勢分析歷史</h2>
+    </div>
+
+    {% for trend in trends %}
+    <div style="padding: 20px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span style="font-weight: 600; color: var(--brand-green);">
+                📅 {{ trend.analysis_date|date:"Y年m月d日" }}
+            </span>
+            <span style="font-size: 0.85rem; color: var(--text-subdued);">
+                建立於 {{ trend.created_at|date:"Y/m/d H:i" }}
+            </span>
+        </div>
+        <p style="margin: 0; line-height: 1.8; color: var(--text-base);">
+            {{ trend.trend_description }}
+        </p>
+    </div>
+    {% empty %}
+    <p style="text-align: center; color: var(--text-subdued); padding: 40px 0;">
+        暫無趨勢分析記錄
+    </p>
+    {% endfor %}
+</div>
+
+<div class="card"
+    style="background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%); border: none;">
+    <p style="margin: 0; text-align: center; color: var(--text-subdued); font-size: 0.9rem;">
+        ⚠️ 以上資訊僅供參考，投資有風險，請審慎評估後再做決策。
+    </p>
+</div>
+{% endblock %}

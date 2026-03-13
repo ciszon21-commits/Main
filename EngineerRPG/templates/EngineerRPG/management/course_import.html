@@ -1,0 +1,61 @@
+{% extends 'EngineerRPG/management/base_management.html' %}
+
+{% block page_header %}
+<div class="page-header mb-lg">
+    <h1><i class="fas fa-book"></i> 課程與題庫管理</h1>
+    <p class="text-stone">管理課程內容、題庫、分類與匯入匯出</p>
+</div>
+{% endblock %}
+
+{% block management_content %}
+<div class="rpg-card">
+    <div class="rpg-card-header">
+        <h3 class="rpg-card-title"><i class="fas fa-file-import"></i> 匯入課程</h3>
+    </div>
+
+    <div class="p-lg">
+        <form method="post" enctype="multipart/form-data" class="space-y-md">
+            {% csrf_token %}
+
+            {% for field in form %}
+            <div class="form-group">
+                <label class="form-label">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                <div class="form-help">{{ field.help_text }}</div>
+                {% endif %}
+                {% if field.errors %}
+                <div class="text-danger text-sm mt-xs">{{ field.errors.0 }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <div class="flex justify-end gap-md mt-xl">
+                <a href="{% url 'engineer_rpg:course_management' %}" class="rpg-btn rpg-btn-outline">取消</a>
+                <button type="submit" class="rpg-btn rpg-btn-primary">
+                    <i class="fas fa-upload"></i> 開始匯入
+                </button>
+            </div>
+        </form>
+
+        <div class="mb-lg p-md bg-black/20 rounded-lg border border-secondary/30">
+            <h4 class="text-secondary font-bold mb-sm"><i class="fas fa-info-circle"></i> 匯入說明</h4>
+            <ul class="list-disc list-inside text-stone text-sm space-y-xs">
+                <li>支援 <strong>CSV</strong> 與 <strong>Excel (.xlsx)</strong> 格式。</li>
+                <li>請先下載範本檔案，依照格式填寫後上傳。</li>
+                <li>或是下載既有課程的csv檔案，改寫後可上傳更新課程內容。</li>
+                <li>若 <strong>ID</strong> 欄位有值且存在於資料庫，將更新該課程；否則新增課程。</li>
+                <li><strong>內容類型</strong> 請填寫：PDF 或 LINK (或是：PDF文件, 連結)。</li>
+                <li><strong>注意</strong> ：本功能無法關聯題目與技能，記得手動新增。</li>
+            </ul>
+            <div class="mt-md flex gap-sm">
+                <a href="{% url 'engineer_rpg:download_course_template' 'excel' %}"
+                    class="rpg-btn rpg-btn-sm rpg-btn-outline">
+                    <i class="fas fa-file-excel"></i> 下載 Excel 範本
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

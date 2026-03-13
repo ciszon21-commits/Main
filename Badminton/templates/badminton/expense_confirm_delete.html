@@ -1,0 +1,29 @@
+{% extends 'badminton/base.html' %}
+
+{% block title %}刪除記帳 - 記帳系統{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">⚠️ 確認刪除</h1>
+</div>
+
+<div class="card" style="max-width: 500px;">
+    <p style="margin-bottom: 20px; font-size: 1.1rem;">
+        確定要刪除這筆記帳嗎?
+    </p>
+
+    <div style="background-color: var(--bg-base); padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+        <p><strong>日期:</strong> {{ expense.date|date:"Y/m/d" }}</p>
+        <p><strong>品項:</strong> {{ expense.item_name }}</p>
+        <p><strong>金額:</strong> ${{ expense.amount|floatformat:0 }}</p>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div style="display: flex; gap: 12px;">
+            <button type="submit" class="btn btn-danger">確認刪除</button>
+            <a href="{% url 'badminton:expense_list' %}" class="btn btn-secondary">取消</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

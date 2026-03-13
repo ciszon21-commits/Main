@@ -1,0 +1,1698 @@
+{% extends 'EngineerRPG/base.html' %}
+{% load static %}
+{% load equipment_tags %}
+
+{% block title %}個人裝備欄 - 監造冒險者公會{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <!-- Header -->
+    <div class="flex flex-between align-center mb-xl">
+        <div>
+            <h1 class="text-3xl font-bold mb-xs">
+                <i class="fas fa-shield-alt text-primary"></i> 個人裝備欄
+            </h1>
+            <p class="text-stone">管理你的裝備，提升角色屬性</p>
+        </div>
+
+        <!-- 強化券 -->
+        <div class="rpg-card px-lg py-sm flex align-center gap-sm border-secondary">
+            <i class="fas fa-scroll text-secondary text-xl"></i>
+            <div>
+                <div class="text-xs text-stone">強化券</div>
+                <div class="text-xl font-bold text-secondary">{{ enhancement_tickets }} 張</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 左右兩欄布局 -->
+    <div class="equipment-layout">
+        <!-- 左側：當前裝備 -->
+        <div class="rpg-card">
+            <h2 class="mb-lg">
+                <i class="fas fa-user-shield"></i> 當前裝備
+            </h2>
+
+            <!-- Protective Gear and Tools in one column -->
+            <div class="mb-lg">
+                <!-- Defensive Gear -->
+                <div class="mb-lg">
+                    <h3 class="mb-md" style="color: var(--color-secondary);">防具欄</h3>
+
+                    <!-- 頭盔 -->
+                    <div class="equipment-slot mb-md">
+                        {% if equipped.helmet %}
+                        <div class="equipped-item"
+                            style="display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; position: relative;">
+                            <!-- 裝備圖示 -->
+                            <div style="flex-shrink: 0;">
+                                {% if equipped.helmet.equipment.icon %}
+                                <img src="{{ equipped.helmet.equipment.icon|equipment_icon_url }}"
+                                    alt="{{ equipped.helmet.equipment.name }}" class="show-eq-detail"
+                                    data-eq-detail="{{ equipped.helmet.equipment.detail_json }}"
+                                    style="width: 64px; height: 64px; border: 2px solid #8B7355; border-radius: 4px; background: rgba(0,0,0,0.5); cursor: pointer;">
+                                {% else %}
+                                <div
+                                    style="width: 64px; height: 64px; border: 2px solid #8B7355; border-radius: 4px; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-hard-hat" style="font-size: 32px; color: #8B7355;"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- 裝備資訊 -->
+                            <div style="flex: 1; min-width: 0;">
+                                <!-- 名稱 + 強化等級 -->
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                    <span style="color: #FFD700; font-size: 1.1rem; font-weight: bold;">
+                                        {{ equipped.helmet.equipment.name }}
+                                    </span>
+                                    <span
+                                        style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; font-size: 0.9rem; font-weight: bold; padding: 2px 8px; border-radius: 50%; min-width: 32px; text-align: center; box-shadow: 0 2px 4px rgba(255,215,0,0.5);">
+                                        +{{ equipped.helmet.enhancement_level }}
+                                    </span>
+                                </div>
+
+                                <div style="color: #FFFFFF; font-size: 0.85rem; margin-top: 4px; opacity: 0.9;">
+                                    {{ equipped.helmet.equipment.description }}
+                                </div>
+                                <!-- 能力效果 -->
+                                <div style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold;">
+                                    {% if equipped.helmet.get_total_hp_bonus > 0 %}
+                                    <span style="margin-right:8px;"><i class="fas fa-heart"></i> 
+                                        HP +{{ equipped.helmet.get_total_hp_bonus }}</span>
+                                    {% endif %}
+                                    {% if equipped.helmet.get_total_mp_bonus > 0 %}
+                                    <span><i class="fas fa-bolt"></i> MP +{{ equipped.helmet.get_total_mp_bonus }}</span>
+                                    {% endif %}
+                                </div>
+                                {% if equipped.helmet.equipment.special_ability_name %}
+                                <div
+                                    style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold; {% if equipped.helmet.enhancement_level < 9 %}opacity: 0.5;{% endif %}">
+                                    <i class="fas fa-star"></i> {{ equipped.helmet.equipment.special_ability_name }}
+                                    {% if equipped.helmet.enhancement_level >= 9 %}: {{ equipped.helmet.equipment.special_ability_description }}
+                                    {% else %}(+9 解鎖){% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- 卸下按鈕 -->
+                            <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.helmet.id %}"
+                                style="position: absolute; top: 8px; right: 8px;">
+                                {% csrf_token %}
+                                <button type="submit"
+                                    style="background: rgba(255,0,0,0.7); border: none; color: white; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s;"
+                                    onmouseover="this.style.background='rgba(255,0,0,1)'"
+                                    onmouseout="this.style.background='rgba(255,0,0,0.7)'" title="卸下裝備">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <div class="slot-label">
+                            <i class="fas fa-hard-hat"></i> 頭盔
+                        </div>
+                        <div class="empty-slot">未裝備</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 盔甲 -->
+                    <div class="equipment-slot mb-md">
+                        {% if equipped.armor %}
+                        <div class="equipped-item"
+                            style="display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; position: relative;">
+                            <div style="flex-shrink: 0;">
+                                {% if equipped.armor.equipment.icon %}
+                                <img src="{{ equipped.armor.equipment.icon|equipment_icon_url }}"
+                                    alt="{{ equipped.armor.equipment.name }}" class="show-eq-detail"
+                                    data-eq-detail="{{ equipped.armor.equipment.detail_json }}"
+                                    style="width: 64px; height: 64px; border: 2px solid #8B7355; border-radius: 4px; background: rgba(0,0,0,0.5); cursor: pointer;">
+                                {% else %}
+                                <div
+                                    style="width: 64px; height: 64px; border: 2px solid #8B7355; border-radius: 4px; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-vest" style="font-size: 32px; color: #8B7355;"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                    <span style="color: #FFD700; font-size: 1.1rem; font-weight: bold;">
+                                        {{ equipped.armor.equipment.name }}</span>
+                                    <span
+                                        style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; font-size: 0.9rem; font-weight: bold; padding: 2px 8px; border-radius: 50%; min-width: 32px; text-align: center; box-shadow: 0 2px 4px rgba(255,215,0,0.5);">
+                                        +{{ equipped.armor.enhancement_level }}</span>
+                                </div>
+                                <div style="color: #FFFFFF; font-size: 0.85rem; margin-top: 4px; opacity: 0.9;">
+                                    {{ equipped.armor.equipment.description }}
+                                </div>
+                                <div style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold;">
+                                    {% if equipped.armor.get_total_hp_bonus > 0 %}
+                                    <span style="margin-right:8px;"><i class="fas fa-heart"></i> HP +{{ equipped.armor.get_total_hp_bonus }}</span>
+                                    {% endif %}
+                                    {% if equipped.armor.get_total_mp_bonus > 0 %}
+                                    <span style="margin-right:8px;"><i class="fas fa-bolt"></i> MP +{{ equipped.armor.get_total_mp_bonus }}</span>
+                                    {% endif %}
+                                    {% if equipped.armor.get_damage_reduction > 0 %}
+                                    <span><i class="fas fa-shield-virus"></i> 減傷 -{{ equipped.armor.get_damage_reduction }}</span>
+                                    {% endif %}
+                                </div>
+                                {% if equipped.armor.equipment.special_ability_name %}
+                                <div
+                                    style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold; {% if equipped.armor.enhancement_level < 9 %}opacity: 0.5;{% endif %}">
+                                    <i class="fas fa-star"></i> {{ equipped.armor.equipment.special_ability_name }}
+                                    {% if equipped.armor.enhancement_level >= 9 %}: {{ equipped.armor.equipment.special_ability_description }}
+                                    {% else %}(+9 解鎖)
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.armor.id %}"
+                                style="position: absolute; top: 8px; right: 8px;">
+                                {% csrf_token %}
+                                <button type="submit"
+                                    style="background: rgba(255,0,0,0.7); border: none; color: white; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s;"
+                                    onmouseover="this.style.background='rgba(255,0,0,1)'"
+                                    onmouseout="this.style.background='rgba(255,0,0,0.7)'" title="卸下裝備">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <div class="slot-label">
+                            <i class="fas fa-vest"></i> 盔甲
+                        </div>
+                        <div class="empty-slot">未裝備</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 靴子 -->
+                    <div class="equipment-slot">
+                        {% if equipped.boots %}
+                        <div class="equipped-item"
+                            style="display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; position: relative;">
+                            <div style="flex-shrink: 0;">
+                                {% if equipped.boots.equipment.icon %}
+                                <img src="{{ equipped.boots.equipment.icon|equipment_icon_url }}"
+                                    alt="{{ equipped.boots.equipment.name }}" class="show-eq-detail"
+                                    data-eq-detail="{{ equipped.boots.equipment.detail_json }}"
+                                    style="width: 64px; height: 64px; border: 2px solid #8B7355; border-radius: 4px; background: rgba(0,0,0,0.5); cursor: pointer;">
+                                {% else %}
+                                <div
+                                    style="width: 64px; height: 64px; border: 2px solid #8B7355; border-radius: 4px; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-boot" style="font-size: 32px; color: #8B7355;"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                    <span style="color: #FFD700; font-size: 1.1rem; font-weight: bold;">
+                                        {{ equipped.boots.equipment.name }}</span>
+                                    <span
+                                        style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; font-size: 0.9rem; font-weight: bold; padding: 2px 8px; border-radius: 50%; min-width: 32px; text-align: center; box-shadow: 0 2px 4px rgba(255,215,0,0.5);">
+                                        +{{ equipped.boots.enhancement_level }}</span>
+                                </div>
+                                <div style="color: #FFFFFF; font-size: 0.95rem; margin-bottom: 4px;">
+                                    {% if equipped.boots.get_total_hp_bonus > 0 %}
+                                    HP +{{ equipped.boots.get_total_hp_bonus }}{% endif %}
+                                    {% if equipped.boots.get_total_mp_bonus > 0 %}
+                                    {% if equipped.boots.get_total_hp_bonus > 0 %} | {% endif %}
+                                    MP +{{ equipped.boots.get_total_mp_bonus }}{% endif %}
+                                </div>
+                                <div style="color: #FFFFFF; font-size: 0.85rem; margin-top: 4px; opacity: 0.9;">
+                                    {{ equipped.boots.equipment.description }}
+                                </div>
+                                <div style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold;">
+                                    <i class="fas fa-shoe-prints"></i>
+                                    {% if '鋼頭安全鞋' in equipped.boots.equipment.name %}基礎步伐
+                                    {% elif '防穿刺工靴' in equipped.boots.equipment.name %}穩健推進
+                                    {% elif '動力樣板護腿' in equipped.boots.equipment.name %}動能回收
+                                    {% elif equipped.boots.equipment.skill_description %}{{ equipped.boots.equipment.skill_description }}
+                                    {% endif %}
+                                    {% with passive=equipped.boots.get_passive_desc %}
+                                    {% if passive %}: {{ passive }}{% endif %}
+                                    {% endwith %}
+                                </div>
+                                {% if equipped.boots.equipment.special_ability_name %}
+                                <div
+                                    style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold; {% if equipped.boots.enhancement_level < 9 %}opacity: 0.5;{% endif %}">
+                                    <i class="fas fa-star"></i> {{ equipped.boots.equipment.special_ability_name }}
+                                    {% if equipped.boots.enhancement_level >= 9 %}: {{ equipped.boots.equipment.special_ability_description }}
+                                    {% else %}(+9 解鎖){% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.boots.id %}"
+                                style="position: absolute; top: 8px; right: 8px;">
+                                {% csrf_token %}
+                                <button type="submit"
+                                    style="background: rgba(255,0,0,0.7); border: none; color: white; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s;"
+                                    onmouseover="this.style.background='rgba(255,0,0,1)'"
+                                    onmouseout="this.style.background='rgba(255,0,0,0.7)'" title="卸下裝備">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <div class="slot-label">
+                            <i class="fas fa-boot"></i> 靴子
+                        </div>
+                        <div class="empty-slot">未裝備</div>
+                        {% endif %}
+                    </div>
+
+                </div>
+
+                <!-- 右側：工具欄 (Unrolled Version) -->
+                <div>
+                    <h3 class="mb-md" style="color: var(--color-secondary);">工具欄</h3>
+
+                    <!-- Tool Slot 1 -->
+                    <div class="equipment-slot mb-md">
+                        {% if equipped.tool_1 %}
+                        <div class="equipped-item"
+                            style="display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; position: relative;">
+                            <div style="flex-shrink: 0;">
+                                {% if equipped.tool_1.equipment.icon %}
+                                <img src="{{ equipped.tool_1.equipment.icon|equipment_icon_url }}"
+                                    alt="{{ equipped.tool_1.equipment.name }}" class="show-eq-detail"
+                                    data-eq-detail="{{ equipped.tool_1.equipment.detail_json }}"
+                                    style="width: 64px; height: 64px; border: 2px solid #8B7355; border-radius: 4px; background: rgba(0,0,0,0.5); cursor: pointer;">
+                                {% else %}
+                                <div
+                                    style="width: 64px; height: 64px; border: 2px solid #8B7355; border-radius: 4px; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-wrench" style="font-size: 32px; color: #8B7355;"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                    <span style="color: #FFD700; font-size: 1.1rem; font-weight: bold;">
+                                        {{ equipped.tool_1.equipment.name }}</span>
+                                    <span
+                                        style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; font-size: 0.9rem; font-weight: bold; padding: 2px 8px; border-radius: 50%; min-width: 32px; text-align: center; box-shadow: 0 2px 4px rgba(255,215,0,0.5);">
+                                        +{{ equipped.tool_1.enhancement_level }}</span>
+                                </div>
+                                <div style="color: #FFFFFF; font-size: 0.85rem; margin-top: 4px; opacity: 0.9;">
+                                    {{ equipped.tool_1.equipment.description }}
+                                </div>
+                                <div style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold;">
+                                    {% if equipped.tool_1.equipment.skill_effect %}
+                                    <span style="margin-right:8px;"><i class="fas fa-bolt"></i> MP -{{ equipped.tool_1.current_mp_cost }}</span>
+                                    <span><i class="fas fa-magic"></i> [{{ equipped.tool_1.equipment.skill_effect }}] {{ equipped.tool_1.equipment.skill_description }}</span>
+                                    {% endif %}
+                                </div>
+                                {% if equipped.tool_1.equipment.special_ability_name %}
+                                <div
+                                    style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold; {% if equipped.tool_1.enhancement_level < 9 %}opacity: 0.5;{% endif %}">
+                                    <i class="fas fa-star"></i> {{ equipped.tool_1.equipment.special_ability_name }}
+                                    {% if equipped.tool_1.enhancement_level >= 9 %}: {{ equipped.tool_1.equipment.special_ability_description }}
+                                    {% else %}(+9 解鎖){% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.tool_1.id %}"
+                                style="position: absolute; top: 8px; right: 8px;">
+                                {% csrf_token %}
+                                <button type="submit"
+                                    style="background: rgba(255,0,0,0.7); border: none; color: white; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s;"
+                                    onmouseover="this.style.background='rgba(255,0,0,1)'"
+                                    onmouseout="this.style.background='rgba(255,0,0,0.7)'" title="卸下裝備">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <div class="slot-label">
+                            <i class="fas fa-wrench"></i> 工具欄 1
+                        </div>
+                        <div class="empty-slot">未裝備</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Tool Slot 2 -->
+                    <div class="equipment-slot mb-md">
+                        {% if equipped.tool_2 %}
+                        <div class="equipped-item"
+                            style="display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; position: relative;">
+                            <div style="flex-shrink: 0;">
+                                {% if equipped.tool_2.equipment.icon %}
+                                <img src="{{ equipped.tool_2.equipment.icon|equipment_icon_url }}"
+                                    alt="{{ equipped.tool_2.equipment.name }}" class="show-eq-detail"
+                                    data-eq-detail="{{ equipped.tool_2.equipment.detail_json }}"
+                                    style="width: 64px; height: 64px; border: 2px solid #8B7355; border-radius: 4px; background: rgba(0,0,0,0.5); cursor: pointer;">
+                                {% else %}
+                                <div
+                                    style="width: 64px; height: 64px; border: 2px solid #8B7355; border-radius: 4px; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-wrench" style="font-size: 32px; color: #8B7355;"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                    <span style="color: #FFD700; font-size: 1.1rem; font-weight: bold;">
+                                        {{ equipped.tool_2.equipment.name }}</span>
+                                    <span
+                                        style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; font-size: 0.9rem; font-weight: bold; padding: 2px 8px; border-radius: 50%; min-width: 32px; text-align: center; box-shadow: 0 2px 4px rgba(255,215,0,0.5);">
+                                        +{{ equipped.tool_2.enhancement_level }}</span>
+                                </div>
+                                <div style="color: #FFFFFF; font-size: 0.85rem; margin-top: 4px; opacity: 0.9;">
+                                    {{ equipped.tool_2.equipment.description }}
+                                </div>
+                                <div style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold;">
+                                    {% if equipped.tool_2.equipment.skill_effect %}
+                                    <span style="margin-right:8px;"><i class="fas fa-bolt"></i> MP -{{ equipped.tool_2.current_mp_cost }}</span>
+                                    <span><i class="fas fa-magic"></i> [{{ equipped.tool_2.equipment.skill_effect }}] {{ equipped.tool_2.equipment.skill_description }}</span>
+                                    {% endif %}
+                                </div>
+                                {% if equipped.tool_2.equipment.special_ability_name %}
+                                <div
+                                    style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold; {% if equipped.tool_2.enhancement_level < 9 %}opacity: 0.5;{% endif %}">
+                                    <i class="fas fa-star"></i> {{ equipped.tool_2.equipment.special_ability_name }}
+                                    {% if equipped.tool_2.enhancement_level >= 9 %}: {{ equipped.tool_2.equipment.special_ability_description }}
+                                    {% else %}(+9 解鎖){% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.tool_2.id %}"
+                                style="position: absolute; top: 8px; right: 8px;">
+                                {% csrf_token %}
+                                <button type="submit"
+                                    style="background: rgba(255,0,0,0.7); border: none; color: white; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s;"
+                                    onmouseover="this.style.background='rgba(255,0,0,1)'"
+                                    onmouseout="this.style.background='rgba(255,0,0,0.7)'" title="卸下裝備">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <div class="slot-label">
+                            <i class="fas fa-wrench"></i> 工具欄 2
+                        </div>
+                        <div class="empty-slot">未裝備</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Tool Slot 3 -->
+                    <div class="equipment-slot mb-md">
+                        {% if equipped.tool_3 %}
+                        <div class="equipped-item"
+                            style="display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; position: relative;">
+                            <div style="flex-shrink: 0;">
+                                {% if equipped.tool_3.equipment.icon %}
+                                <img src="{{ equipped.tool_3.equipment.icon|equipment_icon_url }}"
+                                    alt="{{ equipped.tool_3.equipment.name }}" class="show-eq-detail"
+                                    data-eq-detail="{{ equipped.tool_3.equipment.detail_json }}"
+                                    style="width: 64px; height: 64px; border: 2px solid #8B7355; border-radius: 4px; background: rgba(0,0,0,0.5); cursor: pointer;">
+                                {% else %}
+                                <div
+                                    style="width: 64px; height: 64px; border: 2px solid #8B7355; border-radius: 4px; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-wrench" style="font-size: 32px; color: #8B7355;"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                    <span style="color: #FFD700; font-size: 1.1rem; font-weight: bold;">
+                                        {{ equipped.tool_3.equipment.name }}</span>
+                                    <span
+                                        style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; font-size: 0.9rem; font-weight: bold; padding: 2px 8px; border-radius: 50%; min-width: 32px; text-align: center; box-shadow: 0 2px 4px rgba(255,215,0,0.5);">
+                                        +{{ equipped.tool_3.enhancement_level }}</span>
+                                </div>
+                                <div style="color: #FFFFFF; font-size: 0.85rem; margin-top: 4px; opacity: 0.9;">
+                                    {{ equipped.tool_3.equipment.description }}
+                                </div>
+                                <div style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold;">
+                                    {% if equipped.tool_3.equipment.skill_effect %}
+                                    <span style="margin-right:8px;"><i class="fas fa-bolt"></i> MP -{{ equipped.tool_3.current_mp_cost }}</span>
+                                    <span><i class="fas fa-magic"></i> [{{ equipped.tool_3.equipment.skill_effect }}] {{ equipped.tool_3.equipment.skill_description }}</span>
+                                    {% endif %}
+                                </div>
+                                {% if equipped.tool_3.equipment.special_ability_name %}
+                                <div
+                                    style="color: #FFD700; font-size: 0.85rem; margin-top: 4px; font-weight: bold; {% if equipped.tool_3.enhancement_level < 9 %}opacity: 0.5;{% endif %}">
+                                    <i class="fas fa-star"></i> {{ equipped.tool_3.equipment.special_ability_name }}
+                                    {% if equipped.tool_3.enhancement_level >= 9 %}: {{ equipped.tool_3.equipment.special_ability_description }}
+                                    {% else %}(+9 解鎖){% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <form method="post" action="{% url 'engineer_rpg:unequip_item' equipped.tool_3.id %}"
+                                style="position: absolute; top: 8px; right: 8px;">
+                                {% csrf_token %}
+                                <button type="submit"
+                                    style="background: rgba(255,0,0,0.7); border: none; color: white; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s;"
+                                    onmouseover="this.style.background='rgba(255,0,0,1)'"
+                                    onmouseout="this.style.background='rgba(255,0,0,0.7)'" title="卸下裝備">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <div class="slot-label">
+                            <i class="fas fa-wrench"></i> 工具欄 3
+                        </div>
+                        <div class="empty-slot">未裝備</div>
+                        {% endif %}
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <!-- END 左側：當前裝備 -->
+
+        <!-- 右側：裝備庫存 -->
+        <div class="equipment-inventory-panel">
+            <!-- 分類標籤 -->
+            <div class="rpg-tabs mb-lg">
+                <button class="rpg-tab active" onclick="filterInventory('all')">全部</button>
+                <button class="rpg-tab" onclick="filterInventory('HELMET')">頭盔</button>
+                <button class="rpg-tab" onclick="filterInventory('ARMOR')">盔甲</button>
+                <button class="rpg-tab" onclick="filterInventory('BOOTS')">靴子</button>
+                <button class="rpg-tab" onclick="filterInventory('TOOL')">工具</button>
+            </div>
+
+            <div class="inventory-grid">
+
+
+                <!-- 頭盔 -->
+                {% for item in helmets %}
+                <div data-type="HELMET"
+                    class="equipment-card {% if item.user_equipment.is_equipped %}equipped{% endif %} {% if not item.is_unlocked %}locked{% endif %}">
+                    {% if item.user_equipment.equipment.icon %}
+                    <img src="{{ item.user_equipment.equipment.icon|equipment_icon_url }}"
+                        alt="{{ item.user_equipment.equipment.name }}" class="equipment-icon show-eq-detail"
+                        data-eq-detail="{{ item.user_equipment.equipment.detail_json }}" style="cursor: pointer;">
+                    {% else %}
+                    <div class="equipment-icon-placeholder">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    {% endif %}
+
+                    <div class="equipment-info">
+                        <h4 class="equipment-name">
+                            {{ item.user_equipment.equipment.name }}
+                            <span class="tier-badge tier-{{ item.user_equipment.equipment.tier }}">
+                                T{{ item.user_equipment.equipment.tier }}</span>
+                            <span class="enhancement-badge">
+                                +{{ item.user_equipment.enhancement_level }}</span>
+                        </h4>
+
+                        <p class="equipment-desc"
+                            style="color: #FFFFFF; font-size: 0.85rem; opacity: 0.9; margin-bottom: 8px;">
+                            {{ item.user_equipment.equipment.description }}</p>
+
+                        <div class="equipment-stats" style="color: #FFD700; font-weight: bold; font-size: 0.85rem;">
+                            {% if item.user_equipment.get_total_hp_bonus > 0 %}
+                            <span class="stat-item" style="margin-right:8px;"><i class="fas fa-heart"></i>
+                                HP +{{ item.user_equipment.get_total_hp_bonus }}</span>
+                            {% endif %}
+                            {% if item.user_equipment.get_total_mp_bonus > 0 %}
+                            <span class="stat-item" style="margin-right:8px;"><i class="fas fa-bolt"></i>
+                                MP +{{ item.user_equipment.get_total_mp_bonus }}</span>
+                            {% endif %}
+                            {% if item.user_equipment.get_damage_reduction > 0 %}
+                            <span class="stat-item"><i class="fas fa-shield-virus"></i>
+                                減傷 -{{ item.user_equipment.get_damage_reduction }}</span>
+                            {% endif %}
+                            {% if item.user_equipment.equipment.skill_effect %}
+                            <span class="stat-item skill-effect" style="color: #FFD700;"><i class="fas fa-magic"></i>
+                                {% if item.user_equipment.equipment.skill_effect == 'SHIELD' %}標準化稽核
+                                {% elif item.user_equipment.equipment.skill_effect == 'ELIMINATION' %}全域掃描
+                                {% elif item.user_equipment.equipment.skill_effect == 'TIME_REWIND' %}時空錨點
+                                {% elif item.user_equipment.equipment.skill_effect == 'ABSOLUTE_ANSWER' %}職前模擬
+                                {% else %}{{ item.user_equipment.equipment.skill_effect }}{% endif %}</span>
+                            {% endif %}
+                        </div>
+
+                        {% if item.user_equipment.equipment.special_ability_name %}
+                        <div
+                            class="special-ability-section {% if item.user_equipment.enhancement_level >= 9 %}unlocked{% else %}locked{% endif %}">
+                            <div class="ability-title"><i class="fas fa-star"></i>
+                                +9 能力: {{ item.user_equipment.equipment.special_ability_name }}</div>
+                            <div class="ability-desc">{{ item.user_equipment.equipment.special_ability_description }}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="equipment-actions">
+                            {% if not item.is_unlocked %}
+                            <span class="locked-label"><i class="fas fa-lock"></i>
+                                需等級 {{ item.user_equipment.equipment.required_level }}</span>
+                            {% else %}
+                            {% if item.user_equipment.is_equipped %}
+                            <form method="post" action="{% url 'engineer_rpg:unequip_item' item.user_equipment.id %}"
+                                style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-danger"><i
+                                        class="fas fa-times"></i>
+                                    卸下</button>
+                            </form>
+                            {% else %}
+                            {% if item.user_equipment.equipment.equipment_type == 'TOOL' %}
+                            <div class="tool-equip-dropdown">
+                                <button class="rpg-btn rpg-btn-sm rpg-btn-primary dropdown-toggle" type="button"
+                                    onclick="toggleToolSlots({{ item.user_equipment.id }})">
+                                    <i class="fas fa-check"></i> 裝備
+                                </button>
+                                <div class="tool-slots" id="tool-slots-{{ item.user_equipment.id }}"
+                                    style="display: none;">
+                                    {% for i in "123" %}
+                                    <form method="post"
+                                        action="{% url 'engineer_rpg:equip_item' item.user_equipment.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="slot" value="{{ i }}">
+                                        <button type="submit" class="rpg-btn rpg-btn-sm">工具欄 {{ i }}</button>
+                                    </form>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% else %}
+                            <form method="post" action="{% url 'engineer_rpg:equip_item' item.user_equipment.id %}"
+                                style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-primary"><i
+                                        class="fas fa-check"></i> 裝備</button>
+                            </form>
+                            {% endif %}
+                            {% endif %}
+
+
+                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %} 
+                            <form method="post"
+                                action="{% url 'engineer_rpg:enhance_equipment' item.user_equipment.id %}"
+                                style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-success" title="消耗強化券進行強化"><i
+                                        class="fas fa-arrow-up"></i> 強化</button>
+                                </form>
+                                {% else %}
+                                <span class="max-enhancement">MAX</span>
+                                {% endif %}
+                                {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                {% endfor %}
+
+                <!-- 盔甲 -->
+                {% for item in armors %}
+
+                <div data-type="ARMOR"
+                    class="equipment-card {% if item.user_equipment.is_equipped %}equipped{% endif %} {% if not item.is_unlocked %}locked{% endif %}">
+                    {% if item.user_equipment.equipment.icon %}
+                    <img src="{{ item.user_equipment.equipment.icon|equipment_icon_url }}"
+                        alt="{{ item.user_equipment.equipment.name }}" class="equipment-icon show-eq-detail"
+                        data-eq-detail="{{ item.user_equipment.equipment.detail_json }}" style="cursor: pointer;">
+                    {% else %}
+                    <div class="equipment-icon-placeholder">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    {% endif %}
+
+                    <div class="equipment-info">
+                        <h4 class="equipment-name">
+                            {{ item.user_equipment.equipment.name }}
+                            <span class="tier-badge tier-{{ item.user_equipment.equipment.tier }}">
+                                T{{ item.user_equipment.equipment.tier }}</span>
+                            <span class="enhancement-badge">
+                                +{{ item.user_equipment.enhancement_level }}</span>
+                        </h4>
+
+                        <p class="equipment-desc"
+                            style="color: #FFFFFF; font-size: 0.85rem; opacity: 0.9; margin-bottom: 8px;">
+                            {{ item.user_equipment.equipment.description }}</p>
+
+                        <div class="equipment-stats" style="color: #FFD700; font-weight: bold; font-size: 0.85rem;">
+                            {% if item.user_equipment.get_total_hp_bonus > 0 %}
+                            <span class="stat-item" style="margin-right:8px;"><i class="fas fa-heart"></i>
+                                HP +{{ item.user_equipment.get_total_hp_bonus }}</span>
+                            {% endif %}
+                            {% if item.user_equipment.get_total_mp_bonus > 0 %}
+                            <span class="stat-item" style="margin-right:8px;"><i class="fas fa-bolt"></i>
+                                MP +{{ item.user_equipment.get_total_mp_bonus }}</span>
+                            {% endif %}
+                            {% if item.user_equipment.get_damage_reduction > 0 %}
+                            <span class="stat-item"><i class="fas fa-shield-virus"></i>
+                                減傷 -{{ item.user_equipment.get_damage_reduction }}</span>
+                            {% endif %}
+                            {% if item.user_equipment.equipment.skill_effect %}
+                            <span class="stat-item skill-effect" style="color: #FFD700;"><i class="fas fa-magic"></i>
+                                {% if item.user_equipment.equipment.skill_effect == 'SHIELD' %}標準化稽核
+                                {% elif item.user_equipment.equipment.skill_effect == 'ELIMINATION' %}全域掃描
+                                {% elif item.user_equipment.equipment.skill_effect == 'TIME_REWIND' %}時空錨點
+                                {% elif item.user_equipment.equipment.skill_effect == 'ABSOLUTE_ANSWER' %}職前模擬
+                                {% else %}{{ item.user_equipment.equipment.skill_effect }}{% endif %}</span>
+                            {% endif %}
+                        </div>
+
+                        {% if item.user_equipment.equipment.special_ability_name %}
+                        <div
+                            class="special-ability-section {% if item.user_equipment.enhancement_level >= 9 %}unlocked{% else %}locked{% endif %}">
+                            <div class="ability-title"><i class="fas fa-star"></i>
+                                +9 能力: {{ item.user_equipment.equipment.special_ability_name }}</div>
+                            <div class="ability-desc">{{ item.user_equipment.equipment.special_ability_description }}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="equipment-actions">
+                            {% if not item.is_unlocked %}
+                            <span class="locked-label"><i class="fas fa-lock"></i>
+                                需等級 {{ item.user_equipment.equipment.required_level }}</span>
+                            {% else %}
+                            {% if item.user_equipment.is_equipped %}
+                            <form method="post" action="{% url 'engineer_rpg:unequip_item' item.user_equipment.id %}"
+                                style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-danger"><i
+                                        class="fas fa-times"></i>
+                                    卸下</button>
+                            </form>
+                            {% else %}
+                            {% if item.user_equipment.equipment.equipment_type == 'TOOL' %}
+                            <div class="tool-equip-dropdown">
+                                <button class="rpg-btn rpg-btn-sm rpg-btn-primary dropdown-toggle" type="button"
+                                    onclick="toggleToolSlots({{ item.user_equipment.id }})">
+                                    <i class="fas fa-check"></i> 裝備
+                                </button>
+                                <div class="tool-slots" id="tool-slots-{{ item.user_equipment.id }}"
+                                    style="display: none;">
+                                    {% for i in "123" %}
+                                    <form method="post"
+                                        action="{% url 'engineer_rpg:equip_item' item.user_equipment.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="slot" value="{{ i }}">
+                                        <button type="submit" class="rpg-btn rpg-btn-sm">工具欄 {{ i }}</button>
+                                    </form>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% else %}
+                            <form method="post" action="{% url 'engineer_rpg:equip_item' item.user_equipment.id %}"
+                                style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-primary"><i
+                                        class="fas fa-check"></i> 裝備</button>
+                            </form>
+                            {% endif %}
+                            {% endif %}
+
+                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %} 
+                            <form method="post"
+                                action="{% url 'engineer_rpg:enhance_equipment' item.user_equipment.id %}"
+                                style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-success" title="消耗強化券進行強化"><i
+                                        class="fas fa-arrow-up"></i> 強化</button>
+                                </form>
+                                {% else %}
+                                <span class="max-enhancement">MAX</span>
+                                {% endif %}
+                                {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                {% endfor %}
+
+                <!-- 靴子 -->
+                {% for item in boots %}
+
+                <div data-type="BOOTS"
+                    class="equipment-card {% if item.user_equipment.is_equipped %}equipped{% endif %} {% if not item.is_unlocked %}locked{% endif %}">
+                    {% if item.user_equipment.equipment.icon %}
+                    <img src="{{ item.user_equipment.equipment.icon|equipment_icon_url }}"
+                        alt="{{ item.user_equipment.equipment.name }}" class="equipment-icon show-eq-detail"
+                        data-eq-detail="{{ item.user_equipment.equipment.detail_json }}" style="cursor: pointer;">
+                    {% else %}
+                    <div class="equipment-icon-placeholder">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    {% endif %}
+
+                    <div class="equipment-info">
+                        <h4 class="equipment-name">
+                            {{ item.user_equipment.equipment.name }}
+                            <span class="tier-badge tier-{{ item.user_equipment.equipment.tier }}">
+                                T{{ item.user_equipment.equipment.tier }}</span>
+                            <span class="enhancement-badge">+{{ item.user_equipment.enhancement_level }}</span>
+                        </h4>
+
+                        <p class="equipment-desc"
+                            style="color: #FFFFFF; font-size: 0.85rem; opacity: 0.9; margin-bottom: 8px;">
+                            {{ item.user_equipment.equipment.description }}</p>
+
+                        <div class="equipment-stats" style="color: #FFD700; font-weight: bold; font-size: 0.85rem;">
+                            {% if item.user_equipment.get_total_hp_bonus > 0 %}
+                            <span class="stat-item" style="margin-right:8px;"><i class="fas fa-heart"></i>
+                                HP +{{ item.user_equipment.get_total_hp_bonus }}</span>
+                            {% endif %}
+                            {% if item.user_equipment.get_total_mp_bonus > 0 %}
+                            <span class="stat-item" style="margin-right:8px;"><i class="fas fa-bolt"></i>
+                                MP +{{ item.user_equipment.get_total_mp_bonus }}</span>
+                            {% endif %}
+                            {% if item.user_equipment.get_damage_reduction > 0 %}
+                            <span class="stat-item"><i class="fas fa-shield-virus"></i>
+                                減傷 -{{ item.user_equipment.get_damage_reduction }}</span>
+                            {% endif %}
+                            {% if item.user_equipment.equipment.skill_effect %}
+                            <span class="stat-item skill-effect" style="color: #FFD700;"><i class="fas fa-magic"></i>
+                                {% if item.user_equipment.equipment.skill_effect == 'SHIELD' %}標準化稽核
+                                {% elif item.user_equipment.equipment.skill_effect == 'ELIMINATION' %}全域掃描
+                                {% elif item.user_equipment.equipment.skill_effect == 'TIME_REWIND' %}時空錨點
+                                {% elif item.user_equipment.equipment.skill_effect == 'ABSOLUTE_ANSWER' %}職前模擬
+                                {% else %}{{ item.user_equipment.equipment.skill_effect }}{% endif %}</span>
+                            {% endif %}
+                            {% if item.user_equipment.equipment.equipment_type == 'BOOTS' %}
+                            <span class="stat-item skill-effect"
+                                style="color: #FFD700; display: block; margin-top: 4px;"><i
+                                    class="fas fa-shoe-prints"></i>
+                                {% if '鋼頭安全鞋' in item.user_equipment.equipment.name %}基礎步伐
+                                {% elif '防穿刺工靴' in item.user_equipment.equipment.name %}穩健推進
+                                {% elif '動力樣板護腿' in item.user_equipment.equipment.name %}動能回收
+                                {% elif item.user_equipment.equipment.skill_description %}{{ item.user_equipment.equipment.skill_description }}
+                                {% endif %}
+                                {% with passive=item.user_equipment.get_passive_desc %}
+                                {% if passive %}: {{ passive }}{% endif %}
+                                {% endwith %}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        {% if item.user_equipment.equipment.special_ability_name %}
+                        <div
+                            class="special-ability-section {% if item.user_equipment.enhancement_level >= 9 %}unlocked{% else %}locked{% endif %}">
+                            <div class="ability-title"><i class="fas fa-star"></i>
+                                +9 能力: {{ item.user_equipment.equipment.special_ability_name }}</div>
+                            <div class="ability-desc">{{ item.user_equipment.equipment.special_ability_description }}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="equipment-actions">
+                            {% if not item.is_unlocked %}
+                            <span class="locked-label"><i class="fas fa-lock"></i>
+                                需等級 {{ item.user_equipment.equipment.required_level }}</span>
+                            {% else %}
+                            {% if item.user_equipment.is_equipped %}
+                            <form method="post" action="{% url 'engineer_rpg:unequip_item' item.user_equipment.id %}"
+                                style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-danger"><i
+                                        class="fas fa-times"></i>
+                                    卸下</button>
+                            </form>
+                            {% else %}
+                            {% if item.user_equipment.equipment.equipment_type == 'TOOL' %}
+                            <div class="tool-equip-dropdown">
+                                <button class="rpg-btn rpg-btn-sm rpg-btn-primary dropdown-toggle" type="button"
+                                    onclick="toggleToolSlots({{ item.user_equipment.id }})">
+                                    <i class="fas fa-check"></i> 裝備
+                                </button>
+                                <div class="tool-slots" id="tool-slots-{{ item.user_equipment.id }}"
+                                    style="display: none;">
+                                    {% for i in "123" %}
+                                    <form method="post"
+                                        action="{% url 'engineer_rpg:equip_item' item.user_equipment.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="slot" value="{{ i }}">
+                                        <button type="submit" class="rpg-btn rpg-btn-sm">工具欄 {{ i }}</button>
+                                    </form>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% else %}
+                            <form method="post" action="{% url 'engineer_rpg:equip_item' item.user_equipment.id %}"
+                                style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-primary"><i
+                                        class="fas fa-check"></i> 裝備</button>
+                            </form>
+                            {% endif %}
+                            {% endif %}
+
+                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %} 
+                            <form method="post"
+                                action="{% url 'engineer_rpg:enhance_equipment' item.user_equipment.id %}"
+                                style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-success" title="消耗強化券進行強化"><i
+                                        class="fas fa-arrow-up"></i> 強化</button>
+                                </form>
+                                {% else %}
+                                <span class="max-enhancement">MAX</span>
+                                {% endif %}
+                                {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                {% endfor %}
+
+                <!-- 工具 -->
+                {% for item in tools %}
+
+                <div data-type="TOOL"
+                    class="equipment-card {% if item.user_equipment.is_equipped %}equipped{% endif %} {% if not item.is_unlocked %}locked{% endif %}">
+                    {% if item.user_equipment.equipment.icon %}
+                    <img src="{{ item.user_equipment.equipment.icon|equipment_icon_url }}"
+                        alt="{{ item.user_equipment.equipment.name }}" class="equipment-icon show-eq-detail"
+                        data-eq-detail="{{ item.user_equipment.equipment.detail_json }}" style="cursor: pointer;">
+                    {% else %}
+                    <div class="equipment-icon-placeholder">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    {% endif %}
+
+                    <div class="equipment-info">
+                        <h4 class="equipment-name">
+                            {{ item.user_equipment.equipment.name }}
+                            <span class="tier-badge tier-{{ item.user_equipment.equipment.tier }}">
+                                T{{ item.user_equipment.equipment.tier }}</span>
+                            <span class="enhancement-badge">+{{ item.user_equipment.enhancement_level }}</span>
+                        </h4>
+
+                        <p class="equipment-desc"
+                            style="color: #FFFFFF; font-size: 0.85rem; opacity: 0.9; margin-bottom: 8px;">
+                            {{ item.user_equipment.equipment.description }}</p>
+
+                        <div class="equipment-stats" style="color: #FFD700; font-weight: bold; font-size: 0.85rem;">
+                            {% if item.user_equipment.get_total_hp_bonus > 0 %}
+                            <span class="stat-item" style="margin-right:8px;"><i class="fas fa-heart"></i>
+                                HP +{{ item.user_equipment.get_total_hp_bonus }}</span>
+                            {% endif %}
+                            {% if item.user_equipment.get_total_mp_bonus > 0 %}
+                            <span class="stat-item" style="margin-right:8px;"><i class="fas fa-bolt"></i>
+                                MP +{{ item.user_equipment.get_total_mp_bonus }}</span>
+                            {% endif %}
+                            {% if item.user_equipment.get_damage_reduction > 0 %}
+                            <span class="stat-item"><i class="fas fa-shield-virus"></i>
+                                減傷 -{{ item.user_equipment.get_damage_reduction }}</span>
+                            {% endif %}
+                            {% if item.user_equipment.equipment.skill_effect %}
+                            <!-- Tools MP cost is dynamic -->
+                            <span class="stat-item skill-effect" style="color: #FFD700; margin-right:8px;"><i
+                                    class="fas fa-bolt"></i>
+                                MP -{{ item.user_equipment.current_mp_cost }}</span>
+                            <span class="stat-item skill-effect"
+                                style="color: #FFD700; display: block; margin-top: 4px;"><i class="fas fa-magic"></i>
+                                [{{ item.user_equipment.equipment.skill_effect }}] {{ item.user_equipment.equipment.skill_description }}</span>
+                            {% endif %}
+                        </div>
+
+                        {% if item.user_equipment.equipment.special_ability_name %}
+                        <div
+                            class="special-ability-section {% if item.user_equipment.enhancement_level >= 9 %}unlocked{% else %}locked{% endif %}">
+                            <div class="ability-title"><i class="fas fa-star"></i>
+                                +9 能力: {{ item.user_equipment.equipment.special_ability_name }}</div>
+                            <div class="ability-desc">{{ item.user_equipment.equipment.special_ability_description }}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="equipment-actions">
+                            {% if not item.is_unlocked %}
+                            <span class="locked-label"><i class="fas fa-lock"></i>
+                                需等級 {{ item.user_equipment.equipment.required_level }}</span>
+                            {% else %}
+                            {% if item.user_equipment.is_equipped %}
+                            <form method="post" action="{% url 'engineer_rpg:unequip_item' item.user_equipment.id %}"
+                                style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-danger"><i
+                                        class="fas fa-times"></i>
+                                    卸下</button>
+                            </form>
+                            {% else %}
+                            {% if item.user_equipment.equipment.equipment_type == 'TOOL' %}
+                            <div class="tool-equip-dropdown">
+                                <button class="rpg-btn rpg-btn-sm rpg-btn-primary dropdown-toggle" type="button"
+                                    onclick="toggleToolSlots({{ item.user_equipment.id }})">
+                                    <i class="fas fa-check"></i> 裝備
+                                </button>
+                                <div class="tool-slots" id="tool-slots-{{ item.user_equipment.id }}"
+                                    style="display: none;">
+                                    {% for i in "123" %}
+                                    <form method="post"
+                                        action="{% url 'engineer_rpg:equip_item' item.user_equipment.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="slot" value="{{ i }}">
+                                        <button type="submit" class="rpg-btn rpg-btn-sm">工具欄 {{ i }}</button>
+                                    </form>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% else %}
+                            <form method="post" action="{% url 'engineer_rpg:equip_item' item.user_equipment.id %}"
+                                style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-primary"><i
+                                        class="fas fa-check"></i> 裝備</button>
+                            </form>
+                            {% endif %}
+                            {% endif %}
+
+                            {% if item.user_equipment.enhancement_level < item.user_equipment.equipment.max_enhancement %} 
+                            <form method="post"
+                                action="{% url 'engineer_rpg:enhance_equipment' item.user_equipment.id %}"
+                                style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="rpg-btn rpg-btn-sm rpg-btn-success" title="消耗強化券進行強化"><i
+                                        class="fas fa-arrow-up"></i> 強化</button>
+                                </form>
+                                {% else %}
+                                <span class="max-enhancement">MAX</span>
+                                {% endif %}
+                                {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                {% endfor %}
+            </div>
+        </div>
+        <!-- END 右側：裝備庫存 -->
+    </div>
+    <!-- END grid-2 -->
+</div>
+<!-- END rpg-container -->
+
+<script>
+    function toggleToolSlots(id) {
+        const slots = document.getElementById('tool-slots-' + id);
+        if (slots.style.display === 'none') {
+            document.querySelectorAll('.tool-slots').forEach(el => {
+                el.style.display = 'none';
+            });
+            slots.style.display = 'block';
+        } else {
+            slots.style.display = 'none';
+        }
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function (event) {
+        if (!event.target.closest('.tool-equip-dropdown')) {
+            document.querySelectorAll('.tool-slots').forEach(s => s.style.display = 'none');
+        }
+    });
+
+    function filterInventory(type) {
+        document.querySelectorAll('.rpg-tab').forEach(tab => {
+            tab.classList.remove('active');
+            if (type === 'all' && tab.textContent === '全部') tab.classList.add('active');
+            if (type === 'HELMET' && tab.textContent === '頭盔') tab.classList.add('active');
+            if (type === 'ARMOR' && tab.textContent === '盔甲') tab.classList.add('active');
+            if (type === 'BOOTS' && tab.textContent === '靴子') tab.classList.add('active');
+            if (type === 'TOOL' && tab.textContent === '工具') tab.classList.add('active');
+        });
+
+        const items = document.querySelectorAll('.equipment-card');
+        items.forEach(item => {
+            if (type === 'all' || item.dataset.type === type) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    // Scroll position preservation
+    // Save scroll position before form submission
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function () {
+            sessionStorage.setItem('equipmentScrollPos', window.scrollY);
+        });
+    });
+
+    // Restore scroll position after page load
+    window.addEventListener('load', function () {
+        const scrollPos = sessionStorage.getItem('equipmentScrollPos');
+        if (scrollPos !== null) {
+            window.scrollTo(0, parseInt(scrollPos));
+            sessionStorage.removeItem('equipmentScrollPos');
+        }
+    });
+</script>
+
+<style>
+    .equipment-slot {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius);
+        padding: var(--spacing-sm);
+    }
+
+    .slot-label {
+        color: var(--color-stone);
+        font-size: 0.8rem;
+        margin-bottom: var(--spacing-sm);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .inventory-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: var(--spacing-md);
+    }
+
+    .rpg-tabs {
+        display: flex;
+        gap: var(--spacing-xs);
+        border-bottom: 2px solid var(--color-border);
+        padding-bottom: var(--spacing-xs);
+    }
+
+    .rpg-tab {
+        background: transparent;
+        border: none;
+        color: var(--color-stone);
+        padding: var(--spacing-sm) var(--spacing-md);
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.2s;
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+    }
+
+    .rpg-tab:hover {
+        color: var(--color-text);
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .rpg-tab.active {
+        color: var(--color-primary);
+        background: rgba(var(--color-primary-rgb), 0.1);
+        border-bottom: 2px solid var(--color-primary);
+        margin-bottom: -2px;
+    }
+
+    /* 裝備欄主要佈局：左側已裝備 + 右側庫存 */
+    .equipment-layout {
+        display: grid;
+        grid-template-columns: 420px 1fr;
+        gap: var(--spacing-xl);
+        align-items: start;
+    }
+
+    .equipment-layout>.rpg-card {
+        overflow: hidden;
+        word-break: break-word;
+        min-width: 0;
+    }
+
+    .equipment-layout>.equipment-inventory-panel {
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    @media (max-width: 960px) {
+        .equipment-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Ensure equipped-item has enough space */
+    .equipped-item {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        position: relative;
+        width: 100%;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: var(--border-radius-sm);
+        padding: var(--spacing-xs);
+        min-width: 200px;
+        /* Force minimum width to prevent collapse */
+    }
+
+    .equipped-icon-wrapper {
+        height: 80px;
+        width: 80px;
+        flex-shrink: 0;
+        border: 2px solid var(--color-border);
+        border-radius: var(--border-radius-sm);
+        background-color: #3e2723;
+        overflow: hidden;
+        position: relative;
+        margin-right: 8px;
+    }
+
+    .sidebar-icon {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .equipped-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        overflow: hidden;
+        /* Keeps text inside */
+        min-width: 0;
+    }
+
+    .equipped-name {
+        font-weight: bold;
+        font-size: 0.95rem;
+        margin-bottom: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .item-stats {
+        font-size: 0.8rem;
+        color: var(--color-stone);
+    }
+
+    .unequip-btn {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background-color: var(--color-danger);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 12px;
+        opacity: 0;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        z-index: 10;
+        pointer-events: none;
+        /* Initially disable events */
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .equipped-item:hover .unequip-btn {
+        opacity: 1;
+        pointer-events: auto;
+        /* Enable events on hover */
+        transform: scale(1.1);
+    }
+
+    .empty-slot {
+        color: var(--color-stone);
+        font-style: italic;
+        text-align: center;
+        padding: var(--spacing-sm);
+    }
+
+    .stats-summary {
+        background: rgba(255, 215, 0, 0.05);
+        padding: var(--spacing-lg);
+        border-radius: var(--border-radius);
+        border: 2px dashed var(--color-secondary);
+    }
+
+    .stat-box {
+        text-align: center;
+        padding: var(--spacing-md);
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: var(--border-radius);
+    }
+
+    .stat-box i {
+        display: block;
+        font-size: 2rem;
+        color: var(--color-secondary);
+        margin-bottom: var(--spacing-sm);
+    }
+
+
+    .equipment-card {
+        background: rgba(0, 0, 0, 0.4);
+        border: 2px solid var(--color-primary);
+        border-radius: var(--border-radius);
+        padding: var(--spacing-md);
+        transition: all 0.3s ease;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .equipment-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .equipment-card.equipped {
+        border-color: var(--color-secondary);
+        background: rgba(255, 215, 0, 0.1);
+    }
+
+    .equipment-card.equipped::before {
+        content: "已裝備";
+        position: absolute;
+        top: var(--spacing-sm);
+        right: var(--spacing-sm);
+        background: var(--color-secondary);
+        color: var(--color-bg);
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        z-index: 2;
+    }
+
+    .equipment-card.locked {
+        border-color: var(--color-stone);
+        filter: grayscale(0.8);
+        opacity: 0.8;
+    }
+
+    .tier-badge {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: bold;
+        vertical-align: middle;
+        margin-right: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .tier-1 {
+        background-color: #555;
+        color: #eee;
+    }
+
+    .tier-2 {
+        background-color: #2ecc71;
+        color: #000;
+    }
+
+    .tier-3 {
+        background-color: #e74c3c;
+        color: #fff;
+    }
+
+    .equipment-rarity {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .rarity-common {
+        background: #9e9e9e;
+        color: white;
+    }
+
+    .rarity-rare {
+        background: #2196f3;
+        color: white;
+    }
+
+    .rarity-epic {
+        background: #9c27b0;
+        color: white;
+    }
+
+    .rarity-legendary {
+        background: #ff9800;
+        color: white;
+    }
+
+    .equipment-desc {
+        font-size: 0.85rem;
+        color: var(--color-stone);
+        margin-bottom: var(--spacing-sm);
+        min-height: 40px;
+    }
+
+    .equipment-stats {
+        margin-bottom: var(--spacing-md);
+        padding: var(--spacing-sm);
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: var(--border-radius);
+    }
+
+    .stat-item {
+        display: inline-block;
+        margin-right: var(--spacing-sm);
+        font-size: 0.85rem;
+        color: var(--color-secondary);
+    }
+
+    .skill-effect {
+        display: block;
+        margin-top: var(--spacing-xs);
+        color: var(--color-primary);
+    }
+
+    .equipment-actions {
+        display: flex;
+        gap: var(--spacing-sm);
+        flex-wrap: wrap;
+        margin-top: auto;
+    }
+
+    .tool-equip-dropdown {
+        position: relative;
+    }
+
+    .tool-slots {
+        position: absolute;
+        bottom: 100%;
+        left: 0;
+        background: var(--color-bg);
+        border: 2px solid var(--color-primary);
+        border-radius: var(--border-radius);
+        padding: var(--spacing-sm);
+        margin-bottom: var(--spacing-xs);
+        z-index: 10;
+        width: max-content;
+    }
+
+    .tool-slots form {
+        margin-bottom: 4px;
+    }
+
+    .tool-slots form:last-child {
+        margin-bottom: 0;
+    }
+
+    .equipment-icon {
+        width: 100%;
+        height: 120px;
+        object-fit: contain;
+        background-color: rgba(0, 0, 0, 0.2);
+        border-radius: var(--border-radius);
+        margin-bottom: var(--spacing-sm);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .equipment-icon-placeholder {
+        width: 100%;
+        height: 120px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: var(--border-radius);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .equipment-icon-placeholder i {
+        font-size: 3rem;
+        color: var(--color-stone);
+    }
+
+    .special-ability-section {
+        margin: var(--spacing-sm) 0;
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: 4px;
+        font-size: 0.8rem;
+    }
+
+    .special-ability-section.locked {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--color-stone);
+        border: 1px dashed var(--color-stone);
+    }
+
+    .special-ability-section.unlocked {
+        background: rgba(255, 215, 0, 0.15);
+        color: var(--color-secondary);
+        border: 1px solid var(--color-secondary);
+    }
+
+    .ability-title {
+        font-weight: bold;
+        margin-bottom: 2px;
+    }
+
+    .ability-desc {
+        font-style: italic;
+        opacity: 0.9;
+    }
+
+    .max-enhancement {
+        display: inline-block;
+        padding: 4px 12px;
+        background: var(--color-secondary);
+        color: var(--color-bg);
+        border-radius: var(--border-radius);
+        font-weight: 700;
+        font-size: 0.85rem;
+    }
+
+    .locked-label {
+        display: inline-block;
+        padding: 6px 12px;
+        background: var(--color-stone);
+        color: var(--color-bg);
+        border-radius: var(--border-radius);
+        font-weight: 700;
+        width: 100%;
+        text-align: center;
+        font-size: 0.85rem;
+    }
+
+    /* New Equipment Sidebar Styles */
+
+    /* Equipped Item - Icon + Name Layout */
+    .equipped-item {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+        /* Space between icon and name */
+        position: relative;
+        width: 100%;
+        margin-bottom: var(--spacing-sm);
+        background: transparent;
+        /* Transparent background */
+        border: none;
+        /* No border */
+        padding: 0;
+    }
+
+    /* The Dark Brown Square Box */
+    .equipped-icon-wrapper {
+        width: 80px;
+        height: 80px;
+        flex-shrink: 0;
+        border: 2px solid #5d4037;
+        border-radius: var(--border-radius-sm);
+        background-color: #3e2723;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        cursor: help;
+        /* Indicate tooltip availability */
+    }
+
+    .sidebar-icon {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    /* Info Text - Show name only */
+    .equipped-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .equipped-name {
+        font-weight: bold;
+        font-size: 1rem;
+        color: var(--color-secondary);
+        /* Gold/Yellow for name */
+        margin-bottom: 0;
+    }
+
+    /* Hide stats (HP, MP) */
+    .item-stats {
+        display: none !important;
+    }
+
+    /* Unequip Button - On top of the icon */
+    .unequip-btn {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 24px;
+        height: 24px;
+        background-color: var(--color-danger);
+        color: white;
+        border: none;
+        border-bottom-left-radius: 4px;
+        /* Rounded corner matching box */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 12px;
+        opacity: 0;
+        transition: opacity 0.2s;
+        z-index: 20;
+    }
+
+    .equipped-item:hover .unequip-btn {
+        opacity: 1;
+    }
+</style>
+
+<!-- Equipment Detail Modal -->
+<div id="eqDetailModal"
+    style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); align-items: center; justify-content: center;">
+    <div class="rpg-card"
+        style="max-width: 400px; width: 90%; position: relative; border: 2px solid #8B7355; background: #1a1a1a; max-height: 80vh; overflow-y: auto;">
+        <span class="close-modal"
+            style="position: absolute; right: 15px; top: 10px; color: #FFD700; font-size: 24px; cursor: pointer;">&times;</span>
+        <h3 id="eqDetailName"
+            style="color: #FFD700; margin-bottom: 5px; border-bottom: 1px solid #8B7355; padding-bottom: 5px;">裝備名稱</h3>
+        <div id="eqDetailType" style="color: #ccc; font-size: 0.85rem; margin-bottom: 15px;">裝備類型</div>
+        <p id="eqDetailDesc" style="color: #fff; font-size: 0.9rem; margin-bottom: 15px;">裝備描述</p>
+
+        <div id="eqDetailSkill"
+            style="display: none; background: rgba(0,20,50,0.5); padding: 10px; border-radius: 5px; margin-bottom: 15px; border-left: 3px solid #4da6ff;">
+            <div id="eqDetailSkillName" style="color: #4da6ff; font-weight: bold; margin-bottom: 5px;"><i
+                    class="fas fa-magic"></i> 技能</div>
+            <div id="eqDetailSkillDesc" style="color: #fff; font-size: 0.85rem;"></div>
+        </div>
+
+        <h4 style="color: #FFD700; margin-bottom: 10px; font-size: 0.95rem;"><i class="fas fa-arrow-up"></i> 強化數值與效果
+        </h4>
+        <div id="eqDetailRules"
+            style="background: rgba(0,0,0,0.4); padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 0.85rem;">
+            <!-- JS 填充 -->
+        </div>
+
+        <div id="eqDetailSpecial"
+            style="display: none; background: rgba(50,40,0,0.5); padding: 10px; border-radius: 5px; border-left: 3px solid #FFD700;">
+            <div id="eqDetailSpecialName" style="color: #FFD700; font-weight: bold; margin-bottom: 5px;"><i
+                    class="fas fa-star"></i> +9 能力</div>
+            <div id="eqDetailSpecialDesc" style="color: #fff; font-size: 0.85rem;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modal = document.getElementById('eqDetailModal');
+        const closeBtn = modal.querySelector('.close-modal');
+
+        document.querySelectorAll('.show-eq-detail').forEach(el => {
+            el.addEventListener('click', function () {
+                try {
+                    const dataStr = this.getAttribute('data-eq-detail');
+                    const eq = JSON.parse(dataStr);
+
+                    document.getElementById('eqDetailName').textContent = eq.name;
+                    document.getElementById('eqDetailType').textContent = eq.type_name;
+                    document.getElementById('eqDetailDesc').textContent = eq.description;
+
+                    const skillContainer = document.getElementById('eqDetailSkill');
+                    if (eq.skill_effect) {
+                        document.getElementById('eqDetailSkillName').innerHTML = `<i class="fas fa-magic"></i> 技能: ${eq.skill_effect}`;
+                        document.getElementById('eqDetailSkillDesc').textContent = `[${eq.skill_effect}] ${eq.skill_description}`;
+                        skillContainer.style.display = 'block';
+                    } else {
+                        skillContainer.style.display = 'none';
+                    }
+
+                    // 渲染強化規則
+                    const rulesContainer = document.getElementById('eqDetailRules');
+                    rulesContainer.innerHTML = '';
+
+                    let rulesHtml = '';
+                    const levels = ['0', '3', '6', '9'];
+                    levels.forEach(lvl => {
+                        if (eq.rules[lvl]) {
+                            const rule = eq.rules[lvl];
+                            let effectText = [];
+                            if (rule.hp) effectText.push(`HP +${rule.hp}`);
+                            if (rule.mp) effectText.push(`MP +${rule.mp}`);
+                            if (rule.dr) effectText.push(`減傷 -${rule.dr}`);
+                            if (rule.shield) effectText.push(`護盾量 ${rule.shield}`);
+                            if (rule.buff_duration) effectText.push(`Buff持續 ${rule.buff_duration} 題`);
+                            if (rule.max_uses) effectText.push(`次數上限 ${rule.max_uses} 次`);
+                            if (rule.cost) effectText.push(`消耗 ${rule.cost} MP`);
+                            if (rule.desc) effectText.push(rule.desc);
+
+                            rulesHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px dotted #444; padding-bottom: 6px;">
+                                <span style="color: #FFD700; font-weight: bold; width: 40px; text-shadow: 1px 1px 2px #000;">+${lvl}</span>
+                                <span style="color: #fff; text-align: right; flex: 1;">${effectText.join(' | ')}</span>
+                            </div>`;
+                        }
+                    });
+                    if (!rulesHtml) rulesHtml = '<div style="color: #888;">無階段強化效果</div>';
+                    rulesContainer.innerHTML = rulesHtml;
+
+                    // 渲染 +9 能力
+                    const specialContainer = document.getElementById('eqDetailSpecial');
+                    if (eq.special_ability_name) {
+                        document.getElementById('eqDetailSpecialName').innerHTML = `<i class="fas fa-star"></i> +9 能力: ${eq.special_ability_name}`;
+                        document.getElementById('eqDetailSpecialDesc').textContent = eq.special_ability_description;
+                        specialContainer.style.display = 'block';
+                    } else {
+                        specialContainer.style.display = 'none';
+                    }
+
+                    modal.style.display = 'flex';
+                } catch (e) {
+                    console.error("Parse equipment detail failed", e);
+                }
+            });
+        });
+
+        closeBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    });
+
+    function filterInventory(type) {
+        // 更新按鈕狀態
+        document.querySelectorAll('.rpg-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        event.target.classList.add('active');
+
+        // 過濾裝備
+        const cards = document.querySelectorAll('.inventory-grid .equipment-card');
+        cards.forEach(card => {
+            if (type === 'all' || card.dataset.type === type) {
+                card.style.display = 'flex'; // 恢復 flex 顯示以維持排版
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    function toggleToolSlots(toolId) {
+        const slots = document.getElementById(`tool-slots-${toolId}`);
+        if (slots.style.display === 'none') {
+            document.querySelectorAll('.tool-slots').forEach(el => el.style.display = 'none');
+            slots.style.display = 'block';
+        } else {
+            slots.style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}

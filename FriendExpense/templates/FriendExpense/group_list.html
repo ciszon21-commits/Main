@@ -1,0 +1,62 @@
+{% extends 'FriendExpense/base.html' %}
+
+{% block title %}我的群組 - 朋友記帳{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">我的記帳群組</h1>
+    <p class="page-subtitle">管理您的朋友間記帳群組</p>
+</div>
+
+<div style="margin-bottom: 24px;">
+    <a href="{% url 'friend_expense:group_create' %}" class="btn btn-primary">
+        <span>➕</span>
+        <span>建立新群組</span>
+    </a>
+</div>
+
+{% if groups %}
+<div class="grid grid-2">
+    {% for group in groups %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">{{ group.name }}</h3>
+            <span class="badge badge-amount">${{ group.get_total_expense|floatformat:0 }}</span>
+        </div>
+
+        {% if group.description %}
+        <p style="color: var(--text-subdued); margin-bottom: 16px;">{{ group.description }}</p>
+        {% endif %}
+
+        <div style="display: flex; gap: 16px; margin-bottom: 20px;">
+            <div>
+                <span style="color: var(--text-subdued);">👥 成員：</span>
+                <strong>{{ group.members.count }}</strong>
+            </div>
+            <div>
+                <span style="color: var(--text-subdued);">📝 記帳：</span>
+                <strong>{{ group.expenses.count }}</strong>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <a href="{% url 'friend_expense:group_detail' pk=group.pk %}" class="btn btn-primary btn-sm">
+                查看詳情
+            </a>
+            <a href="{% url 'friend_expense:settlement' pk=group.pk %}" class="btn btn-success btn-sm">
+                結算
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-state-icon">📁</div>
+    <p class="empty-state-text">您還沒有建立任何記帳群組</p>
+    <a href="{% url 'friend_expense:group_create' %}" class="btn btn-primary">
+        建立第一個群組
+    </a>
+</div>
+{% endif %}
+{% endblock %}
