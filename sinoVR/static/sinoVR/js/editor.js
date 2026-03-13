@@ -63,23 +63,26 @@ export function init() {
     dirLight.position.set(5, 10, 7.5);
     scene.add(dirLight);
 
-    // Dirt Floor instead of Grid Helper
+    // Infinite Dirt Floor
     const textureLoader = new THREE.TextureLoader();
     const floorTexture = textureLoader.load('/static/sinoVR/images/dirt_floor.png');
     floorTexture.wrapS = THREE.RepeatWrapping;
     floorTexture.wrapT = THREE.RepeatWrapping;
-    floorTexture.repeat.set(10, 10);
+    floorTexture.repeat.set(500, 500); // Repeat across the vast plane
     floorTexture.colorSpace = THREE.SRGBColorSpace;
 
-    const floorGeometry = new THREE.PlaneGeometry(20, 20);
-    const floorMaterial = new THREE.MeshPhongMaterial({ 
+    const floorGeometry = new THREE.PlaneGeometry(1000, 1000);
+    const floorMaterial = new THREE.MeshPhongMaterial({
         map: floorTexture,
         side: THREE.DoubleSide
     });
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
     floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -0.01; // Slightly below zero to avoid z-fighting with objects at 0
+    floor.position.y = -0.01;
     scene.add(floor);
+
+    // Add fog for infinite horizon feel
+    scene.fog = new THREE.Fog(0x303030, 10, 100);
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -137,7 +140,7 @@ export function loadSkybox(skyboxUrl) {
             texture.colorSpace = THREE.SRGBColorSpace;
             const geo = new THREE.SphereGeometry(500, 60, 40);
             geo.scale(-1, 1, 1);
-            const mat = new THREE.MeshBasicMaterial({ map: texture });
+            const mat = new THREE.MeshBasicMaterial({ map: texture, fog: false });
             skyboxMesh = new THREE.Mesh(geo, mat);
             scene.add(skyboxMesh);
         });

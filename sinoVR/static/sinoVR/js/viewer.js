@@ -69,15 +69,15 @@ function init() {
         logUserActivity('EXIT_VR', { duration: 'unknown' });
     });
 
-    // Dirt Floor
+    // Infinite Dirt Floor
     const textureLoader = new THREE.TextureLoader();
     const floorTexture = textureLoader.load('/static/sinoVR/images/dirt_floor.png');
     floorTexture.wrapS = THREE.RepeatWrapping;
     floorTexture.wrapT = THREE.RepeatWrapping;
-    floorTexture.repeat.set(10, 10);
+    floorTexture.repeat.set(500, 500);
     floorTexture.colorSpace = THREE.SRGBColorSpace;
 
-    const floorGeometry = new THREE.PlaneGeometry(20, 20);
+    const floorGeometry = new THREE.PlaneGeometry(1000, 1000);
     const floorMaterial = new THREE.MeshPhongMaterial({
         map: floorTexture,
         side: THREE.DoubleSide
@@ -86,6 +86,9 @@ function init() {
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -0.01;
     scene.add(floor);
+
+    // Add fog for infinite horizon feel
+    scene.fog = new THREE.Fog(0x111111, 10, 100);
 
     // Create Boundary (Visual Reference) - Techno Fluorescent (Thick Lines using Mesh)
     console.log("Creating VR Boundary...");
@@ -163,7 +166,7 @@ function loadSkybox() {
             texture.colorSpace = THREE.SRGBColorSpace;
             const geo = new THREE.SphereGeometry(500, 60, 40);
             geo.scale(-1, 1, 1);
-            const mat = new THREE.MeshBasicMaterial({ map: texture });
+            const mat = new THREE.MeshBasicMaterial({ map: texture, fog: false });
             scene.add(new THREE.Mesh(geo, mat));
         });
     }
