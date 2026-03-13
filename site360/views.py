@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView, DeleteView
 from django.http import JsonResponse
 from django.urls import reverse_lazy, reverse
@@ -1373,9 +1374,23 @@ def integrate_from_cms(request):
         # Step 2：解析資料並建立 Project / Scene / Hotspot
         # 傳入 cookie_header 讓圖片下載可重用同一 Session，不需再次登入
         parser  = SinoTechAPIParser(data=data, base_url=base_url, session_cookie=cookie_header)
-        project = parser.process()
+        result  = parser.process()
+        project = result['project']
+        
+        # 組裝通知訊息
+        if result['project_created']:
+            msg = f"表單匯入成功！已建立新專案：【{project.name}】。"
+        else:
+            msg = f"該表單已建立過 360 專案：【{project.name}】，目前資料已同步更新。"
+            
+        if result['scenes_added'] > 0 or result['hotspots_added'] > 0:
+            detail_msg = f"本次新增 {result['scenes_added']} 個場景、{result['hotspots_added']} 個熱點字卡。"
+            msg += f"\n{detail_msg}"
+        else:
+            msg += "\n目前專案內容已是最新，未偵測到新素材。"
 
-        logger.info(f"[CMS Integrate] 完成！Project pk={project.pk}，Redirect 至 Project 詳情頁")
+        messages.success(request, msg)
+        logger.info(f"[CMS Integrate] 完成！{msg}")
 
         # Step 3：成功後將使用者 Redirect 到 360 專案詳情頁面
         return HttpResponseRedirect(reverse('site360:project_detail', kwargs={'pk': project.pk}))

@@ -256,7 +256,7 @@ class SinoTechAPIParser:
         
         status = "建立" if created else "更新"
         logger.info(f"[CMS Sync] {status}專案：{project_name} (pk={project.pk}, lat={lat}, lng={lng})")
-        return project
+        return project, created
 
     def _create_hazard_types(self, assessments: list) -> dict:
         """
@@ -320,12 +320,12 @@ class SinoTechAPIParser:
             return None
 
     @transaction.atomic
-    def process(self) -> Project:
+    def process(self) -> dict:
         """
-        執行主要解析建立流程，回傳建立好的 Project 實例
+        執行主要解析建立流程，回傳包含 Project 及建立統計後的結果字典
         """
         # 1. 處理 Project
-        project = self._get_or_create_project()
+        project, project_created = self._get_or_create_project()
         
         # 2. 處理 Scene（每張照片建一個 Scene）
         photos = self.data.get('photos', [])
@@ -383,6 +383,7 @@ class SinoTechAPIParser:
         # 3. 處理 Hotspot（設為「未分配專案」，不放入任何 Scene）
         assessments = self.data.get('assessments', [])
         form_uid    = self.data.get('form_uid', '')
+        hotspots_added_count = 0
 
         for item in assessments:
             title = item.get('survey_content', '未命名危害')
@@ -411,8 +412,12 @@ class SinoTechAPIParser:
                 yaw=0,
                 external_form_uid=form_uid,
             )
-
+            hotspots_added_count += 1
             logger.info(f"[CMS Sync] 建立未分配 Hotspot：{hotspot.title} (form_uid={form_uid})")
 
-        return project
-
+        return {
+            'project': project,
+            'project_created': project_created,
+            'scenes_added': len(created_scenes),
+            'hotspots_added': hotspots_added_count
+        }
