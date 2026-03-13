@@ -219,26 +219,25 @@ class SinoTechAPIParser:
         # 組裝專案名稱: 採用使用者要求格式 "{{workitem}}_{{first_worklayer}}"
         project_name = f"{workitem}_{first_worklayer}"
         
-        # 組裝描述
-        doc_date = self.data.get('doc_date', '')
-        form_uid = self.data.get('form_uid', '')
+        # 組裝描述 (使用者需求：改為固定字串 "自動建立")
+        description = "自動建立"
         
-        description = (
-            f"外部表單 UID: {form_uid}\n"
-            f"文件日期: {doc_date}\n"
-            f"工項: {workitem}\n"
-            f"工作層: {first_worklayer}"
-        )
+        # 取得表單日期
+        doc_date = self.data.get('doc_date')
+
+        # 取得經緯度與地址資訊 (用於標記位置與逆向地理編碼)
+        geo_bounds = self.data.get('geo_bounds', {})
+        lat = geo_bounds.get('lat')
+        lng = geo_bounds.get('lng')
         
-        # 計算經緯度
-        lat, lng = self._calculate_geo_bounds()
-        
-        # 自動推估縣市與區域
-        city, district = "", ""
+        city = ""
+        district = ""
+
         if lat and lng:
+            # 取得縣市與區域資訊 (優化為一次調用)
             city, district = self._reverse_geocode(lat, lng)
-        
-        # 使用 update_or_create 確保經緯度與描述會隨外部表單更新
+
+        # 4. 建立或更新 Project
         project, created = Project.objects.update_or_create(
             name=project_name,
             defaults={
@@ -246,6 +245,7 @@ class SinoTechAPIParser:
                 'project_code': project_code,
                 'tender_code': tender_code,
                 'tender_name': tender_name,
+                'doc_date': doc_date,
                 'latitude': lat,
                 'longitude': lng,
                 'city': city,
