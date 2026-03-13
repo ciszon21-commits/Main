@@ -166,6 +166,45 @@ class SinoTechAPIParser:
             
         return None, None
 
+    def _reverse_geocode(self, lat: float, lng: float) -> str:
+        """
+        使用 Nominatim API 根據經緯度推估縣市名稱。
+        """
+        if not lat or not lng:
+            return ""
+            
+        url = "https://nominatim.openstreetmap.org/reverse"
+        params = {
+            "format": "json",
+            "lat": lat,
+            "lon": lng,
+            "zoom": 10,  # 取得縣市層級
+            "addressdetails": 1,
+            "accept-language": "zh-TW"
+        }
+        headers = {
+            "User-Agent": "Site360-SinoTech-Sync-Agent"
+        }
+        
+        try:
+            logger.info(f"[Geocode] 請求逆向地理編碼：({lat}, {lng})")
+            resp = requests.get(url, params=params, headers=headers, timeout=5)
+            resp.raise_for_status()
+            data = resp.json()
+            address = data.get("address", {})
+            
+            # 臺灣地址的縣市名稱可能出現在不同欄位
+            city = address.get("city") or address.get("state") or address.get("county") or address.get("suburb")
+            
+            if city:
+                logger.info(f"[Geocode] 辨識出縣市：{city}")
+                return city
+                
+        except Exception as e:
+            logger.warning(f"[Geocode] 逆向地理編碼失敗：{e}")
+            
+        return ""
+
     def _get_or_create_project(self) -> Project:
         """建立或取得 Project 實例，並更新經緯度與描述以符合外部資料"""
         project_code = self.data.get('project_code', '')
@@ -191,13 +230,19 @@ class SinoTechAPIParser:
         # 計算經緯度
         lat, lng = self._calculate_geo_bounds()
         
+        # 自動推估縣市
+        city = ""
+        if lat and lng:
+            city = self._reverse_geocode(lat, lng)
+        
         # 使用 update_or_create 確保經緯度與描述會隨外部表單更新
         project, created = Project.objects.update_or_create(
             name=project_name,
             defaults={
                 'description': description,
                 'latitude': lat,
-                'longitude': lng
+                'longitude': lng,
+                'city': city
             }
         )
         
