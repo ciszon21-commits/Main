@@ -30,7 +30,7 @@
                                 value="{{ request.GET.tender_code }}" placeholder="篩選標別...">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label small text-muted">名稱</label>
+                            <label class="form-label small text-muted">工程名稱</label>
                             <input type="text" name="tender_name" class="form-control"
                                 value="{{ request.GET.tender_name }}" placeholder="篩選名稱...">
                         </div>
@@ -63,21 +63,23 @@
                 {% endif %}
                 <div class="card-body">
                     <h5 class="card-title">{{ project.name }}</h5>
-                    {% if project.project_code or project.tender_code %}
-                    <div class="mb-2">
+                    {% if project.project_code or project.tender_code or project.tender_name %}
+                    <div class="mb-2 d-flex flex-wrap gap-1">
                         {% if project.project_code %}
-                        <span class="badge bg-secondary opacity-75 mr-1">{{ project.project_code }}</span>
+                        <span class="badge bg-secondary opacity-75">{{ project.project_code }}</span>
                         {% endif %}
                         {% if project.tender_code %}
                         <span class="badge bg-info text-dark opacity-75">{{ project.tender_code }}</span>
+                        {% endif %}
+                        {% if project.tender_name %}
+                        <span class="badge bg-primary opacity-75">{{ project.tender_name }}</span>
                         {% endif %}
                     </div>
                     {% endif %}
                     <p class="card-text text-muted">{{ project.description|truncatechars:100 }}</p>
                     <p class="card-text text-muted small">
                         {% if project.city %}
-                        <i class="fas fa-map-marker-alt"></i> {{ project.city }}{{ project.district }} {{
-                        project.address_detail }}
+                        <i class="fas fa-map-marker-alt"></i> {{ project.city }}{{ project.district }} {{ project.address_detail }}
                         {% else %}
                         <span class="text-warning"><i class="fas fa-exclamation-circle"></i> 未輸入地址</span>
                         {% endif %}

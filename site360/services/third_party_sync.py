@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 import requests
 import uuid
@@ -212,13 +213,13 @@ class SinoTechAPIParser:
         project_code = self.data.get('project_code', '')
         tender_code = self.data.get('tender_code', '')
         tender_name = self.data.get('tender_name', '')
-        
-        # 組裝專案名稱: 預設格式 "6732D_第七標_機場捷運..."
-        project_name = f"{project_code}_{tender_code}_{tender_name}"
-        
-        # 組裝描述
         workitem = self.data.get('workitem', '')
         first_worklayer = self.data.get('first_worklayer', '')
+        
+        # 組裝專案名稱: 採用使用者要求格式 "{{workitem}}_{{first_worklayer}}"
+        project_name = f"{workitem}_{first_worklayer}"
+        
+        # 組裝描述
         doc_date = self.data.get('doc_date', '')
         form_uid = self.data.get('form_uid', '')
         
@@ -327,9 +328,6 @@ class SinoTechAPIParser:
         
         # 2. 處理 Scene（每張照片建一個 Scene）
         photos = self.data.get('photos', [])
-        workitem = self.data.get('workitem', '')
-        first_worklayer = self.data.get('first_worklayer', '')
-        scene_title_base = f"{workitem} - {first_worklayer}"
         
         # 取得現有的 Scene external_ids，避免重複建立
         existing_external_ids = set(project.scenes.values_list('external_id', flat=True))
@@ -350,7 +348,12 @@ class SinoTechAPIParser:
             if not photo.get('url') and not photo_uuid:
                 continue
                 
-            scene_title = f"{scene_title_base} ({idx+1})"
+            # 使用者需求：使用 photos 內的 name 來命名，並去掉副檔名
+            photo_name = photo.get('name', '')
+            if photo_name:
+                scene_title = os.path.splitext(photo_name)[0]
+            else:
+                scene_title = f"未命名場景 ({idx+1})"
             image_content = self._download_image(photo)
             
             if not image_content:

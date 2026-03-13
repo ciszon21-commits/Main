@@ -11,7 +11,7 @@ class Project(models.Model):
     # New Fields for API integration
     project_code = models.CharField(_("計畫編號"), max_length=100, blank=True, null=True)
     tender_code = models.CharField(_("標別"), max_length=100, blank=True, null=True)
-    tender_name = models.CharField(_("名稱"), max_length=200, blank=True, null=True)
+    tender_name = models.CharField(_("工程名稱"), max_length=200, blank=True, null=True)
 
     created_at = models.DateTimeField(_("建立時間"), auto_now_add=True)
     cover_image = models.ImageField(_("封面圖片"), upload_to='site360/projects/', blank=True, null=True)
