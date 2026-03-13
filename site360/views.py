@@ -452,13 +452,53 @@ def save_hotspot(request):
 
 def list_resources(request):
     """
-    API to list all available resources (hotspots) for the library.
-    Handles hotspots that have no scene (standalone resources).
+    API to list all available resources (hotspots) for the library with pagination and filtering.
     """
+    from django.db.models import Q
+    from django.core.paginator import Paginator
+
     try:
-        hotspots = Hotspot.objects.select_related('scene', 'scene__project').all().order_by('-created_at')
+        page_number = request.GET.get('page', 1)
+        search = request.GET.get('search', '').lower()
+        ht_type = request.GET.get('type', '')
+        project_name = request.GET.get('project', '')
+        form_uid = request.GET.get('form_uid', '')
+        is_recommend = request.GET.get('recommend', 'true').lower() == 'true'
+
+        # Base queryset
+        queryset = Hotspot.objects.select_related('scene', 'scene__project').all().order_by('-created_at')
+
+        # Filtering
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search) | Q(description__icontains=search)
+            )
+        
+        if ht_type:
+            if ht_type == 'text':
+                queryset = queryset.filter(hotspot_type__in=['text', 'text_hover'])
+            elif ht_type == 'image':
+                queryset = queryset.filter(hotspot_type__in=['image', 'image_hover'])
+            elif ht_type == 'video':
+                queryset = queryset.filter(hotspot_type__in=['video', 'video_hover'])
+            else:
+                queryset = queryset.filter(hotspot_type=ht_type)
+        
+        if project_name:
+            queryset = queryset.filter(scene__project__name=project_name)
+        
+        if form_uid:
+            if is_recommend:
+                queryset = queryset.filter(external_form_uid=form_uid)
+            else:
+                queryset = queryset.exclude(external_form_uid=form_uid)
+
+        # Pagination
+        paginator = Paginator(queryset, 15) # 15 items per page
+        page_obj = paginator.get_page(page_number)
+
         data = []
-        for h in hotspots:
+        for h in page_obj:
             item = {
                 'id': h.id,
                 'title': h.title,
@@ -478,7 +518,14 @@ def list_resources(request):
                 'external_form_uid': h.external_form_uid
             }
             data.append(item)
-        return JsonResponse({'status': 'success', 'resources': data})
+            
+        return JsonResponse({
+            'status': 'success', 
+            'resources': data,
+            'has_next': page_obj.has_next(),
+            'total_pages': paginator.num_pages,
+            'current_page': page_obj.number
+        })
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
