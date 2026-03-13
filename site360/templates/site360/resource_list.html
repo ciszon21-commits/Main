@@ -112,33 +112,43 @@
         <div class="card-body">
 
             {% if unassigned_hotspots %}
-            <div class="scene-section mb-4" data-scene-title="__unassigned__">
-                <h4 class="mt-2 mb-3 border-bottom pb-2 text-warning">
-                    <i class="fas fa-box-open"></i> 未分配至場景的素材
-                    <span class="badge bg-warning text-dark ms-2" style="font-size:0.7rem;">{{ unassigned_hotspots|length }}</span>
+            <div class="scene-section mb-4 p-3 rounded border border-warning border-opacity-25"
+                style="background-color: rgba(255, 193, 7, 0.03);" data-scene-title="__unassigned__">
+                <h4 class="mt-2 mb-3 border-bottom pb-2 text-warning d-flex align-items-center justify-content-between">
+                    <span>
+                        <i class="fas fa-box-open"></i> 外部匯入字卡 (待配置)
+                        {% if project %}
+                        <span class="badge bg-secondary ms-2" style="font-size: 0.8rem;">{{ project.name }}</span>
+                        {% endif %}
+                    </span>
+                    <span class="badge bg-warning text-dark" style="font-size:0.7rem;">{{ unassigned_hotspots|length }}</span>
                 </h4>
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover align-middle resource-table">
-                        <thead class="table-light">
+                <div class="table-responsive shadow-sm rounded" style="max-height: 500px; overflow-y: auto;">
+                    <table class="table table-bordered table-hover align-middle resource-table mb-0">
+                        <thead class="table-light sticky-top" style="z-index: 10; background-color: #f8f9fa;">
                             <tr>
-                                <th style="width: 8%;">類型</th>
-                                <th style="width: 17%;">標題</th>
-                                <th style="width: 22%;">說明內容</th>
-                                <th style="width: 12%;">危害類型</th>
-                                <th style="width: 12%;">狀態 / 引用</th>
-                                <th style="width: 12%;">媒體預覽</th>
-                                <th style="width: 17%;">操作</th>
+                                <th style="width: 10%;">專案/類型</th>
+                                <th style="width: 15%;">標題</th>
+                                <th style="width: 33%;">說明內容</th>
+                                <th style="width: 10%;">危害類型</th>
+                                <th style="width: 12%;">狀態 / 類別</th>
+                                <th style="width: 8%;">媒體</th>
+                                <th style="width: 12%;">操作</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for hotspot in unassigned_hotspots %}
-                            <tr class="resource-row" data-scene="__unassigned__" data-project="__none__"
+                            <tr class="resource-row" data-scene="__unassigned__"
+                                data-project="{{ hotspot.project.name|default:'__none__' }}"
                                 data-type="{{ hotspot.hotspot_type }}"
                                 data-has-image="{% if hotspot.image %}true{% else %}false{% endif %}"
                                 data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
                                 data-title="{{ hotspot.title }}" data-desc="{{ hotspot.description }}"
                                 data-status="{% if hotspot.source_hotspot %}referencing {% endif %}{% if hotspot.usage_count > 0 %}source {% endif %}{% if not hotspot.source_hotspot and hotspot.usage_count == 0 %}independent{% endif %}">
-                                <td>
+                                <td class="fw-bold">
+                                    {% if not project and hotspot.project %}
+                                    <div class="mb-1"><span class="badge bg-secondary" style="font-size: 0.65rem;">{{ hotspot.project.name }}</span></div>
+                                    {% endif %}
                                     <span class="badge badge-{{ hotspot.hotspot_type }}">{{ hotspot.get_hotspot_type_display }}</span>
                                 </td>
                                 <td class="fw-bold">{{ hotspot.title }}</td>
@@ -157,24 +167,22 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="d-flex flex-column align-items-center gap-1">
-                                        {% if hotspot.source_hotspot or hotspot.usage_count > 0 %}
+                                        <span
+                                            class="badge bg-warning bg-opacity-10 text-warning border border-warning mb-1">
+                                            <i class="fas fa-file-import"></i> 外部匯入字卡
+                                        </span>
                                         {% if hotspot.source_hotspot %}
                                         <span class="badge border border-secondary text-secondary bg-transparent"
                                             data-bs-toggle="tooltip" title="引用來源：{{ hotspot.source_hotspot.title }}">
-                                            <i class="fas fa-link"></i> 正在引用其他資源
+                                            <i class="fas fa-link"></i> 引用資源
                                         </span>
                                         {% endif %}
                                         {% if hotspot.usage_count > 0 %}
                                         <button class="btn btn-sm btn-info text-white py-0 px-1 view-references-btn"
                                             style="font-size: 0.75rem;" data-resource-id="{{ hotspot.id }}"
                                             data-resource-title="{{ hotspot.title }}" title="點擊查看引用細節">
-                                            <i class="fas fa-network-wired"></i> 被 {{ hotspot.usage_count }} 處引用中
+                                            <i class="fas fa-network-wired"></i> 被 {{ hotspot.usage_count }} 處引用
                                         </button>
-                                        {% endif %}
-                                        {% else %}
-                                        <span class="badge bg-warning bg-opacity-25 text-warning border border-warning">
-                                            <i class="fas fa-box-open"></i> 未放入場景
-                                        </span>
                                         {% endif %}
                                     </div>
                                 </td>
@@ -230,20 +238,27 @@
             {% if scenes %}
             {% for scene in scenes %}
             <div class="scene-section" data-scene-title="{{ scene.title }}">
-                <h4 class="mt-4 mb-3 border-bottom pb-2">{{ scene.title }}</h4>
+                <h4 class="mt-4 mb-3 border-bottom pb-2 d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        {{ scene.title }}
+                        {% if not project %}
+                        <span class="badge bg-secondary ms-2" style="font-size: 0.8rem;">{{ scene.project.name }}</span>
+                        {% endif %}
+                    </div>
+                    <span class="badge bg-primary text-white" style="font-size:0.7rem;">{{ scene.hotspots.all|length }}</span>
+                </h4>
                 {% if scene.hotspots.all %}
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover align-middle resource-table">
-                        <thead class="table-light">
+                <div class="table-responsive shadow-sm rounded" style="max-height: 500px; overflow-y: auto;">
+                    <table class="table table-bordered table-hover align-middle resource-table mb-0">
+                        <thead class="table-light sticky-top" style="z-index: 10; background-color: #f8f9fa;">
                             <tr>
-                                {% if all_projects %}<th style="width: 12%;">專案</th>{% endif %}
-                                <th style="width: 8%;">類型</th>
-                                <th style="width: {% if all_projects %}12%{% else %}15%{% endif %};">標題</th>
-                                <th style="width: 15%;">說明內容</th>
+                                <th style="width: 10%;">類型</th>
+                                <th style="width: 15%;">標題</th>
+                                <th style="width: 33%;">說明內容</th>
                                 <th style="width: 10%;">危害類型</th>
-                                <th style="width: 10%;">狀態 / 引用</th>
-                                <th style="width: 12%;">媒體預覽</th>
-                                <th style="width: 15%;">操作</th>
+                                <th style="width: 12%;">狀態 / 類別</th>
+                                <th style="width: 8%;">媒體</th>
+                                <th style="width: 12%;">操作</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -254,9 +269,6 @@
                                 data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
                                 data-title="{{ hotspot.title }}" data-desc="{{ hotspot.description }}"
                                 data-status="{% if hotspot.source_hotspot %}referencing {% endif %}{% if hotspot.usage_count > 0 %}source {% endif %}{% if not hotspot.source_hotspot and hotspot.usage_count == 0 %}independent{% endif %}">
-                                {% if all_projects %}
-                                <td><span class="badge bg-secondary">{{ scene.project.name }}</span></td>
-                                {% endif %}
                                 <td>
                                     <span class="badge badge-{{ hotspot.hotspot_type }}">{{ hotspot.get_hotspot_type_display }}</span>
                                 </td>
@@ -278,22 +290,24 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="d-flex flex-column align-items-center gap-1">
-                                        <!-- Status Badge -->
-                                        {% if hotspot.source_hotspot or hotspot.usage_count > 0 %}
+                                        <span
+                                            class="badge bg-success bg-opacity-10 text-success border border-success mb-1">
+                                            <i class="fas fa-check-circle"></i> 已配置於場景
+                                        </span>
                                         {% if hotspot.source_hotspot %}
                                         <span class="badge border border-secondary text-secondary bg-transparent"
                                             data-bs-toggle="tooltip" title="引用來源：{{ hotspot.source_hotspot.title }}">
-                                            <i class="fas fa-link"></i> 正在引用其他資源
+                                            <i class="fas fa-link"></i> 引用資源
                                         </span>
                                         {% endif %}
                                         {% if hotspot.usage_count > 0 %}
                                         <button class="btn btn-sm btn-info text-white py-0 px-1 view-references-btn"
                                             style="font-size: 0.75rem;" data-resource-id="{{ hotspot.id }}"
                                             data-resource-title="{{ hotspot.title }}" title="點擊查看引用細節">
-                                            <i class="fas fa-network-wired"></i> 被 {{ hotspot.usage_count }} 處引用中
+                                            <i class="fas fa-network-wired"></i> 被 {{ hotspot.usage_count }} 處引用
                                         </button>
                                         {% endif %}
-                                        {% else %}
+                                        {% if not hotspot.source_hotspot and hotspot.usage_count == 0 %}
                                         <span class="badge bg-secondary-subtle text-secondary border">
                                             <i class="fas fa-square"></i> 獨立
                                         </span>

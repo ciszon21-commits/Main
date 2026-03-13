@@ -35,4 +35,5 @@ urlpatterns = [
     path('api/resource/create/', views.create_standalone_hotspot, name='create_standalone_resource'),
     path('api/hotspot/data/<int:pk>/', views.hotspot_data, name='hotspot_data'),
     path('user-activity-logs/', views.UserActivityLogListView.as_view(), name='user_activity_logs'),
+    path('api/form-integrate/', views.integrate_from_cms, name='integrate_from_cms'),
 ]
