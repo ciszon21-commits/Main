@@ -5,35 +5,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SinoNATM:SHAPE</title>
+    <title>SinoNATM×ⓈⒽⒶⓅⒺ</title>
     <link rel="stylesheet" href="{% static 'CircleOptimizer/css/style.css' %}">
 </head>
 
 <body>
     <div class="container">
         <header>
-            <h1> ⛰️ SinoNATM:SHAPE</h1>
-            <p class="subtitle">山岳隧道斷面設計及淨空包絡線檢核工具</p>
+            <h1 class="header-title">
+                <img src="{% static 'SinoNATM.png' %}" alt="Sinotech Logo" class="header-logo">
+                <span class="lightning-text">SinoNATM×ⓈⒽⒶⓅⒺ</span>
+            </h1>
+            <p class="subtitle">山岳隧道設計未來式</p>
         </header>
 
         <div class="main-content">
             <!-- 左側：輸入區 -->
             <div class="input-section">
-                <div class="card">
-                    <h2>📋 隧道專案資訊</h2>
+                <div class="card project-info-rows">
+                    <h2>📋 專案基本資訊</h2>
                     <div class="form-group">
-                        <label for="projectNumber">計畫編號:</label>
-                        <input type="text" id="projectNumber" placeholder="例：8888B" value="0000B">
-                        <label for="projectName">工程名稱:</label>
-                        <input type="text" id="projectName" placeholder="例：XX隧道工程" value="中興大業隧道工程">
-                        <label for="tunnelName">隧道名稱:</label>
-                        <input type="text" id="tunnelName" placeholder="例：XX隧道" value="南京三民隧道">
+                        <div class="form-row">
+                            <label for="projectNumber">計畫編號:</label>
+                            <input type="text" id="projectNumber" placeholder="例：8888B" value="0000B">
+                        </div>
+                        <div class="form-row">
+                            <label for="projectName">工程名稱:</label>
+                            <input type="text" id="projectName" placeholder="例：XX隧道工程" value="中興大業工程">
+                        </div>
+                        <div class="form-row">
+                            <label for="tunnelName">隧道名稱:</label>
+                            <input type="text" id="tunnelName" placeholder="例：XX隧道" value="南京三民隧道">
+                        </div>
                         <div class="row-buttons"
                             style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
-                            <button id="openProjectBtn" class="btn btn-primary" style="font-size: 1.2rem;">📂
-                                讀取隧道專案</button>
-                            <button id="saveProjectBtn" class="btn btn-primary" style="font-size: 1.2rem;">💾
-                                儲存隧道專案</button>
+                            <button id="openProjectBtn" class="btn btn-primary btn-wide" style="font-size: 1.2rem;">📂
+                                開啟專案</button>
+                            <button id="saveProjectBtn" class="btn btn-primary btn-wide" style="font-size: 1.2rem;">💾
+                                儲存專案</button>
                         </div>
                     </div>
                     <div id="shapeInfo" class="info-box" style="display:none;">
@@ -41,29 +50,37 @@
                 </div>
 
                 <div class="card">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <h2 style="margin: 0;">🚇 淨空包絡線模組</h2>
-
+                    <h2>🔢 隧道控制參數</h2>
+                    <div class="form-group">
+                        <div class="form-row">
+                            <label for="tunnelType">隧道設計斷面形狀:</label>
+                            <select id="tunnelType" class="form-control"
+                                onchange="handleResetConfirmation(this); autoFitViewBox();">
+                                <option value="circular">正圓形</option>
+                                <option value="horseshoe">馬蹄形</option>
+                                <option value="double_circle">雙心圓</option>
+                                <option value="triple" selected>三心圓</option>
+                                <option value="quad">四心圓</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="minThicknessTop">頂拱最小襯砌厚度(m):</label>
+                            <input type="number" id="minThicknessTop" class="form-control" step="0.01" value="0.30"
+                                min="0.30">
+                        </div>
+                        <div class="form-row">
+                            <label for="minThicknessBottom">仰拱最小襯砌厚度(m):</label>
+                            <input type="number" id="minThicknessBottom" class="form-control" step="0.01" value="0.30"
+                                min="0.30">
+                        </div>
+                        <div class="form-row">
+                            <label for="excavationThickness">初期支撐預估厚度(m):</label>
+                            <input type="number" id="excavationThickness" class="form-control" step="0.01" value="0.15"
+                                min="0.10">
+                        </div>
                     </div>
-                    <div id="envelopesContainer" class="envelopes-container">
-                        <!-- Dynamic envelopes will be rendered here -->
+                    <div id="shapeInfo" class="info-box" style="display:none;">
                     </div>
-                    <label for="projectNumber"
-                        style="font-weight: bold; font-size: 1.2rem; display: block; margin-bottom: 8px;">需要更多淨空包絡線嗎?</label>
-                    <div class="row-buttons" style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
-                        <button id="addEnvelopeBtn" class="btn btn-primary"
-                            style="margin-bottom: 16px; font-size: 1.2rem; ">🖕🏼 手動建立</button>
-                        <button id="importDxfBtn" class="btn btn-primary"
-                            style="margin-bottom: 16px; font-size: 1.2rem; ">📥 匯入圖檔</button>
-                        <input type="file" id="dxfInput" multiple accept=".dxf" style="display:none;">
-                    </div>
-
-
-                    <p class="hint">說明：<BR>
-                        1. 可套用多組淨空包絡線，採用手動繪製或匯入DXF圖檔<br>
-                        2. 控制點座標採用手動輸入或直接拖曳調整。
-                    </p>
                 </div>
 
                 <div class="card">
@@ -75,7 +92,7 @@
                                 <strong>程式簡介：</strong><br>
                                 本程式適用於山岳隧道斷面設計，內建「隧道斷面設計模組」與「淨空包絡線模組」，可直接套用多組淨空包絡線樣板(如公路、鐵路等)或匯入淨空包絡線DXF檔，進行隧道內空檢核及斷面調整，使用者可依據實際需求快速建立隧道斷面，並產出設計成果(如CSV或DXF)。<br><br>
                                 <strong>協助資訊：</strong><br>
-                                如有使用上問題，請聯絡開發者 C.M. CHANG<br>
+                                如有問題，請聯絡 Chang Chih-Ming<br>
                                 聯絡信箱：
                                 <a href="mailto:cmchang@mail.sinotech.com.tw">cmchang@mail.sinotech.com.tw</a>
                             </p>
@@ -89,30 +106,20 @@
             <div class="visualization-section">
                 <div class="card">
                     <h2>✏️ 隧道斷面設計模組</h2>
-                    <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
-                        <label for="tunnelType" style="margin: 0;">隧道斷面類型:</label>
-                        <select id="tunnelType" class="form-control" style="font-size: 1em; padding: 2px;">
-                            <option value="triple">三心圓</option>
-                        </select>
-                        <label for="minThicknessTop" style="margin: 0;">頂拱最小厚度(m):</label>
-                        <input type="number" id="minThicknessTop" class="form-control"
-                            style="width: 70px; font-size: 1em; padding: 2px;" step="0.01" value="0.30" min="0">
-                        <label for="minThicknessBottom" style="margin: 0;">仰拱最小厚度(m):</label>
-                        <input type="number" id="minThicknessBottom" class="form-control"
-                            style="width: 70px; font-size: 1em; padding: 2px;" step="0.01" value="0.30" min="0">
-                        <label for="excavationThickness" style="margin: 0;">預估開挖厚度(m):</label>
-                        <input type="number" id="excavationThickness" class="form-control"
-                            style="width: 80px; font-size: 1em; padding: 2px;" step="0.01" value="0.20" min="0">
-                    </div>
                     <div class="row-buttons"
                         style="margin-top: 10px; margin-bottom: 16px; display: flex; gap: 10px; align-items: center;">
-                        <button id="initSectionBtn" class="btn btn-secondary" style="font-size: 1.2rem;">🆕
-                            重設斷面</button>
-                        <button id="tempSaveSectionBtn" class="btn btn-secondary" style="font-size: 1.2rem;">📍
-                            暫存斷面</button>
-                        <button id="restoreSectionBtn" class="btn btn-secondary" style="font-size: 1.2rem;">↩️
-                            復原斷面</button>
-                        <button id="autoFitBtn" class="btn btn-secondary" style="font-size: 1.2rem;">🔍 最適畫面</button>
+                        <button id="initSectionBtn" class="btn btn-secondary btn-smwide" title="重新設定隧道斷面類型"
+                            style="font-size: 1.2rem;">🔄 重置</button>
+                        <button id="tempSaveSectionBtn" class="btn btn-secondary btn-smwide" title="暫時儲存目前隧道斷面"
+                            style="font-size: 1.2rem;">⏺️
+                            暫存</button>
+                        <button id="restoreSectionBtn" class="btn btn-secondary btn-smwide" title="復原暫時儲存之隧道斷面"
+                            style="font-size: 1.2rem;">↩️
+                            復原</button>
+                        <button id="autoFitBtn" class="btn btn-secondary btn-smwide" title="將畫面縮放到最適合尺寸"
+                            style="font-size: 1.2rem;">🔍 縮放</button>
+                        <button id="saveAsCSVBtn" class="btn btn-success" style="font-size: 1.2rem;">📄 匯出CSV</button>
+                        <button id="saveAsDXFBtn" class="btn btn-success" style="font-size: 1.2rem;">🎨 匯出DXF</button>
                     </div>
                     <div id="shapeInfo" class="info-box" style="display:none;">
                     </div>
@@ -138,14 +145,53 @@
                 <div class="card" id="resultsCard" style="display:none;">
                     <h2>🧮 隧道斷面設計成果</h2>
                     <div id="resultsContainer"></div>
-                    <div class="row-buttons" style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
-                        <button id="saveAsCSVBtn" class="btn btn-success" style="font-size: 1.2rem;">📄 匯出CSV檔案</button>
-                        <button id="saveAsDXFBtn" class="btn btn-success" style="font-size: 1.2rem;">🎨 匯出DXF檔案</button>
-                    </div>
+                    <div id="resultsContainer"></div>
                 </div>
-                <p class="hint center" style="color: white;">
-                    © 2026 Geotechnical Engineering Department, SINOTECH Engineering Consultants, Inc.
+                <p class="footer-copyright center">
+                    © 2026 Geotechnical Engineering Department, SINOTECH Engineering Consultants, Ltd.
                 </p>
+            </div>
+
+            <!-- 右側：淨空包絡線區 -->
+            <div class="envelope-section">
+                <div class="card">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h2 style="margin: 0;">🚇 淨空包絡線模組</h2>
+                        <div style="display: flex; gap: 10px;">
+                            <label
+                                style="display: flex; align-items: center; gap: 3px; font-weight: bold; cursor: pointer;">
+                                <input type="checkbox" id="globalEnvVisible" checked
+                                    onchange="toggleAllEnvelopesVisible(this.checked)"> 顯示
+                            </label>
+                            <label
+                                style="display: flex; align-items: center; gap: 3px; font-weight: bold; cursor: pointer;">
+                                <input type="checkbox" id="globalEnvLabels" checked
+                                    onchange="toggleAllEnvelopeLabels(this.checked)"> 標記
+                            </label>
+                        </div>
+                    </div>
+                    <div id="envelopesContainer" class="envelopes-container">
+                        <!-- Dynamic envelopes will be rendered here -->
+                    </div>
+                    <label for="projectNumber"
+                        style="font-weight: bold; font-size: 1.2rem; display: block; margin-bottom: 8px;">需要更多淨空包絡線嗎?</label>
+                    <div class="row-buttons" style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
+                        <button id="addEnvelopeBtn" class="btn btn-vibrant-orange btn-wide" title="套用標準樣板建立淨空包絡線"
+                            style="margin-bottom: 16px; font-size: 1.2rem; ">🚀 快速新增</button>
+                        <button id="importDxfBtn" class="btn btn-vibrant-cyan btn-wide" title="匯入DXF圖檔建立淨空包絡線"
+                            style="margin-bottom: 16px; font-size: 1.2rem; ">📥 匯入圖檔</button>
+                        <input type="file" id="dxfInput" multiple accept=".dxf" style="display:none;">
+                    </div>
+
+
+                    <p class="hint">說明：<BR>
+                        1. "快速新增"使用標準樣板快速建立淨空包絡線。<br>
+                        2. "匯入圖檔"匯入DXF圖檔建立淨空包絡線。<br>
+                        3. 本模組可同時套用多組淨空包絡線。<br>
+                        4. 控制點座標採用「手動輸入」或「直接拖曳」調整。
+                    </p>
+                </div>
             </div>
         </div>
     </div>
