@@ -195,6 +195,12 @@
                                     {% elif hotspot.video %}
                                     <video src="{{ hotspot.video.url }}" class="img-thumbnail"
                                         style="max-height: 100px;" controls muted></video>
+                                    {% elif hotspot.video_url %}
+                                    <div class="text-center border rounded p-1 p bg-light">
+                                        <i class="fab fa-youtube fa-2x text-danger mb-1"></i>
+                                        <div class="small text-truncate" style="max-width: 100px; font-size: 0.7rem;"
+                                            title="{{ hotspot.video_url }}">{{ hotspot.video_url }}</div>
+                                    </div>
                                     {% else %}
                                     <span class="text-muted">-</span>
                                     {% endif %}
@@ -208,7 +214,8 @@
                                             data-has-image="{% if hotspot.image %}true{% else %}false{% endif %}"
                                             data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
                                             data-image-url="{% if hotspot.image %}{{ hotspot.image.url }}{% endif %}"
-                                            data-video-url="{% if hotspot.video %}{{ hotspot.video.url }}{% endif %}"
+                                            data-video-url="{% if hotspot.video %}{{ hotspot.video.url }}{% elif hotspot.video_url %}{{ hotspot.video_url }}{% endif %}"
+                                            data-video-external-url="{{ hotspot.video_url|default:'' }}"
                                             data-is-referencing="{% if hotspot.source_hotspot %}true{% else %}false{% endif %}"
                                             data-hazard-types="{% for ht in hotspot.hazard_types.all %}{{ ht.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
                                             <i class="fas fa-edit"></i> 編輯
@@ -323,6 +330,12 @@
                                     {% elif hotspot.video %}
                                     <video src="{{ hotspot.video.url }}" class="img-thumbnail"
                                         style="max-height: 100px;" controls muted></video>
+                                    {% elif hotspot.video_url %}
+                                    <div class="text-center border rounded p-1 bg-light">
+                                        <i class="fab fa-youtube fa-2x text-danger mb-1"></i>
+                                        <div class="small text-truncate" style="max-width: 100px; font-size: 0.7rem;"
+                                            title="{{ hotspot.video_url }}">{{ hotspot.video_url }}</div>
+                                    </div>
                                     {% else %}
                                     <span class="text-muted">-</span>
                                     {% endif %}
@@ -336,7 +349,8 @@
                                             data-has-image="{% if hotspot.image %}true{% else %}false{% endif %}"
                                             data-has-video="{% if hotspot.video %}true{% else %}false{% endif %}"
                                             data-image-url="{% if hotspot.image %}{{ hotspot.image.url }}{% endif %}"
-                                            data-video-url="{% if hotspot.video %}{{ hotspot.video.url }}{% endif %}"
+                                            data-video-url="{% if hotspot.video %}{{ hotspot.video.url }}{% elif hotspot.video_url %}{{ hotspot.video_url }}{% endif %}"
+                                            data-video-external-url="{{ hotspot.video_url|default:'' }}"
                                             data-is-referencing="{% if hotspot.source_hotspot %}true{% else %}false{% endif %}"
                                             data-hazard-types="{% for ht in hotspot.hazard_types.all %}{{ ht.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
                                             <i class="fas fa-edit"></i> 編輯
@@ -440,9 +454,30 @@
                         <small class="form-text text-muted">支援 JPG, PNG, GIF 等格式</small>
                     </div>
                     <div class="mb-3 d-none" id="create_videoSection">
-                        <label for="create_video" class="form-label">上傳影片</label>
-                        <input type="file" class="form-control" id="create_video" name="video" accept="video/*">
-                        <small class="form-text text-muted">支援 MP4, WebM 等格式</small>
+                        <label class="form-label">影片來源</label>
+                        <div class="btn-group w-100 mb-2" role="group">
+                            <input type="radio" class="btn-check" name="create_video_source" id="createVideoSourceFile"
+                                value="file" checked onchange="updateResourceFormTabs('create')">
+                            <label class="btn btn-outline-primary" for="createVideoSourceFile"><i
+                                    class="fas fa-file-video"></i> 上傳檔案</label>
+
+                            <input type="radio" class="btn-check" name="create_video_source" id="createVideoSourceUrl"
+                                value="url" onchange="updateResourceFormTabs('create')">
+                            <label class="btn btn-outline-primary" for="createVideoSourceUrl"><i
+                                    class="fab fa-youtube"></i> 影片網址</label>
+                        </div>
+
+                        <div id="create_videoFileGroup">
+                            <label for="create_video" class="form-label">選擇影片檔案</label>
+                            <input type="file" class="form-control" id="create_video" name="video" accept="video/*">
+                            <small class="form-text text-muted">支援 MP4, WebM 等格式</small>
+                        </div>
+
+                        <div id="create_videoUrlGroup" class="d-none">
+                            <label for="create_video_url" class="form-label">影片網址 (YouTube 或 mp4 連結)</label>
+                            <input type="text" class="form-control" id="create_video_url" name="video_url"
+                                placeholder="https://www.youtube.com/watch?v=...">
+                        </div>
                     </div>
                 </form>
             </div>
@@ -524,9 +559,30 @@
                     </div>
 
                     <div class="mb-3 d-none" id="videoUploadSection">
-                        <label for="edit_video" class="form-label">上傳新影片</label>
-                        <input type="file" class="form-control" id="edit_video" name="video" accept="video/*">
-                        <small class="form-text text-muted">支援 MP4, WebM 等格式</small>
+                        <label class="form-label">修改影片來源</label>
+                        <div class="btn-group w-100 mb-2" role="group">
+                            <input type="radio" class="btn-check" name="edit_video_source" id="editVideoSourceFile"
+                                value="file" checked onchange="updateResourceFormTabs('edit')">
+                            <label class="btn btn-outline-primary" for="editVideoSourceFile"><i
+                                    class="fas fa-file-video"></i> 上傳檔案</label>
+
+                            <input type="radio" class="btn-check" name="edit_video_source" id="editVideoSourceUrl"
+                                value="url" onchange="updateResourceFormTabs('edit')">
+                            <label class="btn btn-outline-primary" for="editVideoSourceUrl"><i
+                                    class="fab fa-youtube"></i> 影片網址</label>
+                        </div>
+
+                        <div id="edit_videoFileGroup">
+                            <label for="edit_video" class="form-label">上傳新影片檔案</label>
+                            <input type="file" class="form-control" id="edit_video" name="video" accept="video/*">
+                            <small class="form-text text-muted">支援 MP4, WebM 等格式</small>
+                        </div>
+
+                        <div id="edit_videoUrlGroup" class="d-none">
+                            <label for="edit_video_url" class="form-label">影片網址 (YouTube 或 mp4 連結)</label>
+                            <input type="text" class="form-control" id="edit_video_url" name="video_url"
+                                placeholder="https://www.youtube.com/watch?v=...">
+                        </div>
                     </div>
                 </form>
             </div>
@@ -620,6 +676,31 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
+    function updateResourceFormTabs(prefix) {
+        const source = $(`input[name="${prefix}_video_source"]:checked`).val();
+        if (source === 'file') {
+            $(`#${prefix}_videoFileGroup`).removeClass('d-none');
+            $(`#${prefix}_videoUrlGroup`).addClass('d-none');
+        } else {
+            $(`#${prefix}_videoFileGroup`).addClass('d-none');
+            $(`#${prefix}_videoUrlGroup`).removeClass('d-none');
+        }
+    }
+</script>
+
+<script>
+    // Helper to detect YouTube URL and get embed link
+    const getYouTubeEmbedUrl = (url) => {
+        if (!url) return null;
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        const match = url.match(regExp);
+        if (match && match[2].length === 11) {
+            const origin = window.location.origin;
+            return `https://www.youtube.com/embed/${match[2]}?autoplay=1&mute=1&enablejsapi=1&origin=${encodeURIComponent(origin)}&rel=0&playsinline=1`;
+        }
+        return null;
+    };
+
     document.addEventListener('DOMContentLoaded', function () {
         // Copy Button Logic
         const copyBtns = document.querySelectorAll('.copy-btn');
@@ -839,18 +920,29 @@
                 const title = this.dataset.title;
                 const desc = this.dataset.desc;
                 const type = this.dataset.type;
-                const isReferencing = this.dataset.isReferencing === 'true';
-                const usageCount = parseInt(this.dataset.usageCount || '0');
                 const hasImage = this.dataset.hasImage === 'true';
                 const hasVideo = this.dataset.hasVideo === 'true';
                 const imageUrl = this.dataset.imageUrl;
                 const videoUrl = this.dataset.videoUrl;
+                const videoExternalUrl = this.dataset.videoExternalUrl;
+                const usageCount = this.dataset.usageCount || 0;
+                const isReferencing = this.dataset.isReferencing === 'true';
 
                 // Populate form
                 document.getElementById('edit_resource_id').value = id;
                 document.getElementById('edit_title').value = title;
                 document.getElementById('edit_description').value = desc;
                 document.getElementById('edit_type').value = type;
+
+                // Handle Video Source Toggle in Edit Modal
+                if (videoExternalUrl) {
+                    $('#editVideoSourceUrl').prop('checked', true);
+                    $('#edit_video_url').val(videoExternalUrl);
+                } else {
+                    $('#editVideoSourceFile').prop('checked', true);
+                    $('#edit_video_url').val('');
+                }
+                updateResourceFormTabs('edit');
                 // Populate hazard type
                 let hazardTypesRaw = this.dataset.hazardTypes;
 
@@ -882,7 +974,12 @@
                 if (hasImage && imageUrl) {
                     previewContainer.innerHTML = `<img src="${imageUrl}" class="img-fluid" style="max-height: 200px;" alt="預覽">`;
                 } else if (hasVideo && videoUrl) {
-                    previewContainer.innerHTML = `<video src="${videoUrl}" class="img-fluid" style="max-height: 200px;" controls></video>`;
+                    const youtubeUrl = getYouTubeEmbedUrl(videoUrl);
+                    if (youtubeUrl) {
+                        previewContainer.innerHTML = `<div class="ratio ratio-16x9"><iframe src="${youtubeUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`;
+                    } else {
+                        previewContainer.innerHTML = `<video src="${videoUrl}" class="img-fluid" style="max-height: 200px;" controls></video>`;
+                    }
                 } else {
                     previewContainer.innerHTML = '<p class="text-muted mb-0">無媒體</p>';
                 }
@@ -1319,6 +1416,10 @@
                 updateCreateSections(this.value);
             });
             updateCreateSections(createTypeSelect.value);
+
+            // Set default toggle state
+            $('#createVideoSourceFile').prop('checked', true);
+            updateResourceFormTabs('create');
 
             const createBtn = document.getElementById('createResourceBtn');
             const createForm = document.getElementById('createResourceForm');

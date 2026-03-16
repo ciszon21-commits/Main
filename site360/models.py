@@ -92,6 +92,7 @@ class Hotspot(models.Model):
     description = models.TextField(_("詳細說明"), blank=True)
     image = models.ImageField(_("圖片內容"), upload_to='site360/hotspots/images/', blank=True, null=True)
     video = models.FileField(_("影片內容"), upload_to='site360/hotspots/videos/', blank=True, null=True)
+    video_url = models.CharField(_("影片網址"), max_length=500, blank=True, null=True, help_text="支援 YouTube 或外部影片連結")
     icon = models.CharField(_("圖示"), max_length=50, default='fas fa-info-circle')
     icon_color = models.CharField(_("圖示顏色"), max_length=20, default='#ffffff')
     hazard_type = models.ForeignKey(
