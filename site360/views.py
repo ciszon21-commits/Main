@@ -352,6 +352,7 @@ def save_hotspot(request):
             description = request.POST.get('description')
             icon = request.POST.get('icon')
             icon_color = request.POST.get('icon_color')
+            video_url = request.POST.get('video_url')
             
             hazard_types_vals = request.POST.getlist('hazard_types')
             hazard_types_ids = [int(val) for val in hazard_types_vals if val]
@@ -383,6 +384,7 @@ def save_hotspot(request):
                 hotspot.description = description
                 hotspot.icon = icon
                 hotspot.icon_color = icon_color
+                hotspot.video_url = video_url
                 # hotspot.hazard_type_id = hazard_type_id # Legacy field
                 hotspot.save() # Save first before setting M2M
                 hotspot.hazard_types.set(hazard_types_ids)
@@ -400,6 +402,7 @@ def save_hotspot(request):
                     title=title,
                     description=description,
                     icon=icon,
+                    video_url=video_url,
                 )
                 hotspot.save()
                 hotspot.hazard_types.set(hazard_types_ids)
@@ -419,6 +422,12 @@ def save_hotspot(request):
                     hotspot.video = source_hotspot.video
                     # 引用影片資源時，清除圖片字段以確保互斥
                     hotspot.image = None
+                
+                # Copy Video URL if no new data provided
+                if source_hotspot.video_url and not video_url and not request.FILES.get('image') and not request.FILES.get('video'):
+                    hotspot.video_url = source_hotspot.video_url
+                    hotspot.image = None
+                    hotspot.video = None
             
             # Handle File Uploads (Overrides imported files)
             # 圖片和影片互斥：上傳圖片時清除影片，上傳影片時清除圖片
@@ -429,7 +438,14 @@ def save_hotspot(request):
             
             if 'video' in request.FILES:
                 hotspot.video = request.FILES['video']
-                # 清除圖片字段，確保不併存
+                # 清除圖片與網址字段，確保不併存
+                hotspot.image = None
+                hotspot.video_url = None
+            
+            # 如果提供了影片網址且沒有新上傳影片
+            if video_url and not request.FILES.get('video'):
+                hotspot.video_url = video_url
+                hotspot.video = None
                 hotspot.image = None
             
             # 根據熱點類型清理不需要的媒體文件
@@ -443,6 +459,7 @@ def save_hotspot(request):
             elif hotspot_type in ['video', 'video_hover']:
                 # 影片類型不需要圖片
                 hotspot.image = None
+                # 如果既沒網址也沒檔案，則視為空 (雖然表單應驗證，但後端加強防禦)
                 
             hotspot.save()
             
@@ -514,9 +531,9 @@ def list_resources(request):
                 'is_unassigned': h.scene is None,
                 'is_external_card': h.scene is None and h.project is not None,
                 'thumb_url': f"{h.image.url}?v={int(h.updated_at.timestamp())}" if h.image and h.hotspot_type in ['image', 'image_hover'] else None,
-                'video_url': f"{h.video.url}?v={int(h.updated_at.timestamp())}" if h.video else None,
-                'has_video': bool(h.video),
-                'icon': h.icon,
+                'video_url': f"{h.video.url}?v={int(h.updated_at.timestamp())}" if h.video else (h.video_url if h.video_url else None),
+                'video_external_url': h.video_url,
+                'has_video': bool(h.video) or bool(h.video_url),
                 'icon_color': h.icon_color,
                 'usage_count': h.copied_by.count(),
                 'hazard_types': [ht.id for ht in h.hazard_types.all()],
@@ -869,8 +886,8 @@ def project_tour_data(request, pk):
                     "icon": hs.icon, 
                     "icon_color": hs.icon_color,
                     "image": f"{hs.image.url}?v={int(hs.updated_at.timestamp())}" if hs.image else "",
-                    "video": f"{reverse('site360:serve_hotspot_video', kwargs={'pk': hs.id})}?v={int(hs.updated_at.timestamp())}" if hs.video else "",
-                    "video_raw": hs.video.url if hs.video else "", # Raw URL for comparison checks
+                    "video": f"{reverse('site360:serve_hotspot_video', kwargs={'pk': hs.id})}?v={int(hs.updated_at.timestamp())}" if hs.video else (hs.video_url if hs.video_url else ""),
+                    "video_raw": hs.video.url if hs.video else (hs.video_url if hs.video_url else ""), # Raw URL for comparison checks
                     "source_hotspot_id": hs.source_hotspot.id if hs.source_hotspot else None,
                     "source_hotspot_title": hs.source_hotspot.title if hs.source_hotspot else None,
                     "hazard_types": [
@@ -922,12 +939,13 @@ def edit_resource(request, pk):
             hotspot.title = title
             hotspot.description = description
             hotspot.hotspot_type = hotspot_type
+            video_url = request.POST.get('video_url')
             # hotspot.hazard_type_id = hazard_type_id # Legacy field
             
             # Check if this is a referencing hotspot
             if hotspot.source_hotspot:
                 # If referencing, do NOT allow changing media files
-                if 'image' in request.FILES or 'video' in request.FILES:
+                if 'image' in request.FILES or 'video' in request.FILES or video_url:
                     return JsonResponse({
                         'status': 'error', 
                         'message': '此為引用資源，無法修改媒體內容。請編輯原始資源。'
@@ -936,7 +954,7 @@ def edit_resource(request, pk):
                 # If referencing, do NOT allow changing media type category
                 # Determine current media category
                 current_has_image = bool(hotspot.image)
-                current_has_video = bool(hotspot.video)
+                current_has_video = bool(hotspot.video) or bool(hotspot.video_url)
                 
                 # Determine new media category from type
                 new_is_image_type = hotspot_type in ['image', 'image_hover']
@@ -966,6 +984,12 @@ def edit_resource(request, pk):
                 hotspot.video = None
             elif 'video' in request.FILES:
                 hotspot.video = request.FILES['video']
+                hotspot.image = None
+                hotspot.video_url = None
+            
+            if video_url and not request.FILES.get('video'):
+                hotspot.video_url = video_url
+                hotspot.video = None
                 hotspot.image = None
             
             # Clean up media based on type

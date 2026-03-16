@@ -702,11 +702,36 @@
                         </div>
 
                         <div class="mb-3 d-none" id="videoField">
-                            <label class="form-label">上傳影片</label>
-                            <input type="file" class="form-control" name="video" id="videoUploadInput" accept="video/*">
+                            <label class="form-label">影片來源</label>
+                            <div class="btn-group w-100 mb-2" role="group">
+                                <input type="radio" class="btn-check" name="video_source" id="videoSourceFile"
+                                    value="file" checked onchange="updateVideoForm()">
+                                <label class="btn btn-outline-primary" for="videoSourceFile"><i
+                                        class="fas fa-file-video"></i> 上傳檔案</label>
+
+                                <input type="radio" class="btn-check" name="video_source" id="videoSourceUrl"
+                                    value="url" onchange="updateVideoForm()">
+                                <label class="btn btn-outline-primary" for="videoSourceUrl"><i
+                                        class="fab fa-youtube"></i> 影片網址</label>
+                            </div>
+
+                            <div id="videoFileGroup">
+                                <label class="form-label">選擇影片檔案</label>
+                                <input type="file" class="form-control" name="video" id="videoUploadInput"
+                                    accept="video/*">
+                            </div>
+
+                            <div id="videoUrlGroup" class="d-none">
+                                <label class="form-label">影片網址 (YouTube 或 mp4 連結)</label>
+                                <input type="text" class="form-control" name="video_url" id="videoUrlInput"
+                                    placeholder="https://www.youtube.com/watch?v=...">
+                            </div>
+
                             <div id="importedVideoPreview" class="mt-2 d-none">
-                                <small class="text-muted d-block mb-1">目前引用的影片：</small>
-                                <video src="" controls class="w-100" style="max-height: 200px;"></video>
+                                <small class="text-muted d-block mb-1">目前內容：</small>
+                                <div id="videoPreviewContent">
+                                    <!-- Preview content injected by JS -->
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -819,6 +844,29 @@
             return type.replace('_hover', '');
         };
 
+        // Helper to detect YouTube URL and get embed link
+        const getYouTubeEmbedUrl = (url) => {
+            if (!url) return null;
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            if (match && match[2].length === 11) {
+                const origin = window.location.origin;
+                return `https://www.youtube.com/embed/${match[2]}?autoplay=1&mute=1&enablejsapi=1&origin=${encodeURIComponent(origin)}&rel=0`;
+            }
+            return null;
+        };
+
+        function updateVideoForm() {
+            const source = $('input[name="video_source"]:checked').val();
+            if (source === 'file') {
+                $('#videoFileGroup').removeClass('d-none');
+                $('#videoUrlGroup').addClass('d-none');
+            } else {
+                $('#videoFileGroup').addClass('d-none');
+                $('#videoUrlGroup').removeClass('d-none');
+            }
+        }
+
         function updateFormFields() {
             const type = $('#typeSelect').val();
             const isReferencing = $('#refHotspotId').val() !== ''; // Check if referencing a resource
@@ -847,10 +895,14 @@
                 // Hide upload input if referencing a video resource
                 if (isReferencing) {
                     $('#videoUploadInput').addClass('d-none');
-                    $('#videoField label').addClass('d-none');
+                    $('#videoField .btn-group').addClass('d-none');
+                    $('#videoField .form-label').first().addClass('d-none');
+                    $('#videoFileGroup').addClass('d-none');
+                    $('#videoUrlGroup').addClass('d-none');
                 } else {
-                    $('#videoUploadInput').removeClass('d-none');
-                    $('#videoField label').removeClass('d-none');
+                    $('#videoField .btn-group').removeClass('d-none');
+                    $('#videoField .form-label').first().removeClass('d-none');
+                    updateVideoForm();
                 }
             } else {
                 $('#imageField').addClass('d-none');
@@ -978,7 +1030,10 @@
                 label.className = 'hover-video-label';
 
                 let content = '';
-                if (args.video) {
+                const youtubeUrl = getYouTubeEmbedUrl(args.video);
+                if (youtubeUrl) {
+                    content += `<div class="video-container" style="width: 250px; height: 140px;"><iframe width="100%" height="100%" src="${youtubeUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`;
+                } else if (args.video) {
                     content += `<div class="video-container"><video playsinline muted loop autoplay><source src="${args.video}" type="video/mp4"></video></div>`;
                 }
 
@@ -999,8 +1054,8 @@
                 label.innerHTML = content;
                 hotSpotDiv.appendChild(label);
 
-                // Initialize Plyr
-                if (args.video) {
+                // Initialize Plyr only for non-youtube videos
+                if (args.video && !youtubeUrl) {
                     const videoEl = label.querySelector('video');
                     const player = new Plyr(videoEl, {
                         controls: ['play', 'progress', 'current-time', 'mute'],
@@ -1100,12 +1155,18 @@
             if ((data.type === 'image' || data.type === 'image_hover') && data.image) {
                 mediaHtml = `<img src="${data.image}" class="img-fluid" style="max-height: 400px; display: block; margin: 0 auto;">`;
             } else if ((data.type === 'video' || data.type === 'video_hover') && data.video) {
-                mediaHtml = `<div class="plyr-container"><video id="plyr-player" playsinline controls><source src="${data.video}" type="video/mp4"></video></div>`;
+                const youtubeUrl = getYouTubeEmbedUrl(data.video);
+                if (youtubeUrl) {
+                    mediaHtml = `<div class="video-container" style="aspect-ratio: 16/9;"><iframe width="100%" height="100%" src="${youtubeUrl}" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="min-height: 350px;"></iframe></div>`;
+                } else {
+                    mediaHtml = `<div class="plyr-container"><video id="plyr-player" playsinline controls><source src="${data.video}" type="video/mp4"></video></div>`;
+                }
             }
             $('#viewMedia').html(mediaHtml);
 
             // Initialize Plyr in Modal
-            if ((data.type === 'video' || data.type === 'video_hover') && data.video) {
+            // Initialize Plyr in Modal (if not Youtube)
+            if ((data.type === 'video' || data.type === 'video_hover') && data.video && !getYouTubeEmbedUrl(data.video)) {
                 new Plyr('#plyr-player');
             }
 
@@ -1191,12 +1252,28 @@
                 $('#importedImagePreview').addClass('d-none');
             }
 
-            // Video Preview
+            // Video Preview & Source Selection
             if (hsData.createTooltipArgs.video) {
-                $('#importedVideoPreview video').attr('src', hsData.createTooltipArgs.video);
-                $('#importedVideoPreview small').text('目前影片：');
+                const videoUrl = hsData.createTooltipArgs.video;
+                const isYoutube = !!getYouTubeEmbedUrl(videoUrl);
+                const isFile = videoUrl.includes('/site360/serve-video/');
+
+                if (isYoutube || (!isFile && videoUrl.startsWith('http'))) {
+                    // External URL
+                    $('#videoSourceUrl').prop('checked', true);
+                    $('#videoUrlInput').val(videoUrl);
+                    $('#videoPreviewContent').html(`<div class="video-container" style="aspect-ratio: 16/9;"><iframe width="100%" height="100%" src="${getYouTubeEmbedUrl(videoUrl) || videoUrl}" frameborder="0" allowfullscreen></iframe></div>`);
+                } else {
+                    // File
+                    $('#videoSourceFile').prop('checked', true);
+                    $('#videoPreviewContent').html(`<video src="${videoUrl}" controls class="w-100" style="max-height: 200px;"></video>`);
+                }
+                updateVideoForm();
                 $('#importedVideoPreview').removeClass('d-none');
+                $('#importedVideoPreview small').text(hsData.createTooltipArgs.source_hotspot_id ? '目前引用內容：' : '目前內容：');
             } else {
+                $('#videoSourceFile').prop('checked', true);
+                updateVideoForm();
                 $('#importedVideoPreview').addClass('d-none');
             }
 
@@ -1375,7 +1452,15 @@
         });
 
         function submitHotspot() {
-            const formData = new FormData(document.getElementById('addHotspotForm'));
+            const form = document.getElementById('addHotspotForm');
+            const formData = new FormData(form);
+
+            // If source is file, clear video_url to ensure the backend uses the file
+            const source = $('input[name="video_source"]:checked').val();
+            if (source === 'file') {
+                formData.set('video_url', '');
+            }
+
             fetch("{% url 'site360:save_hotspot' %}", {
                 method: 'POST',
                 body: formData
@@ -2023,11 +2108,24 @@
             if ((resource.type === 'video' || resource.type === 'video_hover') && (resource.video_url)) {
                 const videoContainer = $('#importedVideoPreview');
                 videoContainer.removeClass('d-none');
-                videoContainer.find('video').attr('src', resource.video_url);
+
+                const youtubeUrl = getYouTubeEmbedUrl(resource.video_url);
+                if (youtubeUrl) {
+                    $('#videoPreviewContent').html(`<div class="video-container" style="aspect-ratio: 16/9;"><iframe width="100%" height="100%" src="${youtubeUrl}" frameborder="0" allowfullscreen></iframe></div>`);
+                } else {
+                    $('#videoPreviewContent').html(`<video src="${resource.video_url}" controls class="w-100" style="max-height: 200px;"></video>`);
+                }
+
                 $('input[name="video"]').prop('disabled', true).addClass('d-none');
+                $('#videoUrlInput').prop('disabled', true).addClass('d-none');
+                $('#videoField .btn-group').addClass('d-none');
+                $('#videoField .form-label').first().addClass('d-none');
             } else {
                 $('#importedVideoPreview').addClass('d-none');
                 $('input[name="video"]').prop('disabled', false).removeClass('d-none');
+                $('#videoUrlInput').prop('disabled', false).removeClass('d-none');
+                $('#videoField .btn-group').removeClass('d-none');
+                $('#videoField .form-label').first().removeClass('d-none');
             }
 
             // Trigger type change to update UI
@@ -2048,8 +2146,11 @@
             $('input[name="image"]').prop('disabled', false).removeClass('d-none');
 
             $('#importedVideoPreview').addClass('d-none');
-            $('#importedVideoPreview video').attr('src', ''); // Stop playback
+            $('#videoPreviewContent').html(''); // Clear preview
             $('input[name="video"]').prop('disabled', false).removeClass('d-none');
+            $('#videoUrlInput').prop('disabled', false).removeClass('d-none');
+            $('#videoField .btn-group').removeClass('d-none');
+            $('#videoField .form-label').first().removeClass('d-none');
 
             // Do NOT reset the form here, as it clears the hotspot_id and other user edits
             // $('#addHotspotForm')[0].reset();
