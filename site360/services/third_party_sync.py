@@ -13,20 +13,23 @@ from typing import Dict, Any
 logger = logging.getLogger(__name__)
 
 
+from django.core.exceptions import ImproperlyConfigured
+
 # ── 外部 API 設定 ─────────────────────────────────────────────────────────────
-# 憑證存放於 cms_secrets.py（已列入 .gitignore，不進版本控制）。
-# 首次部署時請複製 cms_secrets.example.py → cms_secrets.py 並填入實際值。
-try:
-    from site360.services.cms_secrets import (
-        CMS_BASE_URL,
-        CMS_API_TOKEN,
-        CMS_USERNAME,
-        CMS_PASSWORD,
-    )
-except ImportError:
-    raise RuntimeError(
-        "找不到 site360/services/cms_secrets.py！\n"
-        "請複製 cms_secrets.example.py → cms_secrets.py 並填入正確的 CMS 憑證。"
+# 憑證由 CoDevStudio/settings_local/_local_settings.py 統一管理。
+# 請在 _local_settings.py（參考 _local_settings.example.py）中填入實際的 CMS 憑證。
+from django.conf import settings as _django_settings
+
+CMS_BASE_URL  = _django_settings.CMS_BASE_URL
+CMS_API_TOKEN = _django_settings.CMS_API_TOKEN
+CMS_USERNAME  = _django_settings.CMS_USERNAME
+CMS_PASSWORD  = _django_settings.CMS_PASSWORD
+
+if not CMS_BASE_URL or not CMS_API_TOKEN:
+    raise ImproperlyConfigured(
+        "CMS_BASE_URL 與 CMS_API_TOKEN 未設定。\n"
+        "請在 CoDevStudio/settings_local/_local_settings.py 中加入正確的 CMS 憑證，\n"
+        "可參考 _local_settings.example.py 的範本。"
     )
 # ─────────────────────────────────────────────────────────────────────────────
 
