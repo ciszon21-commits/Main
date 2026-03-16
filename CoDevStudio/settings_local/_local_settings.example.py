@@ -86,3 +86,10 @@ OPENSEARCH_USERNAME = 'sino'
 OPENSEARCH_PASSWORD = 'sino'
 OPENSEARCH_VERIFY_CERTS = False
 
+
+# CMS 外部平台 API 設定（site360 同步使用）
+# 請填入實際的 CMS 憑證，這些設定不會進入版本控制（由 _local_settings.py 管理）
+CMS_BASE_URL  = "https://your-cms-server.example.com"
+CMS_API_TOKEN = "your-api-token-here"
+CMS_USERNAME  = "your-username"
+CMS_PASSWORD  = "your-password"
