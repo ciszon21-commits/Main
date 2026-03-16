@@ -7,6 +7,14 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 class Project(models.Model):
     name = models.CharField(_("專案名稱"), max_length=200)
     description = models.TextField(_("專案描述"), blank=True)
+    
+    # New Fields for API integration
+    project_code = models.CharField(_("計畫編號"), max_length=100, blank=True, null=True)
+    tender_code = models.CharField(_("標別"), max_length=100, blank=True, null=True)
+    tender_name = models.CharField(_("工程名稱"), max_length=200, blank=True, null=True)
+    doc_date = models.DateField(_("表單建立日期"), blank=True, null=True)
+    form_uid = models.CharField(_("外部表單 UID"), max_length=100, blank=True, null=True, db_index=True)
+
     created_at = models.DateTimeField(_("建立時間"), auto_now_add=True)
     cover_image = models.ImageField(_("封面圖片"), upload_to='site360/projects/', blank=True, null=True)
 
@@ -32,6 +40,15 @@ class Scene(models.Model):
     title = models.CharField(_("場景標題"), max_length=200)
     image = models.ImageField(_("360全景圖"), upload_to='site360/scenes/')
     order = models.PositiveIntegerField(_("排序"), default=0)
+    external_id = models.CharField(
+        _("外部 ID"), 
+        max_length=100, 
+        blank=True, 
+        null=True, 
+        unique=True, 
+        db_index=True, 
+        help_text="外部平台的圖片 UUID"
+    )
     
     # Initial view settings
     pitch = models.FloatField(_("初始俯仰角 (Pitch)"), default=0, help_text="Starting pitch in degrees")
@@ -67,6 +84,7 @@ class Hotspot(models.Model):
     )
 
     scene = models.ForeignKey(Scene, on_delete=models.SET_NULL, null=True, blank=True, related_name='hotspots', verbose_name=_("所屬場景"))
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=True, blank=True, related_name='hotspots', verbose_name=_("所屬專案"))
     hotspot_type = models.CharField(_("類型"), max_length=20, choices=TYPE_CHOICES, default='text')
     pitch = models.FloatField(_("俯仰角 (Pitch)"))
     yaw = models.FloatField(_("偏航角 (Yaw)"))
@@ -109,6 +127,16 @@ class Hotspot(models.Model):
     version_number = models.PositiveIntegerField(_("版本號"), default=1, help_text="Version number of this resource")
     is_latest_version = models.BooleanField(_("是否為最新版本"), default=True, help_text="Indicates if this is the latest version")
     original_resource = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='versions', help_text="Points to the original resource in the version chain")
+
+    # 外部平台來源追蹤
+    external_form_uid = models.CharField(
+        _("外部表單 UID"),
+        max_length=100,
+        blank=True,
+        default='',
+        db_index=True,
+        help_text="從外部平台（如 PMIS / CMS）匯入時，記錄來源表單的 UUID，供未來推薦或對應使用。"
+    )
 
     created_at = models.DateTimeField(_("建立時間"), auto_now_add=True)
     updated_at = models.DateTimeField(_("更新時間"), auto_now=True)

@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView, DeleteView
 from django.http import JsonResponse
 from django.urls import reverse_lazy, reverse
@@ -45,6 +46,21 @@ class ProjectListView(UserActionLoggingMixin, ListView):
     model = Project
     template_name = 'site360/project_list.html'
     context_object_name = 'projects'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        project_code = self.request.GET.get('project_code')
+        tender_code = self.request.GET.get('tender_code')
+        tender_name = self.request.GET.get('tender_name')
+
+        if project_code:
+            queryset = queryset.filter(project_code__icontains=project_code)
+        if tender_code:
+            queryset = queryset.filter(tender_code__icontains=tender_code)
+        if tender_name:
+            queryset = queryset.filter(tender_name__icontains=tender_name)
+            
+        return queryset
 
 class ProjectCreateView(UserActionLoggingMixin, CreateView):
     model = Project
@@ -437,32 +453,84 @@ def save_hotspot(request):
 
 def list_resources(request):
     """
-    API to list all available resources (hotspots) for the library.
-    Handles hotspots that have no scene (standalone resources).
+    API to list all available resources (hotspots) for the library with pagination and filtering.
     """
+    from django.db.models import Q
+    from django.core.paginator import Paginator
+
     try:
-        hotspots = Hotspot.objects.select_related('scene', 'scene__project').all().order_by('-created_at')
+        page_number = request.GET.get('page', 1)
+        search = request.GET.get('search', '').lower()
+        ht_type = request.GET.get('type', '')
+        project_name = request.GET.get('project', '')
+        form_uid = request.GET.get('form_uid', '')
+        is_recommend = request.GET.get('recommend', 'true').lower() == 'true'
+
+        # Base queryset
+        queryset = Hotspot.objects.select_related('scene', 'scene__project', 'project').all().order_by('-created_at')
+
+        # Filtering
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search) | Q(description__icontains=search)
+            )
+        
+        if ht_type:
+            if ht_type == 'text':
+                queryset = queryset.filter(hotspot_type__in=['text', 'text_hover'])
+            elif ht_type == 'image':
+                queryset = queryset.filter(hotspot_type__in=['image', 'image_hover'])
+            elif ht_type == 'video':
+                queryset = queryset.filter(hotspot_type__in=['video', 'video_hover'])
+            else:
+                queryset = queryset.filter(hotspot_type=ht_type)
+        
+        if project_name:
+            if project_name == '__none__':
+                queryset = queryset.filter(scene__isnull=True, project__isnull=True)
+            else:
+                queryset = queryset.filter(Q(scene__project__name=project_name) | Q(project__name=project_name))
+        
+        if form_uid:
+            if is_recommend:
+                queryset = queryset.filter(external_form_uid=form_uid)
+            else:
+                queryset = queryset.exclude(external_form_uid=form_uid)
+
+        # Pagination
+        paginator = Paginator(queryset, 15) # 15 items per page
+        page_obj = paginator.get_page(page_number)
+
         data = []
-        for h in hotspots:
+        for h in page_obj:
             item = {
                 'id': h.id,
                 'title': h.title,
                 'description': h.description,
                 'type': h.hotspot_type,
                 'type_display': h.get_hotspot_type_display(),
-                'project_name': h.scene.project.name if h.scene else '（未分配）',
+                'project_name': h.project.name if h.project else (h.scene.project.name if h.scene else '（未分配）'),
                 'scene_title': h.scene.title if h.scene else '（未分配至場景）',
                 'is_unassigned': h.scene is None,
+                'is_external_card': h.scene is None and h.project is not None,
                 'thumb_url': f"{h.image.url}?v={int(h.updated_at.timestamp())}" if h.image and h.hotspot_type in ['image', 'image_hover'] else None,
                 'video_url': f"{h.video.url}?v={int(h.updated_at.timestamp())}" if h.video else None,
                 'has_video': bool(h.video),
                 'icon': h.icon,
                 'icon_color': h.icon_color,
                 'usage_count': h.copied_by.count(),
-                'hazard_types': [ht.id for ht in h.hazard_types.all()]
+                'hazard_types': [ht.id for ht in h.hazard_types.all()],
+                'external_form_uid': h.external_form_uid
             }
             data.append(item)
-        return JsonResponse({'status': 'success', 'resources': data})
+            
+        return JsonResponse({
+            'status': 'success', 
+            'resources': data,
+            'has_next': page_obj.has_next(),
+            'total_pages': paginator.num_pages,
+            'current_page': page_obj.number
+        })
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
@@ -656,7 +724,7 @@ def project_resource_list(request, pk):
 
     scenes = Scene.objects.all().order_by('project', 'order').prefetch_related(
         'project',
-        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot').prefetch_related('hazard_types').order_by('created_at'))
+        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot', 'project').prefetch_related('hazard_types').order_by('created_at'))
     )
 
     all_projects = Project.objects.all().order_by('name')
@@ -665,7 +733,7 @@ def project_resource_list(request, pk):
     # Unassigned hotspots: scene is null
     unassigned_hotspots = Hotspot.objects.filter(scene__isnull=True).annotate(
         usage_count=Count('copied_by')
-    ).select_related('source_hotspot').prefetch_related('hazard_types').order_by('-created_at')
+    ).select_related('source_hotspot', 'project').prefetch_related('hazard_types').order_by('-created_at')
 
     context = {
         'project': project,
@@ -686,7 +754,7 @@ def all_resource_list(request):
 
     scenes = Scene.objects.all().order_by('project', 'order').prefetch_related(
         'project',
-        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot').prefetch_related('hazard_types').order_by('created_at'))
+        Prefetch('hotspots', queryset=Hotspot.objects.annotate(usage_count=Count('copied_by')).select_related('source_hotspot', 'project').prefetch_related('hazard_types').order_by('created_at'))
     )
 
     projects = Project.objects.all().order_by('name')
@@ -695,7 +763,7 @@ def all_resource_list(request):
     # Unassigned hotspots: scene is null
     unassigned_hotspots = Hotspot.objects.filter(scene__isnull=True).annotate(
         usage_count=Count('copied_by')
-    ).select_related('source_hotspot').prefetch_related('hazard_types').order_by('-created_at')
+    ).select_related('source_hotspot', 'project').prefetch_related('hazard_types').order_by('-created_at')
 
     context = {
         'scenes': scenes,
@@ -1087,7 +1155,7 @@ def get_resource_references(request, pk):
         resource = get_object_or_404(Hotspot, pk=pk)
         
         # Get all hotspots that reference this resource (via source_hotspot)
-        references = Hotspot.objects.filter(source_hotspot=resource).select_related('scene', 'scene__project')
+        references = Hotspot.objects.filter(source_hotspot=resource).select_related('scene', 'scene__project', 'project')
         
         # Build reference details
         reference_list = []
@@ -1104,9 +1172,9 @@ def get_resource_references(request, pk):
             
             reference_list.append({
                 'id': ref.id,
-                'project_name': ref.scene.project.name,
-                'scene_title': ref.scene.title,
-                'scene_id': ref.scene.id,
+                'project_name': ref.project.name if ref.project else (ref.scene.project.name if ref.scene else '（未分配）'),
+                'scene_title': ref.scene.title if ref.scene else '（未分配至場景）',
+                'scene_id': ref.scene.id if ref.scene else None,
                 'hotspot_title': ref.title,
                 'hotspot_type': ref.hotspot_type,
                 'hotspot_type_display': ref.get_hotspot_type_display(),
@@ -1253,3 +1321,80 @@ class UserActivityLogListView(ListView):
         }
         
         return context
+
+import requests
+import logging
+from django.http import JsonResponse, HttpResponseRedirect
+from django.urls import reverse
+from site360.services.third_party_sync import SinoTechAPIParser, cms_api_get
+
+logger = logging.getLogger(__name__)
+
+def integrate_from_cms(request):
+    """
+    接收外部平台（PMIS）轉跳，自動拉取表單資料並建立 360 專案。
+
+    流程：
+    1. 從 GET 參數取得 form_uid
+    2. 使用兩段式 Middleware Auth 呼叫 CMS API 取得 JSON 資料
+    3. 呼叫 SinoTechAPIParser 解析並建立 Project / Scene / Hotspot
+    4. Redirect 使用者到該專案的 360 Tour 頁面
+
+    預期 GET 參數：
+        form_uid (str): CMS 平台的表單唯一識別碼
+    """
+    form_uid = request.GET.get('form_uid')
+    if not form_uid:
+        return JsonResponse({"success": False, "error": "缺少必要參數 form_uid"}, status=400)
+
+    base_url = "https://cmservice.sinotech.com.tw"
+    api_url  = f"{base_url}/HN/api/form-basic/{form_uid}/"
+
+    try:
+        # Step 1：使用兩段式 Middleware Auth 向 CMS 取得 JSON 資料
+        logger.info(f"[CMS Integrate] 開始處理 form_uid={form_uid}")
+        response, cookie_header = cms_api_get(api_url)
+
+        content_type = response.headers.get("content-type", "")
+        if "application/json" not in content_type:
+            logger.error(f"[CMS Integrate] CMS 回傳非 JSON 內容：{content_type}")
+            return JsonResponse({
+                "success": False,
+                "error": f"CMS API 回傳非 JSON 格式（Content-Type: {content_type}），請確認認證設定"
+            }, status=502)
+
+        json_resp = response.json()
+
+        if not json_resp.get("success"):
+            logger.error(f"[CMS Integrate] CMS API 回傳失敗：{json_resp}")
+            return JsonResponse({"success": False, "error": "CMS API 回傳 success=false"}, status=502)
+
+        data = json_resp.get("data", {})
+
+        # Step 2：解析資料並建立 Project / Scene / Hotspot
+        # 傳入 cookie_header 讓圖片下載可重用同一 Session，不需再次登入
+        parser  = SinoTechAPIParser(data=data, base_url=base_url, session_cookie=cookie_header)
+        result  = parser.process()
+        project = result['project']
+        
+        # 組裝通知訊息
+        if result['project_created']:
+            msg = f"表單匯入成功！已建立新專案：【{project.name}】。"
+        else:
+            msg = f"該表單已建立過 360 專案：【{project.name}】，目前資料已同步更新。"
+            
+        if result['scenes_added'] > 0 or result['hotspots_added'] > 0:
+            detail_msg = f"本次新增 {result['scenes_added']} 個場景、{result['hotspots_added']} 個熱點字卡。"
+            msg += f"\n{detail_msg}"
+        else:
+            msg += "\n目前專案內容已是最新，未偵測到新素材。"
+
+        messages.success(request, msg)
+        logger.info(f"[CMS Integrate] 完成！{msg}")
+
+        # Step 3：成功後將使用者 Redirect 到 360 專案詳情頁面
+        return HttpResponseRedirect(reverse('site360:project_detail', kwargs={'pk': project.pk}))
+
+    except Exception as e:
+        logger.error(f"[CMS Integrate] 失敗：{e}", exc_info=True)
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
