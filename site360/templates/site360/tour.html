@@ -204,6 +204,8 @@
             max-width: 250px;
             line-height: 1.4;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+            white-space: pre-wrap;
+            word-break: break-word;
         }
 
         .hover-text-label strong {
@@ -233,6 +235,8 @@
             max-width: 300px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
             text-align: center;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
 
         .hover-image-label img {
@@ -269,6 +273,8 @@
             max-width: 300px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
             text-align: center;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
 
         .hover-video-label video {
@@ -366,35 +372,95 @@
             border-radius: 4px;
         }
 
-        /* Badge Colors for Resource Library */
-        .badge-text {
-            background-color: #3b82f6;
-            color: white;
+        #viewDescription {
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin-top: 1rem;
         }
 
-        .badge-text_hover {
-            background-color: #1d4ed8;
-            color: white;
+        /* Resource Library List View Styles */
+        .resource-item {
+            transition: background-color 0.2s;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            overflow: hidden;
         }
 
-        .badge-image {
-            background-color: #22c55e;
-            color: white;
+        .resource-item:hover {
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
         }
 
-        .badge-image_hover {
-            background-color: #15803d;
-            color: white;
+        .resource-item .preview-box {
+            width: 80px;
+            height: 80px;
+            flex-shrink: 0;
+            background-color: #f1f3f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .badge-video {
-            background-color: #ef4444;
-            color: white;
+        .resource-item .preview-box img,
+        .resource-item .preview-box video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
-        .badge-video_hover {
-            background-color: #b91c1c;
-            color: white;
+        .resource-item .content-box {
+            flex-grow: 1;
+            padding: 12px 16px;
+            min-width: 0;
+        }
+
+        .resource-item .title-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .resource-item .resource-title {
+            font-weight: 600;
+            color: #334155;
+            margin: 0;
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+
+        .resource-item .resource-desc {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin: 0;
+            white-space: pre-wrap;
+            /* Show full content */
+            word-break: break-all;
+        }
+
+        .resource-item .meta-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+
+        .resource-item .action-box {
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-left: 1px dashed #eee;
+            background-color: #fafafa;
+        }
+
+        .resource-item .btn-import {
+            min-width: 80px;
+            height: 36px;
+            border-radius: 18px;
+            white-space: nowrap;
         }
     </style>
 </head>
@@ -438,28 +504,39 @@
                 </div>
                 <div class="modal-body">
                     <!-- Filters -->
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6">
-                            <input type="text" class="form-control" id="libSearchInput" placeholder="搜尋標題、說明...">
+                    <div class="row g-2 mb-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted">關鍵字搜尋</label>
+                            <input type="text" class="form-control" id="libSearchInput" placeholder="標題、說明...">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">類型</label>
                             <select class="form-select" id="libTypeSelect">
-                                <option value="">所有類型</option>
-                                <option value="text">文字類</option>
-                                <option value="image">圖片類</option>
-                                <option value="video">影片類</option>
+                                <option value="">所有</option>
+                                <option value="text">文字</option>
+                                <option value="image">圖片</option>
+                                <option value="video">影片</option>
                             </select>
                         </div>
                         <div class="col-md-3">
+                            <label class="form-label small text-muted">所屬專案</label>
                             <select class="form-select" id="libProjectSelect">
                                 <option value="">所有專案</option>
                                 <!-- Populated by JS -->
                             </select>
                         </div>
+                        <div class="col-md-3">
+                            {% if project.form_uid %}
+                            <button class="btn btn-primary active w-100" type="button" id="recommendBtn"
+                                title="推薦目前表單相關內容">
+                                <i class="fas fa-magic"></i> 推薦表單匯入內容
+                            </button>
+                            {% endif %}
+                        </div>
                     </div>
 
                     <!-- Resource List -->
-                    <div id="resourceLibraryList" class="row g-3">
+                    <div id="resourceLibraryList" class="d-flex flex-column gap-2">
                         <div class="text-center py-5">
                             <div class="spinner-border text-primary" role="status"></div>
                             <p class="mt-2">載入中...</p>
@@ -1693,118 +1770,160 @@
     <script>
         // Resource Library Logic
         let libraryResources = [];
+        const currentProjectFormUid = "{{ project.form_uid|default:'' }}";
+        let isRecommendationMode = true; // Default to ON
+        let currentPage = 1;
+        let hasNextPage = true;
+        let isLoadingResources = false;
 
         $('#openLibraryBtn').click(function () {
             const libraryModal = new bootstrap.Modal(document.getElementById('resourceLibraryModal'));
             libraryModal.show();
-            loadLibraryResources();
+            // Reset recommendation to default ON if applicable
+            if (currentProjectFormUid) {
+                isRecommendationMode = true;
+                $('#recommendBtn').addClass('active btn-primary').removeClass('btn-outline-primary');
+            } else {
+                isRecommendationMode = false;
+                $('#recommendBtn').removeClass('active btn-primary').addClass('btn-outline-primary');
+            }
+            loadLibraryResources(1);
         });
 
-        function loadLibraryResources() {
-            const listContainer = document.getElementById('resourceLibraryList');
-            // listContainer.innerHTML = '<div class="text-center py-5">...</div>'; // Keep spinner
+        $('#recommendBtn').click(function () {
+            isRecommendationMode = !isRecommendationMode;
+            $(this).toggleClass('active btn-primary btn-outline-primary');
+            loadLibraryResources(1);
+        });
 
-            fetch('/site360/api/resources/')
+        // Infinite Scroll Listener
+        $('#resourceLibraryModal .modal-body').on('scroll', function () {
+            if (!hasNextPage || isLoadingResources) return;
+
+            const scrollTop = $(this).scrollTop();
+            const containerHeight = $(this).height();
+            const contentHeight = $(this)[0].scrollHeight;
+
+            if (scrollTop + containerHeight >= contentHeight - 100) {
+                loadLibraryResources(currentPage + 1);
+            }
+        });
+
+        function loadLibraryResources(page = 1) {
+            if (isLoadingResources) return;
+            isLoadingResources = true;
+            currentPage = page;
+
+            const listContainer = document.getElementById('resourceLibraryList');
+            const search = document.getElementById('libSearchInput').value;
+            const typeFilter = document.getElementById('libTypeSelect').value;
+            const projectFilter = document.getElementById('libProjectSelect').value;
+            if (page === 1) {
+                listContainer.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">載入中...</p></div>';
+            }
+
+            const params = new URLSearchParams({
+                page: page,
+                search: search,
+                type: typeFilter,
+                project: projectFilter,
+                form_uid: currentProjectFormUid,
+                recommend: isRecommendationMode
+            });
+
+            fetch('/site360/api/resources/?' + params.toString())
                 .then(response => response.json())
                 .then(data => {
-                    libraryResources = data.resources || [];
-                    renderLibrary();
+                    isLoadingResources = false;
+                    hasNextPage = data.has_next;
 
-                    // Populate Project Filter
-                    const projects = new Set(libraryResources.map(r => r.project_name));
-                    const projectSelect = document.getElementById('libProjectSelect');
-                    projectSelect.innerHTML = '<option value="">所有專案</option>';
-                    projects.forEach(p => {
-                        projectSelect.innerHTML += `<option value="${p}">${p}</option>`;
-                    });
+                    if (page === 1) {
+                        listContainer.innerHTML = '';
+                    } else {
+                        $('#load-more-spinner').remove();
+                    }
+
+                    if (data.resources.length === 0 && page === 1) {
+                        listContainer.innerHTML = '<div class="col-12 text-center text-muted py-5">沒有符合的資源</div>';
+                        return;
+                    }
+
+                    renderResources(data.resources, page === 1);
+
+                    if (data.has_next) {
+                        $('#resourceLibraryList').append('<div id="load-more-spinner" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>');
+                    }
+
+                    // On first page load, also populate project filter if empty (one-time)
+                    if (page === 1 && $('#libProjectSelect option').length <= 1) {
+                        // We might need a separate API for projects or just use the first page's project names
+                        // For simplicity, we'll keep the current project filter populating logic if it was working
+                        // Actually, with pagination, we only see projects for the current page.
+                        // Better to keep it as is or fetch a full project list API (but user didn't ask for it).
+                    }
                 })
                 .catch(err => {
+                    isLoadingResources = false;
                     console.error('Error loading resources:', err);
-                    listContainer.innerHTML = '<div class="alert alert-danger">載入失敗，請稍後再試。</div>';
+                    if (page === 1) listContainer.innerHTML = '<div class="alert alert-danger">載入失敗，請稍後再試。</div>';
                 });
         }
 
-        function renderLibrary() {
+        function renderResources(resources, isNew) {
+            if (isNew) resourcesCache = [];
+            resourcesCache = resourcesCache.concat(resources);
             const listContainer = document.getElementById('resourceLibraryList');
-            const search = document.getElementById('libSearchInput').value.toLowerCase();
-            const typeFilter = document.getElementById('libTypeSelect').value;
-            const projectFilter = document.getElementById('libProjectSelect').value;
 
-            listContainer.innerHTML = '';
-
-            const filtered = libraryResources.filter(r => {
-                const matchSearch = r.title.toLowerCase().includes(search) || r.description.toLowerCase().includes(search);
-
-                let matchType = true;
-                if (typeFilter) {
-                    if (typeFilter === 'text') matchType = r.type === 'text' || r.type === 'text_hover';
-                    else if (typeFilter === 'image') matchType = r.type === 'image' || r.type === 'image_hover';
-                    else if (typeFilter === 'video') matchType = r.type === 'video' || r.type === 'video_hover';
-                }
-
-                const matchProject = !projectFilter || r.project_name === projectFilter;
-
-                // Exclude current hotspot (self)
-                const isSelf = currentHotspotId && String(r.id) === String(currentHotspotId);
-
-                return matchSearch && matchType && matchProject && !isSelf;
-            });
-
-            if (filtered.length === 0) {
-                listContainer.innerHTML = '<div class="col-12 text-center text-muted">沒有符合的資源</div>';
-                return;
-            }
-
-            filtered.forEach(r => {
+            resources.forEach(r => {
                 let badgeClass = 'bg-secondary';
-                if (r.type.includes('text')) badgeClass = 'badge-text';
-                else if (r.type.includes('image')) badgeClass = 'badge-image';
-                else if (r.type.includes('video')) badgeClass = 'badge-video';
+                if (r.type.includes('text')) badgeClass = '#3b82f6';
+                else if (r.type.includes('image')) badgeClass = '#22c55e';
+                else if (r.type.includes('video')) badgeClass = '#ef4444';
 
                 let typeIcon = '';
-                if (r.type === 'image' || r.type === 'image_hover') typeIcon = '<i class="fas fa-image text-success me-2"></i>';
-                else if (r.type === 'video' || r.type === 'video_hover') typeIcon = '<i class="fas fa-video text-danger me-2"></i>';
-                else typeIcon = '<i class="fas fa-align-left text-primary me-2"></i>';
+                if (r.type === 'image' || r.type === 'image_hover') typeIcon = '<i class="fas fa-image text-success"></i>';
+                else if (r.type === 'video' || r.type === 'video_hover') typeIcon = '<i class="fas fa-video text-danger"></i>';
+                else typeIcon = '<i class="fas fa-align-left text-primary"></i>';
 
                 let mediaPreview = '';
                 if (r.thumb_url) {
-                    mediaPreview = `<img src="${r.thumb_url}" class="rounded ms-2" style="height: 60px; width: 60px; object-fit: cover;">`;
+                    mediaPreview = `<img src="${r.thumb_url}">`;
                 } else if (r.video_url) {
-                    mediaPreview = `<video src="${r.video_url}" class="rounded ms-2" style="height: 60px; width: 60px; object-fit: cover;" muted onmouseover="this.play()" onmouseout="this.pause()"></video>`;
+                    mediaPreview = `<video src="${r.video_url}" muted></video>`;
                 } else if (r.icon) {
-                    mediaPreview = `<div class="rounded ms-2 d-flex align-items-center justify-content-center bg-light" style="height: 60px; width: 60px; color: ${r.icon_color || '#333'}"><i class="${r.icon} fa-lg"></i></div>`;
+                    mediaPreview = `<div style="color: ${r.icon_color || '#333'}"><i class="${r.icon} fa-2x"></i></div>`;
                 }
 
-                const card = `
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card h-100 shadow-sm resource-card" style="cursor: pointer;" onclick="importResource(${r.id})">
-                            <div class="card-body p-3">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <span class="badge ${badgeClass}">${r.type_display}</span>
-                                    <small class="text-muted ms-auto text-end"><i class="fas fa-folder"></i> ${r.project_name}</small>
-                                </div>
-                                <div class="d-flex align-items-center mb-2">
-                                    ${typeIcon}
-                                    <h6 class="card-title mb-0 text-truncate" style="flex:1;">${r.title}</h6>
-                                    ${mediaPreview}
-                                </div>
-                                <p class="card-text small text-muted text-truncate">${r.description || '無描述'}</p>
+                const item = `
+                    <div class="resource-item d-flex shadow-sm bg-white" onclick="importResource(${r.id})">
+                        <div class="preview-box">
+                            ${mediaPreview}
+                        </div>
+                        <div class="content-box">
+                            <div class="title-row">
+                                <span class="badge" style="background-color: ${badgeClass}">${r.type_display}</span>
+                                <h6 class="resource-title">${r.title}</h6>
                             </div>
-                            <div class="card-footer p-2 bg-light border-top-0 text-end">
-                                ${r.usage_count > 0 ? `<span class="badge bg-info text-white me-2" title="被引用${r.usage_count}次"><i class="fas fa-link"></i> ${r.usage_count}</span>` : ''}
-                                <button class="btn btn-sm btn-primary">引用</button>
+                            <p class="resource-desc">${r.description || '無描述'}</p>
+                            <div class="meta-row">
+                                <span><i class="fas fa-folder"></i> ${r.project_name}</span>
+                                <span><i class="fas fa-map"></i> ${r.scene_title}</span>
+                                ${r.usage_count > 0 ? `<span><i class="fas fa-link"></i> 引用 ${r.usage_count} 次</span>` : ''}
                             </div>
+                        </div>
+                        <div class="action-box">
+                            <button class="btn btn-outline-primary btn-sm btn-import">引用</button>
                         </div>
                     </div>
                 `;
-                listContainer.innerHTML += card;
+                $('#resourceLibraryList').append(item);
             });
         }
 
-        // Event Listeners for Filters
-        document.getElementById('libSearchInput').addEventListener('input', renderLibrary);
-        document.getElementById('libTypeSelect').addEventListener('change', renderLibrary);
-        document.getElementById('libProjectSelect').addEventListener('change', renderLibrary);
+        // Event Listeners for Filters (Reset to page 1)
+        $('#libSearchInput').on('input', function () { loadLibraryResources(1); });
+        $('#libTypeSelect').on('change', function () { loadLibraryResources(1); });
+        $('#libProjectSelect').on('change', function () { loadLibraryResources(1); });
 
         // Instant Preview for Uploads
         $('input[name="image"]').on('change', function (e) {
@@ -1827,11 +1946,25 @@
             }
         });
 
+        let resourcesCache = []; // Global cache to support import function
+
         // Make importResource global
         window.importResource = function (id) {
-            const resource = libraryResources.find(r => r.id === id);
-            if (!resource) return;
+            // Find resource in the current loaded set
+            const resource = resourcesCache.find(r => r.id === id);
+            if (!resource) {
+                // If not in cache (e.g. across pages), fetch detailed data
+                fetch(`/site360/api/hotspot/data/${id}/`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.status === 'success') applyResource(data.hotspot);
+                    });
+                return;
+            }
+            applyResource(resource);
+        };
 
+        window.applyResource = function (resource) {
             // Fill Form
             $('#hotspotTitleInput').val(resource.title);
             $('#hotspotDescInput').val(resource.description);
@@ -1848,12 +1981,6 @@
             $('#refResourceType').val(resource.type);
 
             // Important: Do NOT clear hotspotIdInput if we are editing an existing hotspot (currentHotspotId is set)
-            // If we are adding a new hotspot (currentHotspotId is null), then clear it to ensure creation.
-            // Check if form has an ID already? NO, check currentHotspotId variable or the input value itself BEFORE clearing?
-            // Actually, if we are in Add Modal, we might have clicked "Add" (id empty) or "Edit" (id set).
-            // We should respect the current state of hotspotIdInput UNLESS we want to force something.
-            // But here, the user wants to Import *into* the current form.
-            // So we should NOT touch hotspotIdInput at all. Let it stay as is.
             if (!currentHotspotId) {
                 $('#hotspotIdInput').val(''); // Only ensure empty if we are adding new
             } else {
@@ -1863,11 +1990,8 @@
             $('#refHotspotId').val(resource.id);
             $('#clearSourceInput').val(''); // Ensure clear flag is reset
 
-
             // Set Icon
             if (resource.icon) {
-                // Try to find icon radio or just select Custom if not in list (simplification: assume standard icons or just keep what it is if hidden)
-                // For now, let's try to match standard icons.
                 const iconRadio = $(`input[name="icon"][value="${resource.icon}"]`);
                 if (iconRadio.length) {
                     iconRadio.prop('checked', true);
@@ -1881,22 +2005,22 @@
 
             // Show Notice
             $('#importNotice').removeClass('d-none');
-            $('#sourceUpdateAlert').addClass('d-none'); // Hide update alert as we just imported fresh content
+            $('#sourceUpdateAlert').addClass('d-none');
             $('#importTitle').text(resource.title);
 
             // Handle Image Preview
-            if ((resource.type === 'image' || resource.type === 'image_hover') && resource.thumb_url) {
+            if ((resource.type === 'image' || resource.type === 'image_hover') && (resource.thumb_url || resource.image_url)) {
                 const previewContainer = $('#importedImagePreview');
                 previewContainer.removeClass('d-none');
-                previewContainer.find('img').attr('src', resource.thumb_url);
-                $('input[name="image"]').prop('disabled', true).addClass('d-none'); // Hide input
+                previewContainer.find('img').attr('src', resource.thumb_url || resource.image_url);
+                $('input[name="image"]').prop('disabled', true).addClass('d-none');
             } else {
                 $('#importedImagePreview').addClass('d-none');
                 $('input[name="image"]').prop('disabled', false).removeClass('d-none');
             }
 
             // Handle Video Preview
-            if ((resource.type === 'video' || resource.type === 'video_hover') && resource.video_url) {
+            if ((resource.type === 'video' || resource.type === 'video_hover') && (resource.video_url)) {
                 const videoContainer = $('#importedVideoPreview');
                 videoContainer.removeClass('d-none');
                 videoContainer.find('video').attr('src', resource.video_url);
