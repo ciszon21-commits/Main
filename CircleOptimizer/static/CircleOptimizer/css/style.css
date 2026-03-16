@@ -1,12 +1,12 @@
 :root {
-    --primary-color: #2256e4;
-    --secondary-color: #11882dfd;
-    --success-color: #850091;
-    --danger-color: #dc3545;
+    --primary-color: #0b4fc7;
+    --secondary-color: #068131;
+    --success-color: #8c0fa6;
+    --danger-color: #bd2130;
     --bg-color: #f8f9fa;
     --card-bg: #ffffff;
-    --text-color: #333;
-    --border-color: #dee2e6;
+    --text-color: #212529;
+    --border-color: #ced4da;
     --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -25,7 +25,7 @@ body {
 }
 
 .container {
-    max-width: 1400px;
+    max-width: 1700px;
     margin: 0 auto;
 }
 
@@ -44,6 +44,62 @@ header h1 {
     margin-bottom: 10px;
 }
 
+.header-title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+
+.header-logo {
+    height: 60px;
+    width: auto;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+@media (max-width: 768px) {
+    .header-title {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .header-logo {
+        height: 50px;
+    }
+
+    header h1 {
+        font-size: 2.2rem;
+    }
+}
+
+.lightning-text {
+    background: linear-gradient(120deg,
+            var(--primary-color) 0%,
+            var(--primary-color) 40%,
+            #ffffff 50%,
+            var(--primary-color) 60%,
+            var(--primary-color) 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: lightningShine 10s linear infinite;
+}
+
+@keyframes lightningShine {
+    0% {
+        background-position: 150% center;
+    }
+
+    15% {
+        background-position: -50% center;
+    }
+
+    100% {
+        background-position: -50% center;
+    }
+}
+
 .subtitle {
     color: black;
     font-weight: bold;
@@ -60,7 +116,7 @@ header h1 {
 
 .main-content {
     display: grid;
-    grid-template-columns: 450px 1fr;
+    grid-template-columns: 350px 1fr 400px;
     gap: 20px;
 }
 
@@ -91,6 +147,16 @@ header h1 {
     color: black;
     font-weight: bold;
     text-align: center;
+}
+
+.footer-copyright {
+    color: #ffffff !important;
+    font-size: 1.25rem !important;
+    font-weight: 600;
+    text-align: center;
+    margin-top: 25px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    letter-spacing: 0.5px;
 }
 
 .points-grid {
@@ -127,13 +193,68 @@ header h1 {
 }
 
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 5px;
+}
+
+.form-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.form-row label {
+    flex: 0 0 200px;
+    margin-bottom: 0;
+    font-weight: 600;
+    color: var(--text-color);
+    white-space: nowrap;
+}
+
+.project-info-rows .form-row label {
+    flex: 0 0 80px;
+}
+
+.form-row input,
+.form-row select {
+    flex: 1;
+    padding: 8px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 1.0rem;
+    transition: border-color 0.3s;
+}
+
+/* Custom Floating Tooltip */
+#custom-handle-tooltip {
+    position: fixed;
+    pointer-events: none;
+    background: rgba(0, 0, 0, 0.75);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.1s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    /* Ensure it floats above everything and doesn't interfere */
+}
+
+/* Base style for the icon inside tooltip */
+#custom-handle-tooltip .tooltip-icon {
+    font-size: 16px;
+    line-height: 1;
 }
 
 .form-group label {
     display: block;
     font-weight: 600;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     color: var(--text-color);
 }
 
@@ -142,7 +263,7 @@ header h1 {
     padding: 10px 12px;
     border: 2px solid var(--border-color);
     border-radius: 6px;
-    font-size: 1rem;
+    font-size: 1.0rem;
     transition: border-color 0.3s;
 }
 
@@ -152,40 +273,82 @@ header h1 {
 }
 
 .btn {
-    padding: 12px 24px;
+    padding: 10px 20px;
     border: none;
     border-radius: 8px;
     font-size: 1.0rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.3s;
-    width: 100%;
-    margin-top: 10px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    width: auto;
+    margin-top: 0;
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
 }
 
 .btn:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+    filter: brightness(1.1);
+}
+
+.btn:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btn:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
+    filter: grayscale(0.5);
 }
 
 .btn-primary {
-    background: var(--primary-color);
-    color: white;
+    background: linear-gradient(0deg, #0d47a1 0%, #1565c0 100%);
 }
 
 .btn-secondary {
-    background: var(--secondary-color);
-    color: white;
+    background: linear-gradient(0deg, #4a148c 0%, #7b1fa2 100%);
 }
 
 .btn-success {
-    background: var(--success-color);
-    color: white;
+    background: linear-gradient(0deg, #1b5e20 0%, #2e7d32 100%);
+}
+
+.btn-vibrant-orange {
+    background: linear-gradient(0deg, #e65100 0%, #ff9800 100%);
+}
+
+.btn-vibrant-cyan {
+    background: linear-gradient(0deg, #006064 0%, #00bcd4 100%);
+}
+
+.row-buttons {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    justify-content: center;
+    width: 100%;
+}
+
+.btn-black-font {
+    color: #000000 !important;
+    text-shadow: none !important;
+}
+
+.btn-wide {
+    min-width: 130px;
+    flex: 1;
+}
+
+.btn-smwide {
+    min-width: 120px;
 }
 
 .optimize-buttons {
