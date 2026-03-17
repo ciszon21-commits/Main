@@ -18,6 +18,7 @@ interface VolumeCalculatorState {
     originalVolume: number;
     zoneType: string;
     volumeRatioPercent: number;
+    activeRightTab: string;
     readonly volumeRatio: number;
     rules: Rules;
     readonly statutoryVolume: number;
@@ -127,6 +128,7 @@ function createVolumeCalculator(): VolumeCalculatorState {
         originalVolume: defaults.originalVolume,
         zoneType: defaults.zoneType,
         volumeRatioPercent: defaults.volumeRatio * 100,
+        activeRightTab: "limits",
         rules: createDefaultRules(),
 
         get volumeRatio(): number {
@@ -157,6 +159,7 @@ function createVolumeCalculator(): VolumeCalculatorState {
             this.originalVolume = defaults.originalVolume;
             this.zoneType = defaults.zoneType;
             this.volumeRatioPercent = defaults.volumeRatio * 100;
+            this.activeRightTab = "limits";
             this.rules = createDefaultRules();
         }
     };

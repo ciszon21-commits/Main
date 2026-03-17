@@ -70,6 +70,7 @@ function createVolumeCalculator() {
         originalVolume: defaults.originalVolume,
         zoneType: defaults.zoneType,
         volumeRatioPercent: defaults.volumeRatio * 100,
+        activeRightTab: "limits",
         rules: createDefaultRules(),
         get volumeRatio() {
             return this.volumeRatioPercent / 100;
@@ -94,6 +95,7 @@ function createVolumeCalculator() {
             this.originalVolume = defaults.originalVolume;
             this.zoneType = defaults.zoneType;
             this.volumeRatioPercent = defaults.volumeRatio * 100;
+            this.activeRightTab = "limits";
             this.rules = createDefaultRules();
         }
     };
