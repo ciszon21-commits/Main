@@ -14,14 +14,21 @@ interface LucideApi {
 }
 
 interface VolumeCalculatorState {
-    baseArea: number;
-    originalVolume: number;
+    baseArea: string;
+    originalVolume: string;
     zoneType: string;
-    volumeRatioPercent: number;
+    volumeRatioPercent: string;
     activeRightTab: string;
+    readonly originalVolumeValue: number;
     readonly volumeRatio: number;
     rules: Rules;
     readonly statutoryVolume: number;
+    readonly capOptionOneTotal: number;
+    readonly capOptionOneApply: number;
+    readonly capOptionTwoTotal: number;
+    readonly capOptionTwoApply: number;
+    readonly capOptionThreeTotal: number;
+    readonly capOptionThreeApply: number;
     readonly maxAllowedReward: number;
     readonly totalRewardPercent: number;
     readonly totalRewardArea: number;
@@ -100,15 +107,32 @@ function sumRuleValues(rules: Rules, keys: readonly string[]): number {
     return keys.reduce((sum, key) => sum + (rules[key] ?? 0), 0);
 }
 
+function formatInputValue(value: number): string {
+    return value.toFixed(2);
+}
+
+function getInitialNumericInput(value: number): string {
+    return value === 0 ? "" : formatInputValue(value);
+}
+
+function parseInputValue(value: string): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function roundToTwo(value: number): number {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
 function getDefaults(): VolumeCalcDefaults {
     const defaults = window.__volumeCalcDefaults;
 
     if (!defaults) {
         return {
-            baseArea: 1029,
-            originalVolume: 2000,
+            baseArea: 0,
+            originalVolume: 0,
             zoneType: DEFAULT_ZONE_TYPE,
-            volumeRatio: 2.25
+            volumeRatio: 0
         };
     }
 
@@ -124,41 +148,66 @@ function createVolumeCalculator(): VolumeCalculatorState {
     const defaults = getDefaults();
 
     return {
-        baseArea: defaults.baseArea,
-        originalVolume: defaults.originalVolume,
+        baseArea: getInitialNumericInput(defaults.baseArea),
+        originalVolume: getInitialNumericInput(defaults.originalVolume),
         zoneType: defaults.zoneType,
-        volumeRatioPercent: defaults.volumeRatio * 100,
+        volumeRatioPercent: getInitialNumericInput(defaults.volumeRatio * 100),
         activeRightTab: "limits",
         rules: createDefaultRules(),
 
         get volumeRatio(): number {
-            return this.volumeRatioPercent / 100;
+            return roundToTwo(parseInputValue(this.volumeRatioPercent) / 100);
+        },
+
+        get originalVolumeValue(): number {
+            return roundToTwo(parseInputValue(this.originalVolume));
         },
 
         get statutoryVolume(): number {
-            return this.baseArea * this.volumeRatio;
+            return roundToTwo(parseInputValue(this.baseArea) * this.volumeRatio);
+        },
+
+        get capOptionOneTotal(): number {
+            return roundToTwo(this.originalVolumeValue * 1.2);
+        },
+
+        get capOptionOneApply(): number {
+            return roundToTwo(Math.max(0, this.capOptionOneTotal - this.originalVolumeValue));
+        },
+
+        get capOptionTwoTotal(): number {
+            return roundToTwo(this.originalVolumeValue + this.statutoryVolume * 0.3);
+        },
+
+        get capOptionTwoApply(): number {
+            return roundToTwo(Math.max(0, this.capOptionTwoTotal - this.statutoryVolume));
+        },
+
+        get capOptionThreeTotal(): number {
+            return roundToTwo(this.statutoryVolume + this.statutoryVolume * 0.5);
+        },
+
+        get capOptionThreeApply(): number {
+            return roundToTwo(Math.max(0, this.capOptionThreeTotal - this.statutoryVolume));
         },
 
         get maxAllowedReward(): number {
-            const c1 = Math.max(0, this.originalVolume * 1.2 - this.originalVolume);
-            const c2 = Math.max(0, (this.originalVolume + this.statutoryVolume * 0.3) - this.statutoryVolume);
-            const c3 = Math.max(0, (this.statutoryVolume + this.statutoryVolume * 0.5) - this.statutoryVolume);
-            return Math.max(c1, c2, c3);
+            return roundToTwo(Math.max(this.capOptionOneApply, this.capOptionTwoApply, this.capOptionThreeApply));
         },
 
         get totalRewardPercent(): number {
-            return sumRuleValues(this.rules, TOTAL_REWARD_RULE_KEYS);
+            return roundToTwo(sumRuleValues(this.rules, TOTAL_REWARD_RULE_KEYS));
         },
 
         get totalRewardArea(): number {
-            return this.statutoryVolume * (this.totalRewardPercent / 100);
+            return roundToTwo(this.statutoryVolume * (this.totalRewardPercent / 100));
         },
 
         resetForm(): void {
-            this.baseArea = defaults.baseArea;
-            this.originalVolume = defaults.originalVolume;
+            this.baseArea = getInitialNumericInput(defaults.baseArea);
+            this.originalVolume = getInitialNumericInput(defaults.originalVolume);
             this.zoneType = defaults.zoneType;
-            this.volumeRatioPercent = defaults.volumeRatio * 100;
+            this.volumeRatioPercent = getInitialNumericInput(defaults.volumeRatio * 100);
             this.activeRightTab = "limits";
             this.rules = createDefaultRules();
         }

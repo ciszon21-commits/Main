@@ -153,10 +153,10 @@ class CalculatorView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['default_base_area'] = 1029
-        context['default_original_volume'] = 2000
-        context['default_zone_type'] = '第三種住宅區'
-        context['default_volume_ratio'] = 2.25
+        context['default_base_area'] = 0
+        context['default_original_volume'] = 0
+        context['default_zone_type'] = ''
+        context['default_volume_ratio'] = 0
 
         context['building_mass_sheets'] = []
         context['building_mass_error'] = ''

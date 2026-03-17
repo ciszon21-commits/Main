@@ -56,7 +56,7 @@
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-slate-700">基地面積 (㎡)</label>
                     <div class="relative rounded-md shadow-sm">
-                        <input type="number" x-model.number="baseArea"
+                        <input type="number" step="0.01" x-model="baseArea" placeholder="0.00"
                             class="block w-full rounded-lg border-gray-300 pl-3 pr-12 focus:border-primary focus:ring-primary sm:text-sm h-11 border bg-slate-50 hover:bg-white transition-colors">
                     </div>
                 </div>
@@ -64,20 +64,20 @@
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-slate-700">建物原容積 (㎡)</label>
                     <div class="relative rounded-md shadow-sm">
-                        <input type="number" x-model.number="originalVolume"
+                        <input type="number" step="0.01" x-model="originalVolume" placeholder="0.00"
                             class="block w-full rounded-lg border-gray-300 pl-3 pr-12 focus:border-primary focus:ring-primary sm:text-sm h-11 border bg-slate-50 hover:bg-white transition-colors">
                     </div>
                 </div>
                 <!-- Zone Type -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-slate-700">使用分區</label>
-                    <input type="text" x-model="zoneType"
+                    <input type="text" x-model="zoneType" placeholder="請輸入"
                         class="block w-full rounded-lg border-gray-300 pl-3 focus:border-primary focus:ring-primary sm:text-sm h-11 border bg-slate-50 hover:bg-white transition-colors">
                 </div>
                 <!-- Volume Ratio -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-slate-700">容積率(%)</label>
-                    <input type="number" step="1" x-model.number="volumeRatioPercent"
+                    <input type="number" step="0.01" x-model="volumeRatioPercent" placeholder="0.00"
                         class="block w-full rounded-lg border-gray-300 pl-3 focus:border-primary focus:ring-primary sm:text-sm h-11 border bg-slate-50 hover:bg-white transition-colors">
                 </div>
             </div>
@@ -157,43 +157,43 @@
                     <tbody class="bg-white divide-y divide-gray-200">
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">1.2倍原容積</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600" x-text="originalVolume">
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600" x-text="originalVolumeValue.toFixed(2)">
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600"
                                 x-text="statutoryVolume.toFixed(2)"></td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600">1.2</td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-slate-900 font-semibold"
-                                x-text="(originalVolume * 1.2).toFixed(2)"></td>
+                                x-text="capOptionOneTotal.toFixed(2)"></td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-primary font-bold"
-                                x-text="Math.max(0, originalVolume * 1.2 - originalVolume).toFixed(2)"></td>
+                                x-text="capOptionOneApply.toFixed(2)"></td>
                             <!-- <td class="px-6 py-4 whitespace-nowrap text-slate-500 text-xs">擇優</td> -->
                         </tr>
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">原容積+0.3倍法定容積</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600" x-text="originalVolume">
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600" x-text="originalVolumeValue.toFixed(2)">
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600"
                                 x-text="statutoryVolume.toFixed(2)"></td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600">0.3</td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-slate-900 font-semibold"
-                                x-text="(originalVolume + statutoryVolume * 0.3).toFixed(2)"></td>
+                                x-text="capOptionTwoTotal.toFixed(2)"></td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-primary font-bold"
-                                x-text="Math.max(0, (originalVolume + statutoryVolume * 0.3) - statutoryVolume).toFixed(2)">
+                                x-text="capOptionTwoApply.toFixed(2)">
                             </td>
                             <!-- <td class="px-6 py-4 whitespace-nowrap text-slate-500"></td> -->
                             <td class="px-6 py-4 whitespace-nowrap text-slate-500 text-xs">擇優</td>
                         </tr>
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">法定容積+0.5倍法定容積</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600" x-text="originalVolume">
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600" x-text="originalVolumeValue.toFixed(2)">
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600"
                                 x-text="statutoryVolume.toFixed(2)"></td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600">0.5</td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-slate-900 font-semibold"
-                                x-text="(statutoryVolume + statutoryVolume * 0.5).toFixed(2)"></td>
+                                x-text="capOptionThreeTotal.toFixed(2)"></td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-primary font-bold"
-                                x-text="Math.max(0, (statutoryVolume + statutoryVolume * 0.5) - statutoryVolume).toFixed(2)">
+                                x-text="capOptionThreeApply.toFixed(2)">
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-slate-500"></td>
                         </tr>
