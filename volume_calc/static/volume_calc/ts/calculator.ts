@@ -568,6 +568,11 @@ function initBuildingMassEngine(): void {
 
 window.volumeCalculator = createVolumeCalculator;
 
+document.addEventListener("alpine:init", () => {
+    // @ts-ignore
+    Alpine.data("volumeCalculator", createVolumeCalculator);
+});
+
 document.addEventListener("DOMContentLoaded", () => {
     window.lucide?.createIcons();
     initBuildingMassEngine();
