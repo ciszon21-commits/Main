@@ -1,71 +1,65 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.db import models
-from .models import EquipmentCategory, XrEquipment, GoProAccessory, VrComputer, XrSupportRecord, GoProRentalRecord
-from .forms import EquipmentCategoryForm, XrEquipmentForm, GoProAccessoryForm, VrComputerForm, XrSupportRecordForm, GoProRentalRecordForm
+from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord
+from .forms import EquipmentCategoryForm, XrEquipmentForm, XrSupportRecordForm, GoProRentalRecordForm
 
 def vr_section(request):
-    """VR 設備專區 (重構版)"""
-    # 1. 電腦 Table
-    computers = VrComputer.objects.all()
+    """VR 設備專區 (統一模型版)"""
+    vr_items = XrEquipment.objects.filter(section='vr').select_related('category')
     
-    # 2. 頭盔 Table (透過名稱篩選)
-    headsets = XrEquipment.objects.filter(
-        models.Q(name__icontains='頭盔') | 
-        models.Q(category__name__icontains='頭盔')
-    ).distinct().select_related('category')
-    
-    # 3. 其他 Table (VR 相關但非頭盔)
-    others = XrEquipment.objects.filter(
-        models.Q(name__icontains='VR') | 
-        models.Q(category__name__icontains='VR')
-    ).exclude(
-        pk__in=headsets.values_list('pk', flat=True)
-    ).distinct().select_related('category')
-
+    # 分類抓取
     context = {
-        'vr_computers': computers,
-        'vr_headsets': headsets,
-        'vr_others': others,
+        'vr_computers': vr_items.filter(models.Q(name__icontains='電腦') | models.Q(category__name__icontains='電腦')),
+        'vr_headsets': vr_items.filter(models.Q(name__icontains='頭盔') | models.Q(category__name__icontains='頭盔')),
+        'vr_others': vr_items.exclude(
+            models.Q(name__icontains='電腦') | models.Q(category__name__icontains='電腦') |
+            models.Q(name__icontains='頭盔') | models.Q(category__name__icontains='頭盔')
+        ),
+        'categories': EquipmentCategory.objects.all(),
+        'eq_form': XrEquipmentForm(),
     }
     return render(request, 'XrResource/vr_section.html', context)
 
 def gopro_section(request):
-    """GoPro 專區 (重構版)"""
-    # 這裡假設 GoPro 相關資產都在 GoProAccessory 中
-    # 1. 主機 Table
-    hosts = GoProAccessory.objects.filter(name__icontains='主機')
+    """GoPro 專區 (統一模型版)"""
+    gp_items = XrEquipment.objects.filter(section='gopro').select_related('category')
     
-    # 2. 電池 Table
-    batteries = GoProAccessory.objects.filter(name__icontains='電池')
-    
-    # 3. 記憶卡 Table
-    sd_cards = GoProAccessory.objects.filter(name__icontains='記憶卡')
-    
-    # 4. 其他 Table
-    all_gopro = GoProAccessory.objects.all()
-    others = all_gopro.exclude(
-        pk__in=hosts.values_list('pk', flat=True)
-    ).exclude(
-        pk__in=batteries.values_list('pk', flat=True)
-    ).exclude(
-        pk__in=sd_cards.values_list('pk', flat=True)
-    )
-
     context = {
-        'gp_hosts': hosts,
-        'gp_batteries': batteries,
-        'gp_sd_cards': sd_cards,
-        'gp_others': others,
+        'gp_hosts': gp_items.filter(models.Q(name__icontains='主機') | models.Q(category__name__icontains='主機')),
+        'gp_batteries': gp_items.filter(models.Q(name__icontains='電池') | models.Q(category__name__icontains='電池')),
+        'gp_sd_cards': gp_items.filter(models.Q(name__icontains='記憶卡') | models.Q(category__name__icontains='記憶卡')),
+        'gp_others': gp_items.exclude(
+            models.Q(name__icontains='主機') | models.Q(category__name__icontains='主機') |
+            models.Q(name__icontains='電池') | models.Q(category__name__icontains='電池') |
+            models.Q(name__icontains='記憶卡') | models.Q(category__name__icontains='記憶卡')
+        ),
+        'categories': EquipmentCategory.objects.all(),
+        'eq_form': XrEquipmentForm(),
     }
     return render(request, 'XrResource/gopro_section.html', context)
 
-# 簡易 CRUD 處理 (後續可擴充為 AJAX)
+def equipment_save(request, pk=None):
+    """新增或編輯設備"""
+    if pk:
+        equipment = get_object_or_404(XrEquipment, pk=pk)
+    else:
+        equipment = None
+
+    if request.method == 'POST':
+        form = XrEquipmentForm(request.POST, instance=equipment)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '資料已儲存')
+        else:
+            messages.error(request, '儲存失敗，請檢查欄位格式')
+    
+    return redirect(request.META.get('HTTP_REFERER', 'XrResource:vr_section'))
+
 def delete_item(request, model_name, pk):
+    """刪除物件"""
     models_map = {
         'equipment': XrEquipment,
-        'accessory': GoProAccessory,
-        'computer': VrComputer,
         'support': XrSupportRecord,
         'rental': GoProRentalRecord,
         'category': EquipmentCategory,

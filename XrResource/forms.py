@@ -1,5 +1,5 @@
 from django import forms
-from .models import EquipmentCategory, XrEquipment, GoProAccessory, VrComputer, XrSupportRecord, GoProRentalRecord
+from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord
 
 class EquipmentCategoryForm(forms.ModelForm):
     class Meta:
@@ -16,34 +16,13 @@ class XrEquipmentForm(forms.ModelForm):
         model = XrEquipment
         fields = '__all__'
         widgets = {
+            'section': forms.Select(attrs={'class': 'form-select'}),
             'category': forms.Select(attrs={'class': 'form-select'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'serial_number': forms.TextInput(attrs={'class': 'form-control'}),
             'specifications': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'note': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'status': forms.Select(attrs={'class': 'form-select'}),
-        }
-
-class GoProAccessoryForm(forms.ModelForm):
-    class Meta:
-        model = GoProAccessory
-        fields = '__all__'
-        widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'stock_quantity': forms.NumberInput(attrs={'class': 'form-control'}),
-            'rented_quantity': forms.NumberInput(attrs={'class': 'form-control'}),
-        }
-
-class VrComputerForm(forms.ModelForm):
-    class Meta:
-        model = VrComputer
-        fields = '__all__'
-        widgets = {
-            'serial_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'specifications': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'note': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'local_account': forms.TextInput(attrs={'class': 'form-control'}),
-            'local_password': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
 class XrSupportRecordForm(forms.ModelForm):
