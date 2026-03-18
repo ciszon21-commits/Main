@@ -1,0 +1,147 @@
+{% extends 'XrResource/base_xr.html' %}
+
+{% block title %}概覽 - XrResource{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-5">
+    <div>
+        <h1 class="fw-bold mb-1">儀表板 Dashboard</h1>
+        <p class="text-muted">歡迎使用 XR 資源管理系統，以下是目前器材的即時狀況。</p>
+    </div>
+    <div class="d-flex gap-3">
+        <button class="btn btn-premium" data-bs-toggle="modal" data-bs-target="#quickSupportModal">
+            <i class="fas fa-plus me-2"></i> 快速紀錄支援
+        </button>
+    </div>
+</div>
+
+<!-- Stats Grid -->
+<div class="row g-4 mb-5">
+    <div class="col-md-3">
+        <div class="glass-card stat-card">
+            <div class="stat-icon" style="background: hsl(var(--primary-hsl));">
+                <i class="fas fa-headset"></i>
+            </div>
+            <div>
+                <div class="text-muted small">總 XR 設備</div>
+                <div class="h4 fw-bold mb-0">{{ equipment_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card stat-card">
+            <div class="stat-icon" style="background: #e53e3e;">
+                <i class="fas fa-hand-holding-heart"></i>
+            </div>
+            <div>
+                <div class="text-muted small">目前已出借</div>
+                <div class="h4 fw-bold mb-0">{{ rented_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card stat-card">
+            <div class="stat-icon" style="background: hsl(var(--secondary-hsl));">
+                <i class="fas fa-camera"></i>
+            </div>
+            <div>
+                <div class="text-muted small">GoPro 配件數</div>
+                <div class="h4 fw-bold mb-0">{{ accessory_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card stat-card">
+            <div class="stat-icon" style="background: #319795;">
+                <i class="fas fa-desktop"></i>
+            </div>
+            <div>
+                <div class="text-muted small">專用電腦數</div>
+                <div class="h4 fw-bold mb-0">{{ computer_count }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Recent Support -->
+    <div class="col-lg-7">
+        <div class="glass-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0">最近支援事務</h5>
+                <a href="{% url 'XrResource:records_list' %}" class="btn btn-link btn-sm text-decoration-none">查看全部</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-premium">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>部門</th>
+                            <th>性質</th>
+                            <th>設備數</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in recent_support %}
+                        <tr>
+                            <td>{{ record.date|date:"Y-m-d" }}</td>
+                            <td class="fw-bold">{{ record.department }}</td>
+                            <td><span class="badge bg-secondary opacity-75">{{ record.get_nature_display }}</span></td>
+                            <td>{{ record.equipment_count }} 台</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">暫無支援紀錄</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent GoPro Rental -->
+    <div class="col-lg-5">
+        <div class="glass-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0">GoPro 租借動態</h5>
+                <a href="{% url 'XrResource:records_list' %}" class="btn btn-link btn-sm text-decoration-none">查看全部</a>
+            </div>
+            {% for rental in recent_rentals %}
+            <div class="d-flex align-items-center gap-3 p-3 mb-3"
+                style="background: rgba(255,255,255,0.5); border-radius: 12px;">
+                <div class="stat-icon"
+                    style="background: #edf2f7; color: #4a5568; font-size: 1rem; width: 40px; height: 40px;">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="small fw-bold">{{ rental.borrower }}</div>
+                    <div class="text-muted extra-small" style="font-size: 0.7rem;">{{ rental.department }} • {{ rental.date|date:"m/d" }}</div>
+                </div>
+                <div class="badge bg-light text-dark">{{ rental.equipment|truncatechars:10 }}</div>
+            </div>
+            {% empty %}
+            <div class="text-center text-muted py-5">暫無租借動態</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Example -->
+<div class="modal fade" id="quickSupportModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">快速紀錄支援</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>請前往「租借紀錄」頁面進行詳細填寫。</p>
+            </div>
+            <div class="modal-footer border-0">
+                <a href="{% url 'XrResource:records_list' %}" class="btn btn-premium">前往填寫</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

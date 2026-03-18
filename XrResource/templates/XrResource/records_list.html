@@ -1,0 +1,102 @@
+{% extends 'XrResource/base_xr.html' %}
+
+{% block title %}租借與支援紀錄 - XrResource{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-5">
+    <div>
+        <h1 class="fw-bold mb-1">支援與租借紀錄</h1>
+        <p class="text-muted">紀錄 XR 支援事務與 GoPro 租借歷史。</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- XR Support Records -->
+    <div class="col-12">
+        <div class="glass-card">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0"><i class="fas fa-handshake me-2 text-primary"></i> XR 支援事務紀錄</h5>
+                <a href="/admin/XrResource/xrsupportrecord/add/" class="btn btn-premium btn-sm">新增紀錄</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-premium">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>部門</th>
+                            <th>租借性質</th>
+                            <th>設備/人員/規模</th>
+                            <th>關聯設備</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in support_records %}
+                        <tr>
+                            <td>{{ record.date|date:"Y-m-d" }}</td>
+                            <td class="fw-bold">{{ record.department }}</td>
+                            <td><span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1">{{
+                                    record.get_nature_display }}</span></td>
+                            <td>
+                                <div class="small">設備: {{ record.equipment_count }} 台</div>
+                                <div class="small">支援: {{ record.support_people }} 人</div>
+                                <div class="small text-muted">規模: {{ record.event_scale }} 人</div>
+                            </td>
+                            <td>
+                                {% for eq in record.rented_equipments.all %}
+                                <span class="badge bg-light text-dark extra-small">{{ eq.serial_number }}</span>
+                                {% empty %} - {% endfor %}
+                            </td>
+                            <td>
+                                <a href="{% url 'XrResource:delete_item' 'support' record.id %}"
+                                    class="btn btn-sm btn-link text-danger"><i class="fas fa-trash"></i></a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- GoPro Rental Records -->
+    <div class="col-12">
+        <div class="glass-card" style="border-left: 4px solid hsl(var(--secondary-hsl));">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0"><i class="fas fa-camera me-2 text-purple"></i> GoPro 租借紀錄</h5>
+                <a href="/admin/XrResource/goprorentalrecord/add/" class="btn btn-sm outline-secondary"
+                    style="border: 1px solid #ddd; border-radius: 10px; padding: 5px 15px;">新增</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-premium">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>租借部門</th>
+                            <th>租借人</th>
+                            <th>原因</th>
+                            <th>設備</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rental in gopro_records %}
+                        <tr>
+                            <td>{{ rental.date|date:"Y-m-d" }}</td>
+                            <td>{{ rental.department }}</td>
+                            <td class="fw-bold">{{ rental.borrower }}</td>
+                            <td><small>{{ rental.reason|truncatechars:20 }}</small></td>
+                            <td><span class="badge bg-secondary">{{ rental.equipment }}</span></td>
+                            <td>
+                                <a href="{% url 'XrResource:delete_item' 'rental' rental.id %}"
+                                    class="btn btn-sm text-danger"><i class="fas fa-times-circle"></i></a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
