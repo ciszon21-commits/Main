@@ -16,7 +16,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'volume_calc/css/calculator.css' %}">
 
-<div class="product-shell min-h-screen py-8 px-4 sm:px-6 lg:px-8 text-slate-900" x-data="{ ...volumeCalculator(), activeRightTab: 'limits' }">
+<div class="product-shell min-h-screen py-8 px-4 sm:px-6 lg:px-8 text-slate-900" x-data="volumeCalculator()">
 
     <div class="w-full max-w-[96vw] 2xl:max-w-[1800px] mx-auto space-y-8">
         <!-- Header -->
@@ -56,7 +56,7 @@
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-slate-700">基地面積 (㎡)</label>
                     <div class="relative rounded-md shadow-sm">
-                        <input type="number" x-model.number="baseArea"
+                        <input type="number" step="0.01" x-model="baseArea" placeholder="0.00"
                             class="block w-full rounded-lg border-gray-300 pl-3 pr-12 focus:border-primary focus:ring-primary sm:text-sm h-11 border bg-slate-50 hover:bg-white transition-colors">
                     </div>
                 </div>
@@ -64,20 +64,20 @@
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-slate-700">建物原容積 (㎡)</label>
                     <div class="relative rounded-md shadow-sm">
-                        <input type="number" x-model.number="originalVolume"
+                        <input type="number" step="0.01" x-model="originalVolume" placeholder="0.00"
                             class="block w-full rounded-lg border-gray-300 pl-3 pr-12 focus:border-primary focus:ring-primary sm:text-sm h-11 border bg-slate-50 hover:bg-white transition-colors">
                     </div>
                 </div>
                 <!-- Zone Type -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-slate-700">使用分區</label>
-                    <input type="text" x-model="zoneType"
+                    <input type="text" x-model="zoneType" placeholder="請輸入"
                         class="block w-full rounded-lg border-gray-300 pl-3 focus:border-primary focus:ring-primary sm:text-sm h-11 border bg-slate-50 hover:bg-white transition-colors">
                 </div>
                 <!-- Volume Ratio -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-slate-700">容積率(%)</label>
-                    <input type="number" step="1" x-model.number="volumeRatioPercent"
+                    <input type="number" step="0.01" x-model="volumeRatioPercent" placeholder="0.00"
                         class="block w-full rounded-lg border-gray-300 pl-3 focus:border-primary focus:ring-primary sm:text-sm h-11 border bg-slate-50 hover:bg-white transition-colors">
                 </div>
             </div>
@@ -157,43 +157,43 @@
                     <tbody class="bg-white divide-y divide-gray-200">
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">1.2倍原容積</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600" x-text="originalVolume">
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600" x-text="originalVolumeValue.toFixed(2)">
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600"
                                 x-text="statutoryVolume.toFixed(2)"></td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600">1.2</td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-slate-900 font-semibold"
-                                x-text="(originalVolume * 1.2).toFixed(2)"></td>
+                                x-text="capOptionOneTotal.toFixed(2)"></td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-primary font-bold"
-                                x-text="Math.max(0, originalVolume * 1.2 - originalVolume).toFixed(2)"></td>
+                                x-text="capOptionOneApply.toFixed(2)"></td>
                             <!-- <td class="px-6 py-4 whitespace-nowrap text-slate-500 text-xs">擇優</td> -->
                         </tr>
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">原容積+0.3倍法定容積</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600" x-text="originalVolume">
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600" x-text="originalVolumeValue.toFixed(2)">
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600"
                                 x-text="statutoryVolume.toFixed(2)"></td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600">0.3</td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-slate-900 font-semibold"
-                                x-text="(originalVolume + statutoryVolume * 0.3).toFixed(2)"></td>
+                                x-text="capOptionTwoTotal.toFixed(2)"></td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-primary font-bold"
-                                x-text="Math.max(0, (originalVolume + statutoryVolume * 0.3) - statutoryVolume).toFixed(2)">
+                                x-text="capOptionTwoApply.toFixed(2)">
                             </td>
                             <!-- <td class="px-6 py-4 whitespace-nowrap text-slate-500"></td> -->
                             <td class="px-6 py-4 whitespace-nowrap text-slate-500 text-xs">擇優</td>
                         </tr>
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">法定容積+0.5倍法定容積</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600" x-text="originalVolume">
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600" x-text="originalVolumeValue.toFixed(2)">
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600"
                                 x-text="statutoryVolume.toFixed(2)"></td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-slate-600">0.5</td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-slate-900 font-semibold"
-                                x-text="(statutoryVolume + statutoryVolume * 0.5).toFixed(2)"></td>
+                                x-text="capOptionThreeTotal.toFixed(2)"></td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-primary font-bold"
-                                x-text="Math.max(0, (statutoryVolume + statutoryVolume * 0.5) - statutoryVolume).toFixed(2)">
+                                x-text="capOptionThreeApply.toFixed(2)">
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-slate-500"></td>
                         </tr>
@@ -239,7 +239,21 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
-                            <td class="px-4 py-3 font-medium text-slate-900 align-middle text-center text-xs" rowspan="13"><span class="vertical-label">都市更新建築容積獎勵辦法</span></td>
+                            <td class="px-4 py-3 font-medium text-slate-900 align-middle text-center text-xs" rowspan="14"><span class="vertical-label">都市更新建築容積獎勵辦法</span></td>
+                            <td colspan="2" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">第五條</td>
+                            <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">實施容積管制前已興建完成之合法建築物，其原建築容積高於基準容積者，得依原建築容積建築，或依原建築基地基準容積之10%給予獎勵容積。</td>
+                            <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況，應以使照存根面積打折估算；原容積應請建築師依據使照竣工圖核算並簽證後函請建管單位確認是否高於基準容積</td>
+                            <td class="px-4 py-3 align-middle text-center w-28">
+                                <div class="relative">
+                                    <input type="number" step="1" x-model.number="rules.rule_0" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm text-center">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">%</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs" x-text="(statutoryVolume * (rules.rule_0 / 100)).toFixed(2)"></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
                             <td colspan="2" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">第六條</td>
                             <td class="px-4 py-3 text-slate-600 text-left align-middle text-xs leading-relaxed">都市更新事業計畫範圍內之建築物符合下列情形之一者，依原建築基地基準容積一定比率給予獎勵容積：<br>1.經建築主管機關依建築法規、災害防救法規通知限期拆除、逕予強制拆除或評估有危險之虞應限期補強或拆除：10%<br>2.經結構安全性能評估結果未達最低等級：8%</td>
                             <td class="px-4 py-3 text-slate-500 text-left align-middle text-xs leading-relaxed">視個案狀況，以有謄本或使用執照之建築物經結構初評未達最低等級計算；有建物謄本無使用執照之建物，應請建築師檢討是否可以申請認定為合法建築且需取得該棟建築物100%地主同意；另需請結構技師或相關專業技師針對合法建築物鑑定及評估</td>
@@ -391,9 +405,9 @@
                         <tr class="transition-colors">
                             <td colspan="4" class="px-4 py-3 font-semibold text-slate-900 text-center align-middle text-xs whitespace-nowrap">小計</td>
                             <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs"
-                                x-text="(rules.rule_1 + rules.rule_2 + rules.rule_3 + rules.rule_4 + rules.rule_5 + rules.rule_6 + rules.rule_7 + rules.rule_8 + rules.rule_9 + rules.rule_10 + rules.rule_11 + rules.rule_12).toFixed(2) + '%'"></td>
+                                x-text="(rules.rule_0 + rules.rule_1 + rules.rule_2 + rules.rule_3 + rules.rule_4 + rules.rule_5 + rules.rule_6 + rules.rule_7 + rules.rule_8 + rules.rule_9 + rules.rule_10 + rules.rule_11 + rules.rule_12).toFixed(2) + '%'"></td>
                             <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs"
-                                x-text="(statutoryVolume * ((rules.rule_1 + rules.rule_2 + rules.rule_3 + rules.rule_4 + rules.rule_5 + rules.rule_6 + rules.rule_7 + rules.rule_8 + rules.rule_9 + rules.rule_10 + rules.rule_11 + rules.rule_12) / 100)).toFixed(2)"></td>
+                                x-text="(statutoryVolume * ((rules.rule_0 + rules.rule_1 + rules.rule_2 + rules.rule_3 + rules.rule_4 + rules.rule_5 + rules.rule_6 + rules.rule_7 + rules.rule_8 + rules.rule_9 + rules.rule_10 + rules.rule_11 + rules.rule_12) / 100)).toFixed(2)"></td>
                         </tr>
                         <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
                             <td class="px-4 py-3 font-medium text-slate-900 align-middle text-center text-xs" rowspan="10"><span class="vertical-label">臺北市都市更新建築容積獎勵辦法</span></td>
@@ -511,9 +525,9 @@
                         <tr class="transition-colors">
                             <td colspan="5" class="px-4 py-3 font-semibold text-slate-900 text-center align-middle text-xs whitespace-nowrap">都更容獎總計</td>
                             <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs"
-                                x-text="(rules.rule_1 + rules.rule_2 + rules.rule_3 + rules.rule_4 + rules.rule_5 + rules.rule_6 + rules.rule_7 + rules.rule_8 + rules.rule_9 + rules.rule_10 + rules.rule_11 + rules.rule_12 + rules.rule_14 + rules.rule_15 + rules.rule_16 + rules.rule_17 + rules.rule_18 + rules.rule_19 + rules.rule_20 + rules.rule_21 + rules.rule_22).toFixed(2) + '%'"></td>
+                                x-text="(rules.rule_0 + rules.rule_1 + rules.rule_2 + rules.rule_3 + rules.rule_4 + rules.rule_5 + rules.rule_6 + rules.rule_7 + rules.rule_8 + rules.rule_9 + rules.rule_10 + rules.rule_11 + rules.rule_12 + rules.rule_14 + rules.rule_15 + rules.rule_16 + rules.rule_17 + rules.rule_18 + rules.rule_19 + rules.rule_20 + rules.rule_21 + rules.rule_22).toFixed(2) + '%'"></td>
                             <td class="px-4 py-3 text-center text-slate-900 font-semibold align-middle text-xs"
-                                x-text="(statutoryVolume * ((rules.rule_1 + rules.rule_2 + rules.rule_3 + rules.rule_4 + rules.rule_5 + rules.rule_6 + rules.rule_7 + rules.rule_8 + rules.rule_9 + rules.rule_10 + rules.rule_11 + rules.rule_12 + rules.rule_14 + rules.rule_15 + rules.rule_16 + rules.rule_17 + rules.rule_18 + rules.rule_19 + rules.rule_20 + rules.rule_21 + rules.rule_22) / 100)).toFixed(2)"></td>
+                                x-text="(statutoryVolume * ((rules.rule_0 + rules.rule_1 + rules.rule_2 + rules.rule_3 + rules.rule_4 + rules.rule_5 + rules.rule_6 + rules.rule_7 + rules.rule_8 + rules.rule_9 + rules.rule_10 + rules.rule_11 + rules.rule_12 + rules.rule_14 + rules.rule_15 + rules.rule_16 + rules.rule_17 + rules.rule_18 + rules.rule_19 + rules.rule_20 + rules.rule_21 + rules.rule_22) / 100)).toFixed(2)"></td>
                         </tr>
                         <tr class="hover:bg-slate-50 focus-within:bg-slate-50 transition-colors">
                             <td colspan="3" class="px-4 py-3 font-medium text-slate-700 text-center align-middle text-xs whitespace-nowrap">臺北市防災型都市更新細部計畫</td>
