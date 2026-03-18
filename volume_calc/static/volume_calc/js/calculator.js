@@ -410,6 +410,11 @@ function initBuildingMassEngine() {
     });
 }
 window.volumeCalculator = createVolumeCalculator;
+document.addEventListener("alpine:init", () => {
+    if (typeof Alpine !== "undefined") {
+        Alpine.data("volumeCalculator", createVolumeCalculator);
+    }
+});
 document.addEventListener("DOMContentLoaded", () => {
     var _a;
     (_a = window.lucide) === null || _a === void 0 ? void 0 : _a.createIcons();
