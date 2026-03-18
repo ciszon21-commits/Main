@@ -19,6 +19,28 @@
     </div>
 </div>
 
+<!-- 篩選器 -->
+<div class="glass-card mb-4 mt-2">
+    <form method="GET" class="row align-items-end g-3">
+        <div class="col-md-8">
+            <label class="form-label fw-bold text-muted small mb-1"><i class="fas fa-filter me-1"></i>依租用狀態篩選</label>
+            <select name="status" id="statusFilter" class="form-select select2-multiple" multiple="multiple">
+                {% for val, label in status_choices %}
+                <option value="{{ val }}" {% if val in selected_statuses %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4 d-flex gap-2">
+            <button type="submit" class="btn btn-premium flex-grow-1">
+                <i class="fas fa-search me-1"></i>套用篩選
+            </button>
+            <a href="{% url 'XrResource:vr_section' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-undo"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
 <!-- 電腦 Table -->
 <div class="glass-card mb-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -43,9 +65,10 @@
                 {% for item in vr_computers %}
                 <tr>
                     <td class="fw-bold text-primary">{{ item.name }}</td>
-                    <td>{% if item.serial_number %}<span class="badge bg-light text-dark">{{ item.serial_number }}</span>{% endif %}</td>
-                    <td><small class="text-muted">{{ item.specifications|truncatechars:30 }}</small></td>
-                    <td><small class="text-muted">{{ item.note|truncatechars:20 }}</small></td>
+                    <td>{% if item.serial_number and item.serial_number != "None" %}<span
+                            class="badge bg-light text-dark">{{ item.serial_number }}</span>{% endif %}</td>
+                    <td><small class="text-muted">{{ item.specifications|linebreaksbr }}</small></td>
+                    <td><small class="text-muted">{{ item.note|linebreaksbr }}</small></td>
                     <td class="text-center">
                         <div class="btn-group">
                             <button class="btn btn-sm btn-link text-primary" data-bs-toggle="modal"
@@ -94,9 +117,10 @@
                 {% for item in vr_headsets %}
                 <tr>
                     <td class="fw-bold text-secondary">{{ item.name }}</td>
-                    <td>{% if item.serial_number %}<span class="badge bg-light text-dark">{{ item.serial_number }}</span>{% endif %}</td>
-                    <td><small class="text-muted">{{ item.specifications|truncatechars:30 }}</small></td>
-                    <td><small class="text-muted">{{ item.note|truncatechars:20 }}</small></td>
+                    <td>{% if item.serial_number and item.serial_number != "None" %}<span
+                            class="badge bg-light text-dark">{{ item.serial_number }}</span>{% endif %}</td>
+                    <td><small class="text-muted">{{ item.specifications|linebreaksbr }}</small></td>
+                    <td><small class="text-muted">{{ item.note|linebreaksbr }}</small></td>
                     <td class="text-center">
                         <div class="btn-group">
                             <button class="btn btn-sm btn-link text-primary" data-bs-toggle="modal"
@@ -145,9 +169,10 @@
                 {% for item in vr_others %}
                 <tr>
                     <td class="fw-bold">{{ item.name }}</td>
-                    <td>{% if item.serial_number %}<span class="badge bg-light text-dark">{{ item.serial_number }}</span>{% endif %}</td>
-                    <td><small class="text-muted">{{ item.specifications|truncatechars:30 }}</small></td>
-                    <td><small class="text-muted">{{ item.note|truncatechars:20 }}</small></td>
+                    <td>{% if item.serial_number and item.serial_number != "None" %}<span
+                            class="badge bg-light text-dark">{{ item.serial_number }}</span>{% endif %}</td>
+                    <td><small class="text-muted">{{ item.specifications|linebreaksbr }}</small></td>
+                    <td><small class="text-muted">{{ item.note|linebreaksbr }}</small></td>
                     <td class="text-center">
                         <div class="btn-group">
                             <button class="btn btn-sm btn-link text-primary" data-bs-toggle="modal"
@@ -224,7 +249,19 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
 <script>
+    $(document).ready(function () {
+        $('#statusFilter').select2({
+            theme: 'bootstrap-5',
+            placeholder: '選擇狀態...',
+            allowClear: true,
+            width: '100%'
+        });
+    });
+
     function setModal(mode, section, catName, pk = '', name = '', sn = '', spec = '', note = '', catId = '') {
         const form = document.getElementById('equipmentForm');
         const title = document.getElementById('modalTitle');
