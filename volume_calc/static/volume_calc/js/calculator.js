@@ -1,7 +1,7 @@
 "use strict";
 const DEFAULT_ZONE_TYPE = "";
 const TOTAL_REWARD_RULE_KEYS = [
-    "rule_1", "rule_2", "rule_3", "rule_4", "rule_5", "rule_6", "rule_7", "rule_8", "rule_9", "rule_10",
+    "rule_0", "rule_1", "rule_2", "rule_3", "rule_4", "rule_5", "rule_6", "rule_7", "rule_8", "rule_9", "rule_10",
     "rule_11", "rule_12", "rule_14", "rule_15", "rule_16", "rule_17", "rule_18", "rule_19", "rule_20",
     "rule_21", "rule_22", "rule_26", "rule_27", "rule_28", "rule_29", "rule_30", "rule_32", "rule_33"
 ];
@@ -46,14 +46,27 @@ function sumRuleValues(rules, keys) {
         return sum + ((_a = rules[key]) !== null && _a !== void 0 ? _a : 0);
     }, 0);
 }
+function formatInputValue(value) {
+    return value.toFixed(2);
+}
+function getInitialNumericInput(value) {
+    return value === 0 ? "" : formatInputValue(value);
+}
+function parseInputValue(value) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+function roundToTwo(value) {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
+}
 function getDefaults() {
     const defaults = window.__volumeCalcDefaults;
     if (!defaults) {
         return {
-            baseArea: 1029,
-            originalVolume: 2000,
+            baseArea: 0,
+            originalVolume: 0,
             zoneType: DEFAULT_ZONE_TYPE,
-            volumeRatio: 2.25
+            volumeRatio: 0
         };
     }
     return {
@@ -66,34 +79,54 @@ function getDefaults() {
 function createVolumeCalculator() {
     const defaults = getDefaults();
     return {
-        baseArea: defaults.baseArea,
-        originalVolume: defaults.originalVolume,
+        baseArea: getInitialNumericInput(defaults.baseArea),
+        originalVolume: getInitialNumericInput(defaults.originalVolume),
         zoneType: defaults.zoneType,
-        volumeRatioPercent: defaults.volumeRatio * 100,
+        volumeRatioPercent: getInitialNumericInput(defaults.volumeRatio * 100),
+        activeRightTab: "limits",
         rules: createDefaultRules(),
         get volumeRatio() {
-            return this.volumeRatioPercent / 100;
+            return roundToTwo(parseInputValue(this.volumeRatioPercent) / 100);
+        },
+        get originalVolumeValue() {
+            return roundToTwo(parseInputValue(this.originalVolume));
         },
         get statutoryVolume() {
-            return this.baseArea * this.volumeRatio;
+            return roundToTwo(parseInputValue(this.baseArea) * this.volumeRatio);
+        },
+        get capOptionOneTotal() {
+            return roundToTwo(this.originalVolumeValue * 1.2);
+        },
+        get capOptionOneApply() {
+            return roundToTwo(Math.max(0, this.capOptionOneTotal - this.originalVolumeValue));
+        },
+        get capOptionTwoTotal() {
+            return roundToTwo(this.originalVolumeValue + this.statutoryVolume * 0.3);
+        },
+        get capOptionTwoApply() {
+            return roundToTwo(Math.max(0, this.capOptionTwoTotal - this.statutoryVolume));
+        },
+        get capOptionThreeTotal() {
+            return roundToTwo(this.statutoryVolume + this.statutoryVolume * 0.5);
+        },
+        get capOptionThreeApply() {
+            return roundToTwo(Math.max(0, this.capOptionThreeTotal - this.statutoryVolume));
         },
         get maxAllowedReward() {
-            const c1 = Math.max(0, this.originalVolume * 1.2 - this.originalVolume);
-            const c2 = Math.max(0, (this.originalVolume + this.statutoryVolume * 0.3) - this.statutoryVolume);
-            const c3 = Math.max(0, (this.statutoryVolume + this.statutoryVolume * 0.5) - this.statutoryVolume);
-            return Math.max(c1, c2, c3);
+            return roundToTwo(Math.max(this.capOptionOneApply, this.capOptionTwoApply, this.capOptionThreeApply));
         },
         get totalRewardPercent() {
-            return sumRuleValues(this.rules, TOTAL_REWARD_RULE_KEYS);
+            return roundToTwo(sumRuleValues(this.rules, TOTAL_REWARD_RULE_KEYS));
         },
         get totalRewardArea() {
-            return this.statutoryVolume * (this.totalRewardPercent / 100);
+            return roundToTwo(this.statutoryVolume * (this.totalRewardPercent / 100));
         },
         resetForm() {
-            this.baseArea = defaults.baseArea;
-            this.originalVolume = defaults.originalVolume;
+            this.baseArea = getInitialNumericInput(defaults.baseArea);
+            this.originalVolume = getInitialNumericInput(defaults.originalVolume);
             this.zoneType = defaults.zoneType;
-            this.volumeRatioPercent = defaults.volumeRatio * 100;
+            this.volumeRatioPercent = getInitialNumericInput(defaults.volumeRatio * 100);
+            this.activeRightTab = "limits";
             this.rules = createDefaultRules();
         }
     };
