@@ -54,6 +54,7 @@ urlpatterns = [
     path('lhawish/', include('LHAWish.urls')),  # 部門許願池
     path('duplicate-checker/', include('duplicate_checker.urls')),  # 重複檔案檢查器
     path('review/', include('review_feedback.urls')),
+    path('src-column/', include('SRCColumn.urls')),  # SRC柱設計計算系統
 ]
 
 # 條件載入 ClashClassifier API

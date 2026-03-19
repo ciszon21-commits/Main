@@ -1,0 +1,683 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRC柱設計計算系統</title>
+    <meta name="description" content="SRC鋼骨鋼筋混凝土柱設計計算系統，線上即時計算與Word報告下載">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f5ff',
+                            100: '#e0ebff',
+                            200: '#c0d6ff',
+                            300: '#8ab4ff',
+                            400: '#5590ff',
+                            500: '#2d6bff',
+                            600: '#1a4fd4',
+                            700: '#143da8',
+                            800: '#0f2f80',
+                            900: '#0a1f54',
+                        },
+                        steel: {
+                            50: '#f4f6f8',
+                            100: '#e8ecf0',
+                            200: '#d1d9e2',
+                            300: '#a8b8c8',
+                            400: '#7a91a8',
+                            500: '#5a738d',
+                            600: '#475b73',
+                            700: '#3a4a5e',
+                            800: '#324050',
+                            900: '#2d3844',
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #c0d6ff; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #8ab4ff; }
+
+        /* Input focus animation */
+        .input-field {
+            transition: all 0.2s ease;
+            border: 1.5px solid #d1d9e2;
+        }
+        .input-field:focus {
+            border-color: #2d6bff;
+            box-shadow: 0 0 0 3px rgba(45, 107, 255, 0.12);
+            outline: none;
+        }
+        .input-field:hover:not(:focus) {
+            border-color: #a8b8c8;
+        }
+
+        /* Section collapse animation */
+        .calc-section-body {
+            overflow: hidden;
+            transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+        }
+        .calc-section-body.collapsed {
+            max-height: 0 !important;
+            opacity: 0;
+        }
+
+        /* Check badge */
+        .badge-ok {
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            color: #166534;
+            border: 1px solid #86efac;
+        }
+        .badge-ng {
+            background: linear-gradient(135deg, #fef2f2, #fecaca);
+            color: #991b1b;
+            border: 1px solid #f87171;
+        }
+
+        /* Gradient header */
+        .header-gradient {
+            background: linear-gradient(135deg, #0a1f54 0%, #1a4fd4 50%, #2d6bff 100%);
+        }
+
+        /* Glass card */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(208, 218, 230, 0.6);
+        }
+
+        /* Loading spinner */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .spinner {
+            animation: spin 0.8s linear infinite;
+        }
+
+        /* Calc line styling */
+        .calc-line {
+            padding: 2px 0;
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: #324050;
+        }
+        .calc-line:empty {
+            height: 12px;
+        }
+
+        /* Section toggle chevron */
+        .chevron-icon {
+            transition: transform 0.25s ease;
+        }
+        .chevron-icon.rotated {
+            transform: rotate(180deg);
+        }
+
+        /* Button hover effects */
+        .btn-primary {
+            background: linear-gradient(135deg, #2d6bff, #1a4fd4);
+            transition: all 0.2s ease;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5590ff, #2d6bff);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(45, 107, 255, 0.35);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #166534, #15803d);
+            transition: all 0.2s ease;
+        }
+        .btn-download:hover {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(22, 163, 74, 0.35);
+        }
+
+        /* Pulse animation for check items */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .check-item {
+            animation: fadeInUp 0.3s ease forwards;
+        }
+    </style>
+</head>
+
+<body class="bg-steel-50 min-h-screen">
+    <!-- Header -->
+    <header class="header-gradient text-white shadow-2xl">
+        <div class="max-w-7xl mx-auto px-6 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-tight">SRC柱設計計算系統</h1>
+                        <p class="text-brand-200 text-sm mt-0.5">Steel Reinforced Concrete Column Design</p>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center gap-3">
+                    <span class="text-xs text-brand-200 bg-white/10 rounded-full px-3 py-1">SRC規範</span>
+                    <span class="text-xs text-brand-200 bg-white/10 rounded-full px-3 py-1">Bresler Method</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <!-- Input Section -->
+        <section class="glass-card rounded-2xl shadow-lg p-6 md:p-8 mb-8">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                </div>
+                <h2 class="text-lg font-bold text-steel-800">設計參數輸入</h2>
+            </div>
+
+            <!-- 示意圖 -->
+            <div class="mb-6 bg-white/50 rounded-xl p-4 border border-steel-200 flex justify-center shadow-sm">
+                <img src="{% static 'SRCColumn/images/diagram.png' %}" alt="SRC柱設計示意圖" class="max-w-full h-auto max-h-[350px] object-contain rounded-lg">
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 斷面尺寸 -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-semibold text-steel-500 uppercase tracking-wider flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+                        斷面尺寸
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <div class="flex-1">
+                            <label class="block text-xs text-steel-400 mb-1">SRC柱 B (cm)</label>
+                            <input type="number" id="col_B" value="80" class="input-field w-full px-3 py-2.5 rounded-lg text-sm">
+                        </div>
+                        <span class="text-steel-300 mt-5 font-bold">×</span>
+                        <div class="flex-1">
+                            <label class="block text-xs text-steel-400 mb-1">SRC柱 H (cm)</label>
+                            <input type="number" id="col_H" value="80" class="input-field w-full px-3 py-2.5 rounded-lg text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-steel-400 mb-1">柱長度 (m)</label>
+                        <input type="number" id="col_length" value="3.5" step="0.1" class="input-field w-full px-3 py-2.5 rounded-lg text-sm">
+                    </div>
+                </div>
+
+                <!-- 鋼骨尺寸 -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-semibold text-steel-500 uppercase tracking-wider flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+                        鋼骨尺寸
+                    </h3>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="block text-xs text-steel-400 mb-1">b (mm)</label>
+                            <input type="number" id="steel_b" value="500" class="input-field w-full px-3 py-2.5 rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-steel-400 mb-1">h (mm)</label>
+                            <input type="number" id="steel_h" value="500" class="input-field w-full px-3 py-2.5 rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-steel-400 mb-1">t (mm)</label>
+                            <input type="number" id="steel_t" value="25" class="input-field w-full px-3 py-2.5 rounded-lg text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-steel-400 mb-1">鋼材規格</label>
+                        <select id="steel_grade" class="input-field w-full px-3 py-2.5 rounded-lg text-sm cursor-pointer">
+                            <option value="SN490/SM490">SN490/SM490</option>
+                            <option value="SN400/SM400">SN400/SM400</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 鋼筋配置 -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-semibold text-steel-500 uppercase tracking-wider flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+                        鋼筋配置
+                    </h3>
+                    <div>
+                        <label class="block text-xs text-steel-400 mb-1">配置方式</label>
+                        <select id="rebar_config" class="input-field w-full px-3 py-2.5 rounded-lg text-sm cursor-pointer">
+                            <option value="每個角落配置3根">每個角落配置3根</option>
+                            <option value="每個角落配置5根">每個角落配置5根</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-steel-400 mb-1">鋼筋號數</label>
+                        <select id="rebar_size" class="input-field w-full px-3 py-2.5 rounded-lg text-sm cursor-pointer">
+                            <option value="#8">#8</option>
+                            <option value="#10">#10</option>
+                            <option value="#11">#11</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-2">
+                        <div class="flex-1">
+                            <label class="block text-xs text-steel-400 mb-1">d (cm)</label>
+                            <input type="number" id="cover_d" value="7" step="0.5" class="input-field w-full px-3 py-2.5 rounded-lg text-sm">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-xs text-steel-400 mb-1">間距 (cm)</label>
+                            <input type="number" id="rebar_spacing" value="10" step="1" class="input-field w-full px-3 py-2.5 rounded-lg text-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 有效長度係數 -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-semibold text-steel-500 uppercase tracking-wider flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+                        有效長度係數
+                    </h3>
+                    <div class="flex gap-2">
+                        <div class="flex-1">
+                            <label class="block text-xs text-steel-400 mb-1">Kx</label>
+                            <input type="number" id="kx" value="1.53" step="0.01" class="input-field w-full px-3 py-2.5 rounded-lg text-sm">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-xs text-steel-400 mb-1">Ky</label>
+                            <input type="number" id="ky" value="1.83" step="0.01" class="input-field w-full px-3 py-2.5 rounded-lg text-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 材料強度 -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-semibold text-steel-500 uppercase tracking-wider flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+                        材料強度
+                    </h3>
+                    <div>
+                        <label class="block text-xs text-steel-400 mb-1">鋼骨 Fys (kgf/cm²)</label>
+                        <input type="number" id="fys" value="3500" class="input-field w-full px-3 py-2.5 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-steel-400 mb-1">鋼筋 Fyr (kgf/cm²)</label>
+                        <input type="number" id="fyr" value="4200" class="input-field w-full px-3 py-2.5 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-steel-400 mb-1">混凝土 fc' (kgf/cm²)</label>
+                        <input type="number" id="fc" value="280" class="input-field w-full px-3 py-2.5 rounded-lg text-sm">
+                    </div>
+                </div>
+
+                <!-- 設計力 -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-semibold text-steel-500 uppercase tracking-wider flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+                        設計力
+                    </h3>
+                    <div>
+                        <label class="block text-xs text-steel-400 mb-1">軸力 Pu (tf)</label>
+                        <input type="number" id="pu" value="495" step="0.1" class="input-field w-full px-3 py-2.5 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-steel-400 mb-1">彎矩 Mux (tf-m)</label>
+                        <input type="number" id="mux" value="190" step="0.1" class="input-field w-full px-3 py-2.5 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-steel-400 mb-1">彎矩 Muy (tf-m)</label>
+                        <input type="number" id="muy" value="175" step="0.1" class="input-field w-full px-3 py-2.5 rounded-lg text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calculate Button -->
+            <div class="mt-8 flex justify-center">
+                <button id="btn-calculate" class="btn-primary text-white font-semibold px-10 py-3.5 rounded-xl text-base cursor-pointer flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                    開始計算
+                </button>
+            </div>
+        </section>
+
+        <!-- Results Section (hidden until calculated) -->
+        <div id="results-container" class="hidden space-y-8">
+            <!-- Checks Section -->
+            <section class="glass-card rounded-2xl shadow-lg p-6 md:p-8">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h2 class="text-lg font-bold text-steel-800">初步檢核結果</h2>
+                </div>
+                <div id="checks-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Dynamically filled -->
+                </div>
+            </section>
+
+            <!-- Calculation Process Section -->
+            <section class="glass-card rounded-2xl shadow-lg p-6 md:p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-lg font-bold text-steel-800">設計計算過程</h2>
+                    </div>
+                    <button id="btn-expand-all" class="text-xs text-brand-500 hover:text-brand-700 font-medium cursor-pointer transition-colors">
+                        全部展開/收合
+                    </button>
+                </div>
+                <div id="calc-sections" class="space-y-4">
+                    <!-- Dynamically filled -->
+                </div>
+            </section>
+
+            <!-- Download Button -->
+            <div class="flex justify-center pb-8">
+                <button id="btn-download" class="btn-download text-white font-semibold px-10 py-3.5 rounded-xl text-base cursor-pointer flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    下載 Word 設計計算書
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="hidden fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div class="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4">
+                <div class="w-10 h-10 border-3 border-brand-200 border-t-brand-500 rounded-full spinner" style="border-width: 3px;"></div>
+                <p class="text-steel-600 font-medium text-sm" id="loading-text">計算中，請稍候...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-6 text-xs text-steel-400">
+        SRC柱設計計算系統 — Steel Reinforced Concrete Column Design
+    </footer>
+
+    <script>
+        const URLS = {
+            calculate: "{% url 'src_column_calculate' %}",
+            download: "{% url 'src_column_download' %}",
+        };
+
+        // ===== Collect form data =====
+        function getFormData() {
+            return {
+                col_B: document.getElementById('col_B').value,
+                col_H: document.getElementById('col_H').value,
+                col_length: document.getElementById('col_length').value,
+                steel_b: document.getElementById('steel_b').value,
+                steel_h: document.getElementById('steel_h').value,
+                steel_t: document.getElementById('steel_t').value,
+                rebar_config: document.getElementById('rebar_config').value,
+                rebar_size: document.getElementById('rebar_size').value,
+                cover_d: document.getElementById('cover_d').value,
+                rebar_spacing: document.getElementById('rebar_spacing').value,
+                kx: document.getElementById('kx').value,
+                ky: document.getElementById('ky').value,
+                fys: document.getElementById('fys').value,
+                steel_grade: document.getElementById('steel_grade').value,
+                fyr: document.getElementById('fyr').value,
+                fc: document.getElementById('fc').value,
+                pu: document.getElementById('pu').value,
+                mux: document.getElementById('mux').value,
+                muy: document.getElementById('muy').value,
+            };
+        }
+
+        // ===== Render checks =====
+        function renderChecks(checks) {
+            const grid = document.getElementById('checks-grid');
+            grid.innerHTML = '';
+
+            const items = [
+                { label: '鋼骨降伏強度檢核', data: checks.fys_check, fmt: v => `${v.value} ${v.op} ${v.limit} kgf/cm²` },
+                { label: '鋼筋降伏強度檢核', data: checks.fyr_check, fmt: v => `${v.value} ${v.op} ${v.limit} kgf/cm²` },
+                { label: '鋼骨保護層', value: `${checks.steel_cover} cm`, ok: true },
+                { label: '寬厚比檢核', data: checks.bt_check, fmt: v => `${v.value} ${v.op} ${v.limit}` },
+                { label: '鋼骨比檢核', note: '(一般建議約在4%至10%之間)', data: checks.rho_s_check, fmt: v => `${(v.value*100).toFixed(2)}% ${v.op} ${(v.limit*100).toFixed(0)}%` },
+                { label: '鋼筋比檢核', data: checks.rho_r_check, fmt: v => `${(v.value*100).toFixed(4)}% ${v.op} ${(v.limit*100).toFixed(0)}%` },
+                { label: '鋼骨部分檢核', data: checks.steel_stress_ratio, fmt: v => `應力比 ${v.value} ${v.op} ${v.limit}` },
+                { label: 'RC部分檢核', data: checks.rc_check, fmt: v => `φPnrc=${v.value} ${v.op} ${v.limit} tf` },
+                { label: '柱軸向強度檢核', data: checks.axial_check, fmt: v => `Pu/φPn=${v.value} ${v.op} ${v.limit}`, resultField: 'result' },
+            ];
+
+            items.forEach((item, idx) => {
+                const div = document.createElement('div');
+                div.className = 'check-item p-4 rounded-xl border transition-all hover:shadow-md';
+                div.style.animationDelay = `${idx * 0.05}s`;
+
+                let isOk, displayText, resultText;
+
+                if (item.data) {
+                    isOk = item.data.result === 'OK' || item.data.result === '不必檢核純軸壓強度';
+                    displayText = item.fmt(item.data);
+                    resultText = item.data.result;
+                } else {
+                    isOk = item.ok;
+                    displayText = item.value;
+                    resultText = '—';
+                }
+
+                div.className += isOk ? ' bg-emerald-50/60 border-emerald-200' : ' bg-red-50/60 border-red-200';
+
+                div.innerHTML = `
+                    <div class="flex items-start justify-between mb-2 gap-2">
+                        <div>
+                            <span class="text-xs font-semibold ${isOk ? 'text-emerald-700' : 'text-red-700'}">${item.label}</span>
+                            ${item.note ? `<span class="block text-[10px] text-steel-500 mt-0.5">${item.note}</span>` : ''}
+                        </div>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${isOk ? 'badge-ok' : 'badge-ng'}">${resultText}</span>
+                    </div>
+                    <p class="text-sm text-steel-600">${displayText}</p>
+                `;
+                grid.appendChild(div);
+            });
+        }
+
+        // ===== Render calculation sections =====
+        function renderCalcSections(sections) {
+            const container = document.getElementById('calc-sections');
+            container.innerHTML = '';
+
+            sections.forEach((section, idx) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'rounded-xl border border-steel-200 overflow-hidden';
+
+                // Header (clickable)
+                const header = document.createElement('button');
+                header.className = 'w-full flex items-center justify-between px-5 py-3.5 bg-steel-50 hover:bg-steel-100 transition-colors cursor-pointer';
+                header.innerHTML = `
+                    <span class="font-bold text-steel-700 text-sm">${section.title}</span>
+                    <svg class="w-4 h-4 text-steel-400 chevron-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                `;
+
+                // Body
+                const body = document.createElement('div');
+                body.className = 'calc-section-body px-5 py-4 bg-white';
+                body.style.maxHeight = '2000px';
+
+                section.lines.forEach(line => {
+                    const p = document.createElement('div');
+                    p.className = 'calc-line';
+                    if (line === '') {
+                        p.innerHTML = '&nbsp;';
+                    } else if (line.includes('OK')) {
+                        const parts = line.split('OK');
+                        p.innerHTML = parts[0] + '<span class="font-bold text-emerald-600">OK</span>' + (parts[1] || '');
+                    } else if (line.includes('NG')) {
+                        const parts = line.split('NG');
+                        p.innerHTML = parts[0] + '<span class="font-bold text-red-600">NG</span>' + (parts[1] || '');
+                    } else {
+                        p.textContent = line;
+                    }
+                    body.appendChild(p);
+                });
+
+                // Toggle
+                header.addEventListener('click', () => {
+                    const chevron = header.querySelector('.chevron-icon');
+                    if (body.classList.contains('collapsed')) {
+                        body.classList.remove('collapsed');
+                        body.style.maxHeight = body.scrollHeight + 'px';
+                        chevron.classList.remove('rotated');
+                    } else {
+                        body.classList.add('collapsed');
+                        chevron.classList.add('rotated');
+                    }
+                });
+
+                wrapper.appendChild(header);
+                wrapper.appendChild(body);
+                container.appendChild(wrapper);
+            });
+        }
+
+        // ===== Loading =====
+        function showLoading(text) {
+            document.getElementById('loading-text').textContent = text || '計算中，請稍候...';
+            document.getElementById('loading-overlay').classList.remove('hidden');
+        }
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
+
+        // ===== Calculate =====
+        document.getElementById('btn-calculate').addEventListener('click', async () => {
+            showLoading('正在執行 SRC 柱設計計算...');
+            try {
+                const resp = await fetch(URLS.calculate, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(getFormData()),
+                });
+                const json = await resp.json();
+                if (json.status === 'success') {
+                    renderChecks(json.data.checks);
+                    renderCalcSections(json.data.lines);
+                    document.getElementById('results-container').classList.remove('hidden');
+                    document.getElementById('results-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    alert('計算錯誤：' + json.message);
+                }
+            } catch (e) {
+                alert('請求失敗：' + e.message);
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // ===== Download Word =====
+        function fallbackDownload(blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'SRC_Column_Design_Report.docx';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        document.getElementById('btn-download').addEventListener('click', async () => {
+            showLoading('正在產生 Word 設計計算書...');
+            try {
+                const resp = await fetch(URLS.download, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(getFormData()),
+                });
+                if (resp.ok) {
+                    const blob = await resp.blob();
+                    
+                    // 使用 File System Access API 讓使用者決定儲存位置
+                    if (window.showSaveFilePicker) {
+                        try {
+                            const handle = await window.showSaveFilePicker({
+                                suggestedName: 'SRC_Column_Design_Report.docx',
+                                types: [{
+                                    description: 'Word Document',
+                                    accept: {'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']}
+                                }]
+                            });
+                            const writable = await handle.createWritable();
+                            await writable.write(blob);
+                            await writable.close();
+                        } catch (err) {
+                            if (err.name !== 'AbortError') {
+                                console.error('Save file error:', err);
+                                fallbackDownload(blob);
+                            }
+                        }
+                    } else {
+                        // 瀏覽器不支援時使用傳統方法
+                        fallbackDownload(blob);
+                    }
+                } else {
+                    const json = await resp.json();
+                    alert('產生報告錯誤：' + json.message);
+                }
+            } catch (e) {
+                alert('下載失敗：' + e.message);
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // ===== Expand/Collapse All =====
+        let allExpanded = true;
+        document.getElementById('btn-expand-all').addEventListener('click', () => {
+            const bodies = document.querySelectorAll('.calc-section-body');
+            const chevrons = document.querySelectorAll('.chevron-icon');
+            allExpanded = !allExpanded;
+            bodies.forEach(body => {
+                if (allExpanded) {
+                    body.classList.remove('collapsed');
+                    body.style.maxHeight = body.scrollHeight + 'px';
+                } else {
+                    body.classList.add('collapsed');
+                }
+            });
+            chevrons.forEach(c => {
+                if (allExpanded) c.classList.remove('rotated');
+                else c.classList.add('rotated');
+            });
+        });
+    </script>
+</body>
+</html>
