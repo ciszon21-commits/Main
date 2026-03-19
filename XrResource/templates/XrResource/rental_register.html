@@ -137,8 +137,25 @@
                                     <th style="width: 80px;"></th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <!-- 動態加入項目 -->
+                            <tbody id="bulk_items_body">
+                                {% for item in existing_bulk_items %}
+                                <tr id="bulk-row-{{ item.bulk_item.id }}">
+                                    <td class="fw-bold">{{ item.bulk_item.name }}
+                                        <small class="text-muted ms-2">(庫存: {{ item.bulk_item.available_count }})</small>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="bulk_item_counts[]" value="{{ item.count }}" min="1"
+                                            max="{{ item.bulk_item.total_count }}" class="form-control form-control-sm">
+                                        <input type="hidden" name="bulk_item_ids[]" value="{{ item.bulk_item.id }}">
+                                    </td>
+                                    <td class="text-end">
+                                        <button type="button" class="btn btn-sm btn-link text-danger"
+                                            onclick="removeBulkRow({{ item.bulk_item.id }})">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
@@ -146,7 +163,7 @@
             </div>
 
             <div class="d-flex justify-content-end gap-3 pt-4 border-top">
-                <a href="{% url 'XrResource:dashboard' %}" class="btn btn-light px-4">取消</a>
+                <a href="{% url 'XrResource:rental_list' %}" class="btn btn-light px-4">取消</a>
                 <button type="submit" class="btn btn-premium px-5">
                     <i class="fas fa-save me-2"></i> 提交登記紀錄
                 </button>

@@ -131,48 +131,86 @@ def delete_item(request, model_name, pk):
     return redirect(request.META.get('HTTP_REFERER', 'XrResource:dashboard'))
 
 @login_required
-def rental_register(request):
-    """租借設備登記頁面"""
-    if request.method == 'POST':
-        form = XrRentalRecordForm(request.POST)
-        if form.is_valid():
-            with transaction.atomic():
-                rental_record = form.save()
-                
-                # 1. 處理主機設備狀態連動 (預約中)
-                for equipment in rental_record.equipments.all():
-                    equipment.status = 'reserved'
-                    equipment.save()
-
-                # 2. 處理配件待扣數量連動
-                bulk_ids = request.POST.getlist('bulk_item_ids[]')
-                bulk_counts = request.POST.getlist('bulk_item_counts[]')
-                
-                for b_id, b_count in zip(bulk_ids, bulk_counts):
-                    if b_id and b_count:
-                        count = int(b_count)
-                        bulk_item = XrBulkItem.objects.select_for_update().get(id=b_id)
-                        
-                        # 增加待扣數量 (先不扣除庫存)
-                        bulk_item.reserved_count += count
-                        bulk_item.save()
-
-                        # 建立關連紀錄
-                        XrRentalBulkItem.objects.create(
-                            rental_record=rental_record,
-                            bulk_item=bulk_item,
-                            count=count
-                        )
-                
-            messages.success(request, '租借申請已送出！設備已改為「預約」且配件已標記「待扣」。請等待管理員核准。')
+def rental_register(request, pk=None):
+    """租借設備登記與編輯頁面"""
+    rental = None
+    if pk:
+        rental = get_object_or_404(XrRentalRecord, pk=pk)
+        # 僅限管理員編輯，或使用者編輯自己的待核准單據 (目前依要求主要供管理員調整)
+        if not (request.user.xr_profile.role == 'admin' or rental.borrower_id == request.user.username):
+            messages.error(request, '您沒有權限編輯此申請。')
             return redirect('XrResource:rental_list')
+        if rental.status != 'pending':
+            messages.warning(request, '僅能修改「待核准」狀態的申請紀錄。')
+            return redirect('XrResource:rental_list')
+
+    if request.method == 'POST':
+        form = XrRentalRecordForm(request.POST, instance=rental)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    # 如果是編輯模式，先「還原」之前的預約狀態
+                    if rental:
+                        # 1. 恢復主機設備為可用
+                        for eq in rental.equipments.all():
+                            eq.status = 'available'
+                            eq.save()
+                        # 2. 恢復配件預約數
+                        for r_bulk in rental.xrrentalbulkitem_set.all():
+                            bulk_item = r_bulk.bulk_item
+                            bulk_item.reserved_count = max(0, bulk_item.reserved_count - r_bulk.count)
+                            bulk_item.save()
+                        # 刪除舊的配件關聯
+                        rental.xrrentalbulkitem_set.all().delete()
+
+                    # 儲存主要單據 (instance=rental 會更新現有資料)
+                    rental_record = form.save()
+                    
+                    # 重新套用新的預約邏輯
+                    # 1. 主機設備改為預約中
+                    for equipment in rental_record.equipments.all():
+                        equipment.status = 'reserved'
+                        equipment.save()
+
+                    # 2. 處理配件待扣數量
+                    bulk_ids = request.POST.getlist('bulk_item_ids[]')
+                    bulk_counts = request.POST.getlist('bulk_item_counts[]')
+                    
+                    for b_id, b_count in zip(bulk_ids, bulk_counts):
+                        if b_id and b_count:
+                            count = int(b_count)
+                            bulk_item = XrBulkItem.objects.select_for_update().get(id=b_id)
+                            
+                            # 增加新的待扣數量
+                            bulk_item.reserved_count += count
+                            bulk_item.save()
+
+                            # 重新建立關連
+                            XrRentalBulkItem.objects.create(
+                                rental_record=rental_record,
+                                bulk_item=bulk_item,
+                                count=count
+                            )
+                
+                msg = '租借申請已更新！' if rental else '租借申請已送出！'
+                messages.success(request, f'{msg}設備已改為「預約」且配件已標記「待扣」。')
+                return redirect('XrResource:rental_list')
+            except IntegrityError:
+                messages.error(request, '調整失敗：更新過程中發生數據衝突，請稍後再試。')
         else:
-            messages.error(request, '提交失敗，請檢查內容')
+            messages.error(request, '提交失敗，請檢查填寫內容。')
     else:
-        form = XrRentalRecordForm()
+        form = XrRentalRecordForm(instance=rental)
     
+    # 獲取已選配件供編輯顯示
+    existing_bulk_items = []
+    if rental:
+        existing_bulk_items = rental.xrrentalbulkitem_set.all()
+
     return render(request, 'XrResource/rental_register.html', {
         'form': form,
+        'rental': rental,
+        'existing_bulk_items': existing_bulk_items,
         'bulk_item_choices': XrBulkItem.objects.filter(available_count__gt=0),
     })
 

@@ -73,9 +73,9 @@ class XrRentalRecordForm(forms.ModelForm):
             'activity_name', 'reason', 'equipments', 'bulk_items'
         ]
         widgets = {
-            'activity_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'rental_start': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'rental_end': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'activity_date': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date'}),
+            'rental_start': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date'}),
+            'rental_end': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date'}),
             'department': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '租借單位'}),
             'borrower_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '姓名'}),
             'borrower_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '員工編號'}),

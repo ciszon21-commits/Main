@@ -41,10 +41,10 @@
                 <tr>
                     <td>
                         <span
-                            class="badge {% if rental.status == 'pending' %}bg-warning text-dark{% elif rental.status == 'approved' %}bg-success{% elif rental.status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %} px-3 py-2 rounded-pill">
+                            class="badge {% if rental.status == 'pending' %}bg-warning text-dark{% elif rental.status == 'approved' %}bg-warning text-dark{% elif rental.status == 'returned' %}bg-success{% elif rental.status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %} px-3 py-2 rounded-pill">
                             <i
-                                class="fas {% if rental.status == 'pending' %}fa-clock{% elif rental.status == 'approved' %}fa-check-circle{% elif rental.status == 'rejected' %}fa-times-circle{% else %}fa-undo{% endif %} me-1"></i>
-                            {{ rental.get_status_display }}
+                                class="fas {% if rental.status == 'pending' %}fa-clock{% elif rental.status == 'approved' %}fa-exchange-alt{% elif rental.status == 'returned' %}fa-check-circle{% elif rental.status == 'rejected' %}fa-times-circle{% else %}fa-undo{% endif %} me-1"></i>
+                            {% if rental.status == 'approved' %}出借中{% elif rental.status == 'returned' %}已歸還{% else %}{{ rental.get_status_display }}{% endif %}
                         </span>
                     </td>
                     <td>
@@ -64,12 +64,13 @@
                         <div class="small">
                             {% for eq in rental.equipments.all %}
                             <span
-                                class="badge bg-soft-primary text-primary me-1 mb-1 border border-primary border-opacity-10">
+                                class="badge {% if eq.status == 'available' %}bg-success-soft text-success border-success{% else %}bg-warning-soft text-warning border-warning{% endif %} me-1 mb-1 border border-opacity-10">
                                 <i class="fas fa-microchip me-1"></i>{{ eq.name }}
                             </span>
                             {% endfor %}
                             {% for b_item in rental.xrrentalbulkitem_set.all %}
-                            <span class="badge bg-soft-info text-info me-1 mb-1 border border-info border-opacity-10">
+                            <span
+                                class="badge {% if b_item.is_returned %}bg-success-soft text-success border-success{% else %}bg-warning-soft text-warning border-warning{% endif %} me-1 mb-1 border border-opacity-10">
                                 <i class="fas fa-box me-1"></i>{{ b_item.bulk_item.name }} x {{ b_item.count }}
                             </span>
                             {% endfor %}
@@ -79,14 +80,18 @@
                     <td class="text-center">
                         {% if rental.status == 'pending' %}
                         <div class="d-flex justify-content-center gap-2">
+                            <a href="{% url 'XrResource:rental_edit' rental.pk %}"
+                                class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" title="編輯申請內容">
+                                <i class="fas fa-edit me-1"></i>編輯
+                            </a>
                             <a href="{% url 'XrResource:rental_approve' rental.pk %}"
-                                class="btn btn-sm btn-success rounded-pill px-3 shadow-sm"
-                                onclick="return confirm('確定要核准租借嗎？\n核准後設備將轉為「已出借」，配件將正式扣除庫存。')">
+                                class="btn btn-sm btn-success rounded-pill px-3 shadow-sm" title="核准租借申請"
+                                onclick="return confirm('確定要核准此租借申請嗎？')">
                                 <i class="fas fa-check me-1"></i>核准
                             </a>
                             <a href="{% url 'XrResource:rental_reject' rental.pk %}"
-                                class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm"
-                                onclick="return confirm('確定要拒絕嗎？')">
+                                class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm" title="拒絕租借申請"
+                                onclick="return confirm('確定要拒絕此租借申請嗎？')">
                                 <i class="fas fa-times me-1"></i>拒絕
                             </a>
                         </div>
