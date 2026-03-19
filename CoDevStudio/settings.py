@@ -115,6 +115,7 @@ INSTALLED_APPS = [
     'duplicate_checker',  # 重複檔案檢查器
     'review_feedback',
     'SRCColumn',  # SRC柱設計計算系統
+    'XrResource',
 ] + local.STAGE_INSTALLED_APPS
 
 
@@ -160,7 +161,8 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            BASE_DIR / "templates"
+            BASE_DIR / "templates",
+            BASE_DIR / "XrResource" / "templates",
         ],
         'APP_DIRS': True,
         'OPTIONS': {

@@ -1,0 +1,258 @@
+{% extends 'XrResource/base_xr.html' %}
+
+{% block title %}器材清單 - XrResource{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-5">
+    <div>
+        <h1 class="fw-bold mb-1">器材庫存管理</h1>
+        <p class="text-muted">管理自定義設備種類、配件與專用電腦。</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-premium" data-bs-toggle="modal" data-bs-target="#addEqModal">
+            <i class="fas fa-plus me-2"></i> 登記新設備
+        </button>
+        <button class="btn btn-outline-dark rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addCatModal">
+            <i class="fas fa-tags me-2"></i> 種類管理
+        </button>
+    </div>
+</div>
+
+<!-- Nav Tabs -->
+<ul class="nav nav-pills mb-4 gap-2" id="pills-tab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="pills-xr-tab" data-bs-toggle="pill" data-bs-target="#pills-xr" type="button"
+            role="tab">XR 設備清單</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="pills-cat-tab" data-bs-toggle="pill" data-bs-target="#pills-cat" type="button"
+            role="tab">種類清單</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="pills-gopro-tab" data-bs-toggle="pill" data-bs-target="#pills-gopro" type="button"
+            role="tab">GoPro 配件</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="pills-vr-tab" data-bs-toggle="pill" data-bs-target="#pills-vr" type="button"
+            role="tab">VR 電腦</button>
+    </li>
+</ul>
+
+<div class="tab-content" id="pills-tabContent">
+    <!-- XR Equipment -->
+    <div class="tab-pane fade show active" id="pills-xr" role="tabpanel">
+        <div class="glass-card">
+            <div class="table-responsive">
+                <table class="table table-premium">
+                    <thead>
+                        <tr>
+                            <th>設備名稱</th>
+                            <th>設備編號</th>
+                            <th>設備規格</th>
+                            <th>備註</th>
+                            <th>狀態 / 種類</th>
+                            <th>功能</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for eq in xr_equipments %}
+                        <tr>
+                            <td class="fw-bold">{{ eq.name }}</td>
+                            <td>{{ eq.serial_number }}</td>
+                            <td><small class="text-muted">{{ eq.specifications|truncatechars:50 }}</small></td>
+                            <td><small>{{ eq.note|default:"-" }}</small></td>
+                            <td>
+                                <span class="badge bg-light text-dark extra-small">{{ eq.get_status_display }}</span>
+                                <div class="extra-small text-muted mt-1"><i
+                                        class="{{ eq.category.icon|default:'fas fa-tag' }} me-1"></i>{{
+                                    eq.category.name|default:"未分類" }}</div>
+                            </td>
+                            <td>
+                                <a href="{% url 'XrResource:delete_item' 'equipment' eq.id %}"
+                                    class="btn btn-sm text-danger" onclick="return confirm('確定刪除？')"><i
+                                        class="fas fa-trash"></i></a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Categories Manage -->
+    <div class="tab-pane fade" id="pills-cat" role="tabpanel">
+        <div class="glass-card">
+            <div class="table-responsive">
+                <table class="table table-premium">
+                    <thead>
+                        <tr>
+                            <th>圖示</th>
+                            <th>種類名稱</th>
+                            <th>描述</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cat in categories %}
+                        <tr>
+                            <td><i class="{{ cat.icon }} fa-lg"></i></td>
+                            <td class="fw-bold">{{ cat.name }}</td>
+                            <td>{{ cat.description|default:"-" }}</td>
+                            <td>
+                                <a href="{% url 'XrResource:delete_item' 'category' cat.id %}"
+                                    class="btn btn-sm text-danger"><i class="fas fa-trash"></i></a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- GoPro Accessories -->
+    <div class="tab-pane fade" id="pills-gopro" role="tabpanel">
+        <div class="glass-card">
+            <div class="table-responsive">
+                <table class="table table-premium">
+                    <thead>
+                        <tr>
+                            <th>配件名稱</th>
+                            <th>庫存總數</th>
+                            <th>已借出</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for acc in accessories %}
+                        <tr>
+                            <td class="fw-bold">{{ acc.name }}</td>
+                            <td>{{ acc.stock_quantity }}</td>
+                            <td><span class="text-danger fw-bold">{{ acc.rented_quantity }}</span></td>
+                            <td>
+                                <a href="{% url 'XrResource:delete_item' 'accessory' acc.id %}"
+                                    class="btn btn-sm text-danger"><i class="fas fa-trash"></i></a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">暫無配件資料</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- VR Computers -->
+    <div class="tab-pane fade" id="pills-vr" role="tabpanel">
+        <div class="glass-card">
+            <div class="table-responsive">
+                <table class="table table-premium">
+                    <thead>
+                        <tr>
+                            <th>編號</th>
+                            <th>帳號 / 密碼</th>
+                            <th>規格</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for comp in vr_computers %}
+                        <tr>
+                            <td class="fw-bold">{{ comp.serial_number }}</td>
+                            <td>
+                                <div class="small">帳: {{ comp.local_account }}</div>
+                                <div class="small text-muted">密: {{ comp.local_password }}</div>
+                            </td>
+                            <td><small class="text-muted">{{ comp.specifications|truncatechars:40 }}</small></td>
+                            <td>
+                                <a href="{% url 'XrResource:delete_item' 'computer' comp.id %}"
+                                    class="btn btn-sm text-danger"><i class="fas fa-trash"></i></a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">暫無電腦資料</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Equipment Modal -->
+<div class="modal fade" id="addEqModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <form class="modal-content glass-card" method="POST" action="{% url 'XrResource:equipment_create' %}">
+            {% csrf_token %}
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">登記新器材到 XR 清單</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">設備名稱</label>
+                        {{ eq_form.name }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">設備編號</label>
+                        {{ eq_form.serial_number }}
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label small fw-bold">設備規格</label>
+                        {{ eq_form.specifications }}
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label small fw-bold">備註</label>
+                        {{ eq_form.note }}
+                    </div>
+                    <hr>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">分類 (選填)</label>
+                        {{ eq_form.category }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">初始狀態</label>
+                        {{ eq_form.status }}
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="submit" class="btn btn-premium w-100">完成登記並加入清單</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Category Modal -->
+<div class="modal fade" id="addCatModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content glass-card" method="POST" action="{% url 'XrResource:category_create' %}">
+            {% csrf_token %}
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">新增自定義種類</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">種類名稱</label>
+                    {{ cat_form.name }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">CSS 圖示 (FontAwesome)</label>
+                    {{ cat_form.icon }}
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="submit" class="btn btn-premium w-100">建立種類</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

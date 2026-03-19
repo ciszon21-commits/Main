@@ -1,0 +1,236 @@
+{% extends 'XrResource/base_xr.html' %}
+
+{% block title %}設備租借登記 - XrResource{% endblock %}
+
+{% block extra_css %}
+<style>
+    .select2-container--bootstrap-5 .select2-selection {
+        border-radius: 12px;
+        border: 1px solid var(--glass-border);
+        background-color: rgba(255, 255, 255, 0.5);
+    }
+
+    .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice {
+        background-color: hsl(var(--primary-hsl));
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 2px 10px;
+    }
+
+    .form-section-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: hsl(var(--primary-hsl));
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid rgba(var(--primary-hsl), 0.1);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="fas fa-edit me-2"></i>設備租借登記</h2>
+        <p class="text-muted small">請填寫以下資訊以完成設備預約或租借登記。</p>
+    </div>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'XrResource:dashboard' %}">首頁</a></li>
+            <li class="breadcrumb-item active">租借登記</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <form method="POST" class="glass-card p-4 p-md-5">
+            {% csrf_token %}
+
+            <!-- 活動資訊 -->
+            <div class="form-section-title">
+                <i class="fas fa-calendar-check"></i> 1. 活動基本資訊
+            </div>
+            <div class="row g-4 mb-5">
+                <div class="col-md-5">
+                    <label class="form-label fw-bold">活動名稱</label>
+                    {{ form.activity_name }}
+                    <div class="form-text">例如：VR 教育訓練</div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">性質</label>
+                    {{ form.nature }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">活動日期</label>
+                    {{ form.activity_date }}
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-bold">租借原因</label>
+                    {{ form.reason }}
+                </div>
+            </div>
+
+            <!-- 租借人資訊 -->
+            <div class="form-section-title">
+                <i class="fas fa-user-tag"></i> 2. 租借人資訊
+            </div>
+            <div class="row g-4 mb-5">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">部門</label>
+                    {{ form.department }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">租借人姓名</label>
+                    {{ form.borrower_name }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">員工編號</label>
+                    {{ form.borrower_id }}
+                </div>
+            </div>
+
+            <!-- 租借期間 -->
+            <div class="form-section-title">
+                <i class="fas fa-clock"></i> 3. 租借期間
+            </div>
+            <div class="row g-4 mb-5">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">租借起始日</label>
+                    {{ form.rental_start }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">租借結束日</label>
+                    {{ form.rental_end }}
+                </div>
+            </div>
+
+            <!-- 設備選擇 -->
+            <div class="form-section-title">
+                <i class="fas fa-box-open"></i> 4. 選擇租借設備
+            </div>
+            <div class="row g-4 mb-5">
+                <div class="col-12">
+                    <label class="form-label fw-bold">選取 VR 或攝影主機設備 (自動連結庫存)</label>
+                    {{ form.equipments }}
+                    <div class="form-text mt-2">可輸入關鍵字快速搜尋，支援多選。</div>
+                </div>
+
+                <div class="col-12 mt-5">
+                    <label class="form-label fw-bold">選取配件/耗材 (數量管理項目)</label>
+                    <select id="bulk_item_search" class="form-select select2-single">
+                        <option value="">搜尋並加入配件...</option>
+                        {% for item in bulk_item_choices %}
+                        <option value="{{ item.id }}" data-name="{{ item.name }}"
+                            data-available="{{ item.available_count }}">
+                            {{ item.name }} (目前庫存: {{ item.available_count }})
+                        </option>
+                        {% endfor %}
+                    </select>
+
+                    <div class="table-responsive mt-3">
+                        <table class="table table-premium align-middle" id="selected_bulk_items_table">
+                            <thead>
+                                <tr class="small text-muted">
+                                    <th>配件名稱</th>
+                                    <th style="width: 150px;">租借數量</th>
+                                    <th style="width: 80px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="bulk_items_body">
+                                {% for item in existing_bulk_items %}
+                                <tr id="bulk-row-{{ item.bulk_item.id }}">
+                                    <td class="fw-bold">{{ item.bulk_item.name }}
+                                        <small class="text-muted ms-2">(庫存: {{ item.bulk_item.available_count }})</small>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="bulk_item_counts[]" value="{{ item.count }}" min="1"
+                                            max="{{ item.bulk_item.total_count }}" class="form-control form-control-sm">
+                                        <input type="hidden" name="bulk_item_ids[]" value="{{ item.bulk_item.id }}">
+                                    </td>
+                                    <td class="text-end">
+                                        <button type="button" class="btn btn-sm btn-link text-danger"
+                                            onclick="removeBulkRow({{ item.bulk_item.id }})">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-3 pt-4 border-top">
+                <a href="{% url 'XrResource:rental_list' %}" class="btn btn-light px-4">取消</a>
+                <button type="submit" class="btn btn-premium px-5">
+                    <i class="fas fa-save me-2"></i> 提交登記紀錄
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function () {
+        // 一般設備連選 (Select2)
+        $('[name="equipments"]').select2({
+            theme: 'bootstrap-5',
+            placeholder: '請選擇設備...',
+            width: '100%'
+        });
+
+        // 配件搜尋 (Select2 Single)
+        $('#bulk_item_search').select2({
+            theme: 'bootstrap-5',
+            placeholder: '搜尋並加入配件...',
+            width: '100%'
+        }).on('select2:select', function (e) {
+            const data = e.params.data;
+            const id = data.id;
+            const name = $(data.element).data('name');
+            const available = $(data.element).data('available');
+
+            if (!id) return;
+
+            // 檢查是否已存在
+            if ($(`#bulk-row-${id}`).length > 0) {
+                alert('此項目已在清單中');
+                $(this).val('').trigger('change');
+                return;
+            }
+
+            // 加入表格列
+            const rowHtml = `
+                <tr id="bulk-row-${id}">
+                    <td class="fw-bold">${name} <small class="text-muted ms-2">(庫存: ${available})</small></td>
+                    <td>
+                        <input type="number" name="bulk_item_counts[]" value="1" min="1" max="${available}" class="form-control form-control-sm">
+                        <input type="hidden" name="bulk_item_ids[]" value="${id}">
+                    </td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-sm btn-link text-danger" onclick="removeBulkRow(${id})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            $('#selected_bulk_items_table tbody').append(rowHtml);
+
+            // 清空搜尋框
+            $(this).val('').trigger('change');
+        });
+    });
+
+    function removeBulkRow(id) {
+        $(`#bulk-row-${id}`).remove();
+    }
+</script>
+{% endblock %}
