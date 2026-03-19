@@ -20,25 +20,21 @@
 </div>
 
 <!-- 篩選器 -->
-<div class="glass-card mb-4 mt-2">
-    <form method="GET" class="row align-items-end g-3">
-        <div class="col-md-8">
-            <label class="form-label fw-bold text-muted small mb-1"><i class="fas fa-filter me-1"></i>依租用狀態篩選</label>
-            <select name="status" id="statusFilter" class="form-select select2-multiple" multiple="multiple">
-                {% for val, label in status_choices %}
-                <option value="{{ val }}" {% if val in selected_statuses %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-md-4 d-flex gap-2">
-            <button type="submit" class="btn btn-premium flex-grow-1">
-                <i class="fas fa-search me-1"></i>套用篩選
-            </button>
-            <a href="{% url 'XrResource:gopro_section' %}" class="btn btn-outline-secondary">
-                <i class="fas fa-undo"></i>
-            </a>
-        </div>
-    </form>
+<div class="mb-4">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <span class="text-muted small fw-bold me-2"><i class="fas fa-filter me-1"></i>狀態篩選:</span>
+        <a href="{% url 'XrResource:gopro_section' %}"
+            class="btn btn-sm {% if not selected_statuses %}btn-premium{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">
+            全部
+        </a>
+        {% for val, label in status_choices %}
+        <a href="?status={{ val }}" class="btn btn-sm {% if val in selected_statuses %}
+               {% if val == 'available' %}btn-success{% elif val == 'rented' %}btn-info{% elif val == 'maintenance' %}btn-warning text-dark{% else %}btn-secondary{% endif %}
+           {% else %}btn-outline-secondary{% endif %} rounded-pill px-3">
+            {{ label }}
+        </a>
+        {% endfor %}
+    </div>
 </div>
 
 <!-- 主機 Table -->
@@ -64,7 +60,13 @@
             <tbody>
                 {% for item in gp_hosts %}
                 <tr>
-                    <td class="fw-bold text-primary">{{ item.name }}</td>
+                    <td class="fw-bold text-dark">
+                        <span
+                            class="badge {% if item.status == 'available' %}bg-success{% elif item.status == 'rented' %}bg-info{% elif item.status == 'maintenance' %}bg-warning{% else %}bg-secondary{% endif %} me-1 small">
+                            {{ item.get_status_display }}
+                        </span>
+                        {{ item.name }}
+                    </td>
                     <td>{% if item.serial_number and item.serial_number != "None" %}<span
                             class="badge bg-light text-dark">{{ item.serial_number }}</span>{% endif %}</td>
                     <td><small class="text-muted">{{ item.specifications|linebreaksbr }}</small></td>
@@ -116,7 +118,13 @@
             <tbody>
                 {% for item in gp_batteries %}
                 <tr>
-                    <td class="fw-bold text-warning">{{ item.name }}</td>
+                    <td class="fw-bold text-dark">
+                        <span
+                            class="badge {% if item.status == 'available' %}bg-success{% elif item.status == 'rented' %}bg-info{% elif item.status == 'maintenance' %}bg-warning{% else %}bg-secondary{% endif %} me-1 small">
+                            {{ item.get_status_display }}
+                        </span>
+                        {{ item.name }}
+                    </td>
                     <td>{% if item.serial_number and item.serial_number != "None" %}<span
                             class="badge bg-light text-dark">{{ item.serial_number }}</span>{% endif %}</td>
                     <td><small class="text-muted">{{ item.specifications|linebreaksbr }}</small></td>
@@ -168,7 +176,13 @@
             <tbody>
                 {% for item in gp_sd_cards %}
                 <tr>
-                    <td class="fw-bold text-info">{{ item.name }}</td>
+                    <td class="fw-bold text-dark">
+                        <span
+                            class="badge {% if item.status == 'available' %}bg-success{% elif item.status == 'rented' %}bg-info{% elif item.status == 'maintenance' %}bg-warning{% else %}bg-secondary{% endif %} me-1 small">
+                            {{ item.get_status_display }}
+                        </span>
+                        {{ item.name }}
+                    </td>
                     <td>{% if item.serial_number and item.serial_number != "None" %}<span
                             class="badge bg-light text-dark">{{ item.serial_number }}</span>{% endif %}</td>
                     <td><small class="text-muted">{{ item.specifications|linebreaksbr }}</small></td>
@@ -220,7 +234,13 @@
             <tbody>
                 {% for item in gp_others %}
                 <tr>
-                    <td class="fw-bold text-secondary">{{ item.name }}</td>
+                    <td class="fw-bold text-dark">
+                        <span
+                            class="badge {% if item.status == 'available' %}bg-success{% elif item.status == 'rented' %}bg-info{% elif item.status == 'maintenance' %}bg-warning{% else %}bg-secondary{% endif %} me-1 small">
+                            {{ item.get_status_display }}
+                        </span>
+                        {{ item.name }}
+                    </td>
                     <td>{% if item.serial_number and item.serial_number != "None" %}<span
                             class="badge bg-light text-dark">{{ item.serial_number }}</span>{% endif %}</td>
                     <td><small class="text-muted">{{ item.specifications|linebreaksbr }}</small></td>
@@ -306,12 +326,7 @@
 {% block extra_js %}
 <script>
     $(document).ready(function () {
-        $('#statusFilter').select2({
-            theme: 'bootstrap-5',
-            placeholder: '選擇狀態...',
-            allowClear: true,
-            width: '100%'
-        });
+        // Remove select2 initialization as it's no longer used for status filter
     });
 
     function setModal(mode, section, catName, pk = '', name = '', sn = '', spec = '', note = '', catId = '') {
