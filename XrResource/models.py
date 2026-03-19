@@ -19,11 +19,11 @@ class XrEquipment(models.Model):
         ('gopro', 'GoPro 專區'),
     ]
     STATUS_CHOICES = [
-        ('available', '在庫'),
-        ('reserved', '預約中'),
-        ('rented', '已出借'),
-        ('maintenance', '維修中'),
-        ('retired', '已退役'),
+        ('available', '庫存'),
+        ('reserved', '預約'),
+        ('rented', '出借'),
+        ('maintenance', '維修'),
+        ('retired', '退役'),
     ]
     section = models.CharField('專區', max_length=20, choices=SECTION_CHOICES, default='vr')
     category = models.ForeignKey(EquipmentCategory, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='設備種類', related_name='equipments')
@@ -88,7 +88,7 @@ class XrBulkItem(models.Model):
     section = models.CharField('專區', max_length=20, choices=SECTION_CHOICES, default='vr')
     name = models.CharField('項目名稱', max_length=100)
     total_count = models.PositiveIntegerField('總數量', default=0)
-    available_count = models.PositiveIntegerField('在庫數量', default=0)
+    available_count = models.PositiveIntegerField('庫存數量', default=0)
     reserved_count = models.PositiveIntegerField('待扣數量', default=0)
     note = models.TextField('備註', blank=True)
 
@@ -96,6 +96,17 @@ class XrBulkItem(models.Model):
         verbose_name = '數量統計設備'
         verbose_name_plural = '數量統計設備'
         ordering = ['name']
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            # 新增項目的情況
+            self.available_count = self.total_count
+        else:
+            # 如果是更新現有項目，要根據總數的變動調整庫存數
+            old_obj = XrBulkItem.objects.get(pk=self.pk)
+            diff = self.total_count - old_obj.total_count
+            self.available_count += diff
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name} ({self.available_count}/{self.total_count})"
@@ -111,7 +122,7 @@ class XrRentalRecord(models.Model):
     reason = models.TextField('租借原因', blank=True)
     
     STATUS_CHOICES = [
-        ('pending', '待核核'),
+        ('pending', '待核准'),
         ('approved', '已核准'),
         ('rejected', '已拒絕'),
         ('returned', '已歸還'),
@@ -135,6 +146,8 @@ class XrRentalBulkItem(models.Model):
     rental_record = models.ForeignKey(XrRentalRecord, on_delete=models.CASCADE)
     bulk_item = models.ForeignKey(XrBulkItem, on_delete=models.CASCADE)
     count = models.PositiveIntegerField('租借數量', default=1)
+    is_returned = models.BooleanField('是否已歸還', default=False)
 
     def __str__(self):
-        return f"{self.bulk_item.name} x {self.count}"
+        status = "(已歸還)" if self.is_returned else ""
+        return f"{self.bulk_item.name} x {self.count} {status}"

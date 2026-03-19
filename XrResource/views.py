@@ -126,7 +126,7 @@ def rental_register(request):
                         count = int(b_count)
                         bulk_item = XrBulkItem.objects.select_for_update().get(id=b_id)
                         
-                        # 增加待扣數量 (先不扣在庫)
+                        # 增加待扣數量 (先不扣除庫存)
                         bulk_item.reserved_count += count
                         bulk_item.save()
 
@@ -137,7 +137,7 @@ def rental_register(request):
                             count=count
                         )
                 
-            messages.success(request, '租借申請已送出！設備已改為「預約中」且配件已標記「待扣」。請等待管理員核准。')
+            messages.success(request, '租借申請已送出！設備已改為「預約」且配件已標記「待扣」。請等待管理員核准。')
             return redirect('XrResource:rental_list')
         else:
             messages.error(request, '提交失敗，請檢查內容')
@@ -195,7 +195,7 @@ def rental_reject(request, pk):
         rental.status = 'rejected'
         rental.save()
 
-        # 2. 回復主機狀態為在庫
+        # 2. 回復主機狀態為庫存
         for eq in rental.equipments.all():
             eq.status = 'available'
             eq.save()
@@ -210,7 +210,7 @@ def rental_reject(request, pk):
     return redirect('XrResource:rental_list')
 
 def rental_reset(request, pk):
-    """將已核准或已拒絕的申請重設為待核核"""
+    """將已核准或已拒絕的申請重設為待核准"""
     rental = get_object_or_404(XrRentalRecord, pk=pk)
     if rental.status == 'pending':
         return redirect('XrResource:rental_list')
@@ -234,9 +234,58 @@ def rental_reset(request, pk):
             bulk_item.reserved_count += r_bulk.count
             bulk_item.save()
 
-        # 3. 標記為待核核
+        # 3. 標記為待核准
         rental.status = 'pending'
         rental.save()
 
-    messages.info(request, f'已將 {rental.activity_name} 的狀態重設為帶核核，庫存狀態已同步預約。')
+    messages.info(request, f'已將 {rental.activity_name} 的狀態重設為待核准，庫存狀態已同步預約。')
     return redirect('XrResource:rental_list')
+
+def rental_return(request, pk):
+    """處理設備歸還確認頁面與邏輯"""
+    rental = get_object_or_404(XrRentalRecord, pk=pk)
+    
+    if request.method == 'POST':
+        # 獲取勾選要歸還的 ID
+        returned_equipment_ids = request.POST.getlist('returned_equipments')
+        returned_bulk_item_ids = request.POST.getlist('returned_bulk_items')
+        
+        with transaction.atomic():
+            # 1. 處理主機歸還
+            for eq_id in returned_equipment_ids:
+                equipment = rental.equipments.get(id=eq_id)
+                if equipment.status == 'rented':
+                    equipment.status = 'available'
+                    equipment.save()
+            
+            # 2. 處理配件歸還
+            for rb_id in returned_bulk_item_ids:
+                r_bulk = rental.xrrentalbulkitem_set.get(id=rb_id)
+                if not r_bulk.is_returned:
+                    # 正式補回庫存
+                    bulk_item = r_bulk.bulk_item
+                    bulk_item.available_count += r_bulk.count
+                    bulk_item.save()
+                    
+                    # 標記該項目已歸還
+                    r_bulk.is_returned = True
+                    r_bulk.save()
+            
+            # 3. 檢查自動關單 (是否所有東西都還了)
+            all_eq_returned = not rental.equipments.filter(status='rented').exists()
+            all_bulk_returned = not rental.xrrentalbulkitem_set.filter(is_returned=False).exists()
+            
+            if all_eq_returned and all_bulk_returned:
+                rental.status = 'returned'
+                rental.save()
+                messages.success(request, f'{rental.activity_name} 所有設備已歸還，單據已結案。')
+            else:
+                messages.info(request, f'{rental.activity_name} 部分設備已歸還。')
+                
+        return redirect('XrResource:rental_list')
+    
+    # GET 請求：顯示歸還表單
+    return render(request, 'XrResource/rental_return.html', {
+        'rental': rental,
+        'bulk_items': rental.xrrentalbulkitem_set.all(),
+    })

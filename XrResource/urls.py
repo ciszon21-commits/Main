@@ -17,4 +17,5 @@ urlpatterns = [
     path('rental/approve/<int:pk>/', views.rental_approve, name='rental_approve'),
     path('rental/reject/<int:pk>/', views.rental_reject, name='rental_reject'),
     path('rental/reset/<int:pk>/', views.rental_reset, name='rental_reset'),
+    path('rental/return/<int:pk>/', views.rental_return, name='rental_return'),
 ]

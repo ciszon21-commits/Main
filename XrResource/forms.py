@@ -56,12 +56,11 @@ class GoProRentalRecordForm(forms.ModelForm):
 class XrBulkItemForm(forms.ModelForm):
     class Meta:
         model = XrBulkItem
-        fields = '__all__'
+        fields = ['section', 'name', 'total_count', 'note']
         widgets = {
             'section': forms.Select(attrs={'class': 'form-select'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'total_count': forms.NumberInput(attrs={'class': 'form-control'}),
-            'available_count': forms.NumberInput(attrs={'class': 'form-control'}),
             'note': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
 
