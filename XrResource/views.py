@@ -414,8 +414,51 @@ def rental_return(request, pk):
                 
         return redirect('XrResource:rental_list')
     
-    # GET 請求：顯示歸還表單
     return render(request, 'XrResource/rental_return.html', {
         'rental': rental,
         'bulk_items': rental.xrrentalbulkitem_set.all(),
+    })
+
+@login_required
+def dashboard(request):
+    """視覺化儀表板：提供設備在庫與預約概況"""
+    def get_stats(query):
+        total = query.count()
+        available = query.filter(status='available').count()
+        reserved = query.filter(status='reserved').count()
+        rented = query.filter(status='rented').count()
+        return {
+            'total': total,
+            'available': available,
+            'reserved': reserved,
+            'rented': rented,
+            'unavailable': total - available,
+            'available_pct': int((available / total * 100)) if total > 0 else 0
+        }
+
+    # 1. 分類統計 (只統計 庫存、預約、出借)
+    # VR 電腦
+    vr_comp_q = XrEquipment.objects.filter(section='vr', category__name='電腦', status__in=['available', 'reserved', 'rented'])
+    vr_comp_stats = get_stats(vr_comp_q)
+    
+    # VR 頭盔
+    vr_headset_q = XrEquipment.objects.filter(section='vr', category__name='頭盔', status__in=['available', 'reserved', 'rented'])
+    vr_headset_stats = get_stats(vr_headset_q)
+    
+    # 攝影設備-主機 (GoPro 主機)
+    camera_host_q = XrEquipment.objects.filter(section='gopro', category__name='主機', status__in=['available', 'reserved', 'rented'])
+    camera_host_stats = get_stats(camera_host_q)
+
+    # 2. 配件統計 (不分專區)
+    bulk_items = XrBulkItem.objects.all()
+    
+    # 3. 最近活動 (最新的 10 筆租借申請)
+    recent_rentals = XrRentalRecord.objects.all().order_by('-created_at')[:10]
+
+    return render(request, 'XrResource/dashboard.html', {
+        'vr_comp_stats': vr_comp_stats,
+        'vr_headset_stats': vr_headset_stats,
+        'camera_host_stats': camera_host_stats,
+        'bulk_items': bulk_items,
+        'recent_rentals': recent_rentals,
     })

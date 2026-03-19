@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, XrBulkItem, XrUserProfile
+from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, XrBulkItem, XrRentalRecord, XrUserProfile
 
 @admin.register(EquipmentCategory)
 class EquipmentCategoryAdmin(admin.ModelAdmin):
@@ -24,6 +24,19 @@ class GoProRentalRecordAdmin(admin.ModelAdmin):
     list_display = ('date', 'borrower', 'department', 'equipment')
     list_filter = ('date', 'department')
     search_fields = ('borrower', 'department', 'equipment')
+@admin.register(XrBulkItem)
+class XrBulkItemAdmin(admin.ModelAdmin):
+    list_display = ('name', 'section', 'total_count', 'available_count', 'reserved_count')
+    list_filter = ('section',)
+    search_fields = ('name',)
+
+@admin.register(XrRentalRecord)
+class XrRentalRecordAdmin(admin.ModelAdmin):
+    list_display = ('activity_name', 'borrower_name', 'activity_date', 'status', 'created_at')
+    list_filter = ('status', 'activity_date')
+    search_fields = ('activity_name', 'borrower_name', 'borrower_id')
+    filter_horizontal = ('equipments',)
+
 @admin.register(XrUserProfile)
 class XrUserProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'get_user_name', 'role')

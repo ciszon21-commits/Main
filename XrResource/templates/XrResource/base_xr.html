@@ -233,22 +233,15 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-brand mb-4 d-flex align-items-center"
-            onclick="window.location.href='{% url 'XrResource:rental_register' %}'" style="cursor: pointer;">
+            onclick="window.location.href='{% url 'XrResource:dashboard' %}'" style="cursor: pointer;">
             <span>XrResource</span>
         </div>
         <nav class="nav flex-column">
-            <div class="nav-section-label">庫存管理系統</div>
-            <a class="nav-link {% if request.resolver_match.url_name == 'vr_section' %}active{% endif %}"
-                href="{% if user.xr_profile.role == 'admin' %}{% url 'XrResource:vr_section' %}{% else %}javascript:void(0){% endif %}"
-                {% if user.xr_profile.role != 'admin' %}onclick="alert('您沒有管理權限，無法進入 VR 設備管理頁面。')" {% endif %}>
-                <i class="fas fa-vr-cardboard"></i>
-                <span>VR 設備</span>
-            </a>
-            <a class="nav-link {% if request.resolver_match.url_name == 'gopro_section' %}active{% endif %}"
-                href="{% if user.xr_profile.role == 'admin' %}{% url 'XrResource:gopro_section' %}{% else %}javascript:void(0){% endif %}"
-                {% if user.xr_profile.role != 'admin' %}onclick="alert('您沒有管理權限，無法進入攝影設備管理頁面。')" {% endif %}>
-                <i class="fas fa-camera"></i>
-                <span>攝影設備</span>
+            <div class="nav-section-label">系統概況</div>
+            <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
+                href="{% url 'XrResource:dashboard' %}">
+                <i class="fas fa-chart-pie"></i>
+                <span>數據儀表板</span>
             </a>
 
             <div class="nav-section-label">租借管理系統</div>
@@ -261,6 +254,20 @@
                 href="{% url 'XrResource:rental_list' %}">
                 <i class="fas fa-history"></i>
                 <span>租借歷史紀錄</span>
+            </a>
+
+            <div class="nav-section-label">庫存管理系統</div>
+            <a class="nav-link {% if request.resolver_match.url_name == 'vr_section' %}active{% endif %}"
+                href="{% if user.xr_profile.role == 'admin' %}{% url 'XrResource:vr_section' %}{% else %}javascript:void(0){% endif %}"
+                {% if user.xr_profile.role != 'admin' %}onclick="alert('您沒有管理權限，無法進入 VR 設備管理頁面。')" {% endif %}>
+                <i class="fas fa-vr-cardboard"></i>
+                <span>VR 設備</span>
+            </a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'gopro_section' %}active{% endif %}"
+                href="{% if user.xr_profile.role == 'admin' %}{% url 'XrResource:gopro_section' %}{% else %}javascript:void(0){% endif %}"
+                {% if user.xr_profile.role != 'admin' %}onclick="alert('您沒有管理權限，無法進入攝影設備管理頁面。')" {% endif %}>
+                <i class="fas fa-camera"></i>
+                <span>攝影設備</span>
             </a>
 
             {% if user.xr_profile.role == 'admin' %}
