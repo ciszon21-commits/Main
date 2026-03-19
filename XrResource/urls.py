@@ -9,5 +9,7 @@ urlpatterns = [
     path('gopro-section/', views.gopro_section, name='gopro_section'),
     path('equipment/save/', views.equipment_save, name='equipment_add'),
     path('equipment/save/<int:pk>/', views.equipment_save, name='equipment_edit'),
+    path('bulk/save/', views.bulk_item_save, name='bulk_add'),
+    path('bulk/save/<int:pk>/', views.bulk_item_save, name='bulk_edit'),
     path('delete/<str:model_name>/<int:pk>/', views.delete_item, name='delete_item'),
 ]

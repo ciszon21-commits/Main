@@ -43,7 +43,7 @@
         <h4 class="mb-0 text-primary fw-bold"><i class="fas fa-video me-2"></i>主機</h4>
         <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#equipmentModal"
             onclick="setModal('add', 'gopro', '主機')">
-            <i class="fas fa-plus"></i>
+            <i class="fas fa-plus"></i>增加主機
         </button>
     </div>
     <div class="table-responsive">
@@ -95,48 +95,43 @@
     </div>
 </div>
 
-<!-- 電池 Table -->
+<!-- 其他各項配件 Table (整合電池、記憶卡與周邊) -->
 <div class="glass-card mb-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="mb-0 text-warning fw-bold"><i class="fas fa-battery-full me-2"></i>電池</h4>
-        <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#equipmentModal"
-            onclick="setModal('add', 'gopro', '電池')">
-            <i class="fas fa-plus"></i>
+        <h4 class="mb-0 text-secondary fw-bold"><i class="fas fa-plug me-2"></i>其他各項配件 (電池/記憶卡/周邊)</h4>
+        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkModal"
+            onclick="setBulkModal('add', 'gopro', '')">
+            <i class="fas fa-plus"></i>增加配件項目
         </button>
     </div>
     <div class="table-responsive">
         <table class="table table-premium align-middle">
             <thead>
                 <tr>
-                    <th>設備名稱</th>
-                    <th>設備編號</th>
-                    <th>設備規格</th>
+                    <th>項目名稱</th>
+                    <th class="text-center">在庫數量 / 總數量</th>
                     <th>備註</th>
                     <th class="text-center">操作</th>
                 </tr>
             </thead>
             <tbody>
-                {% for item in gp_batteries %}
+                {% for item in gp_bulk_items %}
                 <tr>
-                    <td class="fw-bold text-dark">
-                        <span
-                            class="badge {% if item.status == 'available' %}bg-success{% elif item.status == 'rented' %}bg-info{% elif item.status == 'maintenance' %}bg-warning{% else %}bg-secondary{% endif %} me-1 small">
-                            {{ item.get_status_display }}
-                        </span>
-                        {{ item.name }}
+                    <td class="fw-bold text-dark">{{ item.name }}</td>
+                    <td class="text-center">
+                        <span class="badge bg-success fs-6">{{ item.available_count }}</span>
+                        <span class="text-muted mx-1">/</span>
+                        <span class="badge bg-light text-dark fs-6">{{ item.total_count }}</span>
                     </td>
-                    <td>{% if item.serial_number and item.serial_number != "None" %}<span
-                            class="badge bg-light text-dark">{{ item.serial_number }}</span>{% endif %}</td>
-                    <td><small class="text-muted">{{ item.specifications|linebreaksbr }}</small></td>
                     <td><small class="text-muted">{{ item.note|linebreaksbr }}</small></td>
                     <td class="text-center">
                         <div class="btn-group">
                             <button class="btn btn-sm btn-link text-primary" data-bs-toggle="modal"
-                                data-bs-target="#equipmentModal"
-                                onclick="setModal('edit', 'gopro', '電池', '{{ item.pk }}', '{{ item.name|escapejs }}', '{{ item.serial_number|escapejs }}', '{{ item.specifications|escapejs }}', '{{ item.note|escapejs }}', '{{ item.category.pk }}')">
+                                data-bs-target="#bulkModal"
+                                onclick="setBulkModal('edit', 'gopro', '{{ item.name|escapejs }}', '{{ item.pk }}', '{{ item.total_count }}', '{{ item.available_count }}', '{{ item.note|escapejs }}')">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <a href="{% url 'XrResource:delete_item' 'equipment' item.pk %}"
+                            <a href="{% url 'XrResource:delete_item' 'bulk' item.pk %}"
                                 class="btn btn-sm btn-link text-danger" onclick="return confirm('確定要刪除嗎？')">
                                 <i class="fas fa-trash"></i>
                             </a>
@@ -145,123 +140,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="text-center py-4 text-muted">目前無電池設備資料</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- 記憶卡 Table -->
-<div class="glass-card mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="mb-0 text-info fw-bold"><i class="fas fa-sd-card me-2"></i>記憶卡</h4>
-        <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#equipmentModal"
-            onclick="setModal('add', 'gopro', '記憶卡')">
-            <i class="fas fa-plus"></i>
-        </button>
-    </div>
-    <div class="table-responsive">
-        <table class="table table-premium align-middle">
-            <thead>
-                <tr>
-                    <th>設備名稱</th>
-                    <th>設備編號</th>
-                    <th>設備規格</th>
-                    <th>備註</th>
-                    <th class="text-center">操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in gp_sd_cards %}
-                <tr>
-                    <td class="fw-bold text-dark">
-                        <span
-                            class="badge {% if item.status == 'available' %}bg-success{% elif item.status == 'rented' %}bg-info{% elif item.status == 'maintenance' %}bg-warning{% else %}bg-secondary{% endif %} me-1 small">
-                            {{ item.get_status_display }}
-                        </span>
-                        {{ item.name }}
-                    </td>
-                    <td>{% if item.serial_number and item.serial_number != "None" %}<span
-                            class="badge bg-light text-dark">{{ item.serial_number }}</span>{% endif %}</td>
-                    <td><small class="text-muted">{{ item.specifications|linebreaksbr }}</small></td>
-                    <td><small class="text-muted">{{ item.note|linebreaksbr }}</small></td>
-                    <td class="text-center">
-                        <div class="btn-group">
-                            <button class="btn btn-sm btn-link text-primary" data-bs-toggle="modal"
-                                data-bs-target="#equipmentModal"
-                                onclick="setModal('edit', 'gopro', '記憶卡', '{{ item.pk }}', '{{ item.name|escapejs }}', '{{ item.serial_number|escapejs }}', '{{ item.specifications|escapejs }}', '{{ item.note|escapejs }}', '{{ item.category.pk }}')">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <a href="{% url 'XrResource:delete_item' 'equipment' item.pk %}"
-                                class="btn btn-sm btn-link text-danger" onclick="return confirm('確定要刪除嗎？')">
-                                <i class="fas fa-trash"></i>
-                            </a>
-                        </div>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center py-4 text-muted">目前無記憶卡設備資料</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- 其他 Table -->
-<div class="glass-card">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="mb-0 text-secondary fw-bold"><i class="fas fa-box me-2"></i>其他配件</h4>
-        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#equipmentModal"
-            onclick="setModal('add', 'gopro', '其他配件')">
-            <i class="fas fa-plus"></i>
-        </button>
-    </div>
-    <div class="table-responsive">
-        <table class="table table-premium align-middle">
-            <thead>
-                <tr>
-                    <th>設備名稱</th>
-                    <th>設備編號</th>
-                    <th>設備規格</th>
-                    <th>備註</th>
-                    <th class="text-center">操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in gp_others %}
-                <tr>
-                    <td class="fw-bold text-dark">
-                        <span
-                            class="badge {% if item.status == 'available' %}bg-success{% elif item.status == 'rented' %}bg-info{% elif item.status == 'maintenance' %}bg-warning{% else %}bg-secondary{% endif %} me-1 small">
-                            {{ item.get_status_display }}
-                        </span>
-                        {{ item.name }}
-                    </td>
-                    <td>{% if item.serial_number and item.serial_number != "None" %}<span
-                            class="badge bg-light text-dark">{{ item.serial_number }}</span>{% endif %}</td>
-                    <td><small class="text-muted">{{ item.specifications|linebreaksbr }}</small></td>
-                    <td><small class="text-muted">{{ item.note|linebreaksbr }}</small></td>
-                    <td class="text-center">
-                        <div class="btn-group">
-                            <button class="btn btn-sm btn-link text-primary" data-bs-toggle="modal"
-                                data-bs-target="#equipmentModal"
-                                onclick="setModal('edit', 'gopro', '其他配件', '{{ item.pk }}', '{{ item.name|escapejs }}', '{{ item.serial_number|escapejs }}', '{{ item.specifications|escapejs }}', '{{ item.note|escapejs }}', '{{ item.category.pk }}')">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <a href="{% url 'XrResource:delete_item' 'equipment' item.pk %}"
-                                class="btn btn-sm btn-link text-danger" onclick="return confirm('確定要刪除嗎？')">
-                                <i class="fas fa-trash"></i>
-                            </a>
-                        </div>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center py-4 text-muted">目前無其餘配件資料</td>
+                    <td colspan="4" class="text-center py-4 text-muted">目前無配件庫存資料</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -321,6 +200,45 @@
     </div>
 </div>
 
+<!-- Bulk CRUD Modal -->
+<div class="modal fade" id="bulkModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form id="bulkForm" method="POST" action="">
+            {% csrf_token %}
+            <div class="modal-content glass-card border-0">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold" id="bulkModalTitle">管理庫存</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <input type="hidden" name="section" id="id_bulk_section" value="gopro">
+                        <div class="col-12">
+                            <label class="form-label fw-bold">項目名稱</label>
+                            {{ bulk_form.name }}
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold">總數量</label>
+                            {{ bulk_form.total_count }}
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold">在庫數量</label>
+                            {{ bulk_form.available_count }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">備註</label>
+                            {{ bulk_form.note }}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-premium">儲存變更</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -355,11 +273,37 @@
             title.innerText = '編輯設備: ' + name;
             form.action = "{% url 'XrResource:equipment_edit' 999 %}".replace('999', pk);
 
-            document.querySelector('[name="name"]').value = name;
-            document.querySelector('[name="serial_number"]').value = sn;
-            document.querySelector('[name="specifications"]').value = spec;
-            document.querySelector('[name="note"]').value = note;
+            document.querySelector('#equipmentForm [name="name"]').value = name;
+            document.querySelector('#equipmentForm [name="serial_number"]').value = sn;
+            document.querySelector('#equipmentForm [name="specifications"]').value = spec;
+            document.querySelector('#equipmentForm [name="note"]').value = note;
             catSelect.value = catId;
+        }
+    }
+
+    function setBulkModal(mode, section, name, pk = '', total = '0', available = '0', note = '') {
+        const form = document.getElementById('bulkForm');
+        const title = document.getElementById('bulkModalTitle');
+        const sectionInput = document.getElementById('id_bulk_section');
+
+        sectionInput.value = section;
+
+        if (mode === 'add') {
+            title.innerText = '新增庫存項目';
+            form.action = "{% url 'XrResource:bulk_add' %}";
+            form.reset();
+            sectionInput.value = section;
+            document.querySelector('#bulkForm [name="name"]').value = name;
+            document.querySelector('#bulkForm [name="total_count"]').value = total;
+            document.querySelector('#bulkForm [name="available_count"]').value = available;
+        } else {
+            title.innerText = '編輯庫存: ' + name;
+            form.action = "{% url 'XrResource:bulk_edit' 999 %}".replace('999', pk);
+
+            document.querySelector('#bulkForm [name="name"]').value = name;
+            document.querySelector('#bulkForm [name="total_count"]').value = total;
+            document.querySelector('#bulkForm [name="available_count"]').value = available;
+            document.querySelector('#bulkForm [name="note"]').value = note;
         }
     }
 </script>

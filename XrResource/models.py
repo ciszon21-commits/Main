@@ -79,3 +79,19 @@ class GoProRentalRecord(models.Model):
 
     def __str__(self):
         return f"{self.date} - {self.borrower} ({self.department})"
+
+class XrBulkItem(models.Model):
+    SECTION_CHOICES = XrEquipment.SECTION_CHOICES
+    section = models.CharField('專區', max_length=20, choices=SECTION_CHOICES, default='vr')
+    name = models.CharField('項目名稱', max_length=100)
+    total_count = models.PositiveIntegerField('總數量', default=0)
+    available_count = models.PositiveIntegerField('在庫數量', default=0)
+    note = models.TextField('備註', blank=True)
+
+    class Meta:
+        verbose_name = '數量統計設備'
+        verbose_name_plural = '數量統計設備'
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} ({self.available_count}/{self.total_count})"

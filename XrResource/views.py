@@ -1,8 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.db import models
-from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord
-from .forms import EquipmentCategoryForm, XrEquipmentForm, XrSupportRecordForm, GoProRentalRecordForm
+from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, XrBulkItem
+from .forms import EquipmentCategoryForm, XrEquipmentForm, XrSupportRecordForm, GoProRentalRecordForm, XrBulkItemForm
 
 def vr_section(request):
     """VR 設備專區 (統一模型版)"""
@@ -35,17 +35,15 @@ def gopro_section(request):
     if selected_statuses:
         gp_items = gp_items.filter(status__in=selected_statuses)
     
+    # 數量統計項目 (所有周邊配件整合)
+    gp_bulk_items = XrBulkItem.objects.filter(section='gopro')
+    
     context = {
         'gp_hosts': gp_items.filter(models.Q(name__icontains='主機') | models.Q(category__name__icontains='主機')),
-        'gp_batteries': gp_items.filter(models.Q(name__icontains='電池') | models.Q(category__name__icontains='電池')),
-        'gp_sd_cards': gp_items.filter(models.Q(name__icontains='記憶卡') | models.Q(category__name__icontains='記憶卡')),
-        'gp_others': gp_items.exclude(
-            models.Q(name__icontains='主機') | models.Q(category__name__icontains='主機') |
-            models.Q(name__icontains='電池') | models.Q(category__name__icontains='電池') |
-            models.Q(name__icontains='記憶卡') | models.Q(category__name__icontains='記憶卡')
-        ),
+        'gp_bulk_items': gp_bulk_items,
         'categories': EquipmentCategory.objects.all(),
         'eq_form': XrEquipmentForm(),
+        'bulk_form': XrBulkItemForm(),
         'status_choices': XrEquipment.STATUS_CHOICES,
         'selected_statuses': selected_statuses,
     }
@@ -68,6 +66,23 @@ def equipment_save(request, pk=None):
     
     return redirect(request.META.get('HTTP_REFERER', 'XrResource:vr_section'))
 
+def bulk_item_save(request, pk=None):
+    """新增或編輯數量統計項目"""
+    if pk:
+        item = get_object_or_404(XrBulkItem, pk=pk)
+    else:
+        item = None
+
+    if request.method == 'POST':
+        form = XrBulkItemForm(request.POST, instance=item)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '庫存資料已儲存')
+        else:
+            messages.error(request, f'儲存失敗: {form.errors}')
+    
+    return redirect(request.META.get('HTTP_REFERER', 'XrResource:gopro_section'))
+
 def delete_item(request, model_name, pk):
     """刪除物件"""
     models_map = {
@@ -75,6 +90,7 @@ def delete_item(request, model_name, pk):
         'support': XrSupportRecord,
         'rental': GoProRentalRecord,
         'category': EquipmentCategory,
+        'bulk': XrBulkItem,
     }
     model = models_map.get(model_name)
     if model:

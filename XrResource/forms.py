@@ -1,5 +1,5 @@
 from django import forms
-from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord
+from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, XrBulkItem
 
 class EquipmentCategoryForm(forms.ModelForm):
     class Meta:
@@ -50,5 +50,17 @@ class GoProRentalRecordForm(forms.ModelForm):
             'borrower': forms.TextInput(attrs={'class': 'form-control'}),
             'reason': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'equipment': forms.TextInput(attrs={'class': 'form-control'}),
+            'note': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+
+class XrBulkItemForm(forms.ModelForm):
+    class Meta:
+        model = XrBulkItem
+        fields = '__all__'
+        widgets = {
+            'section': forms.Select(attrs={'class': 'form-select'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'total_count': forms.NumberInput(attrs={'class': 'form-control'}),
+            'available_count': forms.NumberInput(attrs={'class': 'form-control'}),
             'note': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
