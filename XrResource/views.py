@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
-from django.db import models, transaction
+from django.db import models, transaction, IntegrityError
 from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, XrBulkItem, XrRentalRecord, XrRentalBulkItem, XrUserProfile
 from .forms import EquipmentCategoryForm, XrEquipmentForm, XrSupportRecordForm, GoProRentalRecordForm, XrBulkItemForm, XrRentalRecordForm
 from django.contrib.auth.decorators import login_required
@@ -119,7 +119,7 @@ def delete_item(request, model_name, pk):
     models_map = {
         'equipment': XrEquipment,
         'support': XrSupportRecord,
-        'rental': GoProRentalRecord,
+        'rental': XrRentalRecord,
         'category': EquipmentCategory,
         'bulk': XrBulkItem,
     }
@@ -244,36 +244,87 @@ def rental_reject(request, pk):
 @login_required
 @admin_required
 def rental_reset(request, pk):
-    """將已核准或已拒絕的申請重設為待核准"""
+    """將已核准、已拒絕或已歸還的申請重設為待核准"""
     rental = get_object_or_404(XrRentalRecord, pk=pk)
     if rental.status == 'pending':
         return redirect('XrResource:rental_list')
 
     old_status = rental.status
 
-    with transaction.atomic():
-        # 1. 恢復主機狀態為預約中
-        for eq in rental.equipments.all():
-            eq.status = 'reserved'
-            eq.save()
+    try:
+        with transaction.atomic():
+            # 1. 恢復主機狀態為預約中
+            for eq in rental.equipments.all():
+                eq.status = 'reserved'
+                eq.save()
 
-        # 2. 恢復配件待扣數 (如果之前是核准，還要加回在庫)
-        for r_bulk in rental.xrrentalbulkitem_set.all():
-            bulk_item = r_bulk.bulk_item
-            if old_status == 'approved':
-                # 加回在庫
-                bulk_item.available_count += r_bulk.count
+            # 2. 恢復配件數據
+            for r_bulk in rental.xrrentalbulkitem_set.all():
+                bulk_item = r_bulk.bulk_item
+                
+                # 只有當原本是「已核准」且「該項目尚未歸還」時，才需要加回在庫。
+                # 如果是「已歸還」狀態，在庫早就在歸還點交時加回了，不可再扣除或重複加。
+                # 如果是「已拒絕」狀態，當時根本沒扣在庫，也不動。
+                if old_status == 'approved' and not r_bulk.is_returned:
+                    bulk_item.available_count += r_bulk.count
+                
+                # 不論是從哪種狀態(核准/拒絕/歸還)恢復為待核准，都要加回「待扣數量 (Reserved)」
+                bulk_item.reserved_count += r_bulk.count
+                bulk_item.save()
+                
+                # 重設配件項目的個別歸還狀態
+                r_bulk.is_returned = False
+                r_bulk.save()
+
+            # 3. 標記為待核准
+            rental.status = 'pending'
+            rental.save()
             
-            # 不論是從已核准或已拒絕恢復，都要恢復待扣數
-            bulk_item.reserved_count += r_bulk.count
-            bulk_item.save()
-
-        # 3. 標記為待核准
-        rental.status = 'pending'
-        rental.save()
-
-    messages.info(request, f'已將 {rental.activity_name} 的狀態重設為待核准，庫存狀態已同步預約。')
+        messages.info(request, f'已將 {rental.activity_name} 的狀態重設為待核准，其所屬設備已回歸庫存預約狀態。')
+    except IntegrityError:
+        messages.error(request, '重設失敗：庫存數量不足以回歸預約狀態。請檢查是否有其他單據已佔用庫存。')
+    
     return redirect('XrResource:rental_list')
+
+@login_required
+@admin_required
+def reset_rental_return(request, pk):
+    """初始化點交紀錄：將歸還狀態設回借用中，並維持訂單為已核准狀態"""
+    rental = get_object_or_404(XrRentalRecord, pk=pk)
+    
+    # 只有已核准或已歸還的單據可以初始化點交紀錄
+    if rental.status not in ['approved', 'returned']:
+        messages.warning(request, '此狀態下無法初始化點交紀錄。')
+        return redirect('XrResource:rental_return', pk=pk)
+
+    try:
+        with transaction.atomic():
+            # 1. 將所有關連的主機設回「借用中」
+            for eq in rental.equipments.all():
+                if eq.status == 'available':  # 表示之前已歸還
+                    eq.status = 'rented'
+                    eq.save()
+
+            # 2. 將所有配件設回「未歸還」，並扣除庫存
+            for r_bulk in rental.xrrentalbulkitem_set.all():
+                if r_bulk.is_returned:
+                    bulk_item = r_bulk.bulk_item
+                    # 撤回歸還：庫存要減掉
+                    bulk_item.available_count -= r_bulk.count
+                    bulk_item.save()
+                    
+                    r_bulk.is_returned = False
+                    r_bulk.save()
+
+            # 3. 強制將單據狀態設回「已核准」
+            rental.status = 'approved'
+            rental.save()
+            
+        messages.success(request, f'已成功初始化 {rental.activity_name} 的點交紀錄。')
+    except IntegrityError:
+        messages.error(request, '重設失敗：庫存數量不足以回歸借用狀態。')
+    
+    return redirect('XrResource:rental_return', pk=pk)
 
 @login_required
 @admin_required
