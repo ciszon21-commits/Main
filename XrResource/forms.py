@@ -1,5 +1,5 @@
 from django import forms
-from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, XrBulkItem, XrRentalRecord
+from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, XrBulkItem, XrRentalRecord, RentalNature
 
 class EquipmentCategoryForm(forms.ModelForm):
     class Meta:
@@ -70,7 +70,7 @@ class XrRentalRecordForm(forms.ModelForm):
         fields = [
             'activity_date', 'rental_start', 'rental_end', 
             'department', 'borrower_name', 'borrower_id', 
-            'activity_name', 'reason', 'equipments', 'bulk_items'
+            'activity_name', 'nature', 'reason', 'equipments', 'bulk_items'
         ]
         widgets = {
             'activity_date': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date'}),
@@ -80,6 +80,7 @@ class XrRentalRecordForm(forms.ModelForm):
             'borrower_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '姓名'}),
             'borrower_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '員工編號'}),
             'activity_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '填寫活動或專案名稱'}),
+            'nature': forms.Select(attrs={'class': 'form-select'}),
             'reason': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': '請簡述租借用途'}),
             'equipments': forms.SelectMultiple(attrs={'class': 'form-select select2-multiple'}),
             'bulk_items': forms.SelectMultiple(attrs={'class': 'form-select select2-multiple'}),

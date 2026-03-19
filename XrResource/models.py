@@ -4,6 +4,16 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+class RentalNature(models.Model):
+    name = models.CharField('性質名稱', max_length=50, unique=True)
+
+    class Meta:
+        verbose_name = '租借性質'
+        verbose_name_plural = '租借性質管理'
+
+    def __str__(self):
+        return self.name
+
 class EquipmentCategory(models.Model):
     name = models.CharField('種類名稱', max_length=50, unique=True)
     description = models.TextField('描述', blank=True)
@@ -123,6 +133,7 @@ class XrRentalRecord(models.Model):
     borrower_id = models.CharField('租借人員工編號', max_length=50)
     activity_name = models.CharField('活動名稱', max_length=200)
     reason = models.TextField('租借原因', blank=True)
+    nature = models.ForeignKey(RentalNature, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='租借性質')
     
     STATUS_CHOICES = [
         ('pending', '待核准'),
