@@ -55,6 +55,7 @@ urlpatterns = [
     path('duplicate-checker/', include('duplicate_checker.urls')),  # 重複檔案檢查器
     path('review/', include('review_feedback.urls')),
     path('src-column/', include('SRCColumn.urls')),  # SRC柱設計計算系統
+    path('xr-resource/', include('XrResource.urls', namespace='XrResource')),
 ]
 
 # 條件載入 ClashClassifier API

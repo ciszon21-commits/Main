@@ -1,0 +1,330 @@
+{% extends 'XrResource/base_xr.html' %}
+
+{% block title %}儀表板 - XrResource{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Header Area -->
+    <div class="col-12 d-flex justify-content-between align-items-end mb-2">
+        <div>
+            <h2 class="fw-bold mb-1"><i class="fas fa-chart-line me-2 text-primary"></i>系統數據儀表板</h2>
+            <p class="text-muted small mb-0">實時監控設備庫存、預約及借出狀況。</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'XrResource:rental_register' %}" class="btn btn-premium shadow-sm px-4">
+                <i class="fas fa-plus me-2"></i> 設備租借登記
+            </a>
+            <a href="{% url 'XrResource:rental_list' %}" class="btn btn-light border shadow-sm px-4">
+                <i class="fas fa-history me-2"></i> 租借歷史紀錄
+            </a>
+        </div>
+    </div>
+
+    <!-- Left Column: Main Stats and Bulk Items -->
+    <div class="col-lg-8">
+        <div class="row g-3">
+            <!-- VR Computer Status Card -->
+            <div class="col-md-4">
+                <div class="glass-card h-100 p-3 border-0 shadow-sm animate__animated animate__fadeInUp">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="fw-bold text-dark mb-0"><i class="fas fa-desktop me-2 text-primary"></i>VR設備-電腦</h6>
+                        <span class="badge bg-soft-primary text-primary px-2 rounded-pill x-small">{{ vr_comp_stats.total }}</span>
+                    </div>
+                    <div class="text-center mb-2" style="height: 100px; position: relative;">
+                        <canvas id="vrCompChart"></canvas>
+                    </div>
+                    <div class="d-flex justify-content-around mb-2 border-bottom pb-2">
+                        <div class="text-center">
+                            <small class="text-muted d-block x-small">庫存</small>
+                            <span class="fw-bold text-success">{{ vr_comp_stats.available }}</span>
+                        </div>
+                        <div class="text-center">
+                            <small class="text-muted d-block x-small">預約</small>
+                            <span class="fw-bold text-warning">{{ vr_comp_stats.reserved }}</span>
+                        </div>
+                        <div class="text-center">
+                            <small class="text-muted d-block x-small">出借</small>
+                            <span class="fw-bold text-danger">{{ vr_comp_stats.rented }}</span>
+                        </div>
+                    </div>
+                    <div class="mt-auto">
+                        <div class="d-flex justify-content-between mb-1 x-small">
+                            <span class="text-muted">庫存可用率</span>
+                            <span
+                                class="fw-bold {% if vr_comp_stats.available_pct == 100 %}text-success{% elif vr_comp_stats.available_pct == 0 %}text-danger{% else %}text-warning{% endif %}">{{ vr_comp_stats.available_pct }}%</span>
+                        </div>
+                        <div class="progress rounded-pill shadow-inner" style="height: 6px;">
+                            <div class="progress-bar {% if vr_comp_stats.available_pct == 100 %}bg-success{% elif vr_comp_stats.available_pct == 0 %}bg-danger{% else %}bg-warning{% endif %}"
+                                role="progressbar" style="width: {{ vr_comp_stats.available_pct }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VR Headset Status Card -->
+            <div class="col-md-4">
+                <div class="glass-card h-100 p-3 border-0 shadow-sm animate__animated animate__fadeInUp"
+                    style="animation-delay: 0.1s;">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="fw-bold text-dark mb-0"><i class="fas fa-headset me-2 text-primary"></i>VR設備-頭盔</h6>
+                        <span class="badge bg-soft-primary text-primary px-2 rounded-pill x-small">{{ vr_headset_stats.total }}</span>
+                    </div>
+                    <div class="text-center mb-2" style="height: 100px; position: relative;">
+                        <canvas id="vrHeadsetChart"></canvas>
+                    </div>
+                    <div class="d-flex justify-content-around mb-2 border-bottom pb-2">
+                        <div class="text-center">
+                            <small class="text-muted d-block x-small">庫存</small>
+                            <span class="fw-bold text-success">{{ vr_headset_stats.available }}</span>
+                        </div>
+                        <div class="text-center">
+                            <small class="text-muted d-block x-small">預約</small>
+                            <span class="fw-bold text-warning">{{ vr_headset_stats.reserved }}</span>
+                        </div>
+                        <div class="text-center">
+                            <small class="text-muted d-block x-small">出借</small>
+                            <span class="fw-bold text-danger">{{ vr_headset_stats.rented }}</span>
+                        </div>
+                    </div>
+                    <div class="mt-auto">
+                        <div class="d-flex justify-content-between mb-1 x-small">
+                            <span class="text-muted">庫存可用率</span>
+                            <span
+                                class="fw-bold {% if vr_headset_stats.available_pct == 100 %}text-success{% elif vr_headset_stats.available_pct == 0 %}text-danger{% else %}text-warning{% endif %}">{{ vr_headset_stats.available_pct }}%</span>
+                        </div>
+                        <div class="progress rounded-pill shadow-inner" style="height: 6px;">
+                            <div class="progress-bar {% if vr_headset_stats.available_pct == 100 %}bg-success{% elif vr_headset_stats.available_pct == 0 %}bg-danger{% else %}bg-warning{% endif %}"
+                                role="progressbar" style="width: {{ vr_headset_stats.available_pct }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Camera Host Status Card -->
+            <div class="col-md-4">
+                <div class="glass-card h-100 p-3 border-0 shadow-sm animate__animated animate__fadeInUp"
+                    style="animation-delay: 0.2s;">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="fw-bold text-dark mb-0"><i class="fas fa-video me-2 text-info"></i>攝影設備-主機</h6>
+                        <span class="badge bg-soft-info text-info px-2 rounded-pill x-small">{{ camera_host_stats.total }}</span>
+                    </div>
+                    <div class="text-center mb-2" style="height: 100px; position: relative;">
+                        <canvas id="cameraHostChart"></canvas>
+                    </div>
+                    <div class="d-flex justify-content-around mb-2 border-bottom pb-2">
+                        <div class="text-center">
+                            <small class="text-muted d-block x-small">庫存</small>
+                            <span class="fw-bold text-success">{{ camera_host_stats.available }}</span>
+                        </div>
+                        <div class="text-center">
+                            <small class="text-muted d-block x-small">預約</small>
+                            <span class="fw-bold text-warning">{{ camera_host_stats.reserved }}</span>
+                        </div>
+                        <div class="text-center">
+                            <small class="text-muted d-block x-small">出借</small>
+                            <span class="fw-bold text-danger">{{ camera_host_stats.rented }}</span>
+                        </div>
+                    </div>
+                    <div class="mt-auto">
+                        <div class="d-flex justify-content-between mb-1 x-small">
+                            <span class="text-muted">庫存可用率</span>
+                            <span
+                                class="fw-bold {% if camera_host_stats.available_pct == 100 %}text-success{% elif camera_host_stats.available_pct == 0 %}text-danger{% else %}text-warning{% endif %}">{{ camera_host_stats.available_pct }}%</span>
+                        </div>
+                        <div class="progress rounded-pill shadow-inner" style="height: 6px;">
+                            <div class="progress-bar {% if camera_host_stats.available_pct == 100 %}bg-success{% elif camera_host_stats.available_pct == 0 %}bg-danger{% else %}bg-warning{% endif %}"
+                                role="progressbar" style="width: {{ camera_host_stats.available_pct }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bulk Items Stock Overview -->
+            <div class="col-12 mt-2">
+                <div class="glass-card p-4 border-0 shadow-sm animate__animated animate__fadeInUp"
+                    style="animation-delay: 0.2s;">
+                    <h5 class="fw-bold text-dark mb-4"><i class="fas fa-box-open me-2 text-success"></i>配件耗材庫存狀態</h5>
+                    <div class="row row-cols-1 row-cols-md-2 g-4">
+                        {% for item in bulk_items %}
+                        <div class="col">
+                            <div class="p-3 bg-light rounded-4 border-0">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="fw-bold text-dark">{{ item.name }}</span>
+                                    <span
+                                        class="badge {% if item.available_count == item.total_count %}bg-success{% elif item.available_count == 0 %}bg-danger{% else %}bg-warning{% endif %} rounded-pill">
+                                        {{ item.available_count }} / {{ item.total_count }}
+                                    </span>
+                                </div>
+                                <div class="progress rounded-pill bg-white shadow-sm" style="height: 12px;">
+                                    {% widthratio item.available_count item.total_count 100 as available_pct %}
+                                    <div class="progress-bar {% if item.available_count == item.total_count %}bg-success{% elif item.available_count == 0 %}bg-danger{% else %}bg-warning{% endif %} "
+                                        role="progressbar" style="width: {{ available_pct }}%"></div>
+                                </div>
+                                {% if item.reserved_count > 0 %}
+                                <div class="mt-2 text-muted x-small"><i class="fas fa-clock me-1"></i>待扣預約中：{{ item.reserved_count }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12 text-center text-muted py-4">目前尚無配件資料。</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Recent Activity (Tall) -->
+    <div class="col-lg-4">
+        <div class="glass-card h-100 p-4 border-0 shadow-sm animate__animated animate__fadeInRight">
+            <h5 class="fw-bold text-dark mb-4"><i class="fas fa-tasks me-2 text-warning"></i>最近租借活動</h5>
+            <div class="timeline-compact">
+                {% for rental in recent_rentals %}
+                <div class="d-flex mb-3 pb-3 border-bottom border-light last-no-border">
+                    <div class="flex-shrink-0 mt-1">
+                        <div
+                            class="status-indicator {% if rental.status == 'pending' %}bg-warning{% elif rental.status == 'approved' %}bg-danger{% elif rental.status == 'returned' %}bg-success{% elif rental.status == 'rejected' %}bg-dark{% else %}bg-secondary{% endif %}">
+                        </div>
+                    </div>
+                    <div class="ms-3 flex-grow-1">
+                        <div class="d-flex justify-content-between">
+                            <div class="fw-bold text-dark small" style="line-height: 1.2;">{{ rental.activity_name }}
+                            </div>
+                            <span class="badge bg-soft-secondary text-dark x-small py-0">{{ rental.get_status_display }}</span>
+                        </div>
+                        <div class="text-muted x-small d-flex justify-content-between gap-3 mt-1">
+                            <span>{{ rental.borrower_name }}</span>
+                            <span>{{ rental.created_at|date:"m/d H:i" }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-4 small">尚無最近活動記錄。</div>
+                {% endfor %}
+            </div>
+            <div class="text-center mt-auto pt-3">
+                <a href="{% url 'XrResource:rental_list' %}"
+                    class="btn btn-sm btn-link text-decoration-none text-primary">檢視所有歷史紀錄 <i
+                        class="fas fa-arrow-right small ms-1"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .bg-premium {
+        background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        color: white;
+    }
+
+    .bg-soft-primary {
+        background-color: #e0e7ff;
+    }
+
+    .bg-soft-info {
+        background-color: #e0f2fe;
+    }
+
+    .bg-soft-danger {
+        background-color: #fee2e2;
+    }
+
+    .status-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .x-small {
+        font-size: 0.7rem;
+    }
+
+    .last-no-border:last-child {
+        border-bottom: none !important;
+        margin-bottom: 0 !important;
+    }
+
+    canvas {
+        max-width: 120px;
+        margin: auto;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: true }
+            }
+        };
+
+        const statusColors = ['#22c55e', '#eab308', '#ef4444'];
+        const statusLabels = ['庫存', '預約', '出借'];
+
+        // VR Computer Chart
+        new Chart(document.getElementById('vrCompChart'), {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: [
+                        {{ vr_comp_stats.available|default:0 }},
+                {{ vr_comp_stats.reserved|default:0 }},
+                        {{ vr_comp_stats.rented|default:0 }}
+                    ],
+        backgroundColor: statusColors,
+        borderWidth: 0
+                }]
+            },
+        options: chartOptions
+        });
+
+    // VR Headset Chart
+    new Chart(document.getElementById('vrHeadsetChart'), {
+        type: 'doughnut',
+        data: {
+            labels: statusLabels,
+            datasets: [{
+                data: [
+                    {{ vr_headset_stats.available|default:0 }},
+            {{ vr_headset_stats.reserved|default:0 }},
+                        {{ vr_headset_stats.rented|default:0 }}
+                    ],
+        backgroundColor: statusColors,
+        borderWidth: 0
+                }]
+            },
+        options: chartOptions
+        });
+
+    // Photography Host Chart
+    new Chart(document.getElementById('cameraHostChart'), {
+        type: 'doughnut',
+        data: {
+            labels: statusLabels,
+            datasets: [{
+                data: [
+                    {{ camera_host_stats.available|default:0 }},
+            {{ camera_host_stats.reserved|default:0 }},
+                        {{ camera_host_stats.rented|default:0 }}
+                    ],
+        backgroundColor: statusColors,
+        borderWidth: 0
+                }]
+            },
+        options: chartOptions
+        });
+    });
+</script>
+{% endblock %}
