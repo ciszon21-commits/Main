@@ -1,0 +1,136 @@
+{% extends 'XrResource/base_xr.html' %}
+
+{% block title %}租借歷史紀錄 - XrResource{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="fas fa-history me-2"></i>租借歷史紀錄</h2>
+        <p class="text-muted small">查看所有租借申請、預約狀態及過往紀錄。</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'XrResource:rental_register' %}" class="btn btn-premium btn-sm">
+            <i class="fas fa-plus me-1"></i> 新增租借登記
+        </a>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 ms-3">
+                <li class="breadcrumb-item"><a href="{% url 'XrResource:dashboard' %}">首頁</a></li>
+                <li class="breadcrumb-item active">租借歷史</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="glass-card">
+    <div class="table-responsive">
+        <table class="table table-premium align-middle">
+            <thead>
+                <tr>
+                    <th>申請狀態</th>
+                    <th>活動名稱 / 日期</th>
+                    <th>租借人 / 部門</th>
+                    <th>租借期間</th>
+                    <th>租借設備明細</th>
+                    <th class="text-center">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rental in rentals %}
+                <tr>
+                    <td>
+                        <span
+                            class="badge {% if rental.status == 'pending' %}bg-warning text-dark{% elif rental.status == 'approved' %}bg-success{% elif rental.status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %} px-3 py-2 rounded-pill">
+                            <i
+                                class="fas {% if rental.status == 'pending' %}fa-clock{% elif rental.status == 'approved' %}fa-check-circle{% elif rental.status == 'rejected' %}fa-times-circle{% else %}fa-undo{% endif %} me-1"></i>
+                            {{ rental.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="fw-bold text-dark">{{ rental.activity_name }}</div>
+                        <div class="text-muted small">{{ rental.activity_date|date:"Y-m-d" }}</div>
+                    </td>
+                    <td>
+                        <div class="fw-bold">{{ rental.borrower_name }} <small class="text-muted">({{ rental.borrower_id }})</small></div>
+                        <div class="text-muted small">{{ rental.department }}</div>
+                    </td>
+                    <td>
+                        <div class="btn btn-sm btn-light border-0 py-0 px-2" style="font-size: 0.75rem;">
+                            {{ rental.rental_start|date:"m/d" }} - {{ rental.rental_end|date:"m/d" }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="small">
+                            {% for eq in rental.equipments.all %}
+                            <span
+                                class="badge bg-soft-primary text-primary me-1 mb-1 border border-primary border-opacity-10">
+                                <i class="fas fa-microchip me-1"></i>{{ eq.name }}
+                            </span>
+                            {% endfor %}
+                            {% for b_item in rental.xrrentalbulkitem_set.all %}
+                            <span class="badge bg-soft-info text-info me-1 mb-1 border border-info border-opacity-10">
+                                <i class="fas fa-box me-1"></i>{{ b_item.bulk_item.name }} x {{ b_item.count }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        {% if rental.status == 'pending' %}
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="{% url 'XrResource:rental_approve' rental.pk %}"
+                                class="btn btn-sm btn-success rounded-pill px-3 shadow-sm"
+                                onclick="return confirm('確定要核准租借嗎？\n核准後設備將轉為「已出借」，配件將正式扣除庫存。')">
+                                <i class="fas fa-check me-1"></i>核准
+                            </a>
+                            <a href="{% url 'XrResource:rental_reject' rental.pk %}"
+                                class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm"
+                                onclick="return confirm('確定要拒絕嗎？')">
+                                <i class="fas fa-times me-1"></i>拒絕
+                            </a>
+                        </div>
+                        {% else %}
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="{% url 'XrResource:rental_reset' rental.pk %}"
+                                class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm" title="重設回待核核狀態"
+                                onclick="return confirm('確定要重設為「待核核」嗎？\n這將自動復原所有已扣除的庫存與設備狀態。')">
+                                <i class="fas fa-undo me-1"></i>重設
+                            </a>
+                            <a href="{% url 'XrResource:delete_item' 'rental' rental.pk %}"
+                                class="btn btn-sm btn-link text-danger" title="刪除紀錄"
+                                onclick="return confirm('確定要刪除紀錄嗎？')">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5">
+                        <div class="text-muted">
+                            <i class="fas fa-folder-open fa-3x mb-3 opacity-20"></i>
+                            <p>目前尚無租借紀錄</p>
+                            <a href="{% url 'XrResource:rental_register' %}"
+                                class="btn btn-sm btn-outline-primary mt-2">立即進行第一次登記</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .bg-soft-primary {
+        background-color: rgba(var(--primary-rgb), 0.1);
+    }
+
+    .bg-soft-info {
+        background-color: rgba(0, 123, 255, 0.1);
+    }
+
+    .table-premium tr:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+</style>
+{% endblock %}

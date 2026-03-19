@@ -20,6 +20,7 @@ class XrEquipment(models.Model):
     ]
     STATUS_CHOICES = [
         ('available', '在庫'),
+        ('reserved', '預約中'),
         ('rented', '已出借'),
         ('maintenance', '維修中'),
         ('retired', '已退役'),
@@ -38,7 +39,9 @@ class XrEquipment(models.Model):
         ordering = ['serial_number']
 
     def __str__(self):
-        return f"{self.name} ({self.serial_number})"
+        if self.serial_number and str(self.serial_number).lower() != 'none':
+            return f"{self.name} ({self.serial_number})"
+        return self.name
 
 class XrSupportRecord(models.Model):
     NATURE_CHOICES = [
@@ -86,6 +89,7 @@ class XrBulkItem(models.Model):
     name = models.CharField('項目名稱', max_length=100)
     total_count = models.PositiveIntegerField('總數量', default=0)
     available_count = models.PositiveIntegerField('在庫數量', default=0)
+    reserved_count = models.PositiveIntegerField('待扣數量', default=0)
     note = models.TextField('備註', blank=True)
 
     class Meta:
@@ -95,3 +99,42 @@ class XrBulkItem(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.available_count}/{self.total_count})"
+
+class XrRentalRecord(models.Model):
+    activity_date = models.DateField('活動日期')
+    rental_start = models.DateField('租借起始日期')
+    rental_end = models.DateField('租借結束日期')
+    department = models.CharField('部門', max_length=100)
+    borrower_name = models.CharField('租借人姓名', max_length=50)
+    borrower_id = models.CharField('租借人員工編號', max_length=50)
+    activity_name = models.CharField('活動名稱', max_length=200)
+    reason = models.TextField('租借原因', blank=True)
+    
+    STATUS_CHOICES = [
+        ('pending', '待核核'),
+        ('approved', '已核准'),
+        ('rejected', '已拒絕'),
+        ('returned', '已歸還'),
+    ]
+    status = models.CharField('單據狀態', max_length=20, choices=STATUS_CHOICES, default='pending')
+    
+    equipments = models.ManyToManyField(XrEquipment, verbose_name='租借設備', blank=True)
+    bulk_items = models.ManyToManyField(XrBulkItem, through='XrRentalBulkItem', verbose_name='租借配件', blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = '設備租借登記'
+        verbose_name_plural = '設備租借登記'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.activity_name} - {self.borrower_name} ({self.department})"
+
+class XrRentalBulkItem(models.Model):
+    rental_record = models.ForeignKey(XrRentalRecord, on_delete=models.CASCADE)
+    bulk_item = models.ForeignKey(XrBulkItem, on_delete=models.CASCADE)
+    count = models.PositiveIntegerField('租借數量', default=1)
+
+    def __str__(self):
+        return f"{self.bulk_item.name} x {self.count}"

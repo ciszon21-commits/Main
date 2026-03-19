@@ -29,7 +29,7 @@
         </a>
         {% for val, label in status_choices %}
         <a href="?status={{ val }}" class="btn btn-sm {% if val in selected_statuses %}
-               {% if val == 'available' %}btn-success{% elif val == 'rented' %}btn-info{% elif val == 'maintenance' %}btn-warning text-dark{% else %}btn-secondary{% endif %}
+               {% if val == 'available' %}btn-success{% elif val == 'reserved' %}btn-warning text-dark{% elif val == 'rented' %}btn-danger{% elif val == 'maintenance' %}btn-secondary{% elif val == 'retired' %}btn-dark{% else %}btn-secondary{% endif %}
            {% else %}btn-outline-secondary{% endif %} rounded-pill px-3">
             {{ label }}
         </a>
@@ -62,7 +62,7 @@
                 <tr>
                     <td class="fw-bold text-dark">
                         <span
-                            class="badge {% if item.status == 'available' %}bg-success{% elif item.status == 'rented' %}bg-info{% elif item.status == 'maintenance' %}bg-warning{% else %}bg-secondary{% endif %} me-1 small">
+                            class="badge {% if item.status == 'available' %}bg-success{% elif item.status == 'reserved' %}bg-warning text-dark{% elif item.status == 'rented' %}bg-danger{% elif item.status == 'maintenance' %}bg-secondary{% elif item.status == 'retired' %}bg-dark{% else %}bg-secondary{% endif %} me-1 small">
                             {{ item.get_status_display }}
                         </span>
                         {{ item.name }}
@@ -120,6 +120,10 @@
                     <td class="fw-bold text-dark">{{ item.name }}</td>
                     <td class="text-center">
                         <span class="badge bg-success fs-6">{{ item.available_count }}</span>
+                        {% if item.reserved_count > 0 %}
+                        <span class="badge bg-warning text-dark ms-1" style="font-size: 0.7rem;" title="待管理員核准的預約數量">預約:
+                            {{ item.reserved_count }}</span>
+                        {% endif %}
                         <span class="text-muted mx-1">/</span>
                         <span class="badge bg-light text-dark fs-6">{{ item.total_count }}</span>
                     </td>

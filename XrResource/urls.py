@@ -12,4 +12,9 @@ urlpatterns = [
     path('bulk/save/', views.bulk_item_save, name='bulk_add'),
     path('bulk/save/<int:pk>/', views.bulk_item_save, name='bulk_edit'),
     path('delete/<str:model_name>/<int:pk>/', views.delete_item, name='delete_item'),
+    path('rental/register/', views.rental_register, name='rental_register'),
+    path('rental/list/', views.rental_list, name='rental_list'),
+    path('rental/approve/<int:pk>/', views.rental_approve, name='rental_approve'),
+    path('rental/reject/<int:pk>/', views.rental_reject, name='rental_reject'),
+    path('rental/reset/<int:pk>/', views.rental_reset, name='rental_reset'),
 ]
