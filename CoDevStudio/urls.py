@@ -51,6 +51,7 @@ urlpatterns = [
     path('news-insight/', include('NewsInsight.urls', namespace='NewsInsight')),  # GoogleNews輿情分析
     path('wind-rose/', include('CODiS_WindRose_Plotter.urls')),  # 風玫瑰圖繪製工具
     path('lhawish/', include('LHAWish.urls')),  # 部門許願池
+    path('src-column/', include('SRCColumn.urls')),  # SRC柱設計計算系統
 ]
 
 # 條件載入 ClashClassifier API
