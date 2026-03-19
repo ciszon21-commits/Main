@@ -135,6 +135,8 @@ class XrRentalRecord(models.Model):
     equipments = models.ManyToManyField(XrEquipment, verbose_name='租借設備', blank=True)
     bulk_items = models.ManyToManyField(XrBulkItem, through='XrRentalBulkItem', verbose_name='租借配件', blank=True)
     
+    return_notes = models.TextField('歸還備註', blank=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

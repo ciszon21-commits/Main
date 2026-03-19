@@ -7,17 +7,20 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold"><i class="fas fa-undo-alt me-2 text-primary"></i>歸還內容確認</h2>
         <div class="d-flex gap-2">
-            <button type="button" class="btn btn-premium btn-sm rounded-pill px-3" onclick="selectAllUnreturned()">
-                <i class="fas fa-check-double me-1"></i>全選未歸還
+            <button type="button"
+                class="btn btn-premium btn-sm rounded-pill px-3 d-inline-flex align-items-center justify-content-center"
+                onclick="selectAllUnreturned()">
+                <i class="fas fa-check-double me-1"></i>全選
             </button>
             {% if user.xr_profile.role == 'admin' %}
             <a href="{% url 'XrResource:reset_rental_return' rental.pk %}"
-                class="btn btn-outline-danger btn-sm rounded-pill px-3"
+                class="btn btn-outline-danger btn-sm rounded-pill px-3 d-inline-flex align-items-center justify-content-center"
                 onclick="return confirm('警告：這將會初始化此單所有點收紀錄（主機狀態設回借用中、配件歸還標記取消）。\n確定要重設嗎？')">
                 <i class="fas fa-redo me-1"></i>重設歸還紀錄
             </a>
             {% endif %}
-            <a href="{% url 'XrResource:rental_list' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-4">
+            <a href="{% url 'XrResource:rental_list' %}"
+                class="btn btn-outline-secondary btn-sm rounded-pill px-4 d-inline-flex align-items-center justify-content-center">
                 <i class="fas fa-arrow-left me-1"></i>返回清單
             </a>
         </div>
@@ -100,6 +103,13 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- 歸還備註區域 -->
+        <div class="glass-card mb-4 p-4 border-0 shadow-sm rounded-4">
+            <h5 class="fw-bold mb-3 text-primary"><i class="fas fa-comment-dots me-2"></i>歸還備註與細節紀錄</h5>
+            <textarea name="return_notes" rows="4" class="form-control border-0 bg-light rounded-4 p-3"
+                placeholder="在此紀錄歸還時的特殊情況（例如：設備外觀受損、配件遺失或功能異常等...）">{{ rental.return_notes }}</textarea>
         </div>
 
         <!-- 提交按鈕區域 -->

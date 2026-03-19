@@ -371,12 +371,17 @@ def rental_return(request, pk):
     rental = get_object_or_404(XrRentalRecord, pk=pk)
     
     if request.method == 'POST':
-        # 獲取勾選要歸還的 ID
+        # 獲取勾選要歸還的 ID 與備註
         returned_equipment_ids = request.POST.getlist('returned_equipments')
         returned_bulk_item_ids = request.POST.getlist('returned_bulk_items')
+        return_notes = request.POST.get('return_notes', '')
         
         with transaction.atomic():
-            # 1. 處理主機歸還
+            # 1. 保存歸還備註
+            rental.return_notes = return_notes
+            rental.save()
+            
+            # 2. 處理主機歸還
             for eq_id in returned_equipment_ids:
                 equipment = rental.equipments.get(id=eq_id)
                 if equipment.status == 'rented':
