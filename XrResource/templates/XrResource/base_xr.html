@@ -232,19 +232,21 @@
 <body>
     <!-- Sidebar -->
     <div class="sidebar">
-        <div class="sidebar-brand">
-            <i class="fas fa-vr-cardboard"></i>
+        <div class="sidebar-brand mb-4 d-flex align-items-center"
+            onclick="window.location.href='{% url 'XrResource:rental_register' %}'" style="cursor: pointer;">
             <span>XrResource</span>
         </div>
         <nav class="nav flex-column">
             <div class="nav-section-label">庫存管理系統</div>
-            <a class="nav-link {% if request.resolver_match.url_name == 'vr_section' or request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
-                href="{% url 'XrResource:vr_section' %}">
+            <a class="nav-link {% if request.resolver_match.url_name == 'vr_section' %}active{% endif %}"
+                href="{% if user.xr_profile.role == 'admin' %}{% url 'XrResource:vr_section' %}{% else %}javascript:void(0){% endif %}"
+                {% if user.xr_profile.role != 'admin' %}onclick="alert('您沒有管理權限，無法進入 VR 設備管理頁面。')" {% endif %}>
                 <i class="fas fa-vr-cardboard"></i>
                 <span>VR 設備</span>
             </a>
             <a class="nav-link {% if request.resolver_match.url_name == 'gopro_section' %}active{% endif %}"
-                href="{% url 'XrResource:gopro_section' %}">
+                href="{% if user.xr_profile.role == 'admin' %}{% url 'XrResource:gopro_section' %}{% else %}javascript:void(0){% endif %}"
+                {% if user.xr_profile.role != 'admin' %}onclick="alert('您沒有管理權限，無法進入攝影設備管理頁面。')" {% endif %}>
                 <i class="fas fa-camera"></i>
                 <span>攝影設備</span>
             </a>
@@ -261,12 +263,14 @@
                 <span>租借歷史紀錄</span>
             </a>
 
+            {% if user.xr_profile.role == 'admin' %}
             <div class="mt-auto pt-5">
                 <a class="nav-link" href="/admin/">
                     <i class="fas fa-user-shield"></i>
                     <span>後端管理</span>
                 </a>
             </div>
+            {% endif %}
         </nav>
     </div>
 

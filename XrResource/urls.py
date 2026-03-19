@@ -4,7 +4,7 @@ from . import views
 app_name = 'XrResource'
 
 urlpatterns = [
-    path('', views.vr_section, name='dashboard'), # 把原本的根目錄改為 VR 專區，延用名稱以減少模板改動
+    path('', views.rental_register, name='dashboard'), # 取代原本的 vr_section 作為首頁
     path('vr-section/', views.vr_section, name='vr_section'),
     path('gopro-section/', views.gopro_section, name='gopro_section'),
     path('equipment/save/', views.equipment_save, name='equipment_add'),

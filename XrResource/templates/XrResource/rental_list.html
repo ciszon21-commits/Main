@@ -31,7 +31,9 @@
                     <th>租借人 / 部門</th>
                     <th>租借期間</th>
                     <th>租借設備明細</th>
+                    {% if user.xr_profile.role == 'admin' %}
                     <th class="text-center">操作</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -73,6 +75,7 @@
                             {% endfor %}
                         </div>
                     </td>
+                    {% if user.xr_profile.role == 'admin' %}
                     <td class="text-center">
                         {% if rental.status == 'pending' %}
                         <div class="d-flex justify-content-center gap-2">
@@ -114,10 +117,16 @@
                         </div>
                         {% endif %}
                     </td>
+                    {% endif %}
                 </tr>
                 {% empty %}
+                {% if user.xr_profile.role == 'admin' %}
                 <tr>
                     <td colspan="6" class="text-center py-5">
+                        {% else %}
+                <tr>
+                    <td colspan="5" class="text-center py-5">
+                        {% endif %}
                         <div class="text-muted">
                             <i class="fas fa-folder-open fa-3x mb-3 opacity-20"></i>
                             <p>目前尚無租借紀錄</p>

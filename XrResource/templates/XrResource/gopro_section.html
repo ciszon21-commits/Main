@@ -7,7 +7,7 @@
     <h2 class="fw-bold"><i class="fas fa-camera me-2"></i>攝影設備</h2>
     <div class="d-flex gap-2">
         <button class="btn btn-premium btn-sm" data-bs-toggle="modal" data-bs-target="#equipmentModal"
-            onclick="setModal('add', 'gopro', '')">
+            onclick="{% if user.xr_profile.role == 'admin' %}setModal('add', 'gopro', ''){% else %}alert('您沒有管理權限，無法執行此操作。'){% endif %}">
             <i class="fas fa-plus me-1"></i>快捷新增
         </button>
         <nav aria-label="breadcrumb">
@@ -42,7 +42,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0 text-primary fw-bold"><i class="fas fa-video me-2"></i>主機</h4>
         <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#equipmentModal"
-            onclick="setModal('add', 'gopro', '主機')">
+            onclick="{% if user.xr_profile.role == 'admin' %}setModal('add', 'gopro', '主機'){% else %}alert('您沒有管理權限，無法執行此操作。'){% endif %}">
             <i class="fas fa-plus"></i>增加主機
         </button>
     </div>
@@ -75,7 +75,7 @@
                         <div class="btn-group">
                             <button class="btn btn-sm btn-link text-primary" data-bs-toggle="modal"
                                 data-bs-target="#equipmentModal"
-                                onclick="setModal('edit', 'gopro', '主機', '{{ item.pk }}', '{{ item.name|escapejs }}', '{{ item.serial_number|escapejs }}', '{{ item.specifications|escapejs }}', '{{ item.note|escapejs }}', '{{ item.category.pk }}')">
+                                onclick="{% if user.xr_profile.role == 'admin' %}setModal('edit', 'gopro', '主機', '{{ item.pk }}', '{{ item.name|escapejs }}', '{{ item.serial_number|escapejs }}', '{{ item.specifications|escapejs }}', '{{ item.note|escapejs }}', '{{ item.category.pk }}'){% else %}alert('您沒有管理權限，無法進行編輯。'){% endif %}">
                                 <i class="fas fa-edit"></i>
                             </button>
                             <a href="{% url 'XrResource:delete_item' 'equipment' item.pk %}"
@@ -100,7 +100,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0 text-secondary fw-bold"><i class="fas fa-plug me-2"></i>其他各項配件 (電池/記憶卡/周邊)</h4>
         <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkModal"
-            onclick="setBulkModal('add', 'gopro', '')">
+            onclick="{% if user.xr_profile.role == 'admin' %}setBulkModal('add', 'gopro', ''){% else %}alert('您沒有管理權限，無法執行此操作。'){% endif %}">
             <i class="fas fa-plus"></i>增加配件項目
         </button>
     </div>
@@ -137,7 +137,7 @@
                         <div class="btn-group">
                             <button class="btn btn-sm btn-link text-primary" data-bs-toggle="modal"
                                 data-bs-target="#bulkModal"
-                                onclick="setBulkModal('edit', 'gopro', '{{ item.name|escapejs }}', '{{ item.pk }}', '{{ item.total_count }}', '{{ item.available_count }}', '{{ item.note|escapejs }}')">
+                                onclick="{% if user.xr_profile.role == 'admin' %}setBulkModal('edit', 'gopro', '{{ item.name|escapejs }}', '{{ item.pk }}', '{{ item.total_count }}', '{{ item.available_count }}', '{{ item.note|escapejs }}'){% else %}alert('您沒有管理權限，無法進行編輯。'){% endif %}">
                                 <i class="fas fa-edit"></i>
                             </button>
                             <a href="{% url 'XrResource:delete_item' 'bulk' item.pk %}"

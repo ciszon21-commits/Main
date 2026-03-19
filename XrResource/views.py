@@ -1,9 +1,28 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.db import models, transaction
-from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, XrBulkItem, XrRentalRecord, XrRentalBulkItem
+from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, XrBulkItem, XrRentalRecord, XrRentalBulkItem, XrUserProfile
 from .forms import EquipmentCategoryForm, XrEquipmentForm, XrSupportRecordForm, GoProRentalRecordForm, XrBulkItemForm, XrRentalRecordForm
+from django.contrib.auth.decorators import login_required
+from functools import wraps
+from django.core.exceptions import PermissionDenied
 
+def admin_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('login')
+        if hasattr(request.user, 'xr_profile') and request.user.xr_profile.role == 'admin':
+            return view_func(request, *args, **kwargs)
+        messages.warning(request, '您沒有權限執行此操作或進入此頁面。')
+        referer = request.META.get('HTTP_REFERER')
+        if referer:
+            return redirect(referer)
+        return redirect('XrResource:vr_section')
+    return _wrapped_view
+
+@login_required
+@admin_required
 def vr_section(request):
     """VR 設備專區 (統一模型版)"""
     selected_statuses = request.GET.getlist('status')
@@ -32,6 +51,8 @@ def vr_section(request):
     }
     return render(request, 'XrResource/vr_section.html', context)
 
+@login_required
+@admin_required
 def gopro_section(request):
     """GoPro 專區 (統一模型版)"""
     selected_statuses = request.GET.getlist('status')
@@ -42,7 +63,6 @@ def gopro_section(request):
     
     # 數量統計項目 (所有周邊配件整合)
     gp_bulk_items = XrBulkItem.objects.filter(section='gopro')
-    
     context = {
         'gp_hosts': gp_items.filter(models.Q(name__icontains='主機') | models.Q(category__name__icontains='主機')),
         'gp_bulk_items': gp_bulk_items,
@@ -54,6 +74,8 @@ def gopro_section(request):
     }
     return render(request, 'XrResource/gopro_section.html', context)
 
+@login_required
+@admin_required
 def equipment_save(request, pk=None):
     """新增或編輯設備"""
     if pk:
@@ -71,6 +93,8 @@ def equipment_save(request, pk=None):
     
     return redirect(request.META.get('HTTP_REFERER', 'XrResource:vr_section'))
 
+@login_required
+@admin_required
 def bulk_item_save(request, pk=None):
     """新增或編輯數量統計項目"""
     if pk:
@@ -88,6 +112,8 @@ def bulk_item_save(request, pk=None):
     
     return redirect(request.META.get('HTTP_REFERER', 'XrResource:gopro_section'))
 
+@login_required
+@admin_required
 def delete_item(request, model_name, pk):
     """刪除物件"""
     models_map = {
@@ -104,6 +130,7 @@ def delete_item(request, model_name, pk):
         messages.success(request, '刪除成功')
     return redirect(request.META.get('HTTP_REFERER', 'XrResource:dashboard'))
 
+@login_required
 def rental_register(request):
     """租借設備登記頁面"""
     if request.method == 'POST':
@@ -149,6 +176,7 @@ def rental_register(request):
         'bulk_item_choices': XrBulkItem.objects.filter(available_count__gt=0),
     })
 
+@login_required
 def rental_list(request):
     """租借歷史紀錄列表"""
     rentals = XrRentalRecord.objects.all().prefetch_related('equipments', 'xrrentalbulkitem_set__bulk_item')
@@ -156,6 +184,8 @@ def rental_list(request):
         'rentals': rentals,
     })
 
+@login_required
+@admin_required
 def rental_approve(request, pk):
     """核准租借申請"""
     rental = get_object_or_404(XrRentalRecord, pk=pk)
@@ -183,6 +213,8 @@ def rental_approve(request, pk):
     messages.success(request, f'已核准 {rental.activity_name} 的租借，庫存已扣除。')
     return redirect('XrResource:rental_list')
 
+@login_required
+@admin_required
 def rental_reject(request, pk):
     """拒絕租借申請"""
     rental = get_object_or_404(XrRentalRecord, pk=pk)
@@ -209,6 +241,8 @@ def rental_reject(request, pk):
     messages.info(request, f'已拒絕 {rental.activity_name} 的租借，預約狀態已解除。')
     return redirect('XrResource:rental_list')
 
+@login_required
+@admin_required
 def rental_reset(request, pk):
     """將已核准或已拒絕的申請重設為待核准"""
     rental = get_object_or_404(XrRentalRecord, pk=pk)
@@ -241,6 +275,8 @@ def rental_reset(request, pk):
     messages.info(request, f'已將 {rental.activity_name} 的狀態重設為待核准，庫存狀態已同步預約。')
     return redirect('XrResource:rental_list')
 
+@login_required
+@admin_required
 def rental_return(request, pk):
     """處理設備歸還確認頁面與邏輯"""
     rental = get_object_or_404(XrRentalRecord, pk=pk)

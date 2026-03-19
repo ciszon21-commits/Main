@@ -1,5 +1,8 @@
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class EquipmentCategory(models.Model):
     name = models.CharField('種類名稱', max_length=50, unique=True)
@@ -151,3 +154,30 @@ class XrRentalBulkItem(models.Model):
     def __str__(self):
         status = "(已歸還)" if self.is_returned else ""
         return f"{self.bulk_item.name} x {self.count} {status}"
+
+class XrUserProfile(models.Model):
+    ROLE_CHOICES = [
+        ('admin', '管理權限'),
+        ('user', '一般使用者'),
+    ]
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='xr_profile')
+    role = models.CharField('權限角色', max_length=20, choices=ROLE_CHOICES, default='user')
+
+    class Meta:
+        verbose_name = '使用者權限設定'
+        verbose_name_plural = '使用者權限管理'
+
+    def __str__(self):
+        return f"{self.user.username} - {self.get_role_display()}"
+
+# Signals 確保每個 User 都有 Profile
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        XrUserProfile.objects.create(user=instance)
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    if not hasattr(instance, 'xr_profile'):
+        XrUserProfile.objects.create(user=instance)
+    instance.xr_profile.save()

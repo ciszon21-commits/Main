@@ -7,7 +7,7 @@
     <h2 class="fw-bold"><i class="fas fa-vr-cardboard me-2"></i>VR 設備</h2>
     <div class="d-flex gap-2">
         <button class="btn btn-premium btn-sm" data-bs-toggle="modal" data-bs-target="#equipmentModal"
-            onclick="setModal('add', 'vr', '')">
+            onclick="{% if user.xr_profile.role == 'admin' %}setModal('add', 'vr', ''){% else %}alert('您沒有管理權限，無法執行此操作。'){% endif %}">
             <i class="fas fa-plus me-1"></i>快捷新增
         </button>
         <nav aria-label="breadcrumb">
@@ -42,7 +42,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0 text-primary fw-bold"><i class="fas fa-desktop me-2"></i>電腦</h4>
         <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#equipmentModal"
-            onclick="setModal('add', 'vr', '電腦')">
+            onclick="{% if user.xr_profile.role == 'admin' %}setModal('add', 'vr', '電腦'){% else %}alert('您沒有管理權限，無法執行此操作。'){% endif %}">
             <i class="fas fa-plus"></i>
         </button>
     </div>
@@ -75,7 +75,7 @@
                         <div class="btn-group">
                             <button class="btn btn-sm btn-link text-primary" data-bs-toggle="modal"
                                 data-bs-target="#equipmentModal"
-                                onclick="setModal('edit', 'vr', '電腦', '{{ item.pk }}', '{{ item.name|escapejs }}', '{{ item.serial_number|escapejs }}', '{{ item.specifications|escapejs }}', '{{ item.note|escapejs }}', '{{ item.category.pk }}')">
+                                onclick="{% if user.xr_profile.role == 'admin' %}setModal('edit', 'vr', '電腦', '{{ item.pk }}', '{{ item.name|escapejs }}', '{{ item.serial_number|escapejs }}', '{{ item.specifications|escapejs }}', '{{ item.note|escapejs }}', '{{ item.category.pk }}'){% else %}alert('您沒有管理權限，無法進行編輯。'){% endif %}">
                                 <i class="fas fa-edit"></i>
                             </button>
                             <a href="{% url 'XrResource:delete_item' 'equipment' item.pk %}"
@@ -100,7 +100,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0 text-warning fw-bold"><i class="fas fa-headset me-2"></i>頭盔</h4>
         <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#equipmentModal"
-            onclick="setModal('add', 'vr', '頭盔')">
+            onclick="{% if user.xr_profile.role == 'admin' %}setModal('add', 'vr', '頭盔'){% else %}alert('您沒有管理權限，無法執行此操作。'){% endif %}">
             <i class="fas fa-plus"></i>
         </button>
     </div>
@@ -133,7 +133,7 @@
                         <div class="btn-group">
                             <button class="btn btn-sm btn-link text-primary" data-bs-toggle="modal"
                                 data-bs-target="#equipmentModal"
-                                onclick="setModal('edit', 'vr', '頭盔', '{{ item.pk }}', '{{ item.name|escapejs }}', '{{ item.serial_number|escapejs }}', '{{ item.specifications|escapejs }}', '{{ item.note|escapejs }}', '{{ item.category.pk }}')">
+                                onclick="{% if user.xr_profile.role == 'admin' %}setModal('edit', 'vr', '頭盔', '{{ item.pk }}', '{{ item.name|escapejs }}', '{{ item.serial_number|escapejs }}', '{{ item.specifications|escapejs }}', '{{ item.note|escapejs }}', '{{ item.category.pk }}'){% else %}alert('您沒有管理權限，無法進行編輯。'){% endif %}">
                                 <i class="fas fa-edit"></i>
                             </button>
                             <a href="{% url 'XrResource:delete_item' 'equipment' item.pk %}"
@@ -158,7 +158,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0 text-dark fw-bold"><i class="fas fa-box me-2"></i>其他</h4>
         <button class="btn btn-outline-dark btn-sm" data-bs-toggle="modal" data-bs-target="#equipmentModal"
-            onclick="setModal('add', 'vr', '其他配件')">
+            onclick="{% if user.xr_profile.role == 'admin' %}setModal('add', 'vr', '其他配件'){% else %}alert('您沒有管理權限，無法執行此操作。'){% endif %}">
             <i class="fas fa-plus"></i>
         </button>
     </div>
@@ -191,7 +191,7 @@
                         <div class="btn-group">
                             <button class="btn btn-sm btn-link text-primary" data-bs-toggle="modal"
                                 data-bs-target="#equipmentModal"
-                                onclick="setModal('edit', 'vr', '其他配件', '{{ item.pk }}', '{{ item.name|escapejs }}', '{{ item.serial_number|escapejs }}', '{{ item.specifications|escapejs }}', '{{ item.note|escapejs }}', '{{ item.category.pk }}')">
+                                onclick="{% if user.xr_profile.role == 'admin' %}setModal('edit', 'vr', '其他配件', '{{ item.pk }}', '{{ item.name|escapejs }}', '{{ item.serial_number|escapejs }}', '{{ item.specifications|escapejs }}', '{{ item.note|escapejs }}', '{{ item.category.pk }}'){% else %}alert('您沒有管理權限，無法進行編輯。'){% endif %}">
                                 <i class="fas fa-edit"></i>
                             </button>
                             <a href="{% url 'XrResource:delete_item' 'equipment' item.pk %}"
@@ -216,7 +216,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0 text-secondary fw-bold"><i class="fas fa-plug me-2"></i>配件庫存 (耗材/周邊)</h4>
         <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkModal"
-            onclick="setBulkModal('add', 'vr', '')">
+            onclick="{% if user.xr_profile.role == 'admin' %}setBulkModal('add', 'vr', ''){% else %}alert('您沒有管理權限，無法執行此操作。'){% endif %}">
             <i class="fas fa-plus"></i>增加配件項目
         </button>
     </div>
@@ -253,7 +253,7 @@
                         <div class="btn-group">
                             <button class="btn btn-sm btn-link text-primary" data-bs-toggle="modal"
                                 data-bs-target="#bulkModal"
-                                onclick="setBulkModal('edit', 'vr', '{{ item.name|escapejs }}', '{{ item.pk }}', '{{ item.total_count }}', '{{ item.available_count }}', '{{ item.note|escapejs }}')">
+                                onclick="{% if user.xr_profile.role == 'admin' %}setBulkModal('edit', 'vr', '{{ item.name|escapejs }}', '{{ item.pk }}', '{{ item.total_count }}', '{{ item.available_count }}', '{{ item.note|escapejs }}'){% else %}alert('您沒有管理權限，無法進行編輯。'){% endif %}">
                                 <i class="fas fa-edit"></i>
                             </button>
                             <a href="{% url 'XrResource:delete_item' 'bulk' item.pk %}"
