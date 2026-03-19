@@ -1,5 +1,10 @@
 from django.contrib import admin
-from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, XrBulkItem, XrRentalRecord, XrUserProfile
+from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, XrBulkItem, XrRentalRecord, XrUserProfile, RentalNature
+
+@admin.register(RentalNature)
+class RentalNatureAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
 
 @admin.register(EquipmentCategory)
 class EquipmentCategoryAdmin(admin.ModelAdmin):
@@ -32,8 +37,8 @@ class XrBulkItemAdmin(admin.ModelAdmin):
 
 @admin.register(XrRentalRecord)
 class XrRentalRecordAdmin(admin.ModelAdmin):
-    list_display = ('activity_name', 'borrower_name', 'activity_date', 'status', 'created_at')
-    list_filter = ('status', 'activity_date')
+    list_display = ('activity_name', 'nature', 'borrower_name', 'activity_date', 'status', 'created_at')
+    list_filter = ('status', 'nature', 'activity_date')
     search_fields = ('activity_name', 'borrower_name', 'borrower_id')
     filter_horizontal = ('equipments',)
 
