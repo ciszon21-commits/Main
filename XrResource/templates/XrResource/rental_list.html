@@ -32,7 +32,7 @@
                     <th>租借期間</th>
                     <th>租借設備明細</th>
                     {% if user.xr_profile.role == 'admin' %}
-                    <th class="text-center">操作</th>
+                    <th class="text-center" style="width: 1%; white-space: nowrap;">操作</th>
                     {% endif %}
                 </tr>
             </thead>
@@ -70,7 +70,7 @@
                             {% for eq in rental.equipments.all %}
                             <span
                                 class="badge {% if eq.status == 'available' %}bg-success-soft text-success border-success{% elif eq.status == 'rented' %}bg-danger-soft text-danger border-danger{% else %}bg-warning-soft text-warning border-warning{% endif %} me-1 mb-1 border border-opacity-10">
-                                <i class="fas fa-microchip me-1"></i>{{ eq.name }}
+                                <i class="fas fa-microchip me-1"></i>{{ eq.name }}{% if eq.serial_number %}_{{ eq.serial_number }}{% endif %}
                             </span>
                             {% endfor %}
                             {% for b_item in rental.xrrentalbulkitem_set.all %}
@@ -87,7 +87,7 @@
                         {% endif %}
                     </td>
                     {% if user.xr_profile.role == 'admin' %}
-                    <td class="text-center">
+                    <td class="text-center" style="white-space: nowrap;">
                         {% if rental.status == 'pending' %}
                         <div class="d-flex justify-content-center gap-2">
                             <a href="{% url 'XrResource:rental_edit' rental.pk %}"
