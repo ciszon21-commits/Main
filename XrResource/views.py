@@ -34,14 +34,11 @@ def vr_section(request):
     # 數量統計項目 (配件)
     vr_bulk_items = XrBulkItem.objects.filter(section='vr')
     
-    # 分類指取
+    # 分類指取 (僅依據類別名稱)
     context = {
-        'vr_computers': vr_items.filter(models.Q(name__icontains='電腦') | models.Q(category__name__icontains='電腦')),
-        'vr_headsets': vr_items.filter(models.Q(name__icontains='頭盔') | models.Q(category__name__icontains='頭盔')),
-        'vr_others': vr_items.exclude(
-            models.Q(name__icontains='電腦') | models.Q(category__name__icontains='電腦') |
-            models.Q(name__icontains='頭盔') | models.Q(category__name__icontains='頭盔')
-        ),
+        'vr_computers': vr_items.filter(category__name='電腦'),
+        'vr_headsets': vr_items.filter(category__name='頭盔'),
+        'vr_others': vr_items.exclude(category__name__in=['電腦', '頭盔']),
         'vr_bulk_items': vr_bulk_items,
         'categories': EquipmentCategory.objects.all(),
         'eq_form': XrEquipmentForm(),
@@ -64,7 +61,7 @@ def gopro_section(request):
     # 數量統計項目 (所有周邊配件整合)
     gp_bulk_items = XrBulkItem.objects.filter(section='gopro')
     context = {
-        'gp_hosts': gp_items.filter(models.Q(name__icontains='主機') | models.Q(category__name__icontains='主機')),
+        'gp_hosts': gp_items.filter(category__name='主機'),
         'gp_bulk_items': gp_bulk_items,
         'categories': EquipmentCategory.objects.all(),
         'eq_form': XrEquipmentForm(),
