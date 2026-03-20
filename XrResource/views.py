@@ -34,14 +34,11 @@ def vr_section(request):
     # 數量統計項目 (配件)
     vr_bulk_items = XrBulkItem.objects.filter(section='vr')
     
-    # 分類指取
+    # 分類指取 (僅依據類別名稱)
     context = {
-        'vr_computers': vr_items.filter(models.Q(name__icontains='電腦') | models.Q(category__name__icontains='電腦')),
-        'vr_headsets': vr_items.filter(models.Q(name__icontains='頭盔') | models.Q(category__name__icontains='頭盔')),
-        'vr_others': vr_items.exclude(
-            models.Q(name__icontains='電腦') | models.Q(category__name__icontains='電腦') |
-            models.Q(name__icontains='頭盔') | models.Q(category__name__icontains='頭盔')
-        ),
+        'vr_computers': vr_items.filter(category__name='電腦'),
+        'vr_headsets': vr_items.filter(category__name='頭盔'),
+        'vr_others': vr_items.exclude(category__name__in=['電腦', '頭盔']),
         'vr_bulk_items': vr_bulk_items,
         'categories': EquipmentCategory.objects.all(),
         'eq_form': XrEquipmentForm(),
@@ -64,7 +61,7 @@ def gopro_section(request):
     # 數量統計項目 (所有周邊配件整合)
     gp_bulk_items = XrBulkItem.objects.filter(section='gopro')
     context = {
-        'gp_hosts': gp_items.filter(models.Q(name__icontains='主機') | models.Q(category__name__icontains='主機')),
+        'gp_hosts': gp_items.filter(category__name='主機'),
         'gp_bulk_items': gp_bulk_items,
         'categories': EquipmentCategory.objects.all(),
         'eq_form': XrEquipmentForm(),
@@ -137,10 +134,13 @@ def rental_register(request, pk=None):
     if pk:
         rental = get_object_or_404(XrRentalRecord, pk=pk)
         # 僅限管理員編輯，或使用者編輯自己的待核准單據 (目前依要求主要供管理員調整)
-        if not (request.user.xr_profile.role == 'admin' or rental.borrower_id == request.user.username):
+        is_admin = request.user.xr_profile.role == 'admin'
+        if not (is_admin or rental.borrower_id == request.user.username):
             messages.error(request, '您沒有權限編輯此申請。')
             return redirect('XrResource:rental_list')
-        if rental.status != 'pending':
+        
+        # 僅管理員可以編輯非「待核准」狀態的紀錄
+        if not is_admin and rental.status != 'pending':
             messages.warning(request, '僅能修改「待核准」狀態的申請紀錄。')
             return redirect('XrResource:rental_list')
 
@@ -149,12 +149,13 @@ def rental_register(request, pk=None):
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    # 如果是編輯模式，先「還原」之前的預約狀態
-                    if rental:
+                    # 如果是編輯模式，且原本是「待核准」才需要進行庫存還原邏輯
+                    # 對於「已歸還」等歷史資料，編輯時我們不自動變動庫存狀態
+                    is_pending = rental and rental.status == 'pending'
+                    if is_pending:
                         # 1. 恢復主機設備為可用
                         for eq in rental.equipments.all():
-                            eq.status = 'available'
-                            eq.save()
+                            eq.update_status(exclude_ids=[rental.id])
                         # 2. 恢復配件預約數
                         for r_bulk in rental.xrrentalbulkitem_set.all():
                             bulk_item = r_bulk.bulk_item
@@ -163,16 +164,17 @@ def rental_register(request, pk=None):
                         # 刪除舊的配件關聯
                         rental.xrrentalbulkitem_set.all().delete()
 
-                    # 儲存主要單據 (instance=rental 會更新現有資料)
+                    # 儲存主要單據
                     rental_record = form.save()
                     
-                    # 重新套用新的預約邏輯
-                    # 1. 主機設備改為預約中
-                    for equipment in rental_record.equipments.all():
-                        equipment.status = 'reserved'
-                        equipment.save()
+                    # 只有在「待核准」或「新申請」時，才套用預約邏輯
+                    # 歷史資料 (returned) 編輯不更動庫存狀態
+                    if not rental or rental.status == 'pending':
+                        # 1. 主機設備改為預約中
+                        for equipment in rental_record.equipments.all():
+                            equipment.update_status()
 
-                    # 2. 處理配件待扣數量
+                    # 2. 處理配件待扣數量 (不論是否 pending 都要建立關聯，但只有 pending 會加 reserved_count)
                     bulk_ids = request.POST.getlist('bulk_item_ids[]')
                     bulk_counts = request.POST.getlist('bulk_item_counts[]')
                     
@@ -181,15 +183,17 @@ def rental_register(request, pk=None):
                             count = int(b_count)
                             bulk_item = XrBulkItem.objects.select_for_update().get(id=b_id)
                             
-                            # 增加新的待扣數量
-                            bulk_item.reserved_count += count
-                            bulk_item.save()
+                            if not rental or rental.status == 'pending':
+                                # 增加新的待扣數量
+                                bulk_item.reserved_count += count
+                                bulk_item.save()
 
                             # 重新建立關連
                             XrRentalBulkItem.objects.create(
                                 rental_record=rental_record,
                                 bulk_item=bulk_item,
-                                count=count
+                                count=count,
+                                is_returned=(rental and rental.status == 'returned') # 歷史資料預設設為已歸還
                             )
                 
                 msg = '租借申請已更新！' if rental else '租借申請已送出！'
@@ -238,8 +242,7 @@ def rental_approve(request, pk):
 
         # 2. 將主機轉為已出借
         for eq in rental.equipments.all():
-            eq.status = 'rented'
-            eq.save()
+            eq.update_status()
 
         # 3. 正式從庫存扣除配件數量 & 清空待扣
         for r_bulk in rental.xrrentalbulkitem_set.all():
@@ -267,8 +270,7 @@ def rental_reject(request, pk):
 
         # 2. 回復主機狀態為庫存
         for eq in rental.equipments.all():
-            eq.status = 'available'
-            eq.save()
+            eq.update_status()
 
         # 3. 回復配件待扣數
         for r_bulk in rental.xrrentalbulkitem_set.all():
@@ -293,8 +295,7 @@ def rental_reset(request, pk):
         with transaction.atomic():
             # 1. 恢復主機狀態為預約中
             for eq in rental.equipments.all():
-                eq.status = 'reserved'
-                eq.save()
+                eq.update_status()
 
             # 2. 恢復配件數據
             for r_bulk in rental.xrrentalbulkitem_set.all():
@@ -339,9 +340,7 @@ def reset_rental_return(request, pk):
         with transaction.atomic():
             # 1. 將所有關連的主機設回「借用中」
             for eq in rental.equipments.all():
-                if eq.status == 'available':  # 表示之前已歸還
-                    eq.status = 'rented'
-                    eq.save()
+                eq.update_status()
 
             # 2. 將所有配件設回「未歸還」，並扣除庫存
             for r_bulk in rental.xrrentalbulkitem_set.all():
@@ -385,8 +384,8 @@ def rental_return(request, pk):
             for eq_id in returned_equipment_ids:
                 equipment = rental.equipments.get(id=eq_id)
                 if equipment.status == 'rented':
-                    equipment.status = 'available'
-                    equipment.save()
+                    # 歸還後檢查是否有其他單子預約/出借，排除當前這張單
+                    equipment.update_status(exclude_ids=[rental.id])
             
             # 2. 處理配件歸還
             for rb_id in returned_bulk_item_ids:
