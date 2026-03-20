@@ -29,10 +29,10 @@
                     <th>申請狀態</th>
                     <th>活動名稱 / 日期</th>
                     <th>租借人 / 部門</th>
-                    <th>租借期間</th>
+                    <th style="white-space: nowrap;">租借期間</th>
                     <th>租借設備明細</th>
                     {% if user.xr_profile.role == 'admin' %}
-                    <th class="text-center">操作</th>
+                    <th class="text-center" style="width: 1%; white-space: nowrap;">操作</th>
                     {% endif %}
                 </tr>
             </thead>
@@ -60,7 +60,7 @@
                         <div class="fw-bold">{{ rental.borrower_name }} <small class="text-muted">({{ rental.borrower_id }})</small></div>
                         <div class="text-muted small">{{ rental.department }}</div>
                     </td>
-                    <td>
+                    <td style="white-space: nowrap;">
                         <div class="btn btn-sm btn-light border-0 py-0 px-2" style="font-size: 0.75rem;">
                             {{ rental.rental_start|date:"m/d" }} - {{ rental.rental_end|date:"m/d" }}
                         </div>
@@ -69,13 +69,13 @@
                         <div class="small">
                             {% for eq in rental.equipments.all %}
                             <span
-                                class="badge {% if eq.status == 'available' %}bg-success-soft text-success border-success{% elif eq.status == 'rented' %}bg-danger-soft text-danger border-danger{% else %}bg-warning-soft text-warning border-warning{% endif %} me-1 mb-1 border border-opacity-10">
-                                <i class="fas fa-microchip me-1"></i>{{ eq.name }}
+                                class="badge {% if eq.status == 'available' %}bg-success{% elif eq.status == 'reserved' %}bg-warning text-dark{% elif eq.status == 'rented' %}bg-danger{% elif eq.status == 'maintenance' %}bg-secondary{% elif eq.status == 'retired' %}bg-dark{% else %}bg-secondary{% endif %} me-1 mb-1">
+                                <i class="fas fa-microchip me-1"></i>{{ eq.name }}{% if eq.serial_number %}_{{ eq.serial_number }}{% endif %}
                             </span>
                             {% endfor %}
                             {% for b_item in rental.xrrentalbulkitem_set.all %}
                             <span
-                                class="badge {% if b_item.is_returned %}bg-success-soft text-success border-success{% elif rental.status == 'approved' %}bg-danger-soft text-danger border-danger{% else %}bg-warning-soft text-warning border-warning{% endif %} me-1 mb-1 border border-opacity-10">
+                                class="badge {% if b_item.is_returned %}bg-success{% elif rental.status == 'approved' %}bg-danger{% else %}bg-warning text-dark{% endif %} me-1 mb-1">
                                 <i class="fas fa-box me-1"></i>{{ b_item.bulk_item.name }} x {{ b_item.count }}
                             </span>
                             {% endfor %}
@@ -87,7 +87,7 @@
                         {% endif %}
                     </td>
                     {% if user.xr_profile.role == 'admin' %}
-                    <td class="text-center">
+                    <td class="text-center" style="white-space: nowrap;">
                         {% if rental.status == 'pending' %}
                         <div class="d-flex justify-content-center gap-2">
                             <a href="{% url 'XrResource:rental_edit' rental.pk %}"
@@ -107,6 +107,10 @@
                         </div>
                         {% elif rental.status == 'approved' %}
                         <div class="d-flex justify-content-center gap-2">
+                            <a href="{% url 'XrResource:rental_edit' rental.pk %}"
+                                class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" title="編輯申請內容">
+                                <i class="fas fa-edit me-1"></i>編輯
+                            </a>
                             <a href="{% url 'XrResource:rental_return' rental.pk %}"
                                 class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" title="點擊進行歸還點交">
                                 <i class="fas fa-undo-alt me-1"></i>歸還點交
@@ -119,13 +123,17 @@
                         </div>
                         {% else %}
                         <div class="d-flex justify-content-center gap-2">
+                            <a href="{% url 'XrResource:rental_edit' rental.pk %}"
+                                class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" title="編輯內容">
+                                <i class="fas fa-edit me-1"></i>編輯
+                            </a>
                             <a href="{% url 'XrResource:rental_reset' rental.pk %}"
-                                class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm" title="重設回待核准狀態"
+                                class="btn btn-sm btn-outline-secondary rounded-pill px-2 shadow-sm" title="重設回待核准狀態"
                                 onclick="return confirm('確定要重設為「待核准」嗎？')">
-                                <i class="fas fa-redo me-1"></i>
+                                <i class="fas fa-redo"></i>
                             </a>
                             <a href="{% url 'XrResource:delete_item' 'rental' rental.pk %}"
-                                class="btn btn-sm btn-link text-danger" title="刪除紀錄"
+                                class="btn btn-sm btn-link text-danger p-0" title="刪除紀錄"
                                 onclick="return confirm('確定要刪除紀錄嗎？')">
                                 <i class="fas fa-trash"></i>
                             </a>
