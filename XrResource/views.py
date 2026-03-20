@@ -155,8 +155,7 @@ def rental_register(request, pk=None):
                     if is_pending:
                         # 1. 恢復主機設備為可用
                         for eq in rental.equipments.all():
-                            eq.status = 'available'
-                            eq.save()
+                            eq.update_status(exclude_ids=[rental.id])
                         # 2. 恢復配件預約數
                         for r_bulk in rental.xrrentalbulkitem_set.all():
                             bulk_item = r_bulk.bulk_item
@@ -173,8 +172,7 @@ def rental_register(request, pk=None):
                     if not rental or rental.status == 'pending':
                         # 1. 主機設備改為預約中
                         for equipment in rental_record.equipments.all():
-                            equipment.status = 'reserved'
-                            equipment.save()
+                            equipment.update_status()
 
                     # 2. 處理配件待扣數量 (不論是否 pending 都要建立關聯，但只有 pending 會加 reserved_count)
                     bulk_ids = request.POST.getlist('bulk_item_ids[]')
@@ -244,8 +242,7 @@ def rental_approve(request, pk):
 
         # 2. 將主機轉為已出借
         for eq in rental.equipments.all():
-            eq.status = 'rented'
-            eq.save()
+            eq.update_status()
 
         # 3. 正式從庫存扣除配件數量 & 清空待扣
         for r_bulk in rental.xrrentalbulkitem_set.all():
@@ -273,8 +270,7 @@ def rental_reject(request, pk):
 
         # 2. 回復主機狀態為庫存
         for eq in rental.equipments.all():
-            eq.status = 'available'
-            eq.save()
+            eq.update_status()
 
         # 3. 回復配件待扣數
         for r_bulk in rental.xrrentalbulkitem_set.all():
@@ -299,8 +295,7 @@ def rental_reset(request, pk):
         with transaction.atomic():
             # 1. 恢復主機狀態為預約中
             for eq in rental.equipments.all():
-                eq.status = 'reserved'
-                eq.save()
+                eq.update_status()
 
             # 2. 恢復配件數據
             for r_bulk in rental.xrrentalbulkitem_set.all():
@@ -345,9 +340,7 @@ def reset_rental_return(request, pk):
         with transaction.atomic():
             # 1. 將所有關連的主機設回「借用中」
             for eq in rental.equipments.all():
-                if eq.status == 'available':  # 表示之前已歸還
-                    eq.status = 'rented'
-                    eq.save()
+                eq.update_status()
 
             # 2. 將所有配件設回「未歸還」，並扣除庫存
             for r_bulk in rental.xrrentalbulkitem_set.all():
@@ -391,8 +384,8 @@ def rental_return(request, pk):
             for eq_id in returned_equipment_ids:
                 equipment = rental.equipments.get(id=eq_id)
                 if equipment.status == 'rented':
-                    equipment.status = 'available'
-                    equipment.save()
+                    # 歸還後檢查是否有其他單子預約/出借，排除當前這張單
+                    equipment.update_status(exclude_ids=[rental.id])
             
             # 2. 處理配件歸還
             for rb_id in returned_bulk_item_ids:
