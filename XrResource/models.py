@@ -45,6 +45,33 @@ class XrEquipment(models.Model):
     specifications = models.TextField('設備規格', blank=True)
     note = models.TextField('備註', blank=True)
     status = models.CharField('狀態', max_length=20, choices=STATUS_CHOICES, default='available')
+    
+    def update_status(self, exclude_ids=None):
+        """
+        根據關連的租借申請自動更新設備狀態。
+        優先級：出借 (rented) > 預約 (reserved) > 庫存 (available)
+        維修 (maintenance) 與 退役 (retired) 為手動狀態，不自動變動。
+        
+        :param exclude_ids: 排除在計算之外的 XrRentalRecord ID 列表 (常用於正在處理中的歸還/轉移)
+        """
+        if self.status in ['maintenance', 'retired']:
+            return
+
+        rentals = self.xrrentalrecord_set.all()
+        if exclude_ids:
+            rentals = rentals.exclude(id__in=exclude_ids)
+
+        # 核心檢查：是否有其他活躍的單據
+        if rentals.filter(status='approved').exists():
+            new_status = 'rented'
+        elif rentals.filter(status='pending').exists():
+            new_status = 'reserved'
+        else:
+            new_status = 'available'
+
+        if self.status != new_status:
+            self.status = new_status
+            self.save(update_fields=['status'])
 
     class Meta:
         verbose_name = '資源設備'
