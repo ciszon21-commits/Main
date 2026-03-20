@@ -137,10 +137,13 @@ def rental_register(request, pk=None):
     if pk:
         rental = get_object_or_404(XrRentalRecord, pk=pk)
         # 僅限管理員編輯，或使用者編輯自己的待核准單據 (目前依要求主要供管理員調整)
-        if not (request.user.xr_profile.role == 'admin' or rental.borrower_id == request.user.username):
+        is_admin = request.user.xr_profile.role == 'admin'
+        if not (is_admin or rental.borrower_id == request.user.username):
             messages.error(request, '您沒有權限編輯此申請。')
             return redirect('XrResource:rental_list')
-        if rental.status != 'pending':
+        
+        # 僅管理員可以編輯非「待核准」狀態的紀錄
+        if not is_admin and rental.status != 'pending':
             messages.warning(request, '僅能修改「待核准」狀態的申請紀錄。')
             return redirect('XrResource:rental_list')
 
@@ -149,8 +152,10 @@ def rental_register(request, pk=None):
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    # 如果是編輯模式，先「還原」之前的預約狀態
-                    if rental:
+                    # 如果是編輯模式，且原本是「待核准」才需要進行庫存還原邏輯
+                    # 對於「已歸還」等歷史資料，編輯時我們不自動變動庫存狀態
+                    is_pending = rental and rental.status == 'pending'
+                    if is_pending:
                         # 1. 恢復主機設備為可用
                         for eq in rental.equipments.all():
                             eq.status = 'available'
@@ -163,16 +168,18 @@ def rental_register(request, pk=None):
                         # 刪除舊的配件關聯
                         rental.xrrentalbulkitem_set.all().delete()
 
-                    # 儲存主要單據 (instance=rental 會更新現有資料)
+                    # 儲存主要單據
                     rental_record = form.save()
                     
-                    # 重新套用新的預約邏輯
-                    # 1. 主機設備改為預約中
-                    for equipment in rental_record.equipments.all():
-                        equipment.status = 'reserved'
-                        equipment.save()
+                    # 只有在「待核准」或「新申請」時，才套用預約邏輯
+                    # 歷史資料 (returned) 編輯不更動庫存狀態
+                    if not rental or rental.status == 'pending':
+                        # 1. 主機設備改為預約中
+                        for equipment in rental_record.equipments.all():
+                            equipment.status = 'reserved'
+                            equipment.save()
 
-                    # 2. 處理配件待扣數量
+                    # 2. 處理配件待扣數量 (不論是否 pending 都要建立關聯，但只有 pending 會加 reserved_count)
                     bulk_ids = request.POST.getlist('bulk_item_ids[]')
                     bulk_counts = request.POST.getlist('bulk_item_counts[]')
                     
@@ -181,15 +188,17 @@ def rental_register(request, pk=None):
                             count = int(b_count)
                             bulk_item = XrBulkItem.objects.select_for_update().get(id=b_id)
                             
-                            # 增加新的待扣數量
-                            bulk_item.reserved_count += count
-                            bulk_item.save()
+                            if not rental or rental.status == 'pending':
+                                # 增加新的待扣數量
+                                bulk_item.reserved_count += count
+                                bulk_item.save()
 
                             # 重新建立關連
                             XrRentalBulkItem.objects.create(
                                 rental_record=rental_record,
                                 bulk_item=bulk_item,
-                                count=count
+                                count=count,
+                                is_returned=(rental and rental.status == 'returned') # 歷史資料預設設為已歸還
                             )
                 
                 msg = '租借申請已更新！' if rental else '租借申請已送出！'
