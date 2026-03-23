@@ -48,6 +48,9 @@
 
 {# File name as title #}
 <h3 class="result-title">
+    {% if source.projno %}
+    <span class="result-meta-item" style="background-color: #fff3cd; color: #856404; font-weight: bold; padding: 2px 6px; border-radius: 4px; border: 1px solid #ffeeba;">📋 {{ source.projno }}</span>
+    {% endif %}
     <a href="#" class="result-link" data-index="{{ index }}" data-doc-id="{{ result.id }}" data-title="{{ fsmeta.filename|default:fsmeta.title|default:'未知' }}" data-path="{{ fsmeta.path|to_windows_path|default:'' }}">
         {% if fsmeta.filename %}
             {% if highlight.file %}
@@ -62,6 +65,7 @@
         {% else %}
             (無檔案名稱)
         {% endif %}
+
     </a>
 </h3>
 
@@ -70,8 +74,8 @@
     {% if category and category != '其他' %}
     <span class="result-meta-item category-badge">📂 {{ category }}</span>
     {% endif %}
-    {% if fsmeta.modified %}
-    <span class="result-meta-item">📅 {{ fsmeta.modified }}</span>
+    {% if source.file.last_modified %}
+    <span class="result-meta-item">📅 {{ source.file.last_modified }}</span>
     {% endif %}
     {% if fsmeta.creator %}
     <span class="result-meta-item">👤 {{ fsmeta.creator }}</span>
@@ -79,6 +83,8 @@
     {% if fsmeta.filesize %}
     <span class="result-meta-item">💾 {{ fsmeta.filesize }}</span>
     {% endif %}
+    {{source}}
+
 </div>
 
 {# Content preview if available #}
@@ -146,7 +152,7 @@
     <span class="result-meta-item">👤 {{ source.poster }}</span>
     {% endif %}
     {% if source.projno %}
-    <span class="result-meta-item">📋 {{ source.projno }}</span>
+    <span class="result-meta-item" style="background-color: #fff3cd; color: #856404; font-weight: bold; padding: 2px 6px; border-radius: 4px; border: 1px solid #ffeeba;">📋 計畫編號: {{ source.projno }}</span>
     {% endif %}
     {% if source.projname and not source.projname|is_json_like %}
     <span class="result-meta-item">{{ source.projname|truncatechars:25 }}</span>
