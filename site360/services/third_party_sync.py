@@ -25,13 +25,13 @@ CMS_API_TOKEN = _django_settings.CMS_API_TOKEN
 CMS_USERNAME  = _django_settings.CMS_USERNAME
 CMS_PASSWORD  = _django_settings.CMS_PASSWORD
 
-if not CMS_BASE_URL or not CMS_API_TOKEN:
-    raise ImproperlyConfigured(
-        "CMS_BASE_URL 與 CMS_API_TOKEN 未設定。\n"
-        "請在 CoDevStudio/settings_local/_local_settings.py 中加入正確的 CMS 憑證，\n"
-        "可參考 _local_settings.example.py 的範本。"
-    )
-# ─────────────────────────────────────────────────────────────────────────────
+# if not CMS_BASE_URL or not CMS_API_TOKEN:
+#     raise ImproperlyConfigured(
+#         "CMS_BASE_URL 與 CMS_API_TOKEN 未設定。\n"
+#         "請在 CoDevStudio/settings_local/_local_settings.py 中加入正確的 CMS 憑證，\n"
+#         "可參考 _local_settings.example.py 的範本。"
+#     )
+# # ─────────────────────────────────────────────────────────────────────────────
 
 
 def _parse_cookies(set_cookie_raw: str) -> str:

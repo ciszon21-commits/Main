@@ -386,3 +386,71 @@ def submit_feedback(request, entry_id):
     project_id = entry.comparison_file.project_id
     file_id = entry.comparison_file_id
     return redirect("review_feedback:comparison_detail", project_id=project_id, file_id=file_id)
+
+
+def project_confirmed_report(request, project_id):
+    """第二階段人工審查結果報表與匯出"""
+    project = get_object_or_404(Project, pk=project_id)
+
+    if not request.user.is_authenticated:
+        from django.conf import settings as django_settings
+        login_url = getattr(django_settings, "LOGIN_URL", "/accounts/login/")
+        return redirect(f"{login_url}?next={request.path}")
+    can_access = (
+        request.user.is_superuser or request.user.is_staff
+        or project.admins.filter(pk=request.user.pk).exists()
+        or project.experts.filter(pk=request.user.pk).exists()
+    )
+    if not can_access:
+        messages.error(request, "您沒有存取此專案的權限。")
+        return redirect("review_feedback:project_list")
+
+    entries = (
+        ComparisonEntry.objects
+        .filter(comparison_file__project=project, arbitration_status__in=["confirmed", "no_conflict"])
+        .select_related("comparison_file")
+        .prefetch_related("review_feedbacks__reviewer")
+        .order_by("final_decision_class", "source_page", "char_start_pos")
+    )
+
+    if request.GET.get("export") == "json":
+        export_data = []
+        for entry in entries:
+            latest_fb = entry.latest_feedback
+            fb_data = None
+            if latest_fb:
+                fb_data = {
+                    "is_correct": latest_fb.is_correct,
+                    "correct_classification": latest_fb.correct_classification,
+                    "feedback_reason": latest_fb.feedback_reason,
+                    "additional_description": latest_fb.additional_description,
+                    "reviewer": latest_fb.reviewer.get_full_name() or latest_fb.reviewer.username if latest_fb.reviewer else None,
+                    "reviewed_at": latest_fb.reviewed_at.isoformat() if latest_fb.reviewed_at else None,
+                }
+            
+            export_data.append({
+                "entry_id": entry.pk,
+                "file_name": entry.comparison_file.original_filename,
+                "excerpt_text": entry.excerpt_text,
+                "source_page": entry.source_page,
+                "arbitration_status": entry.arbitration_status,
+                "final_decision_class": entry.final_decision_class,
+                "latest_feedback": fb_data,
+            })
+            
+        response = JsonResponse(export_data, safe=False, json_dumps_params={'ensure_ascii': False, 'indent': 2})
+        response['Content-Disposition'] = f'attachment; filename="project_{project.pk}_review_report.json"'
+        return response
+
+    # 包含最新 feedback 以便 template 直接拿
+    report_entries = []
+    for entry in entries:
+        report_entries.append((entry, entry.latest_feedback))
+
+    return render(request, "review_feedback/confirmed_report.html", {
+        "project": project,
+        "report_entries": report_entries,
+        "confirmed_count": entries.count(),
+        "has_pdf": bool(project.pdf_file),
+        "pdf_url": project.pdf_file.url if project.pdf_file else None,
+    })
