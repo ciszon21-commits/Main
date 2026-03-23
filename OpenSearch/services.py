@@ -208,7 +208,7 @@ def parse_search_query(query):
     Supported operators:
     - title:關鍵字 - Search only in title field
     - ext:pdf - Search by file extension (e.g., ext:pdf, ext:docx)
-    - proj:0001b - Search by project number (5 chars after sinoproject-)
+    - proj:0001b - Search by project number in the `projno` field
     - dept:11 - Search by department number (2 chars after sino_dept_)
     
     Returns:
@@ -312,7 +312,7 @@ def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, d
     # Supported operators:
     # - title:關鍵字 - Search only in title field
     # - ext:pdf - Search by file extension
-    # - proj:0001b - Search by project number (5 chars after sinoproject-)
+    # - proj:0001b - Search by project number in projno field
     # - dept:11 - Search by department number (2 chars after sino_dept_)
     parsed = parse_search_query(query)
     
@@ -324,9 +324,16 @@ def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, d
     # Handle project number filter
     if parsed.get('proj'):
         proj_code = parsed['proj'].lower()
-        # Project pattern: sinoproject-XXXXX where XXXXX is the 5-char code
+        proj_code_upper = proj_code.upper()
+        # Search by projno field, allowing both lowercase and uppercase variations
         filter_clauses.append({
-            "wildcard": {"_index": f"*sinoproject-{proj_code}*"}
+            "bool": {
+                "should": [
+                    {"wildcard": {"projno": f"*{proj_code}*"}},
+                    {"wildcard": {"projno": f"*{proj_code_upper}*"}}
+                ],
+                "minimum_should_match": 1
+            }
         })
     
     # Handle department filter
@@ -443,6 +450,15 @@ def search(query, indices="*", size=20, from_=0, sort_by=None, date_from=None, d
         if date_to:
             date_filter["range"]["dt"]["lte"] = date_to
         filters.append(date_filter)
+
+    # Automatically filter out documents where if_online is false
+    filters.append({
+        "bool": {
+            "must_not": {
+                "term": {"if_online": False}
+            }
+        }
+    })
     
     # Construct body with performance optimizations
     # Wrap in function_score for Popularity Boosting (vote field)
@@ -584,11 +600,18 @@ def search_fast(query, indices="*", size=10):
     
     body = {
         "query": {
-            "multi_match": {
-                "query": query,
-                "fields": ["title^3", "file.filename^2", "path.real"],
-                "type": "best_fields",
-                "tie_breaker": 0.3
+            "bool": {
+                "must": {
+                    "multi_match": {
+                        "query": query,
+                        "fields": ["title^3", "file.filename^2", "path.real"],
+                        "type": "best_fields",
+                        "tie_breaker": 0.3
+                    }
+                },
+                "must_not": {
+                    "term": {"if_online": False}
+                }
             }
         },
         "_source": ["title", "file.filename", "path.real", "dt", "_index"],
