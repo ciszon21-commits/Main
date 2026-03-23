@@ -1,0 +1,106 @@
+{% extends "review_feedback/base.html" %}
+
+{% block title %}第二階段審查報表 — {{ project.name }}{% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<ul class="breadcrumb">
+    <li><a href="{% url 'review_feedback:project_list' %}">專案總覽</a></li>
+    <li><a href="{% url 'review_feedback:project_detail' project.pk %}">{{ project.name }}</a></li>
+    <li><span class="current">審查報表</span></li>
+</ul>
+
+<div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <div>
+        <h1>第二階段審查報表</h1>
+        <p class="subtitle">{{ project.name }} — 共有 {{ confirmed_count }} 筆 AI 確認符合（confirmed / no_conflict）項目</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+        <a href="{% url 'review_feedback:confirmed_report' project.pk %}?export=json" class="btn btn-primary" style="white-space:nowrap;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            匯出 JSON
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="width: 30%;">文字摘錄</th>
+                    <th style="width: 15%;">頁碼 / 檔案</th>
+                    <th>AI 判定分類</th>
+                    <th>審查結果</th>
+                    <th>審查備註</th>
+                    <th>審查者 / 時間</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry, feedback in report_entries %}
+                <tr style="border-bottom: 1px solid var(--border-light);">
+                    <td style="padding: 12px 16px; vertical-align: top;">
+                        <div style="font-size: 0.85rem; color: var(--text); line-height: 1.6; max-width: 400px; white-space: pre-wrap;">{{ entry.excerpt_text }}</div>
+                    </td>
+                    <td style="padding: 12px 16px; vertical-align: top;">
+                        <div style="font-weight: 500; margin-bottom: 4px;">P.{{ entry.source_page }}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);" title="{{ entry.comparison_file.original_filename }}">
+                            {{ entry.comparison_file.original_filename|truncatechars:20 }}
+                        </div>
+                    </td>
+                    <td style="padding: 12px 16px; vertical-align: top;">
+                        <span class="badge" style="background:var(--border-light); color:var(--text); border-color:var(--border);">{{ entry.final_decision_class|default:"未分類" }}</span>
+                    </td>
+                    <td style="padding: 12px 16px; vertical-align: top;">
+                        {% if feedback %}
+                            {% if feedback.is_correct is True %}
+                                <span class="badge" style="background:var(--success-light); color:#059669; border-color:var(--success);">✅ 正確</span>
+                            {% elif feedback.is_correct is False %}
+                                <div style="display:flex; flex-direction: column; gap: 4px; align-items: flex-start;">
+                                    <span class="badge" style="background:var(--danger-light); color:var(--danger); border-color:var(--danger);">❌ 錯誤</span>
+                                    {% if feedback.correct_classification %}
+                                    <span style="font-size: 0.75rem; color: var(--danger);">→ {{ feedback.correct_classification }}</span>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge" style="background:var(--warning-light); color:#D97706; border-color:#FCD34D;">⏳ 尚未審查</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 12px 16px; vertical-align: top;">
+                        {% if feedback %}
+                            {% if feedback.feedback_reason %}
+                            <div style="font-size: 0.8rem; margin-bottom: 4px;"><strong>備註：</strong>{{ feedback.feedback_reason }}</div>
+                            {% endif %}
+                            {% if feedback.additional_description %}
+                            <div style="font-size: 0.8rem; color: var(--text-muted);"><strong>擴充：</strong>{{ feedback.additional_description }}</div>
+                            {% endif %}
+                            {% if not feedback.feedback_reason and not feedback.additional_description %}
+                            <span style="color:var(--text-light);font-size:0.8rem">—</span>
+                            {% endif %}
+                        {% else %}
+                            <span style="color:var(--text-light);font-size:0.8rem">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size: 0.8rem; color: var(--text-muted); padding: 12px 16px; vertical-align: top;">
+                        {% if feedback %}
+                            {% if feedback.reviewer %}<div style="font-weight: 500; color: var(--text); margin-bottom: 4px;">{% if feedback.reviewer.get_full_name %}{{ feedback.reviewer.get_full_name }}{% else %}{{ feedback.reviewer.username }}{% endif %}</div>{% endif %}
+                            <div>{{ feedback.reviewed_at|date:"Y-m-d H:i" }}</div>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">
+                        目前沒有第二階段審查的比對結果。
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

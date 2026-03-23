@@ -112,7 +112,6 @@ INSTALLED_APPS = [
     'NewsInsight',  # GoogleNews輿情分析
     'CODiS_WindRose_Plotter',
     'LHAWish',  # 部門許願池
-    'duplicate_checker',  # 重複檔案檢查器
     'review_feedback',
     'SRCColumn',  # SRC柱設計計算系統
     'XrResource',

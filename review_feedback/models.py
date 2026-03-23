@@ -104,6 +104,14 @@ class ComparisonEntry(models.Model):
     def latest_feedback(self):
         return self.review_feedbacks.order_by("-reviewed_at").first()
 
+    @property
+    def short_strategy_name(self):
+        if "\n減碳定義" in self.strategy_name:
+            return self.strategy_name.split("\n減碳定義")[0].strip()
+        elif "減碳定義" in self.strategy_name:
+            return self.strategy_name.split("減碳定義")[0].strip()
+        return self.strategy_name
+
 
 class ReviewFeedback(models.Model):
     """使用者審查回饋"""

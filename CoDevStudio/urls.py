@@ -52,13 +52,10 @@ urlpatterns = [
     path('news-insight/', include('NewsInsight.urls', namespace='NewsInsight')),  # GoogleNews輿情分析
     path('wind-rose/', include('CODiS_WindRose_Plotter.urls')),  # 風玫瑰圖繪製工具
     path('lhawish/', include('LHAWish.urls')),  # 部門許願池
-<<<<<<< HEAD
-=======
-    path('duplicate-checker/', include('duplicate_checker.urls')),  # 重複檔案檢查器
     path('review/', include('review_feedback.urls')),
     path('src-column/', include('SRCColumn.urls')),  # SRC柱設計計算系統
     path('xr-resource/', include('XrResource.urls', namespace='XrResource')),
->>>>>>> 87dd1c443a47a2327c2de7e8651710eb8368cd90
+
 ]
 
 # 條件載入 ClashClassifier API
