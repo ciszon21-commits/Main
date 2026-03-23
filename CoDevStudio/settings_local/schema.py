@@ -135,3 +135,9 @@ class AppSettings:
     OPENSEARCH_RETRY_ON_TIMEOUT: bool = False   # 關閉逾時重試 - 內網環境通常穩定
     OPENSEARCH_HTTP_COMPRESS: bool = True       # 啟用 gzip 壓縮
     OPENSEARCH_INDEX_CACHE_TIMEOUT: int = 900   # 索引快取時間（秒）
+
+    # CMS 外部平台 API 設定（site360 同步使用）
+    CMS_BASE_URL: str = ""
+    CMS_API_TOKEN: str = ""
+    CMS_USERNAME: str = ""
+    CMS_PASSWORD: str = ""

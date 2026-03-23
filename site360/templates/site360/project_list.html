@@ -6,14 +6,48 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">360 專案瀏覽</h1>
         <div class="d-flex gap-2">
-            <a href="{% url 'site360:all_resources' %}" class="btn btn-info text-white">
+            {% comment %} <a href="{% url 'site360:all_resources' %}" class="btn btn-info text-white">
                 <i class="fas fa-list"></i> 資源總表
-            </a>
+            </a> {% endcomment %}
             <a href="{% url 'site360:project_create' %}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> 新增專案
             </a>
         </div>
     </div>
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0 bg-light">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">計畫編號</label>
+                            <input type="text" name="project_code" class="form-control"
+                                value="{{ request.GET.project_code }}" placeholder="篩選計畫編號...">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">標別</label>
+                            <input type="text" name="tender_code" class="form-control"
+                                value="{{ request.GET.tender_code }}" placeholder="篩選標別...">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">工程名稱</label>
+                            <input type="text" name="tender_name" class="form-control"
+                                value="{{ request.GET.tender_name }}" placeholder="篩選名稱...">
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end gap-2">
+                            <button type="submit" class="btn btn-primary flex-fill">
+                                <i class="fas fa-search"></i> 篩選
+                            </button>
+                            <a href="{% url 'site360:project_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-undo"></i> 重置
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         {% for project in projects %}
         <div class="col-md-4 mb-4">
@@ -29,6 +63,19 @@
                 {% endif %}
                 <div class="card-body">
                     <h5 class="card-title">{{ project.name }}</h5>
+                    {% if project.project_code or project.tender_code or project.tender_name %}
+                    <div class="mb-2 d-flex flex-wrap gap-1">
+                        {% if project.project_code %}
+                        <span class="badge bg-secondary opacity-75">{{ project.project_code }}</span>
+                        {% endif %}
+                        {% if project.tender_code %}
+                        <span class="badge bg-info text-dark opacity-75">{{ project.tender_code }}</span>
+                        {% endif %}
+                        {% if project.tender_name %}
+                        <span class="badge bg-primary opacity-75">{{ project.tender_name }}</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                     <p class="card-text text-muted">{{ project.description|truncatechars:100 }}</p>
                     <p class="card-text text-muted small">
                         {% if project.city %}
@@ -49,8 +96,11 @@
                         </div>
                     </div>
                 </div>
-                <div class="card-footer text-muted">
-                    建立於: {{ project.created_at|date:"Y-m-d" }}
+                <div class="card-footer text-muted small">
+                    專案建立: {{ project.created_at|date:"Y-m-d" }}
+                    {% if project.doc_date %}
+                    <br>表單建立: {{ project.doc_date|date:"Y-m-d" }}
+                    {% endif %}
                 </div>
             </div>
         </div>

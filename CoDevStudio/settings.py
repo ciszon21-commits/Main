@@ -88,6 +88,7 @@ INSTALLED_APPS = [
     'SynonymManager',
     'PatentRegistry',
     'site360',
+    'volume_calc',
     'SinoFile',
     'Inlet_Design',
     'DroneReservation',
@@ -111,6 +112,10 @@ INSTALLED_APPS = [
     'NewsInsight',  # GoogleNews輿情分析
     'CODiS_WindRose_Plotter',
     'LHAWish',  # 部門許願池
+    'duplicate_checker',  # 重複檔案檢查器
+    'review_feedback',
+    'SRCColumn',  # SRC柱設計計算系統
+    'XrResource',
 ] + local.STAGE_INSTALLED_APPS
 
 
@@ -331,3 +336,9 @@ OPENSEARCH_MAX_RETRIES = local.OPENSEARCH_MAX_RETRIES
 OPENSEARCH_RETRY_ON_TIMEOUT = local.OPENSEARCH_RETRY_ON_TIMEOUT
 OPENSEARCH_HTTP_COMPRESS = local.OPENSEARCH_HTTP_COMPRESS
 OPENSEARCH_INDEX_CACHE_TIMEOUT = local.OPENSEARCH_INDEX_CACHE_TIMEOUT
+
+# CMS 外部平台 API 設定（site360 同步使用）
+CMS_BASE_URL  = local.CMS_BASE_URL
+CMS_API_TOKEN = local.CMS_API_TOKEN
+CMS_USERNAME  = local.CMS_USERNAME
+CMS_PASSWORD  = local.CMS_PASSWORD

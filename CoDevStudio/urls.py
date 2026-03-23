@@ -29,6 +29,7 @@ urlpatterns = [
     path('synonyms/', include('SynonymManager.urls')),  # 同義詞建置工具
     path('patent/', include('PatentRegistry.urls')),  # 專利申請管理
     path('site360/', include('site360.urls')),  # Site360 360照片瀏覽
+    path('volume-calc/', include('volume_calc.urls')),
     path('Diversion-Tunnel/', include('Inlet_Design.urls')),  # 水利工程隧道水理設計模組
     path('drone/', include('DroneReservation.urls')),  # 園路無人機預約
     path('reservoir-hydro/', include('ReservoirHydro.urls')),  # 水庫水文水理計算平台
@@ -51,6 +52,13 @@ urlpatterns = [
     path('news-insight/', include('NewsInsight.urls', namespace='NewsInsight')),  # GoogleNews輿情分析
     path('wind-rose/', include('CODiS_WindRose_Plotter.urls')),  # 風玫瑰圖繪製工具
     path('lhawish/', include('LHAWish.urls')),  # 部門許願池
+<<<<<<< HEAD
+=======
+    path('duplicate-checker/', include('duplicate_checker.urls')),  # 重複檔案檢查器
+    path('review/', include('review_feedback.urls')),
+    path('src-column/', include('SRCColumn.urls')),  # SRC柱設計計算系統
+    path('xr-resource/', include('XrResource.urls', namespace='XrResource')),
+>>>>>>> 87dd1c443a47a2327c2de7e8651710eb8368cd90
 ]
 
 # 條件載入 ClashClassifier API

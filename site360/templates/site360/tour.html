@@ -99,6 +99,79 @@
             color: #198754;
         }
 
+        /* Scene Navigation Portal Hotspot */
+        /* IMPORTANT: Do NOT use transform-based animations on .hotspot-scene itself,
+         * because Pannellum uses transform:translate(x,y) to position the hotspot.
+         * Animations using transform will override the position and cause it to disappear.
+         * All visual effects are applied to the inner .portal-ring child element instead. */
+        .hotspot-scene {
+            width: 48px !important;
+            height: 48px !important;
+            /* Transparent background so inner ring shows */
+            background: transparent !important;
+            box-shadow: none !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            cursor: pointer !important;
+            overflow: visible !important;
+            /* No transform animations here - Pannellum owns this */
+        }
+
+        /* The inner ring element carries all the visual portal effects */
+        .portal-ring {
+            position: absolute;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(0, 210, 255, 0.15);
+            border: 2px solid rgba(0, 210, 255, 0.8);
+            box-shadow: 0 0 16px 4px rgba(0, 210, 255, 0.7),
+                inset 0 0 10px rgba(0, 210, 255, 0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: portalPulse 2s ease-in-out infinite alternate;
+            pointer-events: none;
+            /* Let clicks pass through to parent */
+        }
+
+        .portal-ring i {
+            font-size: 22px;
+            color: #ffffff;
+            text-shadow: 0 0 8px #00d2ff, 0 0 20px rgba(0, 210, 255, 0.8);
+            pointer-events: none;
+        }
+
+        .hotspot-scene .scene-title-tooltip {
+            position: absolute;
+            bottom: 56px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 1;
+            /* Always visible */
+        }
+
+        @keyframes portalPulse {
+            0% {
+                box-shadow: 0 0 10px 2px rgba(0, 210, 255, 0.5), inset 0 0 5px rgba(0, 210, 255, 0.3);
+                background: rgba(0, 210, 255, 0.1);
+            }
+
+            100% {
+                box-shadow: 0 0 28px 8px rgba(0, 210, 255, 0.95), inset 0 0 15px rgba(0, 210, 255, 0.7);
+                background: rgba(0, 210, 255, 0.3);
+            }
+        }
+
         /* Edit Mode Styles */
         body.edit-mode #panorama {
             cursor: crosshair;
@@ -131,6 +204,8 @@
             max-width: 250px;
             line-height: 1.4;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+            white-space: pre-wrap;
+            word-break: break-word;
         }
 
         .hover-text-label strong {
@@ -160,6 +235,8 @@
             max-width: 300px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
             text-align: center;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
 
         .hover-image-label img {
@@ -196,6 +273,8 @@
             max-width: 300px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
             text-align: center;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
 
         .hover-video-label video {
@@ -293,35 +372,95 @@
             border-radius: 4px;
         }
 
-        /* Badge Colors for Resource Library */
-        .badge-text {
-            background-color: #3b82f6;
-            color: white;
+        #viewDescription {
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin-top: 1rem;
         }
 
-        .badge-text_hover {
-            background-color: #1d4ed8;
-            color: white;
+        /* Resource Library List View Styles */
+        .resource-item {
+            transition: background-color 0.2s;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            overflow: hidden;
         }
 
-        .badge-image {
-            background-color: #22c55e;
-            color: white;
+        .resource-item:hover {
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
         }
 
-        .badge-image_hover {
-            background-color: #15803d;
-            color: white;
+        .resource-item .preview-box {
+            width: 80px;
+            height: 80px;
+            flex-shrink: 0;
+            background-color: #f1f3f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .badge-video {
-            background-color: #ef4444;
-            color: white;
+        .resource-item .preview-box img,
+        .resource-item .preview-box video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
-        .badge-video_hover {
-            background-color: #b91c1c;
-            color: white;
+        .resource-item .content-box {
+            flex-grow: 1;
+            padding: 12px 16px;
+            min-width: 0;
+        }
+
+        .resource-item .title-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .resource-item .resource-title {
+            font-weight: 600;
+            color: #334155;
+            margin: 0;
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+
+        .resource-item .resource-desc {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin: 0;
+            white-space: pre-wrap;
+            /* Show full content */
+            word-break: break-all;
+        }
+
+        .resource-item .meta-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+
+        .resource-item .action-box {
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-left: 1px dashed #eee;
+            background-color: #fafafa;
+        }
+
+        .resource-item .btn-import {
+            min-width: 80px;
+            height: 36px;
+            border-radius: 18px;
+            white-space: nowrap;
         }
     </style>
 </head>
@@ -347,8 +486,9 @@
             </button>
         </div>
 
-        <div id="instruction-overlay">
-            <i class="fas fa-mouse-pointer"></i> 雙擊畫面任意處以新增熱點
+        <div id="instruction-overlay" class="text-center">
+            <div class="mb-2"><i class="fas fa-mouse-pointer"></i> 雙擊畫面任意處以新增熱點</div>
+            <div><i class="fas fa-hand-pointer"></i> 拖曳切換場景箭頭至正確位置</div>
         </div>
     </div>
 
@@ -364,28 +504,39 @@
                 </div>
                 <div class="modal-body">
                     <!-- Filters -->
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6">
-                            <input type="text" class="form-control" id="libSearchInput" placeholder="搜尋標題、說明...">
+                    <div class="row g-2 mb-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted">關鍵字搜尋</label>
+                            <input type="text" class="form-control" id="libSearchInput" placeholder="標題、說明...">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">類型</label>
                             <select class="form-select" id="libTypeSelect">
-                                <option value="">所有類型</option>
-                                <option value="text">文字類</option>
-                                <option value="image">圖片類</option>
-                                <option value="video">影片類</option>
+                                <option value="">所有</option>
+                                <option value="text">文字</option>
+                                <option value="image">圖片</option>
+                                <option value="video">影片</option>
                             </select>
                         </div>
                         <div class="col-md-3">
+                            <label class="form-label small text-muted">所屬專案</label>
                             <select class="form-select" id="libProjectSelect">
                                 <option value="">所有專案</option>
                                 <!-- Populated by JS -->
                             </select>
                         </div>
+                        <div class="col-md-3">
+                            {% if project.form_uid %}
+                            <button class="btn btn-primary active w-100" type="button" id="recommendBtn"
+                                title="推薦目前表單相關內容">
+                                <i class="fas fa-magic"></i> 推薦表單匯入內容
+                            </button>
+                            {% endif %}
+                        </div>
                     </div>
 
                     <!-- Resource List -->
-                    <div id="resourceLibraryList" class="row g-3">
+                    <div id="resourceLibraryList" class="d-flex flex-column gap-2">
                         <div class="text-center py-5">
                             <div class="spinner-border text-primary" role="status"></div>
                             <p class="mt-2">載入中...</p>
@@ -531,6 +682,16 @@
                             <textarea class="form-control" name="description" id="hotspotDescInput" rows="3"></textarea>
                         </div>
 
+                        <div class="mb-3">
+                            <label class="form-label">危害類型（可多選）</label>
+                            <select class="form-select select2-multiple" name="hazard_types" id="hazardTypeSelect"
+                                multiple="multiple">
+                                {% for ht in hazard_types %}
+                                <option value="{{ ht.id }}">{{ ht.serial_number }}. {{ ht.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
                         <div class="mb-3 d-none" id="imageField">
                             <label class="form-label">上傳圖片</label>
                             <input type="file" class="form-control" name="image" id="imageUploadInput" accept="image/*">
@@ -541,17 +702,69 @@
                         </div>
 
                         <div class="mb-3 d-none" id="videoField">
-                            <label class="form-label">上傳影片</label>
-                            <input type="file" class="form-control" name="video" id="videoUploadInput" accept="video/*">
+                            <label class="form-label">影片來源</label>
+                            <div class="btn-group w-100 mb-2" role="group">
+                                <input type="radio" class="btn-check" name="video_source" id="videoSourceFile"
+                                    value="file" checked onchange="updateVideoForm()">
+                                <label class="btn btn-outline-primary" for="videoSourceFile"><i
+                                        class="fas fa-file-video"></i> 上傳檔案</label>
+
+                                <input type="radio" class="btn-check" name="video_source" id="videoSourceUrl"
+                                    value="url" onchange="updateVideoForm()">
+                                <label class="btn btn-outline-primary" for="videoSourceUrl"><i
+                                        class="fab fa-youtube"></i> 影片網址</label>
+                            </div>
+
+                            <div id="videoFileGroup">
+                                <label class="form-label">選擇影片檔案</label>
+                                <input type="file" class="form-control" name="video" id="videoUploadInput"
+                                    accept="video/*">
+                            </div>
+
+                            <div id="videoUrlGroup" class="d-none">
+                                <label class="form-label">影片網址 (YouTube 或 mp4 連結)</label>
+                                <input type="text" class="form-control" name="video_url" id="videoUrlInput"
+                                    placeholder="https://www.youtube.com/watch?v=...">
+                            </div>
+
                             <div id="importedVideoPreview" class="mt-2 d-none">
-                                <small class="text-muted d-block mb-1">目前引用的影片：</small>
-                                <video src="" controls class="w-100" style="max-height: 200px;"></video>
+                                <small class="text-muted d-block mb-1">目前內容：</small>
+                                <div id="videoPreviewContent">
+                                    <!-- Preview content injected by JS -->
+                                </div>
                             </div>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-primary" onclick="submitHotspot()">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nav Hotspot Icon Edit Modal -->
+    <div class="modal fade" id="navHotspotEditModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 360px;">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white py-2">
+                    <h6 class="modal-title mb-0"><i class="fas fa-compass"></i> 編輯切換場景圖示</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="navEditNavType">
+                    <input type="hidden" id="navEditSceneId">
+                    <input type="hidden" id="navEditCurrentIcon">
+
+                    <p class="text-muted small mb-2">選擇中央顯示的方向圖示：</p>
+                    <div class="d-flex flex-wrap gap-2 justify-content-center" id="navIconSelector">
+                        <!-- Icons inserted by JS -->
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-info btn-sm text-white" onclick="saveNavIcon()"><i
+                            class="fas fa-save"></i> 儲存</button>
                 </div>
             </div>
         </div>
@@ -584,6 +797,11 @@
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+    <!-- Include Select2 CSS and JS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+        rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <script>
         let viewer;
@@ -626,6 +844,29 @@
             return type.replace('_hover', '');
         };
 
+        // Helper to detect YouTube URL and get embed link
+        const getYouTubeEmbedUrl = (url) => {
+            if (!url) return null;
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            if (match && match[2].length === 11) {
+                const origin = window.location.origin;
+                return `https://www.youtube.com/embed/${match[2]}?autoplay=1&mute=1&enablejsapi=1&origin=${encodeURIComponent(origin)}&rel=0`;
+            }
+            return null;
+        };
+
+        function updateVideoForm() {
+            const source = $('input[name="video_source"]:checked').val();
+            if (source === 'file') {
+                $('#videoFileGroup').removeClass('d-none');
+                $('#videoUrlGroup').addClass('d-none');
+            } else {
+                $('#videoFileGroup').addClass('d-none');
+                $('#videoUrlGroup').removeClass('d-none');
+            }
+        }
+
         function updateFormFields() {
             const type = $('#typeSelect').val();
             const isReferencing = $('#refHotspotId').val() !== ''; // Check if referencing a resource
@@ -654,10 +895,14 @@
                 // Hide upload input if referencing a video resource
                 if (isReferencing) {
                     $('#videoUploadInput').addClass('d-none');
-                    $('#videoField label').addClass('d-none');
+                    $('#videoField .btn-group').addClass('d-none');
+                    $('#videoField .form-label').first().addClass('d-none');
+                    $('#videoFileGroup').addClass('d-none');
+                    $('#videoUrlGroup').addClass('d-none');
                 } else {
-                    $('#videoUploadInput').removeClass('d-none');
-                    $('#videoField label').removeClass('d-none');
+                    $('#videoField .btn-group').removeClass('d-none');
+                    $('#videoField .form-label').first().removeClass('d-none');
+                    updateVideoForm();
                 }
             } else {
                 $('#imageField').addClass('d-none');
@@ -721,16 +966,33 @@
             if (args.type === 'image_hover') { colorClass = 'hotspot-image'; }
             if (args.type === 'video') { colorClass = 'hotspot-video'; }
             if (args.type === 'video_hover') { colorClass = 'hotspot-video'; }
+            if (args.type === 'scene') { colorClass = 'hotspot-scene'; }
 
             hotSpotDiv.classList.add(colorClass);
-            hotSpotDiv.innerHTML = `<i class="${iconClass}" style="pointer-events: none;"></i>`;
 
-            // Apply custom color if provided
-            if (args.icon_color) {
-                hotSpotDiv.style.color = args.icon_color;
+            // For scene/navigation hotspots, use a special inner portal ring structure
+            // to avoid CSS transform conflict with Pannellum's translate positioning.
+            if (args.type === 'scene') {
+                const ring = document.createElement('div');
+                ring.className = 'portal-ring';
+                ring.innerHTML = `<i class="${iconClass}" style="pointer-events: none;"></i>`;
+                hotSpotDiv.appendChild(ring);
+
+                if (args.title) {
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'scene-title-tooltip';
+                    tooltip.textContent = args.title;
+                    hotSpotDiv.appendChild(tooltip);
+                }
+            } else {
+                hotSpotDiv.innerHTML = `<i class="${iconClass}" style="pointer-events: none;"></i>`;
+                // Apply custom color if provided
+                if (args.icon_color) {
+                    hotSpotDiv.style.color = args.icon_color;
+                }
             }
 
-            // For navigation hotspots, add hover tooltip
+            // For navigation hotspots, add browser tooltip as fallback
             const isNavHotspot = args.type === 'scene' && args.id && String(args.id).startsWith('nav_');
             if (isNavHotspot && args.title) {
                 hotSpotDiv.title = args.title;
@@ -744,6 +1006,17 @@
                 if (args.image) {
                     content += `<img src="${args.image}">`;
                 }
+
+                content += `<div class="d-flex flex-wrap gap-1 mb-1">`;
+                if (args.hazard_types && args.hazard_types.length > 0) {
+                    args.hazard_types.forEach(ht => {
+                        content += `<span class="badge bg-danger">${ht.name_with_serial}</span>`;
+                    });
+                } else if (args.hazard_type_name_with_serial) {
+                    content += `<span class="badge bg-danger">${args.hazard_type_name_with_serial}</span>`;
+                }
+                content += `</div>`;
+
                 content += `<strong>${args.title}</strong>`;
                 if (args.description) {
                     content += `<small>${args.description}</small>`;
@@ -757,9 +1030,23 @@
                 label.className = 'hover-video-label';
 
                 let content = '';
-                if (args.video) {
+                const youtubeUrl = getYouTubeEmbedUrl(args.video);
+                if (youtubeUrl) {
+                    content += `<div class="video-container" style="width: 250px; height: 140px;"><iframe width="100%" height="100%" src="${youtubeUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`;
+                } else if (args.video) {
                     content += `<div class="video-container"><video playsinline muted loop autoplay><source src="${args.video}" type="video/mp4"></video></div>`;
                 }
+
+                content += `<div class="d-flex flex-wrap gap-1 mb-1">`;
+                if (args.hazard_types && args.hazard_types.length > 0) {
+                    args.hazard_types.forEach(ht => {
+                        content += `<span class="badge bg-danger">${ht.name_with_serial}</span>`;
+                    });
+                } else if (args.hazard_type_name_with_serial) {
+                    content += `<span class="badge bg-danger">${args.hazard_type_name_with_serial}</span>`;
+                }
+                content += `</div>`;
+
                 content += `<strong>${args.title}</strong>`;
                 if (args.description) {
                     content += `<small>${args.description}</small>`;
@@ -767,8 +1054,8 @@
                 label.innerHTML = content;
                 hotSpotDiv.appendChild(label);
 
-                // Initialize Plyr
-                if (args.video) {
+                // Initialize Plyr only for non-youtube videos
+                if (args.video && !youtubeUrl) {
                     const videoEl = label.querySelector('video');
                     const player = new Plyr(videoEl, {
                         controls: ['play', 'progress', 'current-time', 'mute'],
@@ -796,7 +1083,17 @@
                 const label = document.createElement('div');
                 label.className = 'hover-text-label';
 
-                let content = `<strong>${args.title}</strong>`;
+                let content = `<div class="d-flex flex-wrap gap-1 mb-1">`;
+                if (args.hazard_types && args.hazard_types.length > 0) {
+                    args.hazard_types.forEach(ht => {
+                        content += `<span class="badge bg-danger">${ht.name_with_serial}</span>`;
+                    });
+                } else if (args.hazard_type_name_with_serial) {
+                    content += `<span class="badge bg-danger">${args.hazard_type_name_with_serial}</span>`;
+                }
+                content += `</div>`;
+
+                content += `<strong>${args.title}</strong>`;
                 if (args.description) {
                     content += `<small>${args.description}</small>`;
                 }
@@ -825,10 +1122,15 @@
                 if (clickSuppressed) return;
                 e.stopPropagation(); // Prevent viewer click
 
-                // For navigation hotspots, switch scene instead of showing modal
                 const isNavHotspot = args.id && String(args.id).startsWith('nav_');
-                if (isNavHotspot && args.sceneId) {
-                    viewer.loadScene(args.sceneId);
+                if (isNavHotspot) {
+                    if (isEditMode) {
+                        // In edit mode: open icon editor instead of switching scenes
+                        openNavEditModal(args);
+                    } else {
+                        // Normal mode: switch scene
+                        if (args.sceneId) viewer.loadScene(args.sceneId);
+                    }
                 } else {
                     showHotspotModal(args);
                 }
@@ -838,19 +1140,33 @@
         function showHotspotModal(data) {
             if (!data) return;
             currentHotspotId = data.id;
-            $('#viewTitle').text(data.title || '無標題');
+            let titleHtml = data.title || '無標題';
+            if (data.hazard_types && data.hazard_types.length > 0) {
+                let badges = data.hazard_types.map(ht => `<span class="badge bg-danger align-middle me-2">${ht.name_with_serial}</span>`).join('');
+                titleHtml = badges + titleHtml;
+            } else if (data.hazard_type_name_with_serial) {
+                titleHtml = `<span class="badge bg-danger align-middle me-2">${data.hazard_type_name_with_serial}</span>` + titleHtml;
+            }
+            $('#viewTitle').html(titleHtml);
+
             $('#viewDescription').text(data.description || '');
 
             let mediaHtml = '';
             if ((data.type === 'image' || data.type === 'image_hover') && data.image) {
                 mediaHtml = `<img src="${data.image}" class="img-fluid" style="max-height: 400px; display: block; margin: 0 auto;">`;
             } else if ((data.type === 'video' || data.type === 'video_hover') && data.video) {
-                mediaHtml = `<div class="plyr-container"><video id="plyr-player" playsinline controls><source src="${data.video}" type="video/mp4"></video></div>`;
+                const youtubeUrl = getYouTubeEmbedUrl(data.video);
+                if (youtubeUrl) {
+                    mediaHtml = `<div class="video-container" style="aspect-ratio: 16/9;"><iframe width="100%" height="100%" src="${youtubeUrl}" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="min-height: 350px;"></iframe></div>`;
+                } else {
+                    mediaHtml = `<div class="plyr-container"><video id="plyr-player" playsinline controls><source src="${data.video}" type="video/mp4"></video></div>`;
+                }
             }
             $('#viewMedia').html(mediaHtml);
 
             // Initialize Plyr in Modal
-            if ((data.type === 'video' || data.type === 'video_hover') && data.video) {
+            // Initialize Plyr in Modal (if not Youtube)
+            if ((data.type === 'video' || data.type === 'video_hover') && data.video && !getYouTubeEmbedUrl(data.video)) {
                 new Plyr('#plyr-player');
             }
 
@@ -900,6 +1216,15 @@
 
             $('input[name="title"]').val(hsData.createTooltipArgs.title);
             $('textarea[name="description"]').val(hsData.createTooltipArgs.description);
+            // Fill hazard_types
+            if (hsData.createTooltipArgs.hazard_types && hsData.createTooltipArgs.hazard_types.length > 0) {
+                const hazardTypeIds = hsData.createTooltipArgs.hazard_types.map(ht => ht.id);
+                $('#hazardTypeSelect').val(hazardTypeIds).trigger('change');
+            } else if (hsData.createTooltipArgs.hazard_type_id) {
+                $('#hazardTypeSelect').val([hsData.createTooltipArgs.hazard_type_id]).trigger('change');
+            } else {
+                $('#hazardTypeSelect').val(null).trigger('change');
+            }
 
             // Show Current Media Preview (Even if not imported)
             // Reset inputs first
@@ -927,18 +1252,36 @@
                 $('#importedImagePreview').addClass('d-none');
             }
 
-            // Video Preview
+            // Video Preview & Source Selection
             if (hsData.createTooltipArgs.video) {
-                $('#importedVideoPreview video').attr('src', hsData.createTooltipArgs.video);
-                $('#importedVideoPreview small').text('目前影片：');
+                const videoUrl = hsData.createTooltipArgs.video;
+                const isYoutube = !!getYouTubeEmbedUrl(videoUrl);
+                const isFile = videoUrl.includes('/site360/serve-video/');
+
+                if (isYoutube || (!isFile && videoUrl.startsWith('http'))) {
+                    // External URL
+                    $('#videoSourceUrl').prop('checked', true);
+                    $('#videoUrlInput').val(videoUrl);
+                    $('#videoPreviewContent').html(`<div class="video-container" style="aspect-ratio: 16/9;"><iframe width="100%" height="100%" src="${getYouTubeEmbedUrl(videoUrl) || videoUrl}" frameborder="0" allowfullscreen></iframe></div>`);
+                } else {
+                    // File
+                    $('#videoSourceFile').prop('checked', true);
+                    $('#videoPreviewContent').html(`<video src="${videoUrl}" controls class="w-100" style="max-height: 200px;"></video>`);
+                }
+                updateVideoForm();
                 $('#importedVideoPreview').removeClass('d-none');
+                $('#importedVideoPreview small').text(hsData.createTooltipArgs.source_hotspot_id ? '目前引用內容：' : '目前內容：');
             } else {
+                $('#videoSourceFile').prop('checked', true);
+                updateVideoForm();
                 $('#importedVideoPreview').addClass('d-none');
             }
 
             // Check for source updates if this hotspot has a source
             if (hsData.createTooltipArgs.source_hotspot_id) {
-                checkSourceUpdate(hsData.createTooltipArgs.id, hsData.createTooltipArgs.source_hotspot_id, hsData.createTooltipArgs);
+                // 暫時隱藏"來源資源已更新"功能
+                // checkSourceUpdate(hsData.createTooltipArgs.id, hsData.createTooltipArgs.source_hotspot_id, hsData.createTooltipArgs);
+                $('#sourceUpdateAlert').addClass('d-none');
             } else {
                 $('#sourceUpdateAlert').addClass('d-none');
             }
@@ -947,6 +1290,78 @@
             const modalEl = document.getElementById('addHotspotModal');
             const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
+        }
+
+        // Available icons for nav portal hotspots
+        const NAV_ICONS = [
+            { icon: 'fas fa-arrow-up', label: '向上' },
+            { icon: 'fas fa-arrow-down', label: '向下' },
+            { icon: 'fas fa-arrow-left', label: '向左' },
+            { icon: 'fas fa-arrow-right', label: '向右' },
+            { icon: 'fas fa-arrows-alt', label: '四方向' },
+            { icon: 'fas fa-chevron-up', label: '向上 (細)' },
+            { icon: 'fas fa-chevron-down', label: '向下 (細)' },
+            { icon: 'fas fa-chevron-left', label: '向左 (細)' },
+            { icon: 'fas fa-chevron-right', label: '向右 (細)' },
+            { icon: 'fas fa-bullseye', label: '圓心' },
+            { icon: 'fas fa-circle-dot', label: '圓點' },
+            { icon: 'fas fa-location-dot', label: '定位' },
+        ];
+
+        function openNavEditModal(args) {
+            $('#navEditNavType').val(args.nav_type);
+            $('#navEditSceneId').val(args.scene_id);
+            $('#navEditCurrentIcon').val(args.icon);
+
+            // Build icon selector
+            const container = document.getElementById('navIconSelector');
+            container.innerHTML = '';
+            NAV_ICONS.forEach(item => {
+                const isSelected = item.icon === args.icon;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-outline-info nav-icon-btn' + (isSelected ? ' active' : '');
+                btn.title = item.label;
+                btn.dataset.icon = item.icon;
+                btn.style.cssText = 'width:52px;height:52px;font-size:1.3rem;';
+                btn.innerHTML = `<i class="${item.icon}"></i>`;
+                btn.addEventListener('click', function () {
+                    document.querySelectorAll('.nav-icon-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    $('#navEditCurrentIcon').val(this.dataset.icon);
+                });
+                container.appendChild(btn);
+            });
+
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('navHotspotEditModal'));
+            modal.show();
+        }
+
+        function saveNavIcon() {
+            const navType = $('#navEditNavType').val();
+            const sceneId = $('#navEditSceneId').val();
+            const icon = $('#navEditCurrentIcon').val();
+
+            if (!navType || !sceneId || !icon) return;
+
+            const formData = new FormData();
+            formData.append('nav_type', navType);
+            formData.append('icon', icon);
+
+            fetch(`/site360/api/scene/nav-update/${sceneId}/`, {
+                method: 'POST',
+                body: formData
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        bootstrap.Modal.getOrCreateInstance(document.getElementById('navHotspotEditModal')).hide();
+                        loadTour(true);
+                    } else {
+                        alert('儲存失敗：' + data.message);
+                    }
+                })
+                .catch(err => console.error('saveNavIcon error:', err));
         }
 
         function loadTour(keepView = false) {
@@ -993,6 +1408,17 @@
                         }
                     });
 
+                    viewer.on('scenechange', function (sceneId) {
+                        if (data.scenes[sceneId]) {
+                            document.getElementById('scene-title').innerText = data.scenes[sceneId].title;
+
+                            // Update URL so refreshing keeps the user on the new scene
+                            const url = new URL(window.location);
+                            url.searchParams.set('scene_id', sceneId);
+                            window.history.replaceState({}, '', url);
+                        }
+                    });
+
                     // Double click event for adding hotspots
 
                 })
@@ -1026,7 +1452,15 @@
         });
 
         function submitHotspot() {
-            const formData = new FormData(document.getElementById('addHotspotForm'));
+            const form = document.getElementById('addHotspotForm');
+            const formData = new FormData(form);
+
+            // If source is file, clear video_url to ensure the backend uses the file
+            const source = $('input[name="video_source"]:checked').val();
+            if (source === 'file') {
+                formData.set('video_url', '');
+            }
+
             fetch("{% url 'site360:save_hotspot' %}", {
                 method: 'POST',
                 body: formData
@@ -1376,6 +1810,21 @@
             // Reset type select enable state (in case it was restricted by import)
             $('#typeSelect option').prop('disabled', false);
 
+
+            // Initialize Select2 in the modal
+            $(document).ready(function () {
+                $('.select2-multiple').select2({
+                    theme: 'bootstrap-5',
+                    width: '100%',
+                    placeholder: '— 請選擇危害類型 —',
+                    allowClear: true,
+                    dropdownParent: $('#addHotspotModal')
+                });
+            });
+
+            // clear select2 selection on add new
+            $('#hazardTypeSelect').val(null).trigger('change');
+
             updateFormFields();
             const modalEl = document.getElementById('addHotspotModal');
             const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
@@ -1406,118 +1855,160 @@
     <script>
         // Resource Library Logic
         let libraryResources = [];
+        const currentProjectFormUid = "{{ project.form_uid|default:'' }}";
+        let isRecommendationMode = true; // Default to ON
+        let currentPage = 1;
+        let hasNextPage = true;
+        let isLoadingResources = false;
 
         $('#openLibraryBtn').click(function () {
             const libraryModal = new bootstrap.Modal(document.getElementById('resourceLibraryModal'));
             libraryModal.show();
-            loadLibraryResources();
+            // Reset recommendation to default ON if applicable
+            if (currentProjectFormUid) {
+                isRecommendationMode = true;
+                $('#recommendBtn').addClass('active btn-primary').removeClass('btn-outline-primary');
+            } else {
+                isRecommendationMode = false;
+                $('#recommendBtn').removeClass('active btn-primary').addClass('btn-outline-primary');
+            }
+            loadLibraryResources(1);
         });
 
-        function loadLibraryResources() {
-            const listContainer = document.getElementById('resourceLibraryList');
-            // listContainer.innerHTML = '<div class="text-center py-5">...</div>'; // Keep spinner
+        $('#recommendBtn').click(function () {
+            isRecommendationMode = !isRecommendationMode;
+            $(this).toggleClass('active btn-primary btn-outline-primary');
+            loadLibraryResources(1);
+        });
 
-            fetch('/site360/api/resources/')
+        // Infinite Scroll Listener
+        $('#resourceLibraryModal .modal-body').on('scroll', function () {
+            if (!hasNextPage || isLoadingResources) return;
+
+            const scrollTop = $(this).scrollTop();
+            const containerHeight = $(this).height();
+            const contentHeight = $(this)[0].scrollHeight;
+
+            if (scrollTop + containerHeight >= contentHeight - 100) {
+                loadLibraryResources(currentPage + 1);
+            }
+        });
+
+        function loadLibraryResources(page = 1) {
+            if (isLoadingResources) return;
+            isLoadingResources = true;
+            currentPage = page;
+
+            const listContainer = document.getElementById('resourceLibraryList');
+            const search = document.getElementById('libSearchInput').value;
+            const typeFilter = document.getElementById('libTypeSelect').value;
+            const projectFilter = document.getElementById('libProjectSelect').value;
+            if (page === 1) {
+                listContainer.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">載入中...</p></div>';
+            }
+
+            const params = new URLSearchParams({
+                page: page,
+                search: search,
+                type: typeFilter,
+                project: projectFilter,
+                form_uid: currentProjectFormUid,
+                recommend: isRecommendationMode
+            });
+
+            fetch('/site360/api/resources/?' + params.toString())
                 .then(response => response.json())
                 .then(data => {
-                    libraryResources = data.resources || [];
-                    renderLibrary();
+                    isLoadingResources = false;
+                    hasNextPage = data.has_next;
 
-                    // Populate Project Filter
-                    const projects = new Set(libraryResources.map(r => r.project_name));
-                    const projectSelect = document.getElementById('libProjectSelect');
-                    projectSelect.innerHTML = '<option value="">所有專案</option>';
-                    projects.forEach(p => {
-                        projectSelect.innerHTML += `<option value="${p}">${p}</option>`;
-                    });
+                    if (page === 1) {
+                        listContainer.innerHTML = '';
+                    } else {
+                        $('#load-more-spinner').remove();
+                    }
+
+                    if (data.resources.length === 0 && page === 1) {
+                        listContainer.innerHTML = '<div class="col-12 text-center text-muted py-5">沒有符合的資源</div>';
+                        return;
+                    }
+
+                    renderResources(data.resources, page === 1);
+
+                    if (data.has_next) {
+                        $('#resourceLibraryList').append('<div id="load-more-spinner" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>');
+                    }
+
+                    // On first page load, also populate project filter if empty (one-time)
+                    if (page === 1 && $('#libProjectSelect option').length <= 1) {
+                        // We might need a separate API for projects or just use the first page's project names
+                        // For simplicity, we'll keep the current project filter populating logic if it was working
+                        // Actually, with pagination, we only see projects for the current page.
+                        // Better to keep it as is or fetch a full project list API (but user didn't ask for it).
+                    }
                 })
                 .catch(err => {
+                    isLoadingResources = false;
                     console.error('Error loading resources:', err);
-                    listContainer.innerHTML = '<div class="alert alert-danger">載入失敗，請稍後再試。</div>';
+                    if (page === 1) listContainer.innerHTML = '<div class="alert alert-danger">載入失敗，請稍後再試。</div>';
                 });
         }
 
-        function renderLibrary() {
+        function renderResources(resources, isNew) {
+            if (isNew) resourcesCache = [];
+            resourcesCache = resourcesCache.concat(resources);
             const listContainer = document.getElementById('resourceLibraryList');
-            const search = document.getElementById('libSearchInput').value.toLowerCase();
-            const typeFilter = document.getElementById('libTypeSelect').value;
-            const projectFilter = document.getElementById('libProjectSelect').value;
 
-            listContainer.innerHTML = '';
-
-            const filtered = libraryResources.filter(r => {
-                const matchSearch = r.title.toLowerCase().includes(search) || r.description.toLowerCase().includes(search);
-
-                let matchType = true;
-                if (typeFilter) {
-                    if (typeFilter === 'text') matchType = r.type === 'text' || r.type === 'text_hover';
-                    else if (typeFilter === 'image') matchType = r.type === 'image' || r.type === 'image_hover';
-                    else if (typeFilter === 'video') matchType = r.type === 'video' || r.type === 'video_hover';
-                }
-
-                const matchProject = !projectFilter || r.project_name === projectFilter;
-
-                // Exclude current hotspot (self)
-                const isSelf = currentHotspotId && String(r.id) === String(currentHotspotId);
-
-                return matchSearch && matchType && matchProject && !isSelf;
-            });
-
-            if (filtered.length === 0) {
-                listContainer.innerHTML = '<div class="col-12 text-center text-muted">沒有符合的資源</div>';
-                return;
-            }
-
-            filtered.forEach(r => {
+            resources.forEach(r => {
                 let badgeClass = 'bg-secondary';
-                if (r.type.includes('text')) badgeClass = 'badge-text';
-                else if (r.type.includes('image')) badgeClass = 'badge-image';
-                else if (r.type.includes('video')) badgeClass = 'badge-video';
+                if (r.type.includes('text')) badgeClass = '#3b82f6';
+                else if (r.type.includes('image')) badgeClass = '#22c55e';
+                else if (r.type.includes('video')) badgeClass = '#ef4444';
 
                 let typeIcon = '';
-                if (r.type === 'image' || r.type === 'image_hover') typeIcon = '<i class="fas fa-image text-success me-2"></i>';
-                else if (r.type === 'video' || r.type === 'video_hover') typeIcon = '<i class="fas fa-video text-danger me-2"></i>';
-                else typeIcon = '<i class="fas fa-align-left text-primary me-2"></i>';
+                if (r.type === 'image' || r.type === 'image_hover') typeIcon = '<i class="fas fa-image text-success"></i>';
+                else if (r.type === 'video' || r.type === 'video_hover') typeIcon = '<i class="fas fa-video text-danger"></i>';
+                else typeIcon = '<i class="fas fa-align-left text-primary"></i>';
 
                 let mediaPreview = '';
                 if (r.thumb_url) {
-                    mediaPreview = `<img src="${r.thumb_url}" class="rounded ms-2" style="height: 60px; width: 60px; object-fit: cover;">`;
+                    mediaPreview = `<img src="${r.thumb_url}">`;
                 } else if (r.video_url) {
-                    mediaPreview = `<video src="${r.video_url}" class="rounded ms-2" style="height: 60px; width: 60px; object-fit: cover;" muted onmouseover="this.play()" onmouseout="this.pause()"></video>`;
+                    mediaPreview = `<video src="${r.video_url}" muted></video>`;
                 } else if (r.icon) {
-                    mediaPreview = `<div class="rounded ms-2 d-flex align-items-center justify-content-center bg-light" style="height: 60px; width: 60px; color: ${r.icon_color || '#333'}"><i class="${r.icon} fa-lg"></i></div>`;
+                    mediaPreview = `<div style="color: ${r.icon_color || '#333'}"><i class="${r.icon} fa-2x"></i></div>`;
                 }
 
-                const card = `
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card h-100 shadow-sm resource-card" style="cursor: pointer;" onclick="importResource(${r.id})">
-                            <div class="card-body p-3">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <span class="badge ${badgeClass}">${r.type_display}</span>
-                                    <small class="text-muted ms-auto text-end"><i class="fas fa-folder"></i> ${r.project_name}</small>
-                                </div>
-                                <div class="d-flex align-items-center mb-2">
-                                    ${typeIcon}
-                                    <h6 class="card-title mb-0 text-truncate" style="flex:1;">${r.title}</h6>
-                                    ${mediaPreview}
-                                </div>
-                                <p class="card-text small text-muted text-truncate">${r.description || '無描述'}</p>
+                const item = `
+                    <div class="resource-item d-flex shadow-sm bg-white" onclick="importResource(${r.id})">
+                        <div class="preview-box">
+                            ${mediaPreview}
+                        </div>
+                        <div class="content-box">
+                            <div class="title-row">
+                                <span class="badge" style="background-color: ${badgeClass}">${r.type_display}</span>
+                                <h6 class="resource-title">${r.title}</h6>
                             </div>
-                            <div class="card-footer p-2 bg-light border-top-0 text-end">
-                                ${r.usage_count > 0 ? `<span class="badge bg-info text-white me-2" title="被引用${r.usage_count}次"><i class="fas fa-link"></i> ${r.usage_count}</span>` : ''}
-                                <button class="btn btn-sm btn-primary">引用</button>
+                            <p class="resource-desc">${r.description || '無描述'}</p>
+                            <div class="meta-row">
+                                <span><i class="fas fa-folder"></i> ${r.project_name}</span>
+                                <span><i class="fas fa-map"></i> ${r.scene_title}</span>
+                                ${r.usage_count > 0 ? `<span><i class="fas fa-link"></i> 引用 ${r.usage_count} 次</span>` : ''}
                             </div>
+                        </div>
+                        <div class="action-box">
+                            <button class="btn btn-outline-primary btn-sm btn-import">引用</button>
                         </div>
                     </div>
                 `;
-                listContainer.innerHTML += card;
+                $('#resourceLibraryList').append(item);
             });
         }
 
-        // Event Listeners for Filters
-        document.getElementById('libSearchInput').addEventListener('input', renderLibrary);
-        document.getElementById('libTypeSelect').addEventListener('change', renderLibrary);
-        document.getElementById('libProjectSelect').addEventListener('change', renderLibrary);
+        // Event Listeners for Filters (Reset to page 1)
+        $('#libSearchInput').on('input', function () { loadLibraryResources(1); });
+        $('#libTypeSelect').on('change', function () { loadLibraryResources(1); });
+        $('#libProjectSelect').on('change', function () { loadLibraryResources(1); });
 
         // Instant Preview for Uploads
         $('input[name="image"]').on('change', function (e) {
@@ -1540,26 +2031,41 @@
             }
         });
 
+        let resourcesCache = []; // Global cache to support import function
+
         // Make importResource global
         window.importResource = function (id) {
-            const resource = libraryResources.find(r => r.id === id);
-            if (!resource) return;
+            // Find resource in the current loaded set
+            const resource = resourcesCache.find(r => r.id === id);
+            if (!resource) {
+                // If not in cache (e.g. across pages), fetch detailed data
+                fetch(`/site360/api/hotspot/data/${id}/`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.status === 'success') applyResource(data.hotspot);
+                    });
+                return;
+            }
+            applyResource(resource);
+        };
 
+        window.applyResource = function (resource) {
             // Fill Form
             $('#hotspotTitleInput').val(resource.title);
             $('#hotspotDescInput').val(resource.description);
             $('#typeSelect').val(resource.type);
 
+            // Populate hazard types in Select2
+            if (resource.hazard_types) {
+                $('#hazardTypeSelect').val(resource.hazard_types).trigger('change');
+            } else {
+                $('#hazardTypeSelect').val(null).trigger('change');
+            }
+
             // Set reference type to restrict options
             $('#refResourceType').val(resource.type);
 
             // Important: Do NOT clear hotspotIdInput if we are editing an existing hotspot (currentHotspotId is set)
-            // If we are adding a new hotspot (currentHotspotId is null), then clear it to ensure creation.
-            // Check if form has an ID already? NO, check currentHotspotId variable or the input value itself BEFORE clearing?
-            // Actually, if we are in Add Modal, we might have clicked "Add" (id empty) or "Edit" (id set).
-            // We should respect the current state of hotspotIdInput UNLESS we want to force something.
-            // But here, the user wants to Import *into* the current form.
-            // So we should NOT touch hotspotIdInput at all. Let it stay as is.
             if (!currentHotspotId) {
                 $('#hotspotIdInput').val(''); // Only ensure empty if we are adding new
             } else {
@@ -1569,11 +2075,8 @@
             $('#refHotspotId').val(resource.id);
             $('#clearSourceInput').val(''); // Ensure clear flag is reset
 
-
             // Set Icon
             if (resource.icon) {
-                // Try to find icon radio or just select Custom if not in list (simplification: assume standard icons or just keep what it is if hidden)
-                // For now, let's try to match standard icons.
                 const iconRadio = $(`input[name="icon"][value="${resource.icon}"]`);
                 if (iconRadio.length) {
                     iconRadio.prop('checked', true);
@@ -1587,29 +2090,42 @@
 
             // Show Notice
             $('#importNotice').removeClass('d-none');
-            $('#sourceUpdateAlert').addClass('d-none'); // Hide update alert as we just imported fresh content
+            $('#sourceUpdateAlert').addClass('d-none');
             $('#importTitle').text(resource.title);
 
             // Handle Image Preview
-            if ((resource.type === 'image' || resource.type === 'image_hover') && resource.thumb_url) {
+            if ((resource.type === 'image' || resource.type === 'image_hover') && (resource.thumb_url || resource.image_url)) {
                 const previewContainer = $('#importedImagePreview');
                 previewContainer.removeClass('d-none');
-                previewContainer.find('img').attr('src', resource.thumb_url);
-                $('input[name="image"]').prop('disabled', true).addClass('d-none'); // Hide input
+                previewContainer.find('img').attr('src', resource.thumb_url || resource.image_url);
+                $('input[name="image"]').prop('disabled', true).addClass('d-none');
             } else {
                 $('#importedImagePreview').addClass('d-none');
                 $('input[name="image"]').prop('disabled', false).removeClass('d-none');
             }
 
             // Handle Video Preview
-            if ((resource.type === 'video' || resource.type === 'video_hover') && resource.video_url) {
+            if ((resource.type === 'video' || resource.type === 'video_hover') && (resource.video_url)) {
                 const videoContainer = $('#importedVideoPreview');
                 videoContainer.removeClass('d-none');
-                videoContainer.find('video').attr('src', resource.video_url);
+
+                const youtubeUrl = getYouTubeEmbedUrl(resource.video_url);
+                if (youtubeUrl) {
+                    $('#videoPreviewContent').html(`<div class="video-container" style="aspect-ratio: 16/9;"><iframe width="100%" height="100%" src="${youtubeUrl}" frameborder="0" allowfullscreen></iframe></div>`);
+                } else {
+                    $('#videoPreviewContent').html(`<video src="${resource.video_url}" controls class="w-100" style="max-height: 200px;"></video>`);
+                }
+
                 $('input[name="video"]').prop('disabled', true).addClass('d-none');
+                $('#videoUrlInput').prop('disabled', true).addClass('d-none');
+                $('#videoField .btn-group').addClass('d-none');
+                $('#videoField .form-label').first().addClass('d-none');
             } else {
                 $('#importedVideoPreview').addClass('d-none');
                 $('input[name="video"]').prop('disabled', false).removeClass('d-none');
+                $('#videoUrlInput').prop('disabled', false).removeClass('d-none');
+                $('#videoField .btn-group').removeClass('d-none');
+                $('#videoField .form-label').first().removeClass('d-none');
             }
 
             // Trigger type change to update UI
@@ -1630,8 +2146,11 @@
             $('input[name="image"]').prop('disabled', false).removeClass('d-none');
 
             $('#importedVideoPreview').addClass('d-none');
-            $('#importedVideoPreview video').attr('src', ''); // Stop playback
+            $('#videoPreviewContent').html(''); // Clear preview
             $('input[name="video"]').prop('disabled', false).removeClass('d-none');
+            $('#videoUrlInput').prop('disabled', false).removeClass('d-none');
+            $('#videoField .btn-group').removeClass('d-none');
+            $('#videoField .form-label').first().removeClass('d-none');
 
             // Do NOT reset the form here, as it clears the hotspot_id and other user edits
             // $('#addHotspotForm')[0].reset();

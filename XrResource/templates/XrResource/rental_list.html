@@ -1,0 +1,180 @@
+{% extends 'XrResource/base_xr.html' %}
+
+{% block title %}租借歷史紀錄 - XrResource{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="fas fa-history me-2"></i>租借歷史紀錄</h2>
+        <p class="text-muted small">查看所有租借申請、預約狀態及過往紀錄。</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'XrResource:rental_register' %}" class="btn btn-premium btn-sm">
+            <i class="fas fa-plus me-1"></i> 新增租借登記
+        </a>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 ms-3">
+                <li class="breadcrumb-item"><a href="{% url 'XrResource:dashboard' %}">首頁</a></li>
+                <li class="breadcrumb-item active">租借歷史</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="glass-card">
+    <div class="table-responsive">
+        <table class="table table-premium align-middle">
+            <thead>
+                <tr>
+                    <th>申請狀態</th>
+                    <th>活動名稱 / 日期</th>
+                    <th>租借人 / 部門</th>
+                    <th style="white-space: nowrap;">租借期間</th>
+                    <th>租借設備明細</th>
+                    {% if user.xr_profile.role == 'admin' %}
+                    <th class="text-center" style="width: 1%; white-space: nowrap;">操作</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for rental in rentals %}
+                <tr>
+                    <td>
+                        <span
+                            class="badge {% if rental.status == 'pending' %}bg-warning text-dark{% elif rental.status == 'approved' %}bg-danger text-white{% elif rental.status == 'returned' %}bg-success text-white{% elif rental.status == 'rejected' %}bg-dark text-white{% else %}bg-secondary text-white{% endif %} px-3 py-2 rounded-pill">
+                            <i
+                                class="fas {% if rental.status == 'pending' %}fa-clock{% elif rental.status == 'approved' %}fa-exchange-alt{% elif rental.status == 'returned' %}fa-check-circle{% elif rental.status == 'rejected' %}fa-times-circle{% else %}fa-undo{% endif %} me-1"></i>
+                            {% if rental.status == 'approved' %}出借中{% elif rental.status == 'returned' %}已歸還{% else %}{{ rental.get_status_display }}{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <div class="fw-bold text-dark">{{ rental.activity_name }}</div>
+                            {% if rental.nature %}
+                            <span class="badge bg-soft-info text-info x-small px-2 rounded-pill">{{ rental.nature.name }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-muted small">{{ rental.activity_date|date:"Y-m-d" }}</div>
+                    </td>
+                    <td>
+                        <div class="fw-bold">{{ rental.borrower_name }} <small class="text-muted">({{ rental.borrower_id }})</small></div>
+                        <div class="text-muted small">{{ rental.department }}</div>
+                    </td>
+                    <td style="white-space: nowrap;">
+                        <div class="btn btn-sm btn-light border-0 py-0 px-2" style="font-size: 0.75rem;">
+                            {{ rental.rental_start|date:"m/d" }} - {{ rental.rental_end|date:"m/d" }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="small">
+                            {% for eq in rental.equipments.all %}
+                            <span
+                                class="badge {% if eq.status == 'available' %}bg-success{% elif eq.status == 'reserved' %}bg-warning text-dark{% elif eq.status == 'rented' %}bg-danger{% elif eq.status == 'maintenance' %}bg-secondary{% elif eq.status == 'retired' %}bg-dark{% else %}bg-secondary{% endif %} me-1 mb-1">
+                                <i class="fas fa-microchip me-1"></i>{{ eq.name }}{% if eq.serial_number %}_{{ eq.serial_number }}{% endif %}
+                            </span>
+                            {% endfor %}
+                            {% for b_item in rental.xrrentalbulkitem_set.all %}
+                            <span
+                                class="badge {% if b_item.is_returned %}bg-success{% elif rental.status == 'approved' %}bg-danger{% else %}bg-warning text-dark{% endif %} me-1 mb-1">
+                                <i class="fas fa-box me-1"></i>{{ b_item.bulk_item.name }} x {{ b_item.count }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% if rental.return_notes %}
+                        <div class="mt-2 p-2 bg-light rounded small text-muted border-start border-4 border-primary">
+                            <i class="fas fa-comment-dots me-1"></i><strong>歸還備註：</strong>{{ rental.return_notes }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    {% if user.xr_profile.role == 'admin' %}
+                    <td class="text-center" style="white-space: nowrap;">
+                        {% if rental.status == 'pending' %}
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="{% url 'XrResource:rental_edit' rental.pk %}"
+                                class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" title="編輯申請內容">
+                                <i class="fas fa-edit me-1"></i>編輯
+                            </a>
+                            <a href="{% url 'XrResource:rental_approve' rental.pk %}"
+                                class="btn btn-sm btn-success rounded-pill px-3 shadow-sm" title="核准租借申請"
+                                onclick="return confirm('確定要核准此租借申請嗎？')">
+                                <i class="fas fa-check me-1"></i>核准
+                            </a>
+                            <a href="{% url 'XrResource:rental_reject' rental.pk %}"
+                                class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm" title="拒絕租借申請"
+                                onclick="return confirm('確定要拒絕此租借申請嗎？')">
+                                <i class="fas fa-times me-1"></i>拒絕
+                            </a>
+                        </div>
+                        {% elif rental.status == 'approved' %}
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="{% url 'XrResource:rental_edit' rental.pk %}"
+                                class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" title="編輯申請內容">
+                                <i class="fas fa-edit me-1"></i>編輯
+                            </a>
+                            <a href="{% url 'XrResource:rental_return' rental.pk %}"
+                                class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" title="點擊進行歸還點交">
+                                <i class="fas fa-undo-alt me-1"></i>歸還點交
+                            </a>
+                            <a href="{% url 'XrResource:rental_reset' rental.pk %}"
+                                class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm" title="重設回待核准狀態"
+                                onclick="return confirm('確定要重設為「待核准」嗎？')">
+                                <i class="fas fa-redo me-1"></i>
+                            </a>
+                        </div>
+                        {% else %}
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="{% url 'XrResource:rental_edit' rental.pk %}"
+                                class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" title="編輯內容">
+                                <i class="fas fa-edit me-1"></i>編輯
+                            </a>
+                            <a href="{% url 'XrResource:rental_reset' rental.pk %}"
+                                class="btn btn-sm btn-outline-secondary rounded-pill px-2 shadow-sm" title="重設回待核准狀態"
+                                onclick="return confirm('確定要重設為「待核准」嗎？')">
+                                <i class="fas fa-redo"></i>
+                            </a>
+                            <a href="{% url 'XrResource:delete_item' 'rental' rental.pk %}"
+                                class="btn btn-sm btn-link text-danger p-0" title="刪除紀錄"
+                                onclick="return confirm('確定要刪除紀錄嗎？')">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                        {% endif %}
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                {% if user.xr_profile.role == 'admin' %}
+                <tr>
+                    <td colspan="6" class="text-center py-5">
+                        {% else %}
+                <tr>
+                    <td colspan="5" class="text-center py-5">
+                        {% endif %}
+                        <div class="text-muted">
+                            <i class="fas fa-folder-open fa-3x mb-3 opacity-20"></i>
+                            <p>目前尚無租借紀錄</p>
+                            <a href="{% url 'XrResource:rental_register' %}"
+                                class="btn btn-sm btn-outline-primary mt-2">立即進行第一次登記</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .bg-soft-primary {
+        background-color: rgba(var(--primary-rgb), 0.1);
+    }
+
+    .bg-soft-info {
+        background-color: rgba(0, 123, 255, 0.1);
+    }
+
+    .table-premium tr:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+</style>
+{% endblock %}

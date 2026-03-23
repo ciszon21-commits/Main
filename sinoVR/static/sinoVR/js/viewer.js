@@ -69,12 +69,33 @@ function init() {
         logUserActivity('EXIT_VR', { duration: 'unknown' });
     });
 
+    // Infinite Dirt Floor
+    const textureLoader = new THREE.TextureLoader();
+    const floorTexture = textureLoader.load('/static/sinoVR/images/dirt_floor.png');
+    floorTexture.wrapS = THREE.RepeatWrapping;
+    floorTexture.wrapT = THREE.RepeatWrapping;
+    floorTexture.repeat.set(500, 500);
+    floorTexture.colorSpace = THREE.SRGBColorSpace;
+
+    const floorGeometry = new THREE.PlaneGeometry(1000, 1000);
+    const floorMaterial = new THREE.MeshPhongMaterial({
+        map: floorTexture,
+        side: THREE.DoubleSide
+    });
+    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -0.01;
+    scene.add(floor);
+
+    // Add fog for infinite horizon feel
+    scene.fog = new THREE.Fog(0x111111, 10, 100);
+
     // Create Boundary (Visual Reference) - Techno Fluorescent (Thick Lines using Mesh)
     console.log("Creating VR Boundary...");
     const boundarySize = 20; // Total width/depth
     const halfSize = boundarySize / 2;
     const thickness = 0.3; // Increased to 30cm thick
-    const boundaryY = 0.1; // Raised to 10cm to avoid Z-fighting
+    const boundaryY = 0.05; // Slightly above dirt floor to avoid Z-fighting
 
     // Neon Cyan Material
     boundaryMat = new THREE.MeshBasicMaterial({
@@ -145,7 +166,7 @@ function loadSkybox() {
             texture.colorSpace = THREE.SRGBColorSpace;
             const geo = new THREE.SphereGeometry(500, 60, 40);
             geo.scale(-1, 1, 1);
-            const mat = new THREE.MeshBasicMaterial({ map: texture });
+            const mat = new THREE.MeshBasicMaterial({ map: texture, fog: false });
             scene.add(new THREE.Mesh(geo, mat));
         });
     }
