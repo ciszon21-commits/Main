@@ -39,6 +39,7 @@ urlpatterns = [
     # path('consistency/', include('DesignConsistency.urls')),
     path('chat/', include('SinoChat.urls', namespace='sinochat')),  # Sinotech 聊天室
     path('interview/', include('InterviewAssessment.urls', namespace='interview_assessment')),
+    path('bgf-excavation/', include('BFGExcavation.urls', namespace='bfg')),  # 臨時支撐配置深度檢核
 ]
 
 # 條件載入 ClashClassifier API

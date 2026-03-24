@@ -1,0 +1,206 @@
+{% extends "BFGExcavation/base.html" %}
+{% block title %}{{ form_title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            {{ form_title }}
+        </h1>
+        <p class="page-subtitle">請填寫基礎開挖相關參數</p>
+    </div>
+    <a href="{% url 'bfg:dashboard' %}" class="btn btn-outline">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,19 5,12 12,5"/></svg>
+        返回儀表板
+    </a>
+</div>
+
+<form method="post" id="foundation-form">
+    {% csrf_token %}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+        <!-- Left Column -->
+        <div style="display:flex;flex-direction:column;gap:20px;">
+
+            <!-- 基本識別 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        基本識別
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.project_code.id_for_label }}">計畫編號 <span style="color:var(--red-error);">*</span></label>
+                        {{ form.project_code }}
+                        {% if form.project_code.errors %}<div style="color:var(--red-error);font-size:0.78rem;margin-top:4px;">{{ form.project_code.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.bridge_name.id_for_label }}">橋梁名稱 <span style="color:var(--red-error);">*</span></label>
+                        {{ form.bridge_name }}
+                        {% if form.bridge_name.errors %}<div style="color:var(--red-error);font-size:0.78rem;margin-top:4px;">{{ form.bridge_name.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.bridge_id.id_for_label }}">基礎標識 <span style="color:var(--red-error);">*</span></label>
+                        {{ form.bridge_id }}
+                        {% if form.bridge_id.errors %}<div style="color:var(--red-error);font-size:0.78rem;margin-top:4px;">{{ form.bridge_id.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.excavation_plan.id_for_label }}">開挖平面</label>
+                        {{ form.excavation_plan }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.excavation_section.id_for_label }}">開挖剖面</label>
+                        {{ form.excavation_section }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.note.id_for_label }}">備註</label>
+                        {{ form.note }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 幾何尺寸 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1,6 1,22 8,18 16,22 23,18 23,2 16,6 8,2"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+                        幾何尺寸
+                    </span>
+                    <span class="badge badge-blue">B1/B2/L1/L2</span>
+                </div>
+                <div class="card-body">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">B1 (m)</label>
+                            {{ form.B1 }}
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">B2 (m)</label>
+                            {{ form.B2 }}
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">L1 (m)</label>
+                            {{ form.L1 }}
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">L2 (m)</label>
+                            {{ form.L2 }}
+                        </div>
+                    </div>
+                    <hr class="divider">
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.skew_angle.id_for_label }}">夾角 skew_angle (°)</label>
+                        {{ form.skew_angle }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.offset_dist.id_for_label }}">各階支撐退縮距離 offset_dist (m)</label>
+                        {{ form.offset_dist }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div style="display:flex;flex-direction:column;gap:20px;">
+
+            <!-- 結構參數 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+                        結構參數
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.column_base_el.id_for_label }}">柱底EL column_base_el (m) <span style="color:var(--red-error);">*</span></label>
+                        {{ form.column_base_el }}
+                        {% if form.column_base_el.errors %}<div style="color:var(--red-error);font-size:0.78rem;margin-top:4px;">{{ form.column_base_el.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.h1_thickness.id_for_label }}">版厚 h1_thickness (m) <span style="color:var(--red-error);">*</span></label>
+                        {{ form.h1_thickness }}
+                        {% if form.h1_thickness.errors %}<div style="color:var(--red-error);font-size:0.78rem;margin-top:4px;">{{ form.h1_thickness.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.c_pc_thickness.id_for_label }}">打底PC c_pc_thickness (m) <span style="color:var(--red-error);">*</span></label>
+                        {{ form.c_pc_thickness }}
+                        {% if form.c_pc_thickness.errors %}<div style="color:var(--red-error);font-size:0.78rem;margin-top:4px;">{{ form.c_pc_thickness.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.d1_manual.id_for_label }}">強制指定D1最小間距 d1_manual (m)</label>
+                        {{ form.d1_manual }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 八向地表高程 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M4 20V10l8-8 8 8v10"/></svg>
+                        八向地表高程 (m)
+                    </span>
+                    <span class="badge badge-orange">EL 數據</span>
+                </div>
+                <div class="card-body">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">L1起點 el_l1_start</label>
+                            {{ form.el_l1_start }}
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">L1終點 el_l1_end</label>
+                            {{ form.el_l1_end }}
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">L2起點 el_l2_start</label>
+                            {{ form.el_l2_start }}
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">L2終點 el_l2_end</label>
+                            {{ form.el_l2_end }}
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">B1起點 el_b1_start</label>
+                            {{ form.el_b1_start }}
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">B1終點 el_b1_end</label>
+                            {{ form.el_b1_end }}
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">B2起點 el_b2_start</label>
+                            {{ form.el_b2_start }}
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">B2終點 el_b2_end</label>
+                            {{ form.el_b2_end }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Submit Bar -->
+    {% if form.non_field_errors %}
+    <div class="alert alert-error" style="margin-top:20px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <span>{{ form.non_field_errors.0 }}</span>
+    </div>
+    {% endif %}
+
+    <div class="card" style="margin-top:20px;padding:16px 20px;display:flex;justify-content:flex-end;gap:10px;">
+        <a href="{% url 'bfg:dashboard' %}" class="btn btn-outline">取消</a>
+        <button type="submit" class="btn btn-cta">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
+            {{ submit_label }}
+        </button>
+    </div>
+</form>
+{% endblock %}

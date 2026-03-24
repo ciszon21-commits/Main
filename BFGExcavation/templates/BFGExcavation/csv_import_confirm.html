@@ -1,0 +1,82 @@
+{% extends "BFGExcavation/base.html" %}
+{% block title %}CSV 衝突確認{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            CSV 匯入衝突確認
+        </h1>
+        <p class="page-subtitle">部分資料已存在，請選擇覆蓋或跳過</p>
+    </div>
+</div>
+
+<div class="alert alert-info">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span>發現 <strong>{{ conflicts|length }}</strong> 筆資料衝突，另有 <strong>{{ new_records_count }}</strong> 筆新資料將直接匯入。請選擇衝突資料的處理方式。</span>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="csv_data_b64" value="{{ csv_data_b64 }}">
+    <input type="hidden" name="project_code_ui" value="{{ project_code_ui }}">
+    <input type="hidden" name="bridge_name_ui" value="{{ bridge_name_ui }}">
+
+    <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">
+            <span class="card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                衝突資料清單（{{ conflicts|length }} 筆）
+            </span>
+            <div style="display:flex;gap:8px;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="toggleAll(true)">全部覆蓋</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="toggleAll(false)">全部跳過</button>
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width:48px;text-align:center;">覆蓋</th>
+                        <th>計畫編號</th>
+                        <th>橋梁名稱</th>
+                        <th>基礎標識</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in conflicts %}
+                    <tr>
+                        <td style="text-align:center;">
+                            <input type="checkbox" name="overwrite_ids" value="{{ c.full_id }}"
+                                id="chk-{{ forloop.counter }}" class="conflict-chk"
+                                style="width:16px;height:16px;cursor:pointer;accent-color:var(--orange-cta);">
+                        </td>
+                        <td class="mono">{{ c.project_code }}</td>
+                        <td>{{ c.bridge_name }}</td>
+                        <td class="mono" style="font-weight:600;color:var(--yellow-warn);">{{ c.bridge_id }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card" style="padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+        <a href="{% url 'bfg:import' %}" class="btn btn-outline">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,19 5,12 12,5"/></svg>
+            返回重新上傳
+        </a>
+        <button type="submit" class="btn btn-cta">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            確認匯入
+        </button>
+    </div>
+</form>
+
+<script>
+function toggleAll(state) {
+    document.querySelectorAll('.conflict-chk').forEach(cb => cb.checked = state);
+}
+</script>
+{% endblock %}

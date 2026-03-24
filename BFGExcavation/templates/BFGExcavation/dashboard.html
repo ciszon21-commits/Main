@@ -1,0 +1,507 @@
+{% extends "BFGExcavation/base.html" %}
+{% block title %}計畫儀表板{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Hierarchy Layout ── */
+.hierarchy-container { display: flex; flex-direction: column; gap: 12px; }
+
+/* Level 1: Project */
+.project-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: var(--transition);
+}
+.project-card:hover { border-color: var(--blue-primary); }
+.project-card.has-review { border-left: 3px solid var(--yellow-warn); }
+
+.project-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px; cursor: pointer;
+    user-select: none; transition: background 0.15s;
+}
+.project-header:hover { background: rgba(59,130,246,0.06); }
+.project-chevron {
+    width: 20px; height: 20px; color: var(--text-muted);
+    transition: transform 0.25s; flex-shrink: 0;
+}
+.project-card.open .project-chevron { transform: rotate(90deg); }
+.project-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: rgba(59,130,246,0.15);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.project-icon svg { width: 18px; height: 18px; color: var(--blue-secondary); }
+.project-name {
+    font-weight: 700; font-size: 0.95rem;
+    color: var(--text-primary); flex: 1; font-family: 'Fira Code', monospace;
+}
+.project-meta {
+    display: flex; align-items: center; gap: 16px;
+    font-size: 0.78rem; color: var(--text-muted);
+}
+.project-meta-item { display: flex; align-items: center; gap: 5px; }
+.project-meta-item svg { width: 13px; height: 13px; }
+.project-meta-val { font-weight: 600; color: var(--text-secondary); font-family: 'Fira Code', monospace; }
+.project-actions { display: flex; gap: 6px; margin-left: 8px; }
+
+/* Level 1 body (bridges list) */
+.project-body { display: none; border-top: 1px solid var(--border-color); }
+.project-card.open .project-body { display: block; }
+
+/* Level 2: Bridge accordion */
+.bridge-list { display: flex; flex-direction: column; }
+.bridge-item { border-bottom: 1px solid rgba(30,58,95,0.4); }
+.bridge-item:last-child { border-bottom: none; }
+
+.bridge-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 20px 10px 52px; cursor: pointer;
+    transition: background 0.15s; user-select: none;
+}
+.bridge-header:hover { background: rgba(249,115,22,0.04); }
+.bridge-chevron {
+    width: 16px; height: 16px; color: var(--text-muted);
+    transition: transform 0.2s; flex-shrink: 0;
+}
+.bridge-item.open .bridge-chevron { transform: rotate(90deg); }
+.bridge-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--orange-cta); flex-shrink: 0;
+}
+.bridge-name {
+    font-weight: 600; font-size: 0.875rem; flex: 1; color: var(--text-primary);
+}
+.bridge-meta {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 0.75rem; color: var(--text-muted);
+}
+.bridge-actions { display: flex; gap: 6px; margin-left: 8px; }
+
+/* Level 2 body (foundation table) */
+.bridge-body { display: none; }
+.bridge-item.open .bridge-body { display: block; }
+
+/* Level 3: Foundation table */
+.foundation-table-wrap {
+    padding: 0 0 8px 52px;
+    background: rgba(10,14,26,0.5);
+}
+.foundation-table-wrap .data-table th {
+    background: transparent; font-size: 0.72rem; padding: 7px 10px;
+}
+.foundation-table-wrap .data-table td { padding: 7px 10px; font-size: 0.82rem; border-color: rgba(30,58,95,0.3); }
+.foundation-table-wrap .data-table tbody tr:last-child td { border-bottom: none; }
+
+/* Search + Filter Bar */
+.filter-bar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg); padding: 12px 16px; margin-bottom: 16px;
+}
+.filter-bar input, .filter-bar select {
+    padding: 6px 10px; font-size: 0.85rem;
+}
+.filter-bar input { flex: 1; min-width: 180px; max-width: 260px; }
+.filter-bar select { max-width: 200px; }
+
+/* Empty state */
+.empty-state {
+    text-align: center; padding: 60px 20px; color: var(--text-muted);
+}
+.empty-state svg { width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.4; }
+.empty-state p { font-size: 0.875rem; }
+
+/* Loading skeleton */
+.skeleton { animation: pulse 1.5s infinite; background: var(--bg-surface); border-radius: 8px; height: 60px; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            計畫儀表板
+        </h1>
+        <p class="page-subtitle">階層式管理：計畫 → 橋梁 → 基礎</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="{% url 'bfg:import' %}" class="btn btn-outline">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            匯入 CSV
+        </a>
+        <a href="{% url 'bfg:3d' %}" class="btn btn-outline">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            3D 視覺化
+        </a>
+        <a href="{% url 'bfg:create' %}" class="btn btn-cta">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            新增基礎
+        </a>
+    </div>
+</div>
+
+<!-- Stats Row -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;">
+    <div class="card" style="padding:18px;display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;background:rgba(59,130,246,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+        </div>
+        <div>
+            <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">計畫數</div>
+            <div id="stat-projects" style="font-size:1.6rem;font-weight:700;font-family:'Fira Code',monospace;color:var(--blue-secondary);">—</div>
+        </div>
+    </div>
+    <div class="card" style="padding:18px;display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;background:rgba(249,115,22,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3M3 16v3a2 2 0 002 2h3m8 0h3a2 2 0 002-2v-3"/></svg>
+        </div>
+        <div>
+            <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">橋梁數</div>
+            <div id="stat-bridges" style="font-size:1.6rem;font-weight:700;font-family:'Fira Code',monospace;color:#FB923C;">—</div>
+        </div>
+    </div>
+    <div class="card" style="padding:18px;display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;background:rgba(34,197,94,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2"><polygon points="12,2 2,7 12,12 22,7"/><polyline points="2,17 12,22 22,17"/><polyline points="2,12 12,17 22,12"/></svg>
+        </div>
+        <div>
+            <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">基礎總數</div>
+            <div id="stat-foundations" style="font-size:1.6rem;font-weight:700;font-family:'Fira Code',monospace;color:var(--green-ok);">—</div>
+        </div>
+    </div>
+    <div class="card" style="padding:18px;display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;background:rgba(239,68,68,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div>
+            <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">需檢視</div>
+            <div id="stat-review" style="font-size:1.6rem;font-weight:700;font-family:'Fira Code',monospace;color:var(--red-error);">—</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" style="flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <input type="text" id="search-input" class="form-input" placeholder="搜尋計畫、橋梁、基礎…">
+    <select id="project-filter" class="form-input">
+        <option value="">所有計畫</option>
+    </select>
+    <select id="bridge-filter" class="form-input">
+        <option value="">所有橋梁</option>
+    </select>
+    <button id="expand-all-btn" class="btn btn-outline btn-sm" title="展開全部">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7,13 12,18 17,13"/><polyline points="7,6 12,11 17,6"/></svg>
+        全部展開
+    </button>
+    <button id="collapse-all-btn" class="btn btn-outline btn-sm" title="收合全部">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17,11 12,6 7,11"/><polyline points="17,18 12,13 7,18"/></svg>
+        全部收合
+    </button>
+    <button id="reset-btn" class="btn btn-outline btn-sm">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+        重置
+    </button>
+    <span id="result-count" class="badge badge-blue" style="margin-left:auto;white-space:nowrap;">讀取中…</span>
+</div>
+
+<!-- Hierarchy Container -->
+<div id="hierarchy-container" class="hierarchy-container">
+    <div class="skeleton"></div>
+    <div class="skeleton" style="height:50px;opacity:0.7;"></div>
+    <div class="skeleton" style="height:50px;opacity:0.5;"></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let allData = [];     // raw hierarchy from API
+let allBridgeNames = [];  // unique bridge names across all projects
+
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+// ── Render Foundation Table (Level 3) ──────────────────────────────────
+function renderFoundations(foundations) {
+    if (!foundations.length) return `<div style="padding:12px 20px;color:var(--text-muted);font-size:0.82rem;">無基礎資料</div>`;
+    const rows = foundations.map(f => {
+        const reviewBadge = f.needs_review ? '<span class="badge badge-yellow" style="margin-left:4px;font-size:0.68rem;">⚠更新</span>' : '';
+        return `<tr>
+            <td class="mono" style="font-weight:600;color:var(--blue-secondary);">${esc(f.bridge_id)}${reviewBadge}</td>
+            <td>${esc(f.excavation_plan||'—')}</td>
+            <td>${esc(f.excavation_section||'—')}</td>
+            <td class="mono">${f.column_base_el}</td>
+            <td class="mono">${f.h1_thickness}</td>
+            <td class="mono">${f.c_pc_thickness}</td>
+            <td class="mono">${f.skew_angle ?? 0}</td>
+            <td style="color:var(--text-muted);font-size:0.75rem;">${f.updated_at||f.created_at||'—'}</td>
+            <td style="text-align:center;">
+                <div style="display:flex;gap:4px;justify-content:center;">
+                    <a href="/bgf-excavation/${esc(String(f.id))}/edit/" class="btn btn-outline btn-sm" style="padding:3px 8px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        編輯
+                    </a>
+                    <a href="/bgf-excavation/${esc(String(f.id))}/delete/" class="btn btn-danger btn-sm" style="padding:3px 8px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m5 0V4a1 1 0 011-1h2a1 1 0 011 1v2"/></svg>
+                        刪除
+                    </a>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+    return `<div class="foundation-table-wrap">
+        <table class="data-table">
+            <thead><tr>
+                <th>基礎標識</th><th>開挖平面</th><th>開挖剖面</th>
+                <th>柱底EL(m)</th><th>版厚(m)</th><th>PC厚(m)</th><th>夾角(°)</th>
+                <th>更新日期</th><th style="text-align:center;">操作</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+        </table>
+    </div>`;
+}
+
+// ── Render Bridge Level (Level 2) ──────────────────────────────────────
+function renderBridges(bridges, projectCode) {
+    return bridges.map((b, bi) => {
+        const reviewCount = b.foundations.filter(f => f.needs_review).length;
+        const reviewBadge = reviewCount > 0 ? `<span class="badge badge-yellow" style="font-size:0.68rem;">${reviewCount} 需檢視</span>` : '';
+        return `
+        <div class="bridge-item" id="bridge-${esc(projectCode)}-${bi}" data-bridge="${esc(b.bridge_name)}">
+            <div class="bridge-header" onclick="toggleBridge(this)">
+                <svg class="bridge-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9,18 15,12 9,6"/></svg>
+                <div class="bridge-dot"></div>
+                <span class="bridge-name">${esc(b.bridge_name)}</span>
+                <div class="bridge-meta">
+                    ${reviewBadge}
+                    <span class="badge badge-blue" style="font-size:0.68rem;">${b.foundation_count} 基礎</span>
+                    <span style="display:flex;align-items:center;gap:4px;">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        ${b.latest_date}
+                    </span>
+                </div>
+                <div class="bridge-actions" onclick="event.stopPropagation()">
+                    <a href="/bgf-excavation/create/?project_code=${encodeURIComponent(projectCode)}&bridge_name=${encodeURIComponent(b.bridge_name)}" class="btn btn-cta btn-sm" style="padding:3px 8px;font-size:0.75rem;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        新增基礎
+                    </a>
+                </div>
+            </div>
+            <div class="bridge-body">
+                ${renderFoundations(b.foundations)}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ── Render Project Level (Level 1) ─────────────────────────────────────
+function renderProjects(data) {
+    const container = document.getElementById('hierarchy-container');
+    if (!data.length) {
+        container.innerHTML = `<div class="card"><div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <p>目前無符合條件的資料。<br>請<a href="/bgf-excavation/create/" style="color:var(--blue-secondary);">新增基礎</a>或<a href="/bgf-excavation/import/" style="color:var(--blue-secondary);">匯入 CSV</a>。</p>
+        </div></div>`;
+        document.getElementById('result-count').textContent = '0 計畫';
+        return;
+    }
+
+    let totalBridges = 0, totalReview = 0;
+    const html = data.map((proj, pi) => {
+        totalBridges += proj.bridges.length;
+        const reviewCount = proj.bridges.reduce((s, b) => s + b.foundations.filter(f => f.needs_review).length, 0);
+        totalReview += reviewCount;
+        const hasReview = reviewCount > 0;
+        return `
+        <div class="project-card${hasReview ? ' has-review' : ''}" id="proj-${pi}">
+            <div class="project-header" onclick="toggleProject(this)">
+                <svg class="project-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9,18 15,12 9,6"/></svg>
+                <div class="project-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                </div>
+                <span class="project-name">${esc(proj.project_code)}</span>
+                <div class="project-meta">
+                    ${hasReview ? `<span class="badge badge-yellow" style="font-size:0.68rem;">${reviewCount} 需檢視</span>` : ''}
+                    <span class="project-meta-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3M3 16v3a2 2 0 002 2h3m8 0h3a2 2 0 002-2v-3"/></svg>
+                        橋梁 <span class="project-meta-val">${proj.bridge_count}</span>
+                    </span>
+                    <span class="project-meta-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 2,7 12,12 22,7"/><polyline points="2,17 12,22 22,17"/></svg>
+                        基礎 <span class="project-meta-val">${proj.foundation_count}</span>
+                    </span>
+                    <span class="project-meta-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        ${proj.latest_date}
+                    </span>
+                </div>
+                <div class="project-actions" onclick="event.stopPropagation()">
+                    <a href="/bgf-excavation/create/?project_code=${encodeURIComponent(proj.project_code)}" class="btn btn-outline btn-sm" style="font-size:0.75rem;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        新增橋梁/基礎
+                    </a>
+                </div>
+            </div>
+            <div class="project-body">
+                <div class="bridge-list">${renderBridges(proj.bridges, proj.project_code)}</div>
+            </div>
+        </div>`;
+    }).join('');
+
+    container.innerHTML = html;
+    document.getElementById('result-count').textContent = `${data.length} 計畫 / ${totalBridges} 橋梁`;
+    document.getElementById('stat-review').textContent = totalReview;
+}
+
+// ── Toggle Functions ──────────────────────────────────────────────────
+function toggleProject(header) {
+    header.closest('.project-card').classList.toggle('open');
+}
+function toggleBridge(header) {
+    header.closest('.bridge-item').classList.toggle('open');
+}
+
+// ── Filter Logic ──────────────────────────────────────────────────────
+function applyFilters() {
+    const search = document.getElementById('search-input').value.toLowerCase().trim();
+    const projectFilter = document.getElementById('project-filter').value;
+    const bridgeFilter = document.getElementById('bridge-filter').value;
+
+    let filtered = allData;
+
+    if (projectFilter) {
+        filtered = filtered.filter(p => p.project_code === projectFilter);
+    }
+
+    if (bridgeFilter) {
+        filtered = filtered.map(p => ({
+            ...p,
+            bridges: p.bridges.filter(b => b.bridge_name === bridgeFilter)
+        })).filter(p => p.bridges.length > 0);
+    }
+
+    if (search) {
+        filtered = filtered.map(p => {
+            const pMatch = p.project_code.toLowerCase().includes(search);
+            const bridges = p.bridges.map(b => {
+                const bMatch = b.bridge_name.toLowerCase().includes(search);
+                const foundations = b.foundations.filter(f =>
+                    f.bridge_id.toLowerCase().includes(search) ||
+                    (f.excavation_plan||'').toLowerCase().includes(search) ||
+                    (f.excavation_section||'').toLowerCase().includes(search)
+                );
+                if (bMatch) return b; // show entire bridge
+                if (foundations.length) return {...b, foundations};
+                return null;
+            }).filter(Boolean);
+            if (pMatch) return p;
+            return bridges.length ? {...p, bridges} : null;
+        }).filter(Boolean);
+    }
+
+    renderProjects(filtered);
+
+    // Auto-expand if filter is active
+    if (search || projectFilter || bridgeFilter) {
+        document.querySelectorAll('.project-card').forEach(c => c.classList.add('open'));
+        if (search || bridgeFilter) {
+            document.querySelectorAll('.bridge-item').forEach(c => c.classList.add('open'));
+        }
+    }
+}
+
+// ── Populate unique dropdowns ─────────────────────────────────────────
+function populateDropdowns(data) {
+    const pSel = document.getElementById('project-filter');
+    const bSel = document.getElementById('bridge-filter');
+
+    // Unique projects (preserve order from API)
+    data.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.project_code;
+        opt.textContent = p.project_code;
+        pSel.appendChild(opt);
+    });
+
+    // Unique bridge names across all projects
+    const bridgeSet = new Set();
+    data.forEach(p => p.bridges.forEach(b => bridgeSet.add(b.bridge_name)));
+    allBridgeNames = [...bridgeSet];
+    allBridgeNames.forEach(bn => {
+        const opt = document.createElement('option');
+        opt.value = bn; opt.textContent = bn;
+        bSel.appendChild(opt);
+    });
+}
+
+// When project changes, filter bridge dropdown to only show bridges in selected project
+document.getElementById('project-filter').addEventListener('change', function() {
+    const bSel = document.getElementById('bridge-filter');
+    const selectedProject = this.value;
+    bSel.innerHTML = '<option value="">所有橋梁</option>';
+    let bridges = allBridgeNames;
+    if (selectedProject) {
+        const proj = allData.find(p => p.project_code === selectedProject);
+        bridges = proj ? proj.bridges.map(b => b.bridge_name) : [];
+    }
+    bridges.forEach(bn => {
+        const opt = document.createElement('option');
+        opt.value = bn; opt.textContent = bn;
+        bSel.appendChild(opt);
+    });
+    applyFilters();
+});
+
+document.getElementById('bridge-filter').addEventListener('change', applyFilters);
+document.getElementById('search-input').addEventListener('input', applyFilters);
+
+document.getElementById('expand-all-btn').addEventListener('click', () => {
+    document.querySelectorAll('.project-card').forEach(c => c.classList.add('open'));
+    document.querySelectorAll('.bridge-item').forEach(c => c.classList.add('open'));
+});
+document.getElementById('collapse-all-btn').addEventListener('click', () => {
+    document.querySelectorAll('.project-card').forEach(c => c.classList.remove('open'));
+    document.querySelectorAll('.bridge-item').forEach(c => c.classList.remove('open'));
+});
+document.getElementById('reset-btn').addEventListener('click', () => {
+    document.getElementById('search-input').value = '';
+    document.getElementById('project-filter').value = '';
+    const bSel = document.getElementById('bridge-filter');
+    bSel.innerHTML = '<option value="">所有橋梁</option>';
+    allBridgeNames.forEach(bn => {
+        const opt = document.createElement('option');
+        opt.value = bn; opt.textContent = bn;
+        bSel.appendChild(opt);
+    });
+    renderProjects(allData);
+});
+
+// ── Load Data ─────────────────────────────────────────────────────────
+async function loadHierarchy() {
+    try {
+        const res = await fetch('/bgf-excavation/api/hierarchy/');
+        allData = await res.json();
+
+        // Update top stats
+        const totalBridges = allData.reduce((s, p) => s + p.bridge_count, 0);
+        const totalFoundations = allData.reduce((s, p) => s + p.foundation_count, 0);
+        document.getElementById('stat-projects').textContent = allData.length;
+        document.getElementById('stat-bridges').textContent = totalBridges;
+        document.getElementById('stat-foundations').textContent = totalFoundations;
+
+        populateDropdowns(allData);
+        renderProjects(allData);
+    } catch(e) {
+        document.getElementById('hierarchy-container').innerHTML =
+            `<div class="card"><div class="empty-state" style="color:var(--red-error);">
+                <p>資料載入失敗：${e.message}</p></div></div>`;
+    }
+}
+
+loadHierarchy();
+</script>
+{% endblock %}

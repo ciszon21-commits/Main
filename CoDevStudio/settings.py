@@ -99,6 +99,7 @@ INSTALLED_APPS = [
     # 'DesignConsistency',
     'SinoChat',  # Sinotech 內部聊天室
     'InterviewAssessment',
+    'BFGExcavation',  # 臨時支撐配置深度檢核
 ] + local.STAGE_INSTALLED_APPS
 
 
