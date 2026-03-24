@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, XrBulkItem, XrRentalRecord, XrUserProfile, RentalNature
+from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, XrBulkItem, XrRentalRecord, XrUserProfile, RentalNature, XrRentalEquipment
 
 @admin.register(RentalNature)
 class RentalNatureAdmin(admin.ModelAdmin):
@@ -35,12 +35,17 @@ class XrBulkItemAdmin(admin.ModelAdmin):
     list_filter = ('section',)
     search_fields = ('name',)
 
+class XrRentalEquipmentInline(admin.TabularInline):
+    model = XrRentalEquipment
+    extra = 0
+
 @admin.register(XrRentalRecord)
 class XrRentalRecordAdmin(admin.ModelAdmin):
     list_display = ('activity_name', 'nature', 'borrower_name', 'activity_date', 'status', 'created_at')
     list_filter = ('status', 'nature', 'activity_date')
     search_fields = ('activity_name', 'borrower_name', 'borrower_id')
-    filter_horizontal = ('equipments',)
+    # filter_horizontal = ('equipments',) # 經由 through 中間表時不可用
+    inlines = [XrRentalEquipmentInline]
 
 @admin.register(XrUserProfile)
 class XrUserProfileAdmin(admin.ModelAdmin):

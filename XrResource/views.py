@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.db import models, transaction, IntegrityError
-from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, XrBulkItem, XrRentalRecord, XrRentalBulkItem, XrUserProfile
+from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, XrBulkItem, XrRentalRecord, XrRentalBulkItem, XrRentalEquipment, XrUserProfile
 from .forms import EquipmentCategoryForm, XrEquipmentForm, XrSupportRecordForm, GoProRentalRecordForm, XrBulkItemForm, XrRentalRecordForm
 from django.contrib.auth.decorators import login_required
 from functools import wraps
@@ -161,20 +161,37 @@ def rental_register(request, pk=None):
                             bulk_item = r_bulk.bulk_item
                             bulk_item.reserved_count = max(0, bulk_item.reserved_count - r_bulk.count)
                             bulk_item.save()
-                        # 刪除舊的配件關聯
+                        # 刪除舊的配件與主機關聯
                         rental.xrrentalbulkitem_set.all().delete()
+                        rental.xrrentalequipment_set.all().delete()
 
                     # 儲存主要單據
                     rental_record = form.save()
                     
-                    # 只有在「待核准」或「新申請」時，才套用預約邏輯
+                    # 只有在「待核准」或「新申請」時，才處理主機與配件預約邏輯
                     # 歷史資料 (returned) 編輯不更動庫存狀態
                     if not rental or rental.status == 'pending':
-                        # 1. 主機設備改為預約中
-                        for equipment in rental_record.equipments.all():
+                        # 1. 主機設備改為預約中 (手動建立 XrRentalEquipment)
+                        selected_equipments = form.cleaned_data.get('equipments', [])
+                        for equipment in selected_equipments:
+                            XrRentalEquipment.objects.get_or_create(
+                                rental_record=rental_record,
+                                equipment=equipment,
+                                defaults={'is_returned': False}
+                            )
                             equipment.update_status()
+                    else:
+                        # 歷史資料或已核准資料，如果編輯時設備有變動，也需要建立關連 (但 status 維持原本)
+                        # 注意：這裡假設編輯歷史資料不會隨意更動設備，若有更動，開發者需考量 is_returned 初期值
+                        selected_equipments = form.cleaned_data.get('equipments', [])
+                        for equipment in selected_equipments:
+                            XrRentalEquipment.objects.get_or_create(
+                                rental_record=rental_record,
+                                equipment=equipment,
+                                defaults={'is_returned': (rental_record.status == 'returned')}
+                            )
 
-                    # 2. 處理配件待扣數量 (不論是否 pending 都要建立關聯，但只有 pending 會加 reserved_count)
+                    # 2. 處理配件待扣數量
                     bulk_ids = request.POST.getlist('bulk_item_ids[]')
                     bulk_counts = request.POST.getlist('bulk_item_counts[]')
                     
@@ -315,9 +332,12 @@ def rental_reset(request, pk):
                 r_bulk.is_returned = False
                 r_bulk.save()
 
-            # 3. 標記為待核准
+            # 3. 標記為待核准，並重設設備歸還狀態
             rental.status = 'pending'
             rental.save()
+            for r_eq in rental.xrrentalequipment_set.all():
+                r_eq.is_returned = False
+                r_eq.save()
             
         messages.info(request, f'已將 {rental.activity_name} 的狀態重設為待核准，其所屬設備已回歸庫存預約狀態。')
     except IntegrityError:
@@ -353,9 +373,12 @@ def reset_rental_return(request, pk):
                     r_bulk.is_returned = False
                     r_bulk.save()
 
-            # 3. 強制將單據狀態設回「已核准」
+            # 3. 強制將單據狀態設回「已核准」，並重設主機歸還狀態
             rental.status = 'approved'
             rental.save()
+            for r_eq in rental.xrrentalequipment_set.all():
+                r_eq.is_returned = False
+                r_eq.save()
             
         messages.success(request, f'已成功初始化 {rental.activity_name} 的點交紀錄。')
     except IntegrityError:
@@ -382,10 +405,13 @@ def rental_return(request, pk):
             
             # 2. 處理主機歸還
             for eq_id in returned_equipment_ids:
-                equipment = rental.equipments.get(id=eq_id)
-                if equipment.status == 'rented':
-                    # 歸還後檢查是否有其他單子預約/出借，排除當前這張單
-                    equipment.update_status(exclude_ids=[rental.id])
+                r_eq = rental.xrrentalequipment_set.get(equipment_id=eq_id)
+                if not r_eq.is_returned:
+                    # 標記該單據中的此設備已歸還
+                    r_eq.is_returned = True
+                    r_eq.save()
+                    # 更新設備全域狀態 (檢查是否有其他單子預約/出借)
+                    r_eq.equipment.update_status()
             
             # 2. 處理配件歸還
             for rb_id in returned_bulk_item_ids:
@@ -396,12 +422,12 @@ def rental_return(request, pk):
                     bulk_item.available_count += r_bulk.count
                     bulk_item.save()
                     
-                    # 標記該項目已歸還
-                    r_bulk.is_returned = True
-                    r_bulk.save()
+                # 標記該項目已歸還
+                r_bulk.is_returned = True
+                r_bulk.save()
             
             # 3. 檢查自動關單 (是否所有東西都還了)
-            all_eq_returned = not rental.equipments.filter(status='rented').exists()
+            all_eq_returned = not rental.xrrentalequipment_set.filter(is_returned=False).exists()
             all_bulk_returned = not rental.xrrentalbulkitem_set.filter(is_returned=False).exists()
             
             if all_eq_returned and all_bulk_returned:

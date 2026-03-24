@@ -53,22 +53,22 @@
                 <div class="glass-card h-100">
                     <h5 class="fw-bold mb-3 text-primary"><i class="fas fa-desktop me-2"></i>主機設備歸還</h5>
                     <div class="list-group list-group-flush">
-                        {% for eq in rental.equipments.all %}
+                        {% for r_eq in rental.xrrentalequipment_set.all %}
                         <label class="list-group-item d-flex align-items-center py-3 border-0 transition-hover">
                             <div class="form-check fs-5 me-3">
                                 <input class="form-check-input" type="checkbox" name="returned_equipments"
-                                    value="{{ eq.id }}" {% if eq.status == 'available' %}checked disabled{% endif %}>
+                                    value="{{ r_eq.equipment.id }}" {% if r_eq.is_returned %}checked disabled{% endif %}>
                             </div>
                             <div class="flex-grow-1">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <span class="fw-bold text-dark">{{ eq.name }}</span>
-                                    {% if eq.status == 'available' %}
+                                    <span class="fw-bold text-dark">{{ r_eq.equipment.name }}</span>
+                                    {% if r_eq.is_returned %}
                                     <span class="badge bg-success-soft text-success rounded-pill px-3">已歸還</span>
                                     {% else %}
                                     <span class="badge bg-danger-soft text-danger rounded-pill px-3">借用中</span>
                                     {% endif %}
                                 </div>
-                                <div class="text-muted small">編號：{{ eq.serial_number|default:"--" }}</div>
+                                <div class="text-muted small">編號：{{ r_eq.equipment.serial_number|default:"--" }}</div>
                             </div>
                         </label>
                         {% endfor %}
