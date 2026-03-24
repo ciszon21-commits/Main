@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="zh-hant">
+<head>
+    <meta charset="UTF-8">
+    <title>BFGExcavation - 3D</title>
+    <style>
+        :root {
+            --left-width: 420px;
+            --top-left-height: 55%;
+            /* Dark theme tokens */
+            --bg-dark:   #0A0E1A;
+            --bg-card:   #0F1629;
+            --bg-surf:   #141E33;
+            --border:    #1E3A5F;
+            --blue:      #3B82F6;
+            --blue2:     #60A5FA;
+            --orange:    #F97316;
+            --text:      #F1F5F9;
+            --muted:     #94A3B8;
+            --green:     #22C55E;
+            --red:       #EF4444;
+            --yellow:    #F59E0B;
+        }
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; overflow: hidden;
+            font-family: 'Fira Sans', 'Noto Sans TC', sans-serif;
+            display: grid; 
+            grid-template-columns: var(--left-width) 4px 1fr; 
+            grid-template-rows: var(--top-left-height) 4px 1fr; 
+            height: 100vh;
+            background: var(--bg-dark);
+            color: var(--text);
+        }
+        #sidebar {
+            grid-column: 1; grid-row: 1;
+            background: var(--bg-card);
+            padding: 16px; overflow-y: auto;
+            border-bottom: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+        }
+        #resizer-h {
+            grid-column: 1; grid-row: 2;
+            background: var(--border); cursor: row-resize; z-index: 20;
+            transition: background 0.2s;
+        }
+        #resizer-h:hover, #resizer-h:active { background: var(--blue); }
+        #canvas-container { 
+            grid-column: 1; grid-row: 3;
+            width: 100%; height: 100%; position: relative; background: #0d1226;
+        }
+        #resizer-v {
+            grid-column: 2; grid-row: 1 / span 3;
+            background: var(--border); cursor: col-resize; z-index: 20;
+            transition: background 0.2s;
+        }
+        #resizer-v:hover, #resizer-v:active { background: var(--blue); }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+        .form-group select, .form-group input[type=number], .form-group input[type=text] {
+            width: 100%; padding: 7px 10px; border-radius: 6px;
+            border: 1px solid var(--border); background: var(--bg-surf);
+            color: var(--text); font-size: 0.85rem; outline: none;
+            transition: border-color 0.15s;
+        }
+        .form-group select:focus, .form-group input:focus { border-color: var(--blue); }
+        .sidebar-title {
+            font-family: 'Fira Code', monospace; font-size: 1rem; font-weight: 700;
+            color: var(--blue2); margin: 0 0 14px; display: flex; align-items: center; gap: 8px;
+        }
+        .sidebar-title svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .back-link {
+            display: flex; align-items: center; gap: 6px;
+            padding: 8px 12px; background: var(--bg-surf);
+            border: 1px solid var(--border); border-radius: 6px;
+            color: var(--blue2); text-decoration: none; font-size: 0.82rem;
+            margin-bottom: 14px; transition: border-color 0.15s, background 0.15s;
+        }
+        .back-link:hover { border-color: var(--blue); background: rgba(59,130,246,0.08); }
+        .back-link svg { width: 14px; height: 14px; }
+        .recalc-btn {
+            width: 100%; padding: 9px; cursor: pointer;
+            background: var(--orange); color: white; border: none;
+            border-radius: 6px; font-weight: 700; font-size: 0.85rem;
+            transition: opacity 0.15s;
+        }
+        .recalc-btn:hover { opacity: 0.88; }
+        #details {
+            background: var(--bg-surf); padding: 10px 12px;
+            border-radius: 6px; margin-top: 12px;
+            border: 1px solid var(--border); font-size: 0.82rem; line-height: 1.7;
+        }
+        #details strong { color: var(--blue2); }
+        #project-stats {
+            background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3);
+            border-radius: 6px; padding: 8px 12px; font-size: 0.8rem; margin-bottom: 12px;
+        }
+        #error-alert { color: var(--red); font-weight: bold; margin-top: 8px; }
+        #warning-alert { color: var(--yellow); font-weight: bold; margin-top: 8px; }
+        .filter-mode-row { display:flex; gap:12px; align-items:center; margin-bottom:4px; font-size:0.82rem; color:var(--muted); }
+        .filter-mode-row label { cursor:pointer; display:flex; align-items:center; gap:4px; color:var(--text); }
+        /* Bottom panel (summary table) */
+        #bottom-panel { background: var(--bg-card); border-left: 1px solid var(--border); }
+        #bottom-panel .panel-header {
+            padding: 8px 14px; background: var(--bg-surf);
+            border-bottom: 1px solid var(--border);
+            display:flex; justify-content:space-between; align-items:center;
+            font-weight: 600; font-size: 0.85rem; color: var(--blue2);
+        }
+        #export-csv-btn {
+            background: var(--green); color: white; border: none;
+            padding: 5px 12px; border-radius: 5px; cursor: pointer; font-size: 0.8rem; font-weight: 600;
+        }
+        #summary-table { width:100%; border-collapse:collapse; text-align:center; font-size:0.82rem; }
+        #summary-table th, #summary-table td { white-space:nowrap; padding:7px 10px; border:1px solid var(--border); }
+        #summary-table thead th { position:sticky; top:0; z-index:5; background:var(--bg-surf); color:var(--blue2); }
+        #summary-table tbody tr { transition:background 0.15s; }
+        #summary-table tbody tr:hover { background:rgba(59,130,246,0.07); }
+        #summary-table .selected-row { background:rgba(249,115,22,0.15) !important; font-weight:bold; }
+        .select-foundation-btn {
+            cursor:pointer; background:var(--blue); color:white;
+            border:none; padding:4px 10px; border-radius:4px; font-size:0.78rem;
+        }
+        .select-foundation-btn:hover { opacity:0.85; }
+        .edit-params-btn {
+            cursor:pointer; background:var(--orange); color:white;
+            border:none; padding:3px 8px; border-radius:4px; font-size:0.75rem;
+        }
+        /* Modals */
+        .modal-overlay {
+            display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;
+        }
+        .modal-box {
+            background:var(--bg-card); padding:20px; border-radius:10px;
+            border:1px solid var(--border); box-shadow:0 8px 32px rgba(0,0,0,0.5);
+            max-height:90vh; overflow-y:auto;
+        }
+        .modal-box h3 { color:var(--blue2); margin-top:0; border-bottom:1px solid var(--border); padding-bottom:10px; }
+        .modal-box h4 { color:var(--muted); font-size:0.85rem; }
+        .modal-box label { color:var(--text); font-size:0.82rem; }
+        .modal-box input[type=number], .modal-box input[type=text] {
+            width:100%; padding:5px 8px; background:var(--bg-surf);
+            border:1px solid var(--border); border-radius:5px;
+            color:var(--text); margin-bottom:8px;
+        }
+        .modal-box button {
+            padding:6px 16px; border-radius:5px; cursor:pointer;
+            border:1px solid var(--border); background:var(--bg-surf); color:var(--text);
+        }
+        #edit-save-btn {
+            background:var(--blue) !important; color:white !important;
+            border:none !important; font-weight:700;
+        }
+        .modal-section {
+            background:var(--bg-surf); padding:10px; border-radius:6px;
+            border:1px solid var(--border);
+        }
+        /* Step guide */
+        #step-guide { display:flex; align-items:center; gap:0; margin-bottom:14px; }
+        .step-item { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+        .step-num {
+            width:24px; height:24px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center;
+            font-size:0.75rem; font-weight:700; flex-shrink:0;
+        }
+        .step-label { font-size:0.72rem; white-space:nowrap; }
+        .step-active .step-num { background:var(--blue); color:white; }
+        .step-active .step-label { color:var(--blue2); font-weight:600; }
+        .step-done .step-num { background:var(--green); color:white; }
+        .step-done .step-label { color:var(--green); }
+        .step-pending .step-num { background:var(--bg-surf); color:var(--muted); border:1px solid var(--border); }
+        .step-pending .step-label { color:var(--muted); }
+        .step-connector { flex:1; height:1px; background:var(--border); min-width:8px; }
+        /* Canvas placeholder */
+        #canvas-placeholder {
+            position:absolute; top:0; left:0; width:100%; height:100%;
+            display:flex; align-items:center; justify-content:center;
+            z-index:5; pointer-events:none;
+        }
+    </style>
+    <!-- Three.js and OrbitControls -->
+    <script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.149.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.149.0/examples/jsm/"
+        }
+      }
+    </script>
+</head>
+<body>
+    <!-- Comprehensive Parameter Edit Modal -->
+    <div id="edit-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; justify-content:center; align-items:center;">
+        <div style="background:white; padding:20px; border-radius:8px; width:900px; max-height:90vh; overflow-y:auto; box-shadow:0 4px 6px rgba(0,0,0,0.3);">
+            <h3 style="margin-top:0; border-bottom:1px solid #ddd; padding-bottom:10px;">全面編輯基礎參數: <span id="edit-modal-title"></span></h3>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:15px; margin-bottom:20px;">
+                <!-- Category 1: Structural Specs -->
+                <div style="background:#f9f9f9; padding:10px; border-radius:4px; border:1px solid #ddd;">
+                    <h4 style="margin-top:0; margin-bottom:10px; color:#417690;">板厚與高程</h4>
+                    <label style="display:block; font-size:0.9em;">頂版厚度 h1_thickness (m):</label>
+                    <input type="number" step="0.01" id="edit-h1" style="width:100%; padding:4px; margin-bottom:8px; box-sizing:border-box;">
+                    
+                    <label style="display:block; font-size:0.9em;">PC厚度 c_pc_thickness (m):</label>
+                    <input type="number" step="0.01" id="edit-pc" style="width:100%; padding:4px; margin-bottom:8px; box-sizing:border-box;">
+                    
+                    <label style="display:block; font-size:0.9em;">柱底高程 column_base_el (m):</label>
+                    <input type="number" step="0.01" id="edit-base" style="width:100%; padding:4px; margin-bottom:8px; box-sizing:border-box;">
+                </div>
+
+                <!-- Category 2: Geometry -->
+                <div style="background:#f9f9f9; padding:10px; border-radius:4px; border:1px solid #ddd;">
+                    <h4 style="margin-top:0; margin-bottom:10px; color:#417690;">幾何尺寸</h4>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px;">
+                        <div>
+                            <label style="font-size:0.8em;">B1 (m):</label>
+                            <input type="number" step="0.01" id="edit-B1" style="width:100%; padding:4px; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.8em;">B2 (m):</label>
+                            <input type="number" step="0.01" id="edit-B2" style="width:100%; padding:4px; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.8em;">L1 (m):</label>
+                            <input type="number" step="0.01" id="edit-L1" style="width:100%; padding:4px; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.8em;">L2 (m):</label>
+                            <input type="number" step="0.01" id="edit-L2" style="width:100%; padding:4px; box-sizing:border-box;">
+                        </div>
+                    </div>
+                    <label style="display:block; font-size:0.9em; margin-top:8px;">夾角 skew_angle (度):</label>
+                    <input type="number" step="0.1" id="edit-skew" style="width:100%; padding:4px; margin-bottom:8px; box-sizing:border-box;">
+                    
+                    <label style="display:block; font-size:0.9em;">偏心距 offset_dist (m):</label>
+                    <input type="number" step="0.01" id="edit-offset" style="width:100%; padding:4px; margin-bottom:8px; box-sizing:border-box;">
+                </div>
+
+                <!-- Category 3: 8 Surface Elevations -->
+                <div style="background:#f9f9f9; padding:10px; border-radius:4px; border:1px solid #ddd;">
+                    <h4 style="margin-top:0; margin-bottom:10px; color:#417690;">八向地表高程 (m)</h4>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px;">
+                        <div>
+                            <label style="font-size:0.75em;">L1起 (el_l1_start):</label>
+                            <input type="number" step="0.01" id="edit-l1-s" style="width:100%; padding:4px; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.75em;">L1迄 (el_l1_end):</label>
+                            <input type="number" step="0.01" id="edit-l1-e" style="width:100%; padding:4px; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.75em;">L2起 (el_l2_start):</label>
+                            <input type="number" step="0.01" id="edit-l2-s" style="width:100%; padding:4px; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.75em;">L2迄 (el_l2_end):</label>
+                            <input type="number" step="0.01" id="edit-l2-e" style="width:100%; padding:4px; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.75em;">B1起 (el_b1_start):</label>
+                            <input type="number" step="0.01" id="edit-b1-s" style="width:100%; padding:4px; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.75em;">B1迄 (el_b1_end):</label>
+                            <input type="number" step="0.01" id="edit-b1-e" style="width:100%; padding:4px; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.75em;">B2起 (el_b2_start):</label>
+                            <input type="number" step="0.01" id="edit-b2-s" style="width:100%; padding:4px; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.75em;">B2迄 (el_b2_end):</label>
+                            <input type="number" step="0.01" id="edit-b2-e" style="width:100%; padding:4px; box-sizing:border-box;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align:right; border-top:1px solid #ddd; padding-top:10px;">
+                <button onclick="document.getElementById('edit-modal').style.display='none'" style="padding:8px 20px; margin-right:10px; cursor:pointer;">取消</button>
+                <button id="edit-save-btn" style="padding:8px 20px; background:#417690; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">儲存所有參數並重新計算</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Wizard Modal -->
+    <div id="export-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; justify-content:center; align-items:center;">
+        <div style="background:white; padding:20px; border-radius:8px; width:500px; max-height:80vh; overflow-y:auto; box-shadow:0 4px 6px rgba(0,0,0,0.3);">
+            <h3 style="margin-top:0; border-bottom:1px solid #ddd; padding-bottom:10px;">進階匯出精靈 <span id="export-btn-loading" style="color:#d00; font-size:0.8em; float:right;"></span></h3>
+            
+            <div id="export-step-1" class="export-step">
+                <h4>1. 選擇計畫編號 <span style="font-size:0.8em; font-weight:normal; cursor:pointer; color:blue;" onclick="exportToggleAll('export-projects', true)">[全選]</span> <span style="font-size:0.8em; font-weight:normal; cursor:pointer; color:blue;" onclick="exportToggleAll('export-projects', false)">[全不選]</span></h4>
+                <div id="export-projects" style="max-height:150px; overflow-y:auto; border:1px solid #ccc; padding:5px; margin-bottom:15px;"></div>
+                <button onclick="document.getElementById('export-modal').style.display='none'" style="padding:5px 15px; cursor:pointer; float:left;">取消</button>
+                <button onclick="exportGoStep(2)" style="padding:5px 15px; cursor:pointer; float:right;">下一步 ➡️</button>
+                <div style="clear:both;"></div>
+            </div>
+
+            <div id="export-step-2" class="export-step" style="display:none;">
+                <h4>2. 選擇橋梁名稱 <span style="font-size:0.8em; font-weight:normal; cursor:pointer; color:blue;" onclick="exportToggleAll('export-bridges', true)">[全選]</span> <span style="font-size:0.8em; font-weight:normal; cursor:pointer; color:blue;" onclick="exportToggleAll('export-bridges', false)">[全不選]</span></h4>
+                <div id="export-bridges" style="max-height:150px; overflow-y:auto; border:1px solid #ccc; padding:5px; margin-bottom:15px;"></div>
+                <button onclick="exportGoStep(1)" style="padding:5px 15px; cursor:pointer; float:left;">⬅️ 上一步</button>
+                <button onclick="exportGoStep(3)" style="padding:5px 15px; cursor:pointer; float:right;">下一步 ➡️</button>
+                <div style="clear:both;"></div>
+            </div>
+
+            <div id="export-step-3" class="export-step" style="display:none;">
+                <h4>3. 選擇基礎名稱 <span style="font-size:0.8em; font-weight:normal; cursor:pointer; color:blue;" onclick="exportToggleAll('export-foundations', true)">[全選]</span> <span style="font-size:0.8em; font-weight:normal; cursor:pointer; color:blue;" onclick="exportToggleAll('export-foundations', false)">[全不選]</span></h4>
+                <div id="export-foundations" style="max-height:150px; overflow-y:auto; border:1px solid #ccc; padding:5px; margin-bottom:15px;"></div>
+                <button onclick="exportGoStep(2)" style="padding:5px 15px; cursor:pointer; float:left;">⬅️ 上一步</button>
+                <button onclick="exportGoStep(4)" style="padding:5px 15px; cursor:pointer; float:right;">下一步 ➡️</button>
+                <div style="clear:both;"></div>
+            </div>
+
+            <div id="export-step-4" class="export-step" style="display:none;">
+                <h4>4. 選擇匯出欄位 <span style="font-size:0.8em; font-weight:normal; cursor:pointer; color:blue;" onclick="exportToggleAll('export-columns', true)">[全選]</span> <span style="font-size:0.8em; font-weight:normal; cursor:pointer; color:blue;" onclick="exportToggleAll('export-columns', false)">[全不選]</span></h4>
+                <div id="export-columns" style="max-height:150px; overflow-y:auto; border:1px solid #ccc; padding:5px; margin-bottom:15px;"></div>
+                <button onclick="exportGoStep(3)" style="padding:5px 15px; cursor:pointer; float:left;">⬅️ 上一步</button>
+                <button onclick="exportGoStep(5)" style="padding:5px 15px; cursor:pointer; float:right;">下一步 ➡️</button>
+                <div style="clear:both;"></div>
+            </div>
+
+            <div id="export-step-5" class="export-step" style="display:none;">
+                <h4>5. 檔案名稱與匯出</h4>
+                <input type="text" id="export-filename" value="自訂基礎開挖計算結果.csv" style="width:100%; padding:5px; margin-bottom:15px; box-sizing:border-box;">
+                <div style="color:#666; font-size:0.9em; margin-bottom:15px;" id="export-summary-text">將匯出 N 筆資料</div>
+                
+                <button onclick="exportGoStep(4)" style="padding:5px 15px; cursor:pointer; float:left;">⬅️ 上一步</button>
+                <button onclick="executeExport()" style="padding:5px 15px; cursor:pointer; float:right; background:#28a745; color:white; border:none; font-weight:bold; border-radius:4px;">⬇️ 下載檔案</button>
+                <div style="clear:both;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="sidebar">
+        <div class="sidebar-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 2,7 12,12 22,7"/><polyline points="2,17 12,22 22,17"/><polyline points="2,12 12,17 22,12"/></svg>
+            地下開挖支撐視覺化
+        </div>
+        <a href="/bgf-excavation/" class="back-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+            返回計畫儀表板
+        </a>
+
+        <!-- Step Guide -->
+        <div id="step-guide" style="margin-bottom:14px;">
+            <div id="step1" class="step-item step-active">
+                <div class="step-num">1</div>
+                <div class="step-label">選擇計畫編號</div>
+            </div>
+            <div class="step-connector"></div>
+            <div id="step2" class="step-item step-pending">
+                <div class="step-num">2</div>
+                <div class="step-label">選擇橋梁名稱</div>
+            </div>
+            <div class="step-connector"></div>
+            <div id="step3" class="step-item step-pending">
+                <div class="step-num">3</div>
+                <div class="step-label">點選基礎名稱查看3D</div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="project-select">選擇計畫編號 (Project Code):</label>
+            <select id="project-select">
+                <option value="">-- 請選擇計畫 --</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 10px;">
+            <strong>篩選模式:</strong><br>
+            <label><input type="radio" name="filterMode" value="bridge" checked> 依橋梁名稱</label>
+            <label style="margin-left: 10px;"><input type="radio" name="filterMode" value="plan"> 依開挖平面</label>
+        </div>
+        <div class="form-group" id="bridge-select-group">
+            <label for="bridge-select">選擇橋梁名稱 (Bridge Name):</label>
+            <select id="bridge-select">
+                <option value="">-- 請選擇橋梁 --</option>
+            </select>
+        </div>
+        <div class="form-group" id="plan-select-group" style="display:none;">
+            <label for="plan-select">選擇開挖平面 (Excavation Plan):</label>
+            <select id="plan-select">
+                <option value="">-- 請選擇開挖平面 --</option>
+            </select>
+        </div>
+        <div class="form-group" style="background:var(--bg-surf); padding:10px; border-radius:6px; border:1px solid var(--border);">
+            <div style="display:flex; gap:8px; margin-bottom:10px;">
+                <div style="flex:1;">
+                    <label for="d1-input">手動調整 D1 (m)</label>
+                    <input type="number" id="d1-input" min="0.2" max="3.0" step="0.1" value="0.5">
+                </div>
+                <div style="flex:1;">
+                    <label for="section-input">開挖剖面</label>
+                    <input type="text" id="section-input" placeholder="例如: S-1">
+                </div>
+                <div style="flex:1;">
+                    <label for="note-input">備註</label>
+                    <input type="text" id="note-input" placeholder="輸入備註">
+                </div>
+            </div>
+            <button id="recalc-btn" class="recalc-btn">🔄 重新計算與更新模型</button>
+        </div>
+        <div id="project-stats" style="margin-bottom:12px; display:none;">
+            <strong>計畫內統計:</strong><br>
+            - Error數量: <span id="stat-error-count" style="color:red; font-weight:bold;">0</span> 處<br>
+            - 未輸入剖面: <span id="stat-empty-section-count" style="color:red; font-weight:bold;">0</span> 處
+        </div>
+        <div id="details">
+            <h4>計算結果</h4>
+            <div id="result-text">請先選擇計畫與基礎</div>
+            <div id="error-alert" style="color: red; font-weight: bold; margin-top:10px; display:none;">
+                ⚠️ 設計規則違反 (Error)
+            </div>
+            <div id="warning-alert" style="color: orange; font-weight: bold; margin-top:10px; display:none;">
+                ⚠️ 深度警示 (Warning)
+            </div>
+        </div>
+    </div>
+    <div id="resizer-h"></div>
+    <div id="canvas-container">
+        <!-- Blueprint placeholder shown before foundation is selected -->
+        <div id="canvas-placeholder">
+            <canvas id="blueprint-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.18;"></canvas>
+            <div style="position:relative;z-index:1;text-align:center;">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="1.2" style="margin-bottom:16px;opacity:0.6;"><polygon points="12,2 2,7 12,12 22,7"/><polyline points="2,17 12,22 22,17"/><polyline points="2,12 12,17 22,12"/></svg>
+                <p style="color:#60A5FA;font-size:1rem;font-weight:600;margin:0 0 6px;font-family:'Fira Code',monospace;">3D 視覺化待機中</p>
+                <p style="color:#94A3B8;font-size:0.82rem;margin:0;">請從右方表格點選「基礎名稱」以載入 3D 模型</p>
+            </div>
+        </div>
+    </div>
+    <div id="resizer-v"></div>
+    <div id="bottom-panel" style="grid-column: 3; grid-row: 1 / span 3; display: flex; flex-direction: column; background: var(--bg-card); z-index: 10; height: 100vh; overflow: hidden;">
+        <div class="panel-header" style="position:sticky; top:0; z-index:6;">
+            <span>📊 初步計算結果綜整</span>
+            <button id="export-csv-btn" style="display:none;">⬇️ 匯出計算結果 (CSV)</button>
+        </div>
+        <!-- Welcome / empty state (shown before bridge is selected) -->
+        <div id="panel-welcome" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center;">
+            <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#1E3A5F" stroke-width="1" style="margin-bottom:20px;"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <p style="color:#60A5FA;font-size:1.05rem;font-weight:700;margin:0 0 8px;font-family:'Fira Code',monospace;">初步計算結果</p>
+            <p style="color:#94A3B8;font-size:0.85rem;margin:0 0 28px;line-height:1.6;">選擇左側「計畫編號」與「橋梁名稱」<br>後，此處將顯示所有基礎的計算彙整表</p>
+            <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:280px;">
+                <div style="display:flex;align-items:center;gap:12px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:8px;padding:12px;">
+                    <div style="width:32px;height:32px;border-radius:50%;background:rgba(59,130,246,0.15);display:flex;align-items:center;justify-content:center;font-weight:700;color:#60A5FA;font-size:0.9rem;flex-shrink:0;">1</div>
+                    <span style="color:#94A3B8;font-size:0.8rem;text-align:left;">左側選擇「計畫編號」</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:8px;padding:12px;">
+                    <div style="width:32px;height:32px;border-radius:50%;background:rgba(59,130,246,0.15);display:flex;align-items:center;justify-content:center;font-weight:700;color:#60A5FA;font-size:0.9rem;flex-shrink:0;">2</div>
+                    <span style="color:#94A3B8;font-size:0.8rem;text-align:left;">選擇「橋梁名稱」以載入基礎列表</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.15);border-radius:8px;padding:12px;">
+                    <div style="width:32px;height:32px;border-radius:50%;background:rgba(249,115,22,0.15);display:flex;align-items:center;justify-content:center;font-weight:700;color:#FB923C;font-size:0.9rem;flex-shrink:0;">3</div>
+                    <span style="color:#94A3B8;font-size:0.8rem;text-align:left;">點擊「🎯 基礎名稱」按鈕以渲染 3D 模型</span>
+                </div>
+            </div>
+        </div>
+        <!-- Data table (shown after bridge selected) -->
+        <div id="panel-data" style="flex:1;overflow-y:auto;display:none;">
+        <table id="summary-table" style="width: 100%; border-collapse: collapse; text-align: center; font-size: 0.95em;">
+            <thead>
+                <tr style="background: #417690; color: white;">
+                    <th style="padding: 10px; border: 1px solid #ccc;">橋梁名稱</th>
+                    <th style="padding: 10px; border: 1px solid #ccc;">基礎名稱</th>
+                    <th style="padding: 10px; border: 1px solid #ccc;">開挖平面</th>
+                    <th style="padding: 10px; border: 1px solid #ccc;">開挖剖面</th>
+                    <th style="padding: 10px; border: 1px solid #ccc;">總深度 (H)</th>
+                    <th style="padding: 10px; border: 1px solid #ccc;">設計地表EL</th>
+                    <th style="padding: 10px; border: 1px solid #ccc;">地表最大EL差</th>
+                    <th style="padding: 10px; border: 1px solid #ccc;">階數</th>
+                    <th style="padding: 10px; border: 1px solid #ccc;">D1</th>
+                    <th style="padding: 10px; border: 1px solid #ccc;">D2</th>
+                    <th style="padding: 10px; border: 1px solid #ccc;">D3</th>
+                    <th style="padding: 10px; border: 1px solid #ccc;">D4</th>
+                    <th style="padding: 10px; border: 1px solid #ccc;">是否error</th>
+                    <th style="padding: 10px; border: 1px solid #ccc;">備註</th>
+                    <th style="padding: 10px; border: 1px solid #ccc;">編輯參數</th>
+                </tr>
+            </thead>
+            <tbody id="summary-tbody">
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // Scene setup
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f0f0);
+        
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.set(30, 20, 30);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        dirLight.position.set(10, 20, 10);
+        scene.add(dirLight);
+
+        // Group for excavation objects
+        let excavationGroup = new THREE.Group();
+        scene.add(excavationGroup);
+
+        // Resize
+        window.addEventListener('resize', () => {
+            if(container.clientWidth > 0 && container.clientHeight > 0) {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+        });
+
+        // Resize System
+        const resizerV = document.getElementById('resizer-v');
+        const resizerH = document.getElementById('resizer-h');
+        
+        let isResizingV = false;
+        let isResizingH = false;
+
+        resizerV.addEventListener('mousedown', () => {
+            isResizingV = true;
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none'; // prevent text selection
+        });
+
+        resizerH.addEventListener('mousedown', () => {
+            isResizingH = true;
+            document.body.style.cursor = 'row-resize';
+            document.body.style.userSelect = 'none';
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isResizingV && !isResizingH) return;
+            
+            if (isResizingV) {
+                let newWidth = e.clientX;
+                if (newWidth < 200) newWidth = 200;
+                if (newWidth > window.innerWidth - 300) newWidth = window.innerWidth - 300;
+                document.documentElement.style.setProperty('--left-width', newWidth + 'px');
+            }
+            if (isResizingH) {
+                let newHeight = e.clientY;
+                if (newHeight < 100) newHeight = 100;
+                if (newHeight > window.innerHeight - 100) newHeight = window.innerHeight - 100;
+                const pct = (newHeight / window.innerHeight) * 100;
+                document.documentElement.style.setProperty('--top-left-height', pct + '%');
+            }
+            
+            // Dispatch resize so Three.js canvas auto-adjusts continuously
+            window.dispatchEvent(new Event('resize'));
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isResizingV || isResizingH) {
+                isResizingV = false;
+                isResizingH = false;
+                document.body.style.cursor = 'default';
+                document.body.style.userSelect = 'auto'; // restore selection
+            }
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Application logic
+        const projectSelect = document.getElementById('project-select');
+        const bridgeSelect = document.getElementById('bridge-select');
+        const planSelect = document.getElementById('plan-select');
+        const d1Input = document.getElementById('d1-input');
+        const sectionInput = document.getElementById('section-input');
+        const noteInput = document.getElementById('note-input');
+        
+        const filterRadios = document.querySelectorAll('input[name="filterMode"]');
+        const bridgeGroup = document.getElementById('bridge-select-group');
+        const planGroup = document.getElementById('plan-select-group');
+
+        filterRadios.forEach(r => {
+            r.addEventListener('change', () => {
+                const mode = document.querySelector('input[name="filterMode"]:checked').value;
+                if (mode === 'bridge') {
+                    bridgeGroup.style.display = 'block';
+                    planGroup.style.display = 'none';
+                    bridgeSelect.value = '';
+                } else {
+                    bridgeGroup.style.display = 'none';
+                    planGroup.style.display = 'block';
+                    planSelect.value = '';
+                }
+                const tbody = document.getElementById('summary-tbody');
+                if (tbody) tbody.innerHTML = '<tr><td colspan="13">請重新選擇篩選條件以顯示基礎</td></tr>';
+                document.getElementById('bottom-panel').style.display = 'none';
+            });
+        });
+        const recalcBtn = document.getElementById('recalc-btn');
+        const resultText = document.getElementById('result-text');
+        let currentBridgeId = null;
+
+        function openEditModal(bridgeId, bridgeName) {
+            const item = window.currentFoundationsData.find(f => f.bridge_id === bridgeId && f.bridge_name === bridgeName);
+            if (!item) return;
+            document.getElementById('edit-modal-title').textContent = `${bridgeName} - ${bridgeId}`;
+            
+            const p = item.parameters || {};
+            document.getElementById('edit-h1').value = p.h1_thickness !== undefined ? p.h1_thickness : '';
+            document.getElementById('edit-pc').value = p.c_pc_thickness !== undefined ? p.c_pc_thickness : '';
+            document.getElementById('edit-base').value = p.column_base_el !== undefined ? p.column_base_el : '';
+            document.getElementById('edit-B1').value = p.B1 !== undefined ? p.B1 : '';
+            document.getElementById('edit-B2').value = p.B2 !== undefined ? p.B2 : '';
+            document.getElementById('edit-L1').value = p.L1 !== undefined ? p.L1 : '';
+            document.getElementById('edit-L2').value = p.L2 !== undefined ? p.L2 : '';
+            document.getElementById('edit-skew').value = p.skew_angle !== undefined ? p.skew_angle : '';
+            document.getElementById('edit-offset').value = p.offset_dist !== undefined ? p.offset_dist : '';
+            document.getElementById('edit-l1-s').value = p.el_l1_start !== undefined ? p.el_l1_start : '';
+            document.getElementById('edit-l1-e').value = p.el_l1_end !== undefined ? p.el_l1_end : '';
+            document.getElementById('edit-l2-s').value = p.el_l2_start !== undefined ? p.el_l2_start : '';
+            document.getElementById('edit-l2-e').value = p.el_l2_end !== undefined ? p.el_l2_end : '';
+            document.getElementById('edit-b1-s').value = p.el_b1_start !== undefined ? p.el_b1_start : '';
+            document.getElementById('edit-b1-e').value = p.el_b1_end !== undefined ? p.el_b1_end : '';
+            document.getElementById('edit-b2-s').value = p.el_b2_start !== undefined ? p.el_b2_start : '';
+            document.getElementById('edit-b2-e').value = p.el_b2_end !== undefined ? p.el_b2_end : '';
+            
+            document.getElementById('edit-modal').style.display = 'flex';
+            
+            const saveBtn = document.getElementById('edit-save-btn');
+            saveBtn.onclick = async () => {
+                saveBtn.disabled = true;
+                saveBtn.textContent = '計算中...';
+                
+                const payload = {
+                    project_code: projectSelect.value,
+                    bridge_name: bridgeName,
+                    bridge_id: bridgeId,
+                    h1_thickness: document.getElementById('edit-h1').value,
+                    c_pc_thickness: document.getElementById('edit-pc').value,
+                    column_base_el: document.getElementById('edit-base').value,
+                    B1: document.getElementById('edit-B1').value,
+                    B2: document.getElementById('edit-B2').value,
+                    L1: document.getElementById('edit-L1').value,
+                    L2: document.getElementById('edit-L2').value,
+                    skew_angle: document.getElementById('edit-skew').value,
+                    offset_dist: document.getElementById('edit-offset').value,
+                    el_l1_start: document.getElementById('edit-l1-s').value,
+                    el_l1_end: document.getElementById('edit-l1-e').value,
+                    el_l2_start: document.getElementById('edit-l2-s').value,
+                    el_l2_end: document.getElementById('edit-l2-e').value,
+                    el_b1_start: document.getElementById('edit-b1-s').value,
+                    el_b1_end: document.getElementById('edit-b1-e').value,
+                    el_b2_start: document.getElementById('edit-b2-s').value,
+                    el_b2_end: document.getElementById('edit-b2-e').value,
+                };
+                
+                try {
+                    const res = await fetch('/bgf-excavation/api/excavation/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (!res.ok) throw new Error(res.statusText);
+                    const data = await res.json();
+                    
+                    let index = window.currentFoundationsData.findIndex(f => f.bridge_id === bridgeId && f.bridge_name === bridgeName);
+                    if (index > -1) window.currentFoundationsData[index] = { ...window.currentFoundationsData[index], ...data };
+                    
+                    const safeBName = bridgeName ? bridgeName.replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, "") : "unknown";
+                    const row = document.getElementById('row-' + safeBName + '-' + bridgeId);
+                    if (row) {
+                        row.cells[4].innerHTML = data.H;
+                        row.cells[7].innerHTML = data.stages;
+                        row.cells[8].innerHTML = data.D && data.D.D1 ? data.D.D1 : '-';
+                        row.cells[9].innerHTML = data.D && data.D.D2 ? data.D.D2 : '-';
+                        row.cells[10].innerHTML = data.D && data.D.D3 ? data.D.D3 : '-';
+                        row.cells[11].innerHTML = data.D && data.D.D4 ? data.D.D4 : '-';
+                        row.cells[12].innerHTML = data.is_error ? '<span style="color:red;font-weight:bold;">是</span>' : '否';
+                    }
+                    
+                    if (currentBridgeId === bridgeId) {
+                        window.selectFoundationFor3D(bridgeId, bridgeName);
+                    }
+                    document.getElementById('edit-modal').style.display = 'none';
+                } catch (e) {
+                    alert('更新發生錯誤: ' + e.message);
+                } finally {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = '儲存並重新計算';
+                }
+            };
+        }
+
+        // 1. Fetch available projects
+        async function loadProjects() {
+            try {
+                const res = await fetch('/bgf-excavation/api/projects/');
+                const data = await res.json();
+                data.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item;
+                    opt.textContent = item;
+                    projectSelect.appendChild(opt);
+                });
+            } catch (err) {
+                console.error("Error loading projects", err);
+            }
+        }
+        loadProjects();
+
+        // 1b. Fetch bridges and plans when project selected
+        projectSelect.addEventListener('change', async (e) => {
+            const projectCode = e.target.value;
+            bridgeSelect.innerHTML = '<option value="">-- 請選擇橋梁 --</option>';
+            planSelect.innerHTML = '<option value="">-- 請選擇開挖平面 --</option>';
+            document.getElementById('bottom-panel').style.display = 'none';
+            currentBridgeId = null;
+            clearScene();
+            resultText.innerHTML = "請先選擇計畫與基礎";
+            
+            const statError = document.getElementById('stat-error-count');
+            const statEmpty = document.getElementById('stat-empty-section-count');
+            const projectStats = document.getElementById('project-stats');
+            
+            if (!projectCode) {
+                projectStats.style.display = 'none';
+                return;
+            }
+            
+            try {
+                // Fetch stats for all foundations in project
+                const statRes = await fetch(`/bgf-excavation/api/foundations/?project_code=${encodeURIComponent(projectCode)}`);
+                const statData = await statRes.json();
+                statError.textContent = statData.filter(d => d.is_error).length;
+                statEmpty.textContent = statData.filter(d => (!d.excavation_section || d.excavation_section.trim() === '')).length;
+                projectStats.style.display = 'block';
+
+                const resBridge = await fetch(`/bgf-excavation/api/bridges/?project_code=${encodeURIComponent(projectCode)}`);
+                const dataBridge = await resBridge.json();
+                dataBridge.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item;
+                    opt.textContent = item;
+                    bridgeSelect.appendChild(opt);
+                });
+                
+                const resPlan = await fetch(`/bgf-excavation/api/plans/?project_code=${encodeURIComponent(projectCode)}`);
+                const dataPlan = await resPlan.json();
+                dataPlan.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item;
+                    opt.textContent = item;
+                    planSelect.appendChild(opt);
+                });
+            } catch (err) {
+                console.error("Error loading dropdown data", err);
+            }
+        });
+
+        // 1c. Fetch foundations and render table when filter changes
+        async function fetchFoundations() {
+            const projectCode = projectSelect.value;
+            const bridgeName = bridgeSelect.value;
+            const planName = planSelect.value;
+            
+            document.getElementById('bottom-panel').style.display = 'none';
+            currentBridgeId = null;
+            clearScene();
+            resultText.innerHTML = "請從下方表格選擇基礎進行瀏覽";
+            
+            if (!projectCode || (!bridgeName && !planName)) return;
+            
+            try {
+                let url = `/bgf-excavation/api/foundations/?project_code=${encodeURIComponent(projectCode)}`;
+                const mode = document.querySelector('input[name="filterMode"]:checked').value;
+                if (mode === 'bridge' && bridgeName) {
+                    url += `&bridge_name=${encodeURIComponent(bridgeName)}`;
+                } else if (mode === 'plan' && planName) {
+                    url += `&excavation_plan=${encodeURIComponent(planName)}`;
+                }
+                
+                const res = await fetch(url);
+                const data = await res.json();
+                window.currentFoundationsData = data;
+                
+                const tbody = document.getElementById('summary-tbody');
+                tbody.innerHTML = '';
+                
+                data.forEach(item => {
+                    const safeBName = item.bridge_name ? item.bridge_name.replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, "") : "unknown";
+                    const tr = document.createElement('tr');
+                    tr.id = 'row-' + safeBName + '-' + item.bridge_id;
+                    
+                    const D1 = item.D && item.D.D1 ? item.D.D1 : '-';
+                    const D2 = item.D && item.D.D2 ? item.D.D2 : '-';
+                    const D3 = item.D && item.D.D3 ? item.D.D3 : '-';
+                    const D4 = item.D && item.D.D4 ? item.D.D4 : '-';
+                    const isErrorStr = item.is_error ? '<span style="color:red;font-weight:bold;">是</span>' : '否';
+                    const needsReviewStr = item.needs_review ? ' <br><span class="review-badge" style="color:#d00; font-size:0.8em; font-weight:bold;">⚠️(已更新)</span>' : '';
+                    const planStr = item.excavation_plan || '';
+                    const sectionStr = item.excavation_section || '';
+                    const noteStr = item.note || '';
+                    const bNameStr = item.bridge_name || '';
+                    
+                    tr.innerHTML = `
+                        <td style="padding: 8px; border: 1px solid #ccc;">${bNameStr}</td>
+                        <td style="padding: 8px; border: 1px solid #ccc;"><button class="select-foundation-btn" data-id="${item.bridge_id}" data-bname="${bNameStr}" style="cursor: pointer; background: #6699bb; color: white; border: none; padding: 5px 10px; border-radius: 4px;">🎯 ${item.bridge_id}</button>${needsReviewStr}</td>
+                        <td style="padding: 8px; border: 1px solid #ccc;">${planStr}</td>
+                        <td style="padding: 8px; border: 1px solid #ccc;">${sectionStr}</td>
+                        <td style="padding: 8px; border: 1px solid #ccc;">${item.H}</td>
+                        <td style="padding: 8px; border: 1px solid #ccc;">${item.Reference_EL}</td>
+                        <td style="padding: 8px; border: 1px solid #ccc;">${item.max_diff}</td>
+                        <td style="padding: 8px; border: 1px solid #ccc;">${item.stages}</td>
+                        <td style="padding: 8px; border: 1px solid #ccc;">${D1}</td>
+                        <td style="padding: 8px; border: 1px solid #ccc;">${D2}</td>
+                        <td style="padding: 8px; border: 1px solid #ccc;">${D3}</td>
+                        <td style="padding: 8px; border: 1px solid #ccc;">${D4}</td>
+                        <td style="padding: 8px; border: 1px solid #ccc;">${isErrorStr}</td>
+                        <td style="padding: 8px; border: 1px solid #ccc;">${noteStr}</td>
+                        <td style="padding: 8px; border: 1px solid #ccc;"><button class="edit-params-btn" data-id="${item.bridge_id}" data-bname="${bNameStr}" style="cursor:pointer; background:#ffa500; color:white; border:none; padding:4px 8px; border-radius:4px; font-weight:bold;">✏️編輯</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                
+        document.getElementById('bottom-panel').style.display = 'flex';
+        document.getElementById('panel-welcome').style.display = 'none';
+        document.getElementById('panel-data').style.display = 'block';
+        document.getElementById('export-csv-btn').style.display = '';
+        // Step 2 done → Step 3 active
+        setStep(3);
+                
+                document.querySelectorAll('.select-foundation-btn').forEach(btn => {
+                    btn.addEventListener('click', (ev) => {
+                        const bId = ev.target.getAttribute('data-id');
+                        const bName = ev.target.getAttribute('data-bname');
+                        window.selectFoundationFor3D(bId, bName);
+                    });
+                });
+                
+                document.querySelectorAll('.edit-params-btn').forEach(btn => {
+                    btn.addEventListener('click', (ev) => {
+                        const bId = ev.target.getAttribute('data-id');
+                        const bName = ev.target.getAttribute('data-bname');
+                        openEditModal(bId, bName);
+                    });
+                });
+                
+            } catch (err) {
+                console.error("Error loading foundations", err);
+            }
+        }
+        bridgeSelect.addEventListener('change', fetchFoundations);
+        planSelect.addEventListener('change', fetchFoundations);
+
+        // 2. Fetch specific details when a foundation is selected for 3D
+        window.selectFoundationFor3D = async function(bridgeId, bName = null) {
+            const projectCode = projectSelect.value;
+            const targetBridgeName = bName || bridgeSelect.value;
+            
+            // Check if needs review, and clear it automatically
+            let localItem = null;
+            if (window.currentFoundationsData) {
+                localItem = window.currentFoundationsData.find(f => f.bridge_id === bridgeId && (!bName || f.bridge_name === bName));
+            }
+            if (localItem && localItem.needs_review) {
+                try {
+                    await fetch('/bgf-excavation/api/excavation/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            project_code: projectCode,
+                            bridge_name: targetBridgeName,
+                            bridge_id: bridgeId,
+                            clear_review: true
+                        })
+                    });
+                    localItem.needs_review = false;
+                    const safeBName = localItem.bridge_name ? localItem.bridge_name.replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, "") : "unknown";
+                    const row = document.getElementById('row-' + safeBName + '-' + bridgeId);
+                    if (row) {
+                        const badge = row.cells[1].querySelector('.review-badge');
+                        if (badge) badge.remove();
+                    }
+                } catch(e) { console.error("Error clearing review", e); }
+            }
+            
+            currentBridgeId = bridgeId;
+            resultText.innerHTML = `當前渲染基礎: <strong>${bridgeId}</strong> [${targetBridgeName}]`;
+            
+            // Highlight row and scroll
+            const tbody = document.getElementById('summary-tbody');
+            if (tbody) {
+                Array.from(tbody.querySelectorAll('tr')).forEach(tr => tr.classList.remove('selected-row'));
+                const safeBName = targetBridgeName ? targetBridgeName.replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, "") : "unknown";
+                const targetRow = document.getElementById('row-' + safeBName + '-' + bridgeId);
+                if (targetRow) {
+                    targetRow.classList.add('selected-row');
+                    setTimeout(() => targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+                }
+            }
+            
+            try {
+                const res = await fetch(`/bgf-excavation/api/excavation/${encodeURIComponent(bridgeId)}/?project_code=${encodeURIComponent(projectCode)}&bridge_name=${encodeURIComponent(targetBridgeName)}`);
+                const data = await res.json();
+                
+                // Set default number input value based on loaded D1
+                if (data.D && data.D.D1) {
+                    d1Input.value = data.D.D1;
+                }
+                if (localItem) {
+                    sectionInput.value = localItem.excavation_section || '';
+                    noteInput.value = localItem.note || '';
+                }
+                
+                renderScene(data);
+            } catch (err) {
+                console.error("Error fetching details", err);
+            }
+        };
+
+        
+        
+        let exportDataFull = [];
+        const columnsDef = [
+            { id: 'project_code', name: '計畫編號' },
+            { id: 'bridge_name', name: '橋梁名稱' },
+            { id: 'bridge_id', name: '基礎名稱' },
+            { id: 'excavation_plan', name: '開挖平面' },
+            { id: 'excavation_section', name: '開挖剖面' },
+            { id: 'note', name: '備註' },
+            { id: 'column_base_el', name: '柱底高程(m)' },
+            { id: 'h1_thickness', name: '頂版厚度(m)' },
+            { id: 'c_pc_thickness', name: 'PC厚度(m)' },
+            { id: 'Reference_EL', name: '設計地表EL(m)' },
+            { id: 'H', name: '總深度H(m)' },
+            { id: 'D1', name: 'D1(m)' },
+            { id: 'D2', name: 'D2(m)' },
+            { id: 'D3', name: 'D3(m)' },
+            { id: 'D4', name: 'D4(m)' },
+            { id: 'skew_angle', name: '夾角(度)' }
+        ];
+
+        async function openExportWizard() {
+            document.getElementById('export-step-1').style.display = 'block';
+            document.getElementById('export-step-2').style.display = 'none';
+            document.getElementById('export-step-3').style.display = 'none';
+            document.getElementById('export-step-4').style.display = 'none';
+            document.getElementById('export-step-5').style.display = 'none';
+            
+            document.getElementById('export-btn-loading').textContent = '讀取資料中...';
+            document.getElementById('export-modal').style.display = 'flex';
+            
+            try {
+                const res = await fetch('/bgf-excavation/api/foundations/');
+                exportDataFull = await res.json();
+                
+                const projects = [...new Set(exportDataFull.map(f => f.project_code || '未分類計畫'))];
+                const pContainer = document.getElementById('export-projects');
+                pContainer.innerHTML = '';
+                projects.forEach(p => {
+                    pContainer.innerHTML += `<label style="display:block;"><input type="checkbox" value="${p}" class="exp-proj-chk" checked> ${p}</label>`;
+                });
+                
+                const cContainer = document.getElementById('export-columns');
+                cContainer.innerHTML = '';
+                columnsDef.forEach(c => {
+                    cContainer.innerHTML += `<label style="display:inline-block; width:50%;"><input type="checkbox" value="${c.id}" class="exp-col-chk" checked> ${c.name}</label>`;
+                });
+                
+                document.getElementById('export-btn-loading').textContent = '';
+            } catch (e) {
+                alert('無法讀取資料');
+                document.getElementById('export-modal').style.display = 'none';
+            }
+        }
+
+        window.exportGoStep = function(step) {
+            if (step === 2) {
+                const selectedPs = Array.from(document.querySelectorAll('.exp-proj-chk:checked')).map(cb => cb.value);
+                if (selectedPs.length === 0) return alert('請至少選擇一個計畫');
+                
+                const bridges = [...new Set(exportDataFull.filter(f => selectedPs.includes(f.project_code || '未分類計畫')).map(f => f.bridge_name || '未分類橋梁'))];
+                const bContainer = document.getElementById('export-bridges');
+                bContainer.innerHTML = '';
+                bridges.forEach(b => {
+                    bContainer.innerHTML += `<label style="display:block;"><input type="checkbox" value="${b}" class="exp-brg-chk" checked> ${b}</label>`;
+                });
+            } else if (step === 3) {
+                const selectedBs = Array.from(document.querySelectorAll('.exp-brg-chk:checked')).map(cb => cb.value);
+                if (selectedBs.length === 0) return alert('請至少選擇一座橋梁');
+                const selectedPs = Array.from(document.querySelectorAll('.exp-proj-chk:checked')).map(cb => cb.value);
+                
+                const foundations = exportDataFull.filter(f => selectedPs.includes(f.project_code || '未分類計畫') && selectedBs.includes(f.bridge_name || '未分類橋梁'));
+                const fContainer = document.getElementById('export-foundations');
+                fContainer.innerHTML = '';
+                foundations.forEach(f => {
+                    const uniqueId = `${f.project_code}_${f.bridge_name}_${f.bridge_id}`;
+                    fContainer.innerHTML += `<label style="display:block;"><input type="checkbox" value="${uniqueId}" class="exp-fnd-chk" checked> [${f.bridge_name || '無'}] ${f.bridge_id}</label>`;
+                });
+            } else if (step === 5) {
+                const selectedFs = Array.from(document.querySelectorAll('.exp-fnd-chk:checked')).map(cb => cb.value);
+                if (selectedFs.length === 0) return alert('請至少選擇一個基礎');
+                document.getElementById('export-summary-text').textContent = `即將匯出 ${selectedFs.length} 筆基礎資料`;
+            }
+            
+            [1, 2, 3, 4, 5].forEach(s => {
+                document.getElementById('export-step-' + s).style.display = (s === step) ? 'block' : 'none';
+            });
+        };
+
+        window.exportToggleAll = function(containerId, state) {
+            document.querySelectorAll(`#${containerId} input[type="checkbox"]`).forEach(cb => cb.checked = state);
+        };
+
+        window.executeExport = function() {
+            const selectedFs = Array.from(document.querySelectorAll('.exp-fnd-chk:checked')).map(cb => cb.value);
+            const selectedColsInputs = Array.from(document.querySelectorAll('.exp-col-chk:checked'));
+            if (selectedColsInputs.length === 0) return alert('請至少選擇一個欄位');
+            
+            const selectedCols = selectedColsInputs.map(cb => cb.value);
+            const selectedColNames = selectedColsInputs.map(cb => cb.parentElement.textContent.trim());
+            
+            let csvStr = "\uFEFF";
+            csvStr += selectedColNames.join(',') + "\n";
+            
+            const toExport = exportDataFull.filter(f => selectedFs.includes(`${f.project_code}_${f.bridge_name}_${f.bridge_id}`));
+            
+            toExport.forEach(item => {
+                const rowData = selectedCols.map(colId => {
+                    let val = '';
+                    if (['D1', 'D2', 'D3', 'D4'].includes(colId)) {
+                        val = item.D && item.D[colId] !== undefined ? item.D[colId] : '';
+                    } else if (['h1_thickness', 'c_pc_thickness', 'column_base_el'].includes(colId)) {
+                        val = item.parameters ? item.parameters[colId] : '';
+                    } else {
+                        val = item[colId] !== undefined && item[colId] !== null ? String(item[colId]).replace(/"/g, '""') : '';
+                    }
+                    if (val.includes(',') || val.includes('\n') || val.includes('"')) {
+                        val = `"${val}"`;
+                    }
+                    return val;
+                });
+                csvStr += rowData.join(',') + "\n";
+            });
+            
+            const filename = document.getElementById('export-filename').value || 'export.csv';
+            const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = filename.endsWith('.csv') ? filename : filename + '.csv';
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            document.getElementById('export-modal').style.display = 'none';
+        };
+
+        // 2d. Add event listener to Export CSV button
+        document.getElementById('export-csv-btn').addEventListener('click', openExportWizard);
+
+        // 3. Update Model
+        recalcBtn.addEventListener('click', async () => {
+            if (!currentBridgeId) {
+                alert("請先選擇基礎");
+                return;
+            }
+            const projectCode = projectSelect.value;
+            let bridgeName = bridgeSelect.value;
+            if (window.currentFoundationsData) {
+                const localItem = window.currentFoundationsData.find(f => f.bridge_id === currentBridgeId);
+                if (localItem && localItem.bridge_name) bridgeName = localItem.bridge_name;
+            }
+            
+            try {
+                const manualD1 = parseFloat(d1Input.value);
+                const sectionVal = sectionInput.value;
+                const noteVal = noteInput.value;
+                const payload = {
+                    project_code: projectCode,
+                    bridge_name: bridgeName,
+                    bridge_id: currentBridgeId,
+                    d1_manual: manualD1,
+                    excavation_section: sectionVal,
+                    note: noteVal
+                };
+                
+                const res = await fetch('/bgf-excavation/api/excavation/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!res.ok) {
+                    const errData = await res.json();
+                    alert("更新失敗：" + (errData.error || res.statusText));
+                    return;
+                }
+                const data = await res.json();
+                
+                // Update local data cache
+                let localItem = null;
+                if (window.currentFoundationsData) {
+                    let index = window.currentFoundationsData.findIndex(f => f.bridge_id === data.bridge_id && f.bridge_name === bridgeName);
+                    if (index > -1) {
+                        window.currentFoundationsData[index] = { ...window.currentFoundationsData[index], ...data };
+                        localItem = window.currentFoundationsData[index];
+                    }
+                }
+                
+                // Update table row if exists
+                const safeBName = bridgeName ? bridgeName.replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, "") : "unknown";
+                const row = document.getElementById('row-' + safeBName + '-' + data.bridge_id);
+                if (row) {
+                    const D1 = data.D && data.D.D1 ? data.D.D1 : '-';
+                    const D2 = data.D && data.D.D2 ? data.D.D2 : '-';
+                    const D3 = data.D && data.D.D3 ? data.D.D3 : '-';
+                    const D4 = data.D && data.D.D4 ? data.D.D4 : '-';
+                    const isErrorStr = data.is_error ? '<span style="color:red;font-weight:bold;">是</span>' : '否';
+                    row.cells[3].innerHTML = data.excavation_section || '';
+                    row.cells[4].innerHTML = data.H;
+                    row.cells[7].innerHTML = data.stages;
+                    row.cells[8].innerHTML = D1;
+                    row.cells[9].innerHTML = D2;
+                    row.cells[10].innerHTML = D3;
+                    row.cells[11].innerHTML = D4;
+                    row.cells[12].innerHTML = isErrorStr;
+                    row.cells[13].innerHTML = data.note || '';
+                }
+                
+                // Refresh project stats
+                try {
+                    const statRes = await fetch(`/bgf-excavation/api/foundations/?project_code=${encodeURIComponent(projectCode)}`);
+                    const statData = await statRes.json();
+                    const statError = document.getElementById('stat-error-count');
+                    const statEmpty = document.getElementById('stat-empty-section-count');
+                    if (statError) statError.textContent = statData.filter(d => d.is_error).length;
+                    if (statEmpty) statEmpty.textContent = statData.filter(d => (!d.excavation_section || d.excavation_section.trim() === '')).length;
+                } catch(e) {}
+                
+                renderScene(data);
+            } catch (err) {
+                console.error("Error recalculating", err);
+                alert("更新發生錯誤");
+            }
+        });
+
+        function clearScene() {
+            scene.remove(excavationGroup);
+            excavationGroup = new THREE.Group();
+            scene.add(excavationGroup);
+        }
+
+        // Render visualization
+        function renderScene(data) {
+            clearScene();
+            // Hide blueprint placeholder, mark all steps done
+            const ph = document.getElementById('canvas-placeholder');
+            if (ph) ph.style.display = 'none';
+            setStep(4); // all 3 steps done
+            
+            // Update UI
+            // Warning & Error Updates
+            if (data.is_error) {
+                document.getElementById('error-alert').style.display = 'block';
+                document.getElementById('error-alert').innerHTML = '⚠️ 設計規則違反 (Error)<br><span style="font-size: 0.9em; color:#a00;">' + (data.error_reasons ? data.error_reasons.join('<br>') : '') + '</span>';
+            } else {
+                document.getElementById('error-alert').style.display = 'none';
+            }
+
+            if (data.warning) {
+                document.getElementById('warning-alert').style.display = 'block';
+                document.getElementById('warning-alert').innerHTML = '⚠️ 深度警示 (Warning)<br><span style="font-size: 0.9em; color:#d88;">' + (data.warning_reasons ? data.warning_reasons.join('<br>') : '') + '</span>';
+            } else {
+                document.getElementById('warning-alert').style.display = 'none';
+            }
+            const { L1, L2, B1, B2 } = data.geometry;
+            
+            // 依據工程定義與資料邏輯：
+            // B1, B2 控制車行方向(水平 X 軸)，數值代表總長，因此單邊距離需除以 2。
+            // L1, L2 控制垂直方向(垂直 Z 軸)，數值代表總寬，單邊距離亦需除以 2。
+            const rightX = B1 / 2;
+            const leftX = -B2 / 2;
+            const topZ = -L2 / 2;
+            const bottomZ = L1 / 2;
+
+            const widthX = rightX - leftX; // 車行向總長
+            const widthZ = bottomZ - topZ; // 橫橋向總寬
+
+            let html = `<strong>總深度 (H):</strong> ${data.H}m<br>
+                        <strong>設計地表EL:</strong> ${data.Reference_EL}m<br>
+                        <strong>車行向總長 (水平):</strong> ${widthX}m<br>
+                        <strong>橫向總寬 (垂直):</strong> ${widthZ}m<br>
+                        <strong>階數:</strong> ${data.stages}<br>
+                        <strong>垂直間距:</strong><br>`;
+            for(const [k, v] of Object.entries(data.D)) {
+                html += `- ${k}: ${v}m<br>`;
+            }
+            resultText.innerHTML = html;
+
+            // Update input default to match what was calculated
+            if(data.D.D1) {
+                d1Input.value = data.D.D1;
+            }
+
+            const topY = data.Reference_EL;
+            const bottomY = data.Reference_EL - data.H;
+            const height = data.H;
+            const centerY = (topY + bottomY) / 2;
+
+            // 智慧地形內插: 依照使用者定義邏輯分配 8 個邊界高程點至 4 個開挖角點
+            // 邊界定義: L1(Top側, Z=-L1), L2(Bottom側, Z=+L2), B1(Left側, X=-B1), B2(Right側, X=+B2)
+            const e = data.elevations;
+            const el_l1_start = e[0], el_l1_end = e[1];
+            const el_l2_start = e[2], el_l2_end = e[3];
+            const el_b1_start = e[4], el_b1_end = e[5];
+            const el_b2_start = e[6], el_b2_end = e[7];
+
+            const avg_L1 = (el_l1_start + el_l1_end) / 2;
+            const avg_L2 = (el_l2_start + el_l2_end) / 2;
+            const avg_B1 = (el_b1_start + el_b1_end) / 2;
+            const avg_B2 = (el_b2_start + el_b2_end) / 2;
+
+            // 分配 B1 邊緣 (連通 L1 側與 L2 側) 上的 2 個點
+            const val_B1_near_L1 = (avg_L1 >= avg_L2) ? Math.max(el_b1_start, el_b1_end) : Math.min(el_b1_start, el_b1_end);
+            const val_B1_near_L2 = (avg_L1 >= avg_L2) ? Math.min(el_b1_start, el_b1_end) : Math.max(el_b1_start, el_b1_end);
+
+            // 分配 B2 邊緣 (連通 L1 側與 L2 側) 上的 2 個點
+            const val_B2_near_L1 = (avg_L1 >= avg_L2) ? Math.max(el_b2_start, el_b2_end) : Math.min(el_b2_start, el_b2_end);
+            const val_B2_near_L2 = (avg_L1 >= avg_L2) ? Math.min(el_b2_start, el_b2_end) : Math.max(el_b2_start, el_b2_end);
+
+            // 分配 L1 邊緣 (連通 B1 側與 B2 側) 上的 2 個點
+            const val_L1_near_B1 = (avg_B1 >= avg_B2) ? Math.max(el_l1_start, el_l1_end) : Math.min(el_l1_start, el_l1_end);
+            const val_L1_near_B2 = (avg_B1 >= avg_B2) ? Math.min(el_l1_start, el_l1_end) : Math.max(el_l1_start, el_l1_end);
+
+            // 分配 L2 邊緣 (連通 B1 側與 B2 側) 上的 2 個點
+            const val_L2_near_B1 = (avg_B1 >= avg_B2) ? Math.max(el_l2_start, el_l2_end) : Math.min(el_l2_start, el_l2_end);
+            const val_L2_near_B2 = (avg_B1 >= avg_B2) ? Math.min(el_l2_start, el_l2_end) : Math.max(el_l2_start, el_l2_end);
+
+            // 結算 4 個角點的高程 (以兩相交邊分配到該角的數值取平均)
+            // Left = L2 Face, Right = L1 Face. Top = B2 Face, Bottom = B1 Face.
+            const y_C1 = (val_B2_near_L2 + val_L2_near_B2) / 2; // C1: Top-Left (leftX, topZ)
+            const y_C2 = (val_B2_near_L1 + val_L1_near_B2) / 2; // C2: Top-Right (rightX, topZ)
+            const y_C3 = (val_B1_near_L1 + val_L1_near_B1) / 2; // C3: Bottom-Right (rightX, bottomZ)
+            const y_C4 = (val_B1_near_L2 + val_L2_near_B1) / 2; // C4: Bottom-Left (leftX, bottomZ)
+
+            // 輔助繪製四邊形函數
+            function pushQuad(arr, TR, TL, BR, BL) {
+                // Triangle 1: TopRight, TopLeft, BottomLeft
+                arr.push(TR[0], TR[1], TR[2], TL[0], TL[1], TL[2], BL[0], BL[1], BL[2]);
+                // Triangle 2: BottomLeft, BottomRight, TopRight
+                arr.push(BL[0], BL[1], BL[2], BR[0], BR[1], BR[2], TR[0], TR[1], TR[2]);
+            }
+
+            const wallVerts = [];
+            // Wall 1: Top (B2 side)
+            pushQuad(wallVerts, [rightX, y_C2, topZ], [leftX, y_C1, topZ], [rightX, bottomY, topZ], [leftX, bottomY, topZ]);
+            
+            // Wall 2: Right (L1 side)
+            pushQuad(wallVerts, [rightX, y_C3, bottomZ], [rightX, y_C2, topZ], [rightX, bottomY, bottomZ], [rightX, bottomY, topZ]);
+            
+            // Wall 3: Bottom (B1 side)
+            pushQuad(wallVerts, [leftX, y_C4, bottomZ], [rightX, y_C3, bottomZ], [leftX, bottomY, bottomZ], [rightX, bottomY, bottomZ]);
+            
+            // Wall 4: Left (L2 side)
+            pushQuad(wallVerts, [leftX, y_C1, topZ], [leftX, y_C4, bottomZ], [leftX, bottomY, topZ], [leftX, bottomY, bottomZ]);
+
+            const wallGeo = new THREE.BufferGeometry();
+            wallGeo.setAttribute('position', new THREE.Float32BufferAttribute(wallVerts, 3));
+            wallGeo.computeVertexNormals();
+
+            const wallMat = new THREE.MeshLambertMaterial({ color: 0x888888, side: THREE.DoubleSide });
+            const wallMesh = new THREE.Mesh(wallGeo, wallMat);
+            excavationGroup.add(wallMesh);
+
+            // Draw Terrain surface mapping to the top of walls
+            const O = 15; // Extend ground outwards
+            const terrainVerts = [];
+            // -Z Top Terrain (B2 side)
+            pushQuad(terrainVerts, [rightX+O, y_C2, topZ-O], [leftX-O, y_C1, topZ-O], [rightX, y_C2, topZ], [leftX, y_C1, topZ]);
+            // +X Top Terrain (L1 side)
+            pushQuad(terrainVerts, [rightX+O, y_C3, bottomZ+O], [rightX+O, y_C2, topZ-O], [rightX, y_C3, bottomZ], [rightX, y_C2, topZ]);
+            // +Z Top Terrain (B1 side)
+            pushQuad(terrainVerts, [leftX-O, y_C4, bottomZ+O], [rightX+O, y_C3, bottomZ+O], [leftX, y_C4, bottomZ], [rightX, y_C3, bottomZ]);
+            // -X Top Terrain (L2 side)
+            pushQuad(terrainVerts, [leftX-O, y_C1, topZ-O], [leftX-O, y_C4, bottomZ+O], [leftX, y_C1, topZ], [leftX, y_C4, bottomZ]);
+
+            const terrainGeo = new THREE.BufferGeometry();
+            terrainGeo.setAttribute('position', new THREE.Float32BufferAttribute(terrainVerts, 3));
+            terrainGeo.computeVertexNormals();
+
+            const terrainMat = new THREE.MeshLambertMaterial({ 
+                color: 0x7b9a52, 
+                side: THREE.DoubleSide, 
+                transparent: true, 
+                opacity: 0.6 
+            });
+            excavationGroup.add(new THREE.Mesh(terrainGeo, terrainMat));
+
+            // Draw Inner Supports (Ring Frames)
+            const supportColor = data.is_error ? 0xff0000 : 0x00ff00;
+            const supportMat = new THREE.MeshLambertMaterial({ color: supportColor });
+
+            const frameThickness = 0.5;
+            data.Z_coords.forEach(z => {
+                // Outer box
+                const outerShape = new THREE.Shape();
+                outerShape.moveTo(leftX, topZ);
+                outerShape.lineTo(rightX, topZ);
+                outerShape.lineTo(rightX, bottomZ);
+                outerShape.lineTo(leftX, bottomZ);
+                outerShape.lineTo(leftX, topZ);
+                
+                // Inner hole
+                const innerShape = new THREE.Path();
+                innerShape.moveTo(leftX + frameThickness, topZ + frameThickness);
+                innerShape.lineTo(leftX + frameThickness, bottomZ - frameThickness);
+                innerShape.lineTo(rightX - frameThickness, bottomZ - frameThickness);
+                innerShape.lineTo(rightX - frameThickness, topZ + frameThickness);
+                innerShape.lineTo(leftX + frameThickness, topZ + frameThickness);
+                outerShape.holes.push(innerShape);
+
+                const extrudeSettings = { depth: 0.5, bevelEnabled: false };
+                const frameGeo = new THREE.ExtrudeGeometry(outerShape, extrudeSettings);
+                
+                // Needs rotation to lie horizontally
+                frameGeo.rotateX(-Math.PI / 2);
+                
+                const frameMesh = new THREE.Mesh(frameGeo, supportMat);
+                frameMesh.position.y = z;
+                
+                // create edges
+                const edges = new THREE.EdgesGeometry(frameGeo);
+                const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 }));
+                frameMesh.add(line);
+
+                excavationGroup.add(frameMesh);
+            });
+
+            // Auto-zoom: fit camera to bounding box of entire scene
+            (function fitCameraToScene() {
+                const box = new THREE.Box3().setFromObject(excavationGroup);
+                const size = box.getSize(new THREE.Vector3());
+                const center = box.getCenter(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const fov = camera.fov * (Math.PI / 180);
+                let dist = (maxDim / 2) / Math.tan(fov / 2);
+                dist *= 1.6; // add 60% margin
+                // Position camera diagonally above-front
+                const offset = new THREE.Vector3(0.5, 0.7, 1.0).normalize().multiplyScalar(dist);
+                camera.position.copy(center).add(offset);
+                camera.near = dist * 0.01;
+                camera.far = dist * 10;
+                camera.updateProjectionMatrix();
+                controls.target.copy(center);
+                controls.update();
+            })();
+
+            // Add grid helper
+            const gridHelper = new THREE.GridHelper(Math.max(widthX, widthZ)*3, 20);
+            gridHelper.position.y = bottomY;
+            excavationGroup.add(gridHelper);
+
+            // Add Vehicle Direction Arrow origin at horizontal center
+            const arrowOrigin = new THREE.Vector3((rightX + leftX)/2, topY + 1.5, (bottomZ + topZ)/2);
+            const arrowDir = new THREE.Vector3(1, 0, 0); 
+            if (data.skew_angle) {
+                const angleRad = -parseFloat(data.skew_angle) * Math.PI / 180;
+                arrowDir.applyAxisAngle(new THREE.Vector3(0, 1, 0), angleRad);
+            }
+            const arrowLength = (widthX) / 2 + 4; // Extend from center to past L1
+            const arrowHelper = new THREE.ArrowHelper(arrowDir, arrowOrigin, arrowLength, 0x000000, arrowLength * 0.1, arrowLength * 0.08);
+            
+            // Add Label text using canvas sprite for arrow
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.font = 'bold 32px sans-serif';
+            ctx.fillStyle = 'black';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('車行方向', 128, 32);
+            const tex = new THREE.CanvasTexture(canvas);
+            const spriteMat = new THREE.SpriteMaterial({ map: tex });
+            const sprite = new THREE.Sprite(spriteMat);
+            sprite.scale.set(6, 1.5, 1);
+            // Position sprite at the middle of the rotated arrow
+            sprite.position.copy(arrowOrigin).add(arrowDir.clone().multiplyScalar(arrowLength / 2)).add(new THREE.Vector3(0, 1.5, 0));
+            
+            excavationGroup.add(arrowHelper);
+            excavationGroup.add(sprite);
+
+        }
+
+        // ── Blueprint grid on canvas placeholder ──────────────────────
+        function drawBlueprintGrid() {
+            const c = document.getElementById('blueprint-canvas');
+            if (!c) return;
+            c.width = c.parentElement.offsetWidth || 300;
+            c.height = c.parentElement.offsetHeight || 200;
+            const ctx2 = c.getContext('2d');
+            ctx2.clearRect(0, 0, c.width, c.height);
+            ctx2.strokeStyle = '#3B82F6';
+            ctx2.lineWidth = 0.5;
+            const sp = 30;
+            for (let x = 0; x < c.width; x += sp) {
+                ctx2.beginPath(); ctx2.moveTo(x, 0); ctx2.lineTo(x, c.height); ctx2.stroke();
+            }
+            for (let y = 0; y < c.height; y += sp) {
+                ctx2.beginPath(); ctx2.moveTo(0, y); ctx2.lineTo(c.width, y); ctx2.stroke();
+            }
+        }
+        drawBlueprintGrid();
+        window.addEventListener('resize', drawBlueprintGrid);
+
+        // ── Step guide helper ─────────────────────────────────────────
+        function setStep(n) {
+            [1,2,3].forEach(i => {
+                const el = document.getElementById('step' + i);
+                if (!el) return;
+                el.className = 'step-item ' + (i < n ? 'step-done' : i === n ? 'step-active' : 'step-pending');
+            });
+        }
+        // Advance step when selects change (use capture to fire before existing listeners)
+        projectSelect.addEventListener('change', () => {
+            if (projectSelect.value) setStep(2); else setStep(1);
+        }, true);
+        bridgeSelect.addEventListener('change', () => {
+            if (bridgeSelect.value) setStep(3);
+        }, true);
+
+    </script>
+</body>
+</html>

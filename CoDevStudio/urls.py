@@ -56,7 +56,7 @@ urlpatterns = [
     path('src-column/', include('SRCColumn.urls')),  # SRC柱設計計算系統
     path('xr-resource/', include('XrResource.urls', namespace='XrResource')),
     path('well-drawdown/', include('WellDrawdown.urls')),  # 水理分析抽水預測系統
-
+    path('bgf-excavation/', include('BFGExcavation.urls', namespace='bfg')),  # 臨時支撐配置深度檢核
 ]
 
 # 條件載入 ClashClassifier API
