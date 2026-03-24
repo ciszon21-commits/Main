@@ -1,0 +1,113 @@
+{% extends "BFGExcavation/base.html" %}
+{% block title %}匯入 CSV{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            匯入 CSV
+        </h1>
+        <p class="page-subtitle">批次匯入基礎開挖資料</p>
+    </div>
+    <a href="{% url 'bfg:dashboard' %}" class="btn btn-outline">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,19 5,12 12,5"/></svg>
+        返回儀表板
+    </a>
+</div>
+
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;">
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+                上傳 CSV 檔案
+            </span>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" id="import-form">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label class="form-label">計畫編號（備用，CSV 內無資料時使用）</label>
+                    {{ form.project_code }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">橋梁名稱（備用，CSV 內無資料時使用）</label>
+                    {{ form.bridge_name }}
+                </div>
+                <div class="form-group" style="margin-top:20px;">
+                    <label class="form-label">CSV 檔案 <span style="color:var(--red-error);">*</span></label>
+                    <div id="drop-zone" style="border:2px dashed var(--border-light);border-radius:var(--radius-lg);padding:40px 20px;text-align:center;cursor:pointer;transition:var(--transition);margin-top:8px;">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" style="margin-bottom:12px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <div style="color:var(--text-secondary);margin-bottom:8px;">拖曳 CSV 至此，或</div>
+                        {{ form.csv_file }}
+                        <div id="file-name-display" style="color:var(--blue-secondary);font-size:0.85rem;margin-top:10px;font-family:'Fira Code',monospace;"></div>
+                    </div>
+                    {% if form.csv_file.errors %}<div style="color:var(--red-error);font-size:0.78rem;margin-top:4px;">{{ form.csv_file.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+                    <a href="{% url 'bfg:dashboard' %}" class="btn btn-outline">取消</a>
+                    <button type="submit" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        上傳並分析
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Instructions -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    CSV 格式說明
+                </span>
+            </div>
+            <div class="card-body" style="font-size:0.82rem;color:var(--text-secondary);">
+                <p style="margin-bottom:10px;">CSV 必要欄位（可中英文）：</p>
+                <div style="display:flex;flex-direction:column;gap:4px;font-family:'Fira Code',monospace;font-size:0.78rem;">
+                    <span style="color:var(--blue-secondary);">基礎名稱 / bridge_id</span>
+                    <span>計畫編號 / project_code</span>
+                    <span>橋梁名稱 / bridge_name</span>
+                    <span>柱底高程 / column_base_el</span>
+                    <span>頂版厚度 / h1_thickness</span>
+                    <span>PC厚度 / c_pc_thickness</span>
+                    <span>B1, B2, L1, L2</span>
+                    <span>L1起點地表EL … B2終點地表EL</span>
+                </div>
+                <hr class="divider" style="margin:12px 0;">
+                <p style="color:var(--text-muted);font-size:0.78rem;">支援 UTF-8 / Big5 編碼，可帶 BOM。</p>
+            </div>
+        </div>
+        <div class="card" style="border-color:rgba(249,115,22,0.2);">
+            <div class="card-body" style="font-size:0.82rem;">
+                <div style="display:flex;gap:8px;color:#FB923C;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <div>若 CSV 中存在已有的基礎資料，系統將顯示<strong>衝突確認畫面</strong>，讓您選擇覆蓋或跳過。</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const fileInput = document.querySelector('input[type="file"]');
+const fileDisplay = document.getElementById('file-name-display');
+const dropZone = document.getElementById('drop-zone');
+
+fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) fileDisplay.textContent = fileInput.files[0].name;
+});
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = 'var(--blue-primary)'; dropZone.style.background='rgba(59,130,246,0.05)'; });
+dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = 'var(--border-light)'; dropZone.style.background=''; });
+dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.style.borderColor = 'var(--border-light)'; dropZone.style.background='';
+    const f = e.dataTransfer.files[0];
+    if (f) { const dt = new DataTransfer(); dt.items.add(f); fileInput.files = dt.files; fileDisplay.textContent = f.name; }
+});
+</script>
+{% endblock %}

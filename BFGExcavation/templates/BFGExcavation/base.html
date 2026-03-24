@@ -1,0 +1,299 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BFGExcavation - 橋梁基礎開挖支撐設計管理系統">
+    <title>{% block title %}BFGExcavation{% endblock %} | 基礎開挖管理系統</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --blue-primary: #3B82F6;
+            --blue-secondary: #60A5FA;
+            --blue-dark: #1E40AF;
+            --orange-cta: #F97316;
+            --orange-hover: #EA580C;
+            --bg-deep: #0A0E1A;
+            --bg-card: #0F1629;
+            --bg-surface: #151D38;
+            --bg-elevated: #1B2445;
+            --text-primary: #F1F5F9;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --border-color: #1E3A5F;
+            --border-light: #263A5E;
+            --green-ok: #22C55E;
+            --red-error: #EF4444;
+            --yellow-warn: #EAB308;
+            --radius: 8px;
+            --radius-lg: 12px;
+            --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+            --transition: all 0.2s ease;
+            --nav-h: 60px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Fira Sans', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* ── Navbar ── */
+        .navbar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            height: var(--nav-h);
+            background: rgba(10, 14, 26, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: center;
+            padding: 0 24px;
+            gap: 24px;
+        }
+        .navbar-brand {
+            display: flex; align-items: center; gap: 10px;
+            text-decoration: none; flex-shrink: 0;
+        }
+        .navbar-brand .logo-icon {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--blue-primary), var(--orange-cta));
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .navbar-brand .logo-icon svg { width: 18px; height: 18px; fill: white; }
+        .navbar-brand .brand-text {
+            font-family: 'Fira Code', monospace;
+            font-weight: 700; font-size: 1.1rem;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+        }
+        .navbar-brand .brand-text span { color: var(--orange-cta); }
+
+        .navbar-nav {
+            display: flex; align-items: center; gap: 4px; flex: 1;
+        }
+        .nav-link {
+            display: flex; align-items: center; gap: 6px;
+            padding: 6px 12px; border-radius: 6px;
+            text-decoration: none; font-size: 0.875rem; font-weight: 500;
+            color: var(--text-secondary);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+        .nav-link:hover { background: var(--bg-surface); color: var(--text-primary); }
+        .nav-link.active { background: rgba(59, 130, 246, 0.15); color: var(--blue-secondary); }
+        .nav-link svg { width: 16px; height: 16px; }
+
+        .navbar-actions { margin-left: auto; display: flex; gap: 8px; }
+
+        /* ── Buttons ── */
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 16px; border-radius: var(--radius);
+            font-size: 0.875rem; font-weight: 500;
+            cursor: pointer; transition: var(--transition);
+            text-decoration: none; border: none; font-family: inherit;
+        }
+        .btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+        .btn-primary {
+            background: var(--blue-primary); color: white;
+        }
+        .btn-primary:hover { background: var(--blue-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,130,246,0.4); }
+        .btn-cta {
+            background: var(--orange-cta); color: white;
+        }
+        .btn-cta:hover { background: var(--orange-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(249,115,22,0.4); }
+        .btn-outline {
+            background: transparent; color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+        .btn-outline:hover { border-color: var(--blue-primary); color: var(--blue-secondary); background: rgba(59,130,246,0.08); }
+        .btn-danger {
+            background: var(--red-error); color: white;
+        }
+        .btn-danger:hover { background: #DC2626; transform: translateY(-1px); }
+        .btn-sm { padding: 5px 10px; font-size: 0.8rem; }
+
+        /* ── Cards ── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+        }
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        }
+        .card-title {
+            font-weight: 600; font-size: 0.95rem; color: var(--text-primary);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .card-title svg { width: 18px; height: 18px; color: var(--blue-secondary); }
+        .card-body { padding: 20px; }
+
+        /* ── Form Inputs ── */
+        .form-input {
+            width: 100%; padding: 9px 12px;
+            background: var(--bg-surface); border: 1px solid var(--border-color);
+            border-radius: var(--radius); color: var(--text-primary);
+            font-family: inherit; font-size: 0.875rem;
+            transition: var(--transition);
+        }
+        .form-input:focus {
+            outline: none; border-color: var(--blue-primary);
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+        }
+        .form-input::placeholder { color: var(--text-muted); }
+        .form-label {
+            display: block; font-size: 0.8rem; font-weight: 500;
+            color: var(--text-secondary); margin-bottom: 5px;
+        }
+        .form-group { margin-bottom: 14px; }
+
+        /* ── Badges ── */
+        .badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 500;
+        }
+        .badge-blue { background: rgba(59,130,246,0.15); color: var(--blue-secondary); }
+        .badge-orange { background: rgba(249,115,22,0.15); color: #FB923C; }
+        .badge-green { background: rgba(34,197,94,0.15); color: var(--green-ok); }
+        .badge-red { background: rgba(239,68,68,0.15); color: var(--red-error); }
+        .badge-yellow { background: rgba(234,179,8,0.15); color: var(--yellow-warn); }
+
+        /* ── Alerts ── */
+        .alert {
+            padding: 12px 16px; border-radius: var(--radius);
+            margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px;
+            font-size: 0.875rem;
+        }
+        .alert svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+        .alert-success { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #86EFAC; }
+        .alert-error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #FCA5A5; }
+        .alert-warning { background: rgba(234,179,8,0.1); border: 1px solid rgba(234,179,8,0.3); color: #FDE047; }
+        .alert-info { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); color: var(--blue-secondary); }
+
+        /* ── Layout ── */
+        .main-content {
+            padding-top: calc(var(--nav-h) + 24px);
+            padding-bottom: 40px;
+            min-height: 100vh;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 0 24px; }
+
+        /* ── Page Header ── */
+        .page-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 24px; gap: 16px;
+        }
+        .page-title {
+            font-size: 1.5rem; font-weight: 700; color: var(--text-primary);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .page-title svg { width: 24px; height: 24px; color: var(--blue-primary); }
+        .page-subtitle { font-size: 0.875rem; color: var(--text-secondary); margin-top: 2px; }
+
+        /* ── Table ── */
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        .data-table th {
+            padding: 10px 12px; text-align: left;
+            background: var(--bg-surface); color: var(--text-secondary);
+            font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em;
+            white-space: nowrap; border-bottom: 1px solid var(--border-color);
+        }
+        .data-table td {
+            padding: 10px 12px; color: var(--text-primary);
+            border-bottom: 1px solid rgba(30,58,95,0.5);
+            white-space: nowrap;
+        }
+        .data-table tbody tr { transition: background 0.15s; }
+        .data-table tbody tr:hover { background: var(--bg-surface); }
+        .data-table .mono { font-family: 'Fira Code', monospace; font-size: 0.82rem; }
+
+        /* ── Scrollable table wrapper ── */
+        .table-scroll { overflow-x: auto; border-radius: var(--radius-lg); }
+
+        /* ── Divider ── */
+        .divider { border: none; border-top: 1px solid var(--border-color); margin: 20px 0; }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .page-header { flex-direction: column; align-items: flex-start; }
+            .navbar-nav { display: none; }
+        }
+
+        /* ── Glow accent ── */
+        .accent-glow {
+            position: absolute; inset: 0; z-index: -1;
+            background: radial-gradient(ellipse at 20% 10%, rgba(59,130,246,0.06) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 90%, rgba(249,115,22,0.04) 0%, transparent 60%);
+            pointer-events: none;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="{% url 'bfg:dashboard' %}" class="navbar-brand">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            </div>
+            <span class="brand-text">BFG<span>Excavation</span></span>
+        </a>
+        <nav class="navbar-nav">
+            <a href="{% url 'bfg:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                儀表板
+            </a>
+            <a href="{% url 'bfg:3d' %}" class="nav-link {% if request.resolver_match.url_name == '3d' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                3D 視覺化
+            </a>
+            <a href="{% url 'bfg:create' %}" class="nav-link {% if request.resolver_match.url_name == 'create' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                新增基礎
+            </a>
+            <a href="{% url 'bfg:import' %}" class="nav-link {% if request.resolver_match.url_name == 'import' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                匯入 CSV
+            </a>
+        </nav>
+    </nav>
+
+    <!-- Main -->
+    <main class="main-content">
+        <div class="container" style="position:relative;">
+            <div class="accent-glow"></div>
+
+            <!-- Django Messages -->
+            {% if messages %}
+                <div style="margin-bottom:16px;">
+                {% for message in messages %}
+                    <div class="alert alert-{% if message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% elif message.tags == 'success' %}success{% else %}info{% endif %}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            {% if message.tags == 'success' %}<path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/>
+                            {% elif message.tags == 'error' %}<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                            {% else %}<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>{% endif %}
+                        </svg>
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+                </div>
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

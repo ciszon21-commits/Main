@@ -116,6 +116,7 @@ INSTALLED_APPS = [
     'SRCColumn',  # SRC柱設計計算系統
     'XrResource',
     'WellDrawdown',  # 水理分析抽水預測系統
+    'BFGExcavation',  # 臨時支撐配置深度檢核
 ] + local.STAGE_INSTALLED_APPS
 
 
