@@ -478,7 +478,11 @@ def dashboard(request):
     bulk_items = XrBulkItem.objects.all()
     
     # 3. 最近活動 (最新的 10 筆租借申請)
-    recent_rentals = XrRentalRecord.objects.all().order_by('-created_at')[:10]
+    recent_rentals = XrRentalRecord.objects.all().prefetch_related(
+        'xrrentalequipment_set__equipment', 
+        'xrrentalbulkitem_set__bulk_item',
+        'nature'
+    ).order_by('-created_at')[:10]
 
     return render(request, 'XrResource/dashboard.html', {
         'vr_comp_stats': vr_comp_stats,

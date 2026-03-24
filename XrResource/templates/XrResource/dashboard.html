@@ -129,7 +129,7 @@
                         <div class="d-flex justify-content-between mb-1 x-small">
                             <span class="text-muted">庫存可用率</span>
                             <span
-                                class="fw-bold {% if camera_host_stats.available_pct == 100 %}text-success{% elif camera_host_stats.available_pct == 0 %}text-danger{% else %}text-warning{% endif %}">{{camera_host_stats.available_pct }}%</span>
+                                class="fw-bold {% if camera_host_stats.available_pct == 100 %}text-success{% elif camera_host_stats.available_pct == 0 %}text-danger{% else %}text-warning{% endif %}">{{ camera_host_stats.available_pct }}%</span>
                         </div>
                         <div class="progress rounded-pill shadow-inner" style="height: 6px;">
                             <div class="progress-bar {% if camera_host_stats.available_pct == 100 %}bg-success{% elif camera_host_stats.available_pct == 0 %}bg-danger{% else %}bg-warning{% endif %}"
@@ -180,21 +180,28 @@
             <h5 class="fw-bold text-dark mb-4"><i class="fas fa-tasks me-2 text-warning"></i>最近租借活動</h5>
             <div class="timeline-compact">
                 {% for rental in recent_rentals %}
-                <div class="d-flex mb-3 pb-3 border-bottom border-light last-no-border">
+                <div class="d-flex mb-3 pb-3 border-bottom border-light last-no-border position-relative">
                     <div class="flex-shrink-0 mt-1">
                         <div
                             class="status-indicator {% if rental.status == 'pending' %}bg-warning{% elif rental.status == 'approved' %}bg-danger{% elif rental.status == 'returned' %}bg-success{% elif rental.status == 'rejected' %}bg-dark{% else %}bg-secondary{% endif %}">
                         </div>
                     </div>
                     <div class="ms-3 flex-grow-1">
-                        <div class="d-flex justify-content-between">
-                            <div class="fw-bold text-dark small" style="line-height: 1.2;">{{ rental.activity_name }}
-                            </div>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="fw-bold text-dark small pe-4" style="line-height: 1.2;">{{ rental.activity_name }}</div>
                             <span class="badge bg-soft-secondary text-dark x-small py-0">{{ rental.get_status_display }}</span>
                         </div>
                         <div class="text-muted x-small d-flex justify-content-between gap-3 mt-1">
                             <span>{{ rental.borrower_name }}</span>
                             <span>{{ rental.created_at|date:"m/d H:i" }}</span>
+                        </div>
+                        <!-- 詳情按鈕 -->
+                        <div class="mt-2 text-end">
+                            <button type="button"
+                                class="btn btn-link p-0 x-small text-decoration-none text-primary fw-bold"
+                                data-bs-toggle="modal" data-bs-target="#rentalModal{{ rental.id }}">
+                                <i class="fas fa-info-circle me-1"></i> 查看詳情
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -204,12 +211,113 @@
             </div>
             <div class="text-center mt-auto pt-3">
                 <a href="{% url 'XrResource:rental_list' %}"
-                    class="btn btn-sm btn-link text-decoration-none text-primary">檢視所有歷史紀錄 <i
-                        class="fas fa-arrow-right small ms-1"></i></a>
+                    class="btn btn-sm btn-link text-decoration-none text-primary">
+                    檢視所有歷史紀錄 <i class="fas fa-arrow-right small ms-1"></i>
+                </a>
             </div>
         </div>
     </div>
 </div>
+
+<!-- 詳情 Modals (移至外部以避免 stacking context 問題) -->
+{% for rental in recent_rentals %}
+<div class="modal fade" id="rentalModal{{ rental.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 glass-card">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-primary">
+                    <i class="fas fa-file-alt me-2"></i>租借申請詳情
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-3">
+                <div class="mb-4">
+                    <div class="text-muted small mb-1">活動名稱</div>
+                    <div class="fw-bold fs-5 text-dark">{{ rental.activity_name }}</div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-6">
+                        <div class="text-muted small mb-1">借用人 / 部門</div>
+                        <div class="fw-bold text-dark">{{ rental.borrower_name }}</div>
+                        <div class="text-muted small">({{ rental.department }})</div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <div class="text-muted small mb-1">目前狀態</div>
+                        <span
+                            class="badge {% if rental.status == 'pending' %}bg-warning text-dark{% elif rental.status == 'approved' %}bg-danger{% elif rental.status == 'returned' %}bg-success{% else %}bg-secondary{% endif %} px-3 rounded-pill">
+                            {{ rental.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-light rounded-4 mb-4">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="text-muted small">租借起始</div>
+                            <div class="fw-bold small">{{ rental.rental_start|date:"Y-m-d" }}</div>
+                        </div>
+                        <div class="col-6 text-end">
+                            <div class="text-muted small">預計歸還</div>
+                            <div class="fw-bold small">{{ rental.rental_end|date:"Y-m-d" }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="text-muted small mb-2"><i class="fas fa-desktop me-1"></i> 租借設備</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for r_eq in rental.xrrentalequipment_set.all %}
+                        <span class="badge bg-white border text-dark fw-normal rounded-pill">
+                            {{ r_eq.equipment.name }}
+                            {% if r_eq.is_returned %}
+                            <i class="fas fa-check-circle text-success ms-1"></i>
+                            {% else %}
+                            <i class="fas fa-exchange-alt text-danger ms-1"></i>
+                            {% endif %}
+                        </span>
+                        {% empty %}
+                        <span class="text-muted small">無主機設備</span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="text-muted small mb-2"><i class="fas fa-box me-1"></i> 配件耗材</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for r_bulk in rental.xrrentalbulkitem_set.all %}
+                        <span class="badge bg-white border text-dark fw-normal rounded-pill">
+                            {{ r_bulk.bulk_item.name }} x{{ r_bulk.count }}
+                            {% if r_bulk.is_returned %}
+                            <i class="fas fa-check-circle text-success ms-1"></i>
+                            {% else %}
+                            <i class="fas fa-clock text-warning ms-1"></i>
+                            {% endif %}
+                        </span>
+                        {% empty %}
+                        <span class="text-muted small">無配件項目</span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {% if rental.reason %}
+                <div class="mb-0">
+                    <div class="text-muted small mb-1">租借原因 / 備註</div>
+                    <div class="p-3 bg-light rounded-4 small text-secondary">
+                        {{ rental.reason|linebreaksbr }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer border-0">
+                <a href="{% url 'XrResource:rental_list' %}" class="btn btn-light btn-sm rounded-pill px-3">查看歷程記錄</a>
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3"
+                    data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
 {% endblock %}
 
 {% block extra_css %}
