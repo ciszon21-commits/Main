@@ -117,6 +117,59 @@
 /* Loading skeleton */
 .skeleton { animation: pulse 1.5s infinite; background: var(--bg-surface); border-radius: 8px; height: 60px; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ── Export Wizard Modal ── */
+.exp-modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.75); z-index: 2000;
+    align-items: center; justify-content: center;
+}
+.exp-modal-overlay.active { display: flex; }
+.exp-modal {
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg); padding: 28px;
+    width: min(680px, 95vw); max-height: 85vh;
+    display: flex; flex-direction: column; gap: 0;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+.exp-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 16px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px;
+}
+.exp-modal-header h2 { margin: 0; font-size: 1rem; color: var(--blue-secondary); font-family: 'Fira Code', monospace; display: flex; align-items: center; gap: 8px; }
+.exp-modal-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.4rem; line-height: 1; padding: 0 4px; }
+.exp-modal-close:hover { color: var(--text-primary); }
+.exp-steps { display: flex; gap: 0; margin-bottom: 20px; }
+.exp-step-tab {
+    flex: 1; padding: 8px 4px; text-align: center; font-size: 0.72rem;
+    border-bottom: 2px solid var(--border-color); color: var(--text-muted);
+    cursor: default; transition: all 0.15s;
+}
+.exp-step-tab.active { color: var(--blue-secondary); border-bottom-color: var(--blue-secondary); font-weight: 600; }
+.exp-step-tab.done { color: var(--green-ok); border-bottom-color: var(--green-ok); }
+.exp-step-body { flex: 1; overflow-y: auto; margin-bottom: 20px; }
+.exp-step-panel { display: none; }
+.exp-step-panel.active { display: block; }
+.exp-check-list {
+    max-height: 260px; overflow-y: auto;
+    border: 1px solid var(--border-color); border-radius: 6px;
+    background: var(--bg-surface);
+}
+.exp-check-list label {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; font-size: 0.83rem; cursor: pointer;
+    border-bottom: 1px solid rgba(30,58,95,0.3); transition: background 0.1s;
+}
+.exp-check-list label:last-child { border-bottom: none; }
+.exp-check-list label:hover { background: rgba(59,130,246,0.06); }
+.exp-check-list input[type=checkbox] { accent-color: var(--blue-primary); width: 14px; height: 14px; flex-shrink: 0; }
+.exp-check-list .sub-label { color: var(--text-muted); font-size: 0.72rem; margin-left: auto; }
+.exp-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.exp-bar-label { font-size: 0.78rem; color: var(--text-muted); }
+.exp-bar-btn { font-size: 0.75rem; color: var(--blue-secondary); cursor: pointer; background: none; border: none; padding: 0; text-decoration: underline; }
+.exp-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid var(--border-color); }
+.exp-filename { width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.85rem; margin-bottom: 12px; box-sizing: border-box; }
+.exp-summary { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 4px; }
 </style>
 {% endblock %}
 
@@ -138,6 +191,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
             3D 視覺化
         </a>
+        <button id="open-export-btn" class="btn btn-outline" onclick="openExportWizard()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            匯出資料
+        </button>
         <a href="{% url 'bfg:create' %}" class="btn btn-cta">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
             新增基礎
@@ -210,6 +267,76 @@
     <span id="result-count" class="badge badge-blue" style="margin-left:auto;white-space:nowrap;">讀取中…</span>
 </div>
 
+<!-- Export Wizard Modal -->
+<div id="exp-overlay" class="exp-modal-overlay" onclick="if(event.target===this)closeExportWizard()">
+  <div class="exp-modal" onclick="event.stopPropagation()">
+    <div class="exp-modal-header">
+      <h2>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        匯出資料精靈
+      </h2>
+      <button class="exp-modal-close" onclick="closeExportWizard()">&times;</button>
+    </div>
+    <div class="exp-steps">
+      <div class="exp-step-tab active" id="tab-1">① 計畫編號</div>
+      <div class="exp-step-tab" id="tab-2">② 橋梁名稱</div>
+      <div class="exp-step-tab" id="tab-3">③ 基礎名稱</div>
+      <div class="exp-step-tab" id="tab-4">④ 匯出欄位</div>
+      <div class="exp-step-tab" id="tab-5">⑤ 匯出設定</div>
+    </div>
+    <div class="exp-step-body">
+      <!-- Step 1: Projects -->
+      <div class="exp-step-panel active" id="exp-panel-1">
+        <div class="exp-bar">
+          <span class="exp-bar-label">選擇要匯出的「計畫編號」：</span>
+          <button class="exp-bar-btn" onclick="expToggleAll('exp-proj-list',true)">全選</button>
+          <button class="exp-bar-btn" onclick="expToggleAll('exp-proj-list',false)">全不選</button>
+        </div>
+        <div class="exp-check-list" id="exp-proj-list"></div>
+      </div>
+      <!-- Step 2: Bridges -->
+      <div class="exp-step-panel" id="exp-panel-2">
+        <div class="exp-bar">
+          <span class="exp-bar-label">選擇要匯出的「橋梁名稱」：</span>
+          <button class="exp-bar-btn" onclick="expToggleAll('exp-bridge-list',true)">全選</button>
+          <button class="exp-bar-btn" onclick="expToggleAll('exp-bridge-list',false)">全不選</button>
+        </div>
+        <div class="exp-check-list" id="exp-bridge-list"></div>
+      </div>
+      <!-- Step 3: Foundations -->
+      <div class="exp-step-panel" id="exp-panel-3">
+        <div class="exp-bar">
+          <span class="exp-bar-label">選擇要匯出的「基礎名稱」：</span>
+          <button class="exp-bar-btn" onclick="expToggleAll('exp-found-list',true)">全選</button>
+          <button class="exp-bar-btn" onclick="expToggleAll('exp-found-list',false)">全不選</button>
+        </div>
+        <div class="exp-check-list" id="exp-found-list"></div>
+      </div>
+      <!-- Step 4: Columns -->
+      <div class="exp-step-panel" id="exp-panel-4">
+        <div class="exp-bar">
+          <span class="exp-bar-label">選擇要匯出的「欄位」：</span>
+          <button class="exp-bar-btn" onclick="expToggleAll('exp-col-list',true)">全選</button>
+          <button class="exp-bar-btn" onclick="expToggleAll('exp-col-list',false)">全不選</button>
+        </div>
+        <div class="exp-check-list" id="exp-col-list"></div>
+      </div>
+      <!-- Step 5: Filename + Export -->
+      <div class="exp-step-panel" id="exp-panel-5">
+        <p class="exp-bar-label" style="margin-bottom:8px;">設定匯出檔案名稱：</p>
+        <input type="text" class="exp-filename" id="exp-filename" value="基礎開挖資料.csv" placeholder="example.csv">
+        <div class="exp-summary" id="exp-summary"></div>
+        <div id="exp-preview" style="font-size:0.75rem;color:var(--text-muted);max-height:80px;overflow-y:auto;background:var(--bg-surface);border-radius:4px;padding:6px 10px;border:1px solid var(--border-color);white-space:pre;"></div>
+      </div>
+    </div>
+    <div class="exp-footer">
+      <button id="exp-prev-btn" class="btn btn-outline" onclick="expNav(-1)" style="display:none;">← 上一步</button>
+      <span></span>
+      <button id="exp-next-btn" class="btn btn-cta" onclick="expNav(1)">下一步 →</button>
+    </div>
+  </div>
+</div>
+
 <!-- Hierarchy Container -->
 <div id="hierarchy-container" class="hierarchy-container">
     <div class="skeleton"></div>
@@ -220,12 +347,12 @@
 
 {% block extra_scripts %}
 <script>
-let allData = [];     // raw hierarchy from API
-let allBridgeNames = [];  // unique bridge names across all projects
+let allData = [];
+let allBridgeNames = [];
 
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-// ── Render Foundation Table (Level 3) ──────────────────────────────────
+// ── Level 3: Foundation Table ─────────────────────────────────────────────
 function renderFoundations(foundations) {
     if (!foundations.length) return `<div style="padding:12px 20px;color:var(--text-muted);font-size:0.82rem;">無基礎資料</div>`;
     const rows = foundations.map(f => {
@@ -256,7 +383,7 @@ function renderFoundations(foundations) {
     return `<div class="foundation-table-wrap">
         <table class="data-table">
             <thead><tr>
-                <th>基礎標識</th><th>開挖平面</th><th>開挖剖面</th>
+                <th>基礎識別</th><th>開挖平面</th><th>開挖剖面</th>
                 <th>柱底EL(m)</th><th>版厚(m)</th><th>PC厚(m)</th><th>夾角(°)</th>
                 <th>更新日期</th><th style="text-align:center;">操作</th>
             </tr></thead>
@@ -265,7 +392,7 @@ function renderFoundations(foundations) {
     </div>`;
 }
 
-// ── Render Bridge Level (Level 2) ──────────────────────────────────────
+// ── Level 2: Bridge Accordion ─────────────────────────────────────────────
 function renderBridges(bridges, projectCode) {
     return bridges.map((b, bi) => {
         const reviewCount = b.foundations.filter(f => f.needs_review).length;
@@ -298,7 +425,7 @@ function renderBridges(bridges, projectCode) {
     }).join('');
 }
 
-// ── Render Project Level (Level 1) ─────────────────────────────────────
+// ── Level 1: Project Cards ────────────────────────────────────────────────
 function renderProjects(data) {
     const container = document.getElementById('hierarchy-container');
     if (!data.length) {
@@ -357,15 +484,11 @@ function renderProjects(data) {
     document.getElementById('stat-review').textContent = totalReview;
 }
 
-// ── Toggle Functions ──────────────────────────────────────────────────
-function toggleProject(header) {
-    header.closest('.project-card').classList.toggle('open');
-}
-function toggleBridge(header) {
-    header.closest('.bridge-item').classList.toggle('open');
-}
+// ── Toggle Functions ──────────────────────────────────────────────────────
+function toggleProject(header) { header.closest('.project-card').classList.toggle('open'); }
+function toggleBridge(header) { header.closest('.bridge-item').classList.toggle('open'); }
 
-// ── Filter Logic ──────────────────────────────────────────────────────
+// ── Filter Logic ──────────────────────────────────────────────────────────
 function applyFilters() {
     const search = document.getElementById('search-input').value.toLowerCase().trim();
     const projectFilter = document.getElementById('project-filter').value;
@@ -373,14 +496,11 @@ function applyFilters() {
 
     let filtered = allData;
 
-    if (projectFilter) {
-        filtered = filtered.filter(p => p.project_code === projectFilter);
-    }
+    if (projectFilter) filtered = filtered.filter(p => p.project_code === projectFilter);
 
     if (bridgeFilter) {
         filtered = filtered.map(p => ({
-            ...p,
-            bridges: p.bridges.filter(b => b.bridge_name === bridgeFilter)
+            ...p, bridges: p.bridges.filter(b => b.bridge_name === bridgeFilter)
         })).filter(p => p.bridges.length > 0);
     }
 
@@ -394,7 +514,7 @@ function applyFilters() {
                     (f.excavation_plan||'').toLowerCase().includes(search) ||
                     (f.excavation_section||'').toLowerCase().includes(search)
                 );
-                if (bMatch) return b; // show entire bridge
+                if (bMatch) return b;
                 if (foundations.length) return {...b, foundations};
                 return null;
             }).filter(Boolean);
@@ -405,29 +525,21 @@ function applyFilters() {
 
     renderProjects(filtered);
 
-    // Auto-expand if filter is active
     if (search || projectFilter || bridgeFilter) {
         document.querySelectorAll('.project-card').forEach(c => c.classList.add('open'));
-        if (search || bridgeFilter) {
-            document.querySelectorAll('.bridge-item').forEach(c => c.classList.add('open'));
-        }
+        if (search || bridgeFilter) document.querySelectorAll('.bridge-item').forEach(c => c.classList.add('open'));
     }
 }
 
-// ── Populate unique dropdowns ─────────────────────────────────────────
+// ── Populate Dropdowns ────────────────────────────────────────────────────
 function populateDropdowns(data) {
     const pSel = document.getElementById('project-filter');
     const bSel = document.getElementById('bridge-filter');
-
-    // Unique projects (preserve order from API)
     data.forEach(p => {
         const opt = document.createElement('option');
-        opt.value = p.project_code;
-        opt.textContent = p.project_code;
+        opt.value = p.project_code; opt.textContent = p.project_code;
         pSel.appendChild(opt);
     });
-
-    // Unique bridge names across all projects
     const bridgeSet = new Set();
     data.forEach(p => p.bridges.forEach(b => bridgeSet.add(b.bridge_name)));
     allBridgeNames = [...bridgeSet];
@@ -438,14 +550,13 @@ function populateDropdowns(data) {
     });
 }
 
-// When project changes, filter bridge dropdown to only show bridges in selected project
 document.getElementById('project-filter').addEventListener('change', function() {
     const bSel = document.getElementById('bridge-filter');
-    const selectedProject = this.value;
+    const sel = this.value;
     bSel.innerHTML = '<option value="">所有橋梁</option>';
     let bridges = allBridgeNames;
-    if (selectedProject) {
-        const proj = allData.find(p => p.project_code === selectedProject);
+    if (sel) {
+        const proj = allData.find(p => p.project_code === sel);
         bridges = proj ? proj.bridges.map(b => b.bridge_name) : [];
     }
     bridges.forEach(bn => {
@@ -458,7 +569,6 @@ document.getElementById('project-filter').addEventListener('change', function() 
 
 document.getElementById('bridge-filter').addEventListener('change', applyFilters);
 document.getElementById('search-input').addEventListener('input', applyFilters);
-
 document.getElementById('expand-all-btn').addEventListener('click', () => {
     document.querySelectorAll('.project-card').forEach(c => c.classList.add('open'));
     document.querySelectorAll('.bridge-item').forEach(c => c.classList.add('open'));
@@ -480,19 +590,16 @@ document.getElementById('reset-btn').addEventListener('click', () => {
     renderProjects(allData);
 });
 
-// ── Load Data ─────────────────────────────────────────────────────────
+// ── Load Hierarchy Data ───────────────────────────────────────────────────
 async function loadHierarchy() {
     try {
         const res = await fetch('/bgf-excavation/api/hierarchy/');
         allData = await res.json();
-
-        // Update top stats
         const totalBridges = allData.reduce((s, p) => s + p.bridge_count, 0);
         const totalFoundations = allData.reduce((s, p) => s + p.foundation_count, 0);
         document.getElementById('stat-projects').textContent = allData.length;
         document.getElementById('stat-bridges').textContent = totalBridges;
         document.getElementById('stat-foundations').textContent = totalFoundations;
-
         populateDropdowns(allData);
         renderProjects(allData);
     } catch(e) {
@@ -503,5 +610,198 @@ async function loadHierarchy() {
 }
 
 loadHierarchy();
+
+// ══════════════════════════════════════════════════
+// EXPORT WIZARD LOGIC
+// ══════════════════════════════════════════════════
+const EXP_COLS = [
+    { key:'project_code', label:'計畫編號' },
+    { key:'bridge_name',  label:'橋梁名稱' },
+    { key:'bridge_id',    label:'基礎名稱' },
+    { key:'excavation_plan',    label:'開挖平面' },
+    { key:'excavation_section', label:'開挖剖面' },
+    { key:'column_base_el',     label:'柱底EL (m)' },
+    { key:'h1_thickness',       label:'版厚 H1 (m)' },
+    { key:'c_pc_thickness',     label:'PC厚 C (m)' },
+    { key:'skew_angle',         label:'夾角 (°)' },
+    { key:'offset_dist',        label:'偏心距 (m)' },
+    { key:'D1', label:'結構參數 D1 (m)' },
+    { key:'D2', label:'結構參數 D2 (m)' },
+    { key:'D3', label:'結構參數 D3 (m)' },
+    { key:'D4', label:'結構參數 D4 (m)' },
+    { key:'B1', label:'B1 (m)' },
+    { key:'B2', label:'B2 (m)' },
+    { key:'L1', label:'L1 (m)' },
+    { key:'L2', label:'L2 (m)' },
+    { key:'el_l1_start', label:'L1起高程 (八向地表高程)' },
+    { key:'el_l1_end',   label:'L1迄高程 (八向地表高程)' },
+    { key:'el_l2_start', label:'L2起高程 (八向地表高程)' },
+    { key:'el_l2_end',   label:'L2迄高程 (八向地表高程)' },
+    { key:'el_b1_start', label:'B1起高程 (八向地表高程)' },
+    { key:'el_b1_end',   label:'B1迄高程 (八向地表高程)' },
+    { key:'el_b2_start', label:'B2起高程 (八向地表高程)' },
+    { key:'el_b2_end',   label:'B2迄高程 (八向地表高程)' },
+    { key:'note',        label:'備註' },
+    { key:'created_at',  label:'建立日期' },
+    { key:'updated_at',  label:'更新日期' },
+];
+
+let expStep = 1;
+
+function openExportWizard() {
+    expStep = 1;
+    expBuildStep1();
+    expUpdateUI();
+    document.getElementById('exp-overlay').classList.add('active');
+}
+function closeExportWizard() {
+    document.getElementById('exp-overlay').classList.remove('active');
+}
+function expToggleAll(listId, state) {
+    document.querySelectorAll(`#${listId} input[type=checkbox]`).forEach(cb => cb.checked = state);
+}
+function expGetChecked(listId) {
+    return [...document.querySelectorAll(`#${listId} input[type=checkbox]:checked`)].map(cb => cb.value);
+}
+function expUpdateUI() {
+    for (let i = 1; i <= 5; i++) {
+        document.getElementById('tab-' + i).className = 'exp-step-tab' + (i === expStep ? ' active' : i < expStep ? ' done' : '');
+        document.getElementById('exp-panel-' + i).className = 'exp-step-panel' + (i === expStep ? ' active' : '');
+    }
+    document.getElementById('exp-prev-btn').style.display = expStep > 1 ? '' : 'none';
+    const nBtn = document.getElementById('exp-next-btn');
+    if (expStep === 5) {
+        nBtn.textContent = '⬇ 下載 CSV';
+        nBtn.onclick = expDoExport;
+    } else {
+        nBtn.textContent = '下一步 →';
+        nBtn.onclick = () => expNav(1);
+    }
+}
+function expNav(dir) {
+    if (dir > 0) {
+        if (expStep === 1) { if (!expBuildStep2()) return; }
+        else if (expStep === 2) { if (!expBuildStep3()) return; }
+        else if (expStep === 3) { if (!expBuildStep4()) return; }
+        else if (expStep === 4) { if (!expBuildStep5()) return; }
+    }
+    expStep = Math.max(1, Math.min(5, expStep + dir));
+    expUpdateUI();
+}
+
+function expBuildStep1() {
+    document.getElementById('exp-proj-list').innerHTML = allData.map(p => `
+        <label>
+            <input type="checkbox" value="${p.project_code}" checked>
+            <span>${p.project_code}</span>
+            <span class="sub-label">${p.foundation_count} 基礎</span>
+        </label>`).join('');
+}
+function expBuildStep2() {
+    const sel = expGetChecked('exp-proj-list');
+    if (!sel.length) { alert('請至少選擇一個計畫編號'); return false; }
+    const pairs = [];
+    allData.filter(p => sel.includes(p.project_code)).forEach(p => {
+        p.bridges.forEach(b => pairs.push({ project: p.project_code, bridge: b.bridge_name, count: b.foundation_count }));
+    });
+    document.getElementById('exp-bridge-list').innerHTML = pairs.map(pair => {
+        const key = `${pair.project}|||${pair.bridge}`;
+        return `<label>
+            <input type="checkbox" value="${key}" checked>
+            <span>${pair.project} · ${pair.bridge}</span>
+            <span class="sub-label">${pair.count} 基礎</span>
+        </label>`;
+    }).join('');
+    return true;
+}
+function expBuildStep3() {
+    const selPairs = expGetChecked('exp-bridge-list');
+    if (!selPairs.length) { alert('請至少選擇一座橋梁'); return false; }
+    const items = [];
+    selPairs.forEach(pairKey => {
+        const [projCode, bridgeName] = pairKey.split('|||');
+        const proj = allData.find(p => p.project_code === projCode);
+        if (!proj) return;
+        const bridge = proj.bridges.find(b => b.bridge_name === bridgeName);
+        if (!bridge) return;
+        bridge.foundations.forEach(f => {
+            items.push({ key: `${projCode}|||${bridgeName}|||${f.id}`, project: projCode, bridge: bridgeName, fid: f.bridge_id });
+        });
+    });
+    document.getElementById('exp-found-list').innerHTML = items.map(item => `
+        <label>
+            <input type="checkbox" value="${item.key}" checked>
+            <span>${item.project} · ${item.bridge} · <strong>${item.fid}</strong></span>
+        </label>`).join('');
+    return true;
+}
+function expBuildStep4() {
+    const sel = expGetChecked('exp-found-list');
+    if (!sel.length) { alert('請至少選擇一個基礎'); return false; }
+    const list = document.getElementById('exp-col-list');
+    if (!list.innerHTML) {
+        list.innerHTML = EXP_COLS.map(c => `
+            <label>
+                <input type="checkbox" value="${c.key}" checked>
+                <span>${c.label}</span>
+                <span class="sub-label" style="font-family:'Fira Code',monospace;font-size:0.68rem;">${c.key}</span>
+            </label>`).join('');
+    }
+    return true;
+}
+function expBuildStep5() {
+    const selFound = expGetChecked('exp-found-list');
+    const selCols  = expGetChecked('exp-col-list');
+    if (!selFound.length) { alert('請至少選擇一個基礎'); return false; }
+    if (!selCols.length)  { alert('請至少選擇一個欄位'); return false; }
+    const colLabels = selCols.map(k => EXP_COLS.find(c => c.key === k)?.label || k);
+    const rows = expCollectRows(selFound, selCols);
+    document.getElementById('exp-summary').textContent = `將匯出 ${rows.length} 筆資料，${selCols.length} 個欄位`;
+    const preview = '[欄位] ' + colLabels.join(' | ') + '\n' + rows.slice(0,3).map(r => r.join(' | ')).join('\n');
+    document.getElementById('exp-preview').textContent = preview || '無資料';
+    return true;
+}
+
+function expCollectRows(selectedFoundKeys, selectedColKeys) {
+    const foundMap = new Map();
+    allData.forEach(p => {
+        p.bridges.forEach(b => {
+            b.foundations.forEach(f => {
+                foundMap.set(`${p.project_code}|||${b.bridge_name}|||${f.id}`, { ...f, project_code: p.project_code, bridge_name: b.bridge_name });
+            });
+        });
+    });
+    const rows = [];
+    selectedFoundKeys.forEach(key => {
+        const f = foundMap.get(key);
+        if (!f) return;
+        rows.push(selectedColKeys.map(col => {
+            const v = f[col];
+            let s = (v === null || v === undefined) ? '' : String(v);
+            if (s.includes(',') || s.includes('\n') || s.includes('"')) s = '"' + s.replace(/"/g, '""') + '"';
+            return s;
+        }));
+    });
+    return rows;
+}
+
+function expDoExport() {
+    const selFound = expGetChecked('exp-found-list');
+    const selCols  = expGetChecked('exp-col-list');
+    if (!selFound.length) { alert('請至少選擇一個基礎'); return; }
+    if (!selCols.length)  { alert('請至少選擇一個欄位'); return; }
+    const colLabels = selCols.map(k => EXP_COLS.find(c => c.key === k)?.label || k);
+    const rows = expCollectRows(selFound, selCols);
+    let csv = '\uFEFF' + colLabels.join(',') + '\n';
+    rows.forEach(r => csv += r.join(',') + '\n');
+    const fname = document.getElementById('exp-filename').value || '匯出資料.csv';
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fname.endsWith('.csv') ? fname : fname + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    closeExportWizard();
+}
 </script>
 {% endblock %}

@@ -241,26 +241,26 @@ class CSVImportView(TemplateView):
                     return
 
         defaults = {}
-        add_float(defaults, 'column_base_el', ['column_base_el', '柱底高程'])
-        add_float(defaults, 'h1_thickness', ['h1_thickness', '頂版厚度'])
-        add_float(defaults, 'c_pc_thickness', ['c_pc_thickness', 'PC厚度'])
-        add_float(defaults, 'B1', ['B1'])
-        add_float(defaults, 'B2', ['B2'])
-        add_float(defaults, 'L1', ['L1'])
-        add_float(defaults, 'L2', ['L2'])
-        add_float(defaults, 'el_l1_start', ['el_l1_start', 'L1起點地表EL'])
-        add_float(defaults, 'el_l1_end', ['el_l1_end', 'L1終點地表EL'])
-        add_float(defaults, 'el_l2_start', ['el_l2_start', 'L2起點地表EL'])
-        add_float(defaults, 'el_l2_end', ['el_l2_end', 'L2終點地表EL'])
-        add_float(defaults, 'el_b1_start', ['el_b1_start', 'B1起點地表EL'])
-        add_float(defaults, 'el_b1_end', ['el_b1_end', 'B1終點地表EL'])
-        add_float(defaults, 'el_b2_start', ['el_b2_start', 'B2起點地表EL'])
-        add_float(defaults, 'el_b2_end', ['el_b2_end', 'B2終點地表EL'])
-        add_float(defaults, 'offset_dist', ['offset_dist', '各階支撐退縮距離'], 0.8)
-        add_float(defaults, 'd1_manual', ['d1_manual', '強制指定第一階支撐與地表之最小間距'], 0.5)
+        add_float(defaults, 'column_base_el', ['column_base_el', '柱底高程', '柱底EL', '柱底EL (m)'])
+        add_float(defaults, 'h1_thickness', ['h1_thickness', '頂版厚度', '版厚', '版厚 H1', '版厚 H1 (m)'])
+        add_float(defaults, 'c_pc_thickness', ['c_pc_thickness', 'PC厚度', 'PC厚', 'PC厚 C', 'PC厚 C (m)'])
+        add_float(defaults, 'B1', ['B1', 'B1 (m)'])
+        add_float(defaults, 'B2', ['B2', 'B2 (m)'])
+        add_float(defaults, 'L1', ['L1', 'L1 (m)'])
+        add_float(defaults, 'L2', ['L2', 'L2 (m)'])
+        add_float(defaults, 'el_l1_start', ['el_l1_start', 'L1起點地表EL', 'L1起高程', 'L1起高程 (八向地表高程)'])
+        add_float(defaults, 'el_l1_end', ['el_l1_end', 'L1終點地表EL', 'L1迄高程', 'L1迄高程 (八向地表高程)'])
+        add_float(defaults, 'el_l2_start', ['el_l2_start', 'L2起點地表EL', 'L2起高程', 'L2起高程 (八向地表高程)'])
+        add_float(defaults, 'el_l2_end', ['el_l2_end', 'L2終點地表EL', 'L2迄高程', 'L2迄高程 (八向地表高程)'])
+        add_float(defaults, 'el_b1_start', ['el_b1_start', 'B1起點地表EL', 'B1起高程', 'B1起高程 (八向地表高程)'])
+        add_float(defaults, 'el_b1_end', ['el_b1_end', 'B1終點地表EL', 'B1迄高程', 'B1迄高程 (八向地表高程)'])
+        add_float(defaults, 'el_b2_start', ['el_b2_start', 'B2起點地表EL', 'B2起高程', 'B2起高程 (八向地表高程)'])
+        add_float(defaults, 'el_b2_end', ['el_b2_end', 'B2終點地表EL', 'B2迄高程', 'B2迄高程 (八向地表高程)'])
+        add_float(defaults, 'offset_dist', ['offset_dist', '各階支撐退縮距離', '偏心距 (m)', '各階支撐退縮距離 offset_dist (m)'], 0.8)
+        add_float(defaults, 'd1_manual', ['d1_manual', '強制指定第一階支撐與地表之最小間距', 'D1', '結構參數 D1 (m)', 'D1 (m)'], 0.5)
         add_str(defaults, 'excavation_plan', ['開挖平面', 'excavation_plan'])
         add_str(defaults, 'excavation_section', ['開挖剖面', 'excavation_section'])
-        add_float(defaults, 'skew_angle', ['夾角', 'skew_angle'])
+        add_float(defaults, 'skew_angle', ['夾角', 'skew_angle', '夾角 (°)', '夾角 skew_angle (°)'], 0.0)
         add_str(defaults, 'note', ['備註', 'note'])
         return defaults
 
@@ -446,6 +446,8 @@ class HierarchyAPIView(APIView):
             'column_base_el', 'h1_thickness', 'c_pc_thickness',
             'B1', 'B2', 'L1', 'L2', 'skew_angle',
             'offset_dist', 'd1_manual', 'note',
+            'el_l1_start', 'el_l1_end', 'el_l2_start', 'el_l2_end',
+            'el_b1_start', 'el_b1_end', 'el_b2_start', 'el_b2_end',
             'needs_review', 'created_at', 'updated_at',
         )
 
@@ -468,6 +470,31 @@ class HierarchyAPIView(APIView):
             date_str = latest.strftime('%Y-%m-%d') if latest else '—'
             created_str = created.strftime('%Y-%m-%d') if created else '—'
 
+            # Calculate D1~D4
+            elevations = [
+                f['el_l1_start'], f['el_l1_end'], f['el_l2_start'], f['el_l2_end'],
+                f['el_b1_start'], f['el_b1_end'], f['el_b2_start'], f['el_b2_end']
+            ]
+            max_el = max(elevations)
+            min_el = min(elevations)
+            if max_el - min_el <= 1.0:
+                reference_el = sum(elevations) / 8.0
+            else:
+                reference_el = max_el
+            reference_el = round(reference_el * 20) / 20.0
+            final_el = f['column_base_el'] - f['h1_thickness'] - f['c_pc_thickness']
+            H = reference_el - final_el
+            
+            from .services import ExcavationService
+            calc = ExcavationService.calculate_supports(
+                H=H,
+                reference_el=reference_el,
+                h1_thickness=f['h1_thickness'],
+                c_pc_thickness=f['c_pc_thickness'],
+                d1_manual=f['d1_manual']
+            )
+            D_vals = calc.get('D', {})
+
             foundation_entry = {
                 'id': f['id'],
                 'bridge_id': f['bridge_id'],
@@ -478,6 +505,14 @@ class HierarchyAPIView(APIView):
                 'c_pc_thickness': f['c_pc_thickness'],
                 'B1': f['B1'], 'B2': f['B2'], 'L1': f['L1'], 'L2': f['L2'],
                 'skew_angle': f['skew_angle'],
+                'el_l1_start': f['el_l1_start'], 'el_l1_end': f['el_l1_end'],
+                'el_l2_start': f['el_l2_start'], 'el_l2_end': f['el_l2_end'],
+                'el_b1_start': f['el_b1_start'], 'el_b1_end': f['el_b1_end'],
+                'el_b2_start': f['el_b2_start'], 'el_b2_end': f['el_b2_end'],
+                'D1': D_vals.get('D1', ''),
+                'D2': D_vals.get('D2', ''),
+                'D3': D_vals.get('D3', ''),
+                'D4': D_vals.get('D4', ''),
                 'needs_review': f['needs_review'],
                 'created_at': created_str,
                 'updated_at': date_str,
