@@ -55,6 +55,7 @@ urlpatterns = [
     path('review/', include('review_feedback.urls')),
     path('src-column/', include('SRCColumn.urls')),  # SRC柱設計計算系統
     path('xr-resource/', include('XrResource.urls', namespace='XrResource')),
+    path('well-drawdown/', include('WellDrawdown.urls')),  # 水理分析抽水預測系統
 
 ]
 
