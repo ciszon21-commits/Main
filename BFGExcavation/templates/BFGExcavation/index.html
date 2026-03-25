@@ -286,9 +286,9 @@
     </div>
 
     <!-- Export Wizard Modal -->
-    <div id="export-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; justify-content:center; align-items:center;">
-        <div style="background:white; padding:20px; border-radius:8px; width:500px; max-height:80vh; overflow-y:auto; box-shadow:0 4px 6px rgba(0,0,0,0.3);">
-            <h3 style="margin-top:0; border-bottom:1px solid #ddd; padding-bottom:10px;">進階匯出精靈 <span id="export-btn-loading" style="color:#d00; font-size:0.8em; float:right;"></span></h3>
+    <div id="export-modal" class="modal-overlay">
+        <div class="modal-box" style="width:500px;">
+            <h3 style="border-bottom:1px solid var(--border);">進階匯出精靈 <span id="export-btn-loading" style="color:var(--red); font-size:0.8em; float:right;"></span></h3>
             
             <div id="export-step-1" class="export-step">
                 <h4>1. 選擇計畫編號 <span style="font-size:0.8em; font-weight:normal; cursor:pointer; color:blue;" onclick="exportToggleAll('export-projects', true)">[全選]</span> <span style="font-size:0.8em; font-weight:normal; cursor:pointer; color:blue;" onclick="exportToggleAll('export-projects', false)">[全不選]</span></h4>
@@ -353,7 +353,7 @@
             <div class="step-connector"></div>
             <div id="step2" class="step-item step-pending">
                 <div class="step-num">2</div>
-                <div class="step-label">選擇橋梁名稱</div>
+                <div class="step-label">選擇橋梁名稱或開挖平面</div>
             </div>
             <div class="step-connector"></div>
             <div id="step3" class="step-item step-pending">
@@ -368,10 +368,10 @@
                 <option value="">-- 請選擇計畫 --</option>
             </select>
         </div>
-        <div class="form-group" style="margin-bottom: 10px;">
-            <strong>篩選模式:</strong><br>
-            <label><input type="radio" name="filterMode" value="bridge" checked> 依橋梁名稱</label>
-            <label style="margin-left: 10px;"><input type="radio" name="filterMode" value="plan"> 依開挖平面</label>
+        <div class="form-group filter-mode-row" style="margin-bottom: 10px; display: flex; flex-direction: row; align-items: center; gap: 10px;">
+            <strong style="margin-right: 10px; color: var(--text);">篩選模式:</strong>
+            <label style="display: flex; flex-direction: row; align-items: center; justify-content: flex-start; margin: 0; font-size: 0.82rem; text-transform: none;"><input type="radio" name="filterMode" value="bridge" checked> 依橋梁名稱</label>
+            <label style="display: flex; flex-direction: row; align-items: center; justify-content: flex-start; margin: 0; font-size: 0.82rem; text-transform: none;"><input type="radio" name="filterMode" value="plan"> 依開挖平面</label>
         </div>
         <div class="form-group" id="bridge-select-group">
             <label for="bridge-select">選擇橋梁名稱 (Bridge Name):</label>
@@ -408,12 +408,12 @@
             - 未輸入剖面: <span id="stat-empty-section-count" style="color:red; font-weight:bold;">0</span> 處
         </div>
         <div id="details">
-            <h4>計算結果</h4>
+            <h4 style="margin-top:0; margin-bottom:8px; color:var(--blue2);">計算結果</h4>
             <div id="result-text">請先選擇計畫與基礎</div>
-            <div id="error-alert" style="color: red; font-weight: bold; margin-top:10px; display:none;">
+            <div id="error-alert" style="color: var(--red); font-weight: bold; margin-top:10px; display:none;">
                 ⚠️ 設計規則違反 (Error)
             </div>
-            <div id="warning-alert" style="color: orange; font-weight: bold; margin-top:10px; display:none;">
+            <div id="warning-alert" style="color: var(--yellow); font-weight: bold; margin-top:10px; display:none;">
                 ⚠️ 深度警示 (Warning)
             </div>
         </div>
@@ -434,7 +434,10 @@
     <div id="bottom-panel" style="grid-column: 3; grid-row: 1 / span 3; display: flex; flex-direction: column; background: var(--bg-card); z-index: 10; height: 100vh; overflow: hidden;">
         <div class="panel-header" style="position:sticky; top:0; z-index:6;">
             <span>📊 初步計算結果綜整</span>
-            <button id="export-csv-btn" style="display:none;">⬇️ 匯出計算結果 (CSV)</button>
+            <div style="display:flex; gap:8px;">
+                <button id="clear-review-btn" style="display:none; background:var(--blue); color:white; border:none; padding:5px 12px; border-radius:5px; cursor:pointer; font-size:0.8rem; font-weight:600;">✅ 取消已更新標記</button>
+                <button id="export-csv-btn" style="display:none; background:var(--green); color:white; border:none; padding:5px 12px; border-radius:5px; cursor:pointer; font-size:0.8rem; font-weight:600;">⬇️ 匯出計算結果 (CSV)</button>
+            </div>
         </div>
         <!-- Welcome / empty state (shown before bridge is selected) -->
         <div id="panel-welcome" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center;">
@@ -838,7 +841,8 @@
         document.getElementById('bottom-panel').style.display = 'flex';
         document.getElementById('panel-welcome').style.display = 'none';
         document.getElementById('panel-data').style.display = 'block';
-        document.getElementById('export-csv-btn').style.display = '';
+        document.getElementById('export-csv-btn').style.display = 'inline-block';
+        document.getElementById('clear-review-btn').style.display = 'inline-block';
         // Step 2 done → Step 3 active
         setStep(3);
                 
@@ -1071,6 +1075,68 @@
         // 2d. Add event listener to Export CSV button
         document.getElementById('export-csv-btn').addEventListener('click', openExportWizard);
 
+        // 2e. Add event listener to Clear Review button
+        document.getElementById('clear-review-btn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                const projectEl = document.getElementById('project-select');
+                const bridgeEl = document.getElementById('bridge-select');
+                const planEl = document.getElementById('plan-select');
+                const modeRadio = document.querySelector('input[name="filterMode"]:checked');
+                
+                if (!projectEl || !modeRadio) {
+                    alert("介面尚未就緒，請重整網頁。");
+                    return;
+                }
+                
+                const project = projectEl.value;
+                const mode = modeRadio.value;
+                const bridge = bridgeEl ? bridgeEl.value : "";
+                const plan = planEl ? planEl.value : "";
+                
+                let filterValue = mode === 'bridge' ? bridge : plan;
+                if (!project || !filterValue) {
+                    alert("請先選擇計畫編號及橋梁/開挖平面");
+                    return;
+                }
+                
+                if(!confirm(`確定要將 [${filterValue}] 的所有「已更新(需檢視)」標記取消嗎？`)) return;
+                
+                const res = await fetch('/bgf-excavation/api/clear-review/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ project_code: project, filter_mode: mode, filter_value: filterValue })
+                });
+                
+                if (!res.ok) {
+                    let errStr = res.statusText;
+                    try {
+                        const errData = await res.json();
+                        if (errData.error) errStr = errData.error;
+                    } catch(jsonErr) {}
+                    alert("錯誤: " + errStr);
+                    return;
+                }
+                
+                const data = await res.json();
+                alert(`成功取消 ${data.updated_count} 筆標記`);
+                
+                // Reload table
+                if (typeof fetchFoundations === 'function') {
+                    fetchFoundations();
+                } else if (typeof window.fetchFoundations === 'function') {
+                    window.fetchFoundations();
+                } else {
+                    location.reload(); 
+                }
+            } catch(error) {
+                alert("執行發生錯誤: " + error.message);
+                console.error(error);
+            }
+        });
+
+
+
         // 3. Update Model
         recalcBtn.addEventListener('click', async () => {
             if (!currentBridgeId) {
@@ -1209,6 +1275,8 @@
                 html += `- ${k}: ${v}m<br>`;
             }
             resultText.innerHTML = html;
+
+
 
             // Update input default to match what was calculated
             if(data.D.D1) {

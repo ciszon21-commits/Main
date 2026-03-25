@@ -7,6 +7,7 @@ from .views import (
     ProjectListView, BridgeListView, PlanListView,
     FoundationListView, FoundationExcavationAPIView,
     FoundationStatsAPIView, HierarchyAPIView,
+    FoundationClearReviewAPIView,
 )
 
 app_name = 'bfg'
@@ -29,4 +30,5 @@ urlpatterns = [
     path('api/hierarchy/', HierarchyAPIView.as_view(), name='api-hierarchy'),
     path('api/excavation/', csrf_exempt(FoundationExcavationAPIView.as_view()), name='api-excavation'),
     path('api/excavation/<str:bridge_id>/', csrf_exempt(FoundationExcavationAPIView.as_view()), name='api-excavation-detail'),
+    path('api/clear-review/', csrf_exempt(FoundationClearReviewAPIView.as_view()), name='api-clear-review'),
 ]

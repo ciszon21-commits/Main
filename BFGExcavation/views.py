@@ -429,6 +429,32 @@ class FoundationStatsAPIView(APIView):
         return Response(list(stats), status=status.HTTP_200_OK)
 
 
+class FoundationClearReviewAPIView(APIView):
+    """
+    Batch clear the 'needs_review' flag for foundations.
+    Accepts POST with JSON payload: {'project_code': '...', 'filter_mode': 'bridge', 'filter_value': '...'}
+    """
+    def post(self, request):
+        data = request.data
+        project = data.get('project_code')
+        mode = data.get('filter_mode')
+        value = data.get('filter_value')
+
+        if not project or not value:
+            return Response({'error': 'Missing project_code or filter_value'}, status=status.HTTP_400_BAD_REQUEST)
+
+        qs = FoundationExcavation.objects.filter(project_code=project)
+        if mode == 'bridge':
+            qs = qs.filter(bridge_name=value)
+        elif mode == 'plan':
+            qs = qs.filter(excavation_plan=value)
+        else:
+            return Response({'error': 'Invalid filter_mode'}, status=status.HTTP_400_BAD_REQUEST)
+
+        updated_count = qs.update(needs_review=False)
+        return Response({'message': 'Success', 'updated_count': updated_count}, status=status.HTTP_200_OK)
+
+
 class HierarchyAPIView(APIView):
     """
     Returns the full 3-level hierarchy: project → bridge → foundations.
