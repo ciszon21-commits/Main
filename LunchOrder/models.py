@@ -14,12 +14,12 @@ class Restaurant(models.Model):
         blank=True,
         verbose_name="電話"
     )
-    image_file = models.CharField(
-        max_length=100,
+    image_file = models.ImageField(
+        upload_to='lunch_menus/',
         null=True,
         blank=True,
-        verbose_name="菜單圖片檔名",
-        help_text="例如: menu_dianguo.jpg, 檔案需放在 static/LunchOrder/ 下"
+        verbose_name="菜單圖片",
+        help_text="請上傳菜單圖片"
     )
     address = models.CharField(
         max_length=200,
