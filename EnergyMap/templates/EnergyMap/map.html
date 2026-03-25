@@ -1,0 +1,1770 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>電廠地圖 | EnergyMap</title>
+    <meta name="description" content="台灣各電廠位置地圖，依能源類型分類標示">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-card: #111827;
+            --bg-hover: #1a2035;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255, 255, 255, 0.06);
+            --accent: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --glow: rgba(59, 130, 246, 0.15);
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ===== NAV ===== */
+        .top-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background: rgba(17, 24, 39, 0.97);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            z-index: 1000;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 17px;
+        }
+
+        .nav-brand .icon {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-cyan));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #f8fafc;
+        }
+
+        .nav-brand .icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 4px;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-links a.active {
+            color: var(--accent);
+            background: var(--glow);
+        }
+
+        .refresh-btn {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-primary);
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(59, 130, 246, 0.12);
+            border-color: rgba(59, 130, 246, 0.28);
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.65;
+            cursor: wait;
+        }
+
+        .refresh-btn-label {
+            line-height: 1;
+        }
+
+        .cooldown-ring {
+            --progress: 1turn;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            position: relative;
+            flex-shrink: 0;
+            background: conic-gradient(var(--accent) var(--progress), rgba(255, 255, 255, 0.12) 0);
+        }
+
+        .cooldown-ring::after {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            border-radius: 50%;
+            background: rgba(17, 24, 39, 0.98);
+        }
+
+        .refresh-btn:disabled .cooldown-ring {
+            background: conic-gradient(#93c5fd var(--progress), rgba(255, 255, 255, 0.08) 0);
+        }
+
+        /* ===== BODY WRAPPER (3 columns) ===== */
+        .map-body {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ===== LEFT DETAIL PANEL (overlay) ===== */
+        .detail-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 460px;
+            height: 100%;
+            background: rgba(13, 18, 32, 0.99);
+            border-right: 1px solid var(--border);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 700;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .detail-panel.open {
+            display: flex;
+        }
+
+        /* Detail panel — top bar */
+        .detail-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .detail-plant-name {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .detail-type-badge {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .detail-type-chip {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .detail-close {
+            background: rgba(255, 255, 255, 0.06);
+            border: none;
+            color: var(--text-muted);
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            line-height: 28px;
+            text-align: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            margin-left: 8px;
+        }
+
+        .detail-close:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--text-primary);
+        }
+
+        /* Detail panel — scrollable content */
+        .detail-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 18px;
+        }
+
+        .detail-body::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .detail-body::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        /* Stat grid */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            position: relative;
+        }
+
+        .stat-box-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .info-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            font-size: 9px;
+            font-weight: 700;
+            font-style: normal;
+            cursor: pointer;
+            flex-shrink: 0;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            transition: all 0.2s;
+        }
+
+        .info-icon:hover {
+            background: rgba(59, 130, 246, 0.4);
+        }
+
+        /* Tooltip — rendered at body level to escape overflow:hidden */
+        #info-floating-tooltip {
+            display: none;
+            position: fixed;
+            background: #0d1117;
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            color: #94a3b8;
+            font-size: 11px;
+            line-height: 1.6;
+            padding: 10px 13px;
+            border-radius: 9px;
+            width: 260px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+            z-index: 99999;
+            white-space: normal;
+            pointer-events: none;
+        }
+
+        #info-floating-tooltip strong {
+            color: #60a5fa;
+            display: block;
+            margin-bottom: 4px;
+            font-size: 11.5px;
+        }
+
+        .stat-box-value {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-top: 4px;
+            white-space: nowrap;
+        }
+
+        .stat-box-unit {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-left: 2px;
+        }
+
+        /* Section title */
+        .section-title {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* Unit table */
+        .unit-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5px;
+            margin-bottom: 16px;
+        }
+
+        .unit-table thead th {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 8px 6px;
+            text-align: right;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .unit-table thead th:first-child {
+            text-align: left;
+        }
+
+        .unit-table tbody td {
+            padding: 6px 8px;
+            text-align: right;
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        .unit-table tbody td:first-child {
+            text-align: left;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .unit-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .unit-table tbody tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Status badge */
+        .status-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 1px 6px;
+            border-radius: 4px;
+            margin-left: 4px;
+            vertical-align: middle;
+        }
+
+        .status-badge.warn {
+            background: rgba(239, 68, 68, 0.12);
+            color: #f87171;
+        }
+
+        .status-badge.info {
+            background: rgba(245, 158, 11, 0.12);
+            color: #fbbf24;
+        }
+
+        .unit-source-label {
+            display: inline-flex;
+            align-items: center;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            border-radius: 999px;
+            padding: 2px 7px;
+            margin-bottom: 4px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            background: rgba(148, 163, 184, 0.08);
+            color: #cbd5e1;
+        }
+
+        /* Util bar */
+        .util-bar-wrap {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            justify-content: flex-end;
+        }
+
+        .util-bar {
+            height: 4px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        /* Notes section */
+        .notes-section {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .notes-toggle {
+            width: 100%;
+            background: none;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .notes-toggle:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-primary);
+        }
+
+        .notes-count {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-muted);
+            font-size: 10px;
+            padding: 2px 7px;
+            border-radius: 10px;
+        }
+
+        .notes-body {
+            display: none;
+            padding: 0 14px 12px;
+        }
+
+        .notes-body.open {
+            display: block;
+        }
+
+        .note-item {
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            font-size: 11.5px;
+            line-height: 1.6;
+            color: var(--text-muted);
+        }
+
+        .note-item:last-child {
+            border-bottom: none;
+        }
+
+        .note-item strong {
+            color: #93c5fd;
+            margin-right: 4px;
+        }
+
+        .location-note {
+            margin-bottom: 16px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(245, 158, 11, 0.18);
+            background: rgba(245, 158, 11, 0.07);
+            color: #fcd34d;
+            font-size: 11.5px;
+            line-height: 1.6;
+        }
+
+        .reference-note strong {
+            display: block;
+            margin-bottom: 4px;
+            color: #fde68a;
+        }
+
+        /* Empty state */
+        .detail-empty {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            color: var(--text-muted);
+            padding: 32px;
+            text-align: center;
+        }
+
+        .detail-empty .icon {
+            font-size: 40px;
+            opacity: 0.3;
+        }
+
+        .detail-empty p {
+            font-size: 13px;
+        }
+
+        /* ===== MAP ===== */
+        #map {
+            flex: 1;
+            z-index: 1;
+        }
+
+        /* ===== RIGHT PANEL ===== */
+        .right-panel {
+            width: 380px;
+            flex-shrink: 0;
+            height: 100%;
+            overflow: hidden;
+            background: rgba(13, 18, 32, 0.97);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            z-index: 500;
+        }
+
+        .right-header {
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .right-header h2 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+
+        .right-header .sub {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .panel-update {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 6px;
+            font-size: 12px;
+            color: #22c55e;
+        }
+
+        .panel-update .dot {
+            width: 6px;
+            height: 6px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .panel-remark {
+            margin-top: 10px;
+            padding: 9px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(245, 158, 11, 0.14);
+            background: rgba(245, 158, 11, 0.08);
+            color: #fcd34d;
+            font-size: 11px;
+            line-height: 1.55;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.3
+            }
+        }
+
+        /* Accordion list */
+        .accordion-list {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 8px 12px;
+        }
+
+        .accordion-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .accordion-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        /* Accordion group */
+        .acc-group {
+            margin-bottom: 4px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            transition: border-color 0.2s;
+        }
+
+        .acc-group.open {
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .acc-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+            user-select: none;
+        }
+
+        .acc-header:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .acc-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .acc-label {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .acc-count {
+            font-size: 11px;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+
+        .acc-total {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-primary);
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .acc-total.negative {
+            color: #fde68a;
+        }
+
+        .acc-total-unit {
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-left: 3px;
+        }
+
+        .acc-caret {
+            font-size: 11px;
+            color: var(--text-muted);
+            transition: transform 0.25s;
+            flex-shrink: 0;
+        }
+
+        .acc-group.open .acc-caret {
+            transform: rotate(180deg);
+        }
+
+        .acc-toggle {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-muted);
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .acc-toggle:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .acc-toggle.off {
+            opacity: 0.35;
+        }
+
+        .acc-body {
+            display: none;
+            padding: 0 10px 8px;
+        }
+
+        .acc-group.open .acc-body {
+            display: block;
+        }
+
+        .plant-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 3px;
+        }
+
+        .plant-item:hover,
+        .plant-item.selected {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: var(--border);
+        }
+
+        .plant-item.selected {
+            border-color: rgba(59, 130, 246, 0.3);
+            background: rgba(59, 130, 246, 0.06);
+        }
+
+        .plant-color-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .plant-info {
+            flex: 1;
+        }
+
+        .plant-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .plant-name-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .plant-type {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .plant-type.charging {
+            color: #fbbf24;
+        }
+
+        .meta-pill {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 2px 7px;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            background: rgba(245, 158, 11, 0.12);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.18);
+        }
+
+        .meta-pill.no-location {
+            background: rgba(148, 163, 184, 0.12);
+            color: #cbd5e1;
+            border-color: rgba(148, 163, 184, 0.18);
+        }
+
+        .plant-gen {
+            font-size: 13px;
+            font-weight: 700;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .plant-gen.negative {
+            color: #fbbf24;
+        }
+
+        .plant-gen-unit {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* Plant percentage bar */
+        .plant-pct-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 3px;
+        }
+        .plant-pct-track {
+            flex: 1;
+            height: 4px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .plant-pct-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.4s ease;
+        }
+        .plant-pct-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-weight: 600;
+            min-width: 36px;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .source-subgroup {
+            padding-top: 8px;
+        }
+
+        .source-subgroup:first-child {
+            padding-top: 0;
+        }
+
+        .source-subgroup-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 0.9px;
+            text-transform: uppercase;
+            margin: 6px 2px 8px;
+        }
+
+        /* Loading */
+        .map-loading {
+            position: absolute;
+            inset: 0;
+            background: rgba(10, 14, 26, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            z-index: 700;
+        }
+
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        /* ===== 備註說明 Modal (註11) ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: #0d1117;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            width: 560px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.7);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .modal-header h3 {
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.06);
+            border: none;
+            color: var(--text-muted);
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            font-size: 15px;
+            cursor: pointer;
+            line-height: 26px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            overflow-y: auto;
+            padding: 14px 20px;
+            font-size: 12.5px;
+            color: var(--text-secondary);
+            line-height: 1.75;
+        }
+
+        .modal-body::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .modal-note-item {
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .modal-note-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .modal-note-item strong {
+            color: #93c5fd;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        /* Notes FAB */
+        .notes-fab {
+            position: absolute;
+            bottom: 18px;
+            left: 18px;
+            z-index: 800;
+            background: rgba(13, 18, 32, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            font-size: 11.5px;
+            font-family: inherit;
+            padding: 7px 14px;
+            border-radius: 18px;
+            cursor: pointer;
+            backdrop-filter: blur(12px);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .notes-fab:hover {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: rgba(59, 130, 246, 0.3);
+            color: var(--text-primary);
+        }
+
+        @media (max-width: 900px) {
+            .right-panel {
+                display: none;
+            }
+
+            .detail-panel {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Nav -->
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <div class="icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m11 7-3 5h4l-3 5"/><path d="M14.856 6H16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.935"/><path d="M22 14v-4"/><path d="M5.14 18H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2.936"/></svg></div>
+            <span>EnergyMap</span>
+        </div>
+        <div class="nav-actions">
+            <div class="nav-links">
+                <a href="{% url 'EnergyMap:dashboard' %}">儀表板</a>
+                <a href="{% url 'EnergyMap:map' %}" class="active">電廠地圖</a>
+            </div>
+            <button class="refresh-btn" id="refreshPageBtn" type="button">
+                <span class="cooldown-ring" id="refreshCooldownRing" aria-hidden="true"></span>
+                <span class="refresh-btn-label" id="refreshPageBtnLabel">重新整理</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main body -->
+    <div class="map-body">
+        <!-- Loading overlay -->
+        <div class="map-loading" id="mapLoading">
+            <div class="spinner"></div>
+            <div class="loading-text">正在載入電廠位置資料...</div>
+        </div>
+
+        <!-- LEFT: Detail panel -->
+        <div class="detail-panel" id="detailPanel">
+            <div class="detail-top">
+                <div>
+                    <div class="detail-plant-name" id="detailName">—</div>
+                    <div class="detail-type-badge" id="detailBadge"></div>
+                </div>
+                <button class="detail-close" id="detailClose" title="關閉">✕</button>
+            </div>
+            <div class="detail-body" id="detailBody">
+                <div class="detail-empty">
+                    <div class="icon">🏭</div>
+                    <p>點擊地圖上的電廠標記<br>查看詳細資訊</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div id="map"></div>
+
+        <!-- RIGHT: Accordion panel -->
+            <div class="right-panel">
+                <div class="right-header">
+                    <h2>台灣電廠分布</h2>
+                    <div class="sub">即時發電狀態地圖</div>
+                    <div class="panel-update" id="panelUpdate" style="display:none;">
+                        <span class="dot"></span>
+                        <span id="panelTime"></span>
+                    </div>
+                    <div class="panel-remark">地圖上的電廠位置僅為概略示意，未必代表電廠實際的精確座標。</div>
+                </div>
+                <div class="accordion-list" id="accordionList"></div>
+            </div>
+
+        <!-- Notes FAB -->
+        <button class="notes-fab" onclick="document.getElementById('notesModal').classList.add('open')">
+            📋 備註說明
+        </button>
+    </div>
+
+    <!-- 備註說明 Modal -->
+    <div class="modal-overlay" id="notesModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>📋 備註說明（台電各機組發電量）</h3>
+                <button class="modal-close"
+                    onclick="document.getElementById('notesModal').classList.remove('open')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-note-item">
+                    <strong>註4</strong>澎湖尖山：僅含澎湖本島尖山電廠。金門塔山：含大、小金門所有電廠。馬祖珠山：含南竿、北竿及珠山等電廠。離島其他：含蘭嶼、綠島、小琉球、連江縣[馬祖]離島（東引、東莒、西莒）及澎湖縣離島(七美、望安、虎井，但不含吉貝、鳥嶼)等電廠。※顯示之發電量為毛發電量。
+                </div>
+                <div class="modal-note-item">
+                    <strong>註5</strong>核能電廠全黑起動氣渦輪機，其淨尖峰能力15.5萬瓩，但其裝置容量不計入台電系統裝置容量，發電量計入燃油(輕油)發電。
+                </div>
+                <div class="modal-note-item"><strong>註6</strong>北部小水力: 圓山、天埤、軟橋、石圳聯通管。中部小水力:
+                    后里、社寮、景山、北山、濁水、湖山、集集南岸。南部小水力: 六龜、竹門。東部小水力: 銅門、龍溪、水簾、清水、清流、初英、榕樹、溪口、東興。</div>
+                <div class="modal-note-item">
+                    <strong>註7</strong>太陽能購電：所顯示之發電量係參考購電取樣發電量分區比例估算得出。購售電件數請參考本公司首頁：資訊揭露→發電資訊→購入電力概況→購入電力分布情形。
+                </div>
+                <div class="modal-note-item"><strong>註8</strong>淨發電量若標示為 N/A，表示無即時資訊。</div>
+                <div class="modal-note-item"><strong>註9</strong>本網頁資料為每10分鐘更新，請重新整理頁面，可顯示最新資訊。</div>
+                <div class="modal-note-item">
+                    <strong>註10</strong>電廠(機組)換發/取得電業執照前進行測試(試運轉)等程序時，該電廠(機組)暫不計入裝置容量且不揭露其發電百分比。
+                </div>
+                <div class="modal-note-item"><strong>註11 備註欄補充說明</strong>
+                    (1) 水文限制：配合水資源局下游用水需求限制，或排洪排砂。<br>
+                    (2) 燃料限制：發電廠年度天然氣燃料用量限制，或儲量限制。<br>
+                    (3) 環保限制：配合環保單位年度排放限制。<br>
+                    (4) 空污減載：因應 PM2.5 環境友善降載。<br>
+                    (5) 環保停機(檢修)：本公司因應季節性區域空氣品質不良，在評估停機後，系統仍可維持供電安全，安排環保停機(檢修)。<br>
+                    (6) 運轉限制：發電機組輔機相關設備等故障限制。<br>
+                    (7) EOH限制：發電機組有效運轉時數(EOH)限制。<br>
+                    (8) 部分歲修：複循環發電機組部分歲修。<br>
+                    (9) 部分檢修：複循環發電機組部分檢修。<br>
+                    (10) 部分故障：複循環發電機組部分故障。<br>
+                    (11) 合約限制：與民營電廠合約(PPA)限制。<br>
+                    (12) 電源線限制：發電廠電源線安全限制。<br>
+                    (13) 機組安檢：機組依原製造廠家規定，於其運轉累計達一定時數時，須實施必要之安檢。<br>
+                    (14) 輔機檢修：相關輔機設備功能異常必須停用檢修，以致發電出力受限。<br>
+                    (15) 外溫高限制：因氣溫高機組出力受限。<br>
+                    (16) 歲修逾排程：機組歲修因設備或其他因素，超過原排程工期。<br>
+                    (17) 測試停機：機組歲、檢修後因必要測試停機或試俥機組停機。<br>
+                    (18) 測試運轉：機組歲、檢修後運轉測試，或依規定之定期降載測試。
+                </div>
+                <div class="modal-note-item">
+                    <strong>註12</strong>興達#4機自113年起第一、四季不運轉，114年起轉為備用機組，僅於第二、三季當預估供電餘裕(率)低於8%時啟用。
+                </div>
+                <div class="modal-note-item"><strong>註13</strong>裝置容量20MW以上且併接電壓等級69仟伏以上之機組單獨呈現，其餘則整併一筆資料。</div>
+                <div class="modal-note-item"><strong>註14</strong>大林#5機111年12月31日除役並轉為緊急備用電力設施。</div>
+                <div class="modal-note-item">
+                    <strong>註15</strong>興達#1機112年9月30日除役並轉為緊急備用電力設施；興達#2機112年12月31日除役並轉為緊急備用電力設施；興達#3機114年10月1日除役並轉為緊急備用電力設施。
+                </div>
+                <div class="modal-note-item"><strong>註16</strong>電池係指「能量型電池儲能」，且裝置容量係指電力交易平台「電能移轉複合動態調節備轉」該小時得標容量。</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'EnergyMap/refresh.js' %}"></script>
+    <script>
+        if (window.initRefreshCooldown) {
+            window.initRefreshCooldown();
+        }
+
+        // ===== Map init =====
+        const map = L.map('map', { zoomControl: false }).setView([23.7, 120.9], 8);
+        L.control.zoom({ position: 'topright' }).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://carto.com/">CARTO</a> | 資料來源: 台灣電力公司',
+            subdomains: 'abcd', maxZoom: 19
+        }).addTo(map);
+
+        // ===== Util color =====
+        function utilColor(rate) {
+            if (rate === null || rate === undefined) return '#64748b';
+            if (rate >= 90) return '#22c55e';
+            if (rate >= 60) return '#3b82f6';
+            if (rate >= 30) return '#f59e0b';
+            if (rate > 0) return '#ef4444';
+            return '#374151';
+        }
+
+        function flowColor(value) {
+            if (value < 0) return '#f59e0b';
+            return utilColor(value);
+        }
+
+        // ===== Strip (註N) from unit names =====
+        function stripNotes(name) {
+            return name.replace(/\(註\d+\)/g, '').trim();
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // ===== Detail panel logic =====
+        const detailPanel = document.getElementById('detailPanel');
+        const detailName = document.getElementById('detailName');
+        const detailBadge = document.getElementById('detailBadge');
+        const detailBody = document.getElementById('detailBody');
+        let selectedMarkerPlantId = null;
+        let selectedItem = null;
+
+        document.getElementById('detailClose').addEventListener('click', closeDetail);
+
+        function setMarkerGroupActive(plantId, active) {
+            const entry = markerMap[plantId];
+            if (!entry) return;
+            entry.markers.forEach(marker => marker.setStyle(markerBaseStyle(marker.energyPlant, active)));
+        }
+
+        function closeDetail() {
+            detailPanel.classList.remove('open');
+            if (selectedMarkerPlantId) {
+                setMarkerGroupActive(selectedMarkerPlantId, false);
+                selectedMarkerPlantId = null;
+            }
+            if (selectedItem) {
+                selectedItem.classList.remove('selected');
+                selectedItem = null;
+            }
+        }
+
+        // Tooltips for stat boxes — stored in JS to avoid HTML-in-attribute issues
+        const TIPS = {
+            note1: '<strong>註1 裝置容量</strong>裝置容量：通常以構成該機組之原動機或發電機之設計容量（名牌所列發定額容量）稱之（取用二者中較小者）。民營電廠依購售電合約，以各機組之簽約容量計。',
+            note2: '<strong>註2 淨發電量</strong>淨發電量：發電廠發電機所產生之電能。(廠毛發電量 - 廠內用電)',
+            note3: '<strong>註3 淨發電量／裝置容量比</strong>淨發電量高於裝置容量之說明：<br>(1)部分火力機組因機組配件升級、環境溫度較低、機組效能測試等因素，致使淨發電量可能高於裝置容量，惟大多屬短暫性現象。<br>(2)汽電共生係為餘電收購，垃圾及沼氣計入裝置容量，其餘不計入系統裝置容量。',
+        };
+
+        const NOTE_REFERENCES = Array.from(document.querySelectorAll('#notesModal .modal-note-item')).reduce((refs, item) => {
+            const heading = item.querySelector('strong');
+            const match = heading?.textContent.match(/註(\d+)/);
+            if (!match) return refs;
+
+            const clone = item.cloneNode(true);
+            clone.querySelector('strong')?.remove();
+            refs[match[1]] = {
+                title: heading.textContent.trim(),
+                body: clone.innerHTML.trim().replace(/^\s*[:：]?\s*/, ''),
+            };
+            return refs;
+        }, {});
+
+        function getPlantReferenceNotes(plant) {
+            const noteCodes = new Set();
+            (plant.units || []).forEach(unit => {
+                Array.from(String(unit.name || '').matchAll(/\(註(\d+)\)/g)).forEach(match => {
+                    noteCodes.add(match[1]);
+                });
+            });
+
+            return Array.from(noteCodes)
+                .sort((a, b) => Number(a) - Number(b))
+                .map(code => ({ code, ...NOTE_REFERENCES[code] }))
+                .filter(note => note.title && note.body);
+        }
+
+        function showDetail(plant, marker, listItem) {
+            detailName.textContent = plant.name;
+
+            const badges = (plant.type_labels && plant.type_labels.length
+                ? plant.type_labels
+                : [{ zh: plant.type_zh, color: plant.color || '#888' }]
+            ).map(type => `
+                <span class="detail-type-chip" style="background:${type.color}22;color:${type.color}">
+                    ${escapeHtml(type.zh)}
+                </span>
+            `).join('');
+            detailBadge.innerHTML = badges;
+
+            // Utilisation
+            const totalRatePct = plant.total_capacity > 0
+                ? (Math.abs(plant.net_output ?? plant.total_generation) / plant.total_capacity) * 100 : null;
+            const totalRateStr = totalRatePct !== null ? totalRatePct.toFixed(1) + '%' : 'N/A';
+            const totalRateColor = flowColor(plant.net_output ?? plant.total_generation);
+            const isStorageFlow = !!plant.is_storage_asset;
+            const netOutput = plant.net_output ?? plant.total_generation;
+            const flowHeading = plant.power_flow === 'charging'
+                ? '目前充電'
+                : (plant.power_flow === 'discharging' ? '目前放電' : '目前功率');
+            const flowValue = plant.power_flow === 'charging'
+                ? plant.total_charging
+                : plant.total_discharging;
+
+            // Unit rows
+            const unitRows = plant.units.map(u => {
+                const name = escapeHtml(stripNotes(u.name));
+                const gen = u.generation;
+                const cap = u.capacity;
+                const ratePct = (cap > 0) ? (Math.abs(gen) / cap) * 100 : null;
+                const rateStr = ratePct !== null
+                    ? `${gen < 0 ? '充電 ' : ''}${ratePct.toFixed(1)}%`
+                    : (cap === null ? '-' : '0.0%');
+                const barColor = flowColor(gen);
+                const barW = ratePct !== null ? Math.min(100, ratePct) * 0.4 : 0; // max ~40px
+                const capStr = cap !== null ? cap.toLocaleString() : '-';
+
+                let noteBadge = '';
+                if (u.note && u.note.trim()) {
+                    const cls = ['歲修', '停機', '故障', '除役'].some(k => u.note.includes(k)) ? 'warn' : 'info';
+                    noteBadge = `<span class="status-badge ${cls}">${escapeHtml(u.note)}</span>`;
+                }
+
+                const typeLabel = (plant.type_labels && plant.type_labels.length > 1 && u.type_zh)
+                    ? `<div class="unit-source-label" style="border-color:${u.color || '#94a3b8'}33;background:${u.color || '#94a3b8'}14;color:${u.color || '#cbd5e1'}">${escapeHtml(u.type_zh)}</div>`
+                    : '';
+
+                return `<tr>
+                    <td>${typeLabel}${name}${noteBadge}</td>
+                    <td>${capStr}</td>
+                    <td>${gen.toLocaleString()}</td>
+                    <td>
+                        <div class="util-bar-wrap">
+                            <div class="util-bar" style="width:${barW}px;background:${barColor};opacity:0.8"></div>
+                            <span style="color:${barColor}">${rateStr}</span>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            const locationNote = plant.location_mode === 'no_location'
+                ? `<div class="location-note">${escapeHtml(plant.location_note)}</div>`
+                : '';
+            const splitLocationNote = (plant.marker_locations && plant.marker_locations.length > 1)
+                ? `<div class="location-note">此項目在地圖上拆分為多個位置同步顯示：${escapeHtml(plant.marker_locations.map(location => location.name).join('、'))}</div>`
+                : '';
+            const referenceNotes = getPlantReferenceNotes(plant)
+                .map(note => `<div class="location-note reference-note"><strong>${escapeHtml(note.title)}</strong>${note.body}</div>`)
+                .join('');
+
+            detailBody.innerHTML = `
+                <!-- Stat boxes -->
+                <div class="stat-grid">
+                    <div class="stat-box">
+                        <div class="stat-box-label">
+                            總裝置容量
+                            <i class="info-icon" data-tip-key="note1">i</i>
+                        </div>
+                        <div class="stat-box-value">${plant.total_capacity.toLocaleString()}<span class="stat-box-unit"> MW</span></div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-box-label">
+                            ${isStorageFlow ? flowHeading : '總淨發電量'}
+                            <i class="info-icon" data-tip-key="note2">i</i>
+                        </div>
+                        <div class="stat-box-value">${flowValue.toLocaleString()}<span class="stat-box-unit"> MW</span></div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-box-label">
+                            ${isStorageFlow ? '即時淨功率' : '總淨發 / 總裝置比'}
+                            <i class="info-icon" data-tip-key="note3">i</i>
+                        </div>
+                        <div class="stat-box-value" style="color:${totalRateColor}">
+                            ${isStorageFlow ? `${netOutput.toLocaleString()} MW` : totalRateStr}
+                        </div>
+                    </div>
+                </div>
+
+                ${locationNote}
+                ${splitLocationNote}
+                ${referenceNotes}
+
+                <!-- Unit table -->
+                <div class="section-title">各機組明細</div>
+                <table class="unit-table">
+                    <thead><tr>
+                        <th>機組</th>
+                        <th>裝置容量<br>(MW)</th>
+                        <th>淨發電量<br>(MW)</th>
+                        <th>淨發 / 裝置比</th>
+                    </tr></thead>
+                    <tbody>${unitRows}</tbody>
+                </table>
+
+            `;
+
+            // Open panel
+            detailPanel.classList.add('open');
+
+            // Marker highlight
+            if (selectedMarkerPlantId && selectedMarkerPlantId !== plant.id) {
+                setMarkerGroupActive(selectedMarkerPlantId, false);
+            }
+            if (marker && markerMap[plant.id]) {
+                selectedMarkerPlantId = plant.id;
+                setMarkerGroupActive(plant.id, true);
+            } else {
+                selectedMarkerPlantId = null;
+            }
+
+            // List item highlight
+            if (selectedItem && selectedItem !== listItem) selectedItem.classList.remove('selected');
+            selectedItem = listItem;
+            if (listItem) listItem.classList.add('selected');
+        }
+
+        function markerBaseStyle(plant, active = false) {
+            const markerGeneration = Number((plant.total_official_generation ?? plant.total_generation) || 0);
+            return {
+                radius: Math.max(6, Math.min(22, Math.sqrt(markerGeneration || 1) * 0.85)),
+                fillColor: plant.primary_color || plant.color || '#888',
+                color: plant.primary_color || plant.color || '#888',
+                weight: active ? 4 : 2,
+                opacity: 0.9,
+                fillOpacity: active ? 0.85 : 0.5,
+                dashArray: null,
+            };
+        }
+
+        // ===== Create marker =====
+        function createMarker(plant, markerLocation) {
+            const marker = L.circleMarker([markerLocation.lat, markerLocation.lng], markerBaseStyle(plant));
+            marker.energyPlant = plant;
+            marker.markerLocation = markerLocation;
+            if (markerLocation.name) {
+                marker.bindTooltip(markerLocation.name, {
+                    direction: 'top',
+                    offset: [0, -8],
+                    opacity: 0.92,
+                    sticky: true,
+                });
+            }
+
+            marker.on('click', (e) => {
+                L.DomEvent.stopPropagation(e);  // prevent map click from closing panel
+                const listItem = document.querySelector(`.plant-item[data-map-plant-id="${plant.id}"]`);
+                showDetail(plant, marker, listItem);
+                if (listItem) listItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            });
+            marker.on('mouseover', function () {
+                if (selectedMarkerPlantId !== plant.id) this.setStyle(markerBaseStyle(plant, true));
+            });
+            marker.on('mouseout', function () {
+                if (selectedMarkerPlantId !== plant.id) this.setStyle(markerBaseStyle(plant));
+            });
+            return marker;
+        }
+
+        // ===== Load data =====
+        const markerMap = {}; // map plant id → { plant, markers[] }
+        const mapPlantMap = {};
+        const panelPlantMap = {};
+        const visibleTypes = new Set();
+        let allPanelPlants = [];
+        const AUTO_REFRESH_INTERVAL_MS = 300000;
+
+        function buildPlantLocationsApiUrl() {
+            const url = new URL('{% url "EnergyMap:api_plant_locations" %}', window.location.origin);
+            if (window.consumeEnergyMapForceRefresh && window.consumeEnergyMapForceRefresh()) {
+                url.searchParams.set('refresh', '1');
+            }
+            return url.toString();
+        }
+
+        function setMapLoadingError(message) {
+            const loading = document.getElementById('mapLoading');
+            loading.style.color = '#ef4444';
+            loading.textContent = `⚠️ ${message}`;
+        }
+
+        function syncMarkerVisibility() {
+            Object.values(markerMap).forEach(entry => {
+                const shouldShow = (entry.plant.type_keys || []).some(typeKey => visibleTypes.has(typeKey));
+                entry.markers.forEach(marker => {
+                    const isShown = map.hasLayer(marker);
+                    if (shouldShow && !isShown) {
+                        marker.addTo(map);
+                    } else if (!shouldShow && isShown) {
+                        map.removeLayer(marker);
+                    }
+                });
+            });
+        }
+
+        (async function () {
+            try {
+                const resp = await fetch(buildPlantLocationsApiUrl(), { cache: 'no-store' });
+                const data = await resp.json();
+
+                if (!data.success) {
+                    setMapLoadingError(`載入失敗: ${data.error || ''}`);
+                    return;
+                }
+
+                document.getElementById('panelTime').textContent = data.update_time;
+                document.getElementById('panelUpdate').style.display = 'flex';
+
+                allPanelPlants = data.panel_plants || [];
+                allPanelPlants.forEach(plant => {
+                    panelPlantMap[plant.id] = plant;
+                });
+
+                (data.map_plants || []).forEach(plant => {
+                    mapPlantMap[plant.id] = plant;
+                    markerMap[plant.id] = {
+                        plant,
+                        markers: (plant.marker_locations || []).map(location => createMarker(plant, location)),
+                    };
+                });
+
+                (data.categories || []).forEach(category => {
+                    if ((data.map_plants || []).some(plant => (plant.type_keys || []).includes(category.key))) {
+                        visibleTypes.add(category.key);
+                    }
+                });
+                syncMarkerVisibility();
+
+                // Build accordion groups
+                const accList = document.getElementById('accordionList');
+                const plantsByType = {};
+                allPanelPlants.forEach(p => {
+                    if (!plantsByType[p.type_key]) plantsByType[p.type_key] = [];
+                    plantsByType[p.type_key].push(p);
+                });
+
+                (data.categories || [])
+                    .filter(category => (plantsByType[category.key] || []).length > 0)
+                    .forEach(category => {
+                        const tk = category.key;
+                        const color = category.color || '#888';
+                        const name = category.zh || tk;
+                        const plants = plantsByType[tk] || [];
+                        const hasVisibleMarkers = (data.map_plants || []).some(p => (p.type_keys || []).includes(tk));
+                        const group = document.createElement('div');
+                        group.className = 'acc-group';
+                        group.dataset.type = tk;
+
+                        const categoryTotal = plants.reduce((s, p) => s + Number((p.total_official_generation ?? p.total_generation) || 0), 0);
+                        const headerGeneration = Number(category.generation ?? categoryTotal ?? 0);
+                        const headerGenerationClass = headerGeneration < 0 ? 'acc-total negative' : 'acc-total';
+                        const subgroupMap = new Map();
+
+                        plants.forEach(p => {
+                            const subgroup = p.group_label || '未分類';
+                            if (!subgroupMap.has(subgroup)) subgroupMap.set(subgroup, []);
+                            subgroupMap.get(subgroup).push(p);
+                        });
+
+                        const plantItems = Array.from(subgroupMap.entries()).map(([subgroup, subgroupPlants]) => {
+                            const subgroupItems = subgroupPlants
+                                .slice()
+                                .sort((a, b) => Number((b.total_official_generation ?? b.total_generation) || 0) - Number((a.total_official_generation ?? a.total_generation) || 0))
+                                .map(p => {
+                                    let itemBadge = '';
+                            if (!p.on_map || p.location_mode === 'no_location') {
+                                itemBadge = '<span class="meta-pill no-location">No Location</span>';
+                            }
+                                    const isCharging = p.power_flow === 'charging';
+                                    const itemFlowText = isCharging ? '充電中' : '';
+                                    const officialGeneration = Number((p.total_official_generation ?? p.total_generation) || 0);
+                                    const displayGeneration = officialGeneration;
+                                    const genClass = displayGeneration < 0 ? 'plant-gen negative' : 'plant-gen';
+                                    let pct = categoryTotal > 0 ? (officialGeneration / categoryTotal) * 100 : 0;
+                                    let pctStr = pct >= 0.1 ? pct.toFixed(1) + '%' : (officialGeneration > 0 ? '<0.1%' : '0%');
+                                    let pctBarColor = p.color;
+
+                                    if (isCharging) {
+                                        pct = p.total_capacity > 0 ? (Math.abs((p.net_output ?? p.total_generation) || 0) / p.total_capacity) * 100 : 0;
+                                        pctStr = pct > 0 ? `容量 ${pct.toFixed(1)}%` : '充電中';
+                                        pctBarColor = '#f59e0b';
+                                    }
+
+                                    return `
+                                    <div class="plant-item" data-id="${p.id}"
+                                         data-map-plant-id="${p.map_plant_id || ''}"
+                                         data-lat="${p.lat ?? ''}" data-lng="${p.lng ?? ''}">
+                                        <div class="plant-color-dot" style="background:${p.color};box-shadow:0 0 5px ${p.color}55"></div>
+                                        <div class="plant-info">
+                                            <div class="plant-name-row">
+                                                <div class="plant-name">${escapeHtml(p.name)}</div>
+                                                ${itemBadge}
+                                            </div>
+                                            ${itemFlowText ? `<div class="plant-type charging">${itemFlowText}</div>` : ''}
+                                            <div class="plant-pct-row">
+                                                <div class="plant-pct-track">
+                                                    <div class="plant-pct-fill" style="width:${Math.min(100, pct)}%;background:${pctBarColor}"></div>
+                                                </div>
+                                                <span class="plant-pct-label">${pctStr}</span>
+                                            </div>
+                                        </div>
+                                        <div class="${genClass}">
+                                            ${displayGeneration.toLocaleString()}
+                                            <span class="plant-gen-unit">MW</span>
+                                        </div>
+                                    </div>
+                                `;
+                                }).join('');
+
+                            return `
+                                <div class="source-subgroup">
+                                    <div class="source-subgroup-label">${escapeHtml(subgroup)}</div>
+                                    ${subgroupItems}
+                                </div>
+                            `;
+                        }).join('');
+
+                        group.innerHTML = `
+                            <div class="acc-header">
+                                <div class="acc-dot" style="background:${color}"></div>
+                                <span class="acc-label">${name}</span>
+                                <span class="acc-count">${plants.length}</span>
+                                <span class="${headerGenerationClass}">
+                                    ${headerGeneration.toLocaleString()}
+                                    <span class="acc-total-unit">MW</span>
+                                </span>
+                                <button class="acc-toggle ${hasVisibleMarkers ? '' : 'off'}" title="${hasVisibleMarkers ? '切換地圖顯示' : '此分類僅在右側面板顯示'}">👁</button>
+                                <span class="acc-caret">▼</span>
+                            </div>
+                            <div class="acc-body">${plantItems}</div>
+                        `;
+
+                        // Toggle expand/collapse by clicking header (excluding toggle button)
+                        group.querySelector('.acc-header').addEventListener('click', (e) => {
+                            if (e.target.closest('.acc-toggle')) return;
+                            group.classList.toggle('open');
+                        });
+
+                        // Toggle map visibility
+                        const toggleBtn = group.querySelector('.acc-toggle');
+                        toggleBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            if (!hasVisibleMarkers) return;
+                            if (visibleTypes.has(tk)) {
+                                visibleTypes.delete(tk);
+                                toggleBtn.classList.add('off');
+                            } else {
+                                visibleTypes.add(tk);
+                                toggleBtn.classList.remove('off');
+                            }
+                            syncMarkerVisibility();
+                        });
+
+                        // Plant item clicks
+                        group.querySelectorAll('.plant-item').forEach(el => {
+                            el.addEventListener('click', () => {
+                                const pId = el.dataset.id;
+                                const panelPlant = panelPlantMap[pId];
+                                const mapPlant = panelPlant && panelPlant.map_plant_id ? mapPlantMap[panelPlant.map_plant_id] : null;
+                                const entry = mapPlant ? markerMap[mapPlant.id] : null;
+
+                                if (mapPlant && entry) {
+                                    const locations = mapPlant.marker_locations || [];
+                                    if (locations.length > 1) {
+                                        map.fitBounds(locations.map(location => [location.lat, location.lng]), {
+                                            padding: [40, 40],
+                                            maxZoom: 11,
+                                        });
+                                    } else if (locations.length === 1) {
+                                        map.flyTo([locations[0].lat, locations[0].lng], 12, { duration: 1.2 });
+                                    } else {
+                                        map.flyTo([mapPlant.lat, mapPlant.lng], 12, { duration: 1.2 });
+                                    }
+                                    showDetail(mapPlant, entry.markers[0] || null, el);
+                                } else if (panelPlant) {
+                                    showDetail(panelPlant, null, el);
+                                }
+                            });
+                        });
+
+                        accList.appendChild(group);
+                    });
+
+                document.getElementById('mapLoading').style.display = 'none';
+
+            } catch (err) {
+                setMapLoadingError(`載入失敗: ${err.message}`);
+            }
+        })();
+
+        window.setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                window.location.reload();
+            }
+        }, AUTO_REFRESH_INTERVAL_MS);
+
+        // Close detail when clicking on empty map
+        map.on('click', () => {
+            closeDetail();
+        });
+
+        // ===== Body-level floating tooltip for info icons =====
+        let _floatTip = null;
+        function getFloatTip() {
+            if (!_floatTip) _floatTip = document.getElementById('info-floating-tooltip');
+            return _floatTip;
+        }
+
+        document.addEventListener('mouseover', e => {
+            const icon = e.target.closest('.info-icon');
+            if (!icon) return;
+            const tip = getFloatTip();
+            if (!tip) return;
+            const html = TIPS[icon.dataset.tipKey] || '';
+            if (!html) return;
+            tip.innerHTML = html;
+            tip.style.display = 'block';
+            const r = icon.getBoundingClientRect();
+            // Position: prefer right of icon, clamp to viewport
+            let left = r.right + 10;
+            let top = r.top + r.height / 2 - tip.offsetHeight / 2;
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            if (left + tip.offsetWidth > vw - 8) left = r.left - tip.offsetWidth - 10;
+            if (top < 8) top = 8;
+            if (top + tip.offsetHeight > vh - 8) top = vh - tip.offsetHeight - 8;
+            tip.style.left = left + 'px';
+            tip.style.top = top + 'px';
+        });
+
+        document.addEventListener('mouseout', e => {
+            const icon = e.target.closest('.info-icon');
+            if (!icon) return;
+            if (icon.contains(e.relatedTarget)) return;
+            const tip = getFloatTip();
+            if (tip) tip.style.display = 'none';
+        });
+    </script>
+    <!-- Floating tooltip for info icons (body-level, escapes overflow:hidden) -->
+    <div id="info-floating-tooltip"></div>
+</body>
+
+</html>

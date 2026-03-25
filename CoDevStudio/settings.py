@@ -27,6 +27,7 @@ from .settings_local import settings as local
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_DIR = Path(__file__).resolve().parent.parent.parent
+DEFAULT_CACHE_DIR = BASE_DIR / ".django_cache"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -117,6 +118,7 @@ INSTALLED_APPS = [
     'XrResource',
     'WellDrawdown',  # 水理分析抽水預測系統
     'BFGExcavation',  # 臨時支撐配置深度檢核
+    'EnergyMap',  # 台電能源地圖
 ] + local.STAGE_INSTALLED_APPS
 
 
@@ -183,6 +185,16 @@ WSGI_APPLICATION = 'CoDevStudio.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {name: cfg.to_django() for name, cfg in local.DATABASES.items()}
+CACHES = local.CACHES or {
+    "default": {
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": str(DEFAULT_CACHE_DIR),
+        "TIMEOUT": 60 * 30,
+        "OPTIONS": {
+            "MAX_ENTRIES": 1000,
+        },
+    }
+}
 
 DATABASE_ROUTERS = [
     "CoDevStudio.routers.DataBaseRouter",
