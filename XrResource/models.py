@@ -235,7 +235,7 @@ class XrUserProfile(models.Model):
     ]
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='xr_profile')
     role = models.CharField('權限角色', max_length=20, choices=ROLE_CHOICES, default='user')
-    receive_notifications = models.BooleanField('接收租借通知信', default=True)
+    receive_notifications = models.BooleanField('接收租借通知信', default=False)
 
     class Meta:
         verbose_name = '使用者權限設定'
