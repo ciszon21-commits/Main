@@ -582,7 +582,7 @@ def send_admin_notification(request, rental_record):
             admin_emails,
             fail_silently=False,
         )
-        print(f">>> [XrResource] [EMAIL SUCCESS] 活動：{rental_record.activity_name} | 租借人：{rental_record.borrower_name} | 期間：{rental_record.rental_start} ~ {rental_record.rental_end}")
+        # print(f">>> [XrResource] [EMAIL SUCCESS] 活動：{rental_record.activity_name} | 租借人：{rental_record.borrower_name} | 期間：{rental_record.rental_start} ~ {rental_record.rental_end}")
         logger.info(f"已發送新申請通知給管理員: {admin_emails}")
         
     except Exception as e:
