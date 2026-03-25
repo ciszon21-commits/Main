@@ -214,7 +214,7 @@ def rental_register(request, pk=None):
                                 rental_record=rental_record,
                                 bulk_item=bulk_item,
                                 count=count,
-                                is_returned=(rental and rental.status == 'returned') # 歷史資料預設設為已歸還
+                                is_returned=bool(rental and rental.status == 'returned') # 歷史資料預設設為已歸還
                             )
                 
                 msg = '租借申請已更新！' if rental else '租借申請已送出！'
