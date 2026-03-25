@@ -54,6 +54,7 @@ urlpatterns = [
     path('lhawish/', include('LHAWish.urls')),  # 部門許願池
     path('duplicate-checker/', include('duplicate_checker.urls')),  # 重複檔案檢查器
     path('review/', include('review_feedback.urls')),
+    path('energymap/', include('EnergyMap.urls')),  # 台電能源地圖
 ]
 
 # 條件載入 ClashClassifier API
