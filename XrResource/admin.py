@@ -1,5 +1,9 @@
 from django.contrib import admin
-from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, XrBulkItem, XrRentalRecord, XrUserProfile, RentalNature
+from .models import (
+    EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, 
+    XrBulkItem, XrRentalRecord, XrUserProfile, RentalNature, 
+    XrRentalEquipment, XrRentalAttachment
+)
 
 @admin.register(RentalNature)
 class RentalNatureAdmin(admin.ModelAdmin):
@@ -35,17 +39,22 @@ class XrBulkItemAdmin(admin.ModelAdmin):
     list_filter = ('section',)
     search_fields = ('name',)
 
+class XrRentalEquipmentInline(admin.TabularInline):
+    model = XrRentalEquipment
+    extra = 0
+
 @admin.register(XrRentalRecord)
 class XrRentalRecordAdmin(admin.ModelAdmin):
     list_display = ('activity_name', 'nature', 'borrower_name', 'activity_date', 'status', 'created_at')
     list_filter = ('status', 'nature', 'activity_date')
     search_fields = ('activity_name', 'borrower_name', 'borrower_id')
-    filter_horizontal = ('equipments',)
+    # filter_horizontal = ('equipments',) # 經由 through 中間表時不可用
+    inlines = [XrRentalEquipmentInline]
 
 @admin.register(XrUserProfile)
 class XrUserProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'get_user_name', 'role')
-    list_filter = ('role',)
+    list_display = ('user', 'get_user_name', 'role', 'receive_notifications')
+    list_filter = ('role', 'receive_notifications')
     search_fields = ('user__username', 'user__last_name', 'user__first_name')
 
     def get_readonly_fields(self, request, obj=None):
@@ -56,5 +65,11 @@ class XrUserProfileAdmin(admin.ModelAdmin):
     def get_user_name(self, obj):
         return f"{obj.user.last_name}{obj.user.first_name}"
     get_user_name.short_description = '姓名'
+
+@admin.register(XrRentalAttachment)
+class XrRentalAttachmentAdmin(admin.ModelAdmin):
+    list_display = ('rental_record', 'file', 'uploaded_at')
+    list_filter = ('uploaded_at',)
+    search_fields = ('rental_record__activity_name',)
 
 # 移除先前的 User 整合，保持在 XrResource 內獨立管理

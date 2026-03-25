@@ -1,10 +1,19 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.db import models, transaction, IntegrityError
-from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, XrBulkItem, XrRentalRecord, XrRentalBulkItem, XrUserProfile
-from .forms import EquipmentCategoryForm, XrEquipmentForm, XrSupportRecordForm, GoProRentalRecordForm, XrBulkItemForm, XrRentalRecordForm
+from .models import (
+    EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord,
+    XrBulkItem, XrRentalRecord, XrRentalBulkItem, XrRentalEquipment,
+    XrRentalAttachment, XrUserProfile
+)
 from django.contrib.auth.decorators import login_required
 from functools import wraps
+from django.core.mail import send_mail
+from django.conf import settings
+import logging
+from .forms import EquipmentCategoryForm, XrEquipmentForm, XrSupportRecordForm, GoProRentalRecordForm, XrBulkItemForm, XrRentalRecordForm
+
+logger = logging.getLogger(__name__)
 from django.core.exceptions import PermissionDenied
 
 def admin_required(view_func):
@@ -161,20 +170,37 @@ def rental_register(request, pk=None):
                             bulk_item = r_bulk.bulk_item
                             bulk_item.reserved_count = max(0, bulk_item.reserved_count - r_bulk.count)
                             bulk_item.save()
-                        # 刪除舊的配件關聯
+                        # 刪除舊的配件與主機關聯
                         rental.xrrentalbulkitem_set.all().delete()
+                        rental.xrrentalequipment_set.all().delete()
 
                     # 儲存主要單據
                     rental_record = form.save()
                     
-                    # 只有在「待核准」或「新申請」時，才套用預約邏輯
+                    # 只有在「待核准」或「新申請」時，才處理主機與配件預約邏輯
                     # 歷史資料 (returned) 編輯不更動庫存狀態
                     if not rental or rental.status == 'pending':
-                        # 1. 主機設備改為預約中
-                        for equipment in rental_record.equipments.all():
+                        # 1. 主機設備改為預約中 (手動建立 XrRentalEquipment)
+                        selected_equipments = form.cleaned_data.get('equipments', [])
+                        for equipment in selected_equipments:
+                            XrRentalEquipment.objects.get_or_create(
+                                rental_record=rental_record,
+                                equipment=equipment,
+                                defaults={'is_returned': False}
+                            )
                             equipment.update_status()
+                    else:
+                        # 歷史資料或已核准資料，如果編輯時設備有變動，也需要建立關連 (但 status 維持原本)
+                        # 注意：這裡假設編輯歷史資料不會隨意更動設備，若有更動，開發者需考量 is_returned 初期值
+                        selected_equipments = form.cleaned_data.get('equipments', [])
+                        for equipment in selected_equipments:
+                            XrRentalEquipment.objects.get_or_create(
+                                rental_record=rental_record,
+                                equipment=equipment,
+                                defaults={'is_returned': (rental_record.status == 'returned')}
+                            )
 
-                    # 2. 處理配件待扣數量 (不論是否 pending 都要建立關聯，但只有 pending 會加 reserved_count)
+                    # 2. 處理配件待扣數量
                     bulk_ids = request.POST.getlist('bulk_item_ids[]')
                     bulk_counts = request.POST.getlist('bulk_item_counts[]')
                     
@@ -193,10 +219,15 @@ def rental_register(request, pk=None):
                                 rental_record=rental_record,
                                 bulk_item=bulk_item,
                                 count=count,
-                                is_returned=(rental and rental.status == 'returned') # 歷史資料預設設為已歸還
+                                is_returned=bool(rental and rental.status == 'returned') # 歷史資料預設設為已歸還
                             )
                 
                 msg = '租借申請已更新！' if rental else '租借申請已送出！'
+                
+                # 如果是新申請，發送郵件通知管理員
+                if not rental:
+                    send_admin_notification(request, rental_record)
+                
                 messages.success(request, f'{msg}設備已改為「預約」且配件已標記「待扣」。')
                 return redirect('XrResource:rental_list')
             except IntegrityError:
@@ -315,9 +346,12 @@ def rental_reset(request, pk):
                 r_bulk.is_returned = False
                 r_bulk.save()
 
-            # 3. 標記為待核准
+            # 3. 標記為待核准，並重設設備歸還狀態
             rental.status = 'pending'
             rental.save()
+            for r_eq in rental.xrrentalequipment_set.all():
+                r_eq.is_returned = False
+                r_eq.save()
             
         messages.info(request, f'已將 {rental.activity_name} 的狀態重設為待核准，其所屬設備已回歸庫存預約狀態。')
     except IntegrityError:
@@ -353,9 +387,12 @@ def reset_rental_return(request, pk):
                     r_bulk.is_returned = False
                     r_bulk.save()
 
-            # 3. 強制將單據狀態設回「已核准」
+            # 3. 強制將單據狀態設回「已核准」，並重設主機歸還狀態
             rental.status = 'approved'
             rental.save()
+            for r_eq in rental.xrrentalequipment_set.all():
+                r_eq.is_returned = False
+                r_eq.save()
             
         messages.success(request, f'已成功初始化 {rental.activity_name} 的點交紀錄。')
     except IntegrityError:
@@ -374,18 +411,26 @@ def rental_return(request, pk):
         returned_equipment_ids = request.POST.getlist('returned_equipments')
         returned_bulk_item_ids = request.POST.getlist('returned_bulk_items')
         return_notes = request.POST.get('return_notes', '')
+        return_attachments = request.FILES.getlist('return_attachments')
         
         with transaction.atomic():
             # 1. 保存歸還備註
             rental.return_notes = return_notes
             rental.save()
+
+            # 2. 保存新上傳的附件
+            for f in return_attachments:
+                XrRentalAttachment.objects.create(rental_record=rental, file=f)
             
             # 2. 處理主機歸還
             for eq_id in returned_equipment_ids:
-                equipment = rental.equipments.get(id=eq_id)
-                if equipment.status == 'rented':
-                    # 歸還後檢查是否有其他單子預約/出借，排除當前這張單
-                    equipment.update_status(exclude_ids=[rental.id])
+                r_eq = rental.xrrentalequipment_set.get(equipment_id=eq_id)
+                if not r_eq.is_returned:
+                    # 標記該單據中的此設備已歸還
+                    r_eq.is_returned = True
+                    r_eq.save()
+                    # 更新設備全域狀態 (檢查是否有其他單子預約/出借)
+                    r_eq.equipment.update_status()
             
             # 2. 處理配件歸還
             for rb_id in returned_bulk_item_ids:
@@ -396,12 +441,12 @@ def rental_return(request, pk):
                     bulk_item.available_count += r_bulk.count
                     bulk_item.save()
                     
-                    # 標記該項目已歸還
-                    r_bulk.is_returned = True
-                    r_bulk.save()
+                # 標記該項目已歸還
+                r_bulk.is_returned = True
+                r_bulk.save()
             
             # 3. 檢查自動關單 (是否所有東西都還了)
-            all_eq_returned = not rental.equipments.filter(status='rented').exists()
+            all_eq_returned = not rental.xrrentalequipment_set.filter(is_returned=False).exists()
             all_bulk_returned = not rental.xrrentalbulkitem_set.filter(is_returned=False).exists()
             
             if all_eq_returned and all_bulk_returned:
@@ -417,6 +462,22 @@ def rental_return(request, pk):
         'rental': rental,
         'bulk_items': rental.xrrentalbulkitem_set.all(),
     })
+
+@login_required
+@admin_required
+def delete_attachment(request, pk):
+    """刪除點交附件"""
+    attachment = get_object_or_404(XrRentalAttachment, pk=pk)
+    rental_pk = attachment.rental_record.pk
+    
+    if request.method == 'POST':
+        # 刪除實體檔案
+        if attachment.file:
+            attachment.file.delete()
+        attachment.delete()
+        messages.success(request, '附件已刪除')
+    
+    return redirect('XrResource:rental_return', pk=rental_pk)
 
 @login_required
 def dashboard(request):
@@ -452,7 +513,11 @@ def dashboard(request):
     bulk_items = XrBulkItem.objects.all()
     
     # 3. 最近活動 (最新的 10 筆租借申請)
-    recent_rentals = XrRentalRecord.objects.all().order_by('-created_at')[:10]
+    recent_rentals = XrRentalRecord.objects.all().prefetch_related(
+        'xrrentalequipment_set__equipment', 
+        'xrrentalbulkitem_set__bulk_item',
+        'nature'
+    ).order_by('-created_at')[:10]
 
     return render(request, 'XrResource/dashboard.html', {
         'vr_comp_stats': vr_comp_stats,
@@ -461,3 +526,66 @@ def dashboard(request):
         'bulk_items': bulk_items,
         'recent_rentals': recent_rentals,
     })
+
+def send_admin_notification(request, rental_record):
+    """當有新申請時，發送郵件通知管理員"""
+    try:
+        # 1. 取得所有管理員且「勾選接收通知」的 Email
+        admin_emails = XrUserProfile.objects.filter(role='admin', receive_notifications=True).values_list('user__email', flat=True)
+        admin_emails = [email for email in admin_emails if email] # 排除空字串
+        
+        if not admin_emails:
+            logger.warning("沒有設定管理員 Email，無法發送通知。")
+            return
+
+        # 2. 構建郵件內容
+        subject = f'[設備租借提醒] 有新申請待核准：{rental_record.activity_name}'
+        
+        # 取得絕對網址
+        domain = request.get_host()
+        protocol = 'https' if request.is_secure() else 'http'
+        review_url = f"{protocol}://{domain}/xr-resource/rental/list/"
+        
+        # 整理設備清單
+        equip_list = "\n".join([f"- {eq.name} ({eq.serial_number or '無編號'})" for eq in rental_record.equipments.all()])
+        bulk_list = "\n".join([f"- {item.bulk_item.name} x{item.count}" for item in rental_record.xrrentalbulkitem_set.all()])
+        
+        message = f"""
+您好，系統收到一筆新的設備租借申請，請撥冗進行核准作業：
+
+【活動基本資訊】
+● 活動名稱：{rental_record.activity_name}
+● 租借性質：{rental_record.nature.name if rental_record.nature else '未填寫'}
+● 活動日期：{rental_record.activity_date}
+● 租借期間：{rental_record.rental_start} ~ {rental_record.rental_end}
+● 租借原因：{rental_record.reason or '未填寫'}
+
+【申請人資訊】
+● 租借單位：{rental_record.department}
+● 申請人：{rental_record.borrower_name} ({rental_record.borrower_id})
+
+【租借設備明細】
+{equip_list if equip_list else '(無主機設備)'}
+{bulk_list if bulk_list else '(無配件項目)'}
+
+【立即前往審核】
+{review_url}
+
+這是一封系統自動發送的郵件，請勿直接回覆。
+"""
+        
+        # 3. 發送郵件
+        send_mail(
+            subject,
+            message,
+            settings.SYSTEM_EMAIL,
+            admin_emails,
+            fail_silently=False,
+        )
+        print(f">>> [XrResource] [EMAIL SUCCESS] 活動：{rental_record.activity_name} | 租借人：{rental_record.borrower_name} | 期間：{rental_record.rental_start} ~ {rental_record.rental_end}")
+        logger.info(f"已發送新申請通知給管理員: {admin_emails}")
+        
+    except Exception as e:
+        # 記錄錯誤但不影響使用者提交表單
+        print(f">>> [XrResource] [EMAIL ERROR] 發送管理員通知失敗: {str(e)}")
+        logger.error(f"發送管理員通知失敗: {str(e)}")
