@@ -455,17 +455,7 @@ def restaurant_create(request):
                 timestamp = int(time.time())
                 new_filename = f"menu_{timestamp}{ext}"
                 
-                from django.conf import settings
-                save_dir = os.path.join(settings.BASE_DIR, 'LunchOrder', 'static', 'LunchOrder')
-                if not os.path.exists(save_dir):
-                    os.makedirs(save_dir)
-                
-                save_path = os.path.join(save_dir, new_filename)
-                with open(save_path, 'wb+') as destination:
-                    for chunk in image_file.chunks():
-                        destination.write(chunk)
-                
-                restaurant.image_file = new_filename
+                restaurant.image_file.save(new_filename, image_file, save=False)
             
             restaurant.is_active = True
             restaurant.save()
@@ -735,20 +725,7 @@ def restaurant_update_menu(request, restaurant_id):
                 timestamp = int(time.time())
                 new_filename = f"menu_{restaurant.id}_{timestamp}{ext}"
                 
-                # 儲存路徑
-                from django.conf import settings
-                
-                save_dir = os.path.join(settings.BASE_DIR, 'LunchOrder', 'static', 'LunchOrder')
-                if not os.path.exists(save_dir):
-                    os.makedirs(save_dir)
-                    
-                save_path = os.path.join(save_dir, new_filename)
-                
-                with open(save_path, 'wb+') as destination:
-                    for chunk in image_file.chunks():
-                        destination.write(chunk)
-                
-                restaurant.image_file = new_filename
+                restaurant.image_file.save(new_filename, image_file, save=False)
             
             restaurant.save()
             
