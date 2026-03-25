@@ -67,10 +67,10 @@
                     </td>
                     <td>
                         <div class="small">
-                            {% for eq in rental.equipments.all %}
+                            {% for r_eq in rental.xrrentalequipment_set.all %}
                             <span
-                                class="badge {% if eq.status == 'available' %}bg-success{% elif eq.status == 'reserved' %}bg-warning text-dark{% elif eq.status == 'rented' %}bg-danger{% elif eq.status == 'maintenance' %}bg-secondary{% elif eq.status == 'retired' %}bg-dark{% else %}bg-secondary{% endif %} me-1 mb-1">
-                                <i class="fas fa-microchip me-1"></i>{{ eq.name }}{% if eq.serial_number %}_{{ eq.serial_number }}{% endif %}
+                                class="badge {% if r_eq.is_returned %}bg-success{% elif rental.status == 'approved' %}bg-danger{% else %}bg-warning text-dark{% endif %} me-1 mb-1">
+                                <i class="fas fa-microchip me-1"></i>{{ r_eq.equipment.name }}{% if r_eq.equipment.serial_number %}_{{ r_eq.equipment.serial_number }}{% endif %}
                             </span>
                             {% endfor %}
                             {% for b_item in rental.xrrentalbulkitem_set.all %}
@@ -83,6 +83,16 @@
                         {% if rental.return_notes %}
                         <div class="mt-2 p-2 bg-light rounded small text-muted border-start border-4 border-primary">
                             <i class="fas fa-comment-dots me-1"></i><strong>歸還備註：</strong>{{ rental.return_notes }}
+                        </div>
+                        {% endif %}
+                        {% if rental.attachments.exists %}
+                        <div class="mt-2 d-flex flex-wrap gap-1">
+                            {% for attachment in rental.attachments.all %}
+                            <a href="{{ attachment.file.url }}" target="_blank"
+                                class="badge bg-soft-primary text-primary text-decoration-none border border-primary-subtle">
+                                <i class="fas fa-paperclip me-1"></i>佐證資料 {{ forloop.counter }}
+                            </a>
+                            {% endfor %}
                         </div>
                         {% endif %}
                     </td>

@@ -57,14 +57,22 @@ class XrEquipment(models.Model):
         if self.status in ['maintenance', 'retired']:
             return
 
-        rentals = self.xrrentalrecord_set.all()
+        # 檢查是否有任何「已核准」且「尚未歸還」的租借關連
+        active_rentals = self.xrrentalequipment_set.filter(
+               rental_record__status='approved',
+               is_returned=False
+        )
         if exclude_ids:
-            rentals = rentals.exclude(id__in=exclude_ids)
+               active_rentals = active_rentals.exclude(rental_record_id__in=exclude_ids)
+        
+        # 檢查是否有「待核准」的單據 (維持預約狀態)
+        pending_rentals = self.xrrentalrecord_set.filter(status='pending')
+        if exclude_ids:
+               pending_rentals = pending_rentals.exclude(id__in=exclude_ids)
 
-        # 核心檢查：是否有其他活躍的單據
-        if rentals.filter(status='approved').exists():
+        if active_rentals.exists():
             new_status = 'rented'
-        elif rentals.filter(status='pending').exists():
+        elif pending_rentals.exists():
             new_status = 'reserved'
         else:
             new_status = 'available'
@@ -170,7 +178,7 @@ class XrRentalRecord(models.Model):
     ]
     status = models.CharField('單據狀態', max_length=20, choices=STATUS_CHOICES, default='pending')
     
-    equipments = models.ManyToManyField(XrEquipment, verbose_name='租借設備', blank=True)
+    equipments = models.ManyToManyField(XrEquipment, through='XrRentalEquipment', verbose_name='租借設備', blank=True)
     bulk_items = models.ManyToManyField(XrBulkItem, through='XrRentalBulkItem', verbose_name='租借配件', blank=True)
     
     return_notes = models.TextField('歸還備註', blank=True)
@@ -184,6 +192,31 @@ class XrRentalRecord(models.Model):
 
     def __str__(self):
         return f"{self.activity_name} - {self.borrower_name} ({self.department})"
+
+class XrRentalAttachment(models.Model):
+    rental_record = models.ForeignKey(XrRentalRecord, on_delete=models.CASCADE, related_name='attachments')
+    file = models.FileField('附件', upload_to='return_attachments/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = '點交佐證附件'
+        verbose_name_plural = '點交佐證附件'
+
+    def __str__(self):
+        return f"附件 for {self.rental_record.activity_name}"
+
+class XrRentalEquipment(models.Model):
+    rental_record = models.ForeignKey(XrRentalRecord, on_delete=models.CASCADE)
+    equipment = models.ForeignKey(XrEquipment, on_delete=models.CASCADE)
+    is_returned = models.BooleanField('是否已歸還', default=False)
+
+    class Meta:
+        verbose_name = '租借設備狀態'
+        verbose_name_plural = '租借設備狀態'
+
+    def __str__(self):
+        status = "(已歸還)" if self.is_returned else ""
+        return f"{self.equipment.name} {status}"
 
 class XrRentalBulkItem(models.Model):
     rental_record = models.ForeignKey(XrRentalRecord, on_delete=models.CASCADE)
@@ -202,6 +235,7 @@ class XrUserProfile(models.Model):
     ]
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='xr_profile')
     role = models.CharField('權限角色', max_length=20, choices=ROLE_CHOICES, default='user')
+    receive_notifications = models.BooleanField('接收租借通知信', default=True)
 
     class Meta:
         verbose_name = '使用者權限設定'
