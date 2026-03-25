@@ -45,12 +45,10 @@ CATEGORY_META = {
 }
 
 
-def is_past_order_cutoff(target_date, today, current_time=None):
+def is_past_order_cutoff(target_date, today, current_time=None, custom_cutoff_time=None):
     """
-    檢查是否超過今日的訂購截止時間 (當天 10:15)
-    If target_date is not today, it's not past cutoff time if target_date > today.
-    (If target_date < today it might be past cutoff, but typically we only care about today's cutoff)
-    This function primarily checks if order_date == today and time > 10:15
+    檢查是否超過今日的訂購截止時間
+    若有自訂時間 (custom_cutoff_time) 則使用自訂時間，否則預設為當天 10:15
     """
     if target_date != today:
         return False
@@ -60,7 +58,16 @@ def is_past_order_cutoff(target_date, today, current_time=None):
     else:
         now_local = timezone.localtime(timezone.now())
         
-    cutoff_time = now_local.replace(hour=10, minute=15, second=0, microsecond=0)
+    if custom_cutoff_time:
+        cutoff_time = now_local.replace(
+            hour=custom_cutoff_time.hour, 
+            minute=custom_cutoff_time.minute, 
+            second=0, 
+            microsecond=0
+        )
+    else:
+        cutoff_time = now_local.replace(hour=10, minute=15, second=0, microsecond=0)
+        
     return now_local > cutoff_time
 
 
