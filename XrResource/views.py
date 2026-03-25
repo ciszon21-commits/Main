@@ -6,9 +6,14 @@ from .models import (
     XrBulkItem, XrRentalRecord, XrRentalBulkItem, XrRentalEquipment,
     XrRentalAttachment, XrUserProfile
 )
-from .forms import EquipmentCategoryForm, XrEquipmentForm, XrSupportRecordForm, GoProRentalRecordForm, XrBulkItemForm, XrRentalRecordForm
 from django.contrib.auth.decorators import login_required
 from functools import wraps
+from django.core.mail import send_mail
+from django.conf import settings
+import logging
+from .forms import EquipmentCategoryForm, XrEquipmentForm, XrSupportRecordForm, GoProRentalRecordForm, XrBulkItemForm, XrRentalRecordForm
+
+logger = logging.getLogger(__name__)
 from django.core.exceptions import PermissionDenied
 
 def admin_required(view_func):
@@ -218,6 +223,11 @@ def rental_register(request, pk=None):
                             )
                 
                 msg = '租借申請已更新！' if rental else '租借申請已送出！'
+                
+                # 如果是新申請，發送郵件通知管理員
+                if not rental:
+                    send_admin_notification(request, rental_record)
+                
                 messages.success(request, f'{msg}設備已改為「預約」且配件已標記「待扣」。')
                 return redirect('XrResource:rental_list')
             except IntegrityError:
@@ -516,3 +526,66 @@ def dashboard(request):
         'bulk_items': bulk_items,
         'recent_rentals': recent_rentals,
     })
+
+def send_admin_notification(request, rental_record):
+    """當有新申請時，發送郵件通知管理員"""
+    try:
+        # 1. 取得所有管理員且「勾選接收通知」的 Email
+        admin_emails = XrUserProfile.objects.filter(role='admin', receive_notifications=True).values_list('user__email', flat=True)
+        admin_emails = [email for email in admin_emails if email] # 排除空字串
+        
+        if not admin_emails:
+            logger.warning("沒有設定管理員 Email，無法發送通知。")
+            return
+
+        # 2. 構建郵件內容
+        subject = f'[設備租借提醒] 有新申請待核准：{rental_record.activity_name}'
+        
+        # 取得絕對網址
+        domain = request.get_host()
+        protocol = 'https' if request.is_secure() else 'http'
+        review_url = f"{protocol}://{domain}/xr-resource/rental/list/"
+        
+        # 整理設備清單
+        equip_list = "\n".join([f"- {eq.name} ({eq.serial_number or '無編號'})" for eq in rental_record.equipments.all()])
+        bulk_list = "\n".join([f"- {item.bulk_item.name} x{item.count}" for item in rental_record.xrrentalbulkitem_set.all()])
+        
+        message = f"""
+您好，系統收到一筆新的設備租借申請，請撥冗進行核准作業：
+
+【活動基本資訊】
+● 活動名稱：{rental_record.activity_name}
+● 租借性質：{rental_record.nature.name if rental_record.nature else '未填寫'}
+● 活動日期：{rental_record.activity_date}
+● 租借期間：{rental_record.rental_start} ~ {rental_record.rental_end}
+● 租借原因：{rental_record.reason or '未填寫'}
+
+【申請人資訊】
+● 租借單位：{rental_record.department}
+● 申請人：{rental_record.borrower_name} ({rental_record.borrower_id})
+
+【租借設備明細】
+{equip_list if equip_list else '(無主機設備)'}
+{bulk_list if bulk_list else '(無配件項目)'}
+
+【立即前往審核】
+{review_url}
+
+這是一封系統自動發送的郵件，請勿直接回覆。
+"""
+        
+        # 3. 發送郵件
+        send_mail(
+            subject,
+            message,
+            settings.SYSTEM_EMAIL,
+            admin_emails,
+            fail_silently=False,
+        )
+        print(f">>> [XrResource] [EMAIL SUCCESS] 活動：{rental_record.activity_name} | 租借人：{rental_record.borrower_name} | 期間：{rental_record.rental_start} ~ {rental_record.rental_end}")
+        logger.info(f"已發送新申請通知給管理員: {admin_emails}")
+        
+    except Exception as e:
+        # 記錄錯誤但不影響使用者提交表單
+        print(f">>> [XrResource] [EMAIL ERROR] 發送管理員通知失敗: {str(e)}")
+        logger.error(f"發送管理員通知失敗: {str(e)}")

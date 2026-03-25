@@ -53,8 +53,8 @@ class XrRentalRecordAdmin(admin.ModelAdmin):
 
 @admin.register(XrUserProfile)
 class XrUserProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'get_user_name', 'role')
-    list_filter = ('role',)
+    list_display = ('user', 'get_user_name', 'role', 'receive_notifications')
+    list_filter = ('role', 'receive_notifications')
     search_fields = ('user__username', 'user__last_name', 'user__first_name')
 
     def get_readonly_fields(self, request, obj=None):
