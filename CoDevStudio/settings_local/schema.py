@@ -46,6 +46,8 @@ class DatabaseConfig:
 
 @dataclass(frozen=True)
 class AppSettings:
+    CACHES: dict[str, dict[str, Any]] = field(default_factory=dict)
+
     DATABASES: dict[str, DatabaseConfig] = field(
         default_factory=lambda: {
             "default": DatabaseConfig(
