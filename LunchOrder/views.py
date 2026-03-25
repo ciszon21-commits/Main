@@ -1,8 +1,8 @@
+from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.http import JsonResponse
 from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Sum, F, DecimalField, IntegerField
 from django.db.models.functions import Coalesce
 from django.utils import timezone
@@ -12,6 +12,48 @@ import datetime
 import calendar
 import json
 from .utils import NATIONAL_HOLIDAYS_2026, CATEGORY_META, is_past_order_cutoff, is_past_schedule_cutoff
+
+# ---- 帳密登入常數 ----
+LUNCH_ADMIN_USERNAME = 'SINO'
+LUNCH_ADMIN_PASSWORD = '84124259'
+
+
+def lunch_admin_required(view_func):
+    """自訂裝飾器：檢查 session 中的 lunch_admin 標記"""
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        if not request.session.get('lunch_admin'):
+            return redirect('lunchorder:lunch_login')
+        return view_func(request, *args, **kwargs)
+    return _wrapped
+
+
+def lunch_login(request):
+    """管理員登入頁面"""
+    error = None
+    if request.method == 'POST':
+        username = request.POST.get('username', '')
+        password = request.POST.get('password', '')
+        if username == LUNCH_ADMIN_USERNAME and password == LUNCH_ADMIN_PASSWORD:
+            request.session['lunch_admin'] = True
+            
+            # 設定 session 過期時間為 10 年 (實質上永久免登入)
+            request.session.set_expiry(315360000)
+            
+            messages.success(request, '管理員登入成功')
+            next_url = request.GET.get('next', reverse('lunchorder:calendar_view'))
+            return redirect(next_url)
+        else:
+            error = '帳號或密碼錯誤'
+    return render(request, 'LunchOrder/login.html', {'error': error})
+
+
+def lunch_logout(request):
+    """管理員登出"""
+    request.session.pop('lunch_admin', None)
+    messages.success(request, '已登出管理員')
+    return redirect('lunchorder:calendar_view')
+
 
 
 def calendar_view(request):
@@ -49,7 +91,7 @@ def calendar_view(request):
         date__month=month
     ).select_related('restaurant')
     
-    schedule_map = {s.date: s.restaurant for s in schedules}
+    schedule_map = {s.date: s for s in schedules}
     
     # 建立日曆資料結構
     cal_data = []
@@ -65,11 +107,13 @@ def calendar_view(request):
         
     for day in range(1, num_days + 1):
         date_obj = datetime.date(year, month, day)
-        restaurant = schedule_map.get(date_obj)
+        schedule = schedule_map.get(date_obj)
+        restaurant = schedule.restaurant if schedule else None
         is_holiday = date_obj in NATIONAL_HOLIDAYS_2026
         
-        # 計算是否超過今日截止時間 (10:15)
-        is_past_cutoff_time = is_past_order_cutoff(date_obj, today)
+        # 計算是否超過今日截止時間 (10:15 或自訂)
+        custom_cutoff = schedule.order_cutoff_time if schedule and schedule.order_cutoff_time else None
+        is_past_cutoff_time = is_past_order_cutoff(date_obj, today, custom_cutoff_time=custom_cutoff)
         
         # 計算是否超過今日排程設定時間 (11:00)
         is_past_schedule_cutoff_time = is_past_schedule_cutoff(date_obj, today)
@@ -78,6 +122,7 @@ def calendar_view(request):
             'date': date_obj,
             'day': day,
             'restaurant': restaurant,
+            'schedule': schedule,
             'is_today': date_obj == today,
             'is_past': date_obj < today,
             'is_past_cutoff': is_past_cutoff_time,
@@ -121,13 +166,11 @@ def calendar_view(request):
     return render(request, 'LunchOrder/calendar.html', context)
 
 
+@lunch_admin_required
 def set_daily_restaurant(request):
     """API: 設定每日店家 (僅限管理員)"""
     if request.method == 'POST':
-        # 已認證但非管理員 → 拒絕
-        if request.user.is_authenticated and not request.user.is_staff:
-            messages.error(request, '僅限管理員可以設定店家排程')
-            return redirect('lunchorder:calendar_view')
+        # 已通過裝飾器驗證，此處不需額外檢查
         date_str = request.POST.get('date')
         restaurant_id = request.POST.get('restaurant_id')
         action = request.POST.get('action')
@@ -172,6 +215,19 @@ def set_daily_restaurant(request):
                     if deleted_count:
                         msg += f'，並刪除 {deleted_count} 筆相關訂單'
                     messages.success(request, msg)
+                elif action == 'set_cutoff':
+                    cutoff_time_str = request.POST.get('cutoff_time')
+                    if cutoff_time_str:
+                        cutoff_time = datetime.datetime.strptime(cutoff_time_str, '%H:%M').time()
+                        schedule = RestaurantSchedule.objects.filter(date=date_obj).first()
+                        if schedule:
+                            schedule.order_cutoff_time = cutoff_time
+                            schedule.save(update_fields=['order_cutoff_time'])
+                            messages.success(request, f'已設定 {date_str} 的截止時間為 {cutoff_time_str}')
+                        else:
+                            messages.error(request, '找不到該日期的排程')
+                    else:
+                        messages.error(request, '未提供截止時間')
                 elif restaurant_id:
                     restaurant = Restaurant.objects.get(id=restaurant_id)
                     # 檢查是否為更換店家（已有不同排程）
@@ -372,8 +428,9 @@ def order_delete(request, order_id):
     return redirect('lunchorder:order_list')
 
 
+@lunch_admin_required
 def restaurant_list(request):
-    """餐廳列表 (公開)"""
+    """餐廳列表 (僅限管理員)"""
     restaurants = Restaurant.objects.filter(is_active=True)
     context = {
         'restaurants': restaurants,
@@ -381,6 +438,7 @@ def restaurant_list(request):
     return render(request, 'LunchOrder/restaurant_list.html', context)
 
 
+@lunch_admin_required
 def restaurant_create(request):
     """新增便當店"""
     if request.method == 'POST':
@@ -449,10 +507,12 @@ def order_create(request):
     today = timezone.localtime(timezone.now()).date()
     now = timezone.localtime(timezone.now())
     # 檢查是否超過截止時間
-    is_past_cutoff = is_past_order_cutoff(target_date, today, now)
+    custom_cutoff = schedule.order_cutoff_time if schedule and schedule.order_cutoff_time else None
+    is_past_cutoff = is_past_order_cutoff(target_date, today, now, custom_cutoff_time=custom_cutoff)
+    cutoff_time_display = custom_cutoff.strftime('%H:%M') if custom_cutoff else '10:15'
 
     if is_past_cutoff:
-        return render(request, 'LunchOrder/order_cutoff.html')
+        return render(request, 'LunchOrder/order_cutoff.html', {'cutoff_time': cutoff_time_display, 'target_date': target_date})
 
     if request.method == 'POST':
         form = LunchOrderForm(request.POST) # 先綁定資料，以便之後驗證或傳遞
@@ -535,10 +595,12 @@ def order_create(request):
         'target_date': target_date,
         'target_restaurant': target_restaurant,
         'is_past_cutoff': is_past_cutoff,
+        'cutoff_time': cutoff_time_display,
     }
     return render(request, 'LunchOrder/order_form.html', context)
 
 
+@lunch_admin_required
 def order_statistics(request):
     """每日訂單彙總報表"""
     today = timezone.now().date()
@@ -632,6 +694,7 @@ def get_menu_items(request, restaurant_id):
     return JsonResponse(list(menu_items), safe=False)
 
 
+@lunch_admin_required
 def restaurant_update_menu(request, restaurant_id):
     """更新餐廳菜單圖片與品項"""
     restaurant = get_object_or_404(Restaurant, id=restaurant_id)
@@ -733,6 +796,7 @@ def restaurant_update_menu(request, restaurant_id):
     return render(request, 'LunchOrder/restaurant_update_menu.html', context)
 
 
+@lunch_admin_required
 def menu_item_add(request, restaurant_id):
     """API: 新增菜單品項"""
     if request.method == 'POST':
@@ -769,6 +833,7 @@ def menu_item_add(request, restaurant_id):
 
 
 
+@lunch_admin_required
 def menu_item_edit(request, restaurant_id, item_id):
     """API: 編輯菜單品項"""
     if request.method == 'POST':
@@ -807,6 +872,7 @@ def menu_item_edit(request, restaurant_id, item_id):
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
 
+@lunch_admin_required
 def menu_item_delete(request, restaurant_id):
     """API: 刪除菜單品項"""
     if request.method == 'POST':
@@ -829,6 +895,7 @@ def menu_item_delete(request, restaurant_id):
     return JsonResponse({'success': False, 'error': '無效請求'})
 
 
+@lunch_admin_required
 def restaurant_delete(request, restaurant_id):
     """刪除便當店 (包含圖片與菜單)"""
     restaurant = get_object_or_404(Restaurant, id=restaurant_id)
@@ -854,103 +921,5 @@ def restaurant_delete(request, restaurant_id):
     return redirect('lunchorder:restaurant_update_menu', restaurant_id=restaurant_id)
 
 
-def admin_list(request):
-    """管理員名單"""
-    from django.contrib.auth.models import User
 
-    admins = User.objects.filter(is_staff=True).select_related('profile').order_by('username')
-
-    admin_data = []
-    for user in admins:
-        profile = getattr(user, 'profile', None)
-        admin_data.append({
-            'id': user.id,
-            'username': user.username,
-            'full_name': user.get_full_name() or user.username,
-            'email': profile.emp_email if profile and profile.emp_email else user.email,
-            'department': profile.dept_display if profile else '—',
-            'company': profile.company_display if profile else '—',
-            'is_superuser': user.is_superuser,
-            'date_joined': user.date_joined,
-            'last_login': user.last_login,
-        })
-
-    context = {
-        'admin_data': admin_data,
-        'total_count': len(admin_data),
-    }
-    return render(request, 'LunchOrder/admin_list.html', context)
-
-
-def admin_search_users(request):
-    """API: 搜尋非管理員使用者 (供新增管理員用)"""
-    from django.contrib.auth.models import User
-    from django.db.models import Q
-
-    q = request.GET.get('q', '').strip()
-    if not q or len(q) < 1:
-        return JsonResponse([], safe=False)
-
-    users = User.objects.filter(is_staff=False).filter(
-        Q(username__icontains=q) |
-        Q(first_name__icontains=q) |
-        Q(last_name__icontains=q) |
-        Q(profile__emp_name__icontains=q)
-    ).select_related('profile').distinct()[:10]
-
-    results = []
-    for user in users:
-        profile = getattr(user, 'profile', None)
-        results.append({
-            'id': user.id,
-            'username': user.username,
-            'full_name': user.get_full_name() or user.username,
-            'department': profile.dept_display if profile else '—',
-            'company': profile.company_display if profile else '—',
-        })
-
-    return JsonResponse(results, safe=False)
-
-
-def admin_add(request):
-    """POST: 將使用者設為管理員 (is_staff=True)"""
-    if request.method == 'POST':
-        from django.contrib.auth.models import User
-        user_id = request.POST.get('user_id')
-        if user_id:
-            try:
-                user = User.objects.get(id=user_id)
-                user.is_staff = True
-                user.save(update_fields=['is_staff'])
-                profile = getattr(user, 'profile', None)
-                name = user.get_full_name() or user.username
-                messages.success(request, f'已將「{name}」設為管理員')
-            except User.DoesNotExist:
-                messages.error(request, '找不到該使用者')
-        else:
-            messages.error(request, '未指定使用者')
-    return redirect('lunchorder:admin_list')
-
-
-def admin_remove(request):
-    """POST: 移除管理員權限 (is_staff=False)"""
-    if request.method == 'POST':
-        from django.contrib.auth.models import User
-        user_id = request.POST.get('user_id')
-        if user_id:
-            try:
-                user = User.objects.get(id=user_id)
-                if user.is_superuser:
-                    messages.error(request, '無法移除超級管理員的權限')
-                else:
-                    user.is_staff = False
-                    user.save(update_fields=['is_staff'])
-                    profile = getattr(user, 'profile', None)
-                    name = user.get_full_name() or user.username
-                    messages.success(request, f'已移除「{name}」的管理員權限')
-            except User.DoesNotExist:
-                messages.error(request, '找不到該使用者')
-        else:
-            messages.error(request, '未指定使用者')
-    return redirect('lunchorder:admin_list')
 

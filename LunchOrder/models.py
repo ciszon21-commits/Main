@@ -171,6 +171,12 @@ class RestaurantSchedule(models.Model):
         related_name='schedules',
         verbose_name="便當店"
     )
+    order_cutoff_time = models.TimeField(
+        null=True,
+        blank=True,
+        verbose_name="自訂截止時間",
+        help_text="若未設定則使用系統預設 10:15"
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新時間")
 
