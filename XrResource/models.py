@@ -235,7 +235,7 @@ class XrUserProfile(models.Model):
     ]
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='xr_profile')
     role = models.CharField('權限角色', max_length=20, choices=ROLE_CHOICES, default='user')
-    receive_notifications = models.BooleanField('接收租借通知信', default=False)
+    receive_notifications = models.BooleanField('接收租借通知信', default=False, null=True, blank=True)
 
     class Meta:
         verbose_name = '使用者權限設定'
@@ -244,14 +244,21 @@ class XrUserProfile(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.get_role_display()}"
 
-# Signals 確保每個 User 都有 Profile
+# Signals 確保每個 User 都有 Profile (合併與優化版本)
 @receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
+def manage_user_profile(sender, instance, created, **kwargs):
+    """
+    建立或更新使用者權限設定檔
+    使用 get_or_create 避免重複建立導致的 IntegrityError
+    """
     if created:
-        XrUserProfile.objects.create(user=instance)
-
-@receiver(post_save, sender=User)
-def save_user_profile(sender, instance, **kwargs):
-    if not hasattr(instance, 'xr_profile'):
-        XrUserProfile.objects.create(user=instance)
-    instance.xr_profile.save()
+        XrUserProfile.objects.get_or_create(
+            user=instance, 
+            defaults={'role': 'user', 'receive_notifications': False}
+        )
+    else:
+        # 確保編輯舊使用者時也能自動補齊 Profile
+        if not hasattr(instance, 'xr_profile'):
+            XrUserProfile.objects.create(user=instance, role='user', receive_notifications=False)
+        else:
+            instance.xr_profile.save()
