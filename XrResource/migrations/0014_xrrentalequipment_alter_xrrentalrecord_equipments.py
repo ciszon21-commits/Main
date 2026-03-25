@@ -9,12 +9,18 @@ _m2m_data_buffer = []
 
 def save_m2m_data(apps, schema_editor):
     global _m2m_data_buffer
-    with schema_editor.connection.cursor() as cursor:
-        try:
-            cursor.execute("SELECT xrrentalrecord_id, xrequipment_id FROM XrResource_xrrentalrecord_equipments")
-            _m2m_data_buffer = cursor.fetchall()
-        except Exception:
-            _m2m_data_buffer = []
+    XrRentalRecord = apps.get_model('XrResource', 'XrRentalRecord')
+    
+    # 使用 ORM 備份資料，避免硬編碼 SQL 導致 PostgreSQL 交易報錯
+    try:
+        # 遍歷所有租借紀錄，取得其關聯的設備 ID
+        for rental in XrRentalRecord.objects.all():
+            # 在 RemoveField 之前，equipments 還是有效的 M2M 欄位
+            for equip in rental.equipments.all():
+                _m2m_data_buffer.append((rental.id, equip.id))
+    except Exception:
+        # 如果表不存在或其他原因，略過備份（可能是全新安裝）
+        _m2m_data_buffer = []
 
 def restore_m2m_data(apps, schema_editor):
     global _m2m_data_buffer
