@@ -1,5 +1,9 @@
 from django.contrib import admin
-from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, XrBulkItem, XrRentalRecord, XrUserProfile, RentalNature, XrRentalEquipment
+from .models import (
+    EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, 
+    XrBulkItem, XrRentalRecord, XrUserProfile, RentalNature, 
+    XrRentalEquipment, XrRentalAttachment
+)
 
 @admin.register(RentalNature)
 class RentalNatureAdmin(admin.ModelAdmin):
@@ -61,5 +65,11 @@ class XrUserProfileAdmin(admin.ModelAdmin):
     def get_user_name(self, obj):
         return f"{obj.user.last_name}{obj.user.first_name}"
     get_user_name.short_description = '姓名'
+
+@admin.register(XrRentalAttachment)
+class XrRentalAttachmentAdmin(admin.ModelAdmin):
+    list_display = ('rental_record', 'file', 'uploaded_at')
+    list_filter = ('uploaded_at',)
+    search_fields = ('rental_record__activity_name',)
 
 # 移除先前的 User 整合，保持在 XrResource 內獨立管理

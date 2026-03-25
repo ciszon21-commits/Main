@@ -1,7 +1,11 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.db import models, transaction, IntegrityError
-from .models import EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord, XrBulkItem, XrRentalRecord, XrRentalBulkItem, XrRentalEquipment, XrUserProfile
+from .models import (
+    EquipmentCategory, XrEquipment, XrSupportRecord, GoProRentalRecord,
+    XrBulkItem, XrRentalRecord, XrRentalBulkItem, XrRentalEquipment,
+    XrRentalAttachment, XrUserProfile
+)
 from .forms import EquipmentCategoryForm, XrEquipmentForm, XrSupportRecordForm, GoProRentalRecordForm, XrBulkItemForm, XrRentalRecordForm
 from django.contrib.auth.decorators import login_required
 from functools import wraps
@@ -397,11 +401,16 @@ def rental_return(request, pk):
         returned_equipment_ids = request.POST.getlist('returned_equipments')
         returned_bulk_item_ids = request.POST.getlist('returned_bulk_items')
         return_notes = request.POST.get('return_notes', '')
+        return_attachments = request.FILES.getlist('return_attachments')
         
         with transaction.atomic():
             # 1. 保存歸還備註
             rental.return_notes = return_notes
             rental.save()
+
+            # 2. 保存新上傳的附件
+            for f in return_attachments:
+                XrRentalAttachment.objects.create(rental_record=rental, file=f)
             
             # 2. 處理主機歸還
             for eq_id in returned_equipment_ids:
@@ -443,6 +452,22 @@ def rental_return(request, pk):
         'rental': rental,
         'bulk_items': rental.xrrentalbulkitem_set.all(),
     })
+
+@login_required
+@admin_required
+def delete_attachment(request, pk):
+    """刪除點交附件"""
+    attachment = get_object_or_404(XrRentalAttachment, pk=pk)
+    rental_pk = attachment.rental_record.pk
+    
+    if request.method == 'POST':
+        # 刪除實體檔案
+        if attachment.file:
+            attachment.file.delete()
+        attachment.delete()
+        messages.success(request, '附件已刪除')
+    
+    return redirect('XrResource:rental_return', pk=rental_pk)
 
 @login_required
 def dashboard(request):

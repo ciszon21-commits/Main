@@ -193,6 +193,18 @@ class XrRentalRecord(models.Model):
     def __str__(self):
         return f"{self.activity_name} - {self.borrower_name} ({self.department})"
 
+class XrRentalAttachment(models.Model):
+    rental_record = models.ForeignKey(XrRentalRecord, on_delete=models.CASCADE, related_name='attachments')
+    file = models.FileField('附件', upload_to='return_attachments/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = '點交佐證附件'
+        verbose_name_plural = '點交佐證附件'
+
+    def __str__(self):
+        return f"附件 for {self.rental_record.activity_name}"
+
 class XrRentalEquipment(models.Model):
     rental_record = models.ForeignKey(XrRentalRecord, on_delete=models.CASCADE)
     equipment = models.ForeignKey(XrEquipment, on_delete=models.CASCADE)
