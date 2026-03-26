@@ -58,6 +58,7 @@ urlpatterns = [
     path('well-drawdown/', include('WellDrawdown.urls')),  # 水理分析抽水預測系統
     path('bgf-excavation/', include('BFGExcavation.urls', namespace='bfg')),  # 臨時支撐配置深度檢核
     path('energymap/', include('EnergyMap.urls')),  # 台電能源地圖
+    path('lumasite/', include('LumaSite.urls')),  # 專業日照分析 Web 平台
 ]
 
 # 條件載入 ClashClassifier API

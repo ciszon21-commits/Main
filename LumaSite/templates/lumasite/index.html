@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LumaSite | 專業日照分析平台</title>
+    <!-- MapLibre GL JS -->
+    <link href='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css' rel='stylesheet' />
+    <script src='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js'></script>
+    <!-- Custom CSS -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'lumasite/css/style.css' %}">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app-container">
+        <!-- Sidebar Controls -->
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <h1>LumaSite</h1>
+                <p style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">AEC 日照分析系統</p>
+            </div>
+            
+            <div class="sidebar-content">
+                <!-- Project Info -->
+                <div class="control-panel">
+                    <div class="control-group">
+                        <label>當前專案</label>
+                        <select id="project-select">
+                            <option value="">載入中...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Simulation Controls -->
+                <div class="control-panel">
+                    <h3 style="font-size: 0.9rem; margin-bottom: 12px; font-weight: 700;">模擬設定</h3>
+                    
+                    <div class="control-group">
+                        <label>分析日期</label>
+                        <input type="date" id="date-input" value="2024-06-21">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>當前時間 (<span id="time-display">12:00</span>)</label>
+                        <input type="range" id="time-slider" min="0" max="1439" value="720">
+                    </div>
+
+                    <div class="sun-info">
+                        <div id="azimuth-display">Azimuth: --°</div>
+                        <div id="elevation-display">Elevation: --°</div>
+                    </div>
+                </div>
+
+                <!-- Scenario Manager -->
+                <div class="control-panel">
+                    <h3 style="font-size: 0.9rem; margin-bottom: 12px; font-weight: 700;">方案比對</h3>
+                    <div class="control-group">
+                        <select id="scenario-select">
+                            <option value="">選擇方案...</option>
+                        </select>
+                    </div>
+                    <button id="trigger-analysis" style="width: 100%; padding: 10px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">執行累積分析 (Sun Hours)</button>
+                </div>
+
+                <!-- Analytics Results -->
+                <div class="control-panel" id="history-panel">
+                    <h3 style="font-size: 0.9rem; margin-bottom: 12px; font-weight: 700;">分析歷史</h3>
+                    <div id="analysis-list" style="font-size: 0.85rem; color: #64748b;">
+                        尚無分析紀錄
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Map Viewer -->
+        <main id="map-container">
+            <div id="map"></div>
+            
+            <!-- Floating Data Panel -->
+            <div class="analysis-overlay" id="legend">
+                <h4 style="margin: 0 0 10px 0; font-size: 0.9rem;">分析圖例</h4>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background: #fbbf24; border-radius: 2px;"></span>
+                        <span style="font-size: 0.75rem;">高曝曬 (> 8h)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background: #94a3b8; border-radius: 2px;"></span>
+                        <span style="font-size: 0.75rem;">低曝曬 (< 2h)</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Viewer Logic -->
+    <script src="{% static 'lumasite/js/viewer.js' %}"></script>
+</body>
+</html>

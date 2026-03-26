@@ -119,6 +119,7 @@ INSTALLED_APPS = [
     'WellDrawdown',  # 水理分析抽水預測系統
     'BFGExcavation',  # 臨時支撐配置深度檢核
     'EnergyMap',  # 台電能源地圖
+    'LumaSite',  # 專業日照分析 Web 平台
 ] + local.STAGE_INSTALLED_APPS
 
 
