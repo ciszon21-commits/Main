@@ -11,6 +11,13 @@ interface Site {
   projectId: number;
 }
 
+interface StylePreset {
+  id: string;
+  name: string;
+  type: 'presentation' | 'report';
+  mapStyle: string; // URL or JSON string
+}
+
 interface AppState {
   projects: Project[];
   setProjects: (projects: Project[]) => void;
@@ -21,7 +28,39 @@ interface AppState {
   setSites: (sites: Site[]) => void;
   selectedSite: Site | null;
   setSelectedSite: (site: Site | null) => void;
+
+  // Phase 4: Style System
+  stylePresets: StylePreset[];
+  selectedStyle: StylePreset | null;
+  setSelectedStyle: (style: StylePreset | null) => void;
 }
+
+export const DEFAULT_STYLES: StylePreset[] = [
+  { id: 'ofm-liberty', name: 'Liberty (Default)', type: 'report', mapStyle: 'https://tiles.openfreemap.org/styles/liberty' },
+  { id: 'osm-raster', name: 'OSM Raster (Fallback)', type: 'report', mapStyle: {
+    version: 8,
+    sources: {
+      'osm-raster': {
+        type: 'raster',
+        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tileSize: 256,
+        attribution: '&copy; OpenStreetMap contributors'
+      }
+    },
+    layers: [
+      {
+        id: 'osm-raster-layer',
+        type: 'raster',
+        source: 'osm-raster',
+        minzoom: 0,
+        maxzoom: 19
+      }
+    ]
+  } as any },
+  { id: 'ofm-bright', name: 'Bright Mode', type: 'presentation', mapStyle: 'https://tiles.openfreemap.org/styles/bright' },
+  { id: 'minimal-dark', name: 'Minimal Dark', type: 'presentation', mapStyle: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json' },
+  { id: 'blueprint', name: 'Blueprint Mode', type: 'presentation', mapStyle: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json' }
+];
 
 export const useStore = create<AppState>((set) => ({
   projects: [],
@@ -33,4 +72,8 @@ export const useStore = create<AppState>((set) => ({
   setSites: (sites) => set({ sites }),
   selectedSite: null,
   setSelectedSite: (selectedSite) => set({ selectedSite }),
+
+  stylePresets: DEFAULT_STYLES,
+  selectedStyle: DEFAULT_STYLES[0],
+  setSelectedStyle: (selectedStyle) => set({ selectedStyle }),
 }));

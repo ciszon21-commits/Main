@@ -1,6 +1,7 @@
 import ProjectList, { SiteList } from './components/Sidebar/ProjectList';
 import SiteDetails from './components/Sidebar/SiteDetails';
 import Map from './components/Map/Map';
+import StyleSelector from './components/Sidebar/StyleSelector';
 
 function App() {
   return (
@@ -18,6 +19,9 @@ function App() {
           <div>
             <ProjectList />
             <SiteList />
+          </div>
+          <div className="border-t pt-8">
+            <StyleSelector />
           </div>
           <div className="border-t pt-8">
             <SiteDetails />
