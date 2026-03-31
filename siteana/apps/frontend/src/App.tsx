@@ -1,18 +1,40 @@
 import { useState } from 'react';
-import ProjectList, { SiteList } from './components/Sidebar/ProjectList';
-import SiteDetails from './components/Sidebar/SiteDetails';
+import ProjectList from './components/Sidebar/ProjectList';
 import Map from './components/Map/Map';
 import MapStyleStudio from './components/Sidebar/MapStyleStudio';
 import UnifiedExportPanel from './components/Sidebar/UnifiedExportPanel';
 import AnalysisPanel from './components/Sidebar/AnalysisPanel';
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, Sun, Activity, TreePine, Box, ChevronRight } from 'lucide-react';
 
-const SectionHeader: React.FC<{ en: string, cn: string }> = ({ en, cn }) => (
-  <div className="flex flex-col mb-4 px-1">
-    <span className="text-[10px] font-black text-brand-600/60 uppercase tracking-[0.3em] leading-none mb-1">{en}</span>
-    <h3 className="text-sm font-bold text-slate-800 tracking-tight">{cn}</h3>
-  </div>
-);
+const SectionHeader: React.FC<{ en: string, cn: string, color?: string }> = ({ en, cn, color = 'brand' }) => {
+  const colorMap: Record<string, string> = {
+    brand: 'text-brand-600/60 bg-brand-50/50',
+    blue: 'text-blue-600/60 bg-blue-50/50',
+    emerald: 'text-emerald-600/60 bg-emerald-50/50',
+    amber: 'text-amber-600/60 bg-amber-50/50',
+    slate: 'text-slate-600/60 bg-slate-50/50',
+  };
+  
+  const dotColorMap: Record<string, string> = {
+    brand: 'bg-brand-500',
+    blue: 'bg-blue-500',
+    emerald: 'bg-emerald-500',
+    amber: 'bg-amber-500',
+    slate: 'bg-slate-500',
+  };
+
+  return (
+    <div className="flex flex-col mb-4 px-1 group">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className={`w-1 h-3 rounded-full ${dotColorMap[color] || dotColorMap.brand} transition-all group-hover:h-5`} />
+        <span className={`text-[10px] font-black uppercase tracking-[0.3em] leading-none px-2 py-0.5 rounded-md ${colorMap[color] || colorMap.brand}`}>
+          {en}
+        </span>
+      </div>
+      <h3 className="text-sm font-bold text-slate-800 tracking-tight pl-0.5">{cn}</h3>
+    </div>
+  );
+};
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -22,12 +44,12 @@ function App() {
 
       {/* Sidebar */}
       <aside
-        className={`h-full border-r bg-white shadow-sm z-10 flex flex-col${sidebarOpen ? ' w-80' : ' sidebar-collapsed'}`}
+        className={`h-full border-r bg-white shadow-sm z-10 flex flex-col transition-all duration-300 ${sidebarOpen ? 'w-80' : 'w-0 border-none'}`}
       >
         {/* Logo Header */}
-        <header className="p-5 border-b flex items-center justify-between shrink-0">
+        <header className="p-5 border-b flex items-center justify-between shrink-0 bg-white/80 backdrop-blur-md sticky top-0 z-20">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-lg shadow-sm transition-colors duration-300">S</div>
+            <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-lg shadow-sm">S</div>
             <div>
               <h1 className="text-base font-bold tracking-tight leading-tight">SiteANA</h1>
               <p className="text-[10px] text-slate-400 font-medium leading-none">Design-oriented Web GIS</p>
@@ -35,7 +57,7 @@ function App() {
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
             title="收合側邊欄"
           >
             <PanelLeftClose size={16} />
@@ -43,43 +65,74 @@ function App() {
         </header>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar space-y-8">
+        <div className={`flex-1 overflow-y-auto px-4 py-6 custom-scrollbar space-y-10 transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
 
-          {/* PROJECT & SITE */}
-          <div className="sidebar-section px-1 animate-slide-up">
+          {/* 1. PROJECTS */}
+          <div className="sidebar-section px-1 animate-slide-up pb-8 border-b border-slate-50">
             <ProjectList />
-            <SiteList />
           </div>
 
-          {/* VISUAL ENGINE (Priority Move) */}
-          <div className="sidebar-section px-1 animate-slide-up" style={{ animationDelay: '50ms' }}>
-            <SectionHeader en="VISUAL ENGINE" cn="視覺風格工作坊" />
+          {/* 2. VISUAL ENGINE */}
+          <div className="sidebar-section px-1 animate-slide-up pb-8 border-b border-slate-50" style={{ animationDelay: '50ms' }}>
+            <SectionHeader en="VISUAL ENGINE" cn="視覺風格工作坊" color="blue" />
             <MapStyleStudio />
           </div>
 
-          {/* SPATIAL ANALYSIS */}
-          <div className="sidebar-section px-1 animate-slide-up" style={{ animationDelay: '100ms' }}>
-            <SectionHeader en="SPATIAL ANALYTICS" cn="空間分析引擎" />
+          {/* 3. SPATIAL ANALYSIS */}
+          <div className="sidebar-section px-1 animate-slide-up pb-8 border-b border-slate-50" style={{ animationDelay: '100ms' }}>
+            <SectionHeader en="SPATIAL ANALYTICS" cn="空間分析引擎" color="emerald" />
             <AnalysisPanel />
           </div>
 
-          {/* EXPORT STUDIO */}
-          <div className="sidebar-section px-1 animate-slide-up" style={{ animationDelay: '150ms' }}>
-            <SectionHeader en="EXPORT STUDIO" cn="分析報表中心" />
+          {/* 4. ADVANCED MODULES (Upcoming) */}
+          <div className="sidebar-section px-1 animate-slide-up pb-8 border-b border-slate-50" style={{ animationDelay: '150ms' }}>
+            <SectionHeader en="ADVANCED MODULES" cn="進階分析模組" color="amber" />
+            <div className="grid grid-cols-2 gap-2 opacity-60">
+              <button disabled className="group relative flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50 text-center cursor-not-allowed">
+                <Sun size={18} className="text-orange-400" />
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-bold text-slate-600">日照微氣候</span>
+                  <span className="text-[9px] opacity-70 uppercase text-slate-400">Solar Analysis</span>
+                </div>
+              </button>
+              
+              <button disabled className="group relative flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50 text-center cursor-not-allowed">
+                <Activity size={18} className="text-blue-500" />
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-bold text-slate-600">都市可及性</span>
+                  <span className="text-[9px] opacity-70 uppercase text-slate-400">Isochrone</span>
+                </div>
+              </button>
+
+              <button disabled className="group relative flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50 text-center cursor-not-allowed">
+                <TreePine size={18} className="text-emerald-500" />
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-bold text-slate-600">綠化指數</span>
+                  <span className="text-[9px] opacity-70 uppercase text-slate-400">NDVI / Green</span>
+                </div>
+              </button>
+
+              <button disabled className="group relative flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50 text-center cursor-not-allowed">
+                <Box size={18} className="text-sky-400" />
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-bold text-slate-600">參數化量體</span>
+                  <span className="text-[9px] opacity-70 uppercase text-slate-400">Massing</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* 5. EXPORT STUDIO */}
+          <div className="sidebar-section px-1 animate-slide-up pb-12" style={{ animationDelay: '200ms' }}>
+            <SectionHeader en="EXPORT STUDIO" cn="分析報表中心" color="slate" />
             <UnifiedExportPanel />
           </div>
 
-          {/* SITE DETAILS */}
-          <div className="sidebar-section px-1 animate-slide-up" style={{ animationDelay: '200ms' }}>
-            <SectionHeader en="SITE METADATA" cn="基地數據細覽" />
-            <SiteDetails />
-          </div>
         </div>
 
-        {/* Footer */}
-        <footer className="px-4 py-3 border-t bg-slate-50 shrink-0">
+        <footer className="px-5 py-4 border-t bg-slate-50 shrink-0">
           <div className="text-[9px] text-slate-400 font-mono flex justify-between">
-            <span>v0.9.0-alpha · Phase 9</span>
+            <span>v0.14.0-preview · P13+</span>
             <span>SiteANA Studio</span>
           </div>
         </footer>
@@ -89,10 +142,10 @@ function App() {
       {!sidebarOpen && (
         <button
           onClick={() => setSidebarOpen(true)}
-          className="absolute left-3 top-4 z-30 p-2 glass-panel rounded-lg text-slate-600 hover:text-brand-600 transition-colors shadow-md"
+          className="absolute left-6 top-6 z-30 w-10 h-10 flex items-center justify-center glass-panel rounded-xl text-slate-600 hover:text-brand-600 transition-all shadow-xl border border-white/50"
           title="展開側邊欄"
         >
-          <PanelLeftOpen size={18} />
+          <PanelLeftOpen size={20} />
         </button>
       )}
 

@@ -34,7 +34,7 @@ const Map: React.FC = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const hasLoadError = useRef(false);
-  const { selectedSite, selectedStyle, setSelectedStyle, setMapRef, bufferGeometry, showSiteMarker, siteMarkerText, drawnGeometry, isDrawingMode } = useStore();
+  const { selectedStyle, setSelectedStyle, setMapRef, bufferGeometry, showSiteMarker, siteMarkerText, drawnGeometry, isDrawingMode, analysisResult } = useStore();
   const paintState = useMapPaintStore();
   const prevStyleId = useRef<string>('ofm-liberty');
 
@@ -53,7 +53,7 @@ const Map: React.FC = () => {
 
     // Scale control setup
     const scale = new maplibregl.ScaleControl({ maxWidth: 80, unit: 'metric' });
-    map.current.addControl(scale, 'top-left');
+    map.current.addControl(scale, 'bottom-right');
 
     map.current.once('error', () => {
       if (!hasLoadError.current) {
@@ -99,12 +99,6 @@ const Map: React.FC = () => {
       MapPaintEngine.applyAll(map.current, paintState);
     }
   }, [paintState]);
-
-  // --- Site Fly-to ---
-  useEffect(() => {
-    if (!map.current || !selectedSite) return;
-    // TODO: flyTo when spatial data is available
-  }, [selectedSite]);
 
   // --- Buffer Display ---
   useEffect(() => {
@@ -164,6 +158,11 @@ const Map: React.FC = () => {
 
       if (m.getSource(SOURCE_ID)) {
         (m.getSource(SOURCE_ID) as maplibregl.GeoJSONSource).setData(data as any);
+        // Force layout property update for immediate text reaction
+        if (m.getLayer('site-marker-label')) {
+          m.setLayoutProperty('site-marker-label', 'text-field', siteMarkerText);
+        }
+        m.triggerRepaint();
       } else {
         m.addSource(SOURCE_ID, { type: 'geojson', data: data as any });
         
@@ -186,7 +185,7 @@ const Map: React.FC = () => {
           source: SOURCE_ID,
           filter: ['==', ['id'], 'site-label'],
           layout: {
-            'text-field': ['get', 'label'],
+            'text-field': siteMarkerText, // Bind directly for safety instead of reading properties
             'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
             'text-size': 14,
             'text-anchor': 'center',
@@ -206,48 +205,36 @@ const Map: React.FC = () => {
     }
   }, [showSiteMarker, siteMarkerText, drawnGeometry]);
 
-  // --- 2D / 3D Toggle Controller ---
   const toggle3D = () => {
     if (!map.current) return;
-    const next3D = !paintState.building3D;
-    paintState.setBuildingStyles({ building3D: next3D });
-    map.current.easeTo({ pitch: next3D ? 60 : 0, duration: 800 });
+    const currentPitch = map.current.getPitch();
+    const targetPitch = currentPitch > 10 ? 0 : 60;
+    map.current.easeTo({ pitch: targetPitch, duration: 800 });
   };
 
+  // --- Zoom logic ---
   const zoomIn = () => map.current?.zoomIn({ duration: 200 });
   const zoomOut = () => map.current?.zoomOut({ duration: 200 });
 
   return (
-    <div id="map-export-target" className="relative w-full h-full bg-slate-900">
+    <div id="map-export-target" className="relative w-full h-full bg-slate-900 overflow-hidden">
       <div ref={mapContainer} className="absolute inset-0" />
 
-      {/* --- TOP LEFT: Context Group --- */}
+      {/* --- TOP LEFT: DEPRECATED Context (Moved to legend) --- */}
       <div className="absolute top-6 left-6 z-20 flex flex-col gap-3 pointer-events-none">
-        <NorthArrow />
-        {/* Scale Backdrop Integration via CSS hack to select maplibregl-ctrl-scale */}
-        <div className="scale-control-wrapper ml-1">
-          {/* Native scale control will be rendered here by maplibre */}
-        </div>
+        {/* NorthArrow moved to Legend */}
       </div>
 
-      {/* --- TOP CENTER: Search Group --- */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 w-96" data-html2canvas-ignore="true">
-        <SearchBar mapRef={map} />
-      </div>
-
-      {/* --- BOTTOM RIGHT: Navigation & Legend Group --- */}
-      <div className="absolute bottom-10 right-6 z-20 flex flex-col items-end gap-3">
-        {/* Control Cluster (Zoom + 3D) */}
-        <div className="flex flex-col gap-0 shadow-2xl rounded-2xl overflow-hidden border border-white/40 ring-1 ring-slate-900/5" data-html2canvas-ignore="true">
+      {/* --- TOP RIGHT: Map Controls (Moved from bottom right) --- */}
+      <div className="absolute top-20 right-6 z-20 flex flex-col items-end gap-3" data-html2canvas-ignore="true">
+        <div className="flex flex-col gap-0 shadow-2xl rounded-2xl overflow-hidden border border-white/40 ring-1 ring-slate-900/5">
           <button
             onClick={toggle3D}
-            title={paintState.building3D ? '切換2D' : '切換3D'}
-            className={`w-11 h-11 flex flex-col items-center justify-center border-b border-white/20 transition-all ${
-              paintState.building3D ? 'bg-brand-500 text-white' : 'bg-white/90 backdrop-blur text-slate-600 hover:bg-white'
-            }`}
+            title={'切換視角 (Tilt / Flat View)'}
+            className={`w-11 h-11 flex flex-col items-center justify-center bg-white/90 backdrop-blur text-slate-600 hover:bg-white border-b border-white/20 transition-all font-bold`}
           >
-            <span className="text-[10px] font-black leading-none">{paintState.building3D ? '2D' : '3D'}</span>
-            <span className="text-[7px] leading-none mt-0.5 opacity-60 uppercase">{paintState.building3D ? 'Flat' : 'Tilt'}</span>
+            <span className="text-[10px] font-black leading-none">View</span>
+            <span className="text-[7px] leading-none mt-0.5 opacity-60 uppercase">Tilt</span>
           </button>
           
           <button onClick={zoomIn} title="放大" className="w-11 h-11 flex items-center justify-center bg-white/90 backdrop-blur text-slate-600 hover:bg-white border-b border-white/20 text-xl font-light">
@@ -258,8 +245,39 @@ const Map: React.FC = () => {
             −
           </button>
         </div>
+      </div>
 
-        {/* Legend Panel */}
+      {/* --- TOP CENTER: Search Group --- */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 w-96" data-html2canvas-ignore="true">
+        <SearchBar mapRef={map} />
+      </div>
+
+      {/* --- BOTTOM LEFT: Context & HUD Group --- */}
+      <div className="absolute bottom-10 left-6 z-20 flex flex-col gap-3">
+        {drawnGeometry && analysisResult && (
+          <div className="flex flex-col gap-1 p-3 rounded-2xl bg-slate-900/80 backdrop-blur-md border border-white/10 shadow-2xl text-white animate-in slide-in-from-left-4 fade-in duration-300">
+            <div className="flex flex-col mb-2">
+              <span className="text-[9px] font-black tracking-[0.2em] text-brand-400 mb-0.5 uppercase">SURVEY DETAILS</span>
+              <span className="text-xs font-black tracking-tight truncate max-w-[150px]">{siteMarkerText}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col">
+                <span className="text-xl font-bold leading-none">{analysisResult.area_m2.toLocaleString()}</span>
+                <span className="text-[10px] text-slate-400 mt-1">m² 面積</span>
+              </div>
+              <div className="w-[1px] h-8 bg-white/10"></div>
+              <div className="flex flex-col">
+                <span className="text-xl font-bold leading-none">{analysisResult.perimeter_m.toLocaleString()}</span>
+                <span className="text-[10px] text-slate-400 mt-1">m 周長</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* --- BOTTOM RIGHT: Navigation & Legend Group --- */}
+      <div className="absolute bottom-10 right-6 z-20 flex flex-col items-end gap-3">
+        {/* Legend Panel (Integrated North Arrow) */}
         <Legend />
       </div>
 

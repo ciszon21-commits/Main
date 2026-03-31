@@ -17,22 +17,29 @@ export const useExport = () => {
     analysisResult,
     exportTitle,
     exportAuthor,
-    circularMask
+    circularMask,
+    showLegendInExport,
+    siteMarkerText
   } = useStore();
-
+  
   const buildFilename = (ext: string) =>
     `SiteANA_${selectedTemplate === 'presentation' ? '簡報' : '圖紙'}_${new Date().toISOString().slice(0, 10)}.${ext}`;
+
+  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
   const captureMap = async (scale: number, fillWhiteBg: boolean = false): Promise<HTMLCanvasElement> => {
     const target = document.querySelector<HTMLElement>('#map-export-target');
     const mapCanvas = document.querySelector('.maplibregl-canvas') as HTMLCanvasElement;
     if (!target || !mapCanvas) throw new Error('Map container not found');
 
+    // Wait 1 frame so UI state is propagated (e.g., hiding legend)
+    await sleep(100); 
+
+    // --- HIGH RES MAP FIX ---
     // Make DOM backgrounds transparent temporarily so uiCanvas is just the UI elements
     const originalTargetClasses = target.className;
     target.classList.remove('bg-slate-900');
     
-    // mapContainer is usually the parent of maplibregl-canvas
     const mapDiv = mapCanvas.parentElement;
     const originalMapDivClasses = mapDiv?.className || '';
     if (mapDiv) {
@@ -41,7 +48,6 @@ export const useExport = () => {
     }
 
     // Capture ONLY the UI overlays (Legend, Scale, etc.), ignoring Maplibre canvas
-    // html2canvas-ignore tags on searchbar/controls prevent them from rendering.
     const uiCanvas = await html2canvas(target, {
       scale,
       useCORS: true,
@@ -60,16 +66,20 @@ export const useExport = () => {
     const rawCanvas = document.createElement('canvas');
     rawCanvas.width = uiCanvas.width;
     rawCanvas.height = uiCanvas.height;
-    const ctx = rawCanvas.getContext('2d')!;
+    const ctx = rawCanvas.getContext('2d', { alpha: true })!;
 
-    // Draw Maplibre WebGL directly to prevent text distortion from html2canvas layout bugs
+    // Draw Maplibre WebGL directly
     if (!circularMask && fillWhiteBg) {
       ctx.fillStyle = '#fff';
       ctx.fillRect(0, 0, rawCanvas.width, rawCanvas.height);
     }
+    
+    // Smooth drawing for the map
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(mapCanvas, 0, 0, rawCanvas.width, rawCanvas.height);
     
-    // Overlay the pristine UI
+    // Overlay the UI
     ctx.drawImage(uiCanvas, 0, 0);
 
     if (!circularMask) return rawCanvas;
@@ -98,6 +108,19 @@ export const useExport = () => {
     outCtx.drawImage(rawCanvas, sx, sy, size, size, 0, 0, size, size);
     
     return output;
+  };
+
+  const generatePreviewUrl = async (): Promise<string> => {
+    setIsExporting(true);
+    try {
+      const canvas = await captureMap(1, false); // Fast render at 1x
+      return canvas.toDataURL('image/png');
+    } catch (e) {
+      console.error('[SiteANA Export] Preview failed:', e);
+      throw e;
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const exportToPNG = async ({ scale = 2 }: ExportOptions = {}) => {
@@ -201,5 +224,5 @@ export const useExport = () => {
     }
   };
 
-  return { exportToPNG, exportToPDF, isExporting };
+  return { exportToPNG, exportToPDF, generatePreviewUrl, isExporting };
 };

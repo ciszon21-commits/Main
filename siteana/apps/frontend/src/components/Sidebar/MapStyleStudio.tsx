@@ -22,56 +22,56 @@ import {
 const PRESETS: Record<string, Partial<MapPaintState> & { description: string }> = {
   urban_density: {
     roadColors: { highway: '#334155', primary: '#475569', secondary: '#64748b', residential: '#94a3b8', path: '#cbd5e1' },
-    buildingColor: '#f97316', buildingOpacity: 0.9, building3D: true,
+    buildingColor: '#f97316', buildingOpacity: 0.9, building3D: true, buildingVisibility: true,
     landUseColors: { residential: '#f1f5f9', commercial: '#f1f5f9', park: '#f8fafc', water: '#e2e8f0', industrial: '#f1f5f9' },
     backgroundColor: '#cbd5e1', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: 'Analysis: Urban Density & Built Environment'
   },
   ecological_texture: {
     roadColors: { highway: '#cbd5e1', primary: '#e2e8f0', secondary: '#f1f5f9', residential: '#f8fafc', path: '#f8fafc' },
-    buildingColor: '#ffffff', buildingOpacity: 0.3, building3D: false,
+    buildingColor: '#ffffff', buildingOpacity: 0.3, building3D: false, buildingVisibility: true,
     landUseColors: { residential: '#f8fafc', commercial: '#f8fafc', park: '#22c55e', water: '#3b82f6', industrial: '#f8fafc' },
     backgroundColor: '#f1f5f9', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: 'Analysis: Ecological Network & Green-Blue Infrastructure'
   },
   traffic_hierarchy: {
     roadColors: { highway: '#ef4444', primary: '#fb923c', secondary: '#facc15', residential: '#94a3b8', path: '#cbd5e1' },
-    buildingColor: '#e2e8f0', buildingOpacity: 1.0, building3D: false,
+    buildingColor: '#e2e8f0', buildingOpacity: 1.0, building3D: false, buildingVisibility: true,
     landUseColors: { residential: '#f8fafc', commercial: '#f8fafc', park: '#f1f5f9', water: '#f1f5f9', industrial: '#f8fafc' },
     backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: 'Analysis: Transportation Network & Accessibility'
   },
   blueprint_tech: {
     roadColors: { highway: '#ffffff', primary: '#ffffff', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
-    buildingColor: '#60a5fa', buildingOpacity: 0.6, building3D: true,
+    buildingColor: '#60a5fa', buildingOpacity: 0.6, building3D: true, buildingVisibility: true,
     landUseColors: { residential: '#1e3a8a', commercial: '#1e3a8a', park: '#1e3a8a', water: '#1e3a8a', industrial: '#1e3a8a' },
     backgroundColor: '#1e3a8a', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: 'Technical: Scientific Blueprint & Engineering'
   },
   soft_site: {
     roadColors: { highway: '#d4a373', primary: '#e9edc9', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
-    buildingColor: '#ffedd5', buildingOpacity: 0.8, building3D: true,
+    buildingColor: '#ffedd5', buildingOpacity: 0.8, building3D: true, buildingVisibility: true,
     landUseColors: { residential: '#fefae0', commercial: '#fefae0', park: '#dcfce7', water: '#e0f2fe', industrial: '#fefae0' },
     backgroundColor: '#fff7ed', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: 'Tone: Warm & Soft Preliminary Sketch'
   },
   architectural_grey: {
     roadColors: { highway: '#8d99ae', primary: '#adb5bd', secondary: '#ced4da', residential: '#e9ecef', path: '#f8f9fa' },
-    buildingColor: '#6c757d', buildingOpacity: 0.6, building3D: false,
+    buildingColor: '#6c757d', buildingOpacity: 0.6, building3D: false, buildingVisibility: true,
     landUseColors: { residential: '#dee2e6', commercial: '#e9ecef', park: '#ced4da', water: '#adb5bd', industrial: '#dee2e6' },
     backgroundColor: '#f1f3f5', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: 'Tone: Professional Architectural Grey'
   },
   night_render: {
     roadColors: { highway: '#fca311', primary: '#e5e5e5', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
-    buildingColor: '#14213d', buildingOpacity: 0.9, building3D: true,
+    buildingColor: '#14213d', buildingOpacity: 0.9, building3D: true, buildingVisibility: true,
     landUseColors: { residential: '#000000', commercial: '#14213d', park: '#0a1d08', water: '#001219', industrial: '#1b1b1b' },
     backgroundColor: '#000000', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: 'Visual: High-Contrast Night Presentation'
   },
   clean_analysis: {
     roadColors: { highway: '#ffffff', primary: '#ffffff', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
-    buildingColor: '#e2e8f0', buildingOpacity: 0.6, building3D: true,
+    buildingColor: '#e2e8f0', buildingOpacity: 0.6, building3D: true, buildingVisibility: true,
     landUseColors: { residential: '#f8fafc', commercial: '#f8fafc', park: '#dcfce7', water: '#e0f2fe', industrial: '#f8fafc' },
     backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: 'Base: Completely Clean Map without Labels'
@@ -177,6 +177,15 @@ const MapStyleStudio: React.FC = () => {
               <ChevronRight size={10} /> 建築物
             </h4>
             <div className="space-y-3 pl-2">
+               <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-slate-600 font-medium">顯示建築圖層</span>
+                  <input 
+                    type="checkbox" 
+                    checked={paintStore.buildingVisibility}
+                    onChange={(e) => paintStore.setBuildingStyles({ buildingVisibility: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                  />
+               </div>
                <div className="flex items-center justify-between">
                   <span className="text-[11px] text-slate-600 font-medium">填色</span>
                   <input 

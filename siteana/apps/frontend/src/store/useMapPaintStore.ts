@@ -15,6 +15,7 @@ export interface MapPaintState {
   buildingColor: string;       // 建築填色 (預設 #d4c9b0)
   buildingOpacity: number;     // 建築透明度 0-1
   building3D: boolean;         // 是否開啟 3D/陰影視覺感
+  buildingVisibility: boolean; // 建築物顯示開關
   
   // 🌿 LAND USE
   landUseColors: {
@@ -44,7 +45,7 @@ export interface MapPaintState {
 
   // 💎 ACTIONS
   setRoadColor: (type: keyof MapPaintState['roadColors'], color: string) => void;
-  setBuildingStyles: (styles: Partial<Pick<MapPaintState, 'buildingColor' | 'buildingOpacity' | 'building3D'>>) => void;
+  setBuildingStyles: (styles: Partial<Pick<MapPaintState, 'buildingColor' | 'buildingOpacity' | 'building3D' | 'buildingVisibility'>>) => void;
   setLandUseColor: (type: keyof MapPaintState['landUseColors'], color: string) => void;
   setLabelStyles: (styles: Partial<Pick<MapPaintState, 'labelVisibility' | 'labelLanguage' | 'labelSizeEmoji'>>) => void;
   resetToDefault: () => void;
@@ -62,6 +63,7 @@ const DEFAULT_PAINT: Omit<MapPaintState, 'setRoadColor' | 'setBuildingStyles' | 
   buildingColor: '#d4c9b0',
   buildingOpacity: 0.8,
   building3D: false,
+  buildingVisibility: true,
   landUseColors: {
     residential: '#f5e6c8',
     commercial: '#f9d4a0',

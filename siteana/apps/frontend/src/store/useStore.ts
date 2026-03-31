@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type maplibregl from 'maplibre-gl';
 
 interface GeoJSONFeature {
@@ -15,15 +16,11 @@ interface AnalysisResult {
   bbox?: number[];
 }
 
-interface Project {
-  id: number;
+interface LocalProject {
+  id: string;
   name: string;
-}
-
-interface Site {
-  id: number;
-  name: string;
-  projectId: number;
+  updatedAt: string;
+  snapshot: any;
 }
 
 interface StylePreset {
@@ -34,15 +31,10 @@ interface StylePreset {
 }
 
 interface AppState {
-  projects: Project[];
-  setProjects: (projects: Project[]) => void;
-  selectedProject: Project | null;
-  setSelectedProject: (project: Project | null) => void;
-  
-  sites: Site[];
-  setSites: (sites: Site[]) => void;
-  selectedSite: Site | null;
-  setSelectedSite: (site: Site | null) => void;
+  localProjects: LocalProject[];
+  saveAsProject: (name: string) => void;
+  loadProject: (id: string) => void;
+  deleteProject: (id: string) => void;
 
   // Phase 4: Style System
   stylePresets: StylePreset[];
@@ -92,6 +84,8 @@ interface AppState {
   setExportTitle: (t: string) => void;
   exportAuthor: string;
   setExportAuthor: (a: string) => void;
+  showLegendInExport: boolean;
+  setShowLegendInExport: (v: boolean) => void;
 }
 
 export const DEFAULT_STYLES: StylePreset[] = [
@@ -121,16 +115,45 @@ export const DEFAULT_STYLES: StylePreset[] = [
   { id: 'blueprint', name: 'Blueprint Mode', type: 'presentation', mapStyle: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json' }
 ];
 
-export const useStore = create<AppState>((set) => ({
-  projects: [],
-  setProjects: (projects) => set({ projects }),
-  selectedProject: null,
-  setSelectedProject: (selectedProject) => set({ selectedProject }),
-  
-  sites: [],
-  setSites: (sites) => set({ sites }),
-  selectedSite: null,
-  setSelectedSite: (selectedSite) => set({ selectedSite }),
+export const useStore = create<AppState>()(
+  persist(
+    (set, get) => ({
+  localProjects: [],
+  saveAsProject: (name: string) => {
+    const state = get();
+    // Snapshot the crucial geometry and analysis data
+    const snapshot = {
+      drawnGeometry: state.drawnGeometry,
+      bufferGeometry: state.bufferGeometry,
+      analysisResult: state.analysisResult,
+      siteMarkerText: state.siteMarkerText,
+      showSiteMarker: state.showSiteMarker,
+      selectedStyle: state.selectedStyle,
+      exportTitle: state.exportTitle,
+      exportAuthor: state.exportAuthor
+    };
+
+    const newProject: LocalProject = {
+      id: Date.now().toString(),
+      name,
+      updatedAt: new Date().toISOString(),
+      snapshot
+    };
+
+    set({ localProjects: [newProject, ...state.localProjects] });
+  },
+  loadProject: (id: string) => {
+    const state = get();
+    const proj = state.localProjects.find(p => p.id === id);
+    if (proj && proj.snapshot) {
+      set({
+        ...proj.snapshot,
+      });
+    }
+  },
+  deleteProject: (id: string) => {
+    set(state => ({ localProjects: state.localProjects.filter(p => p.id !== id) }));
+  },
 
   stylePresets: DEFAULT_STYLES,
   selectedStyle: DEFAULT_STYLES[0],
@@ -172,4 +195,14 @@ export const useStore = create<AppState>((set) => ({
   setExportTitle: (exportTitle) => set({ exportTitle }),
   exportAuthor: 'SiteANA Studio / Designer',
   setExportAuthor: (exportAuthor) => set({ exportAuthor }),
-}));
+  showLegendInExport: true,
+  setShowLegendInExport: (showLegendInExport) => set({ showLegendInExport }),
+    }),
+    {
+      name: 'siteana-local-storage',
+      partialize: (state) => Object.fromEntries(
+        Object.entries(state).filter(([key]) => !['mapRef', 'isExporting', 'isDrawingMode'].includes(key))
+      ),
+    }
+  )
+);

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useStore } from '../../store/useStore';
 import { useExport } from '../../hooks/useExport';
 import { 
@@ -13,7 +14,8 @@ import {
   CheckCircle2,
   Settings,
   ChevronRight,
-  Circle
+  Circle,
+  Layers
 } from 'lucide-react';
 
 const UnifiedExportPanel: React.FC = () => {
@@ -22,20 +24,45 @@ const UnifiedExportPanel: React.FC = () => {
     exportTitle, setExportTitle,
     exportAuthor, setExportAuthor,
     analysisResult,
-    circularMask, setCircularMask
+    circularMask, setCircularMask,
+    showLegendInExport, setShowLegendInExport
   } = useStore();
   
-  const { exportToPNG, exportToPDF, isExporting } = useExport();
-  const [format, setFormat] = useState<'png' | 'pdf'>('pdf');
-  const [resLevel, setResLevel] = useState<'standard' | 'high'>('high');
+  const { exportToPNG, exportToPDF, generatePreviewUrl, isExporting } = useExport();
+  const [format, setFormat] = useState<'png' | 'pdf'>('png');
+  const [resLevel, setResLevel] = useState<'standard' | 'high' | '4k' | '8k'>('high');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+
+  const getScale = () => {
+    switch(resLevel) {
+      case 'standard': return 1;
+      case 'high': return 2;
+      case '4k': return 4;
+      case '8k': return 8; // Max quality for large print
+      default: return 2;
+    }
+  }
 
   const handleExport = () => {
-    const scale = resLevel === 'high' ? 2 : 1;
+    const scale = getScale();
     if (format === 'png') {
       exportToPNG({ scale });
     } else {
       const size = selectedTemplate === 'presentation' ? 'a3' : 'a4';
       exportToPDF({ scale, size });
+    }
+  };
+
+  const handlePreview = async () => {
+    setIsPreviewing(true);
+    try {
+      const url = await generatePreviewUrl();
+      setPreviewUrl(url);
+    } catch {
+      alert('預覽產生失敗');
+    } finally {
+      setIsPreviewing(false);
     }
   };
 
@@ -101,10 +128,12 @@ const UnifiedExportPanel: React.FC = () => {
               ))}
             </div>
             
-            <div className="flex bg-slate-100 p-1 rounded-lg">
+            <div className="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-lg">
               {[
-                { id: 'standard', label: '清晰' },
-                { id: 'high', label: '高清 (2x)' },
+                { id: 'standard', label: '1080p' },
+                { id: 'high', label: '2K' },
+                { id: '4k', label: '4K' },
+                { id: '8k', label: '8K' }
               ].map((r) => (
                 <button
                   key={r.id}
@@ -120,17 +149,28 @@ const UnifiedExportPanel: React.FC = () => {
               ))}
             </div>
 
-            {/* Circular Mask Toggle */}
-            <label className="flex items-center justify-between rounded-xl border border-slate-100 bg-white px-3 py-2.5 cursor-pointer hover:border-brand-200 transition-colors">
-              <span className="flex items-center gap-2 text-[11px] font-bold text-slate-700">
-                <Circle size={13} className="text-slate-400" />
-                圓形遮罩輸出
-                <span className="text-[9px] font-normal text-slate-400 ml-1">PNG transparent</span>
-              </span>
-              <div className={`relative w-8 h-4 rounded-full transition-colors ${circularMask ? 'bg-brand-500' : 'bg-slate-200'}`} onClick={() => setCircularMask(!circularMask)}>
-                <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${circularMask ? 'translate-x-4' : 'translate-x-0.5'}`} />
-              </div>
-            </label>
+            {/* Export options */}
+            <div className="space-y-2">
+              <label className="flex items-center justify-between rounded-xl border border-slate-100 bg-white px-3 py-2.5 cursor-pointer hover:border-brand-200 transition-colors">
+                <span className="flex items-center gap-2 text-[11px] font-bold text-slate-700">
+                  <Circle size={13} className="text-slate-400" />
+                  圓形遮罩輸出
+                </span>
+                <div className={`relative w-8 h-4 rounded-full transition-colors ${circularMask ? 'bg-brand-500' : 'bg-slate-200'}`} onClick={() => setCircularMask(!circularMask)}>
+                  <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${circularMask ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                </div>
+              </label>
+
+              <label className="flex items-center justify-between rounded-xl border border-slate-100 bg-white px-3 py-2.5 cursor-pointer hover:border-brand-200 transition-colors">
+                <span className="flex items-center gap-2 text-[11px] font-bold text-slate-700">
+                  <Layers size={13} className="text-slate-400" />
+                  包含地圖圖例
+                </span>
+                <div className={`relative w-8 h-4 rounded-full transition-colors ${showLegendInExport ? 'bg-brand-500' : 'bg-slate-200'}`} onClick={() => setShowLegendInExport(!showLegendInExport)}>
+                  <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${showLegendInExport ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                </div>
+              </label>
+            </div>
           </div>
         </div>
 
@@ -169,13 +209,25 @@ const UnifiedExportPanel: React.FC = () => {
         </div>
 
         {/* ACTION */}
-        <div className="pt-2">
+        <div className="pt-2 flex flex-col gap-2">
+          {/* Preview Button */}
+          <button
+            onClick={handlePreview}
+            disabled={isExporting || isPreviewing}
+            className="w-full py-2.5 bg-brand-50 text-brand-700 border border-brand-200 rounded-xl hover:bg-brand-100 transition-colors disabled:opacity-50 text-xs font-bold tracking-wider flex items-center justify-center gap-2"
+          >
+            {isPreviewing ? (
+              <span className="animate-spin w-3 h-3 border-2 border-brand-500 border-t-transparent rounded-full" />
+            ) : <Monitor size={14} />}
+            出圖預覽 (PREVIEW)
+          </button>
+
           <button
             onClick={handleExport}
-            disabled={isExporting}
+            disabled={isExporting || isPreviewing}
             className="group w-full py-3.5 bg-brand-500 text-white rounded-2xl shadow-lg shadow-brand-200 hover:bg-brand-600 hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:translate-y-0 disabled:shadow-none flex items-center justify-center gap-3"
           >
-            {isExporting ? (
+            {isExporting && !isPreviewing ? (
               <>
                 <span className="animate-spin inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
                 <span className="text-sm font-bold tracking-widest uppercase">處理中...</span>
@@ -188,15 +240,41 @@ const UnifiedExportPanel: React.FC = () => {
             )}
           </button>
           
-          <div className="mt-4 flex items-start gap-2 px-1">
+          <div className="mt-2 flex items-start gap-2 px-1">
              <CheckCircle2 size={12} className="text-emerald-500 mt-0.5" />
              <p className="text-[9px] text-slate-400 font-medium leading-relaxed">
-                系統將捕捉目前地圖視角，並根據您選擇的模板自動生成高解析度報告文件。
+                預覽以 1x 倍率呈現；正式出圖將根據您的設定以最高至 8K 倍率重新渲染高解析度圖紙。
              </p>
           </div>
         </div>
 
       </div>
+
+      {previewUrl && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-200" onClick={() => setPreviewUrl(null)}>
+          <div className="relative max-w-5xl w-full h-full flex flex-col items-center justify-center pointer-events-none">
+            <div className="bg-white p-2 rounded-xl shadow-2xl relative pointer-events-auto">
+              <button 
+                className="absolute -top-4 -right-4 w-8 h-8 bg-white text-slate-900 rounded-full shadow-lg flex items-center justify-center hover:scale-110 hover:text-red-500 transition-all font-bold"
+                onClick={() => setPreviewUrl(null)}
+              >
+                ×
+              </button>
+              <img src={previewUrl} className="max-w-full max-h-[85vh] rounded-lg object-contain shadow-inner border border-slate-100" alt="Export Preview" />
+            </div>
+            <div className="mt-6 pointer-events-auto">
+              <button
+                onClick={(e) => { e.stopPropagation(); setPreviewUrl(null); handleExport(); }}
+                className="px-8 py-3 bg-brand-500 text-white font-bold tracking-wider rounded-xl shadow-lg shadow-brand-500/30 hover:-translate-y-1 transition-transform flex items-center gap-2"
+              >
+                <Download size={18} /> 確認，執行輸出
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
     </div>
   );
 };

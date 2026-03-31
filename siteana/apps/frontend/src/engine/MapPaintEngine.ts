@@ -76,21 +76,27 @@ export class MapPaintEngine {
         const layer = map.getLayer(id);
         if (!layer) return;
 
+        // --- Visibility ---
+        map.setLayoutProperty(id, 'visibility', state.buildingVisibility ? 'visible' : 'none');
+        if (!state.buildingVisibility) return;
+
         const colorProp = isGradient ? gradientExpression : state.buildingColor;
 
         if (layer.type === 'fill') {
           map.setPaintProperty(id, 'fill-color', colorProp);
           map.setPaintProperty(id, 'fill-opacity', state.buildingOpacity);
         } else if (layer.type === 'fill-extrusion') {
-          map.setPaintProperty(id, 'fill-extrusion-color', colorProp);
-          map.setPaintProperty(id, 'fill-extrusion-opacity', state.buildingOpacity);
-          
-          if (state.building3D) {
-            // 設定高度 (如果數據中有 height 屬性)
-            map.setPaintProperty(id, 'fill-extrusion-height', ['get', 'render_height']);
-            map.setPaintProperty(id, 'fill-extrusion-base', ['get', 'render_min_height']);
+          // If in 2D mode, hide extrusion layers IF there's likely a fill layer (usually true in OpenFreeMap)
+          // Or just flatten them properly. For SiteANA, we want 2D to be REALLY flat.
+          if (!state.building3D) {
+             map.setPaintProperty(id, 'fill-extrusion-height', 0);
+             map.setPaintProperty(id, 'fill-extrusion-base', 0);
+             map.setPaintProperty(id, 'fill-extrusion-opacity', 0); // Hide extrusion layer in 2D
           } else {
-            map.setPaintProperty(id, 'fill-extrusion-height', 0);
+             map.setPaintProperty(id, 'fill-extrusion-color', colorProp);
+             map.setPaintProperty(id, 'fill-extrusion-opacity', state.buildingOpacity);
+             map.setPaintProperty(id, 'fill-extrusion-height', ['get', 'render_height']);
+             map.setPaintProperty(id, 'fill-extrusion-base', ['get', 'render_min_height']);
           }
         }
       } catch (e) {}
