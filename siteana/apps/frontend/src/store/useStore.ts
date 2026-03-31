@@ -1,4 +1,19 @@
 import { create } from 'zustand';
+import type maplibregl from 'maplibre-gl';
+
+interface GeoJSONFeature {
+  type: 'Feature';
+  geometry: { type: string; coordinates: any };
+  properties: Record<string, any>;
+}
+
+interface AnalysisResult {
+  area_m2: number;
+  area_ping: number;
+  perimeter_m: number;
+  centroid: { lon: number; lat: number };
+  bbox?: number[];
+}
 
 interface Project {
   id: number;
@@ -43,6 +58,40 @@ interface AppState {
 
   fontFamily: 'sans' | 'serif' | 'mono';
   setFontFamily: (font: 'sans' | 'serif' | 'mono') => void;
+
+  // Phase 5: Spatial Analysis
+  drawnGeometry: GeoJSONFeature | null;
+  setDrawnGeometry: (g: GeoJSONFeature | null) => void;
+  bufferGeometry: GeoJSONFeature | null;
+  setBufferGeometry: (g: GeoJSONFeature | null) => void;
+  analysisResult: AnalysisResult | null;
+  setAnalysisResult: (r: AnalysisResult | null) => void;
+
+  // Phase 10: Site Marking
+  showSiteMarker: boolean;
+  setShowSiteMarker: (v: boolean) => void;
+  siteMarkerText: string;
+  setSiteMarkerText: (t: string) => void;
+
+  // Phase 5: Export
+  isExporting: boolean;
+  setIsExporting: (v: boolean) => void;
+  mapRef: maplibregl.Map | null;
+  setMapRef: (m: maplibregl.Map | null) => void;
+
+  // Phase 11: Export Options
+  circularMask: boolean;
+  setCircularMask: (v: boolean) => void;
+
+  // Phase 11: Drawing Mode
+  isDrawingMode: boolean;
+  setIsDrawingMode: (v: boolean) => void;
+
+  // Phase 8: Export Metadata
+  exportTitle: string;
+  setExportTitle: (t: string) => void;
+  exportAuthor: string;
+  setExportAuthor: (a: string) => void;
 }
 
 export const DEFAULT_STYLES: StylePreset[] = [
@@ -95,4 +144,32 @@ export const useStore = create<AppState>((set) => ({
 
   fontFamily: 'sans',
   setFontFamily: (fontFamily) => set({ fontFamily }),
+
+  drawnGeometry: null,
+  setDrawnGeometry: (drawnGeometry) => set({ drawnGeometry }),
+  bufferGeometry: null,
+  setBufferGeometry: (bufferGeometry) => set({ bufferGeometry }),
+  analysisResult: null,
+  setAnalysisResult: (analysisResult) => set({ analysisResult }),
+
+  showSiteMarker: false,
+  setShowSiteMarker: (showSiteMarker) => set({ showSiteMarker }),
+  siteMarkerText: 'SITE',
+  setSiteMarkerText: (siteMarkerText) => set({ siteMarkerText }),
+
+  isExporting: false,
+  setIsExporting: (isExporting) => set({ isExporting }),
+  mapRef: null,
+  setMapRef: (mapRef) => set({ mapRef }),
+
+  circularMask: false,
+  setCircularMask: (circularMask) => set({ circularMask }),
+
+  isDrawingMode: false,
+  setIsDrawingMode: (isDrawingMode) => set({ isDrawingMode }),
+
+  exportTitle: 'SiteANA 基地分析圖書',
+  setExportTitle: (exportTitle) => set({ exportTitle }),
+  exportAuthor: 'SiteANA Studio / Designer',
+  setExportAuthor: (exportAuthor) => set({ exportAuthor }),
 }));

@@ -2,25 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
-  border-radius: 10px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e1;
-}
+/* ── Custom Scrollbar ────────────────────────────── */
+.custom-scrollbar::-webkit-scrollbar { width: 5px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
 
+/* ── Base Body ───────────────────────────────────── */
 body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  display: flex;
+  place-content: center;
+  min-width: 320px;
+  min-height: 100vh;
 }
 
 :root {
@@ -29,15 +25,7 @@ body {
   font-weight: 400;
 }
 
-body {
-  margin: 0;
-  display: flex;
-  place-content: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-/* Theme Overrides (Dynamic Tailwind Colors) */
+/* ── Theme Variables (Dynamic Tailwind Colors) ───── */
 :root, [data-theme="brand"] {
   --color-primary-50: #f0f9ff;
   --color-primary-100: #e0f2fe;
@@ -50,7 +38,6 @@ body {
   --color-primary-800: #075985;
   --color-primary-900: #0c4a6e;
 }
-
 [data-theme="slate"] {
   --color-primary-50: #f8fafc;
   --color-primary-100: #f1f5f9;
@@ -63,7 +50,6 @@ body {
   --color-primary-800: #1e293b;
   --color-primary-900: #0f172a;
 }
-
 [data-theme="emerald"] {
   --color-primary-50: #ecfdf5;
   --color-primary-100: #d1fae5;
@@ -75,4 +61,65 @@ body {
   --color-primary-700: #047857;
   --color-primary-800: #065f46;
   --color-primary-900: #064e3b;
+}
+
+/* ── Glassmorphism ───────────────────────────────── */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+.glass-panel-dark {
+  background: rgba(15, 23, 42, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Sidebar Transition ─────────────────────────── */
+aside {
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.2s ease,
+              transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+aside.sidebar-collapsed {
+  width: 0 !important;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateX(-100%);
+}
+
+/* ── Entrance Animations ─────────────────────────── */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-slide-up  { animation: slide-up  0.3s ease forwards; }
+.animate-fade-in   { animation: fade-in   0.25s ease forwards; }
+
+/* ── Panel Section Animation ─────────────────────── */
+.sidebar-section {
+  transition: all 0.2s ease;
+}
+.sidebar-section:hover {
+  background: rgba(248, 250, 252, 0.6);
+  border-radius: 12px;
+}
+
+/* ── Maplibre ScaleControl Fix ───────────────────── */
+.maplibregl-ctrl-scale {
+  font-size: 10px !important;
+  border-color: #94a3b8 !important;
+  color: #475569 !important;
+  background: rgba(255,255,255,0.85) !important;
+  backdrop-filter: blur(4px);
+  border-radius: 4px;
+  font-family: inherit !important;
 }

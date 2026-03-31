@@ -1,49 +1,102 @@
+import { useState } from 'react';
 import ProjectList, { SiteList } from './components/Sidebar/ProjectList';
 import SiteDetails from './components/Sidebar/SiteDetails';
 import Map from './components/Map/Map';
-import StyleSelector from './components/Sidebar/StyleSelector';
-import TemplateSelector from './components/Sidebar/TemplateSelector';
-import ThemeSelector from './components/Sidebar/ThemeSelector';
+import MapStyleStudio from './components/Sidebar/MapStyleStudio';
+import UnifiedExportPanel from './components/Sidebar/UnifiedExportPanel';
+import AnalysisPanel from './components/Sidebar/AnalysisPanel';
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+
+const SectionHeader: React.FC<{ en: string, cn: string }> = ({ en, cn }) => (
+  <div className="flex flex-col mb-4 px-1">
+    <span className="text-[10px] font-black text-brand-600/60 uppercase tracking-[0.3em] leading-none mb-1">{en}</span>
+    <h3 className="text-sm font-bold text-slate-800 tracking-tight">{cn}</h3>
+  </div>
+);
 
 function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 transition-colors duration-300">
+
       {/* Sidebar */}
-      <aside className="w-80 h-full border-r bg-white shadow-sm z-10 flex flex-col">
-        <header className="p-6 border-b">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded bg-brand-500 flex items-center justify-center text-white font-bold text-lg shadow-sm transition-colors duration-300">S</div>
-            <h1 className="text-xl font-bold tracking-tight">SiteANA</h1>
+      <aside
+        className={`h-full border-r bg-white shadow-sm z-10 flex flex-col${sidebarOpen ? ' w-80' : ' sidebar-collapsed'}`}
+      >
+        {/* Logo Header */}
+        <header className="p-5 border-b flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-lg shadow-sm transition-colors duration-300">S</div>
+            <div>
+              <h1 className="text-base font-bold tracking-tight leading-tight">SiteANA</h1>
+              <p className="text-[10px] text-slate-400 font-medium leading-none">Design-oriented Web GIS</p>
+            </div>
           </div>
-          <p className="text-xs text-slate-400 font-medium">Design-oriented Web GIS Tool</p>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            title="收合側邊欄"
+          >
+            <PanelLeftClose size={16} />
+          </button>
         </header>
-        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-8">
-          <div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar space-y-8">
+
+          {/* PROJECT & SITE */}
+          <div className="sidebar-section px-1 animate-slide-up">
             <ProjectList />
             <SiteList />
           </div>
-          <div className="border-t pt-8">
-            <TemplateSelector />
+
+          {/* VISUAL ENGINE (Priority Move) */}
+          <div className="sidebar-section px-1 animate-slide-up" style={{ animationDelay: '50ms' }}>
+            <SectionHeader en="VISUAL ENGINE" cn="視覺風格工作坊" />
+            <MapStyleStudio />
           </div>
-          <div className="border-t pt-8">
-            <ThemeSelector />
+
+          {/* SPATIAL ANALYSIS */}
+          <div className="sidebar-section px-1 animate-slide-up" style={{ animationDelay: '100ms' }}>
+            <SectionHeader en="SPATIAL ANALYTICS" cn="空間分析引擎" />
+            <AnalysisPanel />
           </div>
-          <div className="border-t pt-8">
-            <StyleSelector />
+
+          {/* EXPORT STUDIO */}
+          <div className="sidebar-section px-1 animate-slide-up" style={{ animationDelay: '150ms' }}>
+            <SectionHeader en="EXPORT STUDIO" cn="分析報表中心" />
+            <UnifiedExportPanel />
           </div>
-          <div className="border-t pt-8">
+
+          {/* SITE DETAILS */}
+          <div className="sidebar-section px-1 animate-slide-up" style={{ animationDelay: '200ms' }}>
+            <SectionHeader en="SITE METADATA" cn="基地數據細覽" />
             <SiteDetails />
           </div>
         </div>
-        <footer className="p-4 border-t bg-slate-50">
-          <div className="text-[10px] text-slate-400 font-mono flex justify-between">
-            <span>v0.1.0-alpha</span>
-            <span>2026-03-26</span>
+
+        {/* Footer */}
+        <footer className="px-4 py-3 border-t bg-slate-50 shrink-0">
+          <div className="text-[9px] text-slate-400 font-mono flex justify-between">
+            <span>v0.9.0-alpha · Phase 9</span>
+            <span>SiteANA Studio</span>
           </div>
         </footer>
       </aside>
 
-      {/* Main Content */}
+      {/* Sidebar Toggle Button (when collapsed) */}
+      {!sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="absolute left-3 top-4 z-30 p-2 glass-panel rounded-lg text-slate-600 hover:text-brand-600 transition-colors shadow-md"
+          title="展開側邊欄"
+        >
+          <PanelLeftOpen size={18} />
+        </button>
+      )}
+
+      {/* Main Map */}
       <main className="flex-1 relative">
         <Map />
       </main>
