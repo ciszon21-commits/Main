@@ -33,6 +33,16 @@ interface AppState {
   stylePresets: StylePreset[];
   selectedStyle: StylePreset | null;
   setSelectedStyle: (style: StylePreset | null) => void;
+
+  // Phase 4: Templates & Themes
+  selectedTemplate: 'presentation' | 'report' | 'a3-print' | 'a4-print';
+  setSelectedTemplate: (template: 'presentation' | 'report' | 'a3-print' | 'a4-print') => void;
+  
+  themeColor: 'brand' | 'slate' | 'emerald';
+  setThemeColor: (color: 'brand' | 'slate' | 'emerald') => void;
+
+  fontFamily: 'sans' | 'serif' | 'mono';
+  setFontFamily: (font: 'sans' | 'serif' | 'mono') => void;
 }
 
 export const DEFAULT_STYLES: StylePreset[] = [
@@ -76,4 +86,13 @@ export const useStore = create<AppState>((set) => ({
   stylePresets: DEFAULT_STYLES,
   selectedStyle: DEFAULT_STYLES[0],
   setSelectedStyle: (selectedStyle) => set({ selectedStyle }),
+
+  selectedTemplate: 'report',
+  setSelectedTemplate: (selectedTemplate) => set({ selectedTemplate }),
+
+  themeColor: 'brand',
+  setThemeColor: (themeColor) => set({ themeColor }),
+
+  fontFamily: 'sans',
+  setFontFamily: (fontFamily) => set({ fontFamily }),
 }));

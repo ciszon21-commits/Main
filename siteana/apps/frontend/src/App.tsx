@@ -2,15 +2,17 @@ import ProjectList, { SiteList } from './components/Sidebar/ProjectList';
 import SiteDetails from './components/Sidebar/SiteDetails';
 import Map from './components/Map/Map';
 import StyleSelector from './components/Sidebar/StyleSelector';
+import TemplateSelector from './components/Sidebar/TemplateSelector';
+import ThemeSelector from './components/Sidebar/ThemeSelector';
 
 function App() {
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-50 font-sans text-slate-900">
+    <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 transition-colors duration-300">
       {/* Sidebar */}
       <aside className="w-80 h-full border-r bg-white shadow-sm z-10 flex flex-col">
         <header className="p-6 border-b">
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded bg-brand-500 flex items-center justify-center text-white font-bold text-lg shadow-sm">S</div>
+            <div className="w-8 h-8 rounded bg-brand-500 flex items-center justify-center text-white font-bold text-lg shadow-sm transition-colors duration-300">S</div>
             <h1 className="text-xl font-bold tracking-tight">SiteANA</h1>
           </div>
           <p className="text-xs text-slate-400 font-medium">Design-oriented Web GIS Tool</p>
@@ -19,6 +21,12 @@ function App() {
           <div>
             <ProjectList />
             <SiteList />
+          </div>
+          <div className="border-t pt-8">
+            <TemplateSelector />
+          </div>
+          <div className="border-t pt-8">
+            <ThemeSelector />
           </div>
           <div className="border-t pt-8">
             <StyleSelector />

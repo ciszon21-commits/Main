@@ -51,7 +51,9 @@ const Map: React.FC = () => {
     });
 
     map.current.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
-    map.current.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+    map.current.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+    // 增加比例尺 (Scale Bar)
+    map.current.addControl(new maplibregl.ScaleControl({ maxWidth: 100, unit: 'metric' }), 'bottom-left');
 
     // 若初始向量地圖載入失敗，自動降級為 OSM Raster
     map.current.once('error', () => {
@@ -98,24 +100,6 @@ const Map: React.FC = () => {
       {/* 地圖裝飾組件 */}
       <NorthArrow />
       <Legend />
-
-      {/* 縮放控制 */}
-      <div className="absolute bottom-10 right-6 flex flex-col gap-2">
-        <button
-          onClick={() => map.current?.zoomIn()}
-          className="p-3 bg-white rounded-full shadow-lg hover:bg-slate-50 transition-all text-slate-600"
-          title="放大"
-        >
-          <Plus size={18} />
-        </button>
-        <button
-          onClick={() => map.current?.zoomOut()}
-          className="p-3 bg-white rounded-full shadow-lg hover:bg-slate-50 transition-all text-slate-600"
-          title="縮小"
-        >
-          <Minus size={18} />
-        </button>
-      </div>
     </div>
   );
 };
