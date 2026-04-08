@@ -89,8 +89,12 @@ interface AppState {
 }
 
 export const DEFAULT_STYLES: StylePreset[] = [
-  { id: 'ofm-liberty', name: 'Liberty (Default)', type: 'report', mapStyle: 'https://tiles.openfreemap.org/styles/liberty' },
-  { id: 'osm-raster', name: 'OSM Raster (Fallback)', type: 'report', mapStyle: {
+  { id: 'ofm-liberty', name: 'Liberty (標準彩色)', type: 'report', mapStyle: 'https://tiles.openfreemap.org/styles/liberty' },
+  { id: 'carto-positron', name: 'Positron (淺色極簡)', type: 'report', mapStyle: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json' },
+  { id: 'carto-dark', name: 'Dark Matter (極簡暗黑)', type: 'presentation', mapStyle: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json' },
+  { id: 'carto-voyager', name: 'Voyager (旅行者)', type: 'report', mapStyle: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json' },
+  { id: 'ofm-bright', name: 'Bright (明亮彩色)', type: 'presentation', mapStyle: 'https://tiles.openfreemap.org/styles/bright' },
+  { id: 'osm-taiwan', name: 'Taiwan OSM (台灣中文)', type: 'report', mapStyle: {
     version: 8,
     sources: {
       'osm-raster': {
@@ -101,18 +105,37 @@ export const DEFAULT_STYLES: StylePreset[] = [
       }
     },
     layers: [
-      {
-        id: 'osm-raster-layer',
-        type: 'raster',
-        source: 'osm-raster',
-        minzoom: 0,
-        maxzoom: 19
-      }
+      { id: 'osm-raster-layer', type: 'raster', source: 'osm-raster', minzoom: 0, maxzoom: 19 }
     ]
   } as any },
-  { id: 'ofm-bright', name: 'Bright Mode', type: 'presentation', mapStyle: 'https://tiles.openfreemap.org/styles/bright' },
-  { id: 'minimal-dark', name: 'Minimal Dark', type: 'presentation', mapStyle: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json' },
-  { id: 'blueprint', name: 'Blueprint Mode', type: 'presentation', mapStyle: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json' }
+  { id: 'esri-satellite', name: 'Satellite (衛星影像)', type: 'report', mapStyle: {
+    version: 8,
+    sources: {
+      'esri-satellite': {
+        type: 'raster',
+        tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+        tileSize: 256,
+        attribution: 'Tiles &copy; Esri'
+      }
+    },
+    layers: [
+      { id: 'satellite-layer', type: 'raster', source: 'esri-satellite', minzoom: 0, maxzoom: 19 }
+    ]
+  } as any },
+  { id: 'osm-terrain', name: 'Terrain (地形圖層)', type: 'report', mapStyle: {
+    version: 8,
+    sources: {
+      'osm-topo': {
+        type: 'raster',
+        tiles: ['https://tile.opentopomap.org/{z}/{x}/{y}.png'],
+        tileSize: 256,
+        attribution: '&copy; OpenTopoMap'
+      }
+    },
+    layers: [
+      { id: 'topo-layer', type: 'raster', source: 'osm-topo', minzoom: 0, maxzoom: 17 }
+    ]
+  } as any }
 ];
 
 export const useStore = create<AppState>()(

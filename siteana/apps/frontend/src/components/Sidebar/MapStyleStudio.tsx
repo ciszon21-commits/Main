@@ -21,60 +21,60 @@ import {
 
 const PRESETS: Record<string, Partial<MapPaintState> & { description: string }> = {
   urban_density: {
-    roadColors: { highway: '#334155', primary: '#475569', secondary: '#64748b', residential: '#94a3b8', path: '#cbd5e1' },
-    buildingColor: '#f97316', buildingOpacity: 0.9, building3D: true, buildingVisibility: true,
-    landUseColors: { residential: '#f1f5f9', commercial: '#f1f5f9', park: '#f8fafc', water: '#e2e8f0', industrial: '#f1f5f9' },
-    backgroundColor: '#cbd5e1', labelVisibility: { road: false, park: false, water: false, poi: false },
-    description: 'Analysis: Urban Density & Built Environment'
+    roadColors: { highway: '#9ca3af', primary: '#d1d5db', secondary: '#e5e7eb', residential: '#f3f4f6', path: '#f9fafb' },
+    buildingColor: '#333333', buildingOpacity: 1.0, building3D: true, buildingVisibility: true,
+    landUseColors: { residential: '#e5e7eb', commercial: '#e5e7eb', park: '#d1d5db', water: '#cbd5e1', industrial: '#e5e7eb' },
+    backgroundColor: '#f3f4f6', labelVisibility: { road: false, park: false, water: false, poi: false },
+    description: '量體感：強調建築與街廓的虛實關係'
   },
   ecological_texture: {
-    roadColors: { highway: '#cbd5e1', primary: '#e2e8f0', secondary: '#f1f5f9', residential: '#f8fafc', path: '#f8fafc' },
-    buildingColor: '#ffffff', buildingOpacity: 0.3, building3D: false, buildingVisibility: true,
-    landUseColors: { residential: '#f8fafc', commercial: '#f8fafc', park: '#22c55e', water: '#3b82f6', industrial: '#f8fafc' },
-    backgroundColor: '#f1f5f9', labelVisibility: { road: false, park: false, water: false, poi: false },
-    description: 'Analysis: Ecological Network & Green-Blue Infrastructure'
+    roadColors: { highway: '#e5e7eb', primary: '#f3f4f6', secondary: '#f9fafb', residential: '#ffffff', path: '#ffffff' },
+    buildingColor: '#d6d3d1', buildingOpacity: 0.4, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#fafaf9', commercial: '#fafaf9', park: '#166534', water: '#1e3a8a', industrial: '#fafaf9' },
+    backgroundColor: '#fdfbf7', labelVisibility: { road: false, park: false, water: false, poi: false },
+    description: '生命力：將藍綠帶色彩極大化'
   },
   traffic_hierarchy: {
-    roadColors: { highway: '#ef4444', primary: '#fb923c', secondary: '#facc15', residential: '#94a3b8', path: '#cbd5e1' },
-    buildingColor: '#e2e8f0', buildingOpacity: 1.0, building3D: false, buildingVisibility: true,
-    landUseColors: { residential: '#f8fafc', commercial: '#f8fafc', park: '#f1f5f9', water: '#f1f5f9', industrial: '#f8fafc' },
+    roadColors: { highway: '#ff5500', primary: '#f97316', secondary: '#cbd5e1', residential: '#e2e8f0', path: '#f1f5f9' },
+    buildingColor: '#e2e8f0', buildingOpacity: 0.4, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#f8fafc', water: '#f1f5f9', industrial: '#ffffff' },
     backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: false },
-    description: 'Analysis: Transportation Network & Accessibility'
+    description: '流動性：利用色彩區分路網層級'
   },
   blueprint_tech: {
-    roadColors: { highway: '#ffffff', primary: '#ffffff', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
-    buildingColor: '#60a5fa', buildingOpacity: 0.6, building3D: true, buildingVisibility: true,
-    landUseColors: { residential: '#1e3a8a', commercial: '#1e3a8a', park: '#1e3a8a', water: '#1e3a8a', industrial: '#1e3a8a' },
-    backgroundColor: '#1e3a8a', labelVisibility: { road: false, park: false, water: false, poi: false },
-    description: 'Technical: Scientific Blueprint & Engineering'
+    roadColors: { highway: '#e0f2fe', primary: '#bae6fd', secondary: '#7dd3fc', residential: '#38bdf8', path: '#e0f2fe' },
+    buildingColor: '#ffffff', buildingOpacity: 0.8, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#003366', commercial: '#003366', park: '#004080', water: '#002244', industrial: '#003366' },
+    backgroundColor: '#003366', labelVisibility: { road: false, park: false, water: false, poi: false },
+    description: '製圖感：經典青曬圖 (Cyanotype) 視覺'
   },
   soft_site: {
-    roadColors: { highway: '#d4a373', primary: '#e9edc9', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
-    buildingColor: '#ffedd5', buildingOpacity: 0.8, building3D: true, buildingVisibility: true,
-    landUseColors: { residential: '#fefae0', commercial: '#fefae0', park: '#dcfce7', water: '#e0f2fe', industrial: '#fefae0' },
-    backgroundColor: '#fff7ed', labelVisibility: { road: false, park: false, water: false, poi: false },
-    description: 'Tone: Warm & Soft Preliminary Sketch'
+    roadColors: { highway: '#e5e7eb', primary: '#f3f4f6', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
+    buildingColor: '#ffffff', buildingOpacity: 0.9, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#fdf8f5', commercial: '#fdf8f5', park: '#dcfce7', water: '#bae6fd', industrial: '#fdf8f5' },
+    backgroundColor: '#fdf8f5', labelVisibility: { road: false, park: false, water: false, poi: false },
+    description: '空氣感：低飽和度、高亮度的底圖'
   },
   architectural_grey: {
-    roadColors: { highway: '#8d99ae', primary: '#adb5bd', secondary: '#ced4da', residential: '#e9ecef', path: '#f8f9fa' },
-    buildingColor: '#6c757d', buildingOpacity: 0.6, building3D: false, buildingVisibility: true,
-    landUseColors: { residential: '#dee2e6', commercial: '#e9ecef', park: '#ced4da', water: '#adb5bd', industrial: '#dee2e6' },
-    backgroundColor: '#f1f3f5', labelVisibility: { road: false, park: false, water: false, poi: false },
-    description: 'Tone: Professional Architectural Grey'
+    roadColors: { highway: '#444444', primary: '#555555', secondary: '#666666', residential: '#888888', path: '#aaaaaa' },
+    buildingColor: '#ffffff', buildingOpacity: 1.0, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#cccccc', commercial: '#cccccc', park: '#a3b18a', water: '#778da9', industrial: '#cccccc' },
+    backgroundColor: '#eeeeee', labelVisibility: { road: false, park: false, water: false, poi: false },
+    description: '標準化：類似專業 CAD 導出的配置圖'
   },
-  night_render: {
-    roadColors: { highway: '#fca311', primary: '#e5e5e5', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
-    buildingColor: '#14213d', buildingOpacity: 0.9, building3D: true, buildingVisibility: true,
-    landUseColors: { residential: '#000000', commercial: '#14213d', park: '#0a1d08', water: '#001219', industrial: '#1b1b1b' },
-    backgroundColor: '#000000', labelVisibility: { road: false, park: false, water: false, poi: false },
-    description: 'Visual: High-Contrast Night Presentation'
-  },
-  clean_analysis: {
-    roadColors: { highway: '#ffffff', primary: '#ffffff', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
-    buildingColor: '#e2e8f0', buildingOpacity: 0.6, building3D: true, buildingVisibility: true,
-    landUseColors: { residential: '#f8fafc', commercial: '#f8fafc', park: '#dcfce7', water: '#e0f2fe', industrial: '#f8fafc' },
+  architectural_line: {
+    roadColors: { highway: '#d3d3d3', primary: '#e0e0e0', secondary: '#ebebeb', residential: '#f5f5f5', path: '#fafafa' },
+    buildingColor: '#ffffff', buildingOpacity: 1.0, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#ffffff', water: '#ffffff', industrial: '#ffffff' },
     backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: false },
-    description: 'Base: Completely Clean Map without Labels'
+    description: '抽象化：無色彩，僅靠線條傳達空間'
+  },
+  figure_ground: {
+    roadColors: { highway: '#ffffff', primary: '#ffffff', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
+    buildingColor: '#000000', buildingOpacity: 1.0, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#ffffff', water: '#ffffff', industrial: '#ffffff' },
+    backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: false },
+    description: '對比度：極端黑白，用於空間型態分析'
   }
 };
 
