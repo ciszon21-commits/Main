@@ -93,6 +93,16 @@ interface AppState {
   setExportAuthor: (a: string) => void;
   showLegendInExport: boolean;
   setShowLegendInExport: (v: boolean) => void;
+
+  // Phase 12: Sunlight Analysis
+  sunlightEnabled: boolean;
+  setSunlightEnabled: (v: boolean) => void;
+  sunlightDate: string; // YYYY-MM-DD
+  setSunlightDate: (v: string) => void;
+  sunlightTime: number; // 0.0 - 24.0 (decimal hours)
+  setSunlightTime: (v: number) => void;
+  sunlightShadowOpacity: number;
+  setSunlightShadowOpacity: (v: number) => void;
 }
 
 export const DEFAULT_STYLES: StylePreset[] = [
@@ -152,7 +162,11 @@ export const useStore = create<AppState>()(
       selectedStyle: state.selectedStyle,
       exportTitle: state.exportTitle,
       exportAuthor: state.exportAuthor,
-      activePresetId: useMapPaintStore.getState().activePresetId
+      activePresetId: useMapPaintStore.getState().activePresetId,
+      sunlightEnabled: state.sunlightEnabled,
+      sunlightDate: state.sunlightDate,
+      sunlightTime: state.sunlightTime,
+      sunlightShadowOpacity: state.sunlightShadowOpacity
     };
 
     const newProject: LocalProject = {
@@ -194,7 +208,11 @@ export const useStore = create<AppState>()(
       selectedStyle: state.selectedStyle,
       exportTitle: state.exportTitle,
       exportAuthor: state.exportAuthor,
-      activePresetId: useMapPaintStore.getState().activePresetId
+      activePresetId: useMapPaintStore.getState().activePresetId,
+      sunlightEnabled: state.sunlightEnabled,
+      sunlightDate: state.sunlightDate,
+      sunlightTime: state.sunlightTime,
+      sunlightShadowOpacity: state.sunlightShadowOpacity
     };
 
     set((state) => ({
@@ -253,6 +271,15 @@ export const useStore = create<AppState>()(
   setExportAuthor: (exportAuthor) => set({ exportAuthor }),
   showLegendInExport: true,
   setShowLegendInExport: (showLegendInExport) => set({ showLegendInExport }),
+
+  sunlightEnabled: false,
+  setSunlightEnabled: (sunlightEnabled) => set({ sunlightEnabled }),
+  sunlightDate: new Date().toISOString().split('T')[0],
+  setSunlightDate: (sunlightDate) => set({ sunlightDate }),
+  sunlightTime: 12.0,
+  setSunlightTime: (sunlightTime) => set({ sunlightTime }),
+  sunlightShadowOpacity: 0.4,
+  setSunlightShadowOpacity: (sunlightShadowOpacity) => set({ sunlightShadowOpacity }),
     }),
     {
       name: 'siteana-local-storage',

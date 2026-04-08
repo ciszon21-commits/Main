@@ -1,5 +1,13 @@
 import maplibregl from 'maplibre-gl';
 import { MapPaintState } from '../store/useMapPaintStore';
+import { SunlightEngine } from './SunlightEngine';
+
+export interface SunlightState {
+  enabled: boolean;
+  date: string;
+  time: number;
+  opacity: number;
+}
 
 export class MapPaintEngine {
   /**
@@ -353,5 +361,70 @@ export class MapPaintEngine {
         map.setPaintProperty(id, 'background-color', state.backgroundColor);
       } catch (e) {}
     });
+  }
+
+  /**
+   * 日照與陰影投射 (Sunlight & Shadows)
+   */
+  static applySunlight(map: maplibregl.Map, state: SunlightState) {
+    const SOURCE_ID = 'sunlight-shadow-source';
+    const LAYER_ID = 'sunlight-shadow-layer';
+
+    if (!state.enabled) {
+      if (map.getLayer(LAYER_ID)) map.removeLayer(LAYER_ID);
+      if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
+      return;
+    }
+
+    try {
+      // Create date object
+      const baseDate = new Date(state.date);
+      const hours = Math.floor(state.time);
+      const mins = Math.floor((state.time - hours) * 60);
+      baseDate.setHours(hours, mins, 0);
+
+      const center = map.getCenter();
+
+      // Find building layers
+      const layers = map.getStyle()?.layers || [];
+      const buildingLayers = layers.filter(l => 
+        l.id.toLowerCase().includes('building') && 
+        (l.type === 'fill' || l.type === 'fill-extrusion')
+      ).map(l => l.id);
+
+      if (buildingLayers.length === 0) return;
+
+      // Query features in viewport
+      const features = map.queryRenderedFeatures({ layers: buildingLayers })
+        .filter(f => f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon');
+
+      const shadowsCollection = SunlightEngine.computeShadowsForBuildings(features as any, baseDate, center.lat, center.lng);
+
+      if (map.getSource(SOURCE_ID)) {
+        (map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource).setData(shadowsCollection);
+        if (map.getLayer(LAYER_ID)) map.setPaintProperty(LAYER_ID, 'fill-opacity', state.opacity);
+      } else {
+        map.addSource(SOURCE_ID, { type: 'geojson', data: shadowsCollection });
+        
+        map.addLayer({
+          id: LAYER_ID,
+          type: 'fill',
+          source: SOURCE_ID,
+          paint: {
+            'fill-color': '#0f172a',
+            'fill-opacity': state.opacity
+          }
+        });
+
+        // Move layer: place shadows just ABOVE the landuse layers, but BELOW roads and buildings
+        const firstRoadOrBuilding = layers.find(l => l.id.includes('road') || l.id.includes('building'));
+        if (firstRoadOrBuilding) {
+           map.moveLayer(LAYER_ID, firstRoadOrBuilding.id);
+        }
+      }
+
+    } catch (e) {
+      console.error('[SiteANA] Sunlight Render Error:', e);
+    }
   }
 }

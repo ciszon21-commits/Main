@@ -117,6 +117,37 @@ const Map: React.FC = () => {
     }
   }, [paintState]);
 
+  // --- Sunlight & Shadows ---
+  const sunEnabled = useStore(state => state.sunlightEnabled);
+  const sunDate = useStore(state => state.sunlightDate);
+  const sunTime = useStore(state => state.sunlightTime);
+  const sunOpacity = useStore(state => state.sunlightShadowOpacity);
+
+  useEffect(() => {
+    const updateSunlight = () => {
+      if (map.current && map.current.isStyleLoaded()) {
+         MapPaintEngine.applySunlight(map.current, {
+           enabled: sunEnabled, date: sunDate, time: sunTime, opacity: sunOpacity
+         });
+      }
+    };
+
+    updateSunlight(); // Initial call
+    
+    // During pan/zoom, the visible buildings change, so we must recalculate
+    if (map.current && sunEnabled) {
+       map.current.on('moveend', updateSunlight);
+       map.current.on('zoomend', updateSunlight);
+    }
+
+    return () => {
+       if (map.current) {
+          map.current.off('moveend', updateSunlight);
+          map.current.off('zoomend', updateSunlight);
+       }
+    };
+  }, [sunEnabled, sunDate, sunTime, sunOpacity]);
+
   // --- Buffer Display ---
   useEffect(() => {
     const m = map.current;
