@@ -135,6 +135,40 @@ export class MapPaintEngine {
         } catch (e) {}
       });
     });
+
+    // --- Z-INDEX RESTACKING: Ensure Highway > Primary > Secondary > Residential > Path ---
+    const layerOrder = ['path', 'residential', 'secondary', 'primary', 'highway'];
+    const firstLabel = layers.find(l => l.type === 'symbol');
+
+    layerOrder.forEach(type => {
+      const keywords = mappings[type as keyof typeof mappings];
+      const targetIds = layers.filter(l => 
+        (l.type === 'line') && keywords.some(k => l.id.toLowerCase().includes(k))
+      ).map(l => l.id);
+
+      targetIds.forEach(id => {
+        try {
+          if (firstLabel) {
+            map.moveLayer(id, firstLabel.id);
+          } else {
+            map.moveLayer(id);
+          }
+        } catch (e) {}
+      });
+    });
+
+    // Special case for transit: if transit_network preset is ON, rail/mrt should be at the absolute top
+    if (state.activePresetId === 'transit_network') {
+      const transitLayers = layers.filter(l => 
+        (l.type === 'line') && 
+        (mappings.transit_rail.some(k => l.id.toLowerCase().includes(k)) || 
+         mappings.transit_mrt.some(k => l.id.toLowerCase().includes(k)))
+      ).map(l => l.id);
+      
+      transitLayers.forEach(id => {
+        try { map.moveLayer(id); } catch(e) {}
+      });
+    }
   }
 
   /**
