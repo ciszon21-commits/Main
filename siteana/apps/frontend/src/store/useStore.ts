@@ -278,7 +278,7 @@ export const useStore = create<AppState>()(
   setSunlightDate: (sunlightDate) => set({ sunlightDate }),
   sunlightTime: 12.0,
   setSunlightTime: (sunlightTime) => set({ sunlightTime }),
-  sunlightShadowOpacity: 0.4,
+  sunlightShadowOpacity: 0.55,
   setSunlightShadowOpacity: (sunlightShadowOpacity) => set({ sunlightShadowOpacity }),
     }),
     {

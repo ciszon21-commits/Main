@@ -338,7 +338,7 @@ export class MapPaintEngine {
                   currentFilter, 
                   ['!=', ['get', 'subclass'], 'bus_stop'],
                   ['!=', ['get', 'class'], 'bus']
-                ]);
+                ] as any);
              }
            } catch(e) {}
         }
@@ -364,67 +364,187 @@ export class MapPaintEngine {
   }
 
   /**
-   * 日照與陰影投射 (Sunlight & Shadows)
+   * 日照與陰影投射 + 太陽羅盤指示
    */
   static applySunlight(map: maplibregl.Map, state: SunlightState) {
-    const SOURCE_ID = 'sunlight-shadow-source';
-    const LAYER_ID = 'sunlight-shadow-layer';
+    const SHADOW_SOURCE = 'sunlight-shadow-source';
+    const SHADOW_LAYER  = 'sunlight-shadow-layer';
+    const COMPASS_SOURCE = 'sunlight-compass-source';
+    const COMPASS_CIRCLE = 'sunlight-compass-circle';
+    const COMPASS_LINE   = 'sunlight-compass-line';
 
-    if (!state.enabled) {
-      if (map.getLayer(LAYER_ID)) map.removeLayer(LAYER_ID);
-      if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
-      return;
-    }
+    const cleanup = () => {
+      [COMPASS_LINE, COMPASS_CIRCLE, SHADOW_LAYER].forEach(l => { try { if (map.getLayer(l)) map.removeLayer(l); } catch {} });
+      [COMPASS_SOURCE, SHADOW_SOURCE].forEach(s => { try { if (map.getSource(s)) map.removeSource(s); } catch {} });
+    };
+
+    if (!state.enabled) { cleanup(); return; }
 
     try {
-      // Create date object
       const baseDate = new Date(state.date);
       const hours = Math.floor(state.time);
-      const mins = Math.floor((state.time - hours) * 60);
-      baseDate.setHours(hours, mins, 0);
+      const mins  = Math.floor((state.time - hours) * 60);
+      baseDate.setHours(hours, mins, 0, 0);
 
       const center = map.getCenter();
+      const lat = center.lat;
+      const lng = center.lng;
 
-      // Find building layers
+      // ── 1. Shadow computation ──────────────────────────────────
       const layers = map.getStyle()?.layers || [];
-      const buildingLayers = layers.filter(l => 
-        l.id.toLowerCase().includes('building') && 
+      const buildingLayers = layers.filter(l =>
+        l.id.toLowerCase().includes('building') &&
         (l.type === 'fill' || l.type === 'fill-extrusion')
       ).map(l => l.id);
 
-      if (buildingLayers.length === 0) return;
+      if (buildingLayers.length > 0) {
+        const features = map.queryRenderedFeatures({ layers: buildingLayers })
+          .filter(f => f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon');
 
-      // Query features in viewport
-      const features = map.queryRenderedFeatures({ layers: buildingLayers })
-        .filter(f => f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon');
+        const shadowCollection = SunlightEngine.computeShadowsForBuildings(features as any, baseDate, lat, lng);
 
-      const shadowsCollection = SunlightEngine.computeShadowsForBuildings(features as any, baseDate, center.lat, center.lng);
-
-      if (map.getSource(SOURCE_ID)) {
-        (map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource).setData(shadowsCollection);
-        if (map.getLayer(LAYER_ID)) map.setPaintProperty(LAYER_ID, 'fill-opacity', state.opacity);
-      } else {
-        map.addSource(SOURCE_ID, { type: 'geojson', data: shadowsCollection });
-        
-        map.addLayer({
-          id: LAYER_ID,
-          type: 'fill',
-          source: SOURCE_ID,
-          paint: {
-            'fill-color': '#030617', // Deeper, more neutral shadow color
-            'fill-opacity': state.opacity
+        if (map.getSource(SHADOW_SOURCE)) {
+          (map.getSource(SHADOW_SOURCE) as maplibregl.GeoJSONSource).setData(shadowCollection);
+          if (map.getLayer(SHADOW_LAYER)) {
+            map.setPaintProperty(SHADOW_LAYER, 'fill-opacity', state.opacity);
+            map.setPaintProperty(SHADOW_LAYER, 'fill-color', '#000000');
           }
-        });
+        } else {
+          map.addSource(SHADOW_SOURCE, { type: 'geojson', data: shadowCollection });
+          map.addLayer({
+            id: SHADOW_LAYER,
+            type: 'fill',
+            source: SHADOW_SOURCE,
+            paint: {
+              'fill-color': '#000000',
+              'fill-opacity': state.opacity,
+              'fill-antialias': true
+            }
+          });
+        }
 
-        // Move layer: place shadows just ABOVE the landuse layers, but BELOW roads and buildings
-        const firstRoadOrBuilding = layers.find(l => l.id.includes('road') || l.id.includes('building'));
-        if (firstRoadOrBuilding) {
-           map.moveLayer(LAYER_ID, firstRoadOrBuilding.id);
+        // Ensure shadows are on top but BELOW road labels
+        const firstSymbol = layers.find(l => l.type === 'symbol');
+        if (firstSymbol && map.getLayer(SHADOW_LAYER)) {
+          try { map.moveLayer(SHADOW_LAYER, firstSymbol.id); } catch {}
         }
       }
 
-    } catch (e) {
-      console.error('[SiteANA] Sunlight Render Error:', e);
+      // ── 2. Sun Compass Indicator ───────────────────────────────
+      const sunPos = SunlightEngine.getSunPosition(baseDate, lat, lng);
+      
+      // Compass ring radius in km (adapts loosely to zoom level)
+      const zoom = map.getZoom();
+      const radiusKm = Math.max(0.08, Math.min(0.5, 0.5 / Math.pow(2, zoom - 14)));
+
+      // Center point
+      const mapCenter: GeoJSON.Feature<GeoJSON.Point> = {
+        type: 'Feature', properties: {},
+        geometry: { type: 'Point', coordinates: [lng, lat] }
+      };
+
+      // Circle approximation (64-point polygon)
+      const circlePoints: number[][] = [];
+      for (let i = 0; i <= 64; i++) {
+        const angle = (i / 64) * 360;
+        const pt = { type: 'Feature' as const, properties: {}, geometry: { type: 'Point' as const, coordinates: [lng, lat] } };
+        const moved = moveAlongBearing(lng, lat, radiusKm, angle);
+        circlePoints.push(moved);
+      }
+
+      // Sun direction line: from center outward in sun direction (azimuthDeg = compass bearing of sun)
+      const sunBearing = sunPos.azimuthDeg;
+      const lineEnd = moveAlongBearing(lng, lat, radiusKm * 1.3, sunBearing);
+
+      // Indicator cross-mark at sun position on circle edge
+      const sunOnCircle = moveAlongBearing(lng, lat, radiusKm, sunBearing);
+      
+      const compassGeoJSON: GeoJSON.FeatureCollection = {
+        type: 'FeatureCollection',
+        features: [
+          // Ring (closed polygon)
+          {
+            type: 'Feature',
+            properties: { kind: 'ring' },
+            geometry: { type: 'Polygon', coordinates: [circlePoints] }
+          },
+          // Sun direction line
+          {
+            type: 'Feature',
+            properties: { kind: 'ray' },
+            geometry: { type: 'LineString', coordinates: [[lng, lat], lineEnd] }
+          },
+          // Sun dot on ring
+          {
+            type: 'Feature',
+            properties: { kind: 'sun-dot' },
+            geometry: { type: 'Point', coordinates: sunOnCircle }
+          }
+        ]
+      };
+
+      if (map.getSource(COMPASS_SOURCE)) {
+        (map.getSource(COMPASS_SOURCE) as maplibregl.GeoJSONSource).setData(compassGeoJSON);
+      } else {
+        map.addSource(COMPASS_SOURCE, { type: 'geojson', data: compassGeoJSON });
+
+        // Ring outline circle
+        map.addLayer({
+          id: COMPASS_CIRCLE,
+          type: 'line',
+          source: COMPASS_SOURCE,
+          filter: ['any', ['==', ['get', 'kind'], 'ring'], ['==', ['get', 'kind'], 'ray']],
+          paint: {
+            'line-color': [
+              'match', ['get', 'kind'],
+              'ring', sunPos.isDay ? 'rgba(251,191,36,0.7)' : 'rgba(148,163,184,0.5)',
+              'ray',  sunPos.isDay ? '#f59e0b' : '#94a3b8',
+              '#f59e0b'
+            ],
+            'line-width': ['match', ['get', 'kind'], 'ring', 1.5, 'ray', 2.5, 1.5],
+            'line-dasharray': ['literal', [4, 3]]
+          }
+        });
+
+        // Sun dot (circle-layer)
+        map.addLayer({
+          id: COMPASS_LINE,
+          type: 'circle',
+          source: COMPASS_SOURCE,
+          filter: ['==', ['get', 'kind'], 'sun-dot'],
+          paint: {
+            'circle-radius': 7,
+            'circle-color': sunPos.isDay ? '#fbbf24' : '#475569',
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff'
+          }
+        });
+      }
+
+      // Keep compass on top of everything
+      try {
+        if (map.getLayer(COMPASS_CIRCLE)) map.moveLayer(COMPASS_CIRCLE);
+        if (map.getLayer(COMPASS_LINE))   map.moveLayer(COMPASS_LINE);
+      } catch {}
+
+    } catch (err) {
+      console.error('[SiteANA] Sunlight Render Error:', err);
     }
   }
 }
+
+// ── Geo Helper ─────────────────────────────────────────────────────────────
+/**
+ * Move from [lng, lat] by distanceKm along bearingDeg (0=North, clockwise)
+ */
+function moveAlongBearing(lng: number, lat: number, distKm: number, bearingDeg: number): [number, number] {
+  const R = 6371;
+  const d = distKm / R;
+  const b = bearingDeg * Math.PI / 180;
+  const φ1 = lat * Math.PI / 180;
+  const λ1 = lng * Math.PI / 180;
+  const φ2 = Math.asin(Math.sin(φ1) * Math.cos(d) + Math.cos(φ1) * Math.sin(d) * Math.cos(b));
+  const λ2 = λ1 + Math.atan2(Math.sin(b) * Math.sin(d) * Math.cos(φ1), Math.cos(d) - Math.sin(φ1) * Math.sin(φ2));
+  return [λ2 * 180 / Math.PI, φ2 * 180 / Math.PI];
+}
+
