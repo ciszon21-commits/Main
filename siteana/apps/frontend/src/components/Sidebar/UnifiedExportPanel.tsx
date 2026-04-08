@@ -12,10 +12,10 @@ import {
   Type, 
   User,
   CheckCircle2,
-  Settings,
   ChevronRight,
   Circle,
-  Layers
+  Layers,
+  Box
 } from 'lucide-react';
 
 const UnifiedExportPanel: React.FC = () => {
@@ -28,8 +28,8 @@ const UnifiedExportPanel: React.FC = () => {
     showLegendInExport, setShowLegendInExport
   } = useStore();
   
-  const { exportToPNG, exportToPDF, generatePreviewUrl, isExporting } = useExport();
-  const [format, setFormat] = useState<'png' | 'pdf'>('png');
+  const { exportToPNG, exportToPDF, exportToGeoJSON, generatePreviewUrl, isExporting } = useExport();
+  const [format, setFormat] = useState<'png' | 'pdf' | 'geojson' | 'cad' | '3d'>('png');
   const [resLevel, setResLevel] = useState<'standard' | 'high' | '4k' | '8k'>('high');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
@@ -46,7 +46,11 @@ const UnifiedExportPanel: React.FC = () => {
 
   const handleExport = () => {
     const scale = getScale();
-    if (format === 'png') {
+    if (format === 'geojson') {
+      exportToGeoJSON();
+    } else if (format === 'cad' || format === '3d') {
+      alert('CAD 向量與 3D 量體匯出模組 (DWG/DXF, 3DM, OBJ) 預計於下一季度開放服務。目前請優先使用 GIS 向量匯出！');
+    } else if (format === 'png') {
       exportToPNG({ scale });
     } else {
       const size = selectedTemplate === 'presentation' ? 'a3' : 'a4';
@@ -109,21 +113,24 @@ const UnifiedExportPanel: React.FC = () => {
              技術規格
           </label>
           <div className="space-y-3 pl-1">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {[
-                { id: 'pdf', label: 'PDF 格式', icon: FileText },
-                { id: 'png', label: 'PNG 圖片', icon: FileImage },
+                { id: 'pdf', label: 'PDF 圖紙', icon: FileText },
+                { id: 'png', label: 'PNG 影像', icon: FileImage },
+                { id: 'geojson', label: 'GIS 地理', icon: CheckCircle2 },
+                { id: 'cad', label: 'CAD 線圖', icon: Box },
+                { id: '3d', label: '3D 量體', icon: Box }
               ].map((f) => (
                 <button
                   key={f.id}
                   onClick={() => setFormat(f.id as any)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border text-[11px] font-medium transition-all ${
+                  className={`flex-1 min-w-[30%] flex items-center justify-center gap-1.5 py-2 rounded-lg border text-[10px] font-bold transition-all ${
                     format === f.id
                       ? 'bg-slate-800 border-slate-800 text-white shadow-md'
                       : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                   }`}
                 >
-                  <f.icon size={13} /> {f.label}
+                  <f.icon size={12} /> {f.label}
                 </button>
               ))}
             </div>
@@ -241,9 +248,9 @@ const UnifiedExportPanel: React.FC = () => {
           </button>
           
           <div className="mt-2 flex items-start gap-2 px-1">
-             <CheckCircle2 size={12} className="text-emerald-500 mt-0.5" />
+             <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
              <p className="text-[9px] text-slate-400 font-medium leading-relaxed">
-                預覽以 1x 倍率呈現；正式出圖將根據您的設定以最高至 8K 倍率重新渲染高解析度圖紙。
+                預覽以 1x 倍率呈現；正式出圖將以最高至 8K 倍率解析度出圖。若開啟 3D 建築或視角傾斜，演算法將自動保留透視效果與傾角輸出。
              </p>
           </div>
         </div>

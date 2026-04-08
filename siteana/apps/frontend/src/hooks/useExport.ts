@@ -224,5 +224,49 @@ export const useExport = () => {
     }
   };
 
-  return { exportToPNG, exportToPDF, generatePreviewUrl, isExporting };
+  const exportToGeoJSON = () => {
+    const { drawnGeometry, analysisResult, exportTitle, exportAuthor, siteMarkerText } = useStore.getState();
+    if (!drawnGeometry) {
+      alert("尚未繪製或設定基地邊界，無法匯出空間資料。");
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+      const featureCollection = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: drawnGeometry.geometry,
+            properties: {
+              ...drawnGeometry.properties,
+              project_title: exportTitle,
+              author: exportAuthor,
+              label: siteMarkerText,
+              area_m2: analysisResult?.area_m2 || 0,
+              area_ping: analysisResult?.area_ping || 0,
+              perimeter_m: analysisResult?.perimeter_m || 0,
+              export_date: new Date().toISOString()
+            }
+          }
+        ]
+      };
+
+      const blob = new Blob([JSON.stringify(featureCollection, null, 2)], { type: "application/geo+json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = buildFilename('geojson');
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("[SiteANA Export] GeoJSON export failed:", e);
+      alert("無法匯出 GeoJSON。");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportToPNG, exportToPDF, exportToGeoJSON, generatePreviewUrl, isExporting };
 };

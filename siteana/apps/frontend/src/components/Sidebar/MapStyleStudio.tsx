@@ -22,24 +22,38 @@ import {
 const PRESETS: Record<string, Partial<MapPaintState> & { description: string }> = {
   urban_density: {
     roadColors: { highway: '#cbd5e1', primary: '#e2e8f0', secondary: '#edf2f7', residential: '#f7fafc', path: '#ffffff' },
-    buildingColor: '#2d3748', buildingOutlineColor: '#1a202c', buildingOpacity: 0.95, building3D: true, buildingVisibility: true,
+    buildingColor: '#2d3748', buildingOutlineColor: '#4a5568', buildingOpacity: 0.95, building3D: true, buildingVisibility: true,
     landUseColors: { residential: '#f7fafc', commercial: '#f7fafc', park: '#e2e8f0', water: '#cbd5e1', industrial: '#f7fafc' },
     backgroundColor: '#f7fafc', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '量體感：強調建築與街廓的虛實關係'
   },
   ecological_texture: {
-    roadColors: { highway: '#f8fafc', primary: '#fcfcfc', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
-    buildingColor: '#fcfcfc', buildingOutlineColor: '#e2e8f0', buildingOpacity: 0.4, building3D: false, buildingVisibility: true,
-    landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#2f855a', water: '#0066cc', industrial: '#ffffff' },
+    roadColors: { highway: '#fcfcfc', primary: '#fcfcfc', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
+    buildingColor: '#f1f5f2', buildingOutlineColor: '#e2e8e4', buildingOpacity: 0.6, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#c2dac1', water: '#aed1d6', industrial: '#ffffff' },
     backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '生命力：將藍綠帶色彩極大化'
   },
-  traffic_hierarchy: {
-    roadColors: { highway: '#ff5500', primary: '#eab308', secondary: '#94a3b8', residential: '#cbd5e1', path: '#e2e8f0' },
+  transit_network: {
+    roadColors: { highway: '#e2e8f0', primary: '#f1f5f9', secondary: '#f8fafc', residential: '#ffffff', path: '#ffffff', transit_rail: '#003366', transit_mrt: '#008659' },
+    buildingColor: '#f1f5f9', buildingOutlineColor: '#e2e8f0', buildingOpacity: 0.4, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#f8fafc', water: '#f1f5f9', industrial: '#ffffff' },
+    backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: true },
+    description: '大眾運輸路網：台鐵深藍色與捷運標準色系'
+  },
+  road_hierarchy: {
+    roadColors: { highway: '#dc2626', primary: '#f97316', secondary: '#fbbf24', residential: '#cbd5e1', path: '#f8fafc' },
     buildingColor: '#f8fafc', buildingOutlineColor: '#e2e8f0', buildingOpacity: 0.4, building3D: false, buildingVisibility: true,
     landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#ffffff', water: '#f1f5f9', industrial: '#ffffff' },
-    backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: false },
-    description: '流動性：利用色彩區分路網層級'
+    backgroundColor: '#ffffff', labelVisibility: { road: true, park: false, water: false, poi: false },
+    description: '道路層級分析：依寬度與速限(紅橘黃)顯示熱區'
+  },
+  pedestrian_flow: {
+    roadColors: { highway: '#f8fafc', primary: '#f8fafc', secondary: '#f8fafc', residential: '#f8fafc', path: '#10b981' },
+    buildingColor: '#ffffff', buildingOutlineColor: '#cbd5e1', buildingOpacity: 0.8, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#f8fafc', commercial: '#f8fafc', park: '#c2dac1', water: '#aed1d6', industrial: '#f8fafc', parking: '#bbf7d0', pedestrian: '#dcfce3' },
+    backgroundColor: '#f8fafc', labelVisibility: { road: false, park: false, water: false, poi: true },
+    description: '人車動線：綠帶淡彩化，隱藏一般路網'
   },
   blueprint_tech: {
     roadColors: { highway: '#ffffff', primary: '#e0f2fe', secondary: '#bae6fd', residential: '#89c2d9', path: '#89c2d9' },
@@ -331,12 +345,23 @@ const MapStyleStudio: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2">
-            {Object.entries(PRESETS).map(([id, preset]) => (
+            {Object.entries(PRESETS).map(([id, preset]) => {
+              const isActive = paintStore.activePresetId === id;
+              return (
               <button
                 key={id}
                 onClick={() => paintStore.applyPreset(id, preset)}
-                className="group flex flex-col p-2 bg-white border border-slate-100 rounded-xl hover:border-brand-300 hover:shadow-md transition-all text-left"
+                className={`group flex flex-col p-2 bg-white rounded-xl transition-all text-left relative overflow-hidden ${
+                  isActive 
+                    ? 'border border-brand-400 bg-brand-50/50 shadow-md ring-1 ring-brand-500/20' 
+                    : 'border border-slate-100 hover:border-brand-300 hover:shadow-md'
+                }`}
               >
+                {isActive && (
+                  <div className="absolute top-1.5 right-1.5 z-10 bg-brand-500 text-white rounded-full p-1 shadow-sm">
+                     <Check size={10} strokeWidth={3} />
+                  </div>
+                )}
                 <div 
                   className="aspect-video w-full rounded-lg shrink-0 border border-slate-100 relative overflow-hidden mb-1.5"
                   style={{ backgroundColor: preset.backgroundColor || '#fff' }}
@@ -363,7 +388,7 @@ const MapStyleStudio: React.FC = () => {
                   <div className="text-[8px] text-slate-400 mt-0.5 leading-[1.3] opacity-80">{preset.description}</div>
                 </div>
               </button>
-            ))}
+            )})}
             </div>
           )}
 

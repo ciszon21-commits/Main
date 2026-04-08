@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type maplibregl from 'maplibre-gl';
+import { useMapPaintStore } from './useMapPaintStore';
 
 interface GeoJSONFeature {
   type: 'Feature';
@@ -34,9 +35,13 @@ interface StylePreset {
 
 interface AppState {
   localProjects: LocalProject[];
+  activeProjectId: string | null;
+  setActiveProjectId: (id: string | null) => void;
   saveAsProject: (name: string) => void;
   loadProject: (id: string) => void;
   deleteProject: (id: string) => void;
+  updateProject: (id: string) => void;
+  renameProject: (id: string, newName: string) => void;
 
   // Phase 4: Style System
   stylePresets: StylePreset[];
@@ -99,7 +104,7 @@ export const DEFAULT_STYLES: StylePreset[] = [
   { id: 'ofm-bright', name: 'Bright (亮彩)', type: 'presentation', category: 'Vector (向量可調)', supportsPresets: true, mapStyle: 'https://tiles.openfreemap.org/styles/bright' },
 
   // --- Raster Tiles (No Overrides) ---
-  { id: 'esri-satellite', name: 'Hybrid (衛星地籍)', type: 'report', category: 'Raster (像素底圖)', supportsPresets: false, mapStyle: {
+  { id: 'esri-satellite', name: 'Hybrid (衛星)', type: 'report', category: 'Raster (像素底圖)', supportsPresets: false, mapStyle: {
     version: 8,
     sources: {
       'esri-satellite': {
@@ -126,36 +131,6 @@ export const DEFAULT_STYLES: StylePreset[] = [
     layers: [
       { id: 'topo-layer', type: 'raster', source: 'osm-topo', minzoom: 0, maxzoom: 17 }
     ]
-  } as any },
-  { id: 'nlsc-emap', name: 'Gov Map (國土測繪)', type: 'report', category: 'Raster (像素底圖)', supportsPresets: false, mapStyle: {
-    version: 8,
-    sources: {
-      'nlsc': {
-        type: 'raster',
-        tiles: ['https://wmts.nlsc.gov.tw/wmts/EMAP/default/GoogleMapsCompatible/{z}/{x}/{y}'],
-        tileSize: 256,
-        attribution: '&copy; 內政部國土測繪中心'
-      }
-    },
-    layers: [
-      { id: 'nlsc-layer', type: 'raster', source: 'nlsc', minzoom: 0, maxzoom: 20 }
-    ]
-  } as any },
-  
-  // --- Historic Maps ---
-  { id: 'historic-taiwan', name: '1904 台灣堡圖', type: 'report', category: 'Historic (歷史圖繪)', supportsPresets: false, mapStyle: {
-    version: 8,
-    sources: {
-      'historic': {
-        type: 'raster',
-        tiles: ['https://gis.sinica.edu.tw/tileserver/file-exists.php?img=JM20K_1904-png-{z}-{x}-{y}'],
-        tileSize: 256,
-        attribution: '&copy; 中央研究院 GIS 中心'
-      }
-    },
-    layers: [
-      { id: 'historic-layer', type: 'raster', source: 'historic', minzoom: 0, maxzoom: 16 }
-    ]
   } as any }
 ];
 
@@ -163,6 +138,8 @@ export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
   localProjects: [],
+  activeProjectId: null,
+  setActiveProjectId: (id: string | null) => set({ activeProjectId: id }),
   saveAsProject: (name: string) => {
     const state = get();
     // Snapshot the crucial geometry and analysis data
@@ -174,7 +151,8 @@ export const useStore = create<AppState>()(
       showSiteMarker: state.showSiteMarker,
       selectedStyle: state.selectedStyle,
       exportTitle: state.exportTitle,
-      exportAuthor: state.exportAuthor
+      exportAuthor: state.exportAuthor,
+      activePresetId: useMapPaintStore.getState().activePresetId
     };
 
     const newProject: LocalProject = {
@@ -184,7 +162,7 @@ export const useStore = create<AppState>()(
       snapshot
     };
 
-    set({ localProjects: [newProject, ...state.localProjects] });
+    set({ localProjects: [newProject, ...state.localProjects], activeProjectId: newProject.id });
   },
   loadProject: (id: string) => {
     const state = get();
@@ -192,11 +170,45 @@ export const useStore = create<AppState>()(
     if (proj && proj.snapshot) {
       set({
         ...proj.snapshot,
+        activeProjectId: id
       });
+      if (proj.snapshot.activePresetId !== undefined) {
+         useMapPaintStore.setState({ activePresetId: proj.snapshot.activePresetId });
+      }
     }
   },
   deleteProject: (id: string) => {
-    set(state => ({ localProjects: state.localProjects.filter(p => p.id !== id) }));
+    set(state => ({ 
+      localProjects: state.localProjects.filter(p => p.id !== id),
+      activeProjectId: state.activeProjectId === id ? null : state.activeProjectId
+    }));
+  },
+  updateProject: (id: string) => {
+    const state = get();
+    const snapshot = {
+      drawnGeometry: state.drawnGeometry,
+      bufferGeometry: state.bufferGeometry,
+      analysisResult: state.analysisResult,
+      siteMarkerText: state.siteMarkerText,
+      showSiteMarker: state.showSiteMarker,
+      selectedStyle: state.selectedStyle,
+      exportTitle: state.exportTitle,
+      exportAuthor: state.exportAuthor,
+      activePresetId: useMapPaintStore.getState().activePresetId
+    };
+
+    set((state) => ({
+      localProjects: state.localProjects.map((p) =>
+        p.id === id ? { ...p, snapshot, updatedAt: new Date().toISOString() } : p
+      )
+    }));
+  },
+  renameProject: (id: string, newName: string) => {
+    set((state) => ({
+      localProjects: state.localProjects.map((p) => 
+        p.id === id ? { ...p, name: newName } : p
+      )
+    }));
   },
 
   stylePresets: DEFAULT_STYLES,

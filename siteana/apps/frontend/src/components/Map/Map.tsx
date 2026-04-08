@@ -282,28 +282,7 @@ const Map: React.FC = () => {
         <SearchBar mapRef={map} />
       </div>
 
-      {/* --- BOTTOM LEFT: Context & HUD Group --- */}
-      <div className="absolute bottom-10 left-6 z-20 flex flex-col gap-3">
-        {drawnGeometry && analysisResult && (
-          <div className="flex flex-col gap-1 p-3 rounded-2xl bg-slate-900/80 backdrop-blur-md border border-white/10 shadow-2xl text-white animate-in slide-in-from-left-4 fade-in duration-300">
-            <div className="flex flex-col mb-2">
-              <span className="text-[9px] font-black tracking-[0.2em] text-brand-400 mb-0.5 uppercase">SURVEY DETAILS</span>
-              <span className="text-xs font-black tracking-tight truncate max-w-[150px]">{siteMarkerText}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex flex-col">
-                <span className="text-xl font-bold leading-none">{analysisResult.area_m2.toLocaleString()}</span>
-                <span className="text-[10px] text-slate-400 mt-1">m² 面積</span>
-              </div>
-              <div className="w-[1px] h-8 bg-white/10"></div>
-              <div className="flex flex-col">
-                <span className="text-xl font-bold leading-none">{analysisResult.perimeter_m.toLocaleString()}</span>
-                <span className="text-[10px] text-slate-400 mt-1">m 周長</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* --- BOTTOM LEFT: DELETED --- */}
 
       {/* --- BOTTOM RIGHT: Navigation & Legend Group --- */}
       <div className="absolute bottom-10 right-6 z-20 flex flex-col items-end gap-3">

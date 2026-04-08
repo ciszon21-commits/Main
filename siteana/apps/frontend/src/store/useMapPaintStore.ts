@@ -9,6 +9,8 @@ export interface MapPaintState {
     secondary: string;   // 次要道路 (預設 #ffffff)
     residential: string; // 住宅街道 (預設 #e8e8e8)
     path: string;        // 步道 (預設 #c0c0c0)
+    transit_rail?: string; // 台鐵/高鐵 (台灣標準: 深藍/深灰)
+    transit_mrt?: string;  // 捷運/輕軌 (台灣標準: 系統綠/藍)
   };
   
   // 🏢 BUILDINGS
@@ -25,6 +27,8 @@ export interface MapPaintState {
     park: string;         // 公園 (預設 #b5d4a0)
     water: string;        // 水體 (預設 #aad3df)
     industrial: string;   // 工業 (預設 #eef1ec)
+    parking?: string;     // 停車空間 (台灣標準: P字深藍)
+    pedestrian?: string;  // 人行廣場 (台灣標準: 特殊鋪面包裝綠)
   };
   
   // 🔤 LABELS
@@ -50,10 +54,11 @@ export interface MapPaintState {
   setLandUseColor: (type: keyof MapPaintState['landUseColors'], color: string) => void;
   setLabelStyles: (styles: Partial<Pick<MapPaintState, 'labelVisibility' | 'labelLanguage' | 'labelSizeEmoji'>>) => void;
   resetToDefault: () => void;
-  applyPreset: (presetId: string, preset: Partial<Omit<MapPaintState, 'setRoadColor' | 'setBuildingStyles' | 'setLandUseColor' | 'setLabelStyles' | 'resetToDefault' | 'applyPreset'>>) => void;
+  applyPreset: (presetId: string, preset: Partial<Omit<MapPaintState, 'setRoadColor' | 'setBuildingStyles' | 'setLandUseColor' | 'setLabelStyles' | 'resetToDefault' | 'applyPreset' | 'restoreState'>>) => void;
+  restoreState: (snapshot: Partial<MapPaintState>) => void;
 }
 
-const DEFAULT_PAINT: Omit<MapPaintState, 'setRoadColor' | 'setBuildingStyles' | 'setLandUseColor' | 'setLabelStyles' | 'resetToDefault' | 'applyPreset'> = {
+const DEFAULT_PAINT: Omit<MapPaintState, 'setRoadColor' | 'setBuildingStyles' | 'setLandUseColor' | 'setLabelStyles' | 'resetToDefault' | 'applyPreset' | 'restoreState'> = {
   roadColors: {
     highway: '#f0c040',
     primary: '#ffd080',
@@ -72,6 +77,8 @@ const DEFAULT_PAINT: Omit<MapPaintState, 'setRoadColor' | 'setBuildingStyles' | 
     park: '#b5d4a0',
     water: '#aad3df',
     industrial: '#eef1ec',
+    parking: '#d6ebd3', // Light green
+    pedestrian: '#e0ebd3', // Light green
   },
   labelVisibility: {
     road: true,
@@ -119,6 +126,8 @@ export const useMapPaintStore = create<MapPaintState>()(
       resetToDefault: () => set(DEFAULT_PAINT),
 
       applyPreset: (presetId, preset) => set((state) => ({ ...state, ...preset, activePresetId: presetId })),
+      
+      restoreState: (snapshot: Partial<MapPaintState>) => set((state) => ({ ...state, ...snapshot })),
     }),
     {
       name: 'siteana-map-paint-storage',
