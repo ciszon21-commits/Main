@@ -437,10 +437,14 @@ export class MapPaintEngine {
           });
         }
 
-        // Place shadow just below the first symbol layer so labels stay readable
-        const firstSymbol = allLayers.find(l => l.type === 'symbol');
-        if (firstSymbol && map.getLayer(SHADOW_LAYER)) {
-          try { map.moveLayer(SHADOW_LAYER, firstSymbol.id); } catch {}
+        // Place shadow layer BELOW the first building layer to prevent the shadow footprint covering the building itself.
+        const firstBuilding = allLayers.find(l => 
+          l.id.toLowerCase().includes('building') && (l.type === 'fill' || l.type === 'fill-extrusion')
+        );
+        // If no building layer exists, fall back to below first symbol
+        const targetLayerId = firstBuilding ? firstBuilding.id : allLayers.find(l => l.type === 'symbol')?.id;
+        if (targetLayerId && map.getLayer(SHADOW_LAYER)) {
+          try { map.moveLayer(SHADOW_LAYER, targetLayerId); } catch {}
         }
       }
 
