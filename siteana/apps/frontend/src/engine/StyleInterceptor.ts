@@ -39,11 +39,27 @@ export class StyleInterceptor {
       });
 
       // 2. 拔除所有 fill 類型圖層的 fill-pattern
+      // 並對自然圖層補上安全底色，避免回退為黑色
+      const NATURE_KEYWORDS = ['grass', 'wood', 'forest', 'park', 'garden', 'scrub',
+                               'wetland', 'landcover', 'natural', 'leisure', 'vegetation',
+                               'allotment', 'orchard', 'vineyard', 'fell', 'sand', 'beach'];
+      const WATER_KEYWORDS  = ['water', 'river', 'lake', 'stream', 'ocean', 'sea', 'canal'];
+
       styleObj.layers.forEach((l: any) => {
         if (l.type === 'fill' && l.paint) {
           // 清除 pattern 讓底色能正常顯示
           if (l.paint['fill-pattern'] !== undefined) {
             delete l.paint['fill-pattern'];
+
+            // 若刪除 fill-pattern 後沒有 fill-color，補上安全預設色
+            if (!l.paint['fill-color']) {
+              const id = (l.id || '').toLowerCase();
+              if (WATER_KEYWORDS.some(k => id.includes(k))) {
+                l.paint['fill-color'] = '#aad3df'; // 水體藍
+              } else if (NATURE_KEYWORDS.some(k => id.includes(k))) {
+                l.paint['fill-color'] = '#b5d4a0'; // 公園綠
+              }
+            }
           }
         }
       });

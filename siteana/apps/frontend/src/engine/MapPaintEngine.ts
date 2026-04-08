@@ -124,8 +124,13 @@ export class MapPaintEngine {
       });
     };
 
-    apply(['park', 'garden', 'recreation', 'leisure', 'green', 'grass', 'forest', 'wood', 'landuse_park', 'landuse_grass'], landUseColors.park);
-    apply(['water', 'river', 'lake', 'stream', 'ocean', 'sea'], landUseColors.water);
+    apply(
+      ['park', 'garden', 'recreation', 'leisure', 'green', 'grass', 'forest', 'wood',
+       'landcover', 'landuse_park', 'landuse_grass', 'natural', 'wetland', 'scrub',
+       'allotment', 'orchard', 'vineyard'],
+      landUseColors.park
+    );
+    apply(['water', 'river', 'lake', 'stream', 'ocean', 'sea', 'canal'], landUseColors.water);
     apply(['residential', 'neighborhood', 'urban', 'landuse_residential'], landUseColors.residential);
     apply(['commercial', 'retail', 'business', 'office', 'landuse_commercial'], landUseColors.commercial);
     apply(['industrial', 'quarry', 'factory', 'landuse_industrial'], landUseColors.industrial);
