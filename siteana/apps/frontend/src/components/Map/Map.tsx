@@ -75,6 +75,16 @@ const Map: React.FC = () => {
       map.current.on('style.load', () => {
         if (map.current) {
           MapPaintEngine.applyAll(map.current, useMapPaintStore.getState());
+          // Re-apply sunlight layers (they're wiped on style change)
+          const s = useStore.getState();
+          if (s.sunlightEnabled) {
+            MapPaintEngine.applySunlight(map.current, {
+              enabled: s.sunlightEnabled,
+              date: s.sunlightDate,
+              time: s.sunlightTime,
+              opacity: s.sunlightShadowOpacity
+            });
+          }
         }
       });
 

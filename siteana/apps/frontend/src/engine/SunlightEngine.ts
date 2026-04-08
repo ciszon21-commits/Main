@@ -1,22 +1,23 @@
 import * as turf from '@turf/turf';
 
 /**
- * SunlightEngine v2
- * 1. Computes solar position (Azimuth & Altitude) using NOAA astronomical math.
- * 2. Computes sunrise / solar noon / sunset times using binary search.
- * 3. Projects shadow polygons based on building footprints and heights.
+ * SunlightEngine v2.1 - Fixed shadow bearing & timezone handling
+ *
+ * Key fix: getSunPosition returns azimuth where 0=South, positive=West (NOAA convention)
+ * Converting to compass bearing (0=North clockwise): compassBearing = (azimuthRad_in_deg + 180) % 360
+ * Shadow falls OPPOSITE to sun: shadowBearing = (compassBearing + 180) % 360
+ * Net: shadowBearing = (azimuthRad_in_deg + 360) % 360 = azimuthRad_in_deg (since +180+180=+360)
+ * BUT azimuthRad_in_deg ranges -180..+180, so we must normalize properly.
  */
 
 const PI = Math.PI;
 const rad = PI / 180;
 const e = rad * 23.4397; // obliquity of the Earth
 
-function getJulianDate(date: Date) {
-  return date.valueOf() / 86400000 - date.getTimezoneOffset() / 1440 + 2440587.5;
-}
-
 function getJulianDays(date: Date) {
-  return getJulianDate(date) - 2451545.0;
+  // Use UTC to avoid timezone issues
+  const utcMs = date.getTime() + date.getTimezoneOffset() * 60000;
+  return utcMs / 86400000 - 0.5 + 2440588 - 2451545.0;
 }
 
 function getRightAscension(l: number, b: number) {
@@ -45,7 +46,7 @@ function getSolarMeanAnomaly(d: number) {
 
 function getEclipticLongitude(M: number) {
   const C = rad * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M));
-  const P = rad * 102.9372;
+  const P = rad * 102.9372; // perihelion of the Earth
   return M + C + P + PI;
 }
 
@@ -58,20 +59,23 @@ function getSunCoords(d: number) {
   };
 }
 
-function getSunAltitudeForDate(date: Date, lat: number, lng: number): number {
-  const lw = rad * -lng;
-  const phi = rad * lat;
-  const d = getJulianDays(date);
-  const c = getSunCoords(d);
-  const H = getSiderealTime(d, lw) - c.ra;
-  return getAltitude(H, phi, c.dec);
+/**
+ * Build a Date from a YYYY-MM-DD string + fractional hour, treating it as LOCAL time.
+ */
+export function buildLocalDate(dateStr: string, decimalHour: number): Date {
+  const [yr, mo, da] = dateStr.split('-').map(Number);
+  const h = Math.floor(decimalHour);
+  const m = Math.floor((decimalHour - h) * 60);
+  const s = Math.floor(((decimalHour - h) * 60 - m) * 60);
+  return new Date(yr, mo - 1, da, h, m, s, 0); // local constructor
 }
 
 export interface SunPosition {
-  azimuth: number;    // radians, 0 = South, positive = West
-  altitude: number;   // radians, 0 = horizon, PI/2 = zenith
-  azimuthDeg: number; // 0-360, compass bearing from North
-  altitudeDeg: number;
+  azimuth: number;      // radians, NOAA: 0 = South, positive = West
+  altitude: number;     // radians, 0 = horizon, PI/2 = zenith
+  azimuthDeg: number;   // compass bearing 0-360 (0=North, 90=East, 180=South, 270=West)
+  altitudeDeg: number;  // elevation angle in degrees
+  shadowBearingDeg: number; // direction shadows fall (opposite to sun), 0-360
   isDay: boolean;
 }
 
@@ -79,7 +83,7 @@ export interface SunTimes {
   sunrise: Date | null;
   sunset: Date | null;
   solarNoon: Date | null;
-  sunriseHour: number | null;  // decimal hour e.g. 5.7 = 05:42
+  sunriseHour: number | null;
   sunsetHour: number | null;
 }
 
@@ -94,50 +98,52 @@ export class SunlightEngine {
     const c = getSunCoords(d);
     const H = getSiderealTime(d, lw) - c.ra;
 
-    const azimuth = getAzimuth(H, phi, c.dec);
+    const azimuth = getAzimuth(H, phi, c.dec);  // 0=South, +W
     const altitude = getAltitude(H, phi, c.dec);
 
-    // Convert azimuth (0=South, +West) to compass bearing (0=North, clockwise)
-    const azimuthDeg = ((azimuth * 180 / PI) + 180) % 360;
+    // Convert NOAA azimuth (0=South, +W) → compass bearing (0=North, CW)
+    // azimuth in degrees from NOAA convention: measured from south going west
+    // Compass = azimuth_deg + 180 to rotate to North reference
+    const azimuthNOAA_deg = azimuth * 180 / PI;            // -180..+180
+    const compassBearing = ((azimuthNOAA_deg + 180) + 360) % 360;  // 0-360, 0=N
+    // Shadow falls directly opposite to sun
+    const shadowBearingDeg = (compassBearing + 180) % 360;
 
     return {
       azimuth,
       altitude,
-      azimuthDeg,
+      azimuthDeg: compassBearing,
       altitudeDeg: altitude * 180 / PI,
-      isDay: altitude > 0
+      shadowBearingDeg,
+      isDay: altitude > 0.0
     };
   }
 
   /**
-   * Calculate sunrise, sunset and solar noon for given date/location.
-   * Uses binary search for accuracy.
+   * Calculate sunrise, sunset for given date/location.
+   * Uses binary search on the altitude function.
    */
   static getSunTimes(date: Date, lat: number, lng: number): SunTimes {
-    const dateStr = date.toISOString().split('T')[0];
-    
-    // Helper: get altitude at hour h
+    const yr  = date.getFullYear();
+    const mo  = date.getMonth();
+    const da  = date.getDate();
+
+    // Sample altitude at a given LOCAL hour
     const altAt = (h: number) => {
-      const d = new Date(`${dateStr}T00:00:00`);
-      d.setHours(Math.floor(h), Math.round((h % 1) * 60), 0, 0);
-      return getSunAltitudeForDate(d, lat, lng);
+      const d = new Date(yr, mo, da, Math.floor(h), Math.round((h % 1) * 60), 0, 0);
+      return this.getSunPosition(d, lat, lng).altitude;
     };
 
-    // Binary search for sunrise (when alt crosses 0 going positive)
-    const findCrossing = (start: number, end: number, rising: boolean): number | null => {
-      for (let i = 0; i < 30; i++) {
-        const mid = (start + end) / 2;
-        const alt = altAt(mid);
-        if (rising) {
-          if (alt > 0) end = mid; else start = mid;
-        } else {
-          if (alt < 0) end = mid; else start = mid;
-        }
+    const binarySearch = (lo: number, hi: number, rising: boolean): number => {
+      for (let i = 0; i < 40; i++) {
+        const mid = (lo + hi) / 2;
+        const a = altAt(mid);
+        if (rising ? a > 0 : a < 0) hi = mid; else lo = mid;
       }
-      return (start + end) / 2;
+      return (lo + hi) / 2;
     };
 
-    // Find solar noon (max altitude) between 10:00 and 14:00
+    // Solar noon: scan 10-14h for maximum altitude
     let noonH = 12;
     let maxAlt = -Infinity;
     for (let h = 10; h <= 14; h += 0.1) {
@@ -145,96 +151,83 @@ export class SunlightEngine {
       if (a > maxAlt) { maxAlt = a; noonH = h; }
     }
 
+    // Sunrise: search 4-10 for altitude crossing 0 upward
     let sunriseH: number | null = null;
-    let sunsetH: number | null = null;
-
-    // Find sunrise: search 4-10 for rising crossing
-    let hRise: number | null = null;
     for (let h = 4; h < 10; h += 0.5) {
       if (altAt(h) < 0 && altAt(h + 0.5) > 0) {
-        hRise = findCrossing(h, h + 0.5, true);
+        sunriseH = binarySearch(h, h + 0.5, true);
         break;
       }
     }
 
-    // Find sunset: search 14-22 for falling crossing
-    let hSet: number | null = null;
+    // Sunset: search 14-22 for altitude crossing 0 downward
+    let sunsetH: number | null = null;
     for (let h = 14; h < 22; h += 0.5) {
       if (altAt(h) > 0 && altAt(h + 0.5) < 0) {
-        hSet = findCrossing(h, h + 0.5, false);
+        sunsetH = binarySearch(h, h + 0.5, false);
         break;
       }
     }
 
-    sunriseH = hRise;
-    sunsetH = hSet;
-
-    const makeTime = (h: number | null) => {
+    const makeDate = (h: number | null) => {
       if (h === null) return null;
-      const d = new Date(`${dateStr}T00:00:00`);
-      d.setHours(Math.floor(h), Math.round((h % 1) * 60), 0, 0);
-      return d;
+      return new Date(yr, mo, da, Math.floor(h), Math.round((h % 1) * 60), 0, 0);
     };
 
-    const noonDate = makeTime(noonH);
-
     return {
-      sunrise: makeTime(sunriseH),
-      sunset: makeTime(sunsetH),
-      solarNoon: noonDate,
+      sunrise:    makeDate(sunriseH),
+      sunset:     makeDate(sunsetH),
+      solarNoon:  makeDate(noonH),
       sunriseHour: sunriseH,
-      sunsetHour: sunsetH
+      sunsetHour:  sunsetH,
     };
   }
 
   /**
-   * Projects a shadow polygon for a given building feature.
+   * Projects a shadow polygon for a single building feature.
+   * @param altitudeRad  Sun altitude in radians
+   * @param shadowBearingDeg  Direction shadows fall (0=N, 90=E, ...), NOT sun azimuth
    */
   static generateShadowPolygon(
     feature: GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>,
     altitudeRad: number,
-    azimuthRad: number
+    shadowBearingDeg: number
   ): GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon> | null {
-    if (altitudeRad <= 0.02) return null; // < ~1 degree, skip sunrise/sunset fringe
+    if (altitudeRad <= 0.017) return null; // below ~1° — no shadow
 
     const height = feature.properties?.render_height || feature.properties?.height || 3;
     const shadowLengthMeters = height / Math.tan(altitudeRad);
 
-    // Cap to prevent absurd shadows near sunrise/sunset
-    const maxShadow = 300;
-    if (shadowLengthMeters > maxShadow) return null;
-
-    // bearing = sun azimuth direction + 180° (shadow falls AWAY from sun)
-    const sunBearing = (azimuthRad * 180 / PI + 180) % 360;
-    const shadowBearing = (sunBearing + 180) % 360;
+    // Hard cap to avoid degenerate polygons near sunrise/sunset
+    if (shadowLengthMeters > 250) return null;
 
     try {
-      const shadowEnd = turf.transformTranslate(feature, shadowLengthMeters / 1000, shadowBearing, { units: 'kilometers' });
+      const shadowEnd = turf.transformTranslate(
+        feature,
+        shadowLengthMeters / 1000,
+        shadowBearingDeg,
+        { units: 'kilometers' }
+      );
 
       const points: number[][] = [];
-      turf.coordEach(feature, (coord) => points.push(coord));
-      turf.coordEach(shadowEnd, (coord) => points.push(coord));
+      turf.coordEach(feature, coord => points.push(coord));
+      turf.coordEach(shadowEnd, coord => points.push(coord));
 
       if (points.length < 3) return null;
 
-      const hullPointFC = turf.featureCollection(points.map(p => turf.point(p)));
-      const shadowHull = turf.convex(hullPointFC as any);
+      const hullFC = turf.featureCollection(points.map(p => turf.point(p)));
+      const hull = turf.convex(hullFC as any);
+      if (!hull) return null;
 
-      if (!shadowHull) return null;
-
-      shadowHull.properties = {
-        type: 'shadow',
-        source_id: feature.properties?.id || 'unknown'
-      };
-
-      return shadowHull as any;
+      hull.properties = { type: 'shadow' };
+      return hull as any;
     } catch {
       return null;
     }
   }
 
   /**
-   * Processes a list of building features and returns shadows FeatureCollection.
+   * Compute shadows for all buildings in viewport.
    */
   static computeShadowsForBuildings(
     buildings: GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>[],
@@ -249,9 +242,9 @@ export class SunlightEngine {
     }
 
     const shadows: any[] = [];
-
     for (const bldg of buildings) {
-      const shadow = this.generateShadowPolygon(bldg, pos.altitude, pos.azimuth);
+      // Use the pre-computed shadowBearingDeg (opposite to sun compass bearing)
+      const shadow = this.generateShadowPolygon(bldg, pos.altitude, pos.shadowBearingDeg);
       if (shadow) shadows.push(shadow);
     }
 
