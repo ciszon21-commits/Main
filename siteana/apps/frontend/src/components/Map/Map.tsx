@@ -8,6 +8,7 @@ import { StyleInterceptor } from '../../engine/StyleInterceptor';
 import NorthArrow from './NorthArrow';
 import Legend from './Legend';
 import SearchBar from './SearchBar';
+import { Compass, Plus, Minus, Navigation } from 'lucide-react';
 import * as turf from '@turf/turf';
 
 const INITIAL_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
@@ -221,6 +222,11 @@ const Map: React.FC = () => {
     }
   }, [showSiteMarker, siteMarkerText, drawnGeometry]);
 
+  const resetNorth = () => {
+    if (!map.current) return;
+    map.current.easeTo({ bearing: 0, duration: 800 });
+  };
+
   const toggle3D = () => {
     if (!map.current) return;
     const currentPitch = map.current.getPitch();
@@ -245,6 +251,14 @@ const Map: React.FC = () => {
       <div className="absolute top-20 right-6 z-20 flex flex-col items-end gap-3" data-html2canvas-ignore="true">
         <div className="flex flex-col gap-0 shadow-2xl rounded-2xl overflow-hidden border border-white/40 ring-1 ring-slate-900/5">
           <button
+            onClick={resetNorth}
+            title="重設為正北"
+            className="w-11 h-11 flex items-center justify-center bg-white/90 backdrop-blur text-brand-600 hover:bg-white border-b border-white/20 transition-all group"
+          >
+            <Compass size={20} className="-rotate-45 group-hover:rotate-0 transition-transform" />
+          </button>
+
+          <button
             onClick={toggle3D}
             title={'切換視角 (Tilt / Flat View)'}
             className={`w-11 h-11 flex flex-col items-center justify-center bg-white/90 backdrop-blur text-slate-600 hover:bg-white border-b border-white/20 transition-all font-bold`}
@@ -253,12 +267,12 @@ const Map: React.FC = () => {
             <span className="text-[7px] leading-none mt-0.5 opacity-60 uppercase">Tilt</span>
           </button>
           
-          <button onClick={zoomIn} title="放大" className="w-11 h-11 flex items-center justify-center bg-white/90 backdrop-blur text-slate-600 hover:bg-white border-b border-white/20 text-xl font-light">
-            +
+          <button onClick={zoomIn} title="放大" className="w-11 h-11 flex items-center justify-center bg-white/90 backdrop-blur text-slate-600 hover:bg-white border-b border-white/20">
+            <Plus size={20} />
           </button>
           
-          <button onClick={zoomOut} title="縮小" className="w-11 h-11 flex items-center justify-center bg-white/90 backdrop-blur text-slate-600 hover:bg-white text-xl font-light">
-            −
+          <button onClick={zoomOut} title="縮小" className="w-11 h-11 flex items-center justify-center bg-white/90 backdrop-blur text-slate-600 hover:bg-white">
+            <Minus size={20} />
           </button>
         </div>
       </div>

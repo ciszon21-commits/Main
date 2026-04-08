@@ -28,6 +28,8 @@ interface StylePreset {
   name: string;
   type: 'presentation' | 'report';
   mapStyle: string; // URL or JSON string
+  category: 'Vector (向量可調)' | 'Raster (像素底圖)' | 'Historic (歷史圖繪)';
+  supportsPresets: boolean;
 }
 
 interface AppState {
@@ -89,26 +91,15 @@ interface AppState {
 }
 
 export const DEFAULT_STYLES: StylePreset[] = [
-  { id: 'ofm-liberty', name: 'Liberty (標準彩色)', type: 'report', mapStyle: 'https://tiles.openfreemap.org/styles/liberty' },
-  { id: 'carto-positron', name: 'Positron (淺色極簡)', type: 'report', mapStyle: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json' },
-  { id: 'carto-dark', name: 'Dark Matter (極簡暗黑)', type: 'presentation', mapStyle: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json' },
-  { id: 'carto-voyager', name: 'Voyager (旅行者)', type: 'report', mapStyle: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json' },
-  { id: 'ofm-bright', name: 'Bright (明亮彩色)', type: 'presentation', mapStyle: 'https://tiles.openfreemap.org/styles/bright' },
-  { id: 'osm-taiwan', name: 'Taiwan OSM (台灣中文)', type: 'report', mapStyle: {
-    version: 8,
-    sources: {
-      'osm-raster': {
-        type: 'raster',
-        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-        tileSize: 256,
-        attribution: '&copy; OpenStreetMap contributors'
-      }
-    },
-    layers: [
-      { id: 'osm-raster-layer', type: 'raster', source: 'osm-raster', minzoom: 0, maxzoom: 19 }
-    ]
-  } as any },
-  { id: 'esri-satellite', name: 'Satellite (衛星影像)', type: 'report', mapStyle: {
+  // --- Vector Tiles (Supports 3D, Style Overrides) ---
+  { id: 'ofm-liberty', name: 'Liberty (圖紙)', type: 'report', category: 'Vector (向量可調)', supportsPresets: true, mapStyle: 'https://tiles.openfreemap.org/styles/liberty' },
+  { id: 'carto-positron', name: 'Positron (極白)', type: 'report', category: 'Vector (向量可調)', supportsPresets: true, mapStyle: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json' },
+  { id: 'carto-dark', name: 'Midnight (黑夜)', type: 'presentation', category: 'Vector (向量可調)', supportsPresets: true, mapStyle: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json' },
+  { id: 'carto-voyager', name: 'Voyager (文脈)', type: 'report', category: 'Vector (向量可調)', supportsPresets: true, mapStyle: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json' },
+  { id: 'ofm-bright', name: 'Bright (亮彩)', type: 'presentation', category: 'Vector (向量可調)', supportsPresets: true, mapStyle: 'https://tiles.openfreemap.org/styles/bright' },
+
+  // --- Raster Tiles (No Overrides) ---
+  { id: 'esri-satellite', name: 'Hybrid (衛星地籍)', type: 'report', category: 'Raster (像素底圖)', supportsPresets: false, mapStyle: {
     version: 8,
     sources: {
       'esri-satellite': {
@@ -122,7 +113,7 @@ export const DEFAULT_STYLES: StylePreset[] = [
       { id: 'satellite-layer', type: 'raster', source: 'esri-satellite', minzoom: 0, maxzoom: 19 }
     ]
   } as any },
-  { id: 'osm-terrain', name: 'Terrain (地形圖層)', type: 'report', mapStyle: {
+  { id: 'osm-terrain', name: 'Topography (高程)', type: 'report', category: 'Raster (像素底圖)', supportsPresets: false, mapStyle: {
     version: 8,
     sources: {
       'osm-topo': {
@@ -134,6 +125,36 @@ export const DEFAULT_STYLES: StylePreset[] = [
     },
     layers: [
       { id: 'topo-layer', type: 'raster', source: 'osm-topo', minzoom: 0, maxzoom: 17 }
+    ]
+  } as any },
+  { id: 'nlsc-emap', name: 'Gov Map (國土測繪)', type: 'report', category: 'Raster (像素底圖)', supportsPresets: false, mapStyle: {
+    version: 8,
+    sources: {
+      'nlsc': {
+        type: 'raster',
+        tiles: ['https://wmts.nlsc.gov.tw/wmts/EMAP/default/GoogleMapsCompatible/{z}/{x}/{y}'],
+        tileSize: 256,
+        attribution: '&copy; 內政部國土測繪中心'
+      }
+    },
+    layers: [
+      { id: 'nlsc-layer', type: 'raster', source: 'nlsc', minzoom: 0, maxzoom: 20 }
+    ]
+  } as any },
+  
+  // --- Historic Maps ---
+  { id: 'historic-taiwan', name: '1904 台灣堡圖', type: 'report', category: 'Historic (歷史圖繪)', supportsPresets: false, mapStyle: {
+    version: 8,
+    sources: {
+      'historic': {
+        type: 'raster',
+        tiles: ['https://gis.sinica.edu.tw/tileserver/file-exists.php?img=JM20K_1904-png-{z}-{x}-{y}'],
+        tileSize: 256,
+        attribution: '&copy; 中央研究院 GIS 中心'
+      }
+    },
+    layers: [
+      { id: 'historic-layer', type: 'raster', source: 'historic', minzoom: 0, maxzoom: 16 }
     ]
   } as any }
 ];
@@ -224,7 +245,7 @@ export const useStore = create<AppState>()(
     {
       name: 'siteana-local-storage',
       partialize: (state) => Object.fromEntries(
-        Object.entries(state).filter(([key]) => !['mapRef', 'isExporting', 'isDrawingMode'].includes(key))
+        Object.entries(state).filter(([key]) => !['mapRef', 'isExporting', 'isDrawingMode', 'stylePresets'].includes(key))
       ),
     }
   )

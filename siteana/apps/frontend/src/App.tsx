@@ -67,21 +67,21 @@ function App() {
         {/* Scrollable Content */}
         <div className={`flex-1 overflow-y-auto px-4 py-6 custom-scrollbar space-y-10 transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
 
-          {/* 1. PROJECTS */}
+          {/* 1. VISUAL ENGINE */}
           <div className="sidebar-section px-1 animate-slide-up pb-8 border-b border-slate-50">
-            <ProjectList />
-          </div>
-
-          {/* 2. VISUAL ENGINE */}
-          <div className="sidebar-section px-1 animate-slide-up pb-8 border-b border-slate-50" style={{ animationDelay: '50ms' }}>
             <SectionHeader en="VISUAL ENGINE" cn="視覺風格工作坊" color="blue" />
             <MapStyleStudio />
           </div>
 
-          {/* 3. SPATIAL ANALYSIS */}
-          <div className="sidebar-section px-1 animate-slide-up pb-8 border-b border-slate-50" style={{ animationDelay: '100ms' }}>
+          {/* 2. SPATIAL ANALYSIS */}
+          <div className="sidebar-section px-1 animate-slide-up pb-8 border-b border-slate-50" style={{ animationDelay: '50ms' }}>
             <SectionHeader en="SPATIAL ANALYTICS" cn="空間分析引擎" color="emerald" />
             <AnalysisPanel />
+          </div>
+
+          {/* 3. PROJECTS */}
+          <div className="sidebar-section px-1 animate-slide-up pb-8 border-b border-slate-50" style={{ animationDelay: '100ms' }}>
+            <ProjectList />
           </div>
 
           {/* 4. ADVANCED MODULES (Upcoming) */}

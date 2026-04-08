@@ -21,57 +21,57 @@ import {
 
 const PRESETS: Record<string, Partial<MapPaintState> & { description: string }> = {
   urban_density: {
-    roadColors: { highway: '#9ca3af', primary: '#d1d5db', secondary: '#e5e7eb', residential: '#f3f4f6', path: '#f9fafb' },
-    buildingColor: '#333333', buildingOpacity: 1.0, building3D: true, buildingVisibility: true,
-    landUseColors: { residential: '#e5e7eb', commercial: '#e5e7eb', park: '#d1d5db', water: '#cbd5e1', industrial: '#e5e7eb' },
-    backgroundColor: '#f3f4f6', labelVisibility: { road: false, park: false, water: false, poi: false },
+    roadColors: { highway: '#cbd5e1', primary: '#e2e8f0', secondary: '#edf2f7', residential: '#f7fafc', path: '#ffffff' },
+    buildingColor: '#2d3748', buildingOutlineColor: '#1a202c', buildingOpacity: 0.95, building3D: true, buildingVisibility: true,
+    landUseColors: { residential: '#f7fafc', commercial: '#f7fafc', park: '#e2e8f0', water: '#cbd5e1', industrial: '#f7fafc' },
+    backgroundColor: '#f7fafc', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '量體感：強調建築與街廓的虛實關係'
   },
   ecological_texture: {
-    roadColors: { highway: '#e5e7eb', primary: '#f3f4f6', secondary: '#f9fafb', residential: '#ffffff', path: '#ffffff' },
-    buildingColor: '#d6d3d1', buildingOpacity: 0.4, building3D: false, buildingVisibility: true,
-    landUseColors: { residential: '#fafaf9', commercial: '#fafaf9', park: '#166534', water: '#1e3a8a', industrial: '#fafaf9' },
-    backgroundColor: '#fdfbf7', labelVisibility: { road: false, park: false, water: false, poi: false },
+    roadColors: { highway: '#f8fafc', primary: '#fcfcfc', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
+    buildingColor: '#fcfcfc', buildingOutlineColor: '#e2e8f0', buildingOpacity: 0.4, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#2f855a', water: '#0066cc', industrial: '#ffffff' },
+    backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '生命力：將藍綠帶色彩極大化'
   },
   traffic_hierarchy: {
-    roadColors: { highway: '#ff5500', primary: '#f97316', secondary: '#cbd5e1', residential: '#e2e8f0', path: '#f1f5f9' },
-    buildingColor: '#e2e8f0', buildingOpacity: 0.4, building3D: false, buildingVisibility: true,
-    landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#f8fafc', water: '#f1f5f9', industrial: '#ffffff' },
+    roadColors: { highway: '#ff5500', primary: '#eab308', secondary: '#94a3b8', residential: '#cbd5e1', path: '#e2e8f0' },
+    buildingColor: '#f8fafc', buildingOutlineColor: '#e2e8f0', buildingOpacity: 0.4, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#ffffff', water: '#f1f5f9', industrial: '#ffffff' },
     backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '流動性：利用色彩區分路網層級'
   },
   blueprint_tech: {
-    roadColors: { highway: '#e0f2fe', primary: '#bae6fd', secondary: '#7dd3fc', residential: '#38bdf8', path: '#e0f2fe' },
-    buildingColor: '#ffffff', buildingOpacity: 0.8, building3D: false, buildingVisibility: true,
-    landUseColors: { residential: '#003366', commercial: '#003366', park: '#004080', water: '#002244', industrial: '#003366' },
-    backgroundColor: '#003366', labelVisibility: { road: false, park: false, water: false, poi: false },
+    roadColors: { highway: '#ffffff', primary: '#e0f2fe', secondary: '#bae6fd', residential: '#89c2d9', path: '#89c2d9' },
+    buildingColor: '#012a4a', buildingOutlineColor: '#ffffff', buildingOpacity: 0.85, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#012a4a', commercial: '#012a4a', park: '#013a63', water: '#01497c', industrial: '#012a4a' },
+    backgroundColor: '#012a4a', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '製圖感：經典青曬圖 (Cyanotype) 視覺'
   },
   soft_site: {
-    roadColors: { highway: '#e5e7eb', primary: '#f3f4f6', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
-    buildingColor: '#ffffff', buildingOpacity: 0.9, building3D: false, buildingVisibility: true,
-    landUseColors: { residential: '#fdf8f5', commercial: '#fdf8f5', park: '#dcfce7', water: '#bae6fd', industrial: '#fdf8f5' },
-    backgroundColor: '#fdf8f5', labelVisibility: { road: false, park: false, water: false, poi: false },
+    roadColors: { highway: '#cbd5e1', primary: '#e2e8f0', secondary: '#f8fafc', residential: '#ffffff', path: '#ffffff' },
+    buildingColor: '#faf8f5', buildingOutlineColor: '#cbd5e1', buildingOpacity: 0.3, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#faf8f5', commercial: '#faf8f5', park: '#ccfbf1', water: '#bae6fd', industrial: '#faf8f5' },
+    backgroundColor: '#faf8f5', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '空氣感：低飽和度、高亮度的底圖'
   },
   architectural_grey: {
-    roadColors: { highway: '#444444', primary: '#555555', secondary: '#666666', residential: '#888888', path: '#aaaaaa' },
-    buildingColor: '#ffffff', buildingOpacity: 1.0, building3D: false, buildingVisibility: true,
-    landUseColors: { residential: '#cccccc', commercial: '#cccccc', park: '#a3b18a', water: '#778da9', industrial: '#cccccc' },
-    backgroundColor: '#eeeeee', labelVisibility: { road: false, park: false, water: false, poi: false },
+    roadColors: { highway: '#4a5568', primary: '#718096', secondary: '#a0aec0', residential: '#cbd5e1', path: '#e2e8f0' },
+    buildingColor: '#ffffff', buildingOutlineColor: '#000000', buildingOpacity: 1.0, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#e2e8f0', commercial: '#e2e8f0', park: '#cbd2d9', water: '#a0aec0', industrial: '#e2e8f0' },
+    backgroundColor: '#f1f5f9', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '標準化：類似專業 CAD 導出的配置圖'
   },
   architectural_line: {
-    roadColors: { highway: '#d3d3d3', primary: '#e0e0e0', secondary: '#ebebeb', residential: '#f5f5f5', path: '#fafafa' },
-    buildingColor: '#ffffff', buildingOpacity: 1.0, building3D: false, buildingVisibility: true,
+    roadColors: { highway: '#cbd5e1', primary: '#e2e8f0', secondary: '#f1f5f9', residential: '#f8fafc', path: '#f8fafc' },
+    buildingColor: '#ffffff', buildingOutlineColor: '#000000', buildingOpacity: 1.0, building3D: false, buildingVisibility: true,
     landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#ffffff', water: '#ffffff', industrial: '#ffffff' },
     backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '抽象化：無色彩，僅靠線條傳達空間'
   },
   figure_ground: {
     roadColors: { highway: '#ffffff', primary: '#ffffff', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
-    buildingColor: '#000000', buildingOpacity: 1.0, building3D: false, buildingVisibility: true,
+    buildingColor: '#000000', buildingOutlineColor: '#000000', buildingOpacity: 1.0, building3D: false, buildingVisibility: true,
     landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#ffffff', water: '#ffffff', industrial: '#ffffff' },
     backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '對比度：極端黑白，用於空間型態分析'
@@ -80,7 +80,7 @@ const PRESETS: Record<string, Partial<MapPaintState> & { description: string }> 
 
 const MapStyleStudio: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'basemap' | 'layers' | 'presets'>('basemap');
-  const { stylePresets, selectedStyle, setSelectedStyle } = useStore();
+  const { selectedStyle, setSelectedStyle } = useStore();
   const paintStore = useMapPaintStore();
 
   return (
@@ -107,37 +107,63 @@ const MapStyleStudio: React.FC = () => {
 
       {/* Tab 1: Basemaps */}
       {activeTab === 'basemap' && (
-        <div className="grid grid-cols-2 gap-2">
-          {stylePresets.map((style) => (
-            <button
-              key={style.id}
-              onClick={() => setSelectedStyle(style)}
-              className={`group flex flex-col gap-2 p-2.5 rounded-xl border transition-all ${
-                selectedStyle?.id === style.id
-                  ? 'bg-white border-brand-500 shadow-md ring-2 ring-brand-50'
-                  : 'bg-slate-50 border-slate-100 hover:bg-white hover:border-slate-200'
-              }`}
-            >
-               <div className="aspect-video bg-slate-200 rounded-lg overflow-hidden relative">
-                  {/* Pseudo preview colors */}
-                  <div className={`absolute inset-0 opacity-40`} style={{ backgroundColor: style.id === 'minimal-dark' ? '#1a1a1a' : '#f8f4f0' }} />
-                  <div className="absolute inset-0 flex items-center justify-center opacity-20 group-hover:opacity-40 transition-opacity">
-                    <Layers size={24} />
-                  </div>
-                  {selectedStyle?.id === style.id && (
-                    <div className="absolute top-1 right-1 bg-brand-500 text-white rounded-full p-0.5 shadow-sm">
-                      <Check size={10} />
-                    </div>
-                  )}
-               </div>
-               <div className="flex flex-col text-left">
-                  <span className={`text-[11px] font-bold truncate ${selectedStyle?.id === style.id ? 'text-brand-600' : 'text-slate-700'}`}>
-                    {style.name}
-                  </span>
-                  <span className="text-[9px] text-slate-400 uppercase">{style.type}</span>
-               </div>
-            </button>
-          ))}
+        <div className="space-y-5">
+          {['Vector (向量可調)', 'Raster (像素底圖)', 'Historic (歷史圖繪)'].map(category => {
+            const stylesInCategory = DEFAULT_STYLES.filter(s => s.category === category);
+            if (stylesInCategory.length === 0) return null;
+            return (
+              <div key={category} className="space-y-2">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">{category}</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {stylesInCategory.map((style) => (
+                    <button
+                      key={style.id}
+                      onClick={() => setSelectedStyle(style)}
+                      className={`group flex flex-col gap-2 p-2.5 rounded-xl border transition-all ${
+                        selectedStyle?.id === style.id
+                          ? 'bg-white border-brand-500 shadow-md ring-2 ring-brand-50'
+                          : 'bg-slate-50 border-slate-100 hover:bg-white hover:border-slate-200'
+                      }`}
+                    >
+                      <div className="aspect-video bg-slate-200 rounded-lg overflow-hidden relative border border-slate-200/50">
+                          {/* Pseudo preview pattern based on basemap classification */}
+                          <div className={`absolute inset-0`} style={{ 
+                             backgroundColor: 
+                               style.id.includes('dark') ? '#1a202c' : 
+                               style.id.includes('satellite') ? '#2f855a' : 
+                               style.id.includes('historic') ? '#e6dfd1' : 
+                               style.id.includes('bright') ? '#f0f9ff' :
+                               style.id.includes('liberty') ? '#e2e8f0' : '#f8fafc' 
+                          }} />
+                          
+                          {style.id.includes('dark') && <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-400 via-transparent to-transparent" />}
+                          {style.id.includes('satellite') && <div className="absolute inset-x-0 bottom-0 h-1/2 bg-slate-900/40 backdrop-blur-[1px]" />}
+                          {style.id.includes('historic') && <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZmZmIj48L3JlY3Q+CjxwYXRoIGQ9Ik0wIDBMODg4Wk04IDBMMCA4WiIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEuNSI+PC9wYXRoPgo8L3N2Zz4=')]"/>}
+                          
+                          {/* Abstract Map Line */}
+                          <div className={`absolute top-0 bottom-0 left-[35%] w-1.5 transform -rotate-12 ${style.id.includes('satellite') ? 'bg-white/30' : style.id.includes('dark') ? 'bg-indigo-500/50' : style.id.includes('historic') ? 'bg-amber-900/20' : 'bg-slate-300'}`} />
+                          <div className={`absolute top-[40%] right-0 left-[35%] h-1 transform rotate-6 ${style.id.includes('satellite') ? 'bg-white/20' : style.id.includes('dark') ? 'bg-indigo-400/30' : style.id.includes('historic') ? 'bg-amber-900/10' : 'bg-slate-200'}`} />
+                          
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/20 backdrop-blur-[1.5px]">
+                            <Layers size={20} className={style.id.includes('dark') || style.id.includes('satellite') ? 'text-white drop-shadow-md' : 'text-slate-700 drop-shadow-sm'} />
+                          </div>
+                          {selectedStyle?.id === style.id && (
+                            <div className="absolute top-1 right-1 bg-brand-500 text-white rounded-full p-0.5 shadow-sm">
+                              <Check size={10} />
+                            </div>
+                          )}
+                      </div>
+                      <div className="flex flex-col text-left">
+                          <span className={`text-[11px] font-bold truncate ${selectedStyle?.id === style.id ? 'text-brand-600' : 'text-slate-700'}`}>
+                            {style.name}
+                          </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -297,31 +323,49 @@ const MapStyleStudio: React.FC = () => {
       {/* Tab 3: Presets */}
       {activeTab === 'presets' && (
         <div className="space-y-3">
-          <div className="grid grid-cols-1 gap-2.5">
+          {!selectedStyle?.supportsPresets ? (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex flex-col gap-2 items-center text-center text-amber-700 animate-fade-in">
+               <span className="text-xl">⚠️</span>
+               <span className="text-[11px] font-bold">目前底圖不支援樣式覆寫</span>
+               <span className="text-[10px] opacity-80">由於像素底圖與歷史圖層的限制，無法更改個別建築或道路顏色。<br/><br/>請切換至「向量可調 (Vector)」分類的底圖，即可啟用進階渲染腳本。</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
             {Object.entries(PRESETS).map(([id, preset]) => (
               <button
                 key={id}
                 onClick={() => paintStore.applyPreset(id, preset)}
-                className="group w-full flex items-center gap-4 p-3 bg-white border border-slate-100 rounded-xl hover:border-brand-300 hover:shadow-md transition-all text-left"
+                className="group flex flex-col p-2 bg-white border border-slate-100 rounded-xl hover:border-brand-300 hover:shadow-md transition-all text-left"
               >
                 <div 
-                  className="w-12 h-12 rounded-lg shrink-0 border border-slate-100 flex items-center justify-center p-1"
+                  className="aspect-video w-full rounded-lg shrink-0 border border-slate-100 relative overflow-hidden mb-1.5"
                   style={{ backgroundColor: preset.backgroundColor || '#fff' }}
                 >
-                  <div className="w-full h-full flex flex-col gap-0.5 opacity-60">
-                    <div className="h-2 w-full rounded-sm" style={{ backgroundColor: preset.roadColors?.primary || '#ddd' }} />
-                    <div className="h-4 w-4 rounded-sm mx-auto" style={{ backgroundColor: preset.buildingColor || '#ccc' }} />
-                    <div className="h-1.5 w-full mt-auto rounded-sm" style={{ backgroundColor: preset.landUseColors?.park || '#eee', opacity: 0.5 }} />
-                  </div>
+                   <div className="absolute inset-0">
+                     {/* Landuse Areas */}
+                     <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full blur-[4px] opacity-80" style={{ backgroundColor: preset.landUseColors?.park }} />
+                     <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[50%] rounded-full blur-[3px] opacity-70" style={{ backgroundColor: preset.landUseColors?.water }} />
+                     
+                     {/* Road Primary */}
+                     <div className="absolute top-0 bottom-0 left-[30%] w-2 transform shadow-sm" style={{ backgroundColor: preset.roadColors?.primary || '#ddd' }} />
+                     {/* Road Secondary */}
+                     <div className="absolute top-[50%] right-0 left-[30%] h-1" style={{ backgroundColor: preset.roadColors?.secondary || '#eee' }} />
+                     
+                     {/* Buildings */}
+                     <div className="absolute top-[20%] right-[15%] w-[35%] h-[20%] rounded-sm shadow-sm" style={{ backgroundColor: preset.buildingColor, borderColor: preset.buildingOutlineColor, borderWidth: preset.buildingOutlineColor ? '1.5px' : '0' }} />
+                     <div className="absolute bottom-[10%] left-[10%] w-[15%] h-[35%] rounded-sm shadow-sm" style={{ backgroundColor: preset.buildingColor, borderColor: preset.buildingOutlineColor, borderWidth: preset.buildingOutlineColor ? '1.5px' : '0' }} />
+                     <div className="absolute bottom-[15%] right-[25%] w-[20%] h-[20%] rounded-[1px] shadow-sm" style={{ backgroundColor: preset.buildingColor, borderColor: preset.buildingOutlineColor, borderWidth: preset.buildingOutlineColor ? '1.5px' : '0' }} />
+                   </div>
+                   <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[11px] font-bold text-slate-800 uppercase tracking-tight">{id.replace('_', ' ')}</div>
-                  <div className="text-[9px] text-slate-400 truncate">{preset.description}</div>
+                <div className="flex flex-col w-full px-0.5 pb-0.5">
+                  <div className="text-[10px] font-bold text-slate-800 uppercase tracking-tight truncate w-full">{id.replace('_', ' ')}</div>
+                  <div className="text-[8px] text-slate-400 mt-0.5 leading-[1.3] opacity-80">{preset.description}</div>
                 </div>
-                <ChevronRight size={14} className="text-slate-300 group-hover:text-brand-500 transform group-hover:translate-x-0.5 transition-all" />
               </button>
             ))}
-          </div>
+            </div>
+          )}
 
           <div className="pt-4 px-1">
             <button className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-[10px] font-bold uppercase hover:border-brand-200 hover:text-brand-400 transition-all">
