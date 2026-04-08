@@ -4,7 +4,8 @@ import Map from './components/Map/Map';
 import MapStyleStudio from './components/Sidebar/MapStyleStudio';
 import UnifiedExportPanel from './components/Sidebar/UnifiedExportPanel';
 import AnalysisPanel from './components/Sidebar/AnalysisPanel';
-import { PanelLeftClose, PanelLeftOpen, Sun, Activity, TreePine, Box, ChevronRight } from 'lucide-react';
+import SunlightPanel from './components/Sidebar/SunlightPanel';
+import { PanelLeftClose, PanelLeftOpen, Sun, Activity, TreePine, Box, ChevronRight, Sparkles } from 'lucide-react';
 
 const SectionHeader: React.FC<{ en: string, cn: string, color?: string }> = ({ en, cn, color = 'brand' }) => {
   const colorMap: Record<string, string> = {
@@ -38,6 +39,7 @@ const SectionHeader: React.FC<{ en: string, cn: string, color?: string }> = ({ e
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeModule, setActiveModule] = useState<'sunlight' | null>(null);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 transition-colors duration-300">
@@ -84,19 +86,32 @@ function App() {
             <ProjectList />
           </div>
 
-          {/* 4. ADVANCED MODULES (Upcoming) */}
+          {/* 4. ADVANCED MODULES */}
           <div className="sidebar-section px-1 animate-slide-up pb-8 border-b border-slate-50" style={{ animationDelay: '150ms' }}>
             <SectionHeader en="ADVANCED MODULES" cn="進階分析模組" color="amber" />
-            <div className="grid grid-cols-2 gap-2 opacity-60">
-              <button disabled className="group relative flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50 text-center cursor-not-allowed">
-                <Sun size={18} className="text-orange-400" />
+            
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <button 
+                onClick={() => setActiveModule(activeModule === 'sunlight' ? null : 'sunlight')}
+                className={`group relative flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${
+                  activeModule === 'sunlight' 
+                  ? 'border-orange-200 bg-orange-50 ring-2 ring-orange-100' 
+                  : 'border-slate-200 bg-white hover:border-orange-200 hover:bg-orange-50/50'
+                } text-center shadow-sm`}
+              >
+                <div className={`p-2 rounded-lg ${activeModule === 'sunlight' ? 'bg-orange-500 text-white' : 'bg-orange-50 text-orange-500'}`}>
+                  <Sun size={18} />
+                </div>
                 <div className="flex flex-col">
-                  <span className="text-[11px] font-bold text-slate-600">日照微氣候</span>
+                  <span className="text-[11px] font-bold text-slate-700">日照微氣候</span>
                   <span className="text-[9px] opacity-70 uppercase text-slate-400">Solar Analysis</span>
                 </div>
+                {activeModule === 'sunlight' && (
+                  <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                )}
               </button>
               
-              <button disabled className="group relative flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50 text-center cursor-not-allowed">
+              <button disabled className="group relative flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50/50 text-center cursor-not-allowed opacity-40">
                 <Activity size={18} className="text-blue-500" />
                 <div className="flex flex-col">
                   <span className="text-[11px] font-bold text-slate-600">都市可及性</span>
@@ -104,7 +119,7 @@ function App() {
                 </div>
               </button>
 
-              <button disabled className="group relative flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50 text-center cursor-not-allowed">
+              <button disabled className="group relative flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50/50 text-center cursor-not-allowed opacity-40">
                 <TreePine size={18} className="text-emerald-500" />
                 <div className="flex flex-col">
                   <span className="text-[11px] font-bold text-slate-600">綠化指數</span>
@@ -112,7 +127,7 @@ function App() {
                 </div>
               </button>
 
-              <button disabled className="group relative flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50 text-center cursor-not-allowed">
+              <button disabled className="group relative flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50/50 text-center cursor-not-allowed opacity-40">
                 <Box size={18} className="text-sky-400" />
                 <div className="flex flex-col">
                   <span className="text-[11px] font-bold text-slate-600">參數化量體</span>
@@ -120,6 +135,21 @@ function App() {
                 </div>
               </button>
             </div>
+
+            {/* Active Module Panel */}
+            {activeModule === 'sunlight' && (
+              <div className="px-1 py-1 bg-slate-50/50 rounded-2xl border border-slate-100">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={12} className="text-orange-500" />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Analysis</span>
+                  </div>
+                </div>
+                <div className="p-1">
+                  <SunlightPanel />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 5. EXPORT STUDIO */}

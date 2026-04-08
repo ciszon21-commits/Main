@@ -411,7 +411,7 @@ export class MapPaintEngine {
           type: 'fill',
           source: SOURCE_ID,
           paint: {
-            'fill-color': '#0f172a',
+            'fill-color': '#030617', // Deeper, more neutral shadow color
             'fill-opacity': state.opacity
           }
         });
