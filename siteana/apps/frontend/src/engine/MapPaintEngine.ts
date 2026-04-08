@@ -119,6 +119,7 @@ export class MapPaintEngine {
       targetLayers.forEach(id => {
         try {
           map.setPaintProperty(id, 'fill-color', color);
+          map.setPaintProperty(id, 'fill-opacity', 1.0); // 強制不透明，蓋過底圖預設值
         } catch (e) {}
       });
     };

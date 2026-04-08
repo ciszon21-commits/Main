@@ -4,12 +4,13 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useStore, DEFAULT_STYLES } from '../../store/useStore';
 import { useMapPaintStore } from '../../store/useMapPaintStore';
 import { MapPaintEngine } from '../../engine/MapPaintEngine';
+import { StyleInterceptor } from '../../engine/StyleInterceptor';
 import NorthArrow from './NorthArrow';
 import Legend from './Legend';
 import SearchBar from './SearchBar';
 import * as turf from '@turf/turf';
 
-const INITIAL_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
+const INITIAL_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 
 const OSM_RASTER_STYLE = {
   version: 8 as const,
@@ -42,40 +43,45 @@ const Map: React.FC = () => {
   useEffect(() => {
     if (map.current || !mapContainer.current) return;
 
-    map.current = new maplibregl.Map({
-      container: mapContainer.current,
-      style: INITIAL_STYLE,
-      center: [121.5135, 25.042],
-      zoom: 15,
-      attributionControl: false,
-      preserveDrawingBuffer: true,
-    });
+    // 先透過 StyleInterceptor 清洗 Liberty 底圖，移除草地符號與填充紋理
+    StyleInterceptor.fetchAndCleanStyle(INITIAL_STYLE_URL).then(cleanedStyle => {
+      if (!mapContainer.current) return;
+
+      map.current = new maplibregl.Map({
+        container: mapContainer.current,
+        style: cleanedStyle,
+        center: [121.5135, 25.042],
+        zoom: 15,
+        attributionControl: false,
+        preserveDrawingBuffer: true,
+      });
 
     // Scale control setup
     const scale = new maplibregl.ScaleControl({ maxWidth: 80, unit: 'metric' });
     map.current.addControl(scale, 'bottom-right');
 
-    map.current.once('error', () => {
-      if (!hasLoadError.current) {
-        hasLoadError.current = true;
-        console.warn('[SiteANA] Initial style failed. Switching to OSM Raster fallback.');
-        map.current?.setStyle(OSM_RASTER_STYLE);
-        const osmPreset = DEFAULT_STYLES.find(s => s.id === 'osm-raster');
-        if (osmPreset) setSelectedStyle(osmPreset);
-      }
-    });
+      map.current.once('error', () => {
+        if (!hasLoadError.current) {
+          hasLoadError.current = true;
+          console.warn('[SiteANA] Initial style failed. Switching to OSM Raster fallback.');
+          map.current?.setStyle(OSM_RASTER_STYLE);
+          const osmPreset = DEFAULT_STYLES.find(s => s.id === 'osm-raster');
+          if (osmPreset) setSelectedStyle(osmPreset);
+        }
+      });
 
-    // Re-apply paint when style finishes loading
-    map.current.on('style.load', () => {
-      if (map.current) {
-        MapPaintEngine.applyAll(map.current, useMapPaintStore.getState());
-      }
-    });
+      // Re-apply paint when style finishes loading
+      map.current.on('style.load', () => {
+        if (map.current) {
+          MapPaintEngine.applyAll(map.current, useMapPaintStore.getState());
+        }
+      });
 
-    map.current.on('load', () => {
-      console.log('[SiteANA] Map loaded.');
-      setMapRef(map.current); // Expose map ref to store
-      if (map.current) MapPaintEngine.applyAll(map.current, useMapPaintStore.getState());
+      map.current.on('load', () => {
+        console.log('[SiteANA] Map loaded.');
+        setMapRef(map.current); // Expose map ref to store
+        if (map.current) MapPaintEngine.applyAll(map.current, useMapPaintStore.getState());
+      });
     });
 
     return () => {
@@ -85,12 +91,22 @@ const Map: React.FC = () => {
     };
   }, []);
 
-  // --- Style Switch ---
+  // --- Style Switch (透過 StyleInterceptor 清洗後再切換) ---
   useEffect(() => {
     if (!map.current || !selectedStyle) return;
     if (prevStyleId.current === selectedStyle.id) return;
     prevStyleId.current = selectedStyle.id;
-    map.current.setStyle(selectedStyle.mapStyle as any);
+
+    const styleTarget = selectedStyle.mapStyle;
+    if (typeof styleTarget === 'string' && styleTarget.startsWith('http')) {
+      // 向量底圖：先清洗再切換
+      StyleInterceptor.fetchAndCleanStyle(styleTarget).then(cleaned => {
+        map.current?.setStyle(cleaned as any);
+      });
+    } else {
+      // 非向量（如 OSM Raster）：直接切換
+      map.current.setStyle(styleTarget as any);
+    }
   }, [selectedStyle]);
 
   // --- Paint Overrides ---
