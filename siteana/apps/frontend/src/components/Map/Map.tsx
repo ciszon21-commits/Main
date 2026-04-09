@@ -57,6 +57,9 @@ const Map: React.FC = () => {
         preserveDrawingBuffer: true,
       });
 
+      // Expose for debugging
+      (window as any).map = map.current;
+
     // Scale control setup
     const scale = new maplibregl.ScaleControl({ maxWidth: 80, unit: 'metric' });
     map.current.addControl(scale, 'bottom-right');
@@ -151,6 +154,10 @@ const Map: React.FC = () => {
 
   // When time or date changes → re-render shadows from cache (fast, no re-query)
   useEffect(() => {
+    // If sunlight is newly enabled, force an immediate cache refresh to ensure we have data
+    if (sunEnabled && map.current) {
+        MapPaintEngine.refreshBuildingCache(map.current);
+    }
     triggerSunlight();
   }, [sunEnabled, sunDate, sunTime, sunOpacity]);
 

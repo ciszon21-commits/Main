@@ -237,8 +237,8 @@ export class MapPaintEngine {
           } else {
              map.setPaintProperty(id, 'fill-extrusion-color', colorProp);
              map.setPaintProperty(id, 'fill-extrusion-opacity', extrusionOpacity);
-             map.setPaintProperty(id, 'fill-extrusion-height', ['get', 'render_height']);
-             map.setPaintProperty(id, 'fill-extrusion-base', ['get', 'render_min_height']);
+             map.setPaintProperty(id, 'fill-extrusion-height', ['coalesce', ['get', 'render_height'], ['get', 'height'], 10]);
+             map.setPaintProperty(id, 'fill-extrusion-base', ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0]);
           }
         }
       } catch (e) {}
@@ -374,20 +374,42 @@ export class MapPaintEngine {
    */
   static refreshBuildingCache(map: maplibregl.Map): void {
     if (!map.isStyleLoaded()) return;
-    const layers  = map.getStyle()?.layers || [];
+    const layers = map.getStyle()?.layers || [];
+    
+    // RELAXED FILTER: Catch anything that looks like a building or is a 3D extrusion
     const bldgIds = layers
-      .filter(l => l.id.toLowerCase().includes('building') &&
-                   (l.type === 'fill' || l.type === 'fill-extrusion'))
+      .filter(l => 
+        (l.id.toLowerCase().includes('building') || l.type === 'fill-extrusion') &&
+        !l.id.includes('sunlight') // Don't cache our own shadows
+      )
       .map(l => l.id);
 
-    if (bldgIds.length === 0) { this._buildingCache = []; return; }
+    if (bldgIds.length === 0) {
+      console.warn('[SiteANA] No building layers found in current style.');
+      this._buildingCache = [];
+      return;
+    }
 
-    this._buildingCache = (map.queryRenderedFeatures({ layers: bldgIds }) as any[])
-      .filter(f => f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon')
-      // deduplicate by id to avoid stacking polygons on the same footprint
-      .filter((f, i, arr) => arr.findIndex(x => x.id === f.id) === i);
+    // Deduplicate logic: use standard id, fallback to properties.id, fallback to coordinate-based UID
+    this._buildingCache = rawFeatures
+      .filter(f => f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon'))
+      .filter((f, i, arr) => {
+        const getUid = (feat: any) => {
+          if (feat.id !== undefined && feat.id !== null) return String(feat.id);
+          if (feat.properties?.id) return String(feat.properties.id);
+          if (feat.properties?.osm_id) return String(feat.properties.osm_id);
+          // Fallback to coordinates string + index to ensure uniqueness for ID-less features
+          const coords = feat.geometry.coordinates?.[0]?.[0];
+          return coords ? `${coords[0]},${coords[1]}` : `idx-${i}`;
+        };
 
-    console.log(`[SiteANA] Building cache refreshed: ${this._buildingCache.length} features`);
+        const uid = getUid(f);
+        return arr.findIndex(x => getUid(x) === uid) === i;
+      });
+
+    console.log(`[SiteANA] Building cache refreshed: ${this._buildingCache.length} features (from ${bldgIds.length} layers)`);
+    // Expose for browser debugging
+    (window as any).MapPaintEngine = MapPaintEngine;
   }
 
   /**
@@ -436,9 +458,8 @@ export class MapPaintEngine {
         // Use cached buildings — this is the KEY change for smooth animation
         const shadows = SunlightEngine.computeShadows(this._buildingCache, baseDate, lat, lng);
 
-        // Shadow color: deep blue-grey, semi-transparent (shademap.app style)
-        // This creates a "multiply" effect on light basemaps
-        const SHADOW_COLOR = 'rgba(30, 41, 70, 1)';
+        // Shadow color: distinguishable blue-grey (distinct from pure black basemaps)
+        const SHADOW_COLOR = 'rgba(71, 85, 105, 1)'; // Slate-600 質感，比純黑明顯且專業
 
         if (map.getSource(SHADOW_SOURCE)) {
           (map.getSource(SHADOW_SOURCE) as maplibregl.GeoJSONSource).setData(shadows);
