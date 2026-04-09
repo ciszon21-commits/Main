@@ -75,16 +75,20 @@ const Map: React.FC = () => {
       map.current.on('style.load', () => {
         if (map.current) {
           MapPaintEngine.applyAll(map.current, useMapPaintStore.getState());
-          // Re-apply sunlight layers (they're wiped on style change)
-          const s = useStore.getState();
-          if (s.sunlightEnabled) {
-            MapPaintEngine.applySunlight(map.current, {
-              enabled: s.sunlightEnabled,
-              date: s.sunlightDate,
-              time: s.sunlightTime,
-              opacity: s.sunlightShadowOpacity
-            });
-          }
+          // Re-build building cache and re-apply sunlight after basemap change
+          setTimeout(() => {
+            if (!map.current) return;
+            MapPaintEngine.refreshBuildingCache(map.current);
+            const s = useStore.getState();
+            if (s.sunlightEnabled) {
+              MapPaintEngine.applySunlight(map.current, {
+                enabled: s.sunlightEnabled,
+                date:    s.sunlightDate,
+                time:    s.sunlightTime,
+                opacity: s.sunlightShadowOpacity,
+              });
+            }
+          }, 500); // small delay to let tiles render first
         }
       });
 
@@ -129,34 +133,53 @@ const Map: React.FC = () => {
 
   // --- Sunlight & Shadows ---
   const sunEnabled = useStore(state => state.sunlightEnabled);
-  const sunDate = useStore(state => state.sunlightDate);
-  const sunTime = useStore(state => state.sunlightTime);
+  const sunDate    = useStore(state => state.sunlightDate);
+  const sunTime    = useStore(state => state.sunlightTime);
   const sunOpacity = useStore(state => state.sunlightShadowOpacity);
 
+  // Helper to call applySunlight using the current store state
+  const triggerSunlight = () => {
+    if (!map.current || !map.current.isStyleLoaded()) return;
+    const s = useStore.getState();
+    MapPaintEngine.applySunlight(map.current, {
+      enabled: s.sunlightEnabled,
+      date:    s.sunlightDate,
+      time:    s.sunlightTime,
+      opacity: s.sunlightShadowOpacity,
+    });
+  };
+
+  // When time or date changes → re-render shadows from cache (fast, no re-query)
   useEffect(() => {
-    const updateSunlight = () => {
-      if (map.current && map.current.isStyleLoaded()) {
-         MapPaintEngine.applySunlight(map.current, {
-           enabled: sunEnabled, date: sunDate, time: sunTime, opacity: sunOpacity
-         });
+    triggerSunlight();
+  }, [sunEnabled, sunDate, sunTime, sunOpacity]);
+
+  // When the map view settles (idle) → refresh building cache, then re-render
+  // This ensures the cache is always up to date with the current viewport
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+
+    const onIdle = () => {
+      if (!m.isStyleLoaded()) return;
+      // Always refresh cache when viewport changes
+      MapPaintEngine.refreshBuildingCache(m);
+      // If sunlight is enabled, immediately re-render shadows with new cache
+      const s = useStore.getState();
+      if (s.sunlightEnabled) {
+        MapPaintEngine.applySunlight(m, {
+          enabled: s.sunlightEnabled,
+          date:    s.sunlightDate,
+          time:    s.sunlightTime,
+          opacity: s.sunlightShadowOpacity,
+        });
       }
     };
 
-    updateSunlight(); // Initial call
-    
-    // During pan/zoom, the visible buildings change, so we must recalculate
-    if (map.current && sunEnabled) {
-       map.current.on('moveend', updateSunlight);
-       map.current.on('zoomend', updateSunlight);
-    }
+    m.on('idle', onIdle);
+    return () => { m.off('idle', onIdle); };
+  }, []); // Mount once
 
-    return () => {
-       if (map.current) {
-          map.current.off('moveend', updateSunlight);
-          map.current.off('zoomend', updateSunlight);
-       }
-    };
-  }, [sunEnabled, sunDate, sunTime, sunOpacity]);
 
   // --- Buffer Display ---
   useEffect(() => {

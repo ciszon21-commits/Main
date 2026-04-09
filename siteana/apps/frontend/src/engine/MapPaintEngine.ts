@@ -363,24 +363,50 @@ export class MapPaintEngine {
     });
   }
 
+  // ── Building geometry cache ────────────────────────────────────────────────
+  // Populated by refreshBuildingCache() when the map idles.
+  // applySunlight() reads from this cache for smooth, flicker-free animation.
+  private static _buildingCache: GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>[] = [];
+
   /**
-   * 日照與陰影投射 + 太陽羅盤指示
+   * Scan the current viewport for building features and store them in cache.
+   * Call this on map 'idle' (after pan/zoom settles), NOT on every time-slider tick.
+   */
+  static refreshBuildingCache(map: maplibregl.Map): void {
+    if (!map.isStyleLoaded()) return;
+    const layers  = map.getStyle()?.layers || [];
+    const bldgIds = layers
+      .filter(l => l.id.toLowerCase().includes('building') &&
+                   (l.type === 'fill' || l.type === 'fill-extrusion'))
+      .map(l => l.id);
+
+    if (bldgIds.length === 0) { this._buildingCache = []; return; }
+
+    this._buildingCache = (map.queryRenderedFeatures({ layers: bldgIds }) as any[])
+      .filter(f => f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon')
+      // deduplicate by id to avoid stacking polygons on the same footprint
+      .filter((f, i, arr) => arr.findIndex(x => x.id === f.id) === i);
+
+    console.log(`[SiteANA] Building cache refreshed: ${this._buildingCache.length} features`);
+  }
+
+  /**
+   * Apply sunlight shadows + sun compass to the map.
+   * Reads building geometry from the static cache — call refreshBuildingCache() on
+   * map idle to keep the cache fresh when the viewport changes.
    *
-   * Fix log:
-   *  - shadow layer now placed ABOVE building fills (not below symbol layer which was already correct but
-   *    re-adding every call caused flicker — now source.setData path is preferred)
-   *  - compass: line-dasharray cannot use expressions → use static [4,3]
-   *  - compass: paint color is now updated via setPaintProperty after data refresh
-   *  - remove unused mapCenter variable
-   *  - date built from state.date + state.time in local time via buildLocalDate()
+   * Shadow visual style inspired by shademap.app:
+   *   - Deep blue-grey semi-transparent fill (multiply effect)
+   *   - Layer sits ABOVE building fill but BELOW fill-extrusion and labels
    */
   static applySunlight(map: maplibregl.Map, state: SunlightState) {
     const SHADOW_SOURCE  = 'sunlight-shadow-source';
     const SHADOW_LAYER   = 'sunlight-shadow-layer';
     const COMPASS_SOURCE = 'sunlight-compass-source';
-    const COMPASS_RING   = 'sunlight-compass-ring';   // line layer: ring + ray
-    const COMPASS_DOT    = 'sunlight-compass-dot';    // circle layer: sun dot
+    const COMPASS_RING   = 'sunlight-compass-ring';
+    const COMPASS_DOT    = 'sunlight-compass-dot';
 
+    // ── Cleanup helper ───────────────────────────────────────────────────────
     const cleanup = () => {
       for (const l of [COMPASS_DOT, COMPASS_RING, SHADOW_LAYER]) {
         try { if (map.getLayer(l)) map.removeLayer(l); } catch {}
@@ -391,35 +417,30 @@ export class MapPaintEngine {
     };
 
     if (!state.enabled) { cleanup(); return; }
+    if (!map.isStyleLoaded()) return;
 
     try {
-      // Build date in LOCAL time to avoid timezone off-by-one errors
+      // ── Build time in LOCAL time (no UTC/timezone tricks) ─────────────────
       const [yr, mo, da] = state.date.split('-').map(Number);
-      const h = Math.floor(state.time);
-      const m = Math.floor((state.time - h) * 60);
-      const baseDate = new Date(yr, mo - 1, da, h, m, 0, 0);
+      const hh = Math.floor(state.time);
+      const mm = Math.floor((state.time - hh) * 60);
+      const baseDate = new Date(yr, mo - 1, da, hh, mm, 0, 0);
 
       const center = map.getCenter();
-      const lat = center.lat;
-      const lng = center.lng;
-
-      // ── 1. Shadow layers ─────────────────────────────────────────────────
+      const lat    = center.lat;
+      const lng    = center.lng;
       const allLayers = map.getStyle()?.layers || [];
-      const buildingLayerIds = allLayers
-        .filter(l => l.id.toLowerCase().includes('building') &&
-                     (l.type === 'fill' || l.type === 'fill-extrusion'))
-        .map(l => l.id);
 
-      if (buildingLayerIds.length > 0) {
-        const buildingFeatures = map.queryRenderedFeatures({ layers: buildingLayerIds })
-          .filter(f => f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon');
+      // ── 1. Shadow layer (uses building cache) ─────────────────────────────
+      if (this._buildingCache.length > 0) {
+        // Use cached buildings — this is the KEY change for smooth animation
+        const shadows = SunlightEngine.computeShadows(this._buildingCache, baseDate, lat, lng);
 
-        const shadows = SunlightEngine.computeShadowsForBuildings(
-          buildingFeatures as any, baseDate, lat, lng
-        );
+        // Shadow color: deep blue-grey, semi-transparent (shademap.app style)
+        // This creates a "multiply" effect on light basemaps
+        const SHADOW_COLOR = 'rgba(30, 41, 70, 1)';
 
         if (map.getSource(SHADOW_SOURCE)) {
-          // Source exists → just update data & opacity
           (map.getSource(SHADOW_SOURCE) as maplibregl.GeoJSONSource).setData(shadows);
           if (map.getLayer(SHADOW_LAYER)) {
             map.setPaintProperty(SHADOW_LAYER, 'fill-opacity', state.opacity);
@@ -431,36 +452,37 @@ export class MapPaintEngine {
             type: 'fill',
             source: SHADOW_SOURCE,
             paint: {
-              'fill-color': '#000000',
+              'fill-color':   SHADOW_COLOR,
               'fill-opacity': state.opacity,
             }
           });
         }
 
-        // Place shadow layer BELOW the first building layer to prevent the shadow footprint covering the building itself.
-        const firstBuilding = allLayers.find(l => 
-          l.id.toLowerCase().includes('building') && (l.type === 'fill' || l.type === 'fill-extrusion')
+        // Layer ordering:
+        // We want: ground → shadow → building fill → fill-extrusion → labels
+        // So insert shadow ABOVE fill layers but BELOW fill-extrusion & symbols
+        const firstExtrusionOrSymbol = allLayers.find(l =>
+          (l.type === 'fill-extrusion' || l.type === 'symbol')
         );
-        // If no building layer exists, fall back to below first symbol
-        const targetLayerId = firstBuilding ? firstBuilding.id : allLayers.find(l => l.type === 'symbol')?.id;
-        if (targetLayerId && map.getLayer(SHADOW_LAYER)) {
-          try { map.moveLayer(SHADOW_LAYER, targetLayerId); } catch {}
+        if (firstExtrusionOrSymbol && map.getLayer(SHADOW_LAYER)) {
+          try { map.moveLayer(SHADOW_LAYER, firstExtrusionOrSymbol.id); } catch {}
         }
       }
 
-      // ── 2. Sun compass indicator ─────────────────────────────────────────
-      const sunPos = SunlightEngine.getSunPosition(baseDate, lat, lng);
+      // ── 2. Sun compass indicator ──────────────────────────────────────────
+      const sunPos  = SunlightEngine.getSunPosition(baseDate, lat, lng);
+      const zoom    = map.getZoom();
+      // Ring radius: larger at lower zoom (city scale), smaller at high zoom (block scale)
+      const radiusKm = Math.max(0.05, Math.min(0.45, 0.45 / Math.pow(2, zoom - 14)));
 
-      // Scale ring to zoom so it doesn't cover too much of screen
-      const zoom = map.getZoom();
-      const radiusKm = Math.max(0.06, Math.min(0.4, 0.4 / Math.pow(2, zoom - 14)));
-
-      // Ring: 64-segment closed polygon rendered as line layer
+      // Build ring as 64-segment closed linestring
       const ring: number[][] = [];
       for (let i = 0; i <= 64; i++) {
         ring.push(moveAlongBearing(lng, lat, radiusKm, (i / 64) * 360));
       }
-      const rayEnd = moveAlongBearing(lng, lat, radiusKm * 1.4, sunPos.azimuthDeg);
+      // Ray tip goes slightly beyond ring
+      const rayEnd = moveAlongBearing(lng, lat, radiusKm * 1.45, sunPos.azimuthDeg);
+      // Sun dot sits on the ring at sun's bearing
       const sunDot = moveAlongBearing(lng, lat, radiusKm, sunPos.azimuthDeg);
 
       const compassData: GeoJSON.FeatureCollection = {
@@ -484,21 +506,20 @@ export class MapPaintEngine {
         ]
       };
 
-      const ringColor = sunPos.isDay ? 'rgba(251,191,36,0.75)' : 'rgba(148,163,184,0.55)';
+      const ringColor = sunPos.isDay ? 'rgba(251,191,36,0.8)' : 'rgba(148,163,184,0.5)';
       const rayColor  = sunPos.isDay ? '#f59e0b' : '#94a3b8';
       const dotColor  = sunPos.isDay ? '#fbbf24' : '#64748b';
 
       if (map.getSource(COMPASS_SOURCE)) {
-        // Update data
         (map.getSource(COMPASS_SOURCE) as maplibregl.GeoJSONSource).setData(compassData);
-        // Update paint (isDay might have changed, or color preference)
+        // Update colors live (sun might cross horizon)
         if (map.getLayer(COMPASS_RING)) {
-          map.setPaintProperty(COMPASS_RING, 'line-color', [
-            'match', ['get', 'kind'], 'ray', rayColor, ringColor
-          ]);
-          map.setPaintProperty(COMPASS_RING, 'line-width', [
-            'match', ['get', 'kind'], 'ray', 2.5, 1.5
-          ]);
+          map.setPaintProperty(COMPASS_RING, 'line-color',
+            ['match', ['get', 'kind'], 'ray', rayColor, ringColor] as any
+          );
+          map.setPaintProperty(COMPASS_RING, 'line-width',
+            ['match', ['get', 'kind'], 'ray', 2.5, 1.5] as any
+          );
         }
         if (map.getLayer(COMPASS_DOT)) {
           map.setPaintProperty(COMPASS_DOT, 'circle-color', dotColor);
@@ -506,7 +527,8 @@ export class MapPaintEngine {
       } else {
         map.addSource(COMPASS_SOURCE, { type: 'geojson', data: compassData });
 
-        // Ring + ray line layer (note: line-dasharray must be a static literal)
+        // Ring + ray (line layer)
+        // Note: line-dasharray does NOT support expressions — must be static
         map.addLayer({
           id: COMPASS_RING,
           type: 'line',
@@ -518,26 +540,26 @@ export class MapPaintEngine {
           paint: {
             'line-color': ['match', ['get', 'kind'], 'ray', rayColor, ringColor] as any,
             'line-width': ['match', ['get', 'kind'], 'ray', 2.5, 1.5] as any,
-            'line-dasharray': [4, 3]   // static — expressions not supported here
+            'line-dasharray': [4, 3],
           }
         });
 
-        // Sun position dot
+        // Sun dot (circle layer)
         map.addLayer({
           id: COMPASS_DOT,
           type: 'circle',
           source: COMPASS_SOURCE,
           filter: ['==', ['get', 'kind'], 'dot'] as any,
           paint: {
-            'circle-radius': 7,
-            'circle-color': dotColor,
+            'circle-radius':       7,
+            'circle-color':        dotColor,
             'circle-stroke-width': 2,
-            'circle-stroke-color': '#ffffff'
+            'circle-stroke-color': '#ffffff',
           }
         });
       }
 
-      // Always keep compass visually on top
+      // Compass always on top
       try {
         if (map.getLayer(COMPASS_RING)) map.moveLayer(COMPASS_RING);
         if (map.getLayer(COMPASS_DOT))  map.moveLayer(COMPASS_DOT);
@@ -549,11 +571,14 @@ export class MapPaintEngine {
   }
 }
 
-// ── Geo utility ──────────────────────────────────────────────────────────────
+// ── Geo utility ───────────────────────────────────────────────────────────────
 /**
- * Haversine: move [lng, lat] by distKm along bearingDeg (0=North, CW)
+ * Haversine displacement: move [lng, lat] by distKm along bearingDeg (0=North, CW).
  */
-function moveAlongBearing(lng: number, lat: number, distKm: number, bearingDeg: number): [number, number] {
+function moveAlongBearing(
+  lng: number, lat: number,
+  distKm: number, bearingDeg: number
+): [number, number] {
   const R  = 6371;
   const d  = distKm / R;
   const b  = bearingDeg * Math.PI / 180;
@@ -563,4 +588,3 @@ function moveAlongBearing(lng: number, lat: number, distKm: number, bearingDeg: 
   const λ2 = λ1 + Math.atan2(Math.sin(b) * Math.sin(d) * Math.cos(φ1), Math.cos(d) - Math.sin(φ1) * Math.sin(φ2));
   return [λ2 * 180 / Math.PI, φ2 * 180 / Math.PI];
 }
-
