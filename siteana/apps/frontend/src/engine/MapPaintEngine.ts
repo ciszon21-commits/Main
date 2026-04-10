@@ -35,9 +35,9 @@ export class MapPaintEngine {
       highway: ['motorway', 'trunk', 'highway', 'road_motorway', 'road_trunk'],
       primary: ['primary', 'major_road', 'road_primary'],
       secondary: ['secondary', 'medium_road', 'road_secondary'],
-      residential: ['residential', 'tertiary', 'minor_road', 'street', 'road_tertiary', 'road_major_residential', 'road_minor'],
-      path: ['path', 'pedestrian', 'footway', 'cycleway', 'track', 'service', 'road_service', 'road_path'],
-      transit_rail: ['rail', 'railway'], // Matches general rail (TRA/THSR)
+      residential: ['residential', 'tertiary', 'minor_road', 'street', 'road_tertiary', 'road_major_residential', 'road_minor', 'road_street'],
+      path: ['path', 'pedestrian', 'footway', 'cycleway', 'track', 'service', 'road_service', 'road_path', 'road_pedestrian'],
+      transit_rail: ['rail', 'railway', 'roads-rail', 'transportation-rail'], // Matches general rail (TRA/THSR)
       transit_mrt: ['subway', 'tram', 'transit', 'light_rail', 'bus', 'busway'], // Matches MRT & Bus layers
     };
 
@@ -184,10 +184,65 @@ export class MapPaintEngine {
    */
   static applyBuildings(map: maplibregl.Map, state: MapPaintState) {
     const layers = map.getStyle()?.layers || [];
+    // RELAXED FILTER: Find all layers that look like buildings
     const buildingLayers = layers.filter(l => 
-      l.id.toLowerCase().includes('building') && 
+      (l.id.toLowerCase().includes('building') || l.id.toLowerCase().includes('structure') || l.id.toLowerCase().includes('architecture')) && 
       (l.type === 'fill' || l.type === 'fill-extrusion')
-    ).map(l => l.id);
+    ).map(l => ({ id: l.id, type: l.type, source: (l as any).source, sourceLayer: (l as any)['source-layer'] }));
+
+    // --- Dynamic 3D Injection for styles that only have 2D building layers (like Carto) ---
+    if (state.building3D) {
+      const hasExtrusion = buildingLayers.some(l => l.type === 'fill-extrusion');
+      if (!hasExtrusion) {
+        // Try to inject based on source layer info
+        const baseLayer = buildingLayers.find(l => l.type === 'fill');
+        if (baseLayer && baseLayer.source && baseLayer.sourceLayer) {
+           const INJECTED_ID = `injected-3d-${baseLayer.id}`;
+           if (!map.getLayer(INJECTED_ID)) {
+              console.log('[MapPaintEngine] Injecting 3D building layer:', INJECTED_ID);
+              // Move it above the 2D fill but before labels
+              const firstLabel = layers.find(l => l.type === 'symbol');
+              map.addLayer({
+                id: INJECTED_ID,
+                type: 'fill-extrusion',
+                source: baseLayer.source,
+                'source-layer': baseLayer.sourceLayer,
+              }, firstLabel?.id);
+           }
+           // Add to our list to be styled below
+           buildingLayers.push({ id: INJECTED_ID, type: 'fill-extrusion', source: baseLayer.source, sourceLayer: baseLayer.sourceLayer });
+        }
+      }
+    }
+
+    // --- Robust Outline Logic (Fixes Arch Line/Gray Issues) ---
+    const OUTLINE_LAYER = 'injected-building-outline';
+    if (!state.building3D && state.buildingOutlineColor && state.buildingVisibility) {
+       const baseLayer = buildingLayers.find(l => l.type === 'fill');
+       if (baseLayer) {
+         if (!map.getLayer(OUTLINE_LAYER)) {
+           map.addLayer({
+              id: OUTLINE_LAYER,
+              type: 'line',
+              source: baseLayer.source,
+              'source-layer': baseLayer.sourceLayer,
+              paint: {
+                'line-color': state.buildingOutlineColor,
+                'line-width': ['interpolate', ['linear'], ['zoom'], 15, 0.5, 18, 2]
+              }
+           });
+         }
+         // Zoom-dependent visibility for line presets (Fixes issue #3 and #4)
+         map.setPaintProperty(OUTLINE_LAYER, 'line-opacity', [
+            'interpolate', ['linear'], ['zoom'],
+            13, state.activePresetId === 'architectural_grey' ? 0.0 : 0.8, // Hide gray outlines when zoomed out
+            15, 1.0
+         ]);
+         map.setPaintProperty(OUTLINE_LAYER, 'line-color', state.buildingOutlineColor);
+       }
+    } else {
+       if (map.getLayer(OUTLINE_LAYER)) try { map.removeLayer(OUTLINE_LAYER); } catch(e) {}
+    }
 
     // 依據樓層設定漸層色 (低層: 淺灰, 中層: 橘色, 高層: 深紅)
     const gradientExpression = [
@@ -199,36 +254,26 @@ export class MapPaintEngine {
     ];
 
     const isGradient = state.activePresetId === 'urban_density';
+    const colorProp = isGradient ? gradientExpression : state.buildingColor;
 
-    buildingLayers.forEach(id => {
+    buildingLayers.forEach(l => {
+      const { id, type } = l;
       try {
-        const layer = map.getLayer(id);
-        if (!layer) return;
-
         // --- Visibility ---
         map.setLayoutProperty(id, 'visibility', state.buildingVisibility ? 'visible' : 'none');
         if (!state.buildingVisibility) return;
 
-        const colorProp = isGradient ? gradientExpression : state.buildingColor;
-
-        if (layer.type === 'fill') {
+        if (type === 'fill') {
           map.setPaintProperty(id, 'fill-color', colorProp);
           map.setPaintProperty(id, 'fill-opacity', state.buildingOpacity);
-          
-          if (state.buildingOutlineColor) {
-            try {
-              map.setPaintProperty(id, 'fill-outline-color', state.buildingOutlineColor);
-            } catch (e) {}
-          }
-        } else if (layer.type === 'fill-extrusion') {
-          // Prevent dense 3D buildings from turning black when zoomed out by lowering opacity
+          // If we have our injected line layer, hide the native fuzzy outline
+          map.setPaintProperty(id, 'fill-outline-color', 'rgba(0,0,0,0)');
+        } else if (type === 'fill-extrusion') {
           const extrusionOpacity = isGradient ? [
             'interpolate', ['linear'], ['zoom'],
-            12, 0.2, // very transparent when zoomed out
-            15, state.buildingOpacity
+            12, 0.2, 15, state.buildingOpacity
           ] : state.buildingOpacity;
 
-          // If in 2D mode, flatten extrusion layers but keep them visible
           if (!state.building3D) {
              map.setPaintProperty(id, 'fill-extrusion-height', 0);
              map.setPaintProperty(id, 'fill-extrusion-base', 0);
@@ -237,8 +282,12 @@ export class MapPaintEngine {
           } else {
              map.setPaintProperty(id, 'fill-extrusion-color', colorProp);
              map.setPaintProperty(id, 'fill-extrusion-opacity', extrusionOpacity);
-             map.setPaintProperty(id, 'fill-extrusion-height', ['coalesce', ['get', 'render_height'], ['get', 'height'], 10]);
-             map.setPaintProperty(id, 'fill-extrusion-base', ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0]);
+             map.setPaintProperty(id, 'fill-extrusion-height', [
+               'coalesce', ['get', 'render_height'], ['get', 'height'], 10
+             ]);
+             map.setPaintProperty(id, 'fill-extrusion-base', [
+               'coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0
+             ]);
           }
         }
       } catch (e) {}
@@ -281,17 +330,18 @@ export class MapPaintEngine {
     apply(
       ['park', 'garden', 'recreation', 'leisure', 'green', 'grass', 'forest', 'wood',
        'landcover', 'landuse_park', 'landuse_grass', 'natural', 'wetland', 'scrub',
-       'allotment', 'orchard', 'vineyard', 'cemetery', 'pitch', 'area_park', 'area_grass'],
+       'allotment', 'orchard', 'vineyard', 'cemetery', 'pitch', 'area_park', 'area_grass', 'golf', 'meadow'],
       landUseColors.park
     );
-    apply(['water', 'river', 'lake', 'stream', 'ocean', 'sea', 'canal', 'waterway'], landUseColors.water);
+    apply(['water', 'river', 'lake', 'stream', 'ocean', 'sea', 'canal', 'waterway', 'basin'], landUseColors.water);
     
     // Aggressively capture all plaza/pedestrian areas to kill black patterns
+    // Also captures bridges and piers to fix yellow line artifacts (Problem 5)
     apply(['parking', 'area_parking', 'landuse_parking'], landUseColors.parking || landUseColors.residential);
-    apply(['square', 'plaza', 'pedestrian', 'footway_area', 'path_area', 'area_pedestrian', 'landuse_pedestrian', 'monument'], landUseColors.pedestrian || landUseColors.residential);
+    apply(['square', 'plaza', 'pedestrian', 'footway_area', 'path_area', 'area_pedestrian', 'landuse_pedestrian', 'monument', 'bridge', 'pier', 'transportation'], landUseColors.pedestrian || landUseColors.residential);
 
     apply(
-      ['residential', 'neighborhood', 'urban', 'landuse_residential', 'school', 'hospital', 'aeroway'], 
+      ['residential', 'neighborhood', 'urban', 'landuse_residential', 'school', 'hospital', 'aeroway', 'building-area'], 
       landUseColors.residential
     );
     apply(['commercial', 'retail', 'business', 'office', 'landuse_commercial'], landUseColors.commercial);
@@ -342,6 +392,9 @@ export class MapPaintEngine {
              }
            } catch(e) {}
         }
+        
+        // Fix for Issue #9: Keep labels visible longer when zooming out
+        map.setLayerZoomRange(layer.id, 0, 24); 
         
         map.setLayoutProperty(layer.id, 'visibility', isVisible ? 'visible' : 'none');
       } catch (e) {}

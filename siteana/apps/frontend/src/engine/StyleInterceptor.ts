@@ -45,7 +45,7 @@ export class StyleInterceptor {
                                'allotment', 'orchard', 'vineyard', 'fell', 'sand', 'beach',
                                'pitch', 'recreation', 'golf', 'meadow', 'cemetery', 'green'];
       const WATER_KEYWORDS  = ['water', 'river', 'lake', 'stream', 'ocean', 'sea', 'canal', 'basin'];
-      const URBAN_KEYWORDS  = ['pedestrian', 'plaza', 'square', 'bridge', 'parking', 'aeroway', 'runway', 'taxiway', 'apron', 'pier', 'highway'];
+      const URBAN_KEYWORDS  = ['pedestrian', 'plaza', 'square', 'bridge', 'parking', 'aeroway', 'runway', 'taxiway', 'apron', 'pier', 'highway', 'transportation'];
 
       styleObj.layers.forEach((l: any) => {
         if (l.type === 'fill' && l.paint) {
@@ -59,11 +59,11 @@ export class StyleInterceptor {
               if (WATER_KEYWORDS.some(k => id.includes(k))) {
                 l.paint['fill-color'] = '#aad3df'; // 水體藍
               } else if (NATURE_KEYWORDS.some(k => id.includes(k))) {
-                l.paint['fill-color'] = '#d1e6c3'; // 清新草地綠 (較淡，適合底圖)
+                l.paint['fill-color'] = '#d1e6c3'; // 清新草地綠
               } else if (URBAN_KEYWORDS.some(k => id.includes(k))) {
-                l.paint['fill-color'] = '#f4f4f5'; // 廣場/橋梁的淺灰 (zinc-100)
+                l.paint['fill-color'] = '#f1f5f9'; // 廣場/橋梁的淺灰 (slate-100)
               } else {
-                l.paint['fill-color'] = '#f8fafc'; // 全域保底極白灰 (slate-50)，確保不會有任何黑塊
+                l.paint['fill-color'] = '#f8fafc'; // 全域保底極白灰 (slate-50)
               }
             }
           }

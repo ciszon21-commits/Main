@@ -38,21 +38,21 @@ const PRESETS: Record<string, Partial<MapPaintState> & { description: string }> 
     roadColors: { highway: '#e2e8f0', primary: '#f1f5f9', secondary: '#f8fafc', residential: '#ffffff', path: '#ffffff', transit_rail: '#003366', transit_mrt: '#008659' },
     buildingColor: '#f1f5f9', buildingOutlineColor: '#e2e8f0', buildingOpacity: 0.4, building3D: false, buildingVisibility: true,
     landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#f8fafc', water: '#f1f5f9', industrial: '#ffffff' },
-    backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: true },
+    backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '大眾運輸路網：台鐵深藍色與捷運標準色系'
   },
   road_hierarchy: {
     roadColors: { highway: '#dc2626', primary: '#f97316', secondary: '#fbbf24', residential: '#cbd5e1', path: '#f8fafc' },
     buildingColor: '#f8fafc', buildingOutlineColor: '#e2e8f0', buildingOpacity: 0.4, building3D: false, buildingVisibility: true,
     landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#ffffff', water: '#f1f5f9', industrial: '#ffffff' },
-    backgroundColor: '#ffffff', labelVisibility: { road: true, park: false, water: false, poi: false },
+    backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '道路層級分析：依寬度與速限(紅橘黃)顯示熱區'
   },
   pedestrian_flow: {
     roadColors: { highway: '#f8fafc', primary: '#f8fafc', secondary: '#f8fafc', residential: '#f8fafc', path: '#10b981' },
     buildingColor: '#ffffff', buildingOutlineColor: '#cbd5e1', buildingOpacity: 0.8, building3D: false, buildingVisibility: true,
     landUseColors: { residential: '#f8fafc', commercial: '#f8fafc', park: '#c2dac1', water: '#aed1d6', industrial: '#f8fafc', parking: '#bbf7d0', pedestrian: '#dcfce3' },
-    backgroundColor: '#f8fafc', labelVisibility: { road: false, park: false, water: false, poi: true },
+    backgroundColor: '#f8fafc', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '人車動線：綠帶淡彩化，隱藏一般路網'
   },
   blueprint_tech: {
