@@ -42,8 +42,10 @@ export class StyleInterceptor {
       // 並對自然圖層補上安全底色，避免回退為黑色
       const NATURE_KEYWORDS = ['grass', 'wood', 'forest', 'park', 'garden', 'scrub',
                                'wetland', 'landcover', 'natural', 'leisure', 'vegetation',
-                               'allotment', 'orchard', 'vineyard', 'fell', 'sand', 'beach'];
-      const WATER_KEYWORDS  = ['water', 'river', 'lake', 'stream', 'ocean', 'sea', 'canal'];
+                               'allotment', 'orchard', 'vineyard', 'fell', 'sand', 'beach',
+                               'pitch', 'recreation', 'golf', 'meadow', 'cemetery', 'green'];
+      const WATER_KEYWORDS  = ['water', 'river', 'lake', 'stream', 'ocean', 'sea', 'canal', 'basin'];
+      const URBAN_KEYWORDS  = ['pedestrian', 'plaza', 'square', 'bridge', 'parking', 'aeroway', 'runway', 'taxiway', 'apron', 'pier', 'highway'];
 
       styleObj.layers.forEach((l: any) => {
         if (l.type === 'fill' && l.paint) {
@@ -51,13 +53,17 @@ export class StyleInterceptor {
           if (l.paint['fill-pattern'] !== undefined) {
             delete l.paint['fill-pattern'];
 
-            // 若刪除 fill-pattern 後沒有 fill-color，補上安全預設色
+            // 若刪除 fill-pattern 後沒有 fill-color，補上安全預設色，絕對避免回退為 #000000 黑色
             if (!l.paint['fill-color']) {
               const id = (l.id || '').toLowerCase();
               if (WATER_KEYWORDS.some(k => id.includes(k))) {
                 l.paint['fill-color'] = '#aad3df'; // 水體藍
               } else if (NATURE_KEYWORDS.some(k => id.includes(k))) {
-                l.paint['fill-color'] = '#b5d4a0'; // 公園綠
+                l.paint['fill-color'] = '#d1e6c3'; // 清新草地綠 (較淡，適合底圖)
+              } else if (URBAN_KEYWORDS.some(k => id.includes(k))) {
+                l.paint['fill-color'] = '#f4f4f5'; // 廣場/橋梁的淺灰 (zinc-100)
+              } else {
+                l.paint['fill-color'] = '#f8fafc'; // 全域保底極白灰 (slate-50)，確保不會有任何黑塊
               }
             }
           }
