@@ -53,17 +53,12 @@ export class StyleInterceptor {
           if (l.paint['fill-pattern'] !== undefined) {
             delete l.paint['fill-pattern'];
 
-            // 若刪除 fill-pattern 後沒有 fill-color，補上安全預設色，絕對避免回退為 #000000 黑色
+            // 若刪除 fill-pattern 後沒有 fill-color，補上中性基底色，後續由 MapPaintEngine 依據 Preset 動態覆蓋
             if (!l.paint['fill-color']) {
-              const id = (l.id || '').toLowerCase();
-              if (WATER_KEYWORDS.some(k => id.includes(k))) {
+              if (WATER_KEYWORDS.some(k => (l.id || '').toLowerCase().includes(k))) {
                 l.paint['fill-color'] = '#aad3df'; // 水體藍
-              } else if (NATURE_KEYWORDS.some(k => id.includes(k))) {
-                l.paint['fill-color'] = '#d1e6c3'; // 清新草地綠
-              } else if (URBAN_KEYWORDS.some(k => id.includes(k))) {
-                l.paint['fill-color'] = '#f1f5f9'; // 廣場/橋梁的淺灰 (slate-100)
               } else {
-                l.paint['fill-color'] = '#f8fafc'; // 全域保底極白灰 (slate-50)
+                l.paint['fill-color'] = '#f8fafc'; // 全域中性保底色
               }
             }
           }

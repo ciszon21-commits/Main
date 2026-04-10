@@ -20,73 +20,95 @@ import {
 } from 'lucide-react';
 
 const PRESETS: Record<string, Partial<MapPaintState> & { description: string }> = {
+  // 1. 量體感 — 建築與街廓虛實
   urban_density: {
-    roadColors: { highway: '#cbd5e1', primary: '#e2e8f0', secondary: '#edf2f7', residential: '#f7fafc', path: '#ffffff' },
+    roadColors: { highway: '#94a3b8', expressway: '#b0bec5', primary: '#cfd8dc', secondary: '#dde3e8', residential: '#ecf0f1', path: '#f5f5f5' },
     buildingColor: '#2d3748', buildingOutlineColor: '#4a5568', buildingOpacity: 0.95, building3D: true, buildingVisibility: true,
     landUseColors: { residential: '#f7fafc', commercial: '#f7fafc', park: '#e2e8f0', water: '#cbd5e1', industrial: '#f7fafc' },
     backgroundColor: '#f7fafc', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '量體感：強調建築與街廓的虛實關係'
   },
+  // 2. 生態紋理 — 藍綠帶極大化
   ecological_texture: {
-    roadColors: { highway: '#fcfcfc', primary: '#fcfcfc', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
-    buildingColor: '#f1f5f2', buildingOutlineColor: '#e2e8e4', buildingOpacity: 0.6, building3D: false, buildingVisibility: true,
-    landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#c2dac1', water: '#aed1d6', industrial: '#ffffff' },
+    roadColors: { highway: '#e8f5e9', expressway: '#f1f8e9', primary: '#f9fbe7', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
+    buildingColor: '#f1f5f2', buildingOutlineColor: '#c8e6c9', buildingOpacity: 0.5, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#86efac', water: '#60a5fa', industrial: '#ffffff', pedestrian: '#d1fae5' },
     backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '生命力：將藍綠帶色彩極大化'
   },
+  // 3. 大眾運輸路網
   transit_network: {
-    roadColors: { highway: '#e2e8f0', primary: '#f1f5f9', secondary: '#f8fafc', residential: '#ffffff', path: '#ffffff', transit_rail: '#003366', transit_mrt: '#008659' },
-    buildingColor: '#f1f5f9', buildingOutlineColor: '#e2e8f0', buildingOpacity: 0.4, building3D: false, buildingVisibility: true,
-    landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#f8fafc', water: '#f1f5f9', industrial: '#ffffff' },
-    backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: false },
-    description: '大眾運輸路網：台鐵深藍色與捷運標準色系'
-  },
-  road_hierarchy: {
-    roadColors: { highway: '#dc2626', primary: '#f97316', secondary: '#fbbf24', residential: '#cbd5e1', path: '#f8fafc' },
-    buildingColor: '#f8fafc', buildingOutlineColor: '#e2e8f0', buildingOpacity: 0.4, building3D: false, buildingVisibility: true,
-    landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#ffffff', water: '#f1f5f9', industrial: '#ffffff' },
-    backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: false },
-    description: '道路層級分析：依寬度與速限(紅橘黃)顯示熱區'
-  },
-  pedestrian_flow: {
-    roadColors: { highway: '#f8fafc', primary: '#f8fafc', secondary: '#f8fafc', residential: '#f8fafc', path: '#10b981' },
-    buildingColor: '#ffffff', buildingOutlineColor: '#cbd5e1', buildingOpacity: 0.8, building3D: false, buildingVisibility: true,
-    landUseColors: { residential: '#f8fafc', commercial: '#f8fafc', park: '#c2dac1', water: '#aed1d6', industrial: '#f8fafc', parking: '#bbf7d0', pedestrian: '#dcfce3' },
+    roadColors: { highway: '#e8eaf6', expressway: '#ede7f6', primary: '#f3e5f5', secondary: '#fce4ec', residential: '#f8fafc', path: '#f8fafc', transit_rail: '#374151', transit_mrt: '#008659' },
+    buildingColor: '#f8fafc', buildingOutlineColor: '#e2e8f0', buildingOpacity: 0.35, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#f8fafc', commercial: '#f8fafc', park: '#f0fdf4', water: '#eff6ff', industrial: '#f8fafc' },
     backgroundColor: '#f8fafc', labelVisibility: { road: false, park: false, water: false, poi: false },
-    description: '人車動線：綠帶淡彩化，隱藏一般路網'
+    description: '大眾運輸路網：台鐵深灰、高鐵橘色、捷運路線色'
   },
+  // 4. 道路層級分析 (Google Maps 色系)
+  road_hierarchy: {
+    roadColors: {
+      highway:     '#e63946', // 高速公路 — 鮮紅
+      expressway:  '#f4a261', // 快速道路 — 橘橙
+      primary:     '#f9c74f', // 省道/連外 — 橘黃
+      secondary:   '#dee2e6', // 主要幹道 — 淺灰白
+      residential: '#adb5bd', // 市區道路 — 中灰
+      path:        '#ced4da', // 步道     — 淡灰
+    },
+    buildingColor: '#f8fafc', buildingOutlineColor: '#dee2e6', buildingOpacity: 0.35, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#f8fafc', commercial: '#f8fafc', park: '#f0fdf4', water: '#eff6ff', industrial: '#f8fafc' },
+    backgroundColor: '#ffffff', labelVisibility: { road: true, park: false, water: false, poi: false },
+    description: '道路層級：高速紅→快速橘→省道黃→幹道灰，Google Maps 風格'
+  },
+  // 5. 人流動線分析
+  pedestrian_flow: {
+    roadColors: {
+      highway: '#f1f5f9', expressway: '#f1f5f9', primary: '#f1f5f9', secondary: '#f1f5f9', residential: '#f1f5f9',
+      path:     '#f97316', // 人行道 — 橘黃
+      overpass: '#a855f7', // 天橋/地下道/地下街 — 紫色
+      crossing: '#facc15', // 斑馬線 — 亮黃
+    },
+    buildingColor: '#ffffff', buildingOutlineColor: '#cbd5e1', buildingOpacity: 0.8, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#f8fafc', commercial: '#f8fafc', park: '#bbf7d0', water: '#bfdbfe', industrial: '#f8fafc', parking: '#fef9c3', pedestrian: '#fed7aa' },
+    backgroundColor: '#f8fafc', labelVisibility: { road: false, park: false, water: false, poi: false },
+    description: '人流分析：人行道橘黃 / 天橋地下道紫 / 斑馬線黃'
+  },
+  // 6. 藍曬圖
   blueprint_tech: {
-    roadColors: { highway: '#ffffff', primary: '#e0f2fe', secondary: '#bae6fd', residential: '#89c2d9', path: '#89c2d9' },
+    roadColors: { highway: '#ffffff', expressway: '#e0f2fe', primary: '#bae6fd', secondary: '#7dd3fc', residential: '#38bdf8', path: '#0ea5e9' },
     buildingColor: '#012a4a', buildingOutlineColor: '#ffffff', buildingOpacity: 0.85, building3D: false, buildingVisibility: true,
     landUseColors: { residential: '#012a4a', commercial: '#012a4a', park: '#013a63', water: '#01497c', industrial: '#012a4a' },
     backgroundColor: '#012a4a', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '製圖感：經典青曬圖 (Cyanotype) 視覺'
   },
+  // 7. 空氣感
   soft_site: {
-    roadColors: { highway: '#cbd5e1', primary: '#e2e8f0', secondary: '#f8fafc', residential: '#ffffff', path: '#ffffff' },
+    roadColors: { highway: '#cbd5e1', expressway: '#d4dce8', primary: '#e2e8f0', secondary: '#f1f5f9', residential: '#f8fafc', path: '#f8fafc' },
     buildingColor: '#faf8f5', buildingOutlineColor: '#cbd5e1', buildingOpacity: 0.3, building3D: false, buildingVisibility: true,
     landUseColors: { residential: '#faf8f5', commercial: '#faf8f5', park: '#ccfbf1', water: '#bae6fd', industrial: '#faf8f5' },
     backgroundColor: '#faf8f5', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '空氣感：低飽和度、高亮度的底圖'
   },
+  // 8. 建築灰階
   architectural_grey: {
-    roadColors: { highway: '#4a5568', primary: '#718096', secondary: '#a0aec0', residential: '#cbd5e1', path: '#e2e8f0' },
-    buildingColor: '#ffffff', buildingOutlineColor: '#000000', buildingOpacity: 1.0, building3D: false, buildingVisibility: true,
-    landUseColors: { residential: '#e2e8f0', commercial: '#e2e8f0', park: '#cbd2d9', water: '#a0aec0', industrial: '#e2e8f0' },
-    backgroundColor: '#f1f5f9', labelVisibility: { road: false, park: false, water: false, poi: false },
+    roadColors: { highway: '#374151', expressway: '#4b5563', primary: '#6b7280', secondary: '#9ca3af', residential: '#d1d5db', path: '#e5e7eb' },
+    buildingColor: '#ffffff', buildingOutlineColor: '#111827', buildingOpacity: 1.0, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#e5e7eb', commercial: '#e5e7eb', park: '#d1d5db', water: '#9ca3af', industrial: '#e5e7eb' },
+    backgroundColor: '#f3f4f6', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '標準化：類似專業 CAD 導出的配置圖'
   },
+  // 9. 建築線稿
   architectural_line: {
-    roadColors: { highway: '#cbd5e1', primary: '#e2e8f0', secondary: '#f1f5f9', residential: '#f8fafc', path: '#f8fafc' },
-    buildingColor: '#ffffff', buildingOutlineColor: '#000000', buildingOpacity: 1.0, building3D: false, buildingVisibility: true,
-    landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#ffffff', water: '#ffffff', industrial: '#ffffff' },
+    roadColors: { highway: '#9ca3af', expressway: '#d1d5db', primary: '#e5e7eb', secondary: '#f3f4f6', residential: '#f9fafb', path: '#f9fafb' },
+    buildingColor: '#ffffff', buildingOutlineColor: '#111827', buildingOpacity: 1.0, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#ffffff', water: '#f0f9ff', industrial: '#ffffff' },
     backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '抽象化：無色彩，僅靠線條傳達空間'
   },
+  // 10. 圖底分析
   figure_ground: {
-    roadColors: { highway: '#ffffff', primary: '#ffffff', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
-    buildingColor: '#000000', buildingOutlineColor: '#000000', buildingOpacity: 1.0, building3D: false, buildingVisibility: true,
-    landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#ffffff', water: '#ffffff', industrial: '#ffffff' },
+    roadColors: { highway: '#ffffff', expressway: '#ffffff', primary: '#ffffff', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
+    buildingColor: '#111827', buildingOutlineColor: '#111827', buildingOpacity: 1.0, building3D: false, buildingVisibility: true,
+    landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#ffffff', water: '#f0f9ff', industrial: '#ffffff' },
     backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '對比度：極端黑白，用於空間型態分析'
   }

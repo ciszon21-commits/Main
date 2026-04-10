@@ -25,156 +25,244 @@ export class MapPaintEngine {
   }
 
   /**
-   * 道路顏色控制 - 針對 OpenFreeMap Liberty 圖層優化
+   * 道路顏色控制 — 全面重構版
+   * - 新增 expressway (快速道路/trunk) 獨立分類
+   * - pedestrian_flow: 天橋/地下道(overpass)紫色，斑馬線(crossing)黃色
+   * - 強制 line-opacity: 1.0 確保 Preset 顏色蓋過底圖 expression
+   * - Z-index: path→residential→secondary→expressway→highway（所有道路在 fill 之上、symbol 之下）
    */
   static applyRoads(map: maplibregl.Map, state: MapPaintState) {
     const { roadColors } = state;
-    
-    // 對應 Store 中的 key 與地圖 ID 中的關鍵字
+    const preset = state.activePresetId || '';
+
+    // ── Layer keyword mappings ───────────────────────────────────────────────
+    // ORDER MATTERS: more specific entries first (overpass before path)
     const mappings: Record<string, string[]> = {
-      highway: ['motorway', 'trunk', 'highway', 'road_motorway', 'road_trunk'],
-      primary: ['primary', 'major_road', 'road_primary'],
-      secondary: ['secondary', 'medium_road', 'road_secondary'],
-      residential: ['residential', 'tertiary', 'minor_road', 'street', 'road_tertiary', 'road_major_residential', 'road_minor', 'road_street'],
-      path: ['path', 'pedestrian', 'footway', 'cycleway', 'track', 'service', 'road_service', 'road_path', 'road_pedestrian'],
-      transit_rail: ['rail', 'railway', 'roads-rail', 'transportation-rail'], // Matches general rail (TRA/THSR)
-      transit_mrt: ['subway', 'tram', 'transit', 'light_rail', 'bus', 'busway'], // Matches MRT & Bus layers
+      highway:    ['motorway', 'road_motorway'],
+      expressway: ['trunk', 'expressway', 'freeway', 'road_trunk'],
+      primary:    ['primary', 'major_road', 'road_primary'],
+      secondary:  ['secondary', 'medium_road', 'road_secondary'],
+      residential:['residential', 'tertiary', 'minor_road', 'street', 'road_tertiary', 'road_major_residential', 'road_minor', 'road_street'],
+      path:       ['footway', 'cycleway', 'track', 'service', 'road_service', 'road_path', 'road_pedestrian'],
+      overpass:   ['bridge_foot', 'pedestrian_bridge', 'steps', 'escalator', 'tunnel_foot'],
+      crossing:   ['crossing', 'zebra'],
+      transit_rail: ['rail', 'railway', 'roads-rail', 'transportation-rail', 'major_rail', 'bridge_major_rail', 'tunnel_major_rail'],
+      transit_mrt:  ['subway', 'tram', 'transit', 'light_rail', 'busway'],
     };
 
     const layers = map.getStyle()?.layers || [];
+    const firstLabel   = layers.find(l => l.type === 'symbol');
+    const firstFill    = layers.find(l => l.type === 'fill' || l.type === 'background');
 
+    // ── Line width table by road type ────────────────────────────────────────
+    const widthTable: Record<string, [number, number, number]> = {
+      // type:         [zoom12, zoom16, zoom19]
+      highway:     [3.0, 10, 22],
+      expressway:  [2.0,  8, 18],
+      primary:     [1.5,  6, 14],
+      secondary:   [1.0,  4,  9],
+      residential: [0.5,  2.5, 6],
+      path:        [0.2,  1.5, 4],
+      overpass:    [0.5,  2,   5],
+      crossing:    [0.3,  1.5, 4],
+    };
+
+    // ── Apply each category ──────────────────────────────────────────────────
     Object.entries(mappings).forEach(([type, keywords]) => {
       const color = (roadColors as any)[type];
-      
-      const targetLayerIds = layers.filter(l => 
-        (l.type === 'line') && 
+
+      const targetIds = layers.filter(l =>
+        l.type === 'line' &&
         keywords.some(k => l.id.toLowerCase().includes(k))
-      ).map(l => l.id);
-
-      targetLayerIds.forEach(id => {
-        try {
-          if (!color) {
-            map.setPaintProperty(id, 'line-color', undefined);
-            map.setPaintProperty(id, 'line-width', undefined);
-            map.setPaintProperty(id, 'line-opacity', undefined);
-            if (type === 'transit_rail' || type === 'transit_mrt') {
-               map.setLayoutProperty(id, 'visibility', 'none'); // Ensure transit hides completely when preset doesn't define it
-            }
-            // Move back to a neutral position (before symbols/labels) if it was moved to top
-            const firstSymbol = layers.find(l => l.type === 'symbol');
-            if (firstSymbol) map.moveLayer(id, firstSymbol.id);
-            return;
-          }
-          if (state.activePresetId === 'transit_network') {
-            if (type === 'transit_rail' || type === 'transit_mrt') {
-               map.setLayoutProperty(id, 'visibility', 'visible');
-               map.setPaintProperty(id, 'line-opacity', 1.0);
-               map.moveLayer(id); // push to top of everything
-               
-               if (type === 'transit_rail') {
-                  map.setPaintProperty(id, 'line-width', 3);
-                  map.setPaintProperty(id, 'line-color', [
-                     'case',
-                     ['>=', ['index-of', '高鐵', ['coalesce', ['get', 'name:zh'], ['get', 'name'], '']], 0], '#ea580c',
-                     ['>=', ['index-of', 'THSR', ['coalesce', ['get', 'network'], ['get', 'ref'], '']], 0], '#ea580c',
-                     '#003366' // TRA Blue Default
-                  ]);
-               } else {
-                  map.setPaintProperty(id, 'line-width', 4);
-                  const nameField = ['coalesce', ['get', 'name:zh'], ['get', 'name'], ''];
-                  const refField = ['coalesce', ['get', 'ref'], ''];
-                  map.setPaintProperty(id, 'line-color', [
-                     'case',
-                     ['>=', ['index-of', '紅', nameField], 0], '#e3002c',
-                     ['>=', ['index-of', 'R', refField], 0], '#e3002c',
-                     ['>=', ['index-of', '藍', nameField], 0], '#0070bd',
-                     ['>=', ['index-of', 'BL', refField], 0], '#0070bd',
-                     ['>=', ['index-of', '綠', nameField], 0], '#008659',
-                     ['>=', ['index-of', 'G', refField], 0], '#008659',
-                     ['>=', ['index-of', '橘', nameField], 0], '#f39800',
-                     ['>=', ['index-of', 'O', refField], 0], '#f39800',
-                     ['>=', ['index-of', '黃', nameField], 0], '#fddb00',
-                     ['>=', ['index-of', 'Y', refField], 0], '#fddb00',
-                     ['>=', ['index-of', '棕', nameField], 0], '#c48c31',
-                     ['>=', ['index-of', 'BR', refField], 0], '#c48c31',
-                     ['>=', ['index-of', '機', nameField], 0], '#834e98',
-                     ['>=', ['index-of', 'A', refField], 0], '#834e98',
-                     color // Fallback
-                  ]);
-               }
-               return;
-            }
-          } else {
-             // In other presets, ensure transit is BELOW roads and buildings
-             // Find the first road or building layer to move transit behind it
-             const refLayer = layers.find(l => l.id.includes('road') || l.id.includes('building'));
-             if (refLayer) map.moveLayer(id, refLayer.id);
-          }
-
-          if (state.activePresetId === 'pedestrian_flow' && type === 'path') {
-             map.setLayoutProperty(id, 'visibility', 'visible');
-             map.setPaintProperty(id, 'line-opacity', 1.0);
-             map.setPaintProperty(id, 'line-width', [
-                'interpolate', ['linear'], ['zoom'],
-                13, 1,
-                16, 4,
-                19, 10
-             ]); 
-          }
-
-          // Custom thicknesses based on type to create visual hierarchy
-          if (type !== 'transit_rail' && type !== 'transit_mrt') {
-             let maxW = 10; let midW = 4; let minW = 1;
-             if (type === 'highway') { maxW = 16; midW = 8; minW = 2; }
-             else if (type === 'primary') { maxW = 12; midW = 6; minW = 1.5; }
-             else if (type === 'secondary') { maxW = 10; midW = 5; minW = 1; }
-             else if (type === 'residential') { maxW = 6; midW = 3; minW = 0.5; }
-             else if (type === 'path') { maxW = 3; midW = 1.5; minW = 0.2; }
-
-             map.setPaintProperty(id, 'line-width', [
-                'interpolate', ['linear'], ['zoom'],
-                13, minW,
-                16, midW,
-                19, maxW
-             ]); 
-          }
-
-          map.setPaintProperty(id, 'line-color', color);
-        } catch (e) {}
-      });
-    });
-
-    // --- Z-INDEX RESTACKING: Ensure Highway > Primary > Secondary > Residential > Path ---
-    const layerOrder = ['path', 'residential', 'secondary', 'primary', 'highway'];
-    const firstLabel = layers.find(l => l.type === 'symbol');
-
-    layerOrder.forEach(type => {
-      const keywords = mappings[type as keyof typeof mappings];
-      const targetIds = layers.filter(l => 
-        (l.type === 'line') && keywords.some(k => l.id.toLowerCase().includes(k))
       ).map(l => l.id);
 
       targetIds.forEach(id => {
         try {
-          if (firstLabel) {
-            map.moveLayer(id, firstLabel.id);
-          } else {
-            map.moveLayer(id);
+          // ── TRANSIT special handling ──────────────────────────────────────
+          if (type === 'transit_rail' || type === 'transit_mrt') {
+            if (preset === 'transit_network') {
+              map.setLayoutProperty(id, 'visibility', 'visible');
+              map.setPaintProperty(id, 'line-opacity', 1.0);
+
+              if (type === 'transit_rail') {
+                map.setPaintProperty(id, 'line-width', ['interpolate', ['linear'], ['zoom'], 12, 2, 16, 4, 19, 6]);
+                map.setPaintProperty(id, 'line-color', [
+                  'case',
+                  ['>=', ['index-of', '高鐵', ['coalesce', ['get', 'name:zh'], ['get', 'name'], '']], 0], '#ea580c',
+                  ['>=', ['index-of', 'THSR', ['coalesce', ['get', 'network'], ['get', 'ref'], '']], 0], '#ea580c',
+                  '#374151' // TRA gray
+                ]);
+              } else {
+                map.setPaintProperty(id, 'line-width', ['interpolate', ['linear'], ['zoom'], 12, 2.5, 16, 5, 19, 8]);
+                const nameF = ['coalesce', ['get', 'name:zh'], ['get', 'name'], ''];
+                const refF  = ['coalesce', ['get', 'ref'], ''];
+                map.setPaintProperty(id, 'line-color', [
+                  'case',
+                  ['>=', ['index-of', '紅', nameF], 0], '#e3002c',
+                  ['>=', ['index-of', 'R',   refF], 0], '#e3002c',
+                  ['>=', ['index-of', '藍', nameF], 0], '#0070bd',
+                  ['>=', ['index-of', 'BL',  refF], 0], '#0070bd',
+                  ['>=', ['index-of', '綠', nameF], 0], '#008659',
+                  ['>=', ['index-of', 'G',   refF], 0], '#008659',
+                  ['>=', ['index-of', '橘', nameF], 0], '#f39800',
+                  ['>=', ['index-of', 'O',   refF], 0], '#f39800',
+                  ['>=', ['index-of', '黃', nameF], 0], '#fddb00',
+                  ['>=', ['index-of', 'Y',   refF], 0], '#fddb00',
+                  ['>=', ['index-of', '棕', nameF], 0], '#c48c31',
+                  ['>=', ['index-of', 'BR',  refF], 0], '#c48c31',
+                  ['>=', ['index-of', '機', nameF], 0], '#834e98',
+                  ['>=', ['index-of', 'A',   refF], 0], '#834e98',
+                  color || '#9ca3af'
+                ]);
+              }
+              // Transit lines should display inside minzoom 11 only
+              map.setLayerZoomRange(id, 11, 24);
+              map.moveLayer(id); // push to top
+            } else {
+              // Non-transit preset: hide transit lines completely
+              map.setLayoutProperty(id, 'visibility', 'none');
+            }
+            return;
           }
+
+          // ── No color defined → hide/reset ────────────────────────────────
+          if (!color) {
+            map.setLayoutProperty(id, 'visibility', 'none');
+            return;
+          }
+
+          // ── Pedestrian Flow special handling ─────────────────────────────
+          const isPedPreset = preset === 'pedestrian_flow';
+
+          if (isPedPreset) {
+            if (type === 'overpass') {
+              // 天橋/地下道 — 紫色，強調顯示
+              map.setLayoutProperty(id, 'visibility', 'visible');
+              map.setPaintProperty(id, 'line-color', roadColors.overpass || '#a855f7');
+              map.setPaintProperty(id, 'line-opacity', 1.0);
+              map.setPaintProperty(id, 'line-width', ['interpolate', ['linear'], ['zoom'], 13, 1, 16, 3, 19, 7]);
+              return;
+            } else if (type === 'crossing') {
+              // 斑馬線 — 亮黃
+              map.setLayoutProperty(id, 'visibility', 'visible');
+              map.setPaintProperty(id, 'line-color', roadColors.crossing || '#facc15');
+              map.setPaintProperty(id, 'line-opacity', 1.0);
+              map.setPaintProperty(id, 'line-width', ['interpolate', ['linear'], ['zoom'], 14, 0.5, 17, 2, 19, 4]);
+              return;
+            } else if (type === 'path') {
+              // 人行道 — 橘黃色，比平常更粗
+              map.setLayoutProperty(id, 'visibility', 'visible');
+              map.setPaintProperty(id, 'line-color', roadColors.path || '#f97316');
+              map.setPaintProperty(id, 'line-opacity', 1.0);
+              map.setPaintProperty(id, 'line-width', ['interpolate', ['linear'], ['zoom'], 13, 1, 16, 4, 19, 10]);
+              return;
+            }
+          }
+
+          // ── Analysis presets: hide link/minor clutter ─────────────────────
+          const isAnalysisPreset = ['urban_density', 'figure_ground', 'architectural_line', 'architectural_grey'].includes(preset);
+          const isMinorClutter   = id.includes('casing') || id.includes('hatching') || id.includes('link');
+          if (isAnalysisPreset && isMinorClutter) {
+            map.setLayoutProperty(id, 'visibility', 'none');
+            return;
+          }
+
+          // ── Standard road styling ─────────────────────────────────────────
+          map.setLayoutProperty(id, 'visibility', 'visible');
+
+          // CRITICAL (Problem 3): Force opacity=1 to override basemap zoom expressions
+          map.setPaintProperty(id, 'line-opacity', 1.0);
+          map.setPaintProperty(id, 'line-color', color);
+          try { map.setPaintProperty(id, 'line-gap-width', 0); } catch(e) {}
+
+          // Width table
+          const [wMin, wMid, wMax] = widthTable[type] || [0.5, 2, 5];
+          map.setPaintProperty(id, 'line-width', [
+            'interpolate', ['linear'], ['zoom'],
+            12, wMin,
+            16, wMid,
+            19, wMax
+          ]);
+
         } catch (e) {}
       });
     });
 
-    // Special case for transit: if transit_network preset is ON, rail/mrt should be at the absolute top
-    if (state.activePresetId === 'transit_network') {
-      const transitLayers = layers.filter(l => 
-        (l.type === 'line') && 
-        (mappings.transit_rail.some(k => l.id.toLowerCase().includes(k)) || 
-         mappings.transit_mrt.some(k => l.id.toLowerCase().includes(k)))
+    // ── Z-INDEX RESTACKING ───────────────────────────────────────────────────
+    // Order: path → residential → secondary → primary → expressway → highway
+    // All roads must sit ABOVE fills (land use) and BELOW symbols (labels)
+    const zOrder = ['path', 'crossing', 'overpass', 'residential', 'secondary', 'primary', 'expressway', 'highway'];
+    zOrder.forEach(type => {
+      const keywords = mappings[type];
+      const ids = layers.filter(l =>
+        l.type === 'line' && keywords.some(k => l.id.toLowerCase().includes(k))
       ).map(l => l.id);
-      
-      transitLayers.forEach(id => {
+
+      ids.forEach(id => {
+        try {
+          // Insert before first symbol to stay under labels
+          if (firstLabel) map.moveLayer(id, firstLabel.id);
+          else map.moveLayer(id);
+        } catch(e) {}
+      });
+    });
+
+    // Transit (if active) goes above roads but below labels
+    if (preset === 'transit_network') {
+      const transitIds = layers.filter(l =>
+        l.type === 'line' && (
+          mappings.transit_rail.some(k => l.id.toLowerCase().includes(k)) ||
+          mappings.transit_mrt.some(k  => l.id.toLowerCase().includes(k))
+        )
+      ).map(l => l.id);
+
+      transitIds.forEach(id => {
         try { map.moveLayer(id); } catch(e) {}
+      });
+
+      // Station fills (platform/station areas) pushed above transit lines
+      const stationFills = layers.filter(l =>
+        l.type === 'fill' && (
+          l.id.toLowerCase().includes('station') ||
+          l.id.toLowerCase().includes('platform') ||
+          l.id.toLowerCase().includes('transit_stop')
+        )
+      ).map(l => l.id);
+      stationFills.forEach(id => {
+        try {
+          map.setPaintProperty(id, 'fill-color', '#ffffff');
+          map.setPaintProperty(id, 'fill-opacity', 1.0);
+          map.moveLayer(id); // push station above transit lines
+        } catch(e) {}
+      });
+    }
+
+    // ── Ecological Texture: waterway line coloring ───────────────────────────
+    // (Problem 4) waterway/stream/drain are LINE layers — applyLandUse misses them
+    if (preset === 'ecological_texture') {
+      const waterLineIds = layers.filter(l =>
+        l.type === 'line' && (
+          l.id.toLowerCase().includes('waterway') ||
+          l.id.toLowerCase().includes('stream') ||
+          l.id.toLowerCase().includes('drain') ||
+          l.id.toLowerCase().includes('ditch') ||
+          l.id.toLowerCase().includes('canal')
+        )
+      ).map(l => l.id);
+
+      waterLineIds.forEach(id => {
+        try {
+          const isSmall = id.includes('stream') || id.includes('drain') || id.includes('ditch');
+          map.setLayoutProperty(id, 'visibility', 'visible');
+          map.setPaintProperty(id, 'line-color', isSmall ? '#93c5fd' : '#3b82f6');
+          map.setPaintProperty(id, 'line-opacity', 1.0);
+          map.setPaintProperty(id, 'line-width', [
+            'interpolate', ['linear'], ['zoom'],
+            12, isSmall ? 0.5 : 1.5,
+            16, isSmall ? 2 : 4,
+            19, isSmall ? 4 : 8,
+          ]);
+        } catch(e) {}
       });
     }
   }
@@ -302,27 +390,20 @@ export class MapPaintEngine {
     const layers = map.getStyle()?.layers || [];
 
     const apply = (keywords: string[], color: string) => {
-      const targetLayers = layers.filter(l => 
-        (l.type === 'fill') &&
+      if (!color) return;
+      const targetLayers = layers.filter(l =>
+        l.type === 'fill' &&
         keywords.some(k => l.id.toLowerCase().includes(k))
       ).map(l => l.id);
 
       targetLayers.forEach(id => {
         try {
-          if (state.activePresetId === null) {
-            // In Liberty (default) mode, we preserve native patterns
-            map.setPaintProperty(id, 'fill-color', color);
-            return;
-          }
-
+          // Problem 3: ALWAYS force fill-color and fill-opacity=1.0 to override
+          // basemap's native zoom-based expressions. This ensures Presets fully dominate.
           map.setPaintProperty(id, 'fill-color', color);
-          map.setPaintProperty(id, 'fill-opacity', 1.0); // 強制不透明，蓋過底圖預設值
-          
-          // Remove native fill-patterns to prevent them from turning black
-          try { 
-            // In MapLibre, the safest way to remove a pattern is setting it to undefined and resetting opacity/color
-            map.setPaintProperty(id, 'fill-pattern', undefined);
-          } catch (e) {}
+          map.setPaintProperty(id, 'fill-opacity', 1.0);
+          // Remove native fill-patterns to prevent black fallback rendering
+          try { map.setPaintProperty(id, 'fill-pattern', undefined); } catch(e) {}
         } catch (e) {}
       });
     };

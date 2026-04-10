@@ -4,13 +4,16 @@ import { persist } from 'zustand/middleware';
 export interface MapPaintState {
   // 🛣️ ROADS
   roadColors: {
-    highway: string;     // 高速公路 (預設 #f0c040)
-    primary: string;     // 主要道路 (預設 #ffd080)
-    secondary: string;   // 次要道路 (預設 #ffffff)
-    residential: string; // 住宅街道 (預設 #e8e8e8)
-    path: string;        // 步道 (預設 #c0c0c0)
-    transit_rail?: string; // 台鐵/高鐵 (台灣標準: 深藍/深灰)
-    transit_mrt?: string;  // 捷運/輕軌 (台灣標準: 系統綠/藍)
+    highway: string;       // 高速公路 motorway
+    expressway: string;    // 快速道路 trunk
+    primary: string;       // 省道/連外 primary
+    secondary: string;     // 主要幹道 secondary
+    residential: string;   // 市區道路 residential/tertiary
+    path: string;          // 步道/人行道 path/footway
+    transit_rail?: string; // 台鐵/高鐵
+    transit_mrt?: string;  // 捷運/輕軌
+    overpass?: string;     // 天橋/地下道/地下街 (pedestrian_flow 用)
+    crossing?: string;     // 斑馬線/路口 (pedestrian_flow 用)
   };
   
   // 🏢 BUILDINGS
@@ -60,11 +63,12 @@ export interface MapPaintState {
 
 const DEFAULT_PAINT: Omit<MapPaintState, 'setRoadColor' | 'setBuildingStyles' | 'setLandUseColor' | 'setLabelStyles' | 'resetToDefault' | 'applyPreset' | 'restoreState'> = {
   roadColors: {
-    highway: '#f0c040',
-    primary: '#ffd080',
-    secondary: '#ffffff',
-    residential: '#f5f5f5',
-    path: '#d8d8d8',
+    highway:    '#f0c040',
+    expressway: '#f4a261',
+    primary:    '#ffd080',
+    secondary:  '#ffffff',
+    residential:'#f5f5f5',
+    path:       '#d8d8d8',
   },
   buildingColor: '#d4c9b0',
   buildingOutlineColor: '#bdc3c7',
