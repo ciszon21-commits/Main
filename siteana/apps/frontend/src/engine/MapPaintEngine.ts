@@ -11,10 +11,56 @@ export interface SunlightState {
 
 export class MapPaintEngine {
   /**
+   * 重置所有動態注入圖層與跨 Preset 殘留狀態
+   * 必須在每次 applyAll 前執行，防止前一個 Preset 的樣式殘留
+   */
+  static resetNeutral(map: maplibregl.Map) {
+    const layers = map.getStyle()?.layers || [];
+
+    // ── 1. 強制隱藏所有 Transit 路線（applyRoads 若需要會再打開）──
+    const TRANSIT_KEYWORDS = ['rail', 'railway', 'roads-rail', 'transportation-rail',
+                              'major_rail', 'bridge_major_rail', 'tunnel_major_rail',
+                              'subway', 'tram', 'transit', 'light_rail', 'busway'];
+    layers.filter(l => l.type === 'line' && TRANSIT_KEYWORDS.some(k => l.id.toLowerCase().includes(k)))
+          .forEach(l => { try { map.setLayoutProperty(l.id, 'visibility', 'none'); } catch(e) {} });
+
+    // ── 2. 移除所有動態注入圖層 ──────────────────────────────────────
+    const INJECTED_PREFIXES = ['injected-3d-', 'injected-building-outline'];
+    layers.filter(l => INJECTED_PREFIXES.some(p => l.id.startsWith(p)))
+          .forEach(l => { try { map.removeLayer(l.id); } catch(e) {} });
+
+    // ── 3. 重置 Waterway line 圖層（離開 ecological_texture 時）──────
+    const WATERWAY_KEYWORDS = ['waterway', 'stream', 'drain', 'ditch', 'canal'];
+    layers.filter(l => l.type === 'line' && WATERWAY_KEYWORDS.some(k => l.id.toLowerCase().includes(k)))
+          .forEach(l => {
+            try {
+              // Reset to default line-width and restore basemap default colour
+              map.setPaintProperty(l.id, 'line-width', undefined);
+              map.setPaintProperty(l.id, 'line-opacity', undefined);
+              // Don't reset line-color to undefined — that may crash; use a neutral fallback
+              map.setPaintProperty(l.id, 'line-color', '#93c5fd');
+            } catch(e) {}
+          });
+
+    // ── 4. 重置 Overpass / Crossing 圖層（離開 pedestrian_flow 時）──
+    const OVERPASS_KEYWORDS = ['bridge_foot', 'pedestrian_bridge', 'steps', 'escalator', 'tunnel_foot', 'crossing', 'zebra'];
+    layers.filter(l => l.type === 'line' && OVERPASS_KEYWORDS.some(k => l.id.toLowerCase().includes(k)))
+          .forEach(l => {
+            try {
+              map.setLayoutProperty(l.id, 'visibility', 'none'); // default hide; applyRoads re-enables if needed
+              map.setPaintProperty(l.id, 'line-opacity', 1.0);
+            } catch(e) {}
+          });
+  }
+
+  /**
    * 套用所有儲存的視覺設定到地圖實例
    */
   static applyAll(map: maplibregl.Map, state: MapPaintState) {
     if (!map.isStyleLoaded()) return;
+
+    // 先重置殘留，確保從一個乾淨的狀態開始
+    this.resetNeutral(map);
 
     console.log('[MapPaintEngine] Applying all visual overrides...');
     this.applyRoads(map, state);
@@ -150,11 +196,11 @@ export class MapPaintEngine {
               map.setPaintProperty(id, 'line-width', ['interpolate', ['linear'], ['zoom'], 14, 0.5, 17, 2, 19, 4]);
               return;
             } else if (type === 'path') {
-              // 人行道 — 橘黃色，比平常更粗
+              // 人行道 — 橘黃色，適中粗細
               map.setLayoutProperty(id, 'visibility', 'visible');
               map.setPaintProperty(id, 'line-color', roadColors.path || '#f97316');
               map.setPaintProperty(id, 'line-opacity', 1.0);
-              map.setPaintProperty(id, 'line-width', ['interpolate', ['linear'], ['zoom'], 13, 1, 16, 4, 19, 10]);
+              map.setPaintProperty(id, 'line-width', ['interpolate', ['linear'], ['zoom'], 13, 0.5, 16, 2, 19, 5]);
               return;
             }
           }
@@ -254,7 +300,7 @@ export class MapPaintEngine {
         try {
           const isSmall = id.includes('stream') || id.includes('drain') || id.includes('ditch');
           map.setLayoutProperty(id, 'visibility', 'visible');
-          map.setPaintProperty(id, 'line-color', isSmall ? '#93c5fd' : '#3b82f6');
+          map.setPaintProperty(id, 'line-color', isSmall ? '#bddceb' : '#617d96');
           map.setPaintProperty(id, 'line-opacity', 1.0);
           map.setPaintProperty(id, 'line-width', [
             'interpolate', ['linear'], ['zoom'],

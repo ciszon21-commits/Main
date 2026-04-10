@@ -32,7 +32,7 @@ const PRESETS: Record<string, Partial<MapPaintState> & { description: string }> 
   ecological_texture: {
     roadColors: { highway: '#e8f5e9', expressway: '#f1f8e9', primary: '#f9fbe7', secondary: '#ffffff', residential: '#ffffff', path: '#ffffff' },
     buildingColor: '#f1f5f2', buildingOutlineColor: '#c8e6c9', buildingOpacity: 0.5, building3D: false, buildingVisibility: true,
-    landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#86efac', water: '#60a5fa', industrial: '#ffffff', pedestrian: '#d1fae5' },
+    landUseColors: { residential: '#ffffff', commercial: '#ffffff', park: '#bdddc4', water: '#8db5cc', industrial: '#ffffff', pedestrian: '#e4f0e8' },
     backgroundColor: '#ffffff', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '生命力：將藍綠帶色彩極大化'
   },
