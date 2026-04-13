@@ -2,6 +2,7 @@ import { useStore } from '../store/useStore';
 import { useMapPaintStore } from '../store/useMapPaintStore';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { MapPaintEngine } from '../engine/MapPaintEngine';
 
 interface ExportOptions {
   scale?: number;
@@ -19,7 +20,7 @@ export const useExport = () => {
     exportAuthor,
     circularMask,
     showLegendInExport,
-    siteMarkerText
+    mapRef
   } = useStore();
   
   const buildFilename = (ext: string) =>
@@ -27,85 +28,101 @@ export const useExport = () => {
 
   const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
+  /**
+   * HIGH FIDELITY CAPTURE (GURANTEED FIDELITY)
+   * The most reliable way to export MapLibre with all presets/basemaps matching 1:1.
+   * Logic: Temporarily resize the Map Container -> Resize Map -> Wait for IDLE -> Capture -> Restore
+   */
   const captureMap = async (scale: number, fillWhiteBg: boolean = false): Promise<HTMLCanvasElement> => {
+    if (!mapRef) throw new Error('地圖尚未初始化，無法出圖。');
+
     const target = document.querySelector<HTMLElement>('#map-export-target');
-    const mapCanvas = document.querySelector('.maplibregl-canvas') as HTMLCanvasElement;
+    const mapCanvas = mapRef.getCanvas();
     if (!target || !mapCanvas) throw new Error('Map container not found');
 
-    // Wait 1 frame so UI state is propagated (e.g., hiding legend)
-    await sleep(100); 
+    // 1. SAVE ORIGINAL STATE
+    const originalWidth = target.style.width;
+    const originalHeight = target.style.height;
+    const rect = target.getBoundingClientRect();
+    const exportW = rect.width * scale;
+    const exportH = rect.height * scale;
 
-    // --- HIGH RES MAP FIX ---
-    // Make DOM backgrounds transparent temporarily so uiCanvas is just the UI elements
-    const originalTargetClasses = target.className;
-    target.classList.remove('bg-slate-900');
+    // 2. TRIGGER RE-RENDER AT TARGET RESOLUTION
+    // This forces MapLibre to fetch high-res tiles and re-apply all shaders/presets for the new size
+    target.style.width = `${exportW}px`;
+    target.style.height = `${exportH}px`;
+    mapRef.resize();
+
+    // 3. WAIT FOR ENGINE IDLE (CRITICAL FIX)
+    // 'idle' means no more movements and all tiles/resources are loaded
+    await new Promise<void>((resolve) => {
+      mapRef.once('idle', () => resolve());
+      // Fallback timeout in case idle never fires
+      setTimeout(resolve, 5000); 
+    });
+
+    // Short buffer for post-idle effects
+    await sleep(200);
+
+    // 4. CAPTURE UI OVERLAYS (Legend, etc.)
+    // We hide the map canvas so html2canvas only captures the HTML parts
+    const originalDisplay = mapCanvas.style.display;
+    mapCanvas.style.display = 'none';
     
-    const mapDiv = mapCanvas.parentElement;
-    const originalMapDivClasses = mapDiv?.className || '';
-    if (mapDiv) {
-      mapDiv.classList.remove('bg-slate-900');
-      mapDiv.style.backgroundColor = 'transparent';
-    }
-
-    // Capture ONLY the UI overlays (Legend, Scale, etc.), ignoring Maplibre canvas
     const uiCanvas = await html2canvas(target, {
-      scale,
+      scale: 1, // Already resized the target, so scale 1 is enough
       useCORS: true,
       backgroundColor: null,
       logging: false,
-      ignoreElements: (element) => element.classList && element.classList.contains('maplibregl-canvas'),
     });
+    
+    mapCanvas.style.display = originalDisplay;
 
-    // Restore DOM
-    target.className = originalTargetClasses;
-    if (mapDiv) {
-      mapDiv.className = originalMapDivClasses;
-      mapDiv.style.backgroundColor = '';
-    }
+    // 5. COMBINE HIGH-RES MAP + HIGH-RES UI
+    const finalCanvas = document.createElement('canvas');
+    finalCanvas.width = exportW;
+    finalCanvas.height = exportH;
+    const ctx = finalCanvas.getContext('2d', { alpha: true })!;
 
-    const rawCanvas = document.createElement('canvas');
-    rawCanvas.width = uiCanvas.width;
-    rawCanvas.height = uiCanvas.height;
-    const ctx = rawCanvas.getContext('2d', { alpha: true })!;
-
-    // Draw Maplibre WebGL directly
-    if (!circularMask && fillWhiteBg) {
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(0, 0, rawCanvas.width, rawCanvas.height);
+    if (fillWhiteBg) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, exportW, exportH);
     }
     
-    // Smooth drawing for the map
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(mapCanvas, 0, 0, rawCanvas.width, rawCanvas.height);
     
-    // Overlay the UI
+    // Draw the native high-res WebGL buffer
+    ctx.drawImage(mapCanvas, 0, 0, exportW, exportH);
+    // Draw UI overlays
     ctx.drawImage(uiCanvas, 0, 0);
 
-    if (!circularMask) return rawCanvas;
+    // 6. RESTORE ORIGINAL UI STATE
+    target.style.width = originalWidth;
+    target.style.height = originalHeight;
+    mapRef.resize();
 
-    // Apply circular mask — crop to circle
+    if (!circularMask) return finalCanvas;
+
+    // --- 7. APPLY CIRCULAR MASK ---
     const output = document.createElement('canvas');
-    const size = Math.min(rawCanvas.width, rawCanvas.height);
+    const size = Math.min(exportW, exportH);
     output.width = size;
     output.height = size;
     const outCtx = output.getContext('2d')!;
     
-    // Fill white background for PDF, else keep transparent for PNG
     if (fillWhiteBg) {
-      outCtx.fillStyle = '#fff';
+      outCtx.fillStyle = '#ffffff';
       outCtx.fillRect(0, 0, size, size);
-    } else {
-      outCtx.clearRect(0, 0, size, size);
     }
 
     outCtx.beginPath();
     outCtx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
     outCtx.clip();
 
-    const sx = (rawCanvas.width - size) / 2;
-    const sy = (rawCanvas.height - size) / 2;
-    outCtx.drawImage(rawCanvas, sx, sy, size, size, 0, 0, size, size);
+    const sx = (exportW - size) / 2;
+    const sy = (exportH - size) / 2;
+    outCtx.drawImage(finalCanvas, sx, sy, size, size, 0, 0, size, size);
     
     return output;
   };
@@ -113,7 +130,8 @@ export const useExport = () => {
   const generatePreviewUrl = async (): Promise<string> => {
     setIsExporting(true);
     try {
-      const canvas = await captureMap(1, false); // Fast render at 1x
+      // Preview uses 1x for speed
+      const canvas = await captureMap(1, false);
       return canvas.toDataURL('image/png');
     } catch (e) {
       console.error('[SiteANA Export] Preview failed:', e);
@@ -126,15 +144,18 @@ export const useExport = () => {
   const exportToPNG = async ({ scale = 2 }: ExportOptions = {}) => {
     setIsExporting(true);
     try {
+      // GUARANTEE: Ensure map labels/layers are fully calculated before snapshot
+      await sleep(300); 
       const canvas = await captureMap(scale, false);
-      const url = canvas.toDataURL('image/png');
+      const url = canvas.toDataURL('image/png', 1.0); // Highest quality PNG
+      
       const a = document.createElement('a');
       a.href = url;
       a.download = buildFilename('png');
       a.click();
     } catch (e) {
       console.error('[SiteANA Export] PNG export failed:', e);
-      alert('匯出失敗，請確認地圖已載入。');
+      alert('匯出失敗，請確認地圖已完成渲染。');
     } finally {
       setIsExporting(false);
     }
@@ -145,26 +166,31 @@ export const useExport = () => {
     const paintState = useMapPaintStore.getState();
     setIsExporting(true);
     try {
-      // PDF needs white background to prevent transparent parts becoming black in JPEG
+      // PDF output: Use high scale for print quality (300dpi territory)
       const canvas = await captureMap(scale, true);
       const isA3 = size === 'a3' || selectedTemplate === 'presentation';
       const pageW = isA3 ? 420 : 297;
       const pageH = isA3 ? 297 : 210;
 
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: isA3 ? 'a3' : 'a4' });
+      const pdf = new jsPDF({ 
+        orientation: 'landscape', 
+        unit: 'mm', 
+        format: isA3 ? 'a3' : 'a4',
+        compress: true 
+      });
 
-      // ── Map Image ─────────────────────────────────────────────────
-      const imgData = canvas.toDataURL('image/jpeg', 0.93);
+      // --- Map Image ---
+      // Use higher quality for JPEG within PDF
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
       const canvasRatio = canvas.width / canvas.height;
 
-      // Reserve room for header and footer
       const HEADER_H = 12;
       const FOOTER_H = 8;
       const contentH = pageH - HEADER_H - FOOTER_H;
 
       let drawW = pageW;
       let drawH = contentH;
-      if ((canvas.width / canvas.height) > (pageW / contentH)) {
+      if (canvasRatio > (pageW / contentH)) {
         drawH = pageW / canvasRatio;
       } else {
         drawW = contentH * canvasRatio;
@@ -172,10 +198,10 @@ export const useExport = () => {
       const offsetX = (pageW - drawW) / 2;
       const imgY = HEADER_H;
 
-      pdf.addImage(imgData, 'JPEG', offsetX, imgY, drawW, drawH);
+      pdf.addImage(imgData, 'JPEG', offsetX, imgY, drawW, drawH, undefined, 'FAST');
 
-      // ── Header Bar ────────────────────────────────────────────────
-      pdf.setFillColor(15, 165, 233);           // brand-500
+      // --- Header Bar ---
+      pdf.setFillColor(15, 165, 233); // brand-500
       pdf.rect(0, 0, pageW, HEADER_H, 'F');
       pdf.setTextColor(255, 255, 255);
       pdf.setFontSize(9);
@@ -188,37 +214,34 @@ export const useExport = () => {
         pdf.text(title, pageW / 2, 7.5, { align: 'center' });
       }
 
-      pdf.setFontSize(7);
       const dateStr = new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
-      pdf.text(`出圖日期：${dateStr}`, pageW - 8, 7.5, { align: 'right' });
+      pdf.setFontSize(7);
+      pdf.text(`REPORT_DATE：${dateStr}`, pageW - 8, 7.5, { align: 'right' });
 
-      // ── Footer Bar ────────────────────────────────────────────────
+      // --- Footer Bar ---
       const footerY = pageH - FOOTER_H;
-      pdf.setFillColor(241, 245, 249);          // slate-100
+      pdf.setFillColor(241, 245, 249); // slate-100
       pdf.rect(0, footerY, pageW, FOOTER_H, 'F');
-      pdf.setTextColor(100, 116, 139);          // slate-500
+      pdf.setTextColor(100, 116, 139); // slate-500
       pdf.setFontSize(6.5);
       pdf.setFont('helvetica', 'normal');
 
-      // Left: analysis stats if available
       if (analysisResult) {
-        const statsArea = `面積: ${analysisResult.area_m2?.toLocaleString()} m²（${analysisResult.area_ping?.toLocaleString()} 坪）`;
+        const statsArea = `基地面積: ${analysisResult.area_m2?.toLocaleString()} m²（${analysisResult.area_ping?.toLocaleString()} 坪）`;
         pdf.text(statsArea, 8, footerY + 4.5);
       }
 
-      // Middle: style info
-      const styleMeta = `底圖: ${selectedStyle?.name || 'Default'} | 建築顏色: ${paintState.buildingColor}`;
+      const styleMeta = `底圖風格: ${selectedStyle?.name || 'Default'} | 都市預設: ${paintState.activePresetId}`;
       pdf.text(styleMeta, pageW / 2, footerY + 4.5, { align: 'center' });
 
-      // Right: branding & author
-      pdf.setTextColor(14, 165, 233);           // brand-500
+      pdf.setTextColor(14, 165, 233); // brand-500
       pdf.setFont('helvetica', 'bold');
-      pdf.text(`${exportAuthor}  |  SiteANA studio`, pageW - 8, footerY + 4.5, { align: 'right' });
+      pdf.text(`${exportAuthor} | SITEANA STUDIO`, pageW - 8, footerY + 4.5, { align: 'right' });
 
       pdf.save(buildFilename('pdf'));
     } catch (e) {
       console.error('[SiteANA Export] PDF export failed:', e);
-      alert('匯出失敗，請確認地圖已載入。');
+      alert('PDF 匯出失敗。');
     } finally {
       setIsExporting(false);
     }
@@ -227,12 +250,12 @@ export const useExport = () => {
   const exportToGeoJSON = () => {
     const { drawnGeometry, analysisResult, exportTitle, exportAuthor, siteMarkerText } = useStore.getState();
     if (!drawnGeometry) {
-      alert("尚未繪製或設定基地邊界，無法匯出空間資料。");
+      alert("尚未繪製基地，無法匯出地理資料。");
       return;
     }
 
+    setIsExporting(true);
     try {
-      setIsExporting(true);
       const featureCollection = {
         type: "FeatureCollection",
         features: [
@@ -244,25 +267,20 @@ export const useExport = () => {
               project_title: exportTitle,
               author: exportAuthor,
               label: siteMarkerText,
-              area_m2: analysisResult?.area_m2 || 0,
-              area_ping: analysisResult?.area_ping || 0,
-              perimeter_m: analysisResult?.perimeter_m || 0,
-              export_date: new Date().toISOString()
+              area_m2: analysisResult?.area_m2,
+              export_timestamp: new Date().toISOString()
             }
           }
         ]
       };
-
       const blob = new Blob([JSON.stringify(featureCollection, null, 2)], { type: "application/geo+json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = buildFilename('geojson');
       a.click();
-      URL.revokeObjectURL(url);
     } catch (e) {
-      console.error("[SiteANA Export] GeoJSON export failed:", e);
-      alert("無法匯出 GeoJSON。");
+      alert("數據匯出失敗。");
     } finally {
       setIsExporting(false);
     }

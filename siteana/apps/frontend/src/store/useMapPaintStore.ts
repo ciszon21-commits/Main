@@ -50,6 +50,7 @@ export interface MapPaintState {
   
   // 🎨 THEME TRACKING
   activePresetId: string | null;
+  hasHydrated: boolean;
 
   // 💎 ACTIONS
   setRoadColor: (type: keyof MapPaintState['roadColors'], color: string) => void;
@@ -57,11 +58,12 @@ export interface MapPaintState {
   setLandUseColor: (type: keyof MapPaintState['landUseColors'], color: string) => void;
   setLabelStyles: (styles: Partial<Pick<MapPaintState, 'labelVisibility' | 'labelLanguage' | 'labelSizeEmoji'>>) => void;
   resetToDefault: () => void;
-  applyPreset: (presetId: string, preset: Partial<Omit<MapPaintState, 'setRoadColor' | 'setBuildingStyles' | 'setLandUseColor' | 'setLabelStyles' | 'resetToDefault' | 'applyPreset' | 'restoreState'>>) => void;
+  applyPreset: (presetId: string, preset: Partial<Omit<MapPaintState, 'setRoadColor' | 'setBuildingStyles' | 'setLandUseColor' | 'setLabelStyles' | 'resetToDefault' | 'applyPreset' | 'restoreState' | 'hasHydrated'>>) => void;
   restoreState: (snapshot: Partial<MapPaintState>) => void;
+  setHasHydrated: (v: boolean) => void;
 }
 
-const DEFAULT_PAINT: Omit<MapPaintState, 'setRoadColor' | 'setBuildingStyles' | 'setLandUseColor' | 'setLabelStyles' | 'resetToDefault' | 'applyPreset' | 'restoreState'> = {
+const DEFAULT_PAINT: Omit<MapPaintState, 'setRoadColor' | 'setBuildingStyles' | 'setLandUseColor' | 'setLabelStyles' | 'resetToDefault' | 'applyPreset' | 'restoreState' | 'setHasHydrated'> = {
   roadColors: {
     highway: '#e8f5e9',
     expressway: '#f1f8e9',
@@ -95,6 +97,7 @@ const DEFAULT_PAINT: Omit<MapPaintState, 'setRoadColor' | 'setBuildingStyles' | 
   backgroundColor: '#ffffff',
   globalBrightness: 1,
   activePresetId: 'ecological_texture',
+  hasHydrated: false,
 };
 
 export const useMapPaintStore = create<MapPaintState>()(
@@ -132,9 +135,16 @@ export const useMapPaintStore = create<MapPaintState>()(
       applyPreset: (presetId, preset) => set((state) => ({ ...state, ...preset, activePresetId: presetId })),
       
       restoreState: (snapshot: Partial<MapPaintState>) => set((state) => ({ ...state, ...snapshot })),
+
+      setHasHydrated: (v: boolean) => set({ hasHydrated: v }),
     }),
     {
       name: 'siteana-map-paint-storage',
+      onRehydrateStorage: (state) => {
+        return () => {
+          state?.setHasHydrated(true);
+        };
+      },
     }
   )
 );

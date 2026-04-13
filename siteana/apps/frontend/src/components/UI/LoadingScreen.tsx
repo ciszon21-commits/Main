@@ -1,13 +1,152 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+
+// --- HIGH-PRECISION 3D ROTATION ENGINE ---
+const ThreeDSphere: React.FC<{ size: number; isExiting: boolean; progress: number; mouseOffset: { x: number; y: number } }> = ({ size, isExiting, progress, mouseOffset }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const points = useRef<{ x: number; y: number; z: number; type: 'dot' | 'label' | 'particle'; label?: string }[]>([]);
+  const lerpRotation = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    // Generate nodes
+    const p: { x: number; y: number; z: number; type: 'dot' | 'label' | 'particle'; label?: string }[] = [];
+    
+    // Core Shell (550 dots)
+    for (let i = 0; i < 550; i++) {
+      const theta = Math.random() * 2 * Math.PI;
+      const phi = Math.acos(2 * Math.random() - 1);
+      const r = size * 0.42;
+      p.push({ x: r * Math.sin(phi) * Math.cos(theta), y: r * Math.sin(phi) * Math.sin(theta), z: r * Math.cos(phi), type: 'dot' });
+    }
+
+    // Outer Particles (80 particles)
+    for (let i = 0; i < 80; i++) {
+        const theta = Math.random() * 2 * Math.PI;
+        const phi = Math.acos(2 * Math.random() - 1);
+        const r = size * (0.5 + Math.random() * 0.1);
+        p.push({ x: r * Math.sin(phi) * Math.cos(theta), y: r * Math.sin(phi) * Math.sin(theta), z: r * Math.cos(phi), type: 'particle' });
+    }
+
+    // Interactive 3D Labels
+    const labels = ["GEO_LOCKED", "OSM_SYNC", "GRID_READY", "V_0.14_PRO", "TPE_COORD"];
+    labels.forEach((text, i) => {
+        const theta = (i / labels.length) * 2 * Math.PI;
+        const phi = Math.PI / 2;
+        const r = size * 0.46; // Surface orbit
+        p.push({ x: r * Math.sin(phi) * Math.cos(theta), y: r * Math.sin(phi) * Math.sin(theta), z: r * Math.cos(phi), type: 'label', label: text });
+    });
+
+    points.current = p;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animationId: number;
+    const render = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const fov = 1000;
+
+      // Mouse Lerp
+      lerpRotation.current.y += (mouseOffset.x * 0.12 - lerpRotation.current.y) * 0.04;
+      lerpRotation.current.x += (mouseOffset.y * 0.12 - lerpRotation.current.x) * 0.04;
+
+      // [PRECISION] Rotation: exactly 360deg in 5s
+      const rotationY = progress * Math.PI * 2 + lerpRotation.current.y;
+      const rotationX = 0.15 + (Math.sin(progress * Math.PI) * 0.05) + lerpRotation.current.x;
+
+      const cosY = Math.cos(rotationY);
+      const sinY = Math.sin(rotationY);
+      const cosX = Math.cos(rotationX);
+      const sinX = Math.sin(rotationX);
+
+      const items = points.current.map(p => {
+        let x = p.x * cosY - p.z * sinY;
+        let z = p.x * sinY + p.z * cosY;
+        let y = p.y * cosX - z * sinX;
+        z = p.y * sinX + z * cosX;
+        const scale = fov / (fov + z + size);
+        return { px: x * scale + centerX, py: y * scale + centerY, pz: z, scale, label: p.label, type: p.type };
+      }).sort((a, b) => a.pz - b.pz);
+
+      // Render Energy Trails
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(14, 165, 233, 0.04)';
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i < 20; i++) {
+          const it1 = items[i * 20 % items.length];
+          const it2 = items[(i * 20 + 8) % items.length];
+          if (it1.pz > 0) {
+            ctx.moveTo(it1.px, it1.py);
+            ctx.lineTo(it2.px, it2.py);
+          }
+      }
+      ctx.stroke();
+
+      // Render Batched Dots
+      ctx.beginPath();
+      items.forEach((p) => {
+        if (p.type === 'label') return;
+        const rad = (p.type === 'particle' ? 0.8 : 1.3) * p.scale;
+        ctx.moveTo(p.px, p.py);
+        ctx.arc(p.px, p.py, rad, 0, Math.PI * 2);
+      });
+      ctx.fillStyle = `rgba(14, 165, 233, 0.5)`;
+      ctx.fill();
+
+      // Labels and Highlights
+      items.forEach((p, i) => {
+        if (p.type === 'label' && p.pz > 0) {
+            const opacity = (p.pz + size) / (size * 2);
+            ctx.font = `8px Inter, monospace`;
+            ctx.fillStyle = `rgba(255, 255, 255, ${opacity * 0.8})`;
+            ctx.fillText(p.label!, p.px + 15, p.py);
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(14, 165, 233, ${opacity * 0.2})`;
+            ctx.moveTo(p.px, p.py);
+            ctx.lineTo(p.px + 10, p.py - 3);
+            ctx.stroke();
+        } else if (p.type === 'dot' && i % 40 === 0) {
+            const opacity = (p.pz + size) / (size * 2);
+            ctx.beginPath();
+            ctx.arc(p.px, p.py, 1.8 * p.scale, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+            ctx.fill();
+        }
+      });
+
+      animationId = requestAnimationFrame(render);
+    };
+
+    render();
+    return () => cancelAnimationFrame(animationId);
+  }, [size, progress, mouseOffset]);
+
+  return (
+    <div className={`relative flex items-center justify-center transition-all duration-1000 ${isExiting ? 'scale-[15] opacity-0' : 'scale-100 opacity-100'}`}>
+       <canvas ref={canvasRef} width={size * 1.5} height={size * 1.5} className="relative z-10" />
+       {/* Ambient Depth Glow */}
+       <div className="absolute inset-x-0 inset-y-0 rounded-full bg-brand-500/5 blur-[120px] pointer-events-none" />
+    </div>
+  );
+};
 
 interface LoadingScreenProps {
   onLoadingComplete?: () => void;
   isMapReady: boolean;
+  isPaintHydrated: boolean;
 }
 
-const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadingComplete, isMapReady }) => {
+const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadingComplete, isMapReady, isPaintHydrated }) => {
+  const [progress, setProgress] = useState(0); 
   const [isExiting, setIsExiting] = useState(false);
   const [tipIndex, setTipIndex] = useState(0);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [techLogs, setTechLogs] = useState<string[]>([]);
+  const startTime = useRef(performance.now());
+  const finishedRef = useRef(false);
 
   const tips = [
     "Initializing Spatial Engine...",
@@ -18,192 +157,140 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadingComplete, isMapR
     "Ready for Design Analysis"
   ];
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTipIndex((prev) => (prev + 1) % tips.length);
-    }, 1200);
-    return () => clearInterval(interval);
-  }, [tips.length]);
-
-  const [altitude, setAltitude] = useState(20000);
-  const [techLogs, setTechLogs] = useState<string[]>([]);
-  
   const techSource = [
-    "> Initialize Global Coordinate System (WGS84)...",
-    "> Fetching North Taiwan Urban Fabric Data...",
-    "> Establishing WebGL Geometric Shader Core...",
-    "> Configuring SiteANA Analysis Presets...",
-    "> LOCK_REGION: TAIWAN_STRAIT / TPE"
+    "> Initialize Global Coordinate System...",
+    "> Fetching North Taiwan GIS Fabric...",
+    "> Configuring SiteANA_Analysis_Grid...",
+    "> SYNC_REGION: TAIWAN_STRAIT / TPE",
+    "> LAYER_LOAD: ROADS_PRIMARY_STABLE",
+    "> AUTH_TOKEN: EXPIRED_FALLBACK_OSM",
+    "> SYST_CHECK: PASS_60FPS_STABLE"
   ];
 
   useEffect(() => {
-    let logIdx = 0;
-    let charIdx = 0;
-    let currentLogs: string[] = [];
+    let animationFrame: number;
+    const duration = 5000;
 
-    const typeTimer = setInterval(() => {
-      if (logIdx < techSource.length) {
-        const line = techSource[logIdx];
-        if (charIdx === 0) {
-          currentLogs.push("");
-        }
-        
-        currentLogs[logIdx] = line.substring(0, charIdx + 1);
-        setTechLogs([...currentLogs]);
-        
-        charIdx++;
-        if (charIdx >= line.length) {
-          logIdx++;
-          charIdx = 0;
-        }
-      } else {
-        clearInterval(typeTimer);
-      }
-    }, 40);
+    const tick = () => {
+      const elapsed = performance.now() - startTime.current;
+      const p = Math.min(elapsed / duration, 1);
+      setProgress(p);
 
-    return () => clearInterval(typeTimer);
-  }, []);
+      // Sync Tips and Logs
+      setTipIndex(Math.floor(p * tips.length) % tips.length);
+      const activeLogs = Math.ceil(p * (techSource.length + 3));
+      setTechLogs(techSource.slice(0, Math.min(activeLogs, techSource.length)));
 
-  useEffect(() => {
-    if (isMapReady) {
-      // Small delay to ensure map tiles are partially visible behind
-      const timer = setTimeout(() => {
+      // DECISIVE EXIT: trigger exactly at 100% and map status
+      if (p >= 1 && isMapReady && isPaintHydrated && !finishedRef.current) {
+        finishedRef.current = true;
         setIsExiting(true);
-        
-        // Altitude drop animation
-        const altInterval = setInterval(() => {
-          setAltitude((prev) => {
-            const next = prev - (prev * 0.15); // exponentially decrease
-            return next < 500 ? 500 : next;
-          });
-        }, 50);
+        setTimeout(() => {
+          if (onLoadingComplete) onLoadingComplete();
+        }, 1800);
+      } else {
+        animationFrame = requestAnimationFrame(tick);
+      }
+    };
 
-        if (onLoadingComplete) {
-          setTimeout(() => {
-            clearInterval(altInterval);
-            onLoadingComplete();
-          }, 2000); // 2 seconds for the dramatic zoom
-        }
-      }, 2500); // Extended slightly to show more typewriter logs
-      return () => clearTimeout(timer);
-    }
-  }, [isMapReady, onLoadingComplete]);
+    animationFrame = requestAnimationFrame(tick);
+
+    const handleMouseMove = (e: MouseEvent) => {
+        setMousePos({ x: (e.clientX / window.innerWidth) - 0.5, y: (e.clientY / window.innerHeight) - 0.5 });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [isMapReady, isPaintHydrated, onLoadingComplete]);
 
   return (
-    <div className={`fixed inset-0 z-[100] bg-slate-900 flex flex-col items-center justify-center overflow-hidden pointer-events-none transition-opacity duration-1000 ${isExiting ? 'opacity-0' : 'opacity-100'}`}>
+    <div className={`fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center overflow-hidden transition-all duration-1000 ${isExiting ? 'opacity-0 scale-110' : 'opacity-100 scale-100'}`}>
       
-      {/* PLANETARY WARD ZOOM BACKGROUND */}
-      <div 
-        className="absolute inset-0 flex items-center justify-center pointer-events-none"
-        style={{
-          transition: 'transform 2s cubic-bezier(0.85, 0, 0.15, 1), filter 2s ease-in',
-          transform: isExiting ? 'scale(50) translateZ(0)' : 'scale(1) translateZ(0)',
-          filter: isExiting ? 'blur(4px)' : 'blur(0)',
-        }}
-      >
-        {/* Outer Orbit Rings */}
-        <div className="absolute w-[200vw] h-[200vw] md:w-[140vw] md:h-[140vw] border-[1px] border-slate-700/30 rounded-full animate-[spin_120s_linear_infinite]">
-          <div className="absolute inset-0 border-[1px] border-brand-500/10 rounded-full rotate-45" />
-          <div className="absolute inset-0 border-[1px] border-brand-500/10 rounded-full -rotate-45" />
-        </div>
-        
-        <div className="absolute w-[160vw] h-[160vw] md:w-[110vw] md:h-[110vw] border-[1px] border-slate-700/50 rounded-full animate-[spin_80s_linear_infinite_reverse]">
-          <div className="absolute inset-0 border-[1px] border-brand-500/5 rounded-full rotate-12" />
-        </div>
-
-        {/* Core Planet Sphere */}
+      {/* 1. BACKGROUND GRID */}
+      <div className="absolute inset-0 perspective-[1000px] opacity-[0.15]">
         <div 
-          className="relative w-[120vw] h-[120vw] md:w-[80vw] md:h-[80vw] rounded-full overflow-hidden shadow-[inset_-40px_-40px_80px_rgba(0,0,0,0.9)] animate-[spin_240s_linear_infinite]"
-          style={{ background: 'radial-gradient(circle at 35% 35%, #1e293b, #0f172a 50%, #020617 90%)' }}
-        >
-          {/* Surface texture grid */}
-          <div className="absolute inset-0 opacity-[0.15]" style={{ backgroundImage: 'linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px)', backgroundSize: 'clamp(20px, 3vw, 40px) clamp(20px, 3vw, 40px)' }} />
-          
-          {/* Faux Atmospheric Glow */}
-          <div className="absolute inset-0 rounded-full shadow-[inset_0_0_120px_rgba(var(--brand-500-rgb),0.2)] pointer-events-none" />
-        </div>
-
-        {/* Equatorial Grid */}
-        <div className="absolute w-[120vw] h-[120vw] md:w-[80vw] md:h-[80vw] border-[1px] border-brand-500/20 rounded-full flex items-center justify-center">
-           <div className="w-full h-[1px] bg-brand-500/20" />
-           <div className="absolute w-[1px] h-full bg-brand-500/20" />
-        </div>
-      </div>
-
-      {/* FOREGROUND HUD UI */}
-      <div className="absolute inset-x-0 flex items-center justify-center pointer-events-none">
-        <div 
-          className="relative z-10 flex items-center gap-16"
+          className="absolute inset-[-100%] border-[1px] border-brand-500/5 animate-[spin-slow_200s_linear_infinite]"
           style={{
-             transition: 'transform 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease',
-             transform: isExiting ? 'scale(1.5) translateY(20px)' : 'scale(1) translateY(0)',
-             opacity: isExiting ? 0 : 1,
+             backgroundImage: 'linear-gradient(to right, rgba(14,165,233,0.02) 1px, transparent 1px), linear-gradient(to bottom, rgba(14,165,233,0.02) 1px, transparent 1px)',
+             backgroundSize: '80px 80px',
+             transform: 'rotateX(75deg) translateZ(-500px)'
           }}
-        >
-          {/* Tech Typewriter Area */}
-          <div className="hidden lg:flex flex-col gap-2 min-w-[300px] text-left opacity-80">
-            <div className="text-[10px] font-black text-brand-500 mb-2 border-b border-brand-500/30 pb-1 tracking-[0.2em] uppercase">System Initialization Logs</div>
-            <div className="flex flex-col gap-1.5 font-mono text-[10px] text-slate-400">
-              {techLogs.map((log, i) => (
-                <div key={i} className="flex gap-2">
-                   <span className={i === techLogs.length - 1 ? 'animate-pulse' : ''}>{log}</span>
-                   {i === techLogs.length - 1 && log.length < (techSource[i]?.length || 0) && <span className="w-1.5 h-3 bg-brand-500 animate-pulse" />}
-                </div>
-              ))}
-            </div>
-          </div>
+        />
+      </div>
 
-          {/* Core Logo Transition */}
-          <div className="relative">
-             <div className="w-24 h-24 rounded-2xl bg-brand-500 flex items-center justify-center text-white font-bold text-4xl shadow-[0_0_50px_rgba(var(--brand-500-rgb),0.3)] animate-pulse">
-               S
-             </div>
-             {/* Progress Ring */}
-             <div className="absolute -inset-4 border-2 border-slate-800 rounded-[2rem]" />
-             <div className="absolute -inset-4 border-2 border-brand-500 rounded-[2rem] border-t-transparent animate-spin" />
-          </div>
+      {/* 2. CENTER PIECE: THE 360-ORBITAL CORE */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <ThreeDSphere size={650} isExiting={isExiting} progress={progress} mouseOffset={mousePos} />
+          
+          {/* Orbital Mirror Rings */}
+          <div className="absolute w-[160vw] h-[160vw] border-[0.5px] border-white/5 rounded-full rotate-x-[65deg]" 
+               style={{ 
+                 backgroundImage: 'conic-gradient(from 0deg, transparent, rgba(255,255,255,0.02) 45deg, transparent 90deg)',
+                 transform: `rotateX(65deg) rotateZ(${progress * 360}deg)` 
+               }} />
+          
+          <div className="absolute w-[140vw] h-[140vw] border-[1px] border-brand-500/5 rounded-full rotate-x-[72deg] rotate-y-[15deg]"
+               style={{ transform: `rotateX(72deg) rotateY(15deg) rotateZ(${-progress * 540}deg)` }} />
+      </div>
 
-          {/* Stats Description */}
-          <div className="hidden lg:flex flex-col gap-1 text-left">
-            <h2 className="text-2xl font-black text-white tracking-[0.2em] uppercase">SiteANA</h2>
-            <div className="h-6 flex flex-col overflow-hidden">
-              <p className="text-brand-400 font-mono text-[10px] tracking-widest uppercase">
-                 {tips[tipIndex]}
-              </p>
+      {/* 3. SYMMETRICAL HUD LAYOUT */}
+      
+      {/* [LEFT] DIAGNOSTICS */}
+      <div className="absolute left-16 top-1/2 -translate-y-1/2 w-[280px] space-y-4 transition-all duration-1000" style={{ transform: isExiting ? 'translateX(-50px)' : 'translateX(0)', opacity: isExiting ? 0 : 0.4 }}>
+         <div className="flex items-center gap-2 mb-4">
+            <div className="w-1.5 h-4 bg-brand-500 rounded-sm" />
+            <span className="text-[10px] font-mono text-white tracking-[5px] uppercase">Engine_Logs</span>
+         </div>
+         <div className="flex flex-col gap-2.5 font-mono text-[7px] text-brand-300">
+            {techLogs.map((log, i) => (
+              <div key={i} className="flex gap-2">
+                 <span className="text-white/20">{">"}</span>
+                 <span className="truncate">{log}</span>
+              </div>
+            ))}
+         </div>
+      </div>
+
+      {/* [RIGHT] TELEMETRY */}
+      <div className="absolute right-16 top-1/2 -translate-y-1/2 text-right w-[280px] space-y-6 transition-all duration-1000" style={{ transform: isExiting ? 'translateX(50px)' : 'translateX(0)', opacity: isExiting ? 0 : 0.4 }}>
+         <div className="space-y-1">
+            <p className="text-[10px] font-mono text-brand-400 tracking-[5px] uppercase mb-2">Telemetry_Link</p>
+            <p className="text-3xl font-light text-white tracking-widest leading-none">
+                {Math.round((1 - progress) * 19500 + 500).toLocaleString()} <span className="text-xs opacity-40">KM</span>
+            </p>
+         </div>
+         <div className="h-[1px] w-32 ml-auto bg-white/10" />
+         <div className="space-y-2 font-mono text-[8px] text-white/30 uppercase tracking-[3px]">
+            <p>LAT_25.04N / LON_121.51E</p>
+            <p className="text-brand-500/50">Status: Orbital_Entry_Armed</p>
+         </div>
+      </div>
+
+      {/* [BOTTOM] BRANDING CENTER */}
+      <div className="absolute bottom-16 inset-x-0 flex flex-col items-center transition-all duration-1000" style={{ opacity: isExiting ? 0 : 1, transform: `translateY(${isExiting ? 20 : 0}px)` }}>
+        <div className="w-64 h-[2px] bg-white/[0.05] mb-8 relative rounded-full">
+           <div className="absolute left-0 top-0 h-full bg-brand-500 shadow-[0_0_15px_#0ea5e9]" style={{ width: `${progress * 100}%` }} />
+        </div>
+        <div className="flex flex-col items-center gap-3">
+            <div className="w-16 h-16 rounded-2xl bg-slate-900/80 border border-white/10 flex items-center justify-center text-white font-black text-3xl shadow-2xl relative">
+                S
+                <div className="absolute -inset-1 border border-brand-500/20 rounded-2xl animate-pulse" />
             </div>
-          </div>
+            <h1 className="text-3xl font-black text-white tracking-[0.5em] uppercase text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">SiteANA</h1>
+            <p className="text-[9px] text-brand-400 font-mono tracking-[5px] uppercase opacity-50">
+               {tips[tipIndex]}
+            </p>
         </div>
       </div>
 
-      {/* Decorative HUD Info (Corners) */}
-      <div 
-        className="absolute bottom-12 left-12 font-mono text-[9px] text-slate-500 space-y-1 hidden md:block transition-all duration-700"
-        style={{ opacity: isExiting ? 0 : 0.6, transform: isExiting ? 'translateX(-20px)' : 'translateX(0)' }}
-      >
-        <p className="text-brand-400 animate-pulse">SYSTEM: SPATIAL_LOCK_ENGAGED</p>
-        <p>TARGET: NORTH_TAIWAN_URBAN_FABRIC</p>
-        <p>ENGINE: WEBGL_2.0_ENABLED</p>
-      </div>
-
-      <div 
-        className="absolute bottom-12 right-12 font-mono text-[9px] text-slate-500 text-right space-y-1 hidden md:block transition-all duration-700"
-        style={{ opacity: isExiting ? 0 : 0.6, transform: isExiting ? 'translateX(20px)' : 'translateX(0)' }}
-      >
-        <p>LAT: 25.0421 | LON: 121.5135</p>
-        <p>COORD_SYS: WGS84 / EPSG:4326</p>
-        <p className="text-white">ALTITUDE: {Math.round(altitude).toLocaleString()} M</p>
-      </div>
-
-      {/* Bottom Progress Bar */}
-      <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-800">
-        <div className={`h-full bg-brand-500 transition-all duration-[2000ms] ${isMapReady ? 'w-full' : 'w-1/3 animate-pulse'}`} />
-      </div>
+      {/* OPTICAL EFFECTS */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle,transparent_20%,rgba(2,6,23,0.97)_100%)] pointer-events-none" />
 
       <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}} />
     </div>
   );

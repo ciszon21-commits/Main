@@ -41,7 +41,19 @@ const Map: React.FC<MapProps> = ({ onReady, startIntro }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const hasLoadError = useRef(false);
-  const { activeProjectId, selectedStyle, setSelectedStyle, setMapRef, bufferGeometry, showSiteMarker, siteMarkerText, drawnGeometry, isDrawingMode, analysisResult } = useStore();
+  const { 
+    hasHydrated,
+    activeProjectId, 
+    selectedStyle, 
+    setSelectedStyle, 
+    setMapRef, 
+    bufferGeometry, 
+    showSiteMarker, 
+    siteMarkerText, 
+    drawnGeometry, 
+    isDrawingMode, 
+    analysisResult 
+  } = useStore();
   const paintState = useMapPaintStore();
   const prevStyleId = useRef<string>('ofm-liberty');
   const lastProjectFlewTo = useRef<string | null>(null);
@@ -73,11 +85,11 @@ const Map: React.FC<MapProps> = ({ onReady, startIntro }) => {
 
       // Smooth zoom into North Taiwan (Taipei area)
       map.current.flyTo({
-        center: [121.5, 25.07], // North Taiwan / Taipei area
-        zoom: 11.5,
-        pitch: 0, // Ensure 2D view
-        duration: 4000,
-        curve: 1.6,
+        center: [121.5, 25.05], // Centered on Taipei / New Taipei
+        zoom: 10.5,             // Wider view to see whole metropolitan area
+        pitch: 0, 
+        duration: 5000,         // Match loading duration
+        curve: 1.4,
         essential: true
       });
     }
@@ -85,65 +97,86 @@ const Map: React.FC<MapProps> = ({ onReady, startIntro }) => {
 
   // --- Map Init ---
   useEffect(() => {
-    if (map.current || !mapContainer.current) return;
+    // [HYDRATION GUARD] Wait until store is hydrated before initializing map instance
+    const store = useStore.getState();
+    if (map.current || !mapContainer.current || !store.hasHydrated) return;
 
-    // 先透過 StyleInterceptor 清洗 Liberty 底圖，移除草地符號與填充紋理
-    StyleInterceptor.fetchAndCleanStyle(INITIAL_STYLE_URL).then(cleanedStyle => {
-      if (!mapContainer.current) return;
+    // Use current selectedStyle from store for initialization
+    const { selectedStyle } = store;
+    const initialStyleUrl = (typeof selectedStyle?.mapStyle === 'string') 
+      ? selectedStyle.mapStyle 
+      : INITIAL_STYLE_URL;
 
-      map.current = new maplibregl.Map({
-        container: mapContainer.current,
-        style: cleanedStyle,
-        center: [121.0, 23.5], // Initial Taiwan-Centric Global View
-        zoom: 3.2,
+    // [STYLE CLEANING & PRE-INJECTION] 
+    // We inject the preset BEFORE initialization to ensure zero-latency visual consistency
+    StyleInterceptor.fetchAndCleanStyle(initialStyleUrl).then(cleaned => {
+      const currentPaint = useMapPaintStore.getState();
+      const preInjected = MapPaintEngine.applyToStyleJSON(cleaned, currentPaint);
+
+      const m = new maplibregl.Map({
+        container: mapContainer.current!,
+        style: preInjected,
+        center: [121.0, 23.7], // Center on Taiwan, global view
+        zoom: 4,               // Asia-wide view during loading
         pitch: 0,
-        attributionControl: false,
-        preserveDrawingBuffer: true,
+        bearing: 0,
+        antialias: true
       });
 
-      // Expose for debugging
-      (window as any).map = map.current;
-
-    // Scale control setup
-    const scale = new maplibregl.ScaleControl({ maxWidth: 80, unit: 'metric' });
-    map.current.addControl(scale, 'bottom-right');
-
-      map.current.once('error', () => {
-        if (!hasLoadError.current) {
-          hasLoadError.current = true;
-          console.warn('[SiteANA] Initial style failed. Switching to OSM Raster fallback.');
-          map.current?.setStyle(OSM_RASTER_STYLE);
-          const osmPreset = DEFAULT_STYLES.find(s => s.id === 'osm-raster');
-          if (osmPreset) setSelectedStyle(osmPreset);
-        }
-      });
-
-      // Re-apply paint when style finishes loading
-      map.current.on('style.load', () => {
-        if (map.current) {
-          MapPaintEngine.applyAll(map.current, useMapPaintStore.getState());
-          // Re-build building cache and re-apply sunlight after basemap change
-          setTimeout(() => {
-            if (!map.current) return;
-            MapPaintEngine.refreshBuildingCache(map.current);
-            const s = useStore.getState();
-            if (s.sunlightEnabled) {
-              MapPaintEngine.applySunlight(map.current, {
-                enabled: s.sunlightEnabled,
-                date:    s.sunlightDate,
-                time:    s.sunlightTime,
-                opacity: s.sunlightShadowOpacity,
-              });
-            }
-          }, 500); // small delay to let tiles render first
-        }
-      });
+      map.current = m;
+      setMapRef(m);
+      (window as any).map = m; // Expose for App.tsx sync
 
       map.current.on('load', () => {
-        console.log('[SiteANA] Map loaded.');
-        setMapRef(map.current); // Expose map ref to store
-        if (map.current) MapPaintEngine.applyAll(map.current, useMapPaintStore.getState());
-        if (onReady) onReady();
+        const m = map.current!;
+        
+        // Scale control setup
+        const scale = new maplibregl.ScaleControl({ maxWidth: 80, unit: 'metric' });
+        m.addControl(scale, 'bottom-right');
+
+        m.once('error', () => {
+          if (!hasLoadError.current) {
+            hasLoadError.current = true;
+            console.warn('[SiteANA] Initial style failed. Switching to OSM Raster fallback.');
+            m.setStyle(OSM_RASTER_STYLE);
+            const osmPreset = DEFAULT_STYLES.find(s => s.id === 'osm-raster');
+            if (osmPreset) setSelectedStyle(osmPreset);
+          }
+        });
+
+        // Re-apply paint when style finishes loading
+        m.on('style.load', () => {
+          console.log('[Map] style.load event triggered.');
+          
+          // [SYNC] Force apply the current paint state before animation begins
+          setTimeout(() => {
+            if (m.isStyleLoaded()) {
+              console.log('[Map] Style loaded. Performing initial paint injection.');
+              const paintState = useMapPaintStore.getState();
+              MapPaintEngine.applyAll(m, paintState);
+            } else {
+              console.warn('[Map] style.load fired but isStyleLoaded is false. Proceeding with onReady anyway.');
+            }
+            
+            // [CRITICAL] Signal readiness to unblock loader
+            if (onReady) onReady();
+
+            // Re-build building cache and re-apply sunlight
+            setTimeout(() => {
+              if (!m.isStyleLoaded()) return;
+              MapPaintEngine.refreshBuildingCache(m);
+              const s = useStore.getState();
+              if (s.sunlightEnabled) {
+                MapPaintEngine.applySunlight(m, {
+                  enabled: s.sunlightEnabled,
+                  date:    s.sunlightDate,
+                  time:    s.sunlightTime,
+                  opacity: s.sunlightShadowOpacity,
+                });
+              }
+            }, 500);
+          }, 200);
+        });
       });
     });
 
@@ -152,7 +185,7 @@ const Map: React.FC<MapProps> = ({ onReady, startIntro }) => {
       map.current = null;
       setMapRef(null);
     };
-  }, []);
+  }, [hasHydrated]);
 
   // --- Style Switch (透過 StyleInterceptor 清洗後再切換) ---
   useEffect(() => {
@@ -172,11 +205,28 @@ const Map: React.FC<MapProps> = ({ onReady, startIntro }) => {
     }
   }, [selectedStyle]);
 
-  // --- Paint Overrides ---
+  // --- Paint Synchronizer (PERMANENT SYNC) ---
+  // We use both an effect and a map event listener to guarantee 
+  // that style overrides are applied whenever the map or store changes.
   useEffect(() => {
-    if (map.current && map.current.isStyleLoaded()) {
-      MapPaintEngine.applyAll(map.current, paintState);
-    }
+    const m = map.current;
+    if (!m) return;
+
+    // 1. Initial/Store change application
+    const reapply = () => {
+      if (m.isStyleLoaded()) {
+        MapPaintEngine.applyAll(m, paintState);
+      }
+    };
+    
+    reapply();
+
+    // 2. Map Style Switch listener: 
+    // Triggers whenever setStyle() finishes or data changes
+    const onStyleData = () => reapply();
+    
+    m.on('styledata', onStyleData);
+    return () => { m.off('styledata', onStyleData); };
   }, [paintState]);
 
   // --- Sunlight & Shadows ---
@@ -185,7 +235,6 @@ const Map: React.FC<MapProps> = ({ onReady, startIntro }) => {
   const sunTime    = useStore(state => state.sunlightTime);
   const sunOpacity = useStore(state => state.sunlightShadowOpacity);
 
-  // Helper to call applySunlight using the current store state
   const triggerSunlight = () => {
     if (!map.current || !map.current.isStyleLoaded()) return;
     const s = useStore.getState();
@@ -197,34 +246,24 @@ const Map: React.FC<MapProps> = ({ onReady, startIntro }) => {
     });
   };
 
-  // When time or date changes → re-render shadows from cache (fast, no re-query)
   useEffect(() => {
-    // If sunlight is newly enabled, force an immediate cache refresh to ensure we have data
     if (sunEnabled && map.current) {
         MapPaintEngine.refreshBuildingCache(map.current);
     }
     triggerSunlight();
   }, [sunEnabled, sunDate, sunTime, sunOpacity]);
 
-  // When the map view settles (idle) → refresh building cache, then re-render
-  // This ensures the cache is always up to date with the current viewport
+  // Handle View Settle (Idle)
   useEffect(() => {
     const m = map.current;
     if (!m) return;
 
     const onIdle = () => {
       if (!m.isStyleLoaded()) return;
-      // Always refresh cache when viewport changes
       MapPaintEngine.refreshBuildingCache(m);
-      // If sunlight is enabled, immediately re-render shadows with new cache
       const s = useStore.getState();
       if (s.sunlightEnabled) {
-        MapPaintEngine.applySunlight(m, {
-          enabled: s.sunlightEnabled,
-          date:    s.sunlightDate,
-          time:    s.sunlightTime,
-          opacity: s.sunlightShadowOpacity,
-        });
+        triggerSunlight();
       }
     };
 

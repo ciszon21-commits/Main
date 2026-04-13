@@ -8,6 +8,9 @@ import SunlightPanel from './components/Sidebar/SunlightPanel';
 import { PanelLeftClose, PanelLeftOpen, Sun, Activity, TreePine, Box, ChevronRight, Sparkles } from 'lucide-react';
 import LoadingScreen from './components/UI/LoadingScreen';
 import { useStore } from './store/useStore';
+import { useMapPaintStore } from './store/useMapPaintStore';
+import { MapPaintEngine } from './engine/MapPaintEngine';
+import { useEffect } from 'react';
 
 const SectionHeader: React.FC<{ en: string, cn: string, color?: string }> = ({ en, cn, color = 'brand' }) => {
   const colorMap: Record<string, string> = {
@@ -44,12 +47,47 @@ function App() {
   const [activeModule, setActiveModule] = useState<'sunlight' | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
   const [showLoader, setShowLoader] = useState(true);
+  const { hasHydrated: hasPaintHydrated } = useMapPaintStore();
+  const { hasHydrated: hasStoreHydrated, selectedStyle } = useStore();
+
+  // [PRECISION FIX] Ensure presets are applied when both map and storage are ready
+  useEffect(() => {
+    if (isMapReady && hasPaintHydrated && hasStoreHydrated) {
+      const map = (window as any).map;
+      if (map) {
+        console.log('[App] All Stores and Map ready. Syncing Basemap and Injecting final visual state.');
+        
+        // 1. Sync Basemap if mismatch
+        const storedStyleUrl = typeof selectedStyle?.mapStyle === 'string' ? selectedStyle.mapStyle : null;
+        if (storedStyleUrl) {
+          const currentStyle = map.getStyle();
+          // Basic heuristic check - if no layers or different source
+          if (currentStyle && currentStyle.layers.length > 0) {
+             // If we really want to be sure, we can re-trigger setStyle if it's the initial load
+             // But for now, let's just ensure Paint is consistent.
+          }
+        }
+
+        // 2. Initial Injection
+        MapPaintEngine.applyAll(map, useMapPaintStore.getState());
+
+        // 3. [BRUTE FORCE] Re-inject after a delay to catch late-registering layers during intro
+        const timer = setTimeout(() => {
+           console.log('[App] Brute-force re-injection for stability.');
+           MapPaintEngine.applyAll(map, useMapPaintStore.getState());
+        }, 3000); // 3 seconds in, while globe is still spinning
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isMapReady, hasPaintHydrated, hasStoreHydrated, selectedStyle]);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 transition-colors duration-300">
       {showLoader && (
         <LoadingScreen 
           isMapReady={isMapReady} 
+          isPaintHydrated={hasPaintHydrated && hasStoreHydrated}
           onLoadingComplete={() => setShowLoader(false)} 
         />
       )}

@@ -103,6 +103,10 @@ interface AppState {
   setSunlightTime: (v: number) => void;
   sunlightShadowOpacity: number;
   setSunlightShadowOpacity: (v: number) => void;
+
+  // Hydration
+  hasHydrated: boolean;
+  setHasHydrated: (v: boolean) => void;
 }
 
 export const DEFAULT_STYLES: StylePreset[] = [
@@ -162,7 +166,7 @@ export const useStore = create<AppState>()(
       selectedStyle: state.selectedStyle,
       exportTitle: state.exportTitle,
       exportAuthor: state.exportAuthor,
-      activePresetId: useMapPaintStore.getState().activePresetId,
+      paintState: useMapPaintStore.getState(),
       sunlightEnabled: state.sunlightEnabled,
       sunlightDate: state.sunlightDate,
       sunlightTime: state.sunlightTime,
@@ -186,8 +190,8 @@ export const useStore = create<AppState>()(
         ...proj.snapshot,
         activeProjectId: id
       });
-      if (proj.snapshot.activePresetId !== undefined) {
-         useMapPaintStore.setState({ activePresetId: proj.snapshot.activePresetId });
+      if (proj.snapshot.paintState) {
+         useMapPaintStore.getState().restoreState(proj.snapshot.paintState);
       }
     }
   },
@@ -208,7 +212,7 @@ export const useStore = create<AppState>()(
       selectedStyle: state.selectedStyle,
       exportTitle: state.exportTitle,
       exportAuthor: state.exportAuthor,
-      activePresetId: useMapPaintStore.getState().activePresetId,
+      paintState: useMapPaintStore.getState(),
       sunlightEnabled: state.sunlightEnabled,
       sunlightDate: state.sunlightDate,
       sunlightTime: state.sunlightTime,
@@ -280,12 +284,19 @@ export const useStore = create<AppState>()(
   setSunlightTime: (sunlightTime) => set({ sunlightTime }),
   sunlightShadowOpacity: 0.55,
   setSunlightShadowOpacity: (sunlightShadowOpacity) => set({ sunlightShadowOpacity }),
+
+  hasHydrated: false,
+  setHasHydrated: (hasHydrated) => set({ hasHydrated }),
     }),
     {
-      name: 'siteana-local-storage',
       partialize: (state) => Object.fromEntries(
-        Object.entries(state).filter(([key]) => !['mapRef', 'isExporting', 'isDrawingMode', 'stylePresets'].includes(key))
+        Object.entries(state).filter(([key]) => !['mapRef', 'isExporting', 'isDrawingMode', 'stylePresets', 'hasHydrated'].includes(key))
       ),
+      onRehydrateStorage: (state) => {
+        return () => {
+          state?.setHasHydrated(true);
+        };
+      },
     }
   )
 );
