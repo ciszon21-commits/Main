@@ -53,7 +53,7 @@ echo.
 set "PATH=%NODE_DIR%;%PATH%"
 
 echo Starting Backend (port 8000)...
-start "SiteANA-Backend" cmd /k "venv\Scripts\activate.bat && cd siteana\apps\backend && uvicorn app.main:app --reload --port 8000"
+start "SiteANA-Backend" cmd /k "cd siteana\apps\backend && venv\Scripts\activate.bat && uvicorn app.main:app --reload --port 8000"
 
 echo Starting Frontend (port 5173)...
 start "SiteANA-Frontend" cmd /k "set PATH=%NODE_DIR%;%%PATH%% && cd siteana\apps\frontend && npm run dev"

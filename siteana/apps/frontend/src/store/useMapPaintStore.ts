@@ -63,38 +63,38 @@ export interface MapPaintState {
 
 const DEFAULT_PAINT: Omit<MapPaintState, 'setRoadColor' | 'setBuildingStyles' | 'setLandUseColor' | 'setLabelStyles' | 'resetToDefault' | 'applyPreset' | 'restoreState'> = {
   roadColors: {
-    highway:    '#f0c040',
-    expressway: '#f4a261',
-    primary:    '#ffd080',
-    secondary:  '#ffffff',
-    residential:'#f5f5f5',
-    path:       '#d8d8d8',
+    highway: '#e8f5e9',
+    expressway: '#f1f8e9',
+    primary: '#f9fbe7',
+    secondary: '#ffffff',
+    residential: '#ffffff',
+    path: '#ffffff'
   },
-  buildingColor: '#d4c9b0',
-  buildingOutlineColor: '#bdc3c7',
-  buildingOpacity: 0.8,
+  buildingColor: '#f1f5f2',
+  buildingOutlineColor: '#c8e6c9',
+  buildingOpacity: 0.5,
   building3D: false,
   buildingVisibility: true,
   landUseColors: {
-    residential: '#f5e6c8',
-    commercial: '#f9d4a0',
-    park: '#b5d4a0',
-    water: '#aad3df',
-    industrial: '#eef1ec',
-    parking: '#d6ebd3', // Light green
-    pedestrian: '#e0ebd3', // Light green
+    residential: '#ffffff',
+    commercial: '#ffffff',
+    park: '#bdddc4',
+    water: '#8db5cc',
+    industrial: '#ffffff',
+    parking: '#d6ebd3',
+    pedestrian: '#e4f0e8'
   },
   labelVisibility: {
-    road: true,
-    park: true,
-    water: true,
-    poi: true,
+    road: false,
+    park: false,
+    water: false,
+    poi: false,
   },
   labelLanguage: 'zh-Hant',
   labelSizeEmoji: 'medium',
-  backgroundColor: '#f8f4f0',
+  backgroundColor: '#ffffff',
   globalBrightness: 1,
-  activePresetId: null,
+  activePresetId: 'ecological_texture',
 };
 
 export const useMapPaintStore = create<MapPaintState>()(

@@ -32,13 +32,56 @@ const OSM_RASTER_STYLE = {
   }]
 };
 
-const Map: React.FC = () => {
+interface MapProps {
+  onReady?: () => void;
+  startIntro?: boolean;
+}
+
+const Map: React.FC<MapProps> = ({ onReady, startIntro }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const hasLoadError = useRef(false);
-  const { selectedStyle, setSelectedStyle, setMapRef, bufferGeometry, showSiteMarker, siteMarkerText, drawnGeometry, isDrawingMode, analysisResult } = useStore();
+  const { activeProjectId, selectedStyle, setSelectedStyle, setMapRef, bufferGeometry, showSiteMarker, siteMarkerText, drawnGeometry, isDrawingMode, analysisResult } = useStore();
   const paintState = useMapPaintStore();
   const prevStyleId = useRef<string>('ofm-liberty');
+  const lastProjectFlewTo = useRef<string | null>(null);
+
+  // --- Fly to Site when Project changes ---
+  useEffect(() => {
+    if (!map.current || !activeProjectId || !drawnGeometry) return;
+    if (lastProjectFlewTo.current === activeProjectId) return;
+    
+    try {
+      const centroid = turf.centroid(drawnGeometry as any);
+      map.current.flyTo({
+        center: centroid.geometry.coordinates as [number, number],
+        zoom: 16,
+        duration: 2500,
+        essential: true
+      });
+      lastProjectFlewTo.current = activeProjectId;
+    } catch(e) {
+      console.warn('[SiteANA] FlyTo failed:', e);
+    }
+  }, [activeProjectId, drawnGeometry]);
+
+  // --- Intro Sequence (Asia -> Taiwan -> Taipei) ---
+  const hasPlayedIntro = useRef(false);
+  useEffect(() => {
+    if (startIntro && map.current && !hasPlayedIntro.current && !activeProjectId) {
+      hasPlayedIntro.current = true;
+
+      // Smooth zoom into North Taiwan (Taipei area)
+      map.current.flyTo({
+        center: [121.5, 25.07], // North Taiwan / Taipei area
+        zoom: 11.5,
+        pitch: 0, // Ensure 2D view
+        duration: 4000,
+        curve: 1.6,
+        essential: true
+      });
+    }
+  }, [startIntro, activeProjectId]);
 
   // --- Map Init ---
   useEffect(() => {
@@ -51,8 +94,9 @@ const Map: React.FC = () => {
       map.current = new maplibregl.Map({
         container: mapContainer.current,
         style: cleanedStyle,
-        center: [121.5135, 25.042],
-        zoom: 15,
+        center: [121.0, 23.5], // Initial Taiwan-Centric Global View
+        zoom: 3.2,
+        pitch: 0,
         attributionControl: false,
         preserveDrawingBuffer: true,
       });
@@ -99,6 +143,7 @@ const Map: React.FC = () => {
         console.log('[SiteANA] Map loaded.');
         setMapRef(map.current); // Expose map ref to store
         if (map.current) MapPaintEngine.applyAll(map.current, useMapPaintStore.getState());
+        if (onReady) onReady();
       });
     });
 
@@ -216,17 +261,22 @@ const Map: React.FC = () => {
     if (!m || !m.isStyleLoaded()) return;
 
     const SOURCE_ID = 'site-marker-source';
+    const RANGE_SOURCE_ID = 'site-range-source';
 
     if (!showSiteMarker || !drawnGeometry) {
-      if (m.getLayer('site-marker-line')) m.removeLayer('site-marker-line');
-      if (m.getLayer('site-marker-label')) m.removeLayer('site-marker-label');
+      ['site-marker-line', 'site-marker-label', 'range-300-line', 'range-500-line', 'range-800-line', 'range-label-300', 'range-label-500', 'range-label-800'].forEach(id => {
+        if (m.getLayer(id)) m.removeLayer(id);
+      });
       if (m.getSource(SOURCE_ID)) m.removeSource(SOURCE_ID);
+      if (m.getSource(RANGE_SOURCE_ID)) m.removeSource(RANGE_SOURCE_ID);
       return;
     }
 
     try {
       const centroid = turf.centroid(drawnGeometry as any);
-      const data: GeoJSON.FeatureCollection = {
+      
+      // Data for Marker & Label
+      const markerData: GeoJSON.FeatureCollection = {
         type: 'FeatureCollection',
         features: [
           { 
@@ -244,16 +294,75 @@ const Map: React.FC = () => {
         ]
       };
 
+      // Data for Range Circles (300, 500, 800m)
+      const rangeCircles: GeoJSON.FeatureCollection = {
+        type: 'FeatureCollection',
+        features: [300, 500, 800].map(dist => ({
+          type: 'Feature',
+          geometry: turf.buffer(centroid, dist, { units: 'meters' }).geometry,
+          id: `range-${dist}`,
+          properties: { distance: dist, label: `${dist}m` }
+        }))
+      };
+
+      // Update or Add Sources
       if (m.getSource(SOURCE_ID)) {
-        (m.getSource(SOURCE_ID) as maplibregl.GeoJSONSource).setData(data as any);
-        // Force layout property update for immediate text reaction
-        if (m.getLayer('site-marker-label')) {
-          m.setLayoutProperty('site-marker-label', 'text-field', siteMarkerText);
-        }
-        m.triggerRepaint();
+        (m.getSource(SOURCE_ID) as maplibregl.GeoJSONSource).setData(markerData as any);
       } else {
-        m.addSource(SOURCE_ID, { type: 'geojson', data: data as any });
+        m.addSource(SOURCE_ID, { type: 'geojson', data: markerData as any });
+      }
+
+      if (m.getSource(RANGE_SOURCE_ID)) {
+        (m.getSource(RANGE_SOURCE_ID) as maplibregl.GeoJSONSource).setData(rangeCircles as any);
+      } else {
+        m.addSource(RANGE_SOURCE_ID, { type: 'geojson', data: rangeCircles as any });
+      }
+      
+      // --- Range Circles Layers ---
+      [300, 500, 800].forEach(dist => {
+        const layerId = `range-${dist}-line`;
+        if (!m.getLayer(layerId)) {
+          m.addLayer({
+            id: layerId,
+            type: 'line',
+            source: RANGE_SOURCE_ID,
+            filter: ['==', ['id'], `range-${dist}`],
+            paint: {
+              'line-color': '#94a3b8',
+              'line-width': 1.5,
+              'line-dasharray': [2, 2],
+              'line-opacity': 0.6
+            }
+          });
+        }
         
+        // Range Labels
+        const labelId = `range-label-${dist}`;
+        if (!m.getLayer(labelId)) {
+          m.addLayer({
+            id: labelId,
+            type: 'symbol',
+            source: RANGE_SOURCE_ID,
+            filter: ['==', ['id'], `range-${dist}`],
+            layout: {
+              'text-field': ['get', 'label'],
+              'text-font': ['Open Sans Regular', 'Noto Sans Regular', 'Roboto Regular', 'Arial Unicode MS Regular'],
+              'text-size': 10,
+              'symbol-placement': 'line',
+              'text-offset': [0, -1],
+              'text-allow-overlap': true
+            },
+            paint: {
+              'text-color': '#64748b',
+              'text-halo-color': '#ffffff',
+              'text-halo-width': 1
+            }
+          });
+        }
+      });
+
+      // --- Marker Layers ---
+      if (!m.getLayer('site-marker-line')) {
         m.addLayer({
           id: 'site-marker-line',
           type: 'line',
@@ -266,16 +375,18 @@ const Map: React.FC = () => {
             'line-opacity': 0.9
           }
         });
+      }
 
+      if (!m.getLayer('site-marker-label')) {
         m.addLayer({
           id: 'site-marker-label',
           type: 'symbol',
           source: SOURCE_ID,
           filter: ['==', ['id'], 'site-label'],
           layout: {
-            'text-field': siteMarkerText, // Bind directly for safety instead of reading properties
-            'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
-            'text-size': 14,
+            'text-field': siteMarkerText,
+            'text-font': ['Open Sans Bold', 'Noto Sans Regular', 'Roboto Medium', 'Arial Unicode MS Regular'],
+            'text-size': 16,
             'text-anchor': 'center',
             'text-allow-overlap': true,
             'text-ignore-placement': true
@@ -283,11 +394,17 @@ const Map: React.FC = () => {
           paint: {
             'text-color': '#ffffff',
             'text-halo-color': '#ef4444',
-            'text-halo-width': 3,
+            'text-halo-width': 4,
             'text-halo-blur': 0.5
           }
         });
+      } else {
+        m.setLayoutProperty('site-marker-label', 'text-field', siteMarkerText);
       }
+
+      // Always move label to top
+      m.moveLayer('site-marker-label');
+      
     } catch(e) {
       console.warn('[SiteANA] Site Marker error:', e);
     }

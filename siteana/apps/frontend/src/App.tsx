@@ -6,6 +6,8 @@ import UnifiedExportPanel from './components/Sidebar/UnifiedExportPanel';
 import AnalysisPanel from './components/Sidebar/AnalysisPanel';
 import SunlightPanel from './components/Sidebar/SunlightPanel';
 import { PanelLeftClose, PanelLeftOpen, Sun, Activity, TreePine, Box, ChevronRight, Sparkles } from 'lucide-react';
+import LoadingScreen from './components/UI/LoadingScreen';
+import { useStore } from './store/useStore';
 
 const SectionHeader: React.FC<{ en: string, cn: string, color?: string }> = ({ en, cn, color = 'brand' }) => {
   const colorMap: Record<string, string> = {
@@ -40,9 +42,17 @@ const SectionHeader: React.FC<{ en: string, cn: string, color?: string }> = ({ e
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeModule, setActiveModule] = useState<'sunlight' | null>(null);
+  const [isMapReady, setIsMapReady] = useState(false);
+  const [showLoader, setShowLoader] = useState(true);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 transition-colors duration-300">
+      {showLoader && (
+        <LoadingScreen 
+          isMapReady={isMapReady} 
+          onLoadingComplete={() => setShowLoader(false)} 
+        />
+      )}
 
       {/* Sidebar */}
       <aside
@@ -181,7 +191,7 @@ function App() {
 
       {/* Main Map */}
       <main className="flex-1 relative">
-        <Map />
+        <Map onReady={() => setIsMapReady(true)} startIntro={!showLoader} />
       </main>
     </div>
   );
