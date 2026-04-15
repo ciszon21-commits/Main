@@ -140,9 +140,34 @@ export const useMapPaintStore = create<MapPaintState>()(
     }),
     {
       name: 'siteana-map-paint-storage',
-      onRehydrateStorage: (state) => {
-        return () => {
-          state?.setHasHydrated(true);
+      // [DESIGN DECISION] Do NOT persist paint colors or preset selection.
+      // The map always starts with Ecological Texture (from DEFAULT_PAINT).
+      // Per-project visuals are saved via the project snapshot system in useStore.
+      partialize: (state) => ({
+        // Only persist non-visual display preferences
+        labelLanguage: state.labelLanguage,
+        labelSizeEmoji: state.labelSizeEmoji,
+      }),
+      onRehydrateStorage: () => {
+        return (state) => {
+          // Always start with ecological defaults for visual properties
+          if (state) {
+            const ecologicalDefaults = {
+              roadColors: DEFAULT_PAINT.roadColors,
+              buildingColor: DEFAULT_PAINT.buildingColor,
+              buildingOutlineColor: DEFAULT_PAINT.buildingOutlineColor,
+              buildingOpacity: DEFAULT_PAINT.buildingOpacity,
+              building3D: DEFAULT_PAINT.building3D,
+              buildingVisibility: DEFAULT_PAINT.buildingVisibility,
+              landUseColors: DEFAULT_PAINT.landUseColors,
+              labelVisibility: DEFAULT_PAINT.labelVisibility,
+              backgroundColor: DEFAULT_PAINT.backgroundColor,
+              globalBrightness: DEFAULT_PAINT.globalBrightness,
+              activePresetId: DEFAULT_PAINT.activePresetId,
+            };
+            Object.assign(state, ecologicalDefaults);
+            state.setHasHydrated(true);
+          }
         };
       },
     }

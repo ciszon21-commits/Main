@@ -77,24 +77,64 @@ export class MapPaintEngine {
         });
       }
 
-      // --- BUILDINGS ---
-      if ((id.includes('building') || id.includes('structure')) && (l.type === 'fill' || l.type === 'fill-extrusion')) {
+      // --- BUILDINGS (3 modes: Urban 3D gradient / Generic 3D grey / 2D flat) ---
+      // 'building'    = fill layer (2D footprint)
+      // 'building-3d' = fill-extrusion layer (3D massing)
+      const isUrban = state.activePresetId === 'urban_density';
+
+      if (id === 'building' && l.type === 'fill') {
         l.layout = l.layout || {};
         l.layout.visibility = state.buildingVisibility ? 'visible' : 'none';
         if (state.buildingVisibility) {
-           l.paint = l.paint || {};
-           if (l.type === 'fill') {
-             l.paint['fill-color'] = state.buildingColor;
-             l.paint['fill-opacity'] = state.buildingOpacity;
-           } else {
-             l.paint['fill-extrusion-color'] = state.buildingColor;
-             l.paint['fill-extrusion-opacity'] = state.buildingOpacity;
-           }
+          l.paint = l.paint || {};
+          if (!state.building3D) {
+            // 3D OFF: 2D is the ONLY building layer — extend to all zoom
+            delete l.maxzoom;
+            l.paint['fill-color'] = state.buildingColor;
+            l.paint['fill-opacity'] = state.buildingOpacity;
+            if (state.buildingOutlineColor) {
+              l.paint['fill-outline-color'] = state.buildingOutlineColor;
+            }
+          } else {
+            // 3D ON: 2D is just a low-zoom preview (zoom 13-14)
+            l.paint['fill-color'] = isUrban ? '#4575B4' : '#d1d5db';
+            l.paint['fill-opacity'] = 0.7;
+          }
+        }
+      }
+      if (id === 'building-3d' && l.type === 'fill-extrusion') {
+        l.layout = l.layout || {};
+        if (!state.buildingVisibility || !state.building3D) {
+          // 3D OFF or buildings hidden: hide 3D layer entirely
+          l.layout.visibility = 'none';
+        } else {
+          l.layout.visibility = 'visible';
+          l.paint = l.paint || {};
+          if (isUrban) {
+            // Urban Density: height-based gradient
+            l.paint['fill-extrusion-color'] = [
+              'interpolate', ['linear'], ['get', 'render_height'],
+              0,   '#4575B4',
+              10,  '#74ADD1',
+              20,  '#E0F3F8',
+              35,  '#FFD700',
+              55,  '#FDAE61',
+              80,  '#F46D43',
+              120, '#D73027'
+            ];
+            l.paint['fill-extrusion-opacity'] = state.buildingOpacity;
+          } else {
+            // Other presets with 3D ON: light grey semi-transparent volume
+            l.paint['fill-extrusion-color'] = '#d1d5db';
+            l.paint['fill-extrusion-opacity'] = 0.45;
+          }
         }
       }
 
       // --- LAND USE ---
-      if (l.type === 'fill') {
+      // [KEY] Skip building layers — they are handled separately above
+      const isBuildingLayer = (id === 'building' || id === 'building-3d' || id.includes('structure'));
+      if (l.type === 'fill' && !isBuildingLayer) {
         const check = (keys: string[], color: string) => {
           if (keys.some(k => id.includes(k))) {
             l.paint = l.paint || {};
@@ -140,8 +180,17 @@ export class MapPaintEngine {
    * 2. 動態模式 (應用於已載入的 Map 實例)
    * ==========================================
    */
-  static applyAll(map: maplibregl.Map, state: MapPaintState) {
-    if (!map.isStyleLoaded()) return;
+  static applyAll(map: maplibregl.Map, state: MapPaintState, _retries = 0) {
+    if (!map.isStyleLoaded()) {
+      if (_retries < 10) {
+        // Retry up to 10 times with increasing delay — style may not be registered yet
+        console.warn(`[MapPaintEngine] Style not ready, retry ${_retries + 1}/10 in ${150 * (_retries + 1)}ms`);
+        setTimeout(() => this.applyAll(map, state, _retries + 1), 150 * (_retries + 1));
+      } else {
+        console.error('[MapPaintEngine] Style never became ready after 10 retries.');
+      }
+      return;
+    }
 
     this.resetNeutral(map);
     console.log('[MapPaintEngine] Performing dynamic visual sync for:', state.activePresetId);
@@ -189,36 +238,94 @@ export class MapPaintEngine {
     });
   }
 
-  static applyBuildings(map: maplibregl.Map, state: MapPaintState) {
-    const layers = map.getStyle()?.layers || [];
-    const buildings = layers.filter(l => 
-      (l.id.toLowerCase().includes('building') || l.id.toLowerCase().includes('structure')) && 
-      (l.type === 'fill' || l.type === 'fill-extrusion')
-    );
+  // The user-specified Urban Density height gradient
+  static readonly HEIGHT_GRADIENT = [
+    'interpolate', ['linear'], ['get', 'render_height'],
+    0,   '#4575B4',   // 低層：沉穩湛藍
+    10,  '#74ADD1',   // 中低層：灰調水藍
+    20,  '#E0F3F8',   // 過渡層(中低)：晨霧雪藍
+    35,  '#FFD700',   // 中層：明亮金黃
+    55,  '#FDAE61',   // 過渡層(中高)：溫潤琥珀
+    80,  '#F46D43',   // 中高層：活力暖橘
+    120, '#D73027',   // 超高層：權威赭紅
+  ];
 
-    buildings.forEach(l => {
-      this.safeSetLayout(map, l.id, 'visibility', state.buildingVisibility ? 'visible' : 'none');
-      if (!state.buildingVisibility) return;
-      if (l.type === 'fill') {
-        this.safeSetPaint(map, l.id, 'fill-color', state.buildingColor);
-        this.safeSetPaint(map, l.id, 'fill-opacity', state.buildingOpacity);
-      } else if (l.type === 'fill-extrusion') {
-        this.safeSetPaint(map, l.id, 'fill-extrusion-color', state.buildingColor);
-        this.safeSetPaint(map, l.id, 'fill-extrusion-opacity', state.buildingOpacity);
+  static applyBuildings(map: maplibregl.Map, state: MapPaintState) {
+    if (!state.buildingVisibility) {
+      this.safeSetLayout(map, 'building', 'visibility', 'none');
+      this.safeSetLayout(map, 'building-3d', 'visibility', 'none');
+      return;
+    }
+
+    const isUrban = state.activePresetId === 'urban_density';
+
+    if (state.building3D) {
+      // ============================================
+      // 3D ON: Show 3D volumes + 2D as low-zoom preview
+      // ============================================
+
+      // 2D preview (zoom 13-14)
+      this.safeSetLayout(map, 'building', 'visibility', 'visible');
+      if (map.getLayer('building')) {
+        try { map.setLayerZoomRange('building', 13, 14); } catch(e) {}
       }
-    });
+      this.safeSetPaint(map, 'building', 'fill-color', isUrban ? '#4575B4' : '#d1d5db');
+      this.safeSetPaint(map, 'building', 'fill-opacity', 0.7);
+
+      // 3D volumes (zoom 14+)
+      this.safeSetLayout(map, 'building-3d', 'visibility', 'visible');
+      if (map.getLayer('building-3d')) {
+        try { map.setLayerZoomRange('building-3d', 14, 24); } catch(e) {}
+      }
+      // Restore original height data
+      this.safeSetPaint(map, 'building-3d', 'fill-extrusion-height', ['get', 'render_height']);
+      this.safeSetPaint(map, 'building-3d', 'fill-extrusion-base', ['get', 'render_min_height']);
+
+      if (isUrban) {
+        // Urban Density: height-based color gradient
+        this.safeSetPaint(map, 'building-3d', 'fill-extrusion-color', this.HEIGHT_GRADIENT as any);
+        this.safeSetPaint(map, 'building-3d', 'fill-extrusion-opacity', state.buildingOpacity);
+      } else {
+        // Other presets: light grey semi-transparent volumes
+        this.safeSetPaint(map, 'building-3d', 'fill-extrusion-color', '#d1d5db');
+        this.safeSetPaint(map, 'building-3d', 'fill-extrusion-opacity', 0.45);
+      }
+
+    } else {
+      // ============================================
+      // 3D OFF: 2D only, extend to all zoom levels
+      // Hide 3D layer entirely (so fill-outline-color works)
+      // ============================================
+      this.safeSetLayout(map, 'building-3d', 'visibility', 'none');
+
+      this.safeSetLayout(map, 'building', 'visibility', 'visible');
+      if (map.getLayer('building')) {
+        try { map.setLayerZoomRange('building', 13, 24); } catch(e) {}
+      }
+      this.safeSetPaint(map, 'building', 'fill-color', state.buildingColor);
+      this.safeSetPaint(map, 'building', 'fill-opacity', state.buildingOpacity);
+      if (state.buildingOutlineColor) {
+        this.safeSetPaint(map, 'building', 'fill-outline-color', state.buildingOutlineColor);
+      }
+    }
   }
 
   static applyLandUse(map: maplibregl.Map, state: MapPaintState) {
     const { landUseColors } = state;
     const layers = map.getStyle()?.layers || [];
+    // [KEY] Exclude building layers from land use injection
+    const BUILDING_IDS = ['building', 'building-3d'];
     const apply = (keywords: string[], color: string) => {
       if (!color) return;
-      layers.filter(l => l.type === 'fill' && keywords.some(k => l.id.toLowerCase().includes(k)))
-            .forEach(l => {
-              this.safeSetPaint(map, l.id, 'fill-color', color);
-              this.safeSetPaint(map, l.id, 'fill-opacity', 1.0);
-            });
+      layers.filter(l => 
+        l.type === 'fill' && 
+        !BUILDING_IDS.includes(l.id) &&
+        !l.id.toLowerCase().includes('structure') &&
+        keywords.some(k => l.id.toLowerCase().includes(k))
+      ).forEach(l => {
+        this.safeSetPaint(map, l.id, 'fill-color', color);
+        this.safeSetPaint(map, l.id, 'fill-opacity', 1.0);
+      });
     };
     apply(['park', 'garden', 'green', 'grass', 'forest', 'wood', 'landcover', 'landuse'], landUseColors.park);
     apply(['water', 'river', 'lake', 'ocean', 'sea'], landUseColors.water);
@@ -240,7 +347,12 @@ export class MapPaintEngine {
   }
 
   static applyEnvironment(map: maplibregl.Map, state: MapPaintState) {
-    this.safeSetPaint(map, 'background', 'background-color', state.backgroundColor);
+    // Scan for background layer — ID varies by basemap
+    const layers = map.getStyle()?.layers || [];
+    const bgLayer = layers.find(l => l.type === 'background');
+    if (bgLayer) {
+      this.safeSetPaint(map, bgLayer.id, 'background-color', state.backgroundColor);
+    }
   }
 
   static refreshBuildingCache(map: maplibregl.Map) {

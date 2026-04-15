@@ -47,40 +47,26 @@ function App() {
   const [activeModule, setActiveModule] = useState<'sunlight' | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
   const [showLoader, setShowLoader] = useState(true);
-  const { hasHydrated: hasPaintHydrated } = useMapPaintStore();
+  const { hasHydrated: hasPaintHydrated, activePresetId } = useMapPaintStore();
   const { hasHydrated: hasStoreHydrated, selectedStyle } = useStore();
 
   // [PRECISION FIX] Ensure presets are applied when both map and storage are ready
+  // Also reacts to preset changes (activePresetId) to immediately apply paint
   useEffect(() => {
-    if (isMapReady && hasPaintHydrated && hasStoreHydrated) {
-      const map = (window as any).map;
-      if (map) {
-        console.log('[App] All Stores and Map ready. Syncing Basemap and Injecting final visual state.');
-        
-        // 1. Sync Basemap if mismatch
-        const storedStyleUrl = typeof selectedStyle?.mapStyle === 'string' ? selectedStyle.mapStyle : null;
-        if (storedStyleUrl) {
-          const currentStyle = map.getStyle();
-          // Basic heuristic check - if no layers or different source
-          if (currentStyle && currentStyle.layers.length > 0) {
-             // If we really want to be sure, we can re-trigger setStyle if it's the initial load
-             // But for now, let's just ensure Paint is consistent.
-          }
-        }
+    if (!isMapReady) return;
+    const map = (window as any).map;
+    if (!map) return;
 
-        // 2. Initial Injection
-        MapPaintEngine.applyAll(map, useMapPaintStore.getState());
+    console.log('[App] Paint sync triggered. Preset:', activePresetId);
+    MapPaintEngine.applyAll(map, useMapPaintStore.getState());
 
-        // 3. [BRUTE FORCE] Re-inject after a delay to catch late-registering layers during intro
-        const timer = setTimeout(() => {
-           console.log('[App] Brute-force re-injection for stability.');
-           MapPaintEngine.applyAll(map, useMapPaintStore.getState());
-        }, 3000); // 3 seconds in, while globe is still spinning
+    // [BRUTE FORCE] Re-inject after a short delay to catch layers that finish loading after the initial call
+    const timer = setTimeout(() => {
+       MapPaintEngine.applyAll(map, useMapPaintStore.getState());
+    }, 800);
 
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [isMapReady, hasPaintHydrated, hasStoreHydrated, selectedStyle]);
+    return () => clearTimeout(timer);
+  }, [isMapReady, hasPaintHydrated, hasStoreHydrated, selectedStyle, activePresetId]);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 transition-colors duration-300">

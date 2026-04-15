@@ -129,6 +129,7 @@ const Map: React.FC<MapProps> = ({ onReady, startIntro }) => {
 
       map.current.on('load', () => {
         const m = map.current!;
+        console.log('[Map] load event fired. Initializing UI and injecting paint.');
         
         // Scale control setup
         const scale = new maplibregl.ScaleControl({ maxWidth: 80, unit: 'metric' });
@@ -144,38 +145,44 @@ const Map: React.FC<MapProps> = ({ onReady, startIntro }) => {
           }
         });
 
-        // Re-apply paint when style finishes loading
-        m.on('style.load', () => {
-          console.log('[Map] style.load event triggered.');
+        // [PAINT + READY] Inject preset immediately and unblock loader.
+        // applyAll has built-in retry if style isn't loaded yet.
+        setTimeout(() => {
+          const paintState = useMapPaintStore.getState();
+          console.log('[Map] First paint injection. Preset:', paintState.activePresetId);
+          MapPaintEngine.applyAll(m, paintState);
           
-          // [SYNC] Force apply the current paint state before animation begins
-          setTimeout(() => {
-            if (m.isStyleLoaded()) {
-              console.log('[Map] Style loaded. Performing initial paint injection.');
-              const paintState = useMapPaintStore.getState();
-              MapPaintEngine.applyAll(m, paintState);
-            } else {
-              console.warn('[Map] style.load fired but isStyleLoaded is false. Proceeding with onReady anyway.');
-            }
-            
-            // [CRITICAL] Signal readiness to unblock loader
-            if (onReady) onReady();
+          // Unblock loader regardless of paint result — applyAll will retry internally
+          console.log('[Map] Signalling readiness to unblock loader.');
+          if (onReady) onReady();
+        }, 250);
 
-            // Re-build building cache and re-apply sunlight
-            setTimeout(() => {
-              if (!m.isStyleLoaded()) return;
-              MapPaintEngine.refreshBuildingCache(m);
-              const s = useStore.getState();
-              if (s.sunlightEnabled) {
-                MapPaintEngine.applySunlight(m, {
-                  enabled: s.sunlightEnabled,
-                  date:    s.sunlightDate,
-                  time:    s.sunlightTime,
-                  opacity: s.sunlightShadowOpacity,
-                });
-              }
-            }, 500);
-          }, 200);
+        // [FALLBACK] Second injection at 1.5s to guarantee visual consistency
+        setTimeout(() => {
+          if (!m.isStyleLoaded()) return;
+          const paintState = useMapPaintStore.getState();
+          console.log('[Map] Fallback paint injection. Preset:', paintState.activePresetId);
+          MapPaintEngine.applyAll(m, paintState);
+
+          // Sunlight
+          const s = useStore.getState();
+          if (s.sunlightEnabled) {
+            MapPaintEngine.applySunlight(m, {
+              enabled: s.sunlightEnabled,
+              date:    s.sunlightDate,
+              time:    s.sunlightTime,
+              opacity: s.sunlightShadowOpacity,
+            });
+          }
+        }, 1500);
+
+        // [STYLE SWITCH] style.load is used only for subsequent basemap switches
+        m.on('style.load', () => {
+          console.log('[Map] style.load — re-applying paint for basemap switch.');
+          setTimeout(() => {
+            MapPaintEngine.applyAll(m, useMapPaintStore.getState());
+            MapPaintEngine.refreshBuildingCache(m);
+          }, 250);
         });
       });
     });

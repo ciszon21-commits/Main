@@ -91,7 +91,7 @@ const PRESETS: Record<string, Partial<MapPaintState> & { description: string }> 
   // 8. 建築灰階
   architectural_grey: {
     roadColors: { highway: '#374151', expressway: '#4b5563', primary: '#6b7280', secondary: '#9ca3af', residential: '#d1d5db', path: '#e5e7eb' },
-    buildingColor: '#ffffff', buildingOutlineColor: '#111827', buildingOpacity: 1.0, building3D: false, buildingVisibility: true,
+    buildingColor: '#6b7280', buildingOutlineColor: '#6b7280', buildingOpacity: 1.0, building3D: false, buildingVisibility: true,
     landUseColors: { residential: '#e5e7eb', commercial: '#e5e7eb', park: '#d1d5db', water: '#9ca3af', industrial: '#e5e7eb' },
     backgroundColor: '#f3f4f6', labelVisibility: { road: false, park: false, water: false, poi: false },
     description: '標準化：類似專業 CAD 導出的配置圖'
