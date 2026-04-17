@@ -87,18 +87,13 @@ export class MapPaintEngine {
         l.layout.visibility = state.buildingVisibility ? 'visible' : 'none';
         if (state.buildingVisibility) {
           l.paint = l.paint || {};
-          if (!state.building3D) {
-            // 3D OFF: 2D is the ONLY building layer — extend to all zoom
-            delete l.maxzoom;
-            l.paint['fill-color'] = state.buildingColor;
-            l.paint['fill-opacity'] = state.buildingOpacity;
-            if (state.buildingOutlineColor) {
-              l.paint['fill-outline-color'] = state.buildingOutlineColor;
-            }
-          } else {
-            // 3D ON: 2D is just a low-zoom preview (zoom 13-14)
-            l.paint['fill-color'] = isUrban ? '#4575B4' : '#d1d5db';
-            l.paint['fill-opacity'] = 0.7;
+          // [NEW] 2D/3D SIMULTANEOUS: Always keep 2D visible as "capping" / "context" layer
+          // even when 3D is active. This provides sharp outlines on top of extruded massings.
+          delete l.maxzoom;
+          l.paint['fill-color'] = state.buildingColor;
+          l.paint['fill-opacity'] = state.building3D ? 0.35 : state.buildingOpacity; // Faint if 3D is on
+          if (state.buildingOutlineColor) {
+            l.paint['fill-outline-color'] = state.buildingOutlineColor;
           }
         }
       }
@@ -362,6 +357,46 @@ export class MapPaintEngine {
   }
 
   static applySunlight(map: maplibregl.Map, state: SunlightState) {
-    // Optional sunlight logic implementation if needed
+    if (!state.enabled || !map.isStyleLoaded()) {
+      if (map.getLayer('dynamic-shadows')) {
+        map.setLayoutProperty('dynamic-shadows', 'visibility', 'none');
+      }
+      return;
+    }
+
+    const { lat: latitude, lng: longitude } = map.getCenter() || { lat: 25.04, lng: 121.51 };
+    const date = new Date(state.date);
+    date.setHours(Math.floor(state.time), Math.floor((state.time % 1) * 60));
+
+    // Get buildings from cache or directly query
+    const layers = map.getStyle()?.layers.filter(l => l.id.includes('building') && l.type === 'fill-extrusion').map(l => l.id);
+    const buildings = map.queryRenderedFeatures({ layers });
+
+    if (!buildings.length) return;
+
+    // Use SunlightEngine to project actual shadows
+    const shadowsGeoJSON = SunlightEngine.computeShadows(buildings as any, date, latitude, longitude);
+
+    const sourceId = 'dynamic-shadow-source';
+    if (!map.getSource(sourceId)) {
+      map.addSource(sourceId, { type: 'geojson', data: shadowsGeoJSON });
+      
+      // Find the optimal layer to place shadows under (below 3D buildings, above ground)
+      const buildingLayer = map.getStyle()?.layers.find(l => l.id.includes('building-3d'));
+      
+      map.addLayer({
+        id: 'dynamic-shadows',
+        type: 'fill',
+        source: sourceId,
+        paint: {
+          'fill-color': '#000000',
+          'fill-opacity': state.opacity || 0.4
+        }
+      }, buildingLayer ? buildingLayer.id : undefined);
+    } else {
+      (map.getSource(sourceId) as maplibregl.GeoJSONSource).setData(shadowsGeoJSON);
+      map.setLayoutProperty('dynamic-shadows', 'visibility', 'visible');
+      map.setPaintProperty('dynamic-shadows', 'fill-opacity', state.opacity || 0.4);
+    }
   }
 }

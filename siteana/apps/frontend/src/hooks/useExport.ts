@@ -48,10 +48,21 @@ const loadRhino3dm = (): Promise<any> => {
     const initRhino = () => {
       const factory = (window as any).rhino3dm;
       if (typeof factory !== 'function') {
-        reject(new Error('rhino3dm script loaded but factory function not found.'));
+        // If it's already a promise or instance, resolve it
+        if (factory && typeof factory.then === 'function') {
+            factory.then(resolve).catch(reject);
+            return;
+        }
+        reject(new Error('rhino3dm factory function not found.'));
         return;
       }
-      factory({ locateFile: () => '/rhino3dm.wasm' })
+
+      // Important: provide prefix/path arguments to locateFile
+      factory({ 
+        locateFile: (path: string, prefix: string) => {
+          return '/rhino3dm.wasm';
+        } 
+      })
         .then((instance: any) => {
           (window as any).__rhino3dm_instance = instance;
           resolve(instance);
@@ -445,25 +456,54 @@ export const useExport = () => {
 
         if (!targetLayer) return;
 
+        const heightRaw = f.properties?.render_height || f.properties?.height || 0;
+        const baseHeightRaw = f.properties?.render_min_height || f.properties?.min_height || 0;
+        const height = isFinite(Number(heightRaw)) ? Number(heightRaw) : 0;
+        const baseHeight = isFinite(Number(baseHeightRaw)) ? Number(baseHeightRaw) : 0;
+
+        const isBuilding = targetLayer === LAYERS.BLDG.name;
+
+        const processRing = (ring: any[]) => {
+          const projected = sanitizeCoords(ring.map((c: number[]) => project(c)));
+          if (projected.length < 2) return;
+
+          if (isBuilding && height > 0) {
+            // Elevated Wireframe for Buildings
+            const bottomRing = projected.map(pt => [pt[0], pt[1], baseHeight]);
+            const topRing = projected.map(pt => [pt[0], pt[1], baseHeight + height]);
+            
+            d.drawPolyline(bottomRing, true, targetLayer);
+            d.drawPolyline(topRing, true, targetLayer);
+
+            // Vertical lines connecting top and bottom at each vertex
+            for (let i = 0; i < projected.length - 1; i++) {
+              d.drawPolyline([
+                [projected[i][0], projected[i][1], baseHeight],
+                [projected[i][0], projected[i][1], baseHeight + height]
+              ], false, targetLayer);
+            }
+          } else {
+            // Flat 2D for roads, water, or flat buildings
+            const flat = projected.map(pt => [pt[0], pt[1], baseHeight]);
+            d.drawPolyline(flat, true, targetLayer);
+          }
+        };
+
         if (f.geometry.type === 'Polygon') {
-          (f.geometry.coordinates as any).forEach((ring: any) => {
-            const projected = sanitizeCoords(ring.map((c: number[]) => project(c)));
-            if (projected.length > 1) d.drawPolyline(projected, true, targetLayer);
-          });
+          (f.geometry.coordinates as any).forEach((ring: any) => processRing(ring));
         } else if (f.geometry.type === 'MultiPolygon') {
-          (f.geometry.coordinates as any).forEach((poly: any) => {
-            poly.forEach((ring: any) => {
-              const projected = sanitizeCoords(ring.map((c: number[]) => project(c)));
-              if (projected.length > 1) d.drawPolyline(projected, true, targetLayer);
-            });
-          });
+          (f.geometry.coordinates as any).forEach((poly: any) => poly.forEach((ring: any) => processRing(ring)));
         } else if (f.geometry.type === 'LineString') {
           const projected = sanitizeCoords((f.geometry.coordinates as any).map((c: number[]) => project(c)));
-          if (projected.length > 1) d.drawPolyline(projected, false, targetLayer);
+          if (projected.length > 1) {
+             d.drawPolyline(projected.map(pt => [pt[0], pt[1], baseHeight]), false, targetLayer);
+          }
         } else if (f.geometry.type === 'MultiLineString') {
           (f.geometry.coordinates as any).forEach((line: any) => {
             const projected = sanitizeCoords(line.map((c: number[]) => project(c)));
-            if (projected.length > 1) d.drawPolyline(projected, false, targetLayer);
+            if (projected.length > 1) {
+              d.drawPolyline(projected.map(pt => [pt[0], pt[1], baseHeight]), false, targetLayer);
+            }
           });
         }
       });
@@ -500,10 +540,44 @@ export const useExport = () => {
       const rhino = await loadRhino3dm();
       const doc = new rhino.File3dm();
 
-      // Setup Coordinate Projection
-      const project = (coords: number[]) => p(WGS84, 'EPSG:3826', coords);
+      // Setup Coordinate Projection — safe wrapper around proj4
+      const project = (coords: number[]): number[] | null => {
+        try {
+          const result = p(WGS84, 'EPSG:3826', coords);
+          if (!result || !isFinite(result[0]) || !isFinite(result[1])) return null;
+          return result;
+        } catch {
+          return null;
+        }
+      };
 
-      // Query Features (same logic as DXF)
+      // Create Layers and store their indices
+      let fallbackCounter = 0;
+      const getLayerIndex = (name: string, color: any): number => {
+        const layer = new rhino.Layer();
+        layer.name = name;
+        layer.color = color;
+        doc.layers().add(layer);
+        
+        // Securely fetch layer count supporting both property and method variations in rhino3dm JS
+        const countSource = doc.layers().count;
+        const c = typeof countSource === 'function' ? countSource.call(doc.layers()) : countSource;
+        
+        if (typeof c === 'number' && !isNaN(c) && c > 0) {
+            return c - 1;
+        }
+        // Failsafe sequence if count is unreadable, usually starts at 0
+        return fallbackCounter++;
+      };
+
+      const LAYER_MAP = {
+        SITE: getLayerIndex('V-SITE-BRDY', { r: 255, g: 0, b: 0, a: 255 }),
+        BLDG: getLayerIndex('A-BLDG', { r: 0, g: 0, b: 255, a: 255 }),
+        ROAD: getLayerIndex('C-ROAD', { r: 0, g: 255, b: 255, a: 255 }),
+        WATR: getLayerIndex('C-WATR', { r: 255, g: 0, b: 255, a: 255 })
+      };
+
+      // Query Features
       let centerPoint;
       if (drawnGeometry) {
         centerPoint = turf.centroid(drawnGeometry as any);
@@ -511,98 +585,130 @@ export const useExport = () => {
         const center = mapRef.getCenter();
         centerPoint = turf.point([center.lng, center.lat]);
       }
-      const buffer = turf.buffer(centerPoint, 1000, { units: 'meters' });
-      const bbox = turf.bbox(buffer);
-      const p1 = mapRef.project([bbox[0], bbox[1]]);
-      const p2 = mapRef.project([bbox[2], bbox[3]]);
-      const features = mapRef.queryRenderedFeatures([
-        [p1.x, p1.y], [p2.x, p2.y]
-      ]);
 
-      // Layers
-      const bldgLayer = new rhino.Layer();
-      bldgLayer.name = 'A-BLDG';
-      bldgLayer.color = { r: 0, g: 0, b: 255, a: 255 };
-      doc.layers().add(bldgLayer);
+      const bbox = turf.buffer(centerPoint, 1, { units: 'kilometers' });
+      const renderedQuery = mapRef.queryRenderedFeatures();
+      
+      const features = renderedQuery.filter(f => 
+        f.geometry && 
+        f.source === 'composite' && 
+        f.layer.id !== 'background'
+      );
 
-      const siteLayer = new rhino.Layer();
-      siteLayer.name = 'V-SITE-BRDY';
-      siteLayer.color = { r: 255, g: 0, b: 0, a: 255 };
-      doc.layers().add(siteLayer);
+      // --- Robust WASM Geometry Adder (Safe Mode) ---
+      // Instead of forcing custom layers and risking silent pointer crashes in WASM, 
+      // we output pure Elevated Wireframes to the default layer.
+      const pushToRhino = (nurbsCurve: any) => {
+         doc.objects().add(nurbsCurve, null);
+      };
 
       // Process Site (2D only - only if drawn)
       if (drawnGeometry) {
-        const siteCoords = (drawnGeometry.geometry as any).coordinates[0];
-        const sitePoly = new rhino.Polyline();
-        siteCoords.forEach((c: number[]) => {
-          const p = project(c);
-          sitePoly.add(p[0], p[1], 0);
-        });
-        doc.objects().addPolyline(sitePoly, null);
+        try {
+          const siteRaw = (drawnGeometry.geometry as any).coordinates[0];
+          const siteClean = sanitizeCoords(siteRaw);
+          if (siteClean.length >= 2) {
+            const sitePoly = new rhino.Polyline();
+            siteClean.forEach((c: number[]) => {
+              const pt = project(c);
+              if (pt) sitePoly.add(pt[0], pt[1], 0);
+            });
+            if (sitePoly.count > 1) {
+              const nurbs = sitePoly.toNurbsCurve();
+              pushToRhino(nurbs);
+              // DO NOT delete `nurbs` here; the document retains it!
+            }
+            sitePoly.delete();
+          }
+        } catch(e) { console.warn('[Rhino] site boundary error', e); }
       }
 
       // Process Buildings (3D Extrusion)
       const seen = new Set();
       features.forEach(f => {
-        const layerId = f.layer.id;
-        const isBuilding = layerId.includes('building');
-        const isRoad = layerId.includes('road') || layerId.includes('highway');
-        const isWater = layerId.includes('water');
+        try {
+          const layerId = f.layer.id;
+          const isBuilding = layerId.includes('building');
+          const isRoad = layerId.includes('road') || layerId.includes('highway');
+          const isWater = layerId.includes('water');
 
-        if (!isBuilding && !isRoad && !isWater) return;
+          if (!isBuilding && !isRoad && !isWater) return;
 
-        const id = f.id || JSON.stringify(f.geometry);
-        if (seen.has(id)) return;
-        seen.add(id);
+          const targetLayerIndex = isBuilding ? LAYER_MAP.BLDG : (isRoad ? LAYER_MAP.ROAD : LAYER_MAP.WATR);
 
-        // Height is only applied to buildings, lines lay on the ground (0)
-        const height = isBuilding ? (f.properties.render_height || f.properties.height || 10) : 0;
-        const baseHeight = isBuilding ? (f.properties.render_min_height || f.properties.min_height || 0) : 0;
+          const id = f.id || JSON.stringify(f.geometry);
+          if (seen.has(id)) return;
+          seen.add(id);
 
-        const processPolygon = (coords: number[][]) => {
-          const clean = sanitizeCoords(coords);
-          if (!clean || clean.length < 2) return;
-          const curve = new rhino.Polyline();
-          clean.forEach(c => {
-            const p = project(c);
-            curve.add(p[0], p[1], baseHeight);
-          });
-          
-          if (height > 0) {
-            // Simple extrusion approach for Rhino3dm:
-            // Since Brep.createExtrusion is complex in WASM, we create two polylines (top/bottom) 
-            // and the user can loft or we can try to build a mesh. 
-            // For simplicity and "geometry only", we'll provide the 3D lines or a simple Mesh.
-            
-            const mesh = new rhino.Mesh();
-            const projected = coords.map(c => project(c));
-            
-            // Add vertices for bottom and top
-            projected.forEach(p => mesh.vertices().add(p[0], p[1], baseHeight));
-            projected.forEach(p => mesh.vertices().add(p[0], p[1], baseHeight + height));
-            
-            const count = projected.length - 1; // last point usually equals first
-            for (let i = 0; i < count; i++) {
-              // Side faces
-              mesh.faces().addFace(i, i + 1, i + count + 1 + 1, i + count + 1);
+          const heightRaw = isBuilding ? (f.properties?.render_height || f.properties?.height || 10) : 0;
+          const baseHeightRaw = isBuilding ? (f.properties?.render_min_height || f.properties?.min_height || 0) : 0;
+          const height = isFinite(Number(heightRaw)) ? Number(heightRaw) : 10;
+          const baseHeight = isFinite(Number(baseHeightRaw)) ? Number(baseHeightRaw) : 0;
+
+          const processPolygon = (coords: any[]) => {
+            const clean = sanitizeCoords(coords);
+            if (!clean || clean.length < 3) return;
+
+            const projected = clean.map(c => project(c)).filter((pt): pt is number[] => pt !== null);
+
+            if (projected.length < 3) return;
+
+            if (height > 0) {
+              // 3D Wireframe
+              const bottomCurve = new rhino.Polyline();
+              const topCurve = new rhino.Polyline();
+              
+              projected.forEach(pt => {
+                bottomCurve.add(pt[0], pt[1], baseHeight);
+                topCurve.add(pt[0], pt[1], baseHeight + height);
+              });
+              
+              if (bottomCurve.count > 1) {
+                 const n1 = bottomCurve.toNurbsCurve();
+                 pushToRhino(n1);
+              }
+              if (topCurve.count > 1) {
+                 const n2 = topCurve.toNurbsCurve();
+                 pushToRhino(n2);
+              }
+
+              // Vertical lines
+              projected.forEach(pt => {
+                  const verticalCurve = new rhino.Polyline();
+                  verticalCurve.add(pt[0], pt[1], baseHeight);
+                  verticalCurve.add(pt[0], pt[1], baseHeight + height);
+                  if (verticalCurve.count > 1) {
+                      const n3 = verticalCurve.toNurbsCurve();
+                      pushToRhino(n3);
+                  }
+                  verticalCurve.delete(); // Delete temporary polyline
+              });
+              
+              bottomCurve.delete();
+              topCurve.delete();
+            } else {
+              // 2D: polyline on the ground
+              const curve = new rhino.Polyline();
+              projected.forEach(pt => curve.add(pt[0], pt[1], baseHeight));
+              if (curve.count > 1) {
+                  const n4 = curve.toNurbsCurve();
+                  pushToRhino(n4);
+              }
+              curve.delete(); // Delete temporary polyline
             }
-            // Cap top/bottom if needed (Triangulate for reliability)
-            // ... omitting complex triangulation for this MVP ...
-            
-            doc.objects().addMesh(mesh, null);
-          } else {
-            doc.objects().addPolyline(curve, null);
-          }
-        };
+          };
 
-        if (f.geometry.type === 'Polygon') {
-          (f.geometry.coordinates as any).forEach((ring: any) => processPolygon(ring));
-        } else if (f.geometry.type === 'MultiPolygon') {
-          (f.geometry.coordinates as any).forEach((poly: any) => poly.forEach((ring: any) => processPolygon(ring)));
-        } else if (f.geometry.type === 'LineString') {
-          processPolygon(f.geometry.coordinates as any); // fallback to open curve projection
-        } else if (f.geometry.type === 'MultiLineString') {
-          (f.geometry.coordinates as any).forEach((line: any) => processPolygon(line));
+          if (f.geometry.type === 'Polygon') {
+            (f.geometry.coordinates as any[]).forEach((ring: any) => processPolygon(ring));
+          } else if (f.geometry.type === 'MultiPolygon') {
+            (f.geometry.coordinates as any[]).forEach((poly: any) => poly.forEach((ring: any) => processPolygon(ring)));
+          } else if (f.geometry.type === 'LineString') {
+            processPolygon(f.geometry.coordinates as any);
+          } else if (f.geometry.type === 'MultiLineString') {
+            (f.geometry.coordinates as any[]).forEach((line: any) => processPolygon(line));
+          }
+        } catch(e) {
+          console.warn('[Rhino] feature processing error, skipped:', e);
         }
       });
 

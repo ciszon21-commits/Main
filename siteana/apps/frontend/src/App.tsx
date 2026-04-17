@@ -1,4 +1,4 @@
-import { useState } from 'react';
+
 import ProjectList from './components/Sidebar/ProjectList';
 import Map from './components/Map/Map';
 import MapStyleStudio from './components/Sidebar/MapStyleStudio';
@@ -11,9 +11,12 @@ import LoadingScreen from './components/UI/LoadingScreen';
 import { useStore } from './store/useStore';
 import { useMapPaintStore } from './store/useMapPaintStore';
 import { MapPaintEngine } from './engine/MapPaintEngine';
-import { useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
-const SectionHeader: React.FC<{ en: string, cn: string, color?: string }> = ({ en, cn, color = 'brand' }) => {
+const CollapsibleModule: React.FC<{ en: string, cn: string, color?: string, children: React.ReactNode, defaultOpen?: boolean, delay?: string }> = ({ en, cn, color = 'brand', children, defaultOpen = true, delay }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
   const colorMap: Record<string, string> = {
     brand: 'text-brand-600/60 bg-brand-50/50',
     blue: 'text-blue-600/60 bg-blue-50/50',
@@ -30,15 +33,35 @@ const SectionHeader: React.FC<{ en: string, cn: string, color?: string }> = ({ e
     slate: 'bg-slate-500',
   };
 
+  const toggleOpen = () => {
+    const nextState = !isOpen;
+    setIsOpen(nextState);
+    if (nextState && containerRef.current) {
+      setTimeout(() => {
+        containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }
+  };
+
   return (
-    <div className="flex flex-col mb-4 px-1 group">
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <span className={`w-1 h-3 rounded-full ${dotColorMap[color] || dotColorMap.brand} transition-all group-hover:h-5`} />
-        <span className={`text-[10px] font-black uppercase tracking-[0.3em] leading-none px-2 py-0.5 rounded-md ${colorMap[color] || colorMap.brand}`}>
-          {en}
-        </span>
+    <div ref={containerRef} className="sidebar-section px-1 animate-slide-up border-b border-slate-50 mb-1 scroll-mt-20" style={delay ? { animationDelay: delay } : {}}>
+      <button onClick={toggleOpen} className="w-full flex items-center justify-between py-3 mb-2 group cursor-pointer hover:opacity-80 transition-opacity">
+        <div className="flex flex-col text-left">
+           <div className="flex items-center gap-1.5 mb-1.5">
+             <span className={`w-1 h-3 rounded-full ${dotColorMap[color] || dotColorMap.brand} transition-all group-hover:h-5`} />
+             <span className={`text-[10px] font-black uppercase tracking-[0.3em] leading-none px-2 py-0.5 rounded-md ${colorMap[color] || colorMap.brand}`}>
+               {en}
+             </span>
+           </div>
+           <h3 className="text-sm font-bold text-slate-800 tracking-tight pl-0.5">{cn}</h3>
+        </div>
+        <div className={`p-1 rounded-full bg-slate-50 text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-90' : 'rotate-0'}`}>
+          <ChevronRight size={14} />
+        </div>
+      </button>
+      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[1500px] opacity-100 pb-6' : 'max-h-0 opacity-0 pb-0'}`}>
+         {children}
       </div>
-      <h3 className="text-sm font-bold text-slate-800 tracking-tight pl-0.5">{cn}</h3>
     </div>
   );
 };
@@ -105,26 +128,22 @@ function App() {
         <div className={`flex-1 overflow-y-auto px-4 py-6 custom-scrollbar space-y-10 transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
 
           {/* 1. VISUAL ENGINE */}
-          <div className="sidebar-section px-1 animate-slide-up pb-8 border-b border-slate-50">
-            <SectionHeader en="VISUAL ENGINE" cn="視覺風格工作坊" color="blue" />
+          <CollapsibleModule en="VISUAL ENGINE" cn="視覺風格工作坊" color="blue" defaultOpen={true}>
             <MapStyleStudio />
-          </div>
+          </CollapsibleModule>
 
           {/* 2. SPATIAL ANALYSIS */}
-          <div className="sidebar-section px-1 animate-slide-up pb-8 border-b border-slate-50" style={{ animationDelay: '50ms' }}>
-            <SectionHeader en="SPATIAL ANALYTICS" cn="空間分析引擎" color="emerald" />
+          <CollapsibleModule en="SPATIAL ANALYTICS" cn="空間分析引擎" color="emerald" delay="50ms" defaultOpen={false}>
             <AnalysisPanel />
-          </div>
+          </CollapsibleModule>
 
           {/* 3. PROJECTS */}
-          <div className="sidebar-section px-1 animate-slide-up pb-8 border-b border-slate-50" style={{ animationDelay: '100ms' }}>
+          <CollapsibleModule en="PROJECTS" cn="專案管理" color="brand" delay="100ms" defaultOpen={false}>
             <ProjectList />
-          </div>
+          </CollapsibleModule>
 
           {/* 4. ADVANCED MODULES */}
-          <div className="sidebar-section px-1 animate-slide-up pb-8 border-b border-slate-50" style={{ animationDelay: '150ms' }}>
-            <SectionHeader en="ADVANCED MODULES" cn="進階分析模組" color="amber" />
-            
+          <CollapsibleModule en="ADVANCED MODULES" cn="進階分析模組" color="amber" delay="150ms" defaultOpen={false}>
             <div className="grid grid-cols-2 gap-2 mb-4">
               <button 
                 onClick={() => setActiveModule(activeModule === 'sunlight' ? null : 'sunlight')}
@@ -185,18 +204,17 @@ function App() {
                 </div>
               </div>
             )}
-          </div>
+          </CollapsibleModule>
 
           {/* 5. EXPORT STUDIO */}
-          <div className="sidebar-section px-1 animate-slide-up pb-8" style={{ animationDelay: '200ms' }}>
-            <SectionHeader en="EXPORT STUDIO" cn="分析報表中心" color="slate" />
+          <CollapsibleModule en="EXPORT STUDIO" cn="分析報表中心" color="slate" delay="200ms" defaultOpen={false}>
             <UnifiedExportPanel />
-          </div>
+          </CollapsibleModule>
 
           {/* 6. ANIMATION STUDIO */}
-          <div className="sidebar-section px-1 animate-slide-up pb-12" style={{ animationDelay: '250ms' }}>
+          <CollapsibleModule en="ANIMATION STUDIO" cn="動態運鏡中心" color="amber" delay="250ms" defaultOpen={false}>
             <AnimationStudioPanel />
-          </div>
+          </CollapsibleModule>
 
         </div>
 

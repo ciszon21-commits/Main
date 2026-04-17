@@ -215,10 +215,12 @@ export class SunlightEngine {
       3
     );
 
-    // Shadow length in km
-    const shadowM   = height / Math.tan(altitudeRad);
-    // Cap: ignore absurdly long shadows near horizon (>300m)
-    if (shadowM > 300) return null;
+    // Shadow length in meters: cap multiplier to 3x height or absolute max of 60m
+    const rawShadowM = height / Math.tan(altitudeRad);
+    const shadowM = Math.min(rawShadowM, Math.max(height * 3, 60));
+    
+    // Ignore absurdly long geometric edge-cases
+    if (shadowM <= 0) return null;
     const shadowKm  = shadowM / 1000;
 
     try {

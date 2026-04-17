@@ -1,6 +1,6 @@
 import maplibregl from 'maplibregl';
 
-type AnimationMode = 'orbit' | 'spiral' | 'pan';
+type AnimationMode = 'orbit' | 'spiral' | 'flyin' | 'helicopter' | 'dolly';
 
 export class MapAnimationEngine {
   private static animationId: number | null = null;
@@ -83,38 +83,93 @@ export class MapAnimationEngine {
     this.currentMode = 'flyin';
 
     const targetZoom = map.getZoom();
-    const startZoom = Math.max(targetZoom - 5, 1);
-    const startPitch = 0;
+    const startZoom = Math.max(targetZoom - 3.5, 10.0);
     const targetPitch = 60;
+    const currentBearing = map.getBearing();
 
-    map.jumpTo({ zoom: startZoom, pitch: startPitch });
+    // Jump to high altitude quickly (without easing)
+    map.jumpTo({ zoom: startZoom, pitch: 0 });
 
-    let lastTime = performance.now();
-    const totalDuration = 8000 / speedModifier; // ms
-    const startTime = performance.now();
+    const duration = 3000 / speedModifier;
 
-    const frame = (time: number) => {
-      if (!this.isAnimating || this.currentMode !== 'flyin') return;
-      const elapsed = time - startTime;
-      const t = Math.min(elapsed / totalDuration, 1);
-      // Ease in-out cubic
-      const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    // Use MapLibre's native, highly optimized easeTo instead of manual RAF
+    map.easeTo({
+      zoom: targetZoom,
+      pitch: targetPitch,
+      bearing: currentBearing + 60, // dramatic rotation
+      duration,
+      easing: (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+    });
 
-      map.setZoom(startZoom + (targetZoom - startZoom) * eased);
-      map.setPitch(startPitch + (targetPitch - startPitch) * eased);
-      map.setBearing(map.getBearing() + (10 * speedModifier * (time - lastTime) / 1000));
-      lastTime = time;
-
-      if (t < 1) {
-        this.animationId = requestAnimationFrame(frame);
-      } else {
-        // Auto-switch to orbit after fly-in completes
+    setTimeout(() => {
+      if (this.currentMode === 'flyin') {
         this.currentMode = null;
         this.isAnimating = false;
       }
+    }, duration + 100);
+  }
+
+  /**
+   * Helicopter: Circular orbit with a smooth sinusoidal elevation (pitch) oscillation
+   * to create a more dynamic aerial surveillance feel.
+   */
+  static startHelicopter(map: maplibregl.Map, speedModifier: number = 1.0) {
+    this.stop();
+    this.isAnimating = true;
+    this.currentMode = 'helicopter';
+
+    let lastTime = performance.now();
+    const startTime = performance.now();
+
+    const frame = (time: number) => {
+      if (!this.isAnimating || this.currentMode !== 'helicopter') return;
+      const delta = (time - lastTime) / 1000;
+      const elapsed = (time - startTime) / 1000;
+      lastTime = time;
+
+      const speed = 12 * speedModifier; 
+      const newBearing = map.getBearing() + (speed * delta);
+      
+      // Pitch oscillates between 45 and 75 degrees over a 10s cycle
+      const newPitch = 60 + Math.sin(elapsed * 0.5 * speedModifier) * 15;
+      
+      map.setBearing(newBearing % 360);
+      map.setPitch(newPitch);
+
+      this.animationId = requestAnimationFrame(frame);
     };
 
-    lastTime = performance.now();
+    this.animationId = requestAnimationFrame(frame);
+  }
+
+  /**
+   * Dolly Pan: Linear horizontal movement across the site while maintaining
+   * fixed camera bearing and pitch. Useful for neighborhood scans.
+   */
+  static startDollyPan(map: maplibregl.Map, speedModifier: number = 1.0) {
+    this.stop();
+    this.isAnimating = true;
+    this.currentMode = 'dolly';
+
+    const center = map.getCenter();
+    // Move towards North-East by default
+    const velocity = { lng: 0.0001 * speedModifier, lat: 0.00005 * speedModifier };
+
+    let lastTime = performance.now();
+    const frame = (time: number) => {
+      if (!this.isAnimating || this.currentMode !== 'dolly') return;
+      const delta = (time - lastTime) / 1000;
+      lastTime = time;
+
+      const current = map.getCenter();
+      map.setCenter([
+        current.lng + velocity.lng * delta,
+        current.lat + velocity.lat * delta
+      ]);
+
+      this.animationId = requestAnimationFrame(frame);
+    };
+
     this.animationId = requestAnimationFrame(frame);
   }
 

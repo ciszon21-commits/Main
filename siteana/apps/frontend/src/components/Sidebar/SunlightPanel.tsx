@@ -301,33 +301,39 @@ const SunlightPanel: React.FC = () => {
             </div>
           </div>
 
+          {/* ── Quick Time Presets ────────────────────────────────────── */}
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => { setSunlightTime(sunTimes?.sunriseHour ? sunTimes.sunriseHour + 1 : 7); setIsPlaying(false); }}
+              className="py-1.5 rounded-lg bg-slate-50 border border-slate-100 text-[10px] font-bold text-slate-500 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-all flex flex-col items-center gap-1"
+            >
+              <Sun size={12} /> 早晨
+            </button>
+            <button
+              onClick={() => { setSunlightTime(12); setIsPlaying(false); }}
+              className="py-1.5 rounded-lg bg-slate-50 border border-slate-100 text-[10px] font-bold text-slate-500 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-all flex flex-col items-center gap-1"
+            >
+              <Sun size={12} className="text-amber-400" /> 正午
+            </button>
+            <button
+              onClick={() => { setSunlightTime(sunTimes?.sunsetHour ? sunTimes.sunsetHour - 1 : 17); setIsPlaying(false); }}
+              className="py-1.5 rounded-lg bg-slate-50 border border-slate-100 text-[10px] font-bold text-slate-500 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 transition-all flex flex-col items-center gap-1"
+            >
+              <Moon size={12} className="text-orange-400" /> 黃昏
+            </button>
+          </div>
+
           {/* ── Playback Controls ─────────────────────────────────────── */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => { setSunlightTime(sunTimes?.sunriseHour ?? 6); setIsPlaying(false); }}
-              title="跳至日出"
-              className="p-2 rounded-lg bg-slate-100 text-slate-500 hover:bg-amber-50 hover:text-amber-600 transition-colors"
-            >
-              <SkipBack size={13} />
-            </button>
-
             <button
               onClick={() => setIsPlaying(p => !p)}
               className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all ${
                 isPlaying
-                  ? 'bg-amber-500 text-white shadow-md shadow-amber-200 animate-pulse'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:border-amber-400 hover:text-amber-600'
+                  ? 'bg-gradient-to-r from-orange-400 to-amber-500 text-white shadow-lg shadow-amber-500/30'
+                  : 'bg-white border-2 border-slate-100 text-slate-600 hover:border-amber-400 hover:text-amber-600 shadow-sm'
               }`}
             >
-              {isPlaying ? <><Pause size={13} /> 暫停播放</> : <><Play size={13} /> 播放全天日照</>}
-            </button>
-
-            <button
-              onClick={() => { setIsPlaying(false); setSunlightTime(12); }}
-              title="跳至正午"
-              className="p-2 rounded-lg bg-slate-100 text-slate-500 hover:bg-amber-50 hover:text-amber-600 transition-colors text-[11px] font-bold"
-            >
-              12
+              {isPlaying ? <><Pause size={13} className="animate-pulse" /> 暫停分析</> : <><Play size={13} /> 播放全天日照軌跡</>}
             </button>
           </div>
 
