@@ -28,7 +28,7 @@ const UnifiedExportPanel: React.FC = () => {
     showLegendInExport, setShowLegendInExport
   } = useStore();
   
-  const { exportToPNG, exportToPDF, exportToGeoJSON, generatePreviewUrl, isExporting } = useExport();
+  const { exportToPNG, exportToPDF, exportToGeoJSON, exportToDXF, exportToRhino, generatePreviewUrl, isExporting } = useExport();
   const [format, setFormat] = useState<'png' | 'pdf' | 'geojson' | 'cad' | '3d'>('png');
   const [resLevel, setResLevel] = useState<'standard' | 'high' | '4k' | '8k'>('high');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -48,8 +48,10 @@ const UnifiedExportPanel: React.FC = () => {
     const scale = getScale();
     if (format === 'geojson') {
       exportToGeoJSON();
-    } else if (format === 'cad' || format === '3d') {
-      alert('CAD 向量與 3D 量體匯出模組 (DWG/DXF, 3DM, OBJ) 預計於下一季度開放服務。目前請優先使用 GIS 向量匯出！');
+    } else if (format === 'cad') {
+      exportToDXF();
+    } else if (format === '3d') {
+      exportToRhino();
     } else if (format === 'png') {
       exportToPNG({ scale });
     } else {

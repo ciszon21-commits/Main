@@ -169,7 +169,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadingComplete, isMapR
 
   useEffect(() => {
     let animationFrame: number;
-    const duration = 4000;
+    const duration = 2500;
 
     const tick = () => {
       const elapsed = performance.now() - startTime.current;

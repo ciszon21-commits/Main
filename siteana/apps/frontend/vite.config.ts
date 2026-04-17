@@ -13,5 +13,13 @@ export default defineConfig({
         changeOrigin: true,
       }
     }
+  },
+  optimizeDeps: {
+    exclude: ['rhino3dm']
+  },
+  build: {
+    rollupOptions: {
+      external: ['ws']
+    }
   }
 })

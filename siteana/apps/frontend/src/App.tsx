@@ -3,6 +3,7 @@ import ProjectList from './components/Sidebar/ProjectList';
 import Map from './components/Map/Map';
 import MapStyleStudio from './components/Sidebar/MapStyleStudio';
 import UnifiedExportPanel from './components/Sidebar/UnifiedExportPanel';
+import { AnimationStudioPanel } from './components/Sidebar/AnimationStudioPanel';
 import AnalysisPanel from './components/Sidebar/AnalysisPanel';
 import SunlightPanel from './components/Sidebar/SunlightPanel';
 import { PanelLeftClose, PanelLeftOpen, Sun, Activity, TreePine, Box, ChevronRight, Sparkles } from 'lucide-react';
@@ -187,9 +188,14 @@ function App() {
           </div>
 
           {/* 5. EXPORT STUDIO */}
-          <div className="sidebar-section px-1 animate-slide-up pb-12" style={{ animationDelay: '200ms' }}>
+          <div className="sidebar-section px-1 animate-slide-up pb-8" style={{ animationDelay: '200ms' }}>
             <SectionHeader en="EXPORT STUDIO" cn="分析報表中心" color="slate" />
             <UnifiedExportPanel />
+          </div>
+
+          {/* 6. ANIMATION STUDIO */}
+          <div className="sidebar-section px-1 animate-slide-up pb-12" style={{ animationDelay: '250ms' }}>
+            <AnimationStudioPanel />
           </div>
 
         </div>

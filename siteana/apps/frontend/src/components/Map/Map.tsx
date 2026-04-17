@@ -40,6 +40,7 @@ interface MapProps {
 const Map: React.FC<MapProps> = ({ onReady, startIntro }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
+  const scaleControl = useRef<maplibregl.ScaleControl | null>(null);
   const hasLoadError = useRef(false);
   const { 
     hasHydrated,
@@ -109,7 +110,11 @@ const Map: React.FC<MapProps> = ({ onReady, startIntro }) => {
 
     // [STYLE CLEANING & PRE-INJECTION] 
     // We inject the preset BEFORE initialization to ensure zero-latency visual consistency
+    let isCancelled = false;
+    
     StyleInterceptor.fetchAndCleanStyle(initialStyleUrl).then(cleaned => {
+      if (isCancelled) return;
+      
       const currentPaint = useMapPaintStore.getState();
       const preInjected = MapPaintEngine.applyToStyleJSON(cleaned, currentPaint);
 
@@ -120,7 +125,9 @@ const Map: React.FC<MapProps> = ({ onReady, startIntro }) => {
         zoom: 4,               // Asia-wide view during loading
         pitch: 0,
         bearing: 0,
-        antialias: true
+        antialias: true,
+        attributionControl: false,
+        preserveDrawingBuffer: true
       });
 
       map.current = m;
@@ -131,9 +138,12 @@ const Map: React.FC<MapProps> = ({ onReady, startIntro }) => {
         const m = map.current!;
         console.log('[Map] load event fired. Initializing UI and injecting paint.');
         
-        // Scale control setup
-        const scale = new maplibregl.ScaleControl({ maxWidth: 80, unit: 'metric' });
-        m.addControl(scale, 'bottom-right');
+        // Scale control setup - Move to bottom-left to avoid legend overlap
+        if (scaleControl.current) {
+          try { m.removeControl(scaleControl.current); } catch(e) {}
+        }
+        scaleControl.current = new maplibregl.ScaleControl({ maxWidth: 80, unit: 'metric' });
+        m.addControl(scaleControl.current, 'bottom-left');
 
         m.once('error', () => {
           if (!hasLoadError.current) {
@@ -188,9 +198,15 @@ const Map: React.FC<MapProps> = ({ onReady, startIntro }) => {
     });
 
     return () => {
+      isCancelled = true;
+      if (scaleControl.current && map.current) {
+        try { map.current.removeControl(scaleControl.current); } catch(e) {}
+        scaleControl.current = null;
+      }
       map.current?.remove();
       map.current = null;
       setMapRef(null);
+      (window as any).map = null;
     };
   }, [hasHydrated]);
 
@@ -466,6 +482,8 @@ const Map: React.FC<MapProps> = ({ onReady, startIntro }) => {
     const currentPitch = map.current.getPitch();
     const targetPitch = currentPitch > 10 ? 0 : 60;
     map.current.easeTo({ pitch: targetPitch, duration: 800 });
+    // Synchronize the 3D buildings toggle with the tilt button
+    useMapPaintStore.getState().setBuilding3D(targetPitch > 10);
   };
 
   // --- Zoom logic ---
