@@ -4,7 +4,7 @@ Original Ladybug radiation and EPW weather backends, typed C# adapters and Rhino
 
 Run Rhino command `EnvironmentalHub` to open the loaded panel. Select analysis geometry, optional context and an EPW; set grid/north; run Preflight, review warnings, and Run. Results appear as colored Rhino mesh plus numerical statistics in the panel. Reset removes only objects created by that panel instance.
 
-The local plugin is `artifacts/releases/0.5.0/EnvironmentalHub.Plugin.rhp`. Build and loading instructions are in `docs/BUILD_AND_RUN.md`. Release 0.5.0 has been registered and loaded in a fresh Rhino process. Run `EnvironmentalWeather` for climate fields and hourly selection; `EnvironmentalHub` opens radiation. Execution is synchronous. Existing Rhino processes retain their loaded version until restarted.
+The local plugin is `artifacts/releases/0.6.0/EnvironmentalHub.Plugin.rhp`. Build and loading instructions are in `docs/BUILD_AND_RUN.md`. Release 0.6.0 has been registered and loaded in a fresh Rhino process. Run `EnvironmentalWeather` for climate fields and hourly selection; `EnvironmentalHub` opens radiation. Execution is synchronous. Existing Rhino processes retain their loaded version until restarted.
 
 Open `workflows/radiation/radiation_main.gh` in the inspected Rhino installation to see the original Ladybug workflow. The saved input is a 4m × 4m Brep snapshot from a Rhino object. The fixture uses bundled Seattle-Tacoma EPW data, annual cumulative radiation, north 0°, and 1m grid. It is not a Taipei project result.
 
@@ -21,3 +21,5 @@ To regenerate the audit from captured evidence, run `python tools/write_audit.py
 Full original Ladybug scope: [122-entry feature table](docs/LADYBUG_FEATURE_TABLE.md) and searchable [HTML catalog](docs/LADYBUG_FEATURE_TABLE.html). Standalone radiation, EPW weather and Construct Location are verified; the remaining functions are tracked individually. [Weather semantics and evidence](docs/WEATHER_MODULE.md).
 
 Run EnvironmentalLocation for the original Ladybug location tool; half/quarter-hour UTC display is preserved in both location and weather panels. See docs/LOCATION_MODULE.md.
+
+Current 0.6.0 also provides EnvironmentalClimate for original STAT / DDY imports. Three-city full native JSON and design-day IDF comparisons plus invalid-input and Panel checks passed; see docs/CLIMATE_FILE_MODULE.md (CLIMATE_FILE_MODULE.md from this docs directory) and release_060_loaded.json.

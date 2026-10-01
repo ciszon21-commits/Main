@@ -1,5 +1,13 @@
 # Development log
 
+## 2026-10-01 — 0.6.0 original STAT and DDY imports
+
+- DONE: Climate-file request/result, isolated original import adapter, native climate Panel and EnvironmentalClimate command, Weather navigation, full original output selection, JSON export, explicit unavailable outputs and previous-result state. Native to_dict preserves structural values; design days additionally retain to_idf to include details/schedules beyond the JSON schema.
+- TEST RESULT: Build zero warnings/errors. Six comparisons across Seattle/New Delhi/Singapore and two import formats match every native JSON object and design-day IDF. Five invalid/malformed input cases block. Panel field/format switching, collection count/units, design-day summary and failure preservation pass; GH document count restores. Both native Eto import button events send the correct STAT/DDY request. Prior Location (11), UTC-format (8), Weather interactions and real radiation baseline pass again.
+- ROOT CAUSE/FIX: The initial test-only Python serializer inherited Construct Location's string input hint; removed that hint in the disposable reference graph and reran successfully. Installed originals and production solver behavior were unchanged.
+- RELEASE: Formal 0.6.0 package/manifest, backed-up registry update/readback, fresh armadillo process loaded the actual formal path/version. Evidence: release_060_loaded.json. No Computer Use.
+- LIMITS/NEXT: Five standalone features, one radiation backend and 116 pending entries. STAT radiation is native modeled clear sky, not measured EPW. Plotting, sizing simulation, time filtering and full visual/theme/keyboard/dialog acceptance remain open. Next: independent Analysis Period/HOY, location deconstruction and data utilities; CFD deferred.
+
 ## 2026-10-01 — 0.5.0 Construct Location and fractional UTC labels
 
 - DONE: Original LB Construct Location adapter, typed request/result, native Location Panel and EnvironmentalLocation command, Weather navigation, explicit/native-estimated UTC offset, JSON export and previous-result state. Shared invariant formatter preserves fractional offsets in Weather and Location.

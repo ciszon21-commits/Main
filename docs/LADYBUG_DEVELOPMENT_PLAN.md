@@ -4,7 +4,7 @@
 
 ## 覆蓋與接入原則
 - 122 個入口均已逐一建立並盤點，含 119 個原生元件及 3 個 ValueList 預設選單。建立成功不等於求解通過。
-- Hub 目前正式功能為 Incident Radiation、獨立 Import EPW Weather Panel 與 Construct Location；Cumulative Sky Matrix 用作已驗證輻射後端。其餘項目逐一接入，不以「已安裝」冒充已完成。
+- Hub 目前正式功能為 Incident Radiation、Import EPW、Construct Location、Import STAT 與 Import DDY；Cumulative Sky Matrix 用作已驗證輻射後端。其餘項目逐一接入，不以「已安裝」冒充已完成。
 - 每個入口保留原生名稱、GUID、必填／選填參數、輸出與版本。統一請求／結果邊界；UI 不操作 GH slider。
 - Data Collection、Location、Sky Matrix、VisualizationSet 等需明確的型別轉換。不能用任意字串化取代真實數值、單位或物理物件。
 - 下載、檔案開啟、Rhino Sun／View 變更及版本同步等入口標示副作用；不跟純分析批次一起自動執行。
@@ -19,8 +19,8 @@
 | L4 圖表與呈現 | Psychrometric、Wind Rose／Profile、Hourly／Monthly、Sky／Radiation 圖表 | 原生資料一致；清晰圖例、標籤與縮放；UI/UX 驗收 |
 | L5 工具與維護 | 資料建構／儲存、矩陣、網格、圖例、視圖、版本與預設選單 | 可重現操作、明確副作用與檔案範圍；逐項狀態可追蹤 |
 
-L1 已完成第一批：原生 Import EPW 的全部資料輸出、地點、時間索引、單位、HOY 篩選及缺值遮罩；八項原生比對／失敗測試通過。接下來開發 STAT／DDY、Location 與獨立 Analysis Period／HOY 工具。每次交付更新功能表狀態，避免以整組分類的完成度掩蓋未接入元件。
+L1 已完成 EPW 的原生資料輸出／HOY 篩選／缺值遮罩、Construct Location 及 STAT／DDY 匯入與原生比對。下一批開發獨立 Analysis Period／HOY、Location 解構及資料工具。每次交付更新功能表狀態，避免以整組分類的完成度掩蓋未接入元件。
 
-正式插件已更新為實際載入驗證的 0.5.0。122 項目錄完成；三項功能已獨立接入、一項輻射後端使用、118 項待接入。Construct Location 的六組原生輸出比較與五項無效輸入測試通過；時區顯示修正已在原生 Panel 驗證。接下來為 STAT／DDY、獨立時間工具；L1 尚未全部完成。Eddy3D 僅保留唯讀盤點，CFD 暫緩。
+正式插件已更新為實際載入驗證的 0.6.0。122 項目錄完成；五項功能已獨立接入、一項輻射後端使用、116 項待接入。STAT／DDY 三地全輸出 JSON／IDF 比對及五項無效輸入測試通過；前次 Location／時區與氣象／輻射回測通過。接下來為獨立 Analysis Period／HOY、Location 解構及資料工具；L1 尚未全部完成。Eddy3D 僅保留唯讀盤點，CFD 暫緩。
 
 辨識原則：122 個 UserObject GUID 各不相同；119 個分析元件共用 GhPython 的 ComponentGuid。後續 Adapter 依 UserObject 身分、檔案與 SHA-256 解析，不能以共用基底 GUID 選取功能。

@@ -1,14 +1,14 @@
-# Build and run (0.5.0)
+# Build and run (0.6.0)
 
-The current formal release is `artifacts/releases/0.5.0/EnvironmentalHub.Plugin.rhp`, with sibling Core/Adapter DLLs and `hub.config.json`. The portable package is `artifacts/EnvironmentalHub-0.5.0.zip`; its release manifest records SHA-256 hashes. Ladybug and Radiance remain external installed dependencies.
+The current formal release is `artifacts/releases/0.6.0/EnvironmentalHub.Plugin.rhp`, with sibling Core/Adapter DLLs and `hub.config.json`. The portable package is `artifacts/EnvironmentalHub-0.6.0.zip`; its release manifest records SHA-256 hashes. Ladybug and Radiance remain external installed dependencies.
 
 ```powershell
-dotnet build EnvironmentalSimulationHub/src/EnvironmentalHub.Plugin/EnvironmentalHub.Plugin.csproj -c Release -m:1 -p:CleanFile=Release050.FileListAbsolute.txt -o EnvironmentalSimulationHub/artifacts/releases/0.5.0
+dotnet build EnvironmentalSimulationHub/src/EnvironmentalHub.Plugin/EnvironmentalHub.Plugin.csproj -c Release -m:1 -p:CleanFile=Release060.FileListAbsolute.txt -o EnvironmentalSimulationHub/artifacts/releases/0.6.0
 ```
 
-Do not rebuild over loaded release files. Preserve this versioned directory while Rhino references it. Later releases should use a new version and directory. Existing Rhino processes cannot replace an already-loaded .NET plugin; load a new version in a fresh process. The command `EnvironmentalHub` opens the registered Dock Panel. Its subtitle displays the assembly version, currently 0.5.0.
+Do not rebuild over loaded release files. Preserve this versioned directory while Rhino references it. Later releases should use a new version and directory. Existing Rhino processes cannot replace an already-loaded .NET plugin; load a new version in a fresh process. The command `EnvironmentalHub` opens the registered Dock Panel. Its subtitle displays the assembly version, currently 0.6.0.
 
-The formal update is checked using Rhino MCP and RhinoCommon: plugin GUID, loaded assembly path/version, registered PathFromId, docked panel assembly/version, and a real Ladybug radiation fixture. See `docs/evidence/release_050_loaded.json` for the current release outcome, including Weather Panel and radiation regression. Only that receipt confirms the registered and loaded version; a build or reflected test form alone does not.
+The formal update is checked using Rhino MCP and RhinoCommon: plugin GUID, loaded assembly path/version, registered PathFromId, docked panel assembly/version, and a real Ladybug radiation fixture. See `docs/evidence/release_060_loaded.json` for the current release outcome, including Weather Panel and radiation regression. Only that receipt confirms the registered and loaded version; a build or reflected test form alone does not.
 
 Configuration expands environment variables for the Ladybug user-object and Radiance directories. OutputDirectory is relative to the plugin directory unless absolute. Keep DLLs/configuration together. No solver is installed or reimplemented by this release.
 
@@ -31,3 +31,5 @@ Run `EnvironmentalWeather` or use the panel navigation button. Import an EPW, se
 
 ## Location module (0.5.0)
 Run EnvironmentalLocation or open it from Weather. Original Construct Location supports explicit or native-estimated time zone and JSON export. See LOCATION_MODULE.md. Formal runtime evidence: release_050_loaded.json, with 11 location cases and eight culture/UTC formatter checks. Weather half-hour display is fixed, with real native Panel verification; weather and radiation regression pass.
+
+Current 0.6.0 also provides EnvironmentalClimate for original STAT / DDY imports. Three-city full native JSON and design-day IDF comparisons plus invalid-input and Panel checks passed; see docs/CLIMATE_FILE_MODULE.md (CLIMATE_FILE_MODULE.md from this docs directory) and release_060_loaded.json.

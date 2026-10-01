@@ -43,6 +43,8 @@ public sealed class WeatherPanel : Panel
         radiation.Click += (_, _) => Panels.OpenPanel(typeof(RadiationPanel));
         var construct = new Button { Text = "Construct location…" };
         construct.Click += (_, _) => Panels.OpenPanel(typeof(LocationPanel));
+        var climate = new Button { Text = "STAT / DDY design days…" };
+        climate.Click += (_, _) => Panels.OpenPanel(typeof(ClimateFilePanel));
         file.TextChanged += (_, _) => { file.ToolTip = file.Text; Changed(); };
         annual.CheckedChanged += (_, _) => { start.Enabled = end.Enabled = annual.Checked != true; PeriodChanged(); };
         start.ValueChanged += (_, _) => PeriodChanged(); end.ValueChanged += (_, _) => PeriodChanged();
@@ -65,7 +67,7 @@ public sealed class WeatherPanel : Panel
         period.AddRow(periodNote);
         var layout = new DynamicLayout { Padding = 14, Spacing = new Size(8, 12) };
         layout.AddRow(new Label { Text = "Weather & climate", Font = new Eto.Drawing.Font(SystemFont.Bold, 16) });
-        layout.AddRow(Hint("Environmental Simulation Hub • " + ProductVersion)); layout.AddRow(radiation); layout.AddRow(construct);
+        layout.AddRow(Hint("Environmental Simulation Hub • " + ProductVersion)); layout.AddRow(radiation); layout.AddRow(construct); layout.AddRow(climate);
         layout.AddRow(Section("01  Weather source", file, browse, Hint("Original LB Import EPW • Non-leap hourly EPW")));
         layout.AddRow(new GroupBox { Text = "02  Time selection", Content = period });
         layout.AddRow(Section("03  Import", import, status));

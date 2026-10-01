@@ -15,6 +15,7 @@ public sealed class HubPlugin : PlugIn
         Panels.RegisterPanel(this, typeof(RadiationPanel), "Environmental Hub", null);
         Panels.RegisterPanel(this, typeof(WeatherPanel), "Hub • Weather", null);
         Panels.RegisterPanel(this, typeof(LocationPanel), "Hub • Location", null);
+        Panels.RegisterPanel(this, typeof(ClimateFilePanel), "Hub • Climate files", null);
         return LoadReturnCode.Success;
     }
 }
@@ -46,4 +47,11 @@ public sealed class EnvironmentalLocationCommand : Command
     {
         Panels.OpenPanel(typeof(LocationPanel)); return Result.Success;
     }
+}
+
+public sealed class EnvironmentalClimateCommand : Command
+{
+    public override string EnglishName => "EnvironmentalClimate";
+    protected override Result RunCommand(RhinoDoc doc, RunMode mode)
+    { Panels.OpenPanel(typeof(ClimateFilePanel)); return Result.Success; }
 }
