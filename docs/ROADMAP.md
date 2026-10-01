@@ -1,10 +1,16 @@
-# Roadmap
+# Staged development plan
 
-1. Phase 0 — verified runtime environment, 239 deduplicated component search results, asset index, original Ladybug radiation smoke workflow, Rhino preview, repeat run with exact value match. Done for the documented scope; binary asset execution and OpenFOAM remain unverified.
-2. Radiation adapter — C#/.NET 8 standard request/result contracts, geometry/context object IDs, weather/north/period/grid/settings, isolated stock GH execution, actual solver-path verification and JSON result export. Runtime verified.
-3. Radiation validation — annual, shaded/rotated 24-hour and scaled-geometry cases compare every value and min/max/mean against an independent stock definition, all differences 0. Five execution gates and 25 Core checks pass. Full solver-failure injection, runtime unit-system changes, complex meshes and larger models remain pending.
-4. Minimal Eto dockable panel — geometry/context/EPW selection, Grid, North, Preflight, Run, status/statistics and Reset. Plugin load, visible panel, shared UI execution path, repeat and owned-mesh reset runtime verified. Interactive picker/dialog clicking and full visual UI QA remain pending.
-5. Wind — inspect and wrap a working Eddy3D definition, verify the actual installed solver and compare stock/adapter output. Pending.
-6. Quick/Standard/Expert modes, comparison/export and additional analysis adapters. Future.
+Status is based on acceptance evidence, not lines of code or an estimated overall percentage. Two of six stages have completed their bounded acceptance scope; two are in progress and two have not started.
 
-The present validation weather is Seattle. Choose and verify project weather/location before any site-specific analysis. Execution is synchronous; cancellation and progress are pending. No general scientific certification or company deployment readiness is claimed.
+| Stage | Status | Acceptance / next gate |
+| --- | --- | --- |
+| 1. Runtime and component audit | Complete for documented scope | Installed Rhino/GH/Ladybug/Radiance inspected; stock radiation smoke executed. Binary assets and OpenFOAM remain unverified. |
+| 2. Radiation contracts and adapter | Complete | Real stock components, preflight, normalized result/provenance and export. |
+| 3. Radiation reliability validation | In progress | Three stock comparisons have delta 0; 25 Core checks and five execution gates passed. Null request and partial-preview rollback verified in native Eto. Complex geometry, unit-system changes, larger models and full solver-failure injection still pending. |
+| 4. Panel / UI UX | In progress | Five-step hierarchy, units, prior-result state, export and owned reset implemented. 0.3 native Eto execution and formal release registration / Dock loading passed. Theme, keyboard, dialogs and final narrow-dock visual QA pending. |
+| 5. Wind / Eddy3D | Not started | Inspect a working definition and actual solver first; wrap only after stock execution succeeds; compare all outputs. |
+| 6. Integrated hub and deployment | Not started | Operation modes, comparison, additional analyses, dependency/version compatibility and deployment validation. |
+
+Next sequence: close stages 3 and 4, then inspect/wrap Eddy3D, then extend the hub. Each stage needs a build, real runtime evidence and explicit remaining limits before closure. No wind result or company deployment readiness is claimed. Radiation fixtures use Seattle weather, not a project-specific site study.
+
+Current release: 0.3.0. The package and loaded/registered-path evidence are described in BUILD_AND_RUN.md. All future interfaces follow UI_UX_STANDARD.md. Prefer Rhino MCP and SDK APIs; minimize Computer Use.

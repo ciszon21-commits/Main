@@ -33,6 +33,8 @@ public sealed class LadybugRadiationAdapter(RhinoDoc document, RadiationAdapterC
 
     public PreflightReport Preflight(RadiationAnalysisRequest request)
     {
+        if (request is null)
+            return new([new("ERROR", "RAD-CONTRACT-001", "Request cannot be null.")], null);
         if (request.GeometryIds is null || request.ContextIds is null || request.HoursOfYear is null || request.Settings is null)
             return new([new("ERROR", "RAD-CONTRACT-002", "Request collections and settings cannot be null.")], null);
         if (RhinoDoc.ActiveDoc?.RuntimeSerialNumber != document.RuntimeSerialNumber)
@@ -63,49 +65,50 @@ public sealed class LadybugRadiationAdapter(RhinoDoc document, RadiationAdapterC
         Directory.CreateDirectory(request.OutputDirectory);
         var timer = Stopwatch.StartNew();
         var modelScale = RhinoMath.UnitScale(UnitSystem.Meters, document.ModelUnitSystem);
-        var snapshots = request.GeometryIds.Concat(request.ContextIds).ToDictionary(id => id,
-            id => document.Objects.FindId(id).Geometry.Duplicate());
+        var snapshots = new Dictionary<Guid, GeometryBase>();
         using var definition = new GH_Document();
         definition.Enabled = false;
-        IGH_Component Stock(string name, int x)
-        {
-            var component = (IGH_Component)new GH_UserObject(Path.Combine(configuration.UserObjectDirectory, name + ".ghuser")).InstantiateObject();
-            component.CreateAttributes(); component.Attributes.Pivot = new PointF(x, 100);
-            definition.AddObject(component, false); return component;
-        }
-        var epw = Stock(Components[0], 350);
-        var sky = Stock(Components[1], 650);
-        var radiation = Stock(Components[2], 950);
-        IGH_Param Input(IGH_Component c, string name) => c.Params.Input.Single(p => p.Name == name);
-        IGH_Param Output(IGH_Component c, string name) => c.Params.Output.Single(p => p.Name == name);
-        void Bind(IGH_Component target, string name, IEnumerable<object> values)
-        {
-            var parameter = new Param_GenericObject { Name = name, NickName = "HUB:" + name };
-            parameter.CreateAttributes(); parameter.Attributes.Pivot = new PointF(50, 50 + definition.ObjectCount * 35);
-            parameter.SetPersistentData(values.Select(v => new GH_ObjectWrapper(v)));
-            definition.AddObject(parameter, false); Input(target, name).AddSource(parameter);
-        }
-        void One(IGH_Component c, string name, object value) => Bind(c, name, [value]);
-        One(epw, "_epw_file", request.WeatherFile);
-        Input(sky, "_location").AddSource(Output(epw, "location"));
-        Input(sky, "_direct_rad").AddSource(Output(epw, "direct_normal_rad"));
-        Input(sky, "_diffuse_rad").AddSource(Output(epw, "diffuse_horizontal_rad"));
-        One(sky, "north_", request.NorthDegrees);
-        if (request.HoursOfYear.Length > 0) Bind(sky, "_hoys_", request.HoursOfYear.Select(h => (object)h));
-        One(sky, "high_density_", request.Settings.HighDensity);
-        One(sky, "_ground_ref_", request.Settings.GroundReflectance);
-        One(sky, "_folder_", request.OutputDirectory);
-        Input(radiation, "_sky_mtx").AddSource(Output(sky, "sky_mtx"));
-        Bind(radiation, "_geometry", request.GeometryIds.Select(id => (object)snapshots[id]));
-        if (request.ContextIds.Length > 0) Bind(radiation, "context_", request.ContextIds.Select(id => (object)snapshots[id]));
-        One(radiation, "_grid_size", request.GridMetres * modelScale);
-        One(radiation, "_offset_dist_", request.Settings.OffsetMetres * modelScale);
-        One(radiation, "irradiance_", false);
-        One(radiation, "_cpu_count_", request.Settings.CpuCount);
-        One(radiation, "_run", true);
-        Instances.DocumentServer.AddDocument(definition);
         try
         {
+            foreach (var id in request.GeometryIds.Concat(request.ContextIds))
+                snapshots.Add(id, document.Objects.FindId(id).Geometry.Duplicate());
+            IGH_Component Stock(string name, int x)
+            {
+                var component = (IGH_Component)new GH_UserObject(Path.Combine(configuration.UserObjectDirectory, name + ".ghuser")).InstantiateObject();
+                component.CreateAttributes(); component.Attributes.Pivot = new PointF(x, 100);
+                definition.AddObject(component, false); return component;
+            }
+            var epw = Stock(Components[0], 350);
+            var sky = Stock(Components[1], 650);
+            var radiation = Stock(Components[2], 950);
+            IGH_Param Input(IGH_Component c, string name) => c.Params.Input.Single(p => p.Name == name);
+            IGH_Param Output(IGH_Component c, string name) => c.Params.Output.Single(p => p.Name == name);
+            void Bind(IGH_Component target, string name, IEnumerable<object> values)
+            {
+                var parameter = new Param_GenericObject { Name = name, NickName = "HUB:" + name };
+                parameter.CreateAttributes(); parameter.Attributes.Pivot = new PointF(50, 50 + definition.ObjectCount * 35);
+                parameter.SetPersistentData(values.Select(v => new GH_ObjectWrapper(v)));
+                definition.AddObject(parameter, false); Input(target, name).AddSource(parameter);
+            }
+            void One(IGH_Component c, string name, object value) => Bind(c, name, [value]);
+            One(epw, "_epw_file", request.WeatherFile);
+            Input(sky, "_location").AddSource(Output(epw, "location"));
+            Input(sky, "_direct_rad").AddSource(Output(epw, "direct_normal_rad"));
+            Input(sky, "_diffuse_rad").AddSource(Output(epw, "diffuse_horizontal_rad"));
+            One(sky, "north_", request.NorthDegrees);
+            if (request.HoursOfYear.Length > 0) Bind(sky, "_hoys_", request.HoursOfYear.Select(h => (object)h));
+            One(sky, "high_density_", request.Settings.HighDensity);
+            One(sky, "_ground_ref_", request.Settings.GroundReflectance);
+            One(sky, "_folder_", request.OutputDirectory);
+            Input(radiation, "_sky_mtx").AddSource(Output(sky, "sky_mtx"));
+            Bind(radiation, "_geometry", request.GeometryIds.Select(id => (object)snapshots[id]));
+            if (request.ContextIds.Length > 0) Bind(radiation, "context_", request.ContextIds.Select(id => (object)snapshots[id]));
+            One(radiation, "_grid_size", request.GridMetres * modelScale);
+            One(radiation, "_offset_dist_", request.Settings.OffsetMetres * modelScale);
+            One(radiation, "irradiance_", false);
+            One(radiation, "_cpu_count_", request.Settings.CpuCount);
+            One(radiation, "_run", true);
+            Instances.DocumentServer.AddDocument(definition);
             definition.Enabled = true;
             definition.NewSolution(false);
             var errors = new[] { epw, sky, radiation }.SelectMany(c => c.RuntimeMessages(GH_RuntimeMessageLevel.Error)

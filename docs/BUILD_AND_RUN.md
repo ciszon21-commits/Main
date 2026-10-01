@@ -1,32 +1,22 @@
-# Build and run (development 0.2.0)
+# Build and run (0.3.0)
 
-Requires the audited Rhino 8 SDK assemblies and .NET 8-compatible SDK. No new NuGet package or physics solver was installed for this milestone.
-
-From the parent workspace:
+The current formal release is `artifacts/releases/0.3.0/EnvironmentalHub.Plugin.rhp`, with sibling Core/Adapter DLLs and `hub.config.json`. The portable package is `artifacts/EnvironmentalHub-0.3.0.zip`; its release manifest records SHA-256 hashes. Ladybug and Radiance remain external installed dependencies.
 
 ```powershell
-dotnet build EnvironmentalSimulationHub/src/EnvironmentalHub.Plugin/EnvironmentalHub.Plugin.csproj -c Release -m:1 -p:AdapterAssemblyName=EnvironmentalHub.Adapters.RuntimeV3 -p:CoreAssemblyName=EnvironmentalHub.Core.RuntimeV3 -p:CleanFile=RuntimeV3.FileListAbsolute.txt -o EnvironmentalSimulationHub/artifacts/runtime-v3
+dotnet build EnvironmentalSimulationHub/src/EnvironmentalHub.Plugin/EnvironmentalHub.Plugin.csproj -c Release -m:1 -p:CleanFile=Release030.FileListAbsolute.txt -o EnvironmentalSimulationHub/artifacts/releases/0.3.0
 ```
 
-`RhinoInstallDir` is configurable with an MSBuild property; its default is the Program Files Rhino 8 installation. `-m:1` resolved the local multi-project MSBuild evaluation failure. Final build: 0 warnings, 0 errors. Older assemblies already loaded in Rhino are locked; close that Rhino before rebuilding this exact loaded version. Development assembly suffixes allowed validation without restarting the user's existing session.
+Do not rebuild over loaded release files. Preserve this versioned directory while Rhino references it. Later releases should use a new version and directory. Existing Rhino processes cannot replace an already-loaded .NET plugin; load a new version in a fresh process. The command `EnvironmentalHub` opens the registered Dock Panel. Its subtitle displays the assembly version, currently 0.3.0.
 
-The live runtime-v3 panel passed the functional tests. A subsequent selection guard fix clears selection when changing documents and catches picker exceptions; it is build verified in `artifacts/next/EnvironmentalHub.Plugin.rhp`, with cross-document picker interaction still pending runtime QA. Loading this updated RHP requires a fresh Rhino session because the existing plugin assembly is already loaded. Keep its sibling DLLs/configuration together when changing the registered plugin path.
+The formal update is checked using Rhino MCP and RhinoCommon: plugin GUID, loaded assembly path/version, registered PathFromId, docked panel assembly/version, and a real Ladybug radiation fixture. See `docs/evidence/release_030_loaded.json` for the actual outcome. Only that receipt confirms the registered and loaded version; a build or reflected test form alone does not.
 
-Load `artifacts/runtime-v3/EnvironmentalHub.Plugin.rhp` through Rhino's plugin manager, or the verified RhinoCommon LoadPlugIn API. Rhino remembers the loaded path between sessions. This local build was loaded successfully; no system installer was used. Core/adapter DLLs and `hub.config.json` must remain beside the RHP.
+Configuration expands environment variables for the Ladybug user-object and Radiance directories. OutputDirectory is relative to the plugin directory unless absolute. Keep DLLs/configuration together. No solver is installed or reimplemented by this release.
 
-`hub.config.json` configures installed Ladybug user-object and Radiance bin directories, expanding environment variables. `OutputDirectory` is relative to the plugin folder unless absolute. The solver configuration must match Ladybug's actual configured executable, which the adapter verifies. Output contains `analysis_result.json` and genuine Radiance WEA files.
+Select Breps/Meshes, optional shading context, a complete hourly non-leap EPW, grid spacing in metres and north rotation. Check inputs, then run; warnings require explicit acceptance. Results contain actual colored mesh, min/max/mean/count, full JSON and provenance. Changed inputs mark prior results. A failed solve or staged preview replacement preserves the old result. Clear preview deletes only panel-owned mesh objects and keeps saved files.
 
-Rhino command: `EnvironmentalHub`.
+Current UI defaults: annual, 1 CPU, Tregenza sky, 0.2 ground reflectance and 0.1 m offset. Backend requests also support selected hours. Execution is synchronous; cancellation is unavailable. Full theme, keyboard, picker/dialog and narrow-dock visual QA remain pending. Prefer MCP/API verification over Computer Use, following the user's preference.
 
-1. Select valid Breps/Meshes for analysis, optionally select shading context.
-2. Select a complete non-leap hourly EPW; location comes from its header.
-3. Set grid in metres and north in Ladybug's counterclockwise convention from +Y.
-4. Preflight; errors prevent a run, warnings require Yes in the UI.
-5. Run; inspect colored mesh and min/max/mean/count in the panel.
-6. Reset removes only meshes created by that panel; input geometry remains.
+Validation receipts: adapter_runtime_validation.json (three original-workflow comparisons and five execution gates), preflight_tests.json (25 checks), panel_v6_runtime_validation.json (native Eto execution, null/invalid requests, partial-preview rollback and reset), and release_030_loaded.json (formal plugin registration/dock load).
 
-The UI currently analyzes the full year with 1 CPU, Tregenza sky, 0.2 ground reflectance and 0.1m offset. The backend request additionally supports explicit hour subsets/settings. Quality labels do not silently alter numerical settings.
-
-Validation evidence: `docs/evidence/adapter_runtime_validation.json`, `panel_runtime_validation.json`, and `preflight_tests.json`. Comparisons used identical original Ladybug settings, every value, and summary statistics. Panel verification used the same ExecuteRequest path as the Run button; picker and file-dialog interactions were not manually clicked in this audit.
-
-Known limits: synchronous execution blocks Rhino during solving; progress/cancel/cache absent. No wind adapter. No Taipei-specific study. Scene preview from an already-open unrelated GH definition remains under the user's control. Preview meshes are actual Rhino document objects managed by the panel; reset ownership is instance-local and is not persisted across Rhino restarts.
+## Updating an existing registration
+The audited local installation had both HKLM and HKCU entries pointing to runtime-v3. `tools/update_release_registration.ps1` validates release hashes/version, backs up the two existing FileName values, then updates only those values and checks readback. This requires registry write permission. It does not unload an assembly in an already running Rhino. Use a fresh Rhino process for the new version. See release_registration_updated.json for the update receipt.

@@ -20,3 +20,12 @@
 - ROOT CAUSE/FIX: Windows Forms implicit namespace imports conflicted with Eto; removed generated imports and qualified Font/Environment. Multi-project parallel MSBuild target evaluation failed without diagnostics; single-node build exposed compilation diagnostics and then passed. Already loaded DLLs are locked; separate development assembly names/output preserved the live Rhino session. No solver fallback.
 - KNOWN ISSUES: Synchronous UI-thread execution; no progress/cancel. Picker/dialog clicks and visual panel QA pending. A later picker document-change guard fix is build verified in artifacts/next; the currently loaded runtime-v3 assembly remains locked and the guard needs a fresh Rhino session for runtime QA. Full failure injection/complex-geometry/runtime unit-change validation pending. Seattle fixtures only; wind and company deployment pending.
 - NEXT: Strengthen execution failure handling, progress/cancel and reproducible project geometry fixtures, then inspect a real Eddy3D workflow.
+
+## 2026-10-01 — 0.3.0 release and UI reliability
+
+- DONE: Persisted UI/UX standard and MCP-first preference. Five-step Eto flow, displayed version, bounded viewport and numeric widths, prior-result state, JSON export, readable diagnostics, staged preview replacement and cleanup of GH construction failures.
+- TEST RESULT: Release build 0 warnings / 0 errors. Native Eto runtime-v6: real Ladybug mean 1233.3471168086037 kWh/m2, repeat delta 0, invalid/null request preservation, partial replacement failure rollback and owned reset passed. API width checks at 320/480 passed; these do not replace visual QA.
+- RELEASE: Formal artifacts/releases/0.3.0 package plus SHA-256 manifest. Updated the existing HKLM/HKCU plugin FileName values only, backed up their previous paths and verified readback.
+- ROOT CAUSE/FIX: Rhino auto-loaded runtime-v3 / 0.2.0, so an attempted second plugin with the same GUID was rejected. Versioned release registration avoids that conflict in fresh sessions. Already running Rhino processes retain loaded assemblies until restart.
+- KNOWN ISSUES: Full Dock visual/theme/keyboard/dialog QA pending; synchronous execution and no cancellation. Wind has not started. Formal release registration, loaded assembly, 0.3.0 subtitle, visible Dock Panel and true solve are verified in release_030_loaded.json. Old running processes retain 0.2.0 until restarted.
+- NEXT: Close radiation reliability/UI acceptance gates before Eddy3D integration. Prefer MCP / documented APIs over Computer Use.
