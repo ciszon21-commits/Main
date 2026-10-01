@@ -20,3 +20,8 @@ Validation receipts: adapter_runtime_validation.json (three original-workflow co
 
 ## Updating an existing registration
 The audited local installation had both HKLM and HKCU entries pointing to runtime-v3. `tools/update_release_registration.ps1` validates release hashes/version, backs up the two existing FileName values, then updates only those values and checks readback. This requires registry write permission. It does not unload an assembly in an already running Rhino. Use a fresh Rhino process for the new version. See release_registration_updated.json for the update receipt.
+
+## Extended radiation reliability checks
+`tools/validate_radiation_reliability.py` requires a dedicated empty Rhino document and injected hub_root. Use the bounded MCP call fixture reliability_calls.json with its explicit current test slot; do not target a user document containing geometry. Receipt: `docs/evidence/radiation_reliability_validation.json`.
+
+Six checks passed against the unchanged formal 0.3.0 adapter: three actual runtime unit systems, independently bound stock comparison for mixed closed Brep / triangular Mesh / context, failed user-object construction without a GH document leak, and the genuine disabled-solver guard with no solver output. Units and modified state are restored, all test geometry is removed, and GH document count returns to baseline. Generated solver work folders are ignored; the actual mixed-case JSON result is retained in samples/radiation_reliability.

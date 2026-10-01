@@ -29,3 +29,13 @@
 - ROOT CAUSE/FIX: Rhino auto-loaded runtime-v3 / 0.2.0, so an attempted second plugin with the same GUID was rejected. Versioned release registration avoids that conflict in fresh sessions. Already running Rhino processes retain loaded assemblies until restart.
 - KNOWN ISSUES: Full Dock visual/theme/keyboard/dialog QA pending; synchronous execution and no cancellation. Wind has not started. Formal release registration, loaded assembly, 0.3.0 subtitle, visible Dock Panel and true solve are verified in release_030_loaded.json. Old running processes retain 0.2.0 until restarted.
 - NEXT: Close radiation reliability/UI acceptance gates before Eddy3D integration. Prefer MCP / documented APIs over Computer Use.
+
+## 2026-10-01 — Extended radiation reliability acceptance
+
+- DONE: Reproducible dedicated-document MCP harness for actual unit changes, mixed geometry, independent stock comparison and construction/disabled-solver failure paths. Preserved a real mixed-case result artifact.
+- TEST RESULT: Six cases passed on the formal 0.3.0 adapter. Metres, centimetres and millimetres each give 16 values with mean 1233.3471168086037 and stock delta 0; mixed closed Brep / triangular Mesh / shading gives 82 values, mean 2.442391017648778 and stock delta 0. Corrupt local user-object fixtures fail construction without leaking GH documents. Disabled solver yields RAD-GH-001 and no output directory.
+- CLEANUP: Original Centimeters units and modified state restored; zero active test objects remain; GH document count restored. Installed component files and user scene untouched. No Computer Use.
+- ROOT CAUSE/FIX: The initial independent stock harness omitted its output-directory creation; added it, then reran all six cases successfully. No production adapter change was needed.
+- VERSION: Production stays at verified 0.3.0. This milestone adds acceptance tooling, evidence and reference results; it does not replace the installed plugin binary.
+- KNOWN ISSUES: Small deterministic fixtures only; large-model behavior and full external solver crash injection remain pending. UI theme/keyboard/dialog visual acceptance and wind integration are still open.
+- NEXT: Complete the remaining bounded radiation/UI gates before Eddy3D adapter work.
