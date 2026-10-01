@@ -12,10 +12,12 @@ public sealed class HubPlugin : PlugIn
 {
     protected override LoadReturnCode OnLoad(ref string errorMessage)
     {
-        Panels.RegisterPanel(this, typeof(RadiationPanel), "Environmental Hub", null);
+        Panels.RegisterPanel(this, typeof(HubOverviewPanel), "Environmental Hub", null);
+        Panels.RegisterPanel(this, typeof(RadiationPanel), "Hub • Radiation", null);
         Panels.RegisterPanel(this, typeof(WeatherPanel), "Hub • Weather", null);
         Panels.RegisterPanel(this, typeof(LocationPanel), "Hub • Location", null);
         Panels.RegisterPanel(this, typeof(ClimateFilePanel), "Hub • Climate files", null);
+        Panels.RegisterPanel(this, typeof(TimePanel), "Hub • Time", null);
         return LoadReturnCode.Success;
     }
 }
@@ -25,7 +27,7 @@ public sealed class EnvironmentalHubCommand : Command
     public override string EnglishName => "EnvironmentalHub";
     protected override Result RunCommand(RhinoDoc doc, RunMode mode)
     {
-        Panels.OpenPanel(typeof(RadiationPanel));
+        Panels.OpenPanel(typeof(HubOverviewPanel));
         return Result.Success;
     }
 }
@@ -54,4 +56,15 @@ public sealed class EnvironmentalClimateCommand : Command
     public override string EnglishName => "EnvironmentalClimate";
     protected override Result RunCommand(RhinoDoc doc, RunMode mode)
     { Panels.OpenPanel(typeof(ClimateFilePanel)); return Result.Success; }
+}
+
+public sealed class EnvironmentalRadiationCommand : Command
+{
+    public override string EnglishName=>"EnvironmentalRadiation";
+    protected override Result RunCommand(RhinoDoc doc,RunMode mode){Panels.OpenPanel(typeof(RadiationPanel));return Result.Success;}
+}
+public sealed class EnvironmentalTimeCommand : Command
+{
+    public override string EnglishName=>"EnvironmentalTime";
+    protected override Result RunCommand(RhinoDoc doc,RunMode mode){Panels.OpenPanel(typeof(TimePanel));return Result.Success;}
 }

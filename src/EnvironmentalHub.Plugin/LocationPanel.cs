@@ -16,7 +16,7 @@ public sealed class LocationPanel : Panel
     private readonly NumericStepper longitude = Number(-180, 180);
     private readonly NumericStepper zone = Number(-12, 12);
     private readonly NumericStepper elevation = Number(-100000, 100000);
-    private readonly CheckBox estimate = new() { Text = "Estimate time zone from longitude", Checked = false };
+    private readonly CheckBox estimate = new() { Text = "Estimate from longitude", Checked = false };
     private readonly Label status = new() { Text = "Set location and construct using original Ladybug.", Wrap = WrapMode.Word };
     private readonly Label summary = new() { Wrap = WrapMode.Word };
     private readonly Button run = new() { Text = "Construct location" };
@@ -25,7 +25,7 @@ public sealed class LocationPanel : Panel
     private bool updating;
     public string SummaryText => summary.Text;
     public string StatusText => status.Text;
-    private static NumericStepper Number(double min, double max) => new() { MinValue = min, MaxValue = max, DecimalPlaces = 4, Increment = 0.25, Width = 120 };
+    private static NumericStepper Number(double min, double max) => new() { MinValue = min, MaxValue = max, DecimalPlaces = 4, Increment = 0.25, Width = 100 };
     public LocationPanel()
     {
         MinimumSize = new Size(300, 200); Size = new Size(360, 640); BackgroundColor = SystemColors.ControlBackground;
@@ -42,18 +42,18 @@ public sealed class LocationPanel : Panel
             dialog.Filters.Add(new FileFilter("Location JSON", ".json"));
             if (dialog.ShowDialog(this) == DialogResult.Ok) File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
         });
-        var weather = new Button { Text = "Weather & climate…" }; weather.Click += (_, _) => Panels.OpenPanel(typeof(WeatherPanel));
-        var inputs = new DynamicLayout { Padding = 10, Spacing = new Size(8, 8) };
-        inputs.AddRow(new Label { Text = "Name" }, name); inputs.AddRow(new Label { Text = "Latitude (°)" }, latitude);
-        inputs.AddRow(new Label { Text = "Longitude (°)" }, longitude); inputs.AddRow(new Label { Text = "UTC offset (hours)" }, zone);
-        inputs.AddRow(estimate); inputs.AddRow(new Label { Text = "Elevation (m)" }, elevation);
-        var actions = new DynamicLayout { Padding = 10, Spacing = new Size(8, 8) }; actions.AddRow(run); actions.AddRow(status);
-        var output = new DynamicLayout { Padding = 10, Spacing = new Size(8, 8) }; output.AddRow(summary); output.AddRow(export);
-        var layout = new DynamicLayout { Padding = 14, Spacing = new Size(8, 12) };
-        layout.AddRow(new Label { Text = "Construct location", Font = new Eto.Drawing.Font(SystemFont.Bold, 16) });
-        layout.AddRow(new Label { Text = "Environmental Simulation Hub • " + GetType().Assembly.GetName().Version!.ToString(3) });
-        layout.AddRow(weather); layout.AddRow(new GroupBox { Text = "01  Location inputs", Content = inputs });
-        layout.AddRow(new GroupBox { Text = "02  Construct", Content = actions }); layout.AddRow(new GroupBox { Text = "03  Result", Content = output });
+        var inputs = new DynamicLayout { Padding = 12, Spacing = new Size(8, 8) };
+        var inputFields = new DynamicLayout { Spacing = new Size(8, 8) };
+        inputFields.AddRow(new Label { Text = "Name" }, name); inputFields.AddRow(new Label { Text = "Latitude (°)" }, latitude);
+        inputFields.AddRow(new Label { Text = "Longitude (°)" }, longitude); inputFields.AddRow(new Label { Text = "UTC offset (h)" }, zone);
+        inputFields.AddRow(new Label { Text = "Elevation (m)" }, elevation);
+        inputs.AddRow(inputFields); inputs.AddRow(estimate);
+        var actions = new DynamicLayout { Padding = 12, Spacing = new Size(8, 8) }; actions.AddRow(run); actions.AddRow(status);
+        var output = new DynamicLayout { Padding = 12, Spacing = new Size(8, 8) }; output.AddRow(summary); output.AddRow(export);
+        var layout = new DynamicLayout { Padding = 16, Spacing = new Size(8, 14) };
+        layout.AddRow(HubUi.Header("Location", "Construct coordinates and a time zone before preparing an analysis."));
+        layout.AddRow(HubUi.Navigation(typeof(LocationPanel))); layout.AddRow(HubUi.Section("01  Location inputs", inputs));
+        layout.AddRow(HubUi.Section("02  Construct", actions)); layout.AddRow(HubUi.Section("03  Result", output));
         layout.AddRow(new Label { Text = "Original LB Construct Location • No weather data generated. Execution is synchronous.", Wrap = WrapMode.Word }); layout.Add(null);
         var scroll = new Scrollable { Content = layout, ExpandContentWidth = true };
         scroll.SizeChanged += (_, _) => layout.Width = Math.Max(120, scroll.ClientSize.Width - 20); Content = scroll;

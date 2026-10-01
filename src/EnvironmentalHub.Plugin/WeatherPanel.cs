@@ -28,6 +28,7 @@ public sealed class WeatherPanel : Panel
     public string StatusText => status.Text;
     public string SummaryText => summary.Text;
     public string ProductVersion => GetType().Assembly.GetName().Version!.ToString(3);
+    public string? CompletedSelectionJson => result is null ? null : JsonSerializer.Serialize(result.InputParameters);
 
     public WeatherPanel()
     {
@@ -39,12 +40,6 @@ public sealed class WeatherPanel : Panel
             var dialog = new OpenFileDialog(); dialog.Filters.Add(new FileFilter("EPW weather", ".epw"));
             if (dialog.ShowDialog(this) == DialogResult.Ok) file.Text = dialog.FileName;
         };
-        var radiation = new Button { Text = "Solar radiation…" };
-        radiation.Click += (_, _) => Panels.OpenPanel(typeof(RadiationPanel));
-        var construct = new Button { Text = "Construct location…" };
-        construct.Click += (_, _) => Panels.OpenPanel(typeof(LocationPanel));
-        var climate = new Button { Text = "STAT / DDY design days…" };
-        climate.Click += (_, _) => Panels.OpenPanel(typeof(ClimateFilePanel));
         file.TextChanged += (_, _) => { file.ToolTip = file.Text; Changed(); };
         annual.CheckedChanged += (_, _) => { start.Enabled = end.Enabled = annual.Checked != true; PeriodChanged(); };
         start.ValueChanged += (_, _) => PeriodChanged(); end.ValueChanged += (_, _) => PeriodChanged();
@@ -62,27 +57,24 @@ public sealed class WeatherPanel : Panel
             if (dialog.ShowDialog(this) == DialogResult.Ok)
                 File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
         });
-        var period = new DynamicLayout { Padding = 10, Spacing = new Size(8, 8) };
-        period.AddRow(annual); period.AddRow(new Label { Text = "Start HOY" }, start); period.AddRow(new Label { Text = "End HOY (inclusive)" }, end);
+        var period = new DynamicLayout { Spacing = new Size(8, 8) };
+        var periodFields = new DynamicLayout { Spacing = new Size(8, 8) };
+        periodFields.AddRow(new Label { Text = "Start HOY" }, start); periodFields.AddRow(new Label { Text = "End HOY" }, end);
+        period.AddRow(annual); period.AddRow(periodFields);
         period.AddRow(periodNote);
-        var layout = new DynamicLayout { Padding = 14, Spacing = new Size(8, 12) };
-        layout.AddRow(new Label { Text = "Weather & climate", Font = new Eto.Drawing.Font(SystemFont.Bold, 16) });
-        layout.AddRow(Hint("Environmental Simulation Hub • " + ProductVersion)); layout.AddRow(radiation); layout.AddRow(construct); layout.AddRow(climate);
+        var layout = new DynamicLayout { Padding = 16, Spacing = new Size(8, 14) };
+        layout.AddRow(HubUi.Header("EPW weather", "Import climate fields, choose a time range and inspect the original data."));
+        layout.AddRow(HubUi.Navigation(typeof(WeatherPanel)));
         layout.AddRow(Section("01  Weather source", file, browse, Hint("Original LB Import EPW • Non-leap hourly EPW")));
-        layout.AddRow(new GroupBox { Text = "02  Time selection", Content = period });
+        layout.AddRow(HubUi.Section("02  Time selection", period));
         layout.AddRow(Section("03  Import", import, status));
         layout.AddRow(Section("04  Weather data", location, fields, summary, export)); layout.Add(null);
         var scroll = new Scrollable { Content = layout, ExpandContentWidth = true };
         scroll.SizeChanged += (_, _) => layout.Width = Math.Max(120, scroll.ClientSize.Width - 20);
         Content = scroll;
     }
-    private static Label Hint(string text) => new() { Text = text, Wrap = WrapMode.Word, TextColor = SystemColors.DisabledText };
-    private static GroupBox Section(string title, params Control[] controls)
-    {
-        var layout = new DynamicLayout { Padding = 10, Spacing = new Size(8, 8) };
-        foreach (var c in controls) layout.AddRow(c);
-        return new GroupBox { Text = title, Content = layout };
-    }
+    private static Label Hint(string text) => new() { Text = text, Wrap = WrapMode.Word, TextColor = SystemColors.ControlText };
+    private static Control Section(string title, params Control[] controls) => HubUi.Section(title, controls);
     private void PeriodChanged()
     {
         if (updating) return;
@@ -127,7 +119,8 @@ public sealed class WeatherPanel : Panel
             finally { updating = false; }
             result = imported;
             fields.Items.Clear();
-            foreach (var s in result.Series) fields.Items.Add($"{s.Output} [{s.CollectionIndex}] • {s.Units}");
+            foreach (var s in result.Series) fields.Items.Add($"{s.DataType}" +
+                (result.Series.Count(other => other.Output == s.Output) > 1 ? $" · Collection {s.CollectionIndex + 1}" : "") + $" • {s.Units}");
             fields.SelectedIndex = 0; ShowSeries();
             location.Text = $"{result.Location.City}, {result.Location.Country}\nLatitude {result.Location.Latitude:F3} • Longitude {result.Location.Longitude:F3} • {ClimateDisplay.UtcOffset(result.Location.TimeZone)}";
             status.Text = $"Imported • {result.Series.Length} data collections" + (result.Warnings.Length == 0 ? "" : "\n" + string.Join("\n", result.Warnings.Select(w => w.Message)));
