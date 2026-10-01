@@ -41,6 +41,8 @@ public sealed class WeatherPanel : Panel
         };
         var radiation = new Button { Text = "Solar radiation…" };
         radiation.Click += (_, _) => Panels.OpenPanel(typeof(RadiationPanel));
+        var construct = new Button { Text = "Construct location…" };
+        construct.Click += (_, _) => Panels.OpenPanel(typeof(LocationPanel));
         file.TextChanged += (_, _) => { file.ToolTip = file.Text; Changed(); };
         annual.CheckedChanged += (_, _) => { start.Enabled = end.Enabled = annual.Checked != true; PeriodChanged(); };
         start.ValueChanged += (_, _) => PeriodChanged(); end.ValueChanged += (_, _) => PeriodChanged();
@@ -63,7 +65,7 @@ public sealed class WeatherPanel : Panel
         period.AddRow(periodNote);
         var layout = new DynamicLayout { Padding = 14, Spacing = new Size(8, 12) };
         layout.AddRow(new Label { Text = "Weather & climate", Font = new Eto.Drawing.Font(SystemFont.Bold, 16) });
-        layout.AddRow(Hint("Environmental Simulation Hub • " + ProductVersion)); layout.AddRow(radiation);
+        layout.AddRow(Hint("Environmental Simulation Hub • " + ProductVersion)); layout.AddRow(radiation); layout.AddRow(construct);
         layout.AddRow(Section("01  Weather source", file, browse, Hint("Original LB Import EPW • Non-leap hourly EPW")));
         layout.AddRow(new GroupBox { Text = "02  Time selection", Content = period });
         layout.AddRow(Section("03  Import", import, status));
@@ -125,7 +127,7 @@ public sealed class WeatherPanel : Panel
             fields.Items.Clear();
             foreach (var s in result.Series) fields.Items.Add($"{s.Output} [{s.CollectionIndex}] • {s.Units}");
             fields.SelectedIndex = 0; ShowSeries();
-            location.Text = $"{result.Location.City}, {result.Location.Country}\nLatitude {result.Location.Latitude:F3} • Longitude {result.Location.Longitude:F3} • UTC {result.Location.TimeZone:+0;-0;0}";
+            location.Text = $"{result.Location.City}, {result.Location.Country}\nLatitude {result.Location.Latitude:F3} • Longitude {result.Location.Longitude:F3} • {ClimateDisplay.UtcOffset(result.Location.TimeZone)}";
             status.Text = $"Imported • {result.Series.Length} data collections" + (result.Warnings.Length == 0 ? "" : "\n" + string.Join("\n", result.Warnings.Select(w => w.Message)));
             export.Enabled = true;
             return JsonSerializer.Serialize(result);

@@ -2,7 +2,7 @@
 
 實際安裝範圍：**122 個入口**。全部已透過 Rhino MCP 逐一建立並讀取 metadata；盤點不等於每個功能都完成求解驗證。
 
-目前 0.4.0 Hub 已實測接入 Incident Radiation 與獨立 Import EPW Weather Panel；Cumulative Sky Matrix 已用於輻射後端。其餘入口已安裝、待逐一接入。三個預設選單亦列入，未當作獨立求解器。
+目前 0.5.0 Hub 已實測接入 Incident Radiation、獨立 Import EPW Weather Panel 與 Construct Location；Cumulative Sky Matrix 已用於輻射後端。其餘入口已安裝、待逐一接入。三個預設選單亦列入，未當作獨立求解器。
 
 來源：本機原生 Ladybug user objects；原生英文說明保留，避免改寫造成物理意義偏差。輸入中的 `*` 表示原元件必填。
 
@@ -19,7 +19,7 @@
 
 | ID | 原生功能 | 用途（原生說明） | 輸入 | 輸出 | Hub 狀態 |
 | --- | --- | --- | --- | --- | --- |
-| LB-001 | LB Construct Location | Construct location from latitude, lognitude, and time zone data.<br>- | _name_, _latitude_, _longitude_, _time_zone_, _elevation_ | location | 待接入 Hub |
+| LB-001 | LB Construct Location | Construct location from latitude, lognitude, and time zone data.<br>- | _name_, _latitude_, _longitude_, _time_zone_, _elevation_ | location | 已接入並實測 |
 | LB-002 | LB Deconstruct Design Day | Deconstruct design day into parameters.<br>- | _design_day | name, day_type, location, date, dry_bulb_max, dry_bulb_range, humidity_type, humidity_value, barometric_p, wind_speed, wind_dir, sky_type, sky_properties | 待接入 Hub |
 | LB-003 | LB Deconstruct Location | Deconstruct location into its component properties.<br>- | _location | name, latitude, longitude, time_zone, elevation | 待接入 Hub |
 | LB-004 | LB Download Weather | Automatically download a .zip file from a URL where climate data resides,<br>unzip the file, and open .epw, .stat, and ddy weather files.<br>- | _weather_URL, _folder_ | epw_file, stat_file, ddy_file | 待接入 Hub |
