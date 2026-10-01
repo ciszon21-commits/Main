@@ -39,3 +39,12 @@
 - VERSION: Production stays at verified 0.3.0. This milestone adds acceptance tooling, evidence and reference results; it does not replace the installed plugin binary.
 - KNOWN ISSUES: Small deterministic fixtures only; large-model behavior and full external solver crash injection remain pending. UI theme/keyboard/dialog visual acceptance and wind integration are still open.
 - NEXT: Complete the remaining bounded radiation/UI gates before Eddy3D adapter work.
+
+## 2026-10-01 — Full Ladybug priority and feature catalog
+
+- USER PRIORITY: Complete original Ladybug features first; provide the full feature table. Wind CFD adapter work is deferred.
+- DONE: Read every installed Ladybug .ghuser through Rhino MCP. 122 entries instantiated: 119 components plus three preset value lists. Generated complete Markdown/HTML catalogs with original descriptions, required/optional inputs, outputs, GUIDs, versions and honest Hub state. Added phased Ladybug development plan.
+- ROOT CAUSE/FIX: Three value-list archives have no component Message/Params properties; handled their actual ValueList fields instead of calling them failed analysis components. The 119 analysis objects share one GhPython ComponentGuid; corrected the catalog to use 122 distinct UserObject GUIDs, with base GUID and SHA-256 retained.
+- VERIFIED SCOPE: Installed archive coverage and metadata only. Incident Radiation is integrated/tested; Import EPW and Cumulative Sky Matrix are used by that verified pipeline. Remaining catalog entries are explicitly pending Hub integration. HTML interaction is implemented; native visual QA is not claimed.
+- OTHER COMPLETED WORK: 4096-cell radiation stock/adapter comparison delta 0; adapter duration 1.5166476 seconds on the tested machine. Post-solve provenance failure RAD-SOLVER-005 leaves no success JSON and restores GH document count. Single flat surface capacity, not full project certification. Preliminary Eddy metadata inventory retained without a CFD run.
+- VERSION/NEXT: Production remains 0.3.0. Next implementation is L1 typed weather/time data and original-component adapter comparisons.

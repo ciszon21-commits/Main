@@ -11,3 +11,5 @@ User direction: every subsequent interface must have high-quality UI/UX, clear l
 - Inspect actual Rhino layout at narrow/wide dock widths and supported themes before declaring visual QA complete.
 
 - User preference: minimize Computer Use. Prefer Rhino MCP, documented SDK APIs and file-based verification. Use native UI automation only when necessary to resolve a specific interaction/visual issue.
+
+- Current user priority: complete the original Ladybug feature scope first. Keep all 122 installed entries in the feature catalog with per-function integration/verification states; defer wind CFD adapter work until the Ladybug milestones are addressed.
