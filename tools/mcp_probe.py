@@ -1,4 +1,4 @@
-"""Bounded, read-only MCP baseline probe; never alter the Rhino document."""
+"""Bounded MCP client. Supplied call files may run explicitly authorized mutations."""
 import argparse
 import json
 import queue
