@@ -2,7 +2,7 @@
 
 實際安裝範圍：**122 個入口**。全部已透過 Rhino MCP 逐一建立並讀取 metadata；盤點不等於每個功能都完成求解驗證。
 
-目前 Hub 已實測接入 Incident Radiation；Import EPW 與 Cumulative Sky Matrix 已用於輻射後端。其餘入口已安裝、待逐一接入。三個預設選單亦列入，未當作獨立求解器。
+目前 0.4.0 Hub 已實測接入 Incident Radiation 與獨立 Import EPW Weather Panel；Cumulative Sky Matrix 已用於輻射後端。其餘入口已安裝、待逐一接入。三個預設選單亦列入，未當作獨立求解器。
 
 來源：本機原生 Ladybug user objects；原生英文說明保留，避免改寫造成物理意義偏差。輸入中的 `*` 表示原元件必填。
 
@@ -27,7 +27,7 @@
 | LB-006 | LB EPWmap | Open EPWmap in a web browser.<br>- | _epw_map | Output | 待接入 Hub |
 | LB-007 | LB Import DDY | Import data from a standard .ddy file.<br>- | _ddy_file | location, design_days | 待接入 Hub |
 | LB-008 | LB Import Design Day | Import hourly climate data from a Ladybug DesignDay object.<br>- | _design_day | location, dry_bulb_temperature, dew_point_temperature, relative_humidity, wind_speed, wind_direction, direct_normal_rad, diffuse_horizontal_rad, global_horizontal_rad, horizontal_infrared_rad, total_sky_cover, barometric_pressure | 待接入 Hub |
-| LB-009 | LB Import EPW | Import climate data from a standard .epw file.<br>- | _epw_file | location, dry_bulb_temperature, dew_point_temperature, relative_humidity, wind_speed, wind_direction, direct_normal_rad, diffuse_horizontal_rad, global_horizontal_rad, horizontal_infrared_rad, direct_normal_ill, diffuse_horizontal_ill, global_horizontal_ill, total_sky_cover, barometric_pressure, model_year, ground_temperature | 輻射後端已使用 |
+| LB-009 | LB Import EPW | Import climate data from a standard .epw file.<br>- | _epw_file | location, dry_bulb_temperature, dew_point_temperature, relative_humidity, wind_speed, wind_direction, direct_normal_rad, diffuse_horizontal_rad, global_horizontal_rad, horizontal_infrared_rad, direct_normal_ill, diffuse_horizontal_ill, global_horizontal_ill, total_sky_cover, barometric_pressure, model_year, ground_temperature | 已接入並實測 |
 | LB-010 | LB Import Location | Import location from an epw file.<br>- | _epw_file | location | 待接入 Hub |
 | LB-011 | LB Import STAT | Import data from a standard .stat file.<br>- | _stat_file | location, ashrae_zone, koppen_zone, clear_dir_norm_rad, clear_diff_horiz_rad, ann_heat_dday_996, ann_heat_dday_990, ann_cool_dday_004, ann_cool_dday_010, monthly_ddays_050, monthly_ddays_100, extreme_cold_week, extreme_hot_week, typical_weeks | 待接入 Hub |
 

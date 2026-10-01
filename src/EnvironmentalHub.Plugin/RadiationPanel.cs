@@ -93,6 +93,9 @@ public sealed class RadiationPanel : Panel
         var layout = new DynamicLayout { Padding = 14, Spacing = new Size(8, 12) };
         layout.AddRow(new Label { Text = "Solar radiation", Font = new Eto.Drawing.Font(SystemFont.Bold, 16) });
         layout.AddRow(Hint("Environmental Simulation Hub • " + ProductVersion));
+        var weatherModule = new Button { Text = "Weather & climate…" };
+        weatherModule.Click += (_, _) => Rhino.UI.Panels.OpenPanel(typeof(WeatherPanel));
+        layout.AddRow(weatherModule);
         layout.AddRow(model); layout.AddRow(climate);
         layout.AddRow(new GroupBox { Text = "03  Analysis settings", Content = settings });
         layout.AddRow(execution); layout.AddRow(results); layout.Add(null);

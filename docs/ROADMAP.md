@@ -13,4 +13,4 @@ Status is based on acceptance evidence, not lines of code or an estimated overal
 
 Next sequence: finish the Ladybug module coverage in LADYBUG_DEVELOPMENT_PLAN.md, preserving the radiation reliability/UI gates, then return to Eddy3D. Each stage needs a build, real runtime evidence and explicit remaining limits before closure. No wind result or company deployment readiness is claimed. Radiation fixtures use Seattle weather, not a project-specific site study.
 
-Current release: 0.3.0. The package and loaded/registered-path evidence are described in BUILD_AND_RUN.md. All future interfaces follow UI_UX_STANDARD.md. Prefer Rhino MCP and SDK APIs; minimize Computer Use.
+Current release: 0.4.0. L1 weather/time is in progress: standalone original Import EPW, typed location/15 hourly fields/three monthly collections, selected hours and missing-value preservation are runtime verified. STAT/DDY and remaining L1 entries are pending. The package and loaded/registered-path evidence are described in BUILD_AND_RUN.md. All future interfaces follow UI_UX_STANDARD.md. Prefer Rhino MCP and SDK APIs; minimize Computer Use.
