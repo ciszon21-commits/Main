@@ -1,20 +1,20 @@
-# Build and run (0.8.3)
+# Build and run (0.8.5)
 
-The current formal release is `artifacts/releases/0.8.3/EnvironmentalHub.Plugin.rhp`, with sibling Core/Adapter DLLs and `hub.config.json`. The portable package is `artifacts/EnvironmentalHub-0.8.3.zip`; its release manifest records SHA-256 hashes. Ladybug and Radiance remain external installed dependencies.
+The current formal release is `artifacts/releases/0.8.5/EnvironmentalHub.Plugin.rhp`, with sibling Core/Adapter DLLs and `hub.config.json`. The portable package is `artifacts/EnvironmentalHub-0.8.5.zip`; its release manifest records SHA-256 hashes. Ladybug and Radiance remain external installed dependencies.
 
 ```powershell
-dotnet build EnvironmentalSimulationHub/src/EnvironmentalHub.Plugin/EnvironmentalHub.Plugin.csproj -c Release -m:1 -p:CleanFile=Release083.FileListAbsolute.txt -o EnvironmentalSimulationHub/artifacts/releases/0.8.3
+dotnet build EnvironmentalSimulationHub/src/EnvironmentalHub.Plugin/EnvironmentalHub.Plugin.csproj -c Release -m:1 -p:CleanFile=Release085.FileListAbsolute.txt -o EnvironmentalSimulationHub/artifacts/releases/0.8.5
 ```
 
-Do not rebuild over loaded release files. Preserve this versioned directory while Rhino references it. Later releases should use a new version and directory. Existing Rhino processes cannot replace an already-loaded .NET plugin; load a new version in a fresh process. The command `EnvironmentalHub` opens the registered Dock Panel. Its subtitle displays the assembly version, currently 0.8.3.
+Do not rebuild over loaded release files. Preserve this versioned directory while Rhino references it. Later releases should use a new version and directory. Existing Rhino processes cannot replace an already-loaded .NET plugin; load a new version in a fresh process. The command `EnvironmentalHub` opens the registered Dock Panel. Its subtitle displays the assembly version, currently 0.8.5.
 
-The formal update is checked using Rhino MCP and RhinoCommon: plugin GUID, loaded assembly path/version, registered PathFromId, docked panel assembly/version, and a real Ladybug radiation fixture. See `docs/evidence/release_083_loaded.json` for the current release outcome, including Weather Panel and radiation regression. Only that receipt confirms the registered and loaded version; a build or reflected test form alone does not.
+The formal update is checked using Rhino MCP and RhinoCommon: plugin GUID, loaded assembly path/version, registered PathFromId, docked panel assembly/version, and a real Ladybug radiation fixture. See `docs/evidence/release_085_loaded.json` for the current release outcome, including Weather Panel and radiation regression. Only that receipt confirms the registered and loaded version; a build or reflected test form alone does not.
 
 Configuration expands environment variables for the Ladybug user-object and Radiance directories. OutputDirectory is relative to the plugin directory unless absolute. Keep DLLs/configuration together. No solver is installed or reimplemented by this release.
 
 Select Breps/Meshes, optional shading context, a complete hourly non-leap EPW, grid spacing in metres and north rotation. Check inputs, then run; warnings require explicit acceptance. Results contain actual colored mesh, min/max/mean/count, full JSON and provenance. Changed inputs mark prior results. A failed solve or staged preview replacement preserves the old result. Clear preview deletes only panel-owned mesh objects and keeps saved files.
 
-Current UI defaults: annual, 1 CPU, Tregenza sky, 0.2 ground reflectance and 0.1 m offset. Advanced controls expose the existing typed settings. Explicitly use completed weather/time selections from supporting modules; fractional periods are rejected without rounding. Execution is synchronous; reliable cancel and percentage progress remain unavailable. Production Eto/WPF layouts are rendered at 320/480 px offscreen; full Dock/theme/keyboard/picker/dialog acceptance remains separate. Prefer MCP/API verification over Computer Use, following the user's preference. See PLATFORM_UI.md and platform_ui_runtime.json for comparison, criterion and viewport-focus semantics.
+Current UI defaults: annual, 1 CPU, Tregenza sky, 0.2 ground reflectance and 0.1 m offset. Advanced controls expose the existing typed settings. Explicitly use completed weather/time selections from supporting modules; fractional periods are rejected without rounding. Execution is synchronous; reliable cancel and percentage progress remain unavailable. Production Eto/WPF layouts are rendered at 320/480 px offscreen; full Dock/theme/keyboard/picker/dialog acceptance remains separate. Prefer MCP/API verification over Computer Use, following the user's preference. See PLATFORM_UI.md and platform_085_runtime.json for comparison, criterion and viewport-focus semantics.
 
 Validation receipts: adapter_runtime_validation.json (three original-workflow comparisons and five execution gates), preflight_tests.json (25 checks), panel_v6_runtime_validation.json (native Eto execution, null/invalid requests, partial-preview rollback and reset), and release_030_loaded.json (formal plugin registration/dock load).
 
@@ -34,4 +34,4 @@ Run EnvironmentalLocation or open it from Weather. Original Construct Location s
 
 STAT / DDY support introduced in 0.6.0 provides EnvironmentalClimate for original STAT / DDY imports. Three-city full native JSON and design-day IDF comparisons plus invalid-input and Panel checks passed; see docs/CLIMATE_FILE_MODULE.md (CLIMATE_FILE_MODULE.md from this docs directory) and release_060_loaded.json.
 
-0.8.3 unified entry: EnvironmentalHub opens the overview; EnvironmentalRadiation opens radiation directly. EnvironmentalTime provides original period and date/HOY tools. All panels share navigation and styling; source/result state remains module-specific. See TIME_AND_HUB_MODULE.md in docs for native runtime and UI capture scope.
+0.8.5 unified entry: EnvironmentalHub opens the overview; EnvironmentalRadiation opens radiation directly. EnvironmentalTime provides original period and date/HOY tools. All panels share navigation and styling; source/result state remains module-specific. See TIME_AND_HUB_MODULE.md in docs for native runtime and UI capture scope.

@@ -4,7 +4,9 @@ Original Ladybug radiation and EPW weather backends, typed C# adapters and Rhino
 
 Run `EnvironmentalHub` for the building-performance overview or `EnvironmentalRadiation` for the six-stage analysis workflow. Select geometry/context, choose EPW and time, set basic or advanced parameters, validate and run. Results include native mesh-color samples, numerical KPIs, project target evaluation and viewport focus. Compare named session scenarios and export full provenance. Reset removes only panel-owned previews and preserves saved scenarios. See [platform UI and limits](docs/PLATFORM_UI.md) and [UI audit](docs/UI_AUDIT_2026-10-01.md).
 
-The local plugin is `artifacts/releases/0.8.3/EnvironmentalHub.Plugin.rhp`. Build and loading instructions are in `docs/BUILD_AND_RUN.md`. Release 0.8.3 has been registered and loaded in a fresh Rhino process. Run `EnvironmentalWeather` for climate fields and hourly selection; `EnvironmentalRadiation` opens radiation. Execution is synchronous. Existing Rhino processes retain their loaded version until restarted.
+The local plugin is `artifacts/releases/0.8.5/EnvironmentalHub.Plugin.rhp`. Build and loading instructions are in `docs/BUILD_AND_RUN.md`. Release 0.8.5 has been registered and loaded in a fresh Rhino process. Run `EnvironmentalWeather` for climate fields and hourly selection; `EnvironmentalRadiation` opens radiation. Execution is synchronous. Existing Rhino processes retain their loaded version until restarted.
+
+V1 retains the current Rhino/Eto framework. Topic colors and native vector icons distinguish model, environment, settings, run, results and comparison without changing simulation palettes. Shared titles, spacing and ruled sections follow [UI standards](docs/UI_UX_STANDARD.md). Larger visual interaction is planned for V2 after the major function milestones are accepted; see [release strategy](docs/ROADMAP.md). This presentation release does not add Ladybug functions.
 
 Open `workflows/radiation/radiation_main.gh` in the inspected Rhino installation to see the original Ladybug workflow. The saved input is a 4m × 4m Brep snapshot from a Rhino object. The fixture uses bundled Seattle-Tacoma EPW data, annual cumulative radiation, north 0°, and 1m grid. It is not a Taipei project result.
 
@@ -12,7 +14,7 @@ The active Rhino session displays the result mesh and Ladybug legend. `samples/r
 
 Read `docs/ENVIRONMENT_AUDIT.md`, `docs/COMPONENT_INVENTORY.md`, and `docs/ROADMAP.md` before extending the workflow. Raw MCP evidence is retained in `docs/evidence/`.
 
-The tools directory contains audit/fixture tooling; compiled code lives in `src/`. Core contracts have no Rhino/GH dependencies. The adapter constructs an isolated definition from installed original user objects, never modifies the smoke canvas, and verifies the actual gendaymtx executable used by Ladybug. Core and adapter DLLs are byte-identical between 0.7.2 and 0.8.3; this platform release changes presentation and interaction. Reliable cancellation/percentage progress and wind workflows remain future milestones.
+The tools directory contains audit/fixture tooling; compiled code lives in `src/`. Core contracts have no Rhino/GH dependencies. The adapter constructs an isolated definition from installed original user objects, never modifies the smoke canvas, and verifies the actual gendaymtx executable used by Ladybug. Core and adapter source is unchanged in 0.8.5. Compiled method bodies and managed metadata match 0.8.3, excluding only build MVID and the informational Git revision; whole-file hashes differ. See `docs/evidence/binary_085_logic.json`. This release changes presentation. Reliable cancellation/percentage progress and wind workflows remain future milestones.
 
 Paths passed in `tools/*_calls.json` are captured environment-specific replay inputs. Configure them for another machine. Executable scripts receive their project/weather/component roots from the caller; no source copy of the Ladybug solver is maintained here.
 
@@ -24,4 +26,4 @@ Run EnvironmentalLocation for the original Ladybug location tool; half/quarter-h
 
 STAT / DDY support introduced in 0.6.0 provides EnvironmentalClimate for original STAT / DDY imports. Three-city full native JSON and design-day IDF comparisons plus invalid-input and Panel checks passed; see docs/CLIMATE_FILE_MODULE.md (CLIMATE_FILE_MODULE.md from this docs directory) and release_060_loaded.json.
 
-0.8.3 unified entry: EnvironmentalHub opens the overview; EnvironmentalRadiation opens radiation directly. EnvironmentalTime provides original period and date/HOY tools. All panels share navigation and styling; source/result state remains module-specific. See TIME_AND_HUB_MODULE.md in docs for native runtime and UI capture scope.
+0.8.5 unified entry: EnvironmentalHub opens the overview; EnvironmentalRadiation opens radiation directly. EnvironmentalTime provides original period and date/HOY tools. All panels share navigation and styling; source/result state remains module-specific. See TIME_AND_HUB_MODULE.md in docs for native runtime and UI capture scope.

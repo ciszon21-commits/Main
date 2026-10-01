@@ -51,9 +51,9 @@ public sealed class LocationPanel : Panel
         var actions = new DynamicLayout { Padding = 12, Spacing = new Size(8, 8) }; actions.AddRow(run); actions.AddRow(status);
         var output = new DynamicLayout { Padding = 12, Spacing = new Size(8, 8) }; output.AddRow(summary); output.AddRow(export);
         var layout = new DynamicLayout { Padding = 16, Spacing = new Size(8, 14) };
-        layout.AddRow(HubUi.Header("Location", "Construct coordinates and a time zone before preparing an analysis."));
-        layout.AddRow(HubUi.Navigation(typeof(LocationPanel))); layout.AddRow(HubUi.Section("01  Location inputs", inputs));
-        layout.AddRow(HubUi.Section("02  Construct", actions)); layout.AddRow(HubUi.Section("03  Result", output));
+        layout.AddRow(HubUi.Header("Location", "Construct coordinates and a time zone before preparing an analysis.",typeof(LocationPanel)));
+        layout.AddRow(HubUi.Navigation(typeof(LocationPanel))); layout.AddRow(HubUi.Section("01  Location inputs",HubTopic.Environment, inputs));
+        layout.AddRow(HubUi.Section("02  Construct",HubTopic.Run, actions)); layout.AddRow(HubUi.Section("03  Result",HubTopic.Results, output));
         layout.AddRow(new Label { Text = "Original LB Construct Location • No weather data generated. Execution is synchronous.", Wrap = WrapMode.Word }); layout.Add(null);
         var scroll = new Scrollable { Content = layout, ExpandContentWidth = true };
         scroll.SizeChanged += (_, _) => layout.Width = Math.Max(120, scroll.ClientSize.Width - 20); Content = scroll;

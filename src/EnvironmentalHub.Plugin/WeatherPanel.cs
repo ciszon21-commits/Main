@@ -63,18 +63,18 @@ public sealed class WeatherPanel : Panel
         period.AddRow(annual); period.AddRow(periodFields);
         period.AddRow(periodNote);
         var layout = new DynamicLayout { Padding = 16, Spacing = new Size(8, 14) };
-        layout.AddRow(HubUi.Header("EPW weather", "Import climate fields, choose a time range and inspect the original data."));
+        layout.AddRow(HubUi.Header("EPW weather", "Import climate fields, choose a time range and inspect the original data.",typeof(WeatherPanel)));
         layout.AddRow(HubUi.Navigation(typeof(WeatherPanel)));
-        layout.AddRow(Section("01  Weather source", file, browse, Hint("Original LB Import EPW • Non-leap hourly EPW")));
-        layout.AddRow(HubUi.Section("02  Time selection", period));
-        layout.AddRow(Section("03  Import", import, status));
-        layout.AddRow(Section("04  Weather data", location, fields, summary, export)); layout.Add(null);
+        layout.AddRow(Section("01  Weather source",HubTopic.Environment, file, browse, Hint("Original LB Import EPW • Non-leap hourly EPW")));
+        layout.AddRow(HubUi.Section("02  Time selection",HubTopic.Settings, period));
+        layout.AddRow(Section("03  Import",HubTopic.Run, import, status));
+        layout.AddRow(Section("04  Weather data",HubTopic.Results, location, fields, summary, export)); layout.Add(null);
         var scroll = new Scrollable { Content = layout, ExpandContentWidth = true };
         scroll.SizeChanged += (_, _) => layout.Width = Math.Max(120, scroll.ClientSize.Width - 20);
         Content = scroll;
     }
     private static Label Hint(string text) => new() { Text = text, Wrap = WrapMode.Word, TextColor = SystemColors.ControlText };
-    private static Control Section(string title, params Control[] controls) => HubUi.Section(title, controls);
+    private static Control Section(string title, HubTopic topic, params Control[] controls) => HubUi.Section(title, topic, controls);
     private void PeriodChanged()
     {
         if (updating) return;

@@ -29,11 +29,11 @@ public sealed class TimePanel:Panel
         periodFields.AddRow(new Label{Text="Month"},sm,em);periodFields.AddRow(new Label{Text="Day"},sd,ed);periodFields.AddRow(new Label{Text="Hour"},sh,eh);
         var stepField=new DynamicLayout{Spacing=new Size(8,8)};stepField.AddRow(new Label{Text="Steps / hour"},step);
         period.AddRow(periodFields);period.AddRow(stepField);period.AddRow(HubUi.Hint("Supported: 1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60. End hour is inclusive; native cross-year and overnight rules apply."));
-        var pg=HubUi.Section("02  Analysis period",period);
+        var pg=HubUi.Section("02  Analysis period",HubTopic.Settings,period);
         var calendar=new DynamicLayout{Padding=12,Spacing=new Size(8,8)};
         calendar.AddRow(new Label{Text="Month"},month);calendar.AddRow(new Label{Text="Day"},day);
         calendar.AddRow(new Label{Text="Hour"},hour);calendar.AddRow(new Label{Text="Minute"},minute);calendar.AddRow(new Label{Text="HOY"},hoy);
-        var cg=HubUi.Section("02  Calendar conversion",calendar);cg.Visible=false;
+        var cg=HubUi.Section("02  Calendar conversion",HubTopic.Settings,calendar);cg.Visible=false;
         void Changed(){if(!updating)status.Text=result is null?"Ready to calculate":"Previous result • Calculate again to update";}
         mode.SelectedIndexChanged+=(_,_)=>{pg.Visible=mode.SelectedIndex==0;cg.Visible=mode.SelectedIndex!=0;
             month.Enabled=day.Enabled=hour.Enabled=minute.Enabled=mode.SelectedIndex==1;hoy.Enabled=mode.SelectedIndex==2;
@@ -44,8 +44,8 @@ public sealed class TimePanel:Panel
             else ExecuteCalendarJson(JsonSerializer.Serialize(new CalendarRequest{Mode=mode.SelectedIndex==1?"Calculate":"FromHOY",Month=(int)month.Value,Day=(int)day.Value,Hour=(int)hour.Value,Minute=(int)minute.Value,HourOfYear=hoy.Value}));});
         export.Click+=(_,_)=>Guard(()=>{if(result is null)return;var dialog=new SaveFileDialog{FileName="time_result.json"};dialog.Filters.Add(new FileFilter("Time JSON",".json"));if(dialog.ShowDialog(this)==DialogResult.Ok)File.WriteAllText(dialog.FileName,result);});
         var layout=new DynamicLayout{Padding=16,Spacing=new Size(8,14)};
-        layout.AddRow(HubUi.Header("Time & periods","Define when analysis runs, with native Ladybug calendar rules."));layout.AddRow(HubUi.Navigation(typeof(TimePanel)));
-        layout.AddRow(HubUi.Section("01  Operation",mode));layout.AddRow(pg);layout.AddRow(cg);layout.AddRow(HubUi.Section("03  Calculate",run,status));layout.AddRow(HubUi.Section("04  Result",summary,export));
+        layout.AddRow(HubUi.Header("Time & periods","Define when analysis runs, with native Ladybug calendar rules.",typeof(TimePanel)));layout.AddRow(HubUi.Navigation(typeof(TimePanel)));
+        layout.AddRow(HubUi.Section("01  Operation",HubTopic.Settings,mode));layout.AddRow(pg);layout.AddRow(cg);layout.AddRow(HubUi.Section("03  Calculate",HubTopic.Run,run,status));layout.AddRow(HubUi.Section("04  Result",HubTopic.Results,summary,export));
         layout.AddRow(HubUi.Hint("Non-leap local standard time • HOY 0 = Jan 1 00:00. Fractional HOY is retained; EPW weather requests currently accept integer hours only."));layout.Add(null);HubUi.Mount(this,layout);
     }
     private LadybugTimeAdapter Adapter()

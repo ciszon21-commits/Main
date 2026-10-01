@@ -23,7 +23,7 @@ for i,guid in enumerate(ids):
  choice.SelectedIndex=i;open_button.PerformClick();assert Rhino.UI.Panels.IsPanelVisible(System.Guid(guid))
 assert weather.SummaryText==prior
 Rhino.RhinoApp.RunScript('EnvironmentalHub',False)
-path=os.path.join(root,'docs','evidence','release_083_loaded.json')
+path=os.path.join(root,'docs','evidence','release_085_loaded.json')
 report=json.load(open(path,encoding='utf-8'));report['overview_buttons_verified']=5;report['shared_navigation_routes_verified']=6;report['navigation_preserves_weather_result']=True
 json.dump(report,open(path,'w',encoding='utf-8'),indent=2)
 print('5 overview buttons / 6 shared routes verified; weather result preserved')

@@ -24,3 +24,8 @@ L1 已完成 EPW 的原生資料輸出／HOY 篩選／缺值遮罩、Construct L
 正式插件更新為 0.8.3。122 項目錄完成；八項功能已獨立接入、一項輻射後端使用、113 項待接入。新增 Analysis Period、Calculate HOY、HOY to DateTime，17 項原生比對／錯誤測試通過。統一首頁與共用導覽整合五種工作流程；版面驗收與實測 scope 分開記錄。接下來為 Location 解構、Apply Analysis Period 與資料工具；L1 尚未全部完成。Eddy3D 僅保留唯讀盤點，CFD 暫緩。
 
 辨識原則：122 個 UserObject GUID 各不相同；119 個分析元件共用 GhPython 的 ComponentGuid。後續 Adapter 依 UserObject 身分、檔案與 SHA-256 解析，不能以共用基底 GUID 選取功能。
+
+## Interface release strategy
+
+- V1: retain the current native Rhino/Eto panel framework while completing the Ladybug function milestones. Improve information hierarchy, theme colors, vector icons, spacing, validation, result presentation and consistent navigation within that framework. Version 0.8.5 is a presentation refinement; coverage remains eight independently integrated entries, one backend-only entry and 113 pending entries out of 122.
+- V2: after the major function milestones are complete and accepted, plan the larger visual and interactive interface, including broader viewport interaction, scenario exploration and richer result navigation. This is a future design/development phase, not an implemented screen or a reason to replace the V1 framework now. Preserve the original solver and contract boundaries when it starts.

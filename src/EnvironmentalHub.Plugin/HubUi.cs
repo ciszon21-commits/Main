@@ -12,13 +12,17 @@ internal static class HubUi
       ("STAT / DDY",typeof(ClimateFilePanel),"Climate zones, clear sky and design conditions"),
       ("Time & periods",typeof(TimePanel),"Analysis periods and date / HOY conversion"),
       ("Solar radiation",typeof(RadiationPanel),"Geometry, shading and original radiation analysis") ];
-    internal static Label Hint(string text)=>new(){Text=text,Wrap=WrapMode.Word,TextColor=SystemColors.ControlText};
+    internal static Label Hint(string text)=>new(){Text=text,UseMnemonic=false,Wrap=WrapMode.Word,TextColor=HubVisuals.Secondary};
     internal static string FieldTitle(string name)=>System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(name.Replace('_',' '));
-    internal static Control Header(string title,string description)
+    internal static Control Header(string title,string description,Type? module=null)
     {
         var layout=new DynamicLayout{Spacing=new Size(8,6)};
-        layout.AddRow(new Label{Text="ENVIRONMENTAL HUB  /  "+typeof(HubUi).Assembly.GetName().Version!.ToString(3),Font=new Eto.Drawing.Font(SystemFont.Default,10)});
-        layout.AddRow(new Label{Text=title,Font=new Eto.Drawing.Font(SystemFont.Bold,18),Wrap=WrapMode.Word});
+        var topic=module is null?HubTopic.Overview:HubVisuals.ModuleTopic(module);
+        var glyph=module is null?HubGlyph.Overview:HubVisuals.ModuleGlyph(module);
+        var heading=new DynamicLayout{Spacing=new Size(8,6)};
+        heading.AddRow(HubVisuals.Icon(glyph,topic,18),new Label{Text="ENVIRONMENTAL HUB  /  "+typeof(HubUi).Assembly.GetName().Version!.ToString(3),Font=new Eto.Drawing.Font(SystemFont.Default,10),TextColor=HubVisuals.Secondary,Wrap=WrapMode.Word});
+        layout.AddRow(heading);
+        layout.AddRow(new Label{Text=title,UseMnemonic=false,Font=new Eto.Drawing.Font(SystemFont.Bold,18),Wrap=WrapMode.Word});
         layout.AddRow(Hint(description));return layout;
     }
     internal static Control Navigation(Type active)
@@ -30,13 +34,26 @@ internal static class HubUi
         var row=new DynamicLayout{Spacing=new Size(8,6)};row.AddRow(choice,open);return row;
     }
     // Open, ruled sections fit a technical workspace without a stack of cards.
-    internal static Control Section(string title,params Control[] controls)
+    internal static Control Section(string title,params Control[] controls)=>Section(title,HubTopic.Overview,controls);
+    internal static Control Section(string title,HubTopic topic,params Control[] controls)
     {
         var body=new DynamicLayout{Spacing=new Size(8,8)};
-        body.AddRow(new Label{Text=title,Font=new Eto.Drawing.Font(SystemFont.Bold,11),Wrap=WrapMode.Word});
-        body.AddRow(new Panel{Height=1,BackgroundColor=SystemColors.DisabledText});
+        var heading=new DynamicLayout{Spacing=new Size(8,6)};
+        heading.AddRow(HubVisuals.Icon(HubVisuals.Glyph(topic),topic),new Label{Text=title,UseMnemonic=false,Font=new Eto.Drawing.Font(SystemFont.Bold,11),TextColor=HubVisuals.Accent(topic),Wrap=WrapMode.Word});
+        body.AddRow(heading);
+        body.AddRow(new Panel{Height=1,BackgroundColor=HubVisuals.Rule(topic)});
         foreach(var c in controls)body.AddRow(c);
         return body;
+    }
+    internal static Control WorkflowLine(string title,HubTopic topic)
+    {
+        var row=new DynamicLayout{Spacing=new Size(8,6)};
+        row.AddRow(HubVisuals.Icon(HubVisuals.Glyph(topic),topic,18),new Label{Text=title,UseMnemonic=false,TextColor=HubVisuals.Accent(topic),Wrap=WrapMode.Word});return row;
+    }
+    internal static Control ModuleAction(Button button,Type module)
+    {
+        var row=new DynamicLayout{Spacing=new Size(8,6)};
+        row.AddRow(HubVisuals.Icon(HubVisuals.ModuleGlyph(module),HubVisuals.ModuleTopic(module)),button);return row;
     }
     internal static void Mount(Panel panel,DynamicLayout layout)
     {panel.MinimumSize=new Size(300,200);panel.Size=new Size(360,680);panel.BackgroundColor=SystemColors.ControlBackground;

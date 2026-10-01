@@ -1,4 +1,4 @@
-param([ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '0.8.3', [ValidatePattern('^\d+\.\d+\.\d+$')][string]$PreviousVersion = '0.8.2')
+param([ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '0.8.5', [ValidatePattern('^\d+\.\d+\.\d+$')][string]$PreviousVersion = '0.8.4')
 $ErrorActionPreference = 'Stop'
 $hubRoot = Split-Path -Parent $PSScriptRoot
 $releaseRoot = Join-Path $hubRoot ('artifacts\releases\' + $Version)

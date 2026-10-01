@@ -101,7 +101,7 @@ try:
  cases.append('six_stage_navigation')
  rad.ShowStage(4)
  report={'version':rad.ProductVersion,'cases':cases,'passed':len(cases),'fixture_id':str(fixture),'document_serial':doc.RuntimeSerialNumber,'baseline_mean':a['Statistics']['Mean'],'candidate_cells':b['Statistics']['Count'],'legend_samples':pairs,'comparison':rad.ComparisonText,'assessment':rad.AssessmentText,'native_panel':True,'core_changed':False,'cancel_available':False}
- json.dump(report,open(os.path.join(root,'docs','evidence','platform_ui_runtime.json'),'w',encoding='utf-8'),indent=2)
+ json.dump(report,open(os.path.join(root,'docs','evidence','platform_085_runtime.json'),'w',encoding='utf-8'),indent=2)
  print(json.dumps(report))
 except Exception:
  rad.ResetResult();doc.Objects.Delete(fixture,True);raise

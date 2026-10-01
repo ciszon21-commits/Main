@@ -124,9 +124,9 @@ public sealed class RadiationPanel : Panel
         importedWeather.Click += (_, _) => Guard(UseImportedWeather);
         var importedPeriod = new Button { Text = "Use completed analysis period" };
         importedPeriod.Click += (_, _) => Guard(UseCompletedPeriod);
-        var model = HubUi.Section("01  GEOMETRY / MODEL", select, geometryLabel, selectContext, clearContext,
+        var model = HubUi.Section("01  Geometry / Model",HubTopic.Model, select, geometryLabel, selectContext, clearContext,
             Hint("Brep or mesh • Shading context is optional"));
-        var climate = HubUi.Section("02  ENVIRONMENT / WEATHER", weather, browse, importedWeather, periodSummary, importedPeriod, annual,
+        var climate = HubUi.Section("02  Environment / Weather",HubTopic.Environment, weather, browse, importedWeather, periodSummary, importedPeriod, annual,
             Hint("Import EPW or build a period in Environment tools, then explicitly use the completed selection here. Hourly periods only; subhour values are never rounded."));
         var settings = new DynamicLayout { Spacing = new Size(8, 8) };
         var settingsFields = new DynamicLayout { Spacing = new Size(8, 8) };
@@ -144,7 +144,7 @@ public sealed class RadiationPanel : Panel
         var reveal = new CheckBox { Text = "Advanced settings", Checked = false };
         reveal.CheckedChanged += (_, _) => advanced.Visible = reveal.Checked == true;
         settings.AddRow(reveal); settings.AddRow(advanced);
-        var execution = HubUi.Section("04  VALIDATE / RUN", preflight, run, status,
+        var execution = HubUi.Section("04  Validate / Run",HubTopic.Run, preflight, run, status,
             Hint("Rhino may pause while the synchronous solver runs. Cancellation is not available yet."));
         var targetFields = new DynamicLayout { Spacing = new Size(8, 8) };
         targetFields.AddRow(new Label { Text = "Minimum (kWh/m²)" }, targetMin);
@@ -152,20 +152,20 @@ public sealed class RadiationPanel : Panel
         var targetBody = new DynamicLayout { Spacing = new Size(8, 8), Visible = false };
         targetBody.AddRow(targetFields); targetBody.AddRow(Hint("Inclusive bounds · 0.1 kWh/m² precision · Project criterion only; no regulatory compliance claim."));
         targetEnabled.CheckedChanged += (_, _) => targetBody.Visible = targetEnabled.Checked == true;
-        var results = HubUi.Section("05  RESULTS", resultState, resultLabel, legend, resultDetail, targetEnabled, targetBody, assessment, locate, reset);
+        var results = HubUi.Section("05  Results",HubTopic.Results, resultState, resultLabel, legend, resultDetail, targetEnabled, targetBody, assessment, locate, reset);
         var choices = new DynamicLayout { Spacing = new Size(8, 8) };
         choices.AddRow(new Label { Text = "Baseline" }, baseline); choices.AddRow(new Label { Text = "Candidate" }, candidate);
-        var compareExport = HubUi.Section("06  COMPARE / EXPORT", scenarioName, saveScenario, choices, comparison, exportComparison, export,
+        var compareExport = HubUi.Section("06  Compare / Export",HubTopic.Compare, scenarioName, saveScenario, choices, comparison, exportComparison, export,
             Hint("Session scenarios retain completed results and input provenance. Save a comparison export before closing Rhino."));
         var layout = new DynamicLayout { Padding = 16, Spacing = new Size(8, 14) };
-        layout.AddRow(HubUi.Header("Solar radiation", "Incident solar energy on building surfaces. Model → weather → settings → validate → results."));
+        layout.AddRow(HubUi.Header("Solar radiation", "Incident solar energy on building surfaces. Model → weather → settings → validate → results.",typeof(RadiationPanel)));
         layout.AddRow(HubUi.Navigation(typeof(RadiationPanel)));
         foreach (var label in new[] { "01  Geometry / Model", "02  Environment / Weather", "03  Simulation settings", "04  Validate / Run", "05  Results", "06  Compare / Export" }) stage.Items.Add(label);
         stage.SelectedIndex = 0;
         var jump = new Button { Text = "Go to stage" }; jump.Click += (_, _) => ShowStage(stage.SelectedIndex);
         var stageNavigation = new DynamicLayout { Spacing = new Size(8, 8) }; stageNavigation.AddRow(stage, jump);
         layout.AddRow(model); layout.AddRow(climate);
-        var simulation = HubUi.Section("03  SIMULATION SETTINGS", settings);
+        var simulation = HubUi.Section("03  Simulation settings",HubTopic.Settings, settings);
         stages = [model, climate, simulation, execution, results, compareExport];
         layout.AddRow(simulation);
         layout.AddRow(execution); layout.AddRow(results); layout.AddRow(compareExport); layout.Add(null);

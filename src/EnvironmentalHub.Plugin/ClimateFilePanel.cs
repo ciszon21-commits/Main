@@ -38,14 +38,14 @@ public sealed class ClimateFilePanel : Panel
             dialog.Filters.Add(new FileFilter("Climate JSON", ".json")); if (dialog.ShowDialog(this) == DialogResult.Ok)
                 File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true })); });
         var layout = new DynamicLayout { Padding = 16, Spacing = new Size(8, 14) };
-        layout.AddRow(HubUi.Header("Climate & design days", "Read climate zones, typical weeks and original design-day conditions."));
+        layout.AddRow(HubUi.Header("Climate & design days", "Read climate zones, typical weeks and original design-day conditions.",typeof(ClimateFilePanel)));
         layout.AddRow(HubUi.Navigation(typeof(ClimateFilePanel)));
-        layout.AddRow(Section("01  Source", format, file, browse)); layout.AddRow(Section("02  Import", import, status));
-        layout.AddRow(Section("03  Climate conditions", outputs, summary, export));
+        layout.AddRow(Section("01  Source",HubTopic.Environment, format, file, browse)); layout.AddRow(Section("02  Import",HubTopic.Run, import, status));
+        layout.AddRow(Section("03  Climate conditions",HubTopic.Results, outputs, summary, export));
         layout.AddRow(new Label { Text = "Original LB Import STAT / DDY • Synchronous execution. STAT clear-sky radiation is modeled, not measured EPW radiation.", Wrap = WrapMode.Word }); layout.Add(null);
         var scroll = new Scrollable { Content = layout, ExpandContentWidth = true }; scroll.SizeChanged += (_, _) => layout.Width = Math.Max(120, scroll.ClientSize.Width - 20); Content = scroll;
     }
-    private static Control Section(string title, params Control[] controls) => HubUi.Section(title, controls);
+    private static Control Section(string title, HubTopic topic, params Control[] controls) => HubUi.Section(title, topic, controls);
     private void Guard(Action action) { try { action(); } catch (Exception e) { status.Text = (result is null ? "Import failed\n" : "Import failed • Previous result retained\n") + e.Message; } }
     public string ExecuteJson(string json) => Execute(JsonSerializer.Deserialize<ClimateFileRequest>(json)!);
     private string Execute(ClimateFileRequest request)
