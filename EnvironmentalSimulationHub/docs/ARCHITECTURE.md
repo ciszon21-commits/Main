@@ -1,0 +1,43 @@
+# Architecture
+
+## Current platform — 0.8.5
+
+EnvironmentalHub opens the overview. EnvironmentalRadiation, EnvironmentalWeather, EnvironmentalLocation, EnvironmentalClimate and EnvironmentalTime open five workflows in six native Eto panels. Weather/location/climate/time adapters also use typed Core contracts and isolated original components. Shared HubUi/HubVisuals own presentation; result comparison and viewport actions retain normalized provenance and owned-preview scope. Current state and limits: [PROJECT_STATUS](PROJECT_STATUS.md); decisions: [DECISIONS](DECISIONS.md).
+
+## Original verified radiation slice
+
+Rhino object geometry snapshot → GH Brep parameter → LB Import EPW → LB Cumulative Sky Matrix (Radiance gendaymtx) → LB Incident Radiation (original Ladybug ray intersections) → values, colored mesh, legend → Rhino preview.
+
+This phase proves the physics backend can execute. The three installed original Ladybug user objects are KEEP. The new definition is WRAP. The existing MCP transport is WRAP with bounded waits and explicit slot targeting. Other binary workflows are UNKNOWN until inspected separately.
+
+The current GH panels are fixture inputs. There is no UI-to-slider coupling. They must not become the platform API.
+
+## Implemented request/adapter boundary (0.2.0)
+
+Rhino Panel → RadiationAnalysisRequest → Preflight → RadiationAdapter → isolated GH definition → existing simulation libraries → AnalysisResult → Rhino result renderer.
+
+Core contracts will not depend on Grasshopper types. The adapter owns Rhino/GH geometry conversion, named workflow interfaces, unit conversion, GH scheduling, and source-result translation. UI owns selection and status. It must not parse Ladybug-specific objects.
+
+`src/EnvironmentalHub.Core` implements RadiationAnalysisRequest, RadiationSettings, PreflightReport, AnalysisResult and IRadiationAdapter. The request carries analysis/context object IDs, EPW path, north, explicit hours (empty = annual), grid in metres, settings, output directory and warning acceptance. Geometry/weather hashes and EPW location are recorded in result metadata after snapshotting.
+
+Result includes source geometry IDs, portable mesh vertex/face/color arrays, values, sample points, empty radiation vectors, units, legend range/colors, statistics, solver/version, workflow version, input parameters, metadata, warnings/errors, duration and UTC timestamp. Mesh/point coordinates use the recorded Rhino model units.
+
+`src/EnvironmentalHub.Adapters` snapshots valid Rhino Breps/Meshes and binds named typed GH parameters. It uses original installed Ladybug user objects, isolates and disposes its GH document, verifies actual SkyMatrix gendaymtx executable provenance, and serializes the normalized result. It requires the target Rhino document to be active because Ladybug unit conversion uses active-document state. Execution runs on the Rhino UI thread.
+
+`src/EnvironmentalHub.Plugin` registers EnvironmentalHub for the overview and EnvironmentalRadiation for the Eto dockable RadiationPanel, plus supporting environment commands. UI selects object IDs and calls the typed adapter; it does not locate sliders or parse native Ladybug data. It renders portable result meshes and owns the IDs needed for reset.
+
+Preflight errors block execution. Warnings require an explicit user decision; an unattended caller must explicitly set AcceptWarnings. Current EPW validation supports 8760 non-leap hourly records; leap/subhourly files are rejected. Output write failures may still arise at execution time. Cancellation/cache remain future concerns; no large job framework is introduced now.
+
+Wind/Eddy3D has preliminary metadata inspection only; no CFD solve is verified. It is deferred until the Ladybug milestones. OpenFOAM availability remains UNVERIFIED. Daylight, energy and carbon are planned additional engines, not completed Ladybug workflows. V1 retains Rhino/Eto; V2 larger visual interaction follows major functional acceptance.
+
+Company deployment needs dependency discovery, version compatibility checks, portable workflow bindings, and review of installed Ladybug licensing. No bundled/reimplemented solver is part of this repository.
+
+## Unified Rhino workspace
+
+0.8.7 僅註冊 HubWorkspacePanel；原首頁 GUID 保留。HubOverviewPanel、WeatherPanel、LocationPanel、ClimateFilePanel、TimePanel、RadiationPanel 是快取內部視圖，不再各自註冊或開啟 Dock。所有指令與首頁按鈕導向同一主介面，切換不重建視圖。日射透過平台取得已完成的氣象／期間資料；原有 request → preflight → adapter → result、文件 guard、owned preview 與 solver 保持原樣。
+
+## 2026-10-02 更新 · 0.9.0
+
+目前為 9 獨立功能、1 後端、112 待接入；SunPath 幾何第一批透過新增契約與原生 Adapter 接入第七個內部模組。原有求解檔案保留。32＋60＋14 共 106 項原生檢查；30 張目前淺色 320／480 px 離屏影像。SunPath 未含氣象著色／條件／夏令時間／圖例等完整選項，見 [SUNPATH_MODULE.md](SUNPATH_MODULE.md)。下一項 Direct Sun Hours；跨機、完整 Dock／theme／keyboard／dialogs 驗收未閉合。本文前段版本記錄保留原驗收範圍，最新狀態以 PROJECT_STATUS.md 為準。
+
+0.9.2 最新修正：SunPath 文字以明確的 DimensionStyle 欄位覆寫固定物件尺度，文件樣式不變。108 原生檢查、30 張淺色 UI 影像及 1 張真正視埠已檢視；9／1／112 不變。0.9.0／0.9.1 過程證據保留，最新正式狀態以 PROJECT_STATUS.md 為準。

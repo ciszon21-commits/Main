@@ -1,0 +1,9 @@
+[
+  {
+    "name": "run_python",
+    "arguments": {
+      "script": "hub_root = \"C:\\\\Users\\\\08432.SINOLTD\\\\00.DEVE\\\\31.AEC\\\\RHINO_Deve\\\\EnvironmentalSimulationHub\"\nimport os,json,clr\nimport System\nclr.AddReference('Grasshopper')\nclr.AddReference(os.path.join(hub_root,'src','EnvironmentalHub.Adapters','bin','Release','net8.0-windows','EnvironmentalHub.Core.dll'))\nclr.AddReference(os.path.join(hub_root,'src','EnvironmentalHub.Adapters','bin','Release','net8.0-windows','EnvironmentalHub.Adapters.dll'))\nfrom EnvironmentalHub.Adapters import LadybugRadiationAdapter\nreceipt=json.load(open(os.path.join(hub_root,'samples','radiation_smoke','runtime_result.json'),encoding='utf-8'))\nconfiguration={'UserObjectDirectory':'C:/Program Files/ladybug_tools/grasshopper/ladybug_grasshopper/user_objects','RadianceBinDirectory':'C:/Program Files/ladybug_tools/radiance/bin'}\nrequest={'GeometryIds':[receipt['rhino_input_object_id']],'WeatherFile':receipt['weather'],'OutputDirectory':os.path.join(hub_root,'samples','adapter_validation','annual'),'GridMetres':1,'AcceptWarnings':True}\npf=json.loads(LadybugRadiationAdapter.PreflightJson(__rhino_doc__,json.dumps(request),json.dumps(configuration)))\nresult=json.loads(LadybugRadiationAdapter.RunJson(__rhino_doc__,json.dumps(request),json.dumps(configuration)))\nmax_delta=max(abs(a-b) for a,b in zip(result['Values'],receipt['values']))\nreport={'preflight':pf,'count':len(result['Values']),'baseline_count':len(receipt['values']),'max_absolute_difference':max_delta,'statistics':result['Statistics']}\nos.makedirs(os.path.join(hub_root,'docs','evidence'),exist_ok=True)\nwith open(os.path.join(hub_root,'docs','evidence','adapter_annual_comparison.json'),'w',encoding='utf-8') as f:json.dump(report,f,indent=2)\nif report['count']!=report['baseline_count'] or max_delta>1e-9:raise RuntimeError('Adapter baseline mismatch')\nprint(json.dumps(report))",
+      "slot": "aardvark"
+    }
+  }
+]
