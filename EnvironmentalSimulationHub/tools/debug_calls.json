@@ -1,0 +1,9 @@
+[
+  {
+    "name": "run_python",
+    "arguments": {
+      "script": "import clr,json\nclr.AddReference('Grasshopper')\nimport Grasshopper as GH\nr={'enable_solutions':GH.Kernel.GH_Document.EnableSolutions,'documents':[]}\nfor d in GH.Instances.DocumentServer:\n r['documents'].append({'path':d.FilePath,'enabled':d.Enabled,'solution_state':str(d.SolutionState),'objects':[{'name':o.Name,'phase':str(o.Phase),'type':str(o.GetType())} for o in d.Objects if isinstance(o,GH.Kernel.IGH_Component)]})\nprint(json.dumps(r))",
+      "slot": "aardvark"
+    }
+  }
+]

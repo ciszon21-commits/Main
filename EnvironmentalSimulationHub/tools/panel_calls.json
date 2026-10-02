@@ -1,0 +1,9 @@
+[
+  {
+    "arguments": {
+      "slot": "aardvark",
+      "script": "hub_root = \"C:\\\\Users\\\\08432.SINOLTD\\\\00.DEVE\\\\31.AEC\\\\RHINO_Deve\\\\EnvironmentalSimulationHub\"\nimport os,json,System,Rhino,clr\nplugin_path=os.path.join(hub_root,'artifacts','runtime-v3','EnvironmentalHub.Plugin.rhp')\nloaded=Rhino.PlugIns.PlugIn.LoadPlugIn(plugin_path)\nRhino.RhinoApp.RunScript('_EnvironmentalHub',False)\npanel_id=System.Guid('c62382ce-7709-4fcd-9dfb-447d1d8a08c0')\npanel=Rhino.UI.Panels.GetPanel(panel_id)\nif panel is None:raise RuntimeError('Dockable panel not created')\nreceipt=json.load(open(os.path.join(hub_root,'samples','radiation_smoke','runtime_result.json'),encoding='utf-8'))\nrequest={'GeometryIds':[receipt['rhino_input_object_id']],'WeatherFile':receipt['weather'],'OutputDirectory':os.path.join(hub_root,'samples','panel_validation'),'GridMetres':1,'AcceptWarnings':True}\nfirst=json.loads(panel.ExecuteJson(json.dumps(request)))\nfirst_count=panel.RenderedObjectCount\nif first_count!=1:raise RuntimeError('Panel result mesh missing')\npanel.ResetResult()\nif panel.RenderedObjectCount!=0:raise RuntimeError('Reset left owned result objects')\nsecond=json.loads(panel.ExecuteJson(json.dumps(request)))\nif len(second['Values'])!=len(receipt['values']) or max(abs(a-b) for a,b in zip(second['Values'],receipt['values']))>1e-9:raise RuntimeError('Panel result mismatch')\nreport={'plugin_load':str(loaded),'panel_visible':Rhino.UI.Panels.IsPanelVisible(panel_id),'status':panel.StatusText,'result_text':panel.ResultText,'owned_mesh_count':panel.RenderedObjectCount,'reset_verified':True,'repeat_max_absolute_difference':max(abs(a-b) for a,b in zip(first['Values'],second['Values']))}\nwith open(os.path.join(hub_root,'docs','evidence','panel_runtime_validation.json'),'w',encoding='utf-8') as f:json.dump(report,f,indent=2)\nprint(json.dumps(report))"
+    },
+    "name": "run_python"
+  }
+]

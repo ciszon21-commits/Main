@@ -1,0 +1,79 @@
+[
+  {
+    "name": "get_context",
+    "arguments": {
+      "slot": "aardvark"
+    }
+  },
+  {
+    "name": "run_python",
+    "arguments": {
+      "slot": "aardvark",
+      "script": "\"\"\"Read-only script executed in the explicitly selected Rhino MCP slot.\"\"\"\nimport json\nimport System\nimport Rhino\nimport clr\n\nreport = {\n    \"rhino_version\": str(Rhino.RhinoApp.Version),\n    \"dotnet_runtime\": str(System.Environment.Version),\n    \"document\": None,\n}\ndoc = __rhino_doc__\nif doc:\n    objects = list(doc.Objects)\n    report[\"document\"] = {\n        \"name\": doc.Name, \"path\": doc.Path, \"units\": str(doc.ModelUnitSystem),\n        \"absolute_tolerance\": doc.ModelAbsoluteTolerance,\n        \"object_count\": len(objects),\n        \"invalid_geometry_ids\": [str(o.Id) for o in objects if not o.Geometry.IsValid],\n        \"geometry_types\": sorted(set(str(o.Geometry.GetType()) for o in objects)),\n        \"layers\": [{\"name\": l.FullPath, \"visible\": l.IsVisible}\n                   for l in doc.Layers if not l.IsDeleted],\n    }\ntry:\n    clr.AddReference(\"Grasshopper\")\n    import Grasshopper\n    kernel = Grasshopper.Kernel\n    report[\"grasshopper_assembly_version\"] = str(\n        clr.GetClrType(kernel.GH_Document).Assembly.GetName().Version)\n    canvas = Grasshopper.Instances.ActiveCanvas\n    active = canvas.Document if canvas else None\n    report[\"gh_active_document\"] = str(active.DocumentID) if active else None\n    report[\"gh_documents\"] = []\n    for definition in Grasshopper.Instances.DocumentServer:\n        details = {\"name\": definition.DisplayName, \"path\": definition.FilePath,\n                   \"active\": definition == active, \"objects\": [], \"wire_count\": 0}\n        for item in definition.Objects:\n            record = {\"name\": item.Name, \"nickname\": item.NickName,\n                      \"instance_guid\": str(item.InstanceGuid),\n                      \"component_guid\": str(item.ComponentGuid),\n                      \"type\": str(item.GetType())}\n            if isinstance(item, kernel.IGH_Component):\n                record[\"inputs\"] = [{\"name\": p.Name, \"sources\": [str(s.InstanceGuid)\n                                     for s in p.Sources]} for p in item.Params.Input]\n                record[\"outputs\"] = [p.Name for p in item.Params.Output]\n                details[\"wire_count\"] += sum(p.SourceCount for p in item.Params.Input)\n            if isinstance(item, kernel.Special.GH_Group):\n                record[\"members\"] = [str(g) for g in item.ObjectIDs]\n            details[\"objects\"].append(record)\n        report[\"gh_documents\"].append(details)\n    report[\"loaded_assemblies\"] = sorted([\n        {\"name\": a.GetName().Name, \"version\": str(a.GetName().Version)}\n        for a in System.AppDomain.CurrentDomain.GetAssemblies()\n        if any(word in a.GetName().Name.lower() for word in\n               (\"ladybug\", \"honeybee\", \"dragonfly\", \"eddy\", \"grasshopper\"))\n    ], key=lambda a: a[\"name\"])\nexcept Exception as exc:\n    report[\"grasshopper_error\"] = str(exc)\nprint(json.dumps(report, ensure_ascii=False))\n"
+    }
+  },
+  {
+    "name": "g1_search_components",
+    "arguments": {
+      "limit": 40,
+      "slot": "aardvark",
+      "query": "Climate"
+    }
+  },
+  {
+    "name": "g1_search_components",
+    "arguments": {
+      "limit": 40,
+      "slot": "aardvark",
+      "query": "Sun"
+    }
+  },
+  {
+    "name": "g1_search_components",
+    "arguments": {
+      "limit": 40,
+      "slot": "aardvark",
+      "query": "Solar"
+    }
+  },
+  {
+    "name": "g1_search_components",
+    "arguments": {
+      "limit": 40,
+      "slot": "aardvark",
+      "query": "Radiation"
+    }
+  },
+  {
+    "name": "g1_search_components",
+    "arguments": {
+      "limit": 40,
+      "slot": "aardvark",
+      "query": "Ladybug"
+    }
+  },
+  {
+    "name": "g1_search_components",
+    "arguments": {
+      "limit": 40,
+      "slot": "aardvark",
+      "query": "Honeybee"
+    }
+  },
+  {
+    "name": "g1_search_components",
+    "arguments": {
+      "limit": 40,
+      "slot": "aardvark",
+      "query": "Dragonfly"
+    }
+  },
+  {
+    "name": "g1_search_components",
+    "arguments": {
+      "limit": 40,
+      "slot": "aardvark",
+      "query": "Eddy"
+    }
+  }
+]

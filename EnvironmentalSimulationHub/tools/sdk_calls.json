@@ -1,0 +1,16 @@
+[
+  {
+    "arguments": {
+      "slot": "aardvark",
+      "script": "import clr, System, json\nclr.AddReference('Grasshopper')\nimport Grasshopper as GH\nr={}\nfor t in [GH.Kernel.GH_UserObject, GH.Kernel.GH_ComponentServer, GH.Kernel.GH_DocumentIO]:\n ct=clr.GetClrType(t)\n r[str(ct)]=[str(m) for m in ct.GetMethods() if any(s in m.Name for s in ['Instantiate','Emit','Read','Save','Open','SetPersistent'])]\n r[str(ct)+'_constructors']=[str(c) for c in ct.GetConstructors()]\nprint(json.dumps(r))"
+    },
+    "name": "run_python"
+  },
+  {
+    "arguments": {
+      "slot": "aardvark",
+      "name": "LB Cumulative Sky Matrix"
+    },
+    "name": "g1_describe_component"
+  }
+]

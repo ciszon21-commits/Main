@@ -1,0 +1,17 @@
+# STAT / DDY climate files — 0.6.0
+
+Use `EnvironmentalClimate`, or the STAT / DDY button in Weather. Select the format and matching file, import, choose an original output and export the complete JSON. Inputs changing mark results as previous; unsuccessful imports retain the last result.
+
+`LB Import STAT` retains all original outputs: location, ASHRAE/Köppen climate zones, two clear-sky radiation collections, annual heating/cooling design days, monthly cooling design days, extreme weeks and typical weeks. Native unavailable outputs are represented explicitly; no substitute values or fabricated design conditions are added. Clear-sky radiation is modeled by the original Ladybug workflow, not measured EPW radiation. Native collections retain their headers, units and analysis periods.
+
+`LB Import DDY` retains the original location and each DesignDay. These are design conditions, not an annual weather time series. The adapter uses the original object's `to_dict` schema, including typed nested dry-bulb, humidity, wind, sky and location conditions. Each design day also retains native `to_idf()` text, preserving conditions/schedules beyond the native JSON schema. Temperature is in °C, pressure in Pa, wind speed in m/s and direction in degrees; humidity-value meaning depends on its native humidity_type. Native dictionary fields are never replaced by object `ToString()` representations.
+
+Contract: `ClimateFileRequest` (schema 1.0, Format STAT/DDY, FilePath); `ClimateFileResult.Outputs` includes Output, Index, Kind, Data and optional EnergyPlusIdf. Data is original Ladybug structured JSON. An empty native output uses Index -1 / Kind Unavailable; a native null remains null. File/component hashes and executed version accompany every successful result. Source changes, wrong extension, malformed files and disabled GH solve are rejected; the isolated GH definition is removed on completion/failure.
+
+The Panel shows all output entries, summaries for design days and collection count/units, and structured fields for location/period/climate zones. Full numeric collections and design conditions are available in export. Plotting, DDY/STAT writing, energy sizing simulation, hourly filtering and full visual/theme/keyboard/dialog QA are not implemented here. Execution remains synchronous.
+
+Runtime acceptance is recorded separately in `evidence/release_060_loaded.json`; a build alone is not acceptance. The replay compares three cities (Seattle, New Delhi, Singapore), two original import formats each, with a separate original GH graph and test-only native Python serializer. Installed source files are never modified. The reference serializer performs no physical calculations. Full original JSON and native design-day IDF are compared, rather than only selected summaries. Additional gates cover invalid/malformed input, panel selection, failure preservation and GH document cleanup; existing weather/location/radiation regressions run in the same fresh formal-release process.
+
+All 11 climate cases passed. Native Eto Import button events also passed for both STAT and DDY, confirming that the format selector sends the correct request through the actual button handler. This functional verification does not substitute for visual or file-dialog acceptance.
+
+L1 remains in progress: independent time-period/HOY and remaining Location/data utilities are next. Reference-only serializer/deconstructor components are not claimed as standalone Hub features.

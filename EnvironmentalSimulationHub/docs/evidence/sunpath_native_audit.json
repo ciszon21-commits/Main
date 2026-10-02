@@ -1,0 +1,204 @@
+{
+  "inputs": [
+    {
+      "name": "north_",
+      "description": "A number between -360 and 360 for the counterclockwise\r\ndifference between the North and the positive Y-axis in degrees.\r\n90 is West and 270 is East. This can also be Vector for the\r\ndirection to North. (Default: 0)"
+    },
+    {
+      "name": "_location",
+      "description": "A ladybug Location that has been output from the \"LB Import EPW\"\r\ncomponent or the \"LB Construct Location\" component."
+    },
+    {
+      "name": "hoys_",
+      "description": "A number or list of numbers between 0 and 8760 that represent the\r\nhour of the year at which to evaluate the sun position. The\r\n\"LB Calculate HOY\" component can output this number given a month,\r\nday and hour. The \"LB Analysis Period\" component can output a\r\nlist of HOYs within a certain hour or date range."
+    },
+    {
+      "name": "dl_saving_",
+      "description": "An optional analysis period for daylight saving time.\r\nIf None, no daylight saving time will be used. (Default: None)"
+    },
+    {
+      "name": "solar_time_",
+      "description": "A boolean to indicate if the input hours should be treated\r\nas solar time instead of standard or daylight time. (Default: False)"
+    },
+    {
+      "name": "_center_pt_",
+      "description": "A point for the center of the sun path. (Default: (0, 0, 0))"
+    },
+    {
+      "name": "_scale_",
+      "description": "A number to set the scale of the sun path. The default is 1,\r\nwhich corresponds to a radius of 100 meters in the current Rhino\r\nmodel's unit system."
+    },
+    {
+      "name": "projection_",
+      "description": "Optional text for the name of a projection to use from the sky\r\ndome hemisphere to the 2D plane. If None, a 3D sun path will be drawn\r\ninstead of a 2D one. (Default: None) Choose from the following:\r\n* Orthographic\r\n* Stereographic\r\n* Equidistant\r\n* Equisolid"
+    },
+    {
+      "name": "daily_",
+      "description": "Boolean to note whether the sunpath should display only one daily\r\narc for each unique day in the input hoys_ (True) or whether the\r\noutput sun path geometry should be for the entire year, complete\r\nwith analemmas for all sun-up hours and a daily arc for each\r\nmonth (False). (Default: False)"
+    },
+    {
+      "name": "data_",
+      "description": "Optional HourlyContinuousCollection objects, which will be used\r\nto generate colors that align with each of the sun_pts. This data\r\ncan also be used along with the statement_ below to select out\r\nsun positions that meet certain conditions."
+    },
+    {
+      "name": "statement_",
+      "description": "A conditional statement as a string (e.g. a > 25).\r\n.\r\nThe variable of the first data collection should always be named 'a'\r\n(without quotations), the variable of the second list should be\r\nnamed 'b', and so on.\r\n.\r\nFor example, if three data collections are connected to _data\r\nand the following statement is applied:\r\n'18 < a < 26 and b < 80 and c > 2'\r\nThe resulting collections will only include values where the first\r\ndata collection is between 18 and 26, the second collection is less\r\nthan 80 and the third collection is greater than 2."
+    },
+    {
+      "name": "legend_par_",
+      "description": "An optional LegendParameter object to change the display\r\nof the data on the sun path. This can also be a list of legend\r\nparameters to be applied to the different connected data_."
+    }
+  ],
+  "outputs": [
+    {
+      "name": "out",
+      "count": 0,
+      "types": [],
+      "sample": [],
+      "description": "Reports, errors, warnings, etc."
+    },
+    {
+      "name": "vectors",
+      "count": 2,
+      "types": [
+        "<class 'Rhino.Geometry.Vector3d'>"
+      ],
+      "sample": [
+        "0.01798105868980875,0.02781448629713133,-0.999451367441368",
+        "0.9170948141925487,-0.3677619890901494,-0.15390978254026408"
+      ],
+      "description": "Vector(s) indicating the direction of sunlight for each sun\r\nposition on the sun path. Note that these vectors point downwards\r\ntowards the ground."
+    },
+    {
+      "name": "altitudes",
+      "count": 2,
+      "types": [
+        "<class 'float'>"
+      ],
+      "sample": [
+        "88.10199096019882",
+        "8.853572697703044"
+      ],
+      "description": "Number(s) indicating the sun altitude(s) in degrees for\r\neach sun position on the sun path."
+    },
+    {
+      "name": "azimuths",
+      "count": 2,
+      "types": [
+        "<class 'float'>"
+      ],
+      "sample": [
+        "212.88120572698523",
+        "291.8511604163272"
+      ],
+      "description": "Number(s) indicating the sun azimuths in degrees for each\r\nsun position on the sun path."
+    },
+    {
+      "name": "hoys",
+      "count": 2,
+      "types": [
+        "<class 'float'>"
+      ],
+      "sample": [
+        "4116.0",
+        "4122.0"
+      ],
+      "description": "The hour of the year for each sun positions on the sun path."
+    },
+    {
+      "name": "sun_pts",
+      "count": 2,
+      "types": [
+        "<class 'Rhino.Geometry.Point3d'>"
+      ],
+      "sample": [
+        "-0.359621173796175,-0.5562897259426266,19.98902734882736",
+        "-18.341896283850975,7.355239781802988,3.0781956508052817"
+      ],
+      "description": "Point(s) representing the location of the sun on the sunpath."
+    },
+    {
+      "name": "analemma",
+      "count": 13,
+      "types": [
+        "<class 'Rhino.Geometry.NurbsCurve'>"
+      ],
+      "sample": [
+        "Rhino.Geometry.NurbsCurve",
+        "Rhino.Geometry.NurbsCurve",
+        "Rhino.Geometry.NurbsCurve",
+        "Rhino.Geometry.NurbsCurve"
+      ],
+      "description": "A set of curves that mark the hourly positions of the sun\r\nthroughout the different months of the year."
+    },
+    {
+      "name": "daily",
+      "count": 12,
+      "types": [
+        "<class 'Rhino.Geometry.Arc'>"
+      ],
+      "sample": [
+        "Rhino.Geometry.Arc",
+        "Rhino.Geometry.Arc",
+        "Rhino.Geometry.Arc",
+        "Rhino.Geometry.Arc"
+      ],
+      "description": "A set of arcs that mark the path of the sun across the sky\r\ndome over the course of a day."
+    },
+    {
+      "name": "compass",
+      "count": 35,
+      "types": [
+        "<class 'Rhino.Geometry.Circle'>",
+        "<class 'IronPython.NewTypes.Grasshopper.Kernel.Types.GH_GeometricGoo`1#IGH_BakeAwareData#IGH_PreviewData_21$23'>",
+        "<class 'Rhino.Geometry.LineCurve'>"
+      ],
+      "sample": [
+        "Rhino.Geometry.Circle",
+        "Rhino.Geometry.Circle",
+        "Rhino.Geometry.Circle",
+        "Rhino.Geometry.LineCurve"
+      ],
+      "description": "A set of circles, lines and text objects that mark the cardinal\r\ndirections in relation to the sun path."
+    },
+    {
+      "name": "legend",
+      "count": 0,
+      "types": [],
+      "sample": [],
+      "description": "Geometry representing the legend for the input data_. Will be None\r\nif no _data is connected."
+    },
+    {
+      "name": "title",
+      "count": 1,
+      "types": [
+        "<class 'IronPython.NewTypes.Grasshopper.Kernel.Types.GH_GeometricGoo`1#IGH_BakeAwareData#IGH_PreviewData_21$23'>"
+      ],
+      "sample": [
+        "city: Taipei"
+      ],
+      "description": "A text object for the title of the sunpath."
+    },
+    {
+      "name": "color_pts",
+      "count": 0,
+      "types": [],
+      "sample": [],
+      "description": "A list of points colored with the input data_, which will display\r\nin the Rhino scene in accordance with the legend. Note that\r\nthe text representation of these objects bears the RGB color of each\r\npoint. So casting this output to text and then to a color will\r\nyeild color objects that can be used for previewing other types\r\nof geometry with the input data_. Will be None if no _data is connected."
+    },
+    {
+      "name": "vis_set",
+      "count": 1,
+      "types": [
+        "<class 'IronPython.NewTypes.System.Object_2$2'>"
+      ],
+      "sample": [
+        "VisualizationSet Aruments [Sunpath] (9 items)"
+      ],
+      "description": "An object containing VisualizationSet arguments for drawing a detailed\r\nversion of the Sunpath in the Rhino scene. This can be connected to\r\nthe \"LB Preview Visualization Set\" component to display this version\r\nof the Sunpath in Rhino."
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "code": "# Ladybug: A Plugin for Environmental Analysis (GPL)\r\n# This file is part of Ladybug.\r\n#\r\n# Copyright (c) 2026, Ladybug Tools.\r\n# You should have received a copy of the GNU Affero General Public License\r\n# along with Ladybug; If not, see <http://www.gnu.org/licenses/>.\r\n# \r\n# @license AGPL-3.0-or-later <https://spdx.org/licenses/AGPL-3.0-or-later>\r\n\r\n\"\"\"\r\nOutput a Sunpath (aka. sun plot) graphic into the Rhino scene.\r\n-\r\nThe component also outputs sun vectors that can be used for solar access\r\nanalysis and shading design.\r\n-\r\n\r\n    Args:\r\n        north_: A number between -360 and 360 for the counterclockwise\r\n            difference between the North and the positive Y-axis in degrees.\r\n            90 is West and 270 is East. This can also be Vector for the\r\n            direction to North. (Default: 0)\r\n        _location: A ladybug Location that has been output from the \"LB Import EPW\"\r\n            component or the \"LB Construct Location\" component.\r\n        hoys_: A number or list of numbers between 0 and 8760 that represent the\r\n            hour of the year at which to evaluate the sun position. The\r\n            \"LB Calculate HOY\" component can output this number given a month,\r\n            day and hour. The \"LB Analysis Period\" component can output a\r\n            list of HOYs within a certain hour or date range.\r\n        dl_saving_: An optional analysis period for daylight saving time.\r\n            If None, no daylight saving time will be used. (Default: None)\r\n        solar_time_: A boolean to indicate if the input hours should be treated\r\n             as solar time instead of standard or daylight time. (Default: False)\r\n        _center_pt_: A point for the center of the sun path. (Default: (0, 0, 0))\r\n        _scale_: A number to set the scale of the sun path. The default is 1,\r\n            which corresponds to a radius of 100 meters in the current Rhino\r\n            model's unit system.\r\n        projection_: Optional text for the name of a projection to use from the sky\r\n            dome hemisphere to the 2D plane. If None, a 3D sun path will be drawn\r\n            instead of a 2D one. (Default: None) Choose from the following:\r\n                * Orthographic\r\n                * Stereographic\r\n                * Equidistant\r\n                * Equisolid\r\n        daily_: Boolean to note whether the sunpath should display only one daily\r\n            arc for each unique day in the input hoys_ (True) or whether the\r\n            output sun path geometry should be for the entire year, complete\r\n            with analemmas for all sun-up hours and a daily arc for each\r\n            month (False). (Default: False)\r\n        data_: Optional HourlyContinuousCollection objects, which will be used\r\n            to generate colors that align with each of the sun_pts. This data\r\n            can also be used along with the statement_ below to select out\r\n            sun positions that meet certain conditions.\r\n        statement_: A conditional statement as a string (e.g. a > 25).\r\n            .   \r\n            The variable of the first data collection should always be named 'a'\r\n            (without quotations), the variable of the second list should be\r\n            named 'b', and so on.\r\n            .\r\n            For example, if three data collections are connected to _data\r\n            and the following statement is applied:\r\n            '18 < a < 26 and b < 80 and c > 2'\r\n            The resulting collections will only include values where the first\r\n            data collection is between 18 and 26, the second collection is less\r\n            than 80 and the third collection is greater than 2.\r\n        legend_par_: An optional LegendParameter object to change the display\r\n            of the data on the sun path. This can also be a list of legend\r\n            parameters to be applied to the different connected data_.\r\n\r\n    Returns:\r\n        report: Reports, errors, warnings, etc.\r\n        vectors: Vector(s) indicating the direction of sunlight for each sun\r\n            position on the sun path. Note that these vectors point downwards\r\n            towards the ground.\r\n        altitudes: Number(s) indicating the sun altitude(s) in degrees for\r\n            each sun position on the sun path.\r\n        azimuths: Number(s) indicating the sun azimuths in degrees for each\r\n            sun position on the sun path.\r\n        hoys: The hour of the year for each sun positions on the sun path.\r\n        sun_pts: Point(s) representing the location of the sun on the sunpath.\r\n        analemma: A set of curves that mark the hourly positions of the sun\r\n            throughout the different months of the year.\r\n        daily: A set of arcs that mark the path of the sun across the sky\r\n            dome over the course of a day.\r\n        compass: A set of circles, lines and text objects that mark the cardinal\r\n            directions in relation to the sun path.\r\n        legend: Geometry representing the legend for the input data_. Will be None\r\n            if no _data is connected.\r\n        title: A text object for the title of the sunpath.\r\n        color_pts: A list of points colored with the input data_, which will display\r\n            in the Rhino scene in accordance with the legend. Note that\r\n            the text representation of these objects bears the RGB color of each\r\n            point. So casting this output to text and then to a color will\r\n            yeild color objects that can be used for previewing other types\r\n            of geometry with the input data_. Will be None if no _data is connected.\r\n        vis_set: An object containing VisualizationSet arguments for drawing a detailed\r\n            version of the Sunpath in the Rhino scene. This can be connected to\r\n            the \"LB Preview Visualization Set\" component to display this version\r\n            of the Sunpath in Rhino.\r\n\"\"\"\r\n\r\nghenv.Component.Name = 'LB SunPath'\r\nghenv.Component.NickName = 'Sunpath'\r\nghenv.Component.Message = '1.10.1'\r\nghenv.Component.Category = 'Ladybug'\r\nghenv.Component.SubCategory = '2 :: Visualize Data'\r\nghenv.Component.AdditionalHelpFromDocStrings = '3'\r\n\r\ntry:\r\n    from ladybug_geometry.geometry2d.pointvector import Vector2D, Point2D\r\n    from ladybug_geometry.geometry3d.pointvector import Point3D, Vector3D\r\n    from ladybug_geometry.geometry3d.plane import Plane\r\nexcept ImportError as e:\r\n    raise ImportError('\\nFailed to import ladybug_geometry:\\n\\t{}'.format(e))\r\n\r\ntry:\r\n    from ladybug.sunpath import Sunpath\r\n    from ladybug.compass import Compass\r\n    from ladybug.graphic import GraphicContainer\r\n    from ladybug.datacollection import HourlyContinuousCollection\r\n    from ladybug.dt import Date\r\nexcept ImportError as e:\r\n    raise ImportError('\\nFailed to import ladybug:\\n\\t{}'.format(e))\r\n\r\ntry:\r\n    from ladybug_rhino.config import conversion_to_meters\r\n    from ladybug_rhino.color import color_to_color\r\n    from ladybug_rhino.colorize import ColoredPoint\r\n    from ladybug_rhino.fromgeometry import from_polyline3d, from_polyline2d, \\\r\n        from_arc3d, from_vector3d, from_point3d, from_point2d\r\n    from ladybug_rhino.fromobjects import legend_objects, compass_objects\r\n    from ladybug_rhino.togeometry import to_vector2d, to_point2d, to_point3d\r\n    from ladybug_rhino.text import text_objects\r\n    from ladybug_rhino.grasshopper import all_required_inputs, list_to_data_tree, \\\r\n        hide_output, show_output, schedule_solution, objectify_output\r\nexcept ImportError as e:\r\n    raise ImportError('\\nFailed to import ladybug_rhino:\\n\\t{}'.format(e))\r\n\r\nimport math\r\n\r\n\r\ndef draw_analemma_and_arcs(sp, datetimes, radius, center_pt3d):\r\n    \"\"\"Draw analemma and day arc Rhino geometry.\r\n\r\n    Args:\r\n        sp: Sunpath object for which geometry will be drawn.\r\n        datetimes: A list of datetimes, which will be used to get days\r\n            if daily_ is True.\r\n        radius: Number for the radius of the sun path.\r\n        center_pt3d: Point3D for the center of the sun path.\r\n\r\n    Returns:\r\n        analemma: List of Rhino curves for the analemmas\r\n        daily: List of Rhino curves for the daily arcs.\r\n    \"\"\"\r\n    # reset daylight savings so analemmas aren't messed up\r\n    original_dls = sp.daylight_saving_period\r\n    sp.daylight_saving_period = None\r\n\r\n    center_pt, z = Point2D(center_pt3d.x, center_pt3d.y), center_pt3d.z\r\n    if not daily_:\r\n        if projection_ is None:\r\n            analemma = [from_polyline3d(pline) for pline in sp.hourly_analemma_polyline3d(\r\n                center_pt3d, radius, True, solar_time_)]\r\n            daily = [from_arc3d(arc) for arc in sp.monthly_day_arc3d(center_pt3d, radius)]\r\n        else:\r\n            analemma = [from_polyline2d(pline, z) for pline in sp.hourly_analemma_polyline2d(\r\n                projection_, center_pt, radius, True, solar_time_)]\r\n            daily = [from_polyline2d(arc, z) for arc in sp.monthly_day_polyline2d(\r\n                projection_, center_pt3d, radius)]\r\n    else:\r\n        analemma = []  # No Analemmas for a daily sun path\r\n        doys = set(dt.doy for dt in datetimes)\r\n        dates = [Date.from_doy(doy) for doy in doys]\r\n        if projection_ is None:\r\n            daily = [from_arc3d(sp.day_arc3d(dat.month, dat.day, center_pt3d, radius))\r\n                     for dat in dates]\r\n        else:\r\n            daily = []\r\n            for dat in dates:\r\n                pline = sp.day_polyline2d(dat.month, dat.day, projection_, center_pt, radius)\r\n                daily.append(from_polyline2d(pline, z))\r\n    \r\n    # put back the daylight savings time\r\n    sp.daylight_saving_period = original_dls\r\n    return analemma, daily\r\n\r\n\r\ndef draw_sun_positions(suns, radius, center_pt3d):\r\n    \"\"\"Draw Rhino points from a list of sun objects.\r\n\r\n    Args:\r\n        suns: A list of suns to be output as points\r\n        radius: Number for the radius of the sun path.\r\n        center_pt3d: Point3D for the center of the sun path.\r\n\r\n    Returns:\r\n        A list of Rhino points for sun positions\r\n    \"\"\"\r\n        # get points for sun positions\r\n    if projection_ is None:\r\n        return [from_point3d(sun.position_3d(center_pt3d, radius)) for sun in suns]\r\n    else:\r\n        return [from_point2d(sun.position_2d(projection_, center_pt3d, radius), z)\r\n                for sun in suns]\r\n\r\n\r\ndef title_text(data_col):\r\n    \"\"\"Get a text string for the title of the sunpath.\"\"\"\r\n    title_array = ['{} ({})'.format(data_col.header.data_type,\r\n                                    data_col.header.unit)]\r\n    for key, val in data_col.header.metadata.items():\r\n        title_array.append('{}: {}'.format(key, val))\r\n    return '\\n'.join(title_array)\r\n\r\n\r\nif all_required_inputs(ghenv.Component):\r\n    # process all of the global inputs for the sunpath\r\n    if north_ is not None:  # process the north_\r\n        try:\r\n            north_ = math.degrees(\r\n                to_vector2d(north_).angle_clockwise(Vector2D(0, 1)))\r\n        except AttributeError:  # north angle instead of vector\r\n            north_ = float(north_)\r\n    else:\r\n        north_ = 0\r\n    if _center_pt_ is not None:  # process the center point into a Point2D\r\n        center_pt, center_pt3d = to_point2d(_center_pt_), to_point3d(_center_pt_)\r\n        z = center_pt3d.z\r\n    else:\r\n        center_pt, center_pt3d = Point2D(), Point3D()\r\n        z = 0\r\n    _scale_ = 1 if _scale_ is None else _scale_ # process the scale into a radius\r\n    radius = (100 * _scale_) / conversion_to_meters()\r\n    solar_time_ = False if solar_time_ is None else solar_time_  # process solar time\r\n    daily_ = False if daily_ is None else daily_  # process the daily input\r\n    projection_ = projection_.title() if projection_ is not None else None\r\n\r\n    # create a intersection of the input hoys_ and the data hoys\r\n    if len(data_) > 0 and data_[0] is not None and len(hoys_) > 0:\r\n        all_aligned = all(data_[0].is_collection_aligned(d) for d in data_[1:])\r\n        assert all_aligned, 'All collections input to data_ must be aligned for ' \\\r\n            'each Sunpath.\\nGrafting the data_ and suplying multiple grafted ' \\\r\n            '_center_pt_ can be used to view each data on its own path.'\r\n        if statement_ is not None:\r\n            data_ = HourlyContinuousCollection.filter_collections_by_statement(\r\n                data_, statement_)\r\n        data_hoys = set(dt.hoy for dt in data_[0].datetimes)\r\n        hoys_ = list(data_hoys.intersection(set(hoys_)))\r\n\r\n    # initialize sunpath based on location\r\n    sp = Sunpath.from_location(_location, north_, dl_saving_)\r\n\r\n    # process all of the input hoys into altitudes, azimuths and vectors\r\n    altitudes, azimuths, datetimes, moys, hoys, vectors, suns = [], [], [], [], [], [], []\r\n    for hoy in hoys_:\r\n        sun = sp.calculate_sun_from_hoy(hoy, solar_time_)\r\n        if sun.is_during_day:\r\n            altitudes.append(sun.altitude)\r\n            azimuths.append(sun.azimuth)\r\n            datetimes.append(sun.datetime)\r\n            moys.append(sun.datetime.moy)\r\n            hoys.append(sun.datetime.hoy)\r\n            vectors.append(from_vector3d(sun.sun_vector))\r\n            suns.append(sun)\r\n\r\n    vis_l_pars = []\r\n    if len(data_) > 0 and data_[0] is not None and len(hoys_) > 0:  # build a sunpath for each data collection\r\n        title, all_sun_pts, all_analemma, all_daily, all_compass, all_col_pts, all_legends = \\\r\n            [], [], [], [], [], [], []\r\n        for i, data in enumerate(data_):\r\n            try:  # sense when several legend parameters are connected\r\n                lpar = legend_par_[i]\r\n            except IndexError:\r\n                lpar = None if len(legend_par_) == 0 else legend_par_[-1]\r\n\r\n            # move the center point so sun paths are not on top of one another\r\n            fac = i* radius * 3\r\n            center_pt_i = Point2D(center_pt.x + fac, center_pt.y)\r\n            center_pt3d_i = Point3D(center_pt3d.x + fac, center_pt3d.y, center_pt3d.z)\r\n\r\n            # create the ladybug compass object\r\n            lb_compass = Compass(radius, center_pt_i, north_)\r\n\r\n            # create a graphic container to generate colors and legends\r\n            n_data = data.filter_by_moys(moys)  # filter data collection by sun-up hours\r\n            graphic = GraphicContainer(\r\n                n_data.values, lb_compass.min_point3d(z), lb_compass.max_point3d(z),\r\n                lpar, n_data.header.data_type, n_data.header.unit)\r\n            all_legends.append(legend_objects(graphic.legend))\r\n            title.append(text_objects(\r\n                title_text(n_data), graphic.lower_title_location,\r\n                graphic.legend_parameters.text_height, graphic.legend_parameters.font))\r\n            vis_l_pars.append(graphic.legend_parameters)\r\n\r\n            # create points, analemmas, daily arcs, and compass geometry\r\n            sun_pts_init = draw_sun_positions(suns, radius, center_pt3d_i)\r\n            analemma_i, daily_i = draw_analemma_and_arcs(sp, datetimes, radius, center_pt3d_i)\r\n            compass_i = compass_objects(lb_compass, z, None, projection_,\r\n                                        graphic.legend_parameters.font)\r\n            all_analemma.append(analemma_i)\r\n            all_daily.append(daily_i)\r\n            all_compass.append(compass_i)\r\n\r\n            # produce a visualization of colored points\r\n            cols = [color_to_color(col) for col in graphic.value_colors]\r\n            col_pts = []\r\n            for pt, col in zip(sun_pts_init, cols):\r\n                col_pt = ColoredPoint(pt)\r\n                col_pt.color = col\r\n                col_pts.append(col_pt)\r\n            all_sun_pts.append(sun_pts_init)\r\n            all_col_pts.append(col_pts)\r\n\r\n        # convert all nested lists to data trees\r\n        sun_pts = list_to_data_tree(all_sun_pts)\r\n        analemma = list_to_data_tree(all_analemma)\r\n        daily = list_to_data_tree(all_daily)\r\n        compass = list_to_data_tree(all_compass)\r\n        legend = list_to_data_tree(all_legends)\r\n\r\n        # do some acrobatics to get the colored points to display\r\n        # CWM: I don't know why we have to re-schedule the solution but this is the\r\n        # only way I found to get the colored points to appear (redraw did not work).\r\n        color_pts = list_to_data_tree(all_col_pts)\r\n        hide_output(ghenv.Component, 5)\r\n        schedule_solution(ghenv.Component, 2)\r\n    else:  # no data connected; just output one sunpath\r\n        sun_pts = draw_sun_positions(suns, radius, center_pt3d)\r\n        analemma, daily = draw_analemma_and_arcs(sp, datetimes, radius, center_pt3d)\r\n        font = legend_par_[0].font if len(legend_par_) != 0 and \\\r\n            legend_par_[0] is not None else 'Arial'\r\n        compass = compass_objects(Compass(radius, center_pt, north_), z, None, projection_, font)\r\n        if _location.city:\r\n            title = text_objects(\r\n                'city: {}'.format(_location.city),\r\n                Plane(o=center_pt3d.move(Vector3D(-radius * 1.25, -radius * 1.25))),\r\n                radius / 15, font)\r\n        show_output(ghenv.Component, 5)\r\n\r\n    # create the output VisualizationSet arguments\r\n    l_par = None\r\n    if len(legend_par_) != 0:\r\n        if len(vis_l_pars) != 0:\r\n            l_par = vis_l_pars\r\n        else:\r\n            l_par = legend_par_[0] if len(legend_par_) == 1 else legend_par_\r\n    vis_set = [sp, hoys_, data_, l_par, radius, center_pt3d, solar_time_, daily_, projection_]\r\n    vis_set = objectify_output('VisualizationSet Aruments [Sunpath]', vis_set)\r\n"
+}

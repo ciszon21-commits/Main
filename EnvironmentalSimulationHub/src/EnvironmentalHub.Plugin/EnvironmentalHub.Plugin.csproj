@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework><UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <AssemblyVersion>0.10.2.0</AssemblyVersion>
+    <AssemblyName Condition="'$(PluginAssemblyName)' != ''">$(PluginAssemblyName)</AssemblyName><TargetExt>.rhp</TargetExt>
+    <RhinoInstallDir Condition="'$(RhinoInstallDir)' == ''">$(ProgramFiles)\Rhino 8</RhinoInstallDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" /><Using Remove="System.Drawing" />
+    <ProjectReference Include="../EnvironmentalHub.Adapters/EnvironmentalHub.Adapters.csproj" />
+    <Reference Include="RhinoCommon"><HintPath>$(RhinoInstallDir)\System\RhinoCommon.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Eto"><HintPath>$(RhinoInstallDir)\System\Eto.dll</HintPath><Private>false</Private></Reference>
+    <None Include="hub.config.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

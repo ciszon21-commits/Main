@@ -1,0 +1,9 @@
+[
+  {
+    "name": "run_python",
+    "arguments": {
+      "script": "hub_root = \"C:\\\\Users\\\\08432.SINOLTD\\\\00.DEVE\\\\31.AEC\\\\RHINO_Deve\\\\EnvironmentalSimulationHub\"\nweather_file = 'C:/Program Files/ladybug_tools/resources/weather/USA_WA_Seattle-Tacoma.Intl.AP.727930_TMYx.2004-2018/USA_WA_Seattle-Tacoma.Intl.AP.727930_TMYx.2004-2018.epw'\nimport os,json,time,hashlib,System,Rhino,clr\nclr.AddReference('Grasshopper')\nimport Grasshopper as GH\nfrom Grasshopper.Kernel import GH_RuntimeMessageLevel\nrhino_doc=__rhino_doc__\nscale=Rhino.RhinoMath.UnitScale(Rhino.UnitSystem.Meters,rhino_doc.ModelUnitSystem)\nwork=os.path.join(hub_root,'samples','radiation_smoke')\nworkflow_path=os.path.join(hub_root,'workflows','radiation','radiation_main.gh')\ndefinition=next(d for d in GH.Instances.DocumentServer if d.FilePath==workflow_path)\nepw=next(c for c in definition.Objects if c.Name=='LB Import EPW')\nsky=next(c for c in definition.Objects if c.Name=='LB Cumulative Sky Matrix')\nradiation=next(c for c in definition.Objects if c.Name=='LB Incident Radiation')\ndef port(component,name,output=False):\n return next(p for p in (component.Params.Output if output else component.Params.Input) if p.Name==name)\ndefinition.Enabled=True\nsource=open(os.path.join(hub_root,'tools','build_radiation_smoke.py'),encoding='utf-8').read()\nexec(compile(source[source.index('start = time.time()'):],'<resume-existing-workflow>','exec'))",
+      "slot": "aardvark"
+    }
+  }
+]
