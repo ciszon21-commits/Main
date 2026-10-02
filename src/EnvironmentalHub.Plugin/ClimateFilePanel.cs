@@ -39,7 +39,6 @@ public sealed class ClimateFilePanel : Panel
                 File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true })); });
         var layout = new DynamicLayout { Padding = 16, Spacing = new Size(8, 14) };
         layout.AddRow(HubUi.Header("氣候與設計日", "讀取氣候分區、典型週與原生設計日條件。",typeof(ClimateFilePanel)));
-        layout.AddRow(HubUi.Navigation(typeof(ClimateFilePanel)));
         layout.AddRow(Section("01  資料來源",HubTopic.Environment, format, file, browse)); layout.AddRow(Section("02  匯入",HubTopic.Run, import, status));
         layout.AddRow(Section("03  氣候條件",HubTopic.Results, outputs, summary, export));
         layout.AddRow(new Label { Text = "使用原生 LB Import STAT / DDY，同步執行。STAT 晴空輻射為模型估算，與 EPW 實測輻射不同。", Wrap = WrapMode.Word }); layout.Add(null);

@@ -44,8 +44,7 @@ public sealed class TimePanel:Panel
             else ExecuteCalendarJson(JsonSerializer.Serialize(new CalendarRequest{Mode=mode.SelectedIndex==1?"Calculate":"FromHOY",Month=(int)month.Value,Day=(int)day.Value,Hour=(int)hour.Value,Minute=(int)minute.Value,HourOfYear=hoy.Value}));});
         export.Click+=(_,_)=>Guard(()=>{if(result is null)return;var dialog=new SaveFileDialog{FileName="time_result.json"};dialog.Filters.Add(new FileFilter("時間結果 JSON",".json"));if(dialog.ShowDialog(this)==DialogResult.Ok)File.WriteAllText(dialog.FileName,result);});
         var layout=new DynamicLayout{Padding=16,Spacing=new Size(8,14)};
-        layout.AddRow(HubUi.Header("時間與分析期間","定義分析時間，沿用 Ladybug 原生日期與時間規則。",typeof(TimePanel)));layout.AddRow(HubUi.Navigation(typeof(TimePanel)));
-        layout.AddRow(HubUi.Section("01  操作類型",HubTopic.Settings,mode));layout.AddRow(pg);layout.AddRow(cg);layout.AddRow(HubUi.Section("03  計算",HubTopic.Run,run,status));layout.AddRow(HubUi.Section("04  分析結果",HubTopic.Results,summary,export));
+        layout.AddRow(HubUi.Header("時間與分析期間","定義分析時間，沿用 Ladybug 原生日期與時間規則。",typeof(TimePanel)));layout.AddRow(HubUi.Section("01  操作類型",HubTopic.Settings,mode));layout.AddRow(pg);layout.AddRow(cg);layout.AddRow(HubUi.Section("03  計算",HubTopic.Run,run,status));layout.AddRow(HubUi.Section("04  分析結果",HubTopic.Results,summary,export));
         layout.AddRow(HubUi.Hint("採非閏年的當地標準時間；HOY 0 為 1 月 1 日 00:00。保留小數年時數；EPW 氣象分析目前僅接受整數小時。"));layout.Add(null);HubUi.Mount(this,layout);
     }
     private LadybugTimeAdapter Adapter()

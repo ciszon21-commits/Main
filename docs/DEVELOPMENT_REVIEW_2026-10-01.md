@@ -1,30 +1,18 @@
-# 全部開發檢視 — 2026-10-02（目前狀態）
+# 全部開發檢視｜0.8.7
 
-本次交付為正式 0.8.6 繁體中文介面，保留目前 Rhino／Eto 架構。已重新建置、更新正式註冊、在新測試程序驗證原生操作並檢視 22 張影像；122 入口的功能接入數未增加。
+更新日期：2026-10-02。已完成單一 Rhino 工作平台整合；功能數維持 8 獨立、1 後端、113 待接入。
 
-## 現況結論
+## 已完成與目標
 
-目前是已驗證原生日射與氣象／地點／時間工具的開發平台。122 入口盤點完成；8 項獨立接入、1 項後端使用、113 項待接入。六個原生面板與六階段日射流程已交付，完整 Ladybug、其他引擎與公司部署尚未完成。
+- 介面：一個 Dock、六個內部模組、中文導覽、主題圖示、六階段日射流程、KPI／圖例／比較／匯出。切換與關閉重開保留草稿及結果。
+- Ladybug：LB-001 地點、LB-007 DDY、LB-009 EPW、LB-011 STAT、LB-013 分析期間、LB-020 Calculate HOY、LB-033 HOY to DateTime、LB-063 Incident Radiation 已實测；LB-049 天空矩陣僅用作後端。
+- 驗證：建置零錯誤／警告；60 既有原生檢查及 13 平台整合檢查通過；22 張當前淺色 320／480 原生影像已檢視。Core／Adapter 保留。
+- 近期目標：L1 剩餘氣象／時間／資料契約，從 B01 LB-003 Deconstruct Location 開始，再做 B02 LB-015 Apply Analysis Period、資料／型別／單位、設計日與剩餘氣象工具。
+- 中期目標：L2 太陽／幾何 → L3 熱舒適 → L4 圖表 → L5 工具／維護。每項完成須有原生數值、操作、錯誤及狀態保留證據。
+- 後續目標：Ladybug 主要功能與第一版驗收後，再整合 Honeybee／Eddy3D／OpenStudio／EnergyPlus，展開第二版大型互動 UI。
 
-0.8.6 保存 60 項原生檢查與 22 張當前主題窄／寬版影像證據。核心／adapter 原始碼沒有隨 UI 美化改寫；編譯內容比較排除 MVID 與資訊 Git 版本後相同，不能宣稱整檔位元組一致。
+完整對應與限制見 [目前狀態](PROJECT_STATUS.md)、[全部 122 項功能](LADYBUG_FEATURE_TABLE.md)、[階段計畫](ROADMAP.md)、[批次計畫](LADYBUG_DEVELOPMENT_PLAN.md)。0.8.7 證據見 [發布驗收](evidence/workspace_087_acceptance.json)。前一版完整檢視保留於 [0.8.6 歷史快照](history/DEVELOPMENT_REVIEW_086.md)。
 
-詳細逐項狀態、證據與限制統一見 [PROJECT_STATUS](PROJECT_STATUS.md)，避免本報告另建矛盾的進度數字。[知識入口](KNOWLEDGE_INDEX.md) 提供模組、操作與決策索引。
+## 未完成門檻
 
-## 最優先問題與處理順序
-
-| 問題 | 影響 | 下一步 |
-| --- | --- | --- |
-| L1 型別與資料工具未齊 | 太陽、舒適與圖表仍缺通用資料入口 | Location 解構 → 期間套用 → DataCollection／Header／單位；逐項原生比較 |
-| 完整 UI 驗收未閉合 | 離屏淺色畫面不能代表完整宿主操作 | Dock、深色、鍵盤、picker／dialog 隨 V1 功能交付持續驗收 |
-| GH 求解同步、無可靠取消 | 長時間任務仍可能暫停 Rhino | 獨立設計並驗證 runner；保留 GH／Rhino 執行緒規則與真實狀態 |
-| 模型容量與失敗注入範圍有限 | 單平面 4096 格不代表複雜專案 | 專用隔離測試程序增加複雜模型及求解器崩潰情境 |
-| 方案庫／跨機部署未完成 | 目前快照限 session、依賴仍是本機安裝 | 持久匯入、契約相容、依賴檢查與移機驗收另列 X1 |
-| 舊文件混用當時與最新狀態 | 容易將 0.4／0.6 的數量當作現況 | 現況集中 PROJECT_STATUS；歷史檢視歸檔，目錄維持逐項來源 |
-
-已確定版本策略：V1 沿用 Rhino／Eto；主要功能完成並驗收後規劃 V2 大型視覺互動。Ladybug 優先，Eddy3D CFD 暫緩。完整順序見 [ROADMAP](ROADMAP.md) 與 [L1 批次計畫](LADYBUG_DEVELOPMENT_PLAN.md)。
-
-## 歷史保留
-
-先前以 0.4.0 為基準、附有 0.5／0.6 更新的完整檢視已原文保存至 [history/DEVELOPMENT_REVIEW_040.md](history/DEVELOPMENT_REVIEW_040.md)。它是當時的評估，不是目前待辦或最新完成數；例如小數時區、STAT／DDY 與三項時間工具後來已完成。原始版本化 evidence 與 DEVELOPMENT_LOG 保留不改寫。
-
-前一輪知識整理檢視保留於 [0.8.5 歷史快照](history/DEVELOPMENT_REVIEW_085.md)。
+同步求解尚無取消或可靠百分比；跨次 Rhino 工作階段方案庫尚未完成；完整 Dock 調整、深色、鍵盤、原生 picker／dialog、複雜大型模型與跨機部署仍須獨立驗收。採光、熱舒適、CFD、能耗與碳排尚未提供已驗證 Hub 流程。不能將安裝、目錄盤點或介面頁面視為功能完成。

@@ -31,3 +31,7 @@ Preflight errors block execution. Warnings require an explicit user decision; an
 Wind/Eddy3D has preliminary metadata inspection only; no CFD solve is verified. It is deferred until the Ladybug milestones. OpenFOAM availability remains UNVERIFIED. Daylight, energy and carbon are planned additional engines, not completed Ladybug workflows. V1 retains Rhino/Eto; V2 larger visual interaction follows major functional acceptance.
 
 Company deployment needs dependency discovery, version compatibility checks, portable workflow bindings, and review of installed Ladybug licensing. No bundled/reimplemented solver is part of this repository.
+
+## Unified Rhino workspace
+
+0.8.7 僅註冊 HubWorkspacePanel；原首頁 GUID 保留。HubOverviewPanel、WeatherPanel、LocationPanel、ClimateFilePanel、TimePanel、RadiationPanel 是快取內部視圖，不再各自註冊或開啟 Dock。所有指令與首頁按鈕導向同一主介面，切換不重建視圖。日射透過平台取得已完成的氣象／期間資料；原有 request → preflight → adapter → result、文件 guard、owned preview 與 solver 保持原樣。

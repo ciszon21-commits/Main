@@ -1,5 +1,13 @@
 # Development log
 
+## 2026-10-02｜0.8.7 單一工作平台
+
+- UI audit：六個獨立 RegisterPanel 與 OpenPanel 路由造成面板分散。
+- 改為一個 HubWorkspacePanel，沿用原首頁 Dock GUID；六個指令與首頁工具改為快取內部模組切換，移除重複導覽，資料轉移改讀平台中的已完成結果。
+- 保留 Core／Adapter。0 錯誤／警告建置；正式註冊備份與讀回、新專用 Rhino 程序載入；60 既有原生檢查及 13 平台檢查通過，22 張 320／480 當前淺色原生離屏圖檢視。
+- 功能維持 8 獨立、1 後端、113 待接入；進度、完整 Ladybug 對應與下一批順序已更新。版本證據：workspace_087_acceptance.json。
+
+
 ## 2026-10-02 — 0.8.6 Traditional Chinese interface
 
 - KNOWLEDGE: Reused the existing Notion database; updated 7 current records and 9 verified function/backend version entries, added immutable VER-086-01 and REL-086, and preserved 0.8.5 records. Full readback confirms 178 unique records / 11 categories / 9 views and unchanged 8 / 1 / 113 function states. [Sync receipt](evidence/notion_chinese_086_sync_2026-10-02.json).

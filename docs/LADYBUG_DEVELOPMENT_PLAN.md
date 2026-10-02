@@ -1,12 +1,12 @@
 # Ladybug 完整功能開發計畫
 
-更新日期：2026-10-02。正式版本 **0.8.6**。使用者優先順序是先完成原生 Ladybug，第一版保留目前 Rhino／Eto 框架；第二版大型視覺互動於主要功能完成並驗收後進行。總階段見 [ROADMAP](ROADMAP.md)。
+更新日期：2026-10-02。正式版本 **0.8.7**。使用者優先順序是先完成原生 Ladybug，第一版保留目前 Rhino／Eto 框架；第二版大型視覺互動於主要功能完成並驗收後進行。總階段見 [ROADMAP](ROADMAP.md)。
 
 ## 目前完成數與單一功能狀態
 
 實際安裝入口 122 個，含 119 原生元件和 3 ValueList；目錄全部已盤點。**8 項獨立接入、1 項僅後端使用、113 項待接入**，來源為 [catalog JSON](evidence/ladybug_feature_catalog.json)，逐項見 [功能表](LADYBUG_FEATURE_TABLE.md)／[HTML](LADYBUG_FEATURE_TABLE.html)。
 
-獨立功能為 Incident Radiation、Import EPW、Construct Location、Import STAT、Import DDY、Analysis Period、Calculate HOY、HOY to DateTime。Cumulative Sky Matrix 用於已驗證日射後端；尚未完成獨立 Hub 流程。0.8.6 改善 UI，沒有增加功能完成數。L1 仍未完成。
+獨立功能為 Incident Radiation、Import EPW、Construct Location、Import STAT、Import DDY、Analysis Period、Calculate HOY、HOY to DateTime。Cumulative Sky Matrix 用於已驗證日射後端；尚未完成獨立 Hub 流程。0.8.7 改善 UI，沒有增加功能完成數。L1 仍未完成。
 
 ## 功能里程碑
 

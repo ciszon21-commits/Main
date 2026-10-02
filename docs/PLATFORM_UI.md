@@ -20,3 +20,7 @@ Comparison requires matching weather SHA-256, analysis type, units and selected 
 The original synchronous Grasshopper solve requires Rhino's UI thread. Rhino may pause; no reliable percentage or cancel action is exposed. An asynchronous runner with verified process cancellation is a separate development milestone. This UI release does not change the original radiation adapter or pretend that cancellation works.
 
 Acceptance evidence is recorded separately for build, typed preflight, original numerical regression, native controls and production Eto/WPF layouts. MCP and SDK APIs are used without Computer Use. Offscreen 320/480 px renders establish layout in the current host theme, not full dock, theme-switching, keyboard or native file-dialog acceptance.
+
+## 單一 Rhino 工作平台｜0.8.7
+
+0.8.7 僅註冊 HubWorkspacePanel；原首頁 GUID 保留。HubOverviewPanel、WeatherPanel、LocationPanel、ClimateFilePanel、TimePanel、RadiationPanel 是快取內部視圖，不再各自註冊或開啟 Dock。所有指令與首頁按鈕導向同一主介面，切換不重建視圖。日射透過平台取得已完成的氣象／期間資料；原有 request → preflight → adapter → result、文件 guard、owned preview 與 solver 保持原樣。

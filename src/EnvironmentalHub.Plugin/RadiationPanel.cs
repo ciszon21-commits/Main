@@ -159,7 +159,6 @@ public sealed class RadiationPanel : Panel
             Hint("方案於當次工作階段保留完成結果與輸入來源；關閉 Rhino 前請匯出比較資料。"));
         var layout = new DynamicLayout { Padding = 16, Spacing = new Size(8, 14) };
         layout.AddRow(HubUi.Header("日射分析", "分析建築表面的入射太陽能量。模型 → 氣象 → 設定 → 檢核 → 結果。",typeof(RadiationPanel)));
-        layout.AddRow(HubUi.Navigation(typeof(RadiationPanel)));
         foreach (var label in new[] { "01  幾何／模型", "02  環境／氣象", "03  模擬設定", "04  檢核／執行", "05  分析結果", "06  比較／匯出" }) stage.Items.Add(label);
         stage.SelectedIndex = 0;
         var jump = new Button { Text = "前往階段" }; jump.Click += (_, _) => ShowStage(stage.SelectedIndex);
@@ -362,7 +361,7 @@ public sealed class RadiationPanel : Panel
 
     public void UseImportedWeather()
     {
-        var panel = Rhino.UI.Panels.GetPanel<WeatherPanel>(RequireDocument());
+        var panel = Rhino.UI.Panels.GetPanel<HubWorkspacePanel>(RequireDocument())?.GetModule<WeatherPanel>();
         var json = panel?.CompletedSelectionJson ?? throw new InvalidOperationException("請先在 EPW 氣象模組匯入資料。");
         var selection = JsonSerializer.Deserialize<WeatherRequest>(json)!;
         updatingInputs = true;
@@ -373,7 +372,7 @@ public sealed class RadiationPanel : Panel
 
     public void UseCompletedPeriod()
     {
-        var panel = Rhino.UI.Panels.GetPanel<TimePanel>(RequireDocument());
+        var panel = Rhino.UI.Panels.GetPanel<HubWorkspacePanel>(RequireDocument())?.GetModule<TimePanel>();
         var json = panel?.CompletedResultJson ?? throw new InvalidOperationException("請先在時間與分析期間模組建立期間。");
         using var result = JsonDocument.Parse(json);
         if (!result.RootElement.TryGetProperty("HoursOfYear", out var values))

@@ -7,7 +7,7 @@ Use a short title, quiet subtitle and six numbered analysis stages: Geometry / M
 
 Use open ruled sections rather than outlined cards. Professional, minimal, scientific, architectural and technical presentation takes precedence over a web-dashboard appearance. No gradients, decorative animation, excessive rounding, shadows or saturated navigation colors. System colors follow the host theme. Restrained categorical accents identify interface topics; solver palettes remain exclusive to actual results. The overview distinguishes available workflows, environment utilities and explicitly planned integrations.
 
-Use HubUi.Header / Navigation for consistent module hierarchy and a compact selector instead of multiple stacked navigation buttons. EnvironmentalHub is the overview; module state stays in its registered Panel. Keep wide hints and checkbox rows outside multi-column field grids: single cells in a shared DynamicLayout can push numeric fields offscreen. Calendar conversion uses vertical labeled fields; time period start/end inputs use a separate compact grid.
+Use HubUi.Header for module hierarchy. Only HubWorkspacePanel is registered with Rhino; it owns one fixed module selector and cached internal views. EnvironmentalHub opens the overview inside that workspace. Remove per-view navigation and route all commands/actions internally, retaining inputs, completed results and session snapshots. Never register a new independent Dock panel for each feature. Keep wide hints and checkbox rows outside multi-column field grids: single cells in a shared DynamicLayout can push numeric fields offscreen. Calendar conversion uses vertical labeled fields; time period start/end inputs use a separate compact grid.
 
 Use Eto system background and text colors to follow the host theme. Wrap explanations and diagnostics. Keep full file paths selectable and available as tooltips. Scroll vertically when docked narrowly. Never rely on color alone for errors, warnings, completion or stale results.
 
@@ -52,3 +52,9 @@ The user-facing platform language is Traditional Chinese (zh-TW). Use the six st
 HubText supplies native weather/climate field names, frequency, design-day type and diagnostic presentation. Preserve native keys, values, scientific acronyms, units, user-entered names, file paths, command names and JSON contracts. Unknown native messages include the original diagnostic; do not guess a physical interpretation. Keep identifiers available for troubleshooting.
 
 Host default fonts supply native CJK fallback. Review glyphs and line wrap at 320/480 px; keep actions compact and long explanation text outside numeric field grids. UI language does not imply a translated Rhino or operating-system interface. Full Dock, native picker/file dialogs, keyboard and light/dark switching remain distinct acceptance gates.
+
+## Unified workspace — 0.8.7
+
+The workspace retains the original overview Dock GUID. Modules are lazily cached and detached/re-attached without disposal when navigating; the existing solver and document guards remain in each view. Weather/period transfer reads completed data from the same workspace. Six legacy commands select internal views in one Rhino panel. Session data persists across view switching and Windows Dock close/reopen, not application restarts; export before closing Rhino.
+
+Native evidence: workspace_087_runtime.json (13 checks), release_087_loaded.json and platform_087_runtime.json (60 existing checks), ui_087/capture.json (22 current-theme offscreen images including the shell). Dock identity and close/reopen are verified, while full dock sizing, themes, keyboard and native dialogs remain separate gates.

@@ -25,13 +25,11 @@ internal static class HubUi
         layout.AddRow(new Label{Text=title,UseMnemonic=false,Font=new Eto.Drawing.Font(SystemFont.Bold,18),Wrap=WrapMode.Word});
         layout.AddRow(Hint(description));return layout;
     }
-    internal static Control Navigation(Type active)
+    internal static void OpenModule(Control source, Type module)
     {
-        var choice=new DropDown();foreach(var m in Modules)choice.Items.Add(m.Label);
-        choice.SelectedIndex=Array.FindIndex(Modules,m=>m.Panel==active);
-        var open=new Button{Text="開啟",ToolTip="開啟選取的模組，保留各面板已有結果"};
-        open.Click+=(_,_)=>{if(choice.SelectedIndex>=0)Panels.OpenPanel(Modules[choice.SelectedIndex].Panel);};
-        var row=new DynamicLayout{Spacing=new Size(8,6)};row.AddRow(choice,open);return row;
+        for (Control? owner = source; owner is not null; owner = owner.Parent)
+            if (owner is HubWorkspacePanel workspace) { workspace.ShowModule(module); return; }
+        if (Rhino.RhinoDoc.ActiveDoc is { } doc) HubWorkspacePanel.Open(doc, module);
     }
     // Open, ruled sections fit a technical workspace without a stack of cards.
     internal static Control Section(string title,params Control[] controls)=>Section(title,HubTopic.Overview,controls);

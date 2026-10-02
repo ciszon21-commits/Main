@@ -19,3 +19,5 @@ User direction: every subsequent interface must have high-quality UI/UX, clear l
 - Knowledge management: read docs/KNOWLEDGE_INDEX.md, PROJECT_STATUS.md and the relevant ROADMAP/Ladybug batch before new work. Keep current status, historical logs and versioned acceptance evidence distinct.
 - On a feature delivery, update catalog JSON/Markdown/HTML, current status and evidence together. UI/documentation-only changes do not increase function coverage. Keep historical receipts unchanged.
 - The user-designated Notion knowledge database is indexed in docs/NOTION_KNOWLEDGE.md. Use stable record IDs and the verified destination/schema; preserve the distinction between inventory, integration and acceptance. Do not create duplicate databases on later updates.
+
+- Register only HubWorkspacePanel with Rhino. New features belong to cached internal views; route commands/navigation inside the same workspace. Preserve draft inputs, completed results and scenarios during navigation; do not create independent Dock panels per module.

@@ -52,7 +52,7 @@ public sealed class LocationPanel : Panel
         var output = new DynamicLayout { Padding = 12, Spacing = new Size(8, 8) }; output.AddRow(summary); output.AddRow(export);
         var layout = new DynamicLayout { Padding = 16, Spacing = new Size(8, 14) };
         layout.AddRow(HubUi.Header("地點", "建立座標與時區，作為環境分析的地點條件。",typeof(LocationPanel)));
-        layout.AddRow(HubUi.Navigation(typeof(LocationPanel))); layout.AddRow(HubUi.Section("01  地點輸入",HubTopic.Environment, inputs));
+        layout.AddRow(HubUi.Section("01  地點輸入",HubTopic.Environment, inputs));
         layout.AddRow(HubUi.Section("02  建立地點",HubTopic.Run, actions)); layout.AddRow(HubUi.Section("03  分析結果",HubTopic.Results, output));
         layout.AddRow(new Label { Text = "使用原生 LB Construct Location；不產生氣象資料。採同步執行。", Wrap = WrapMode.Word }); layout.Add(null);
         var scroll = new Scrollable { Content = layout, ExpandContentWidth = true };

@@ -1,8 +1,8 @@
 # 專案知識索引
 
-更新日期：2026-10-02。這是專案內知識管理入口；目前已驗證版本為 0.8.6。歷史文件、測試樣本與新版狀態分開管理。
+更新日期：2026-10-02。這是專案內知識管理入口；目前已驗證版本為 0.8.7。歷史文件、測試樣本與新版狀態分開管理。
 
-使用者指定的 [Notion 開發與知識資料庫](https://app.notion.com/p/27b5fd42055b410ea1d58fbbf60fd31e) 已建立：178 筆紀錄、11 分類、9 檢視。目的地、固定編號、同步邊界與維護流程見 [NOTION_KNOWLEDGE.md](NOTION_KNOWLEDGE.md)。本次為人工授權同步，未建立背景自動同步。
+使用者指定的 [Notion 開發與知識資料庫](https://app.notion.com/p/27b5fd42055b410ea1d58fbbf60fd31e) 已建立：180 筆紀錄、11 分類、9 檢視。目的地、固定編號、同步邊界與維護流程見 [NOTION_KNOWLEDGE.md](NOTION_KNOWLEDGE.md)。本次為人工授權同步，未建立背景自動同步。
 
 ## 從哪裡開始
 
@@ -34,11 +34,11 @@
 ## 證據層級與可追溯性
 
 1. **原生盤點**：`evidence/ladybug_feature_catalog.json` 提供 122 入口身分、參數與狀態；3 個 ValueList 不是求解器。UserObject GUID／SHA 與共用 GhPython ComponentGuid 不可混用。
-2. **建置／包裝**：`release_086_manifest.json` 記錄發布檔案 SHA；建置成功不能證明 Rhino 已載入。
-3. **正式載入**：`release_086_loaded.json` 確認目標 slot、Assembly 路徑與版本、PathFromId 及原生操作。
-4. **功能／流程**：`platform_086_runtime.json` 與載入 receipt；保留數值、失敗路徑、預覽歸屬及 GH 清理檢查。
-5. **視覺／對比**：`ui_086/capture.json`、PNG；配色沿用 0.8.5 的 `topic_085_palette.json`；目前只有當前主題離屏控制項範圍。
-6. **彙整驗收**：`chinese_086_acceptance.json` 引用以上範圍；`binary_086_logic.json` 比較編譯內容，不能當作整檔位元組一致。
+2. **建置／包裝**：`release_087_manifest.json` 記錄發布檔案 SHA；建置成功不能證明 Rhino 已載入。
+3. **正式載入**：`release_087_loaded.json` 確認目標 slot、Assembly 路徑與版本、PathFromId 及原生操作。
+4. **功能／流程**：`platform_087_runtime.json` 與載入 receipt；保留數值、失敗路徑、預覽歸屬及 GH 清理檢查。
+5. **視覺／對比**：`ui_087/capture.json`、PNG；配色沿用 0.8.5 的 `topic_085_palette.json`；當前淺色離屏控制項；Dock 識別與關閉重開另有 13 項原生檢查。
+6. **彙整驗收**：`workspace_087_acceptance.json` 引用以上範圍；`binary_087_logic.json` 比較編譯內容，不能當作整檔位元組一致。
 
 Transport 的 `MCP_RESPONDED` 只代表通訊有回應；仍須檢查內層 payload／error 及實際驗收檔。`samples/` 是測試輸出，不能單憑「有檔案」宣告測試通過。多數 replay paths 是本機路徑，移機前需重新配置。
 

@@ -4,7 +4,7 @@
 
 實際安裝範圍：**122 個入口**。全部已透過 Rhino MCP 逐一建立並讀取 metadata；盤點不等於每個功能都完成求解驗證。
 
-目前 0.8.6 Hub 已實測接入 Incident Radiation、Import EPW、Construct Location、Import STAT、Import DDY、Analysis Period、Calculate HOY 與 HOY to DateTime；Cumulative Sky Matrix 已用於輻射後端。其餘入口已安裝、待逐一接入。三個預設選單亦列入，未當作獨立求解器。
+目前 0.8.7 Hub 已實測接入 Incident Radiation、Import EPW、Construct Location、Import STAT、Import DDY、Analysis Period、Calculate HOY 與 HOY to DateTime；Cumulative Sky Matrix 已用於輻射後端。其餘入口已安裝、待逐一接入。三個預設選單亦列入，未當作獨立求解器。
 
 來源：本機原生 Ladybug user objects；原生英文說明保留，避免改寫造成物理意義偏差。輸入中的 `*` 表示原元件必填。
 

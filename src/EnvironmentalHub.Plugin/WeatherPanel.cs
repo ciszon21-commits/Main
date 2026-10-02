@@ -64,7 +64,6 @@ public sealed class WeatherPanel : Panel
         period.AddRow(periodNote);
         var layout = new DynamicLayout { Padding = 16, Spacing = new Size(8, 14) };
         layout.AddRow(HubUi.Header("EPW 氣象", "匯入氣象欄位、選擇時間範圍並檢視原始資料。",typeof(WeatherPanel)));
-        layout.AddRow(HubUi.Navigation(typeof(WeatherPanel)));
         layout.AddRow(Section("01  氣象來源",HubTopic.Environment, file, browse, Hint("原生 LB Import EPW · 非閏年逐時 EPW")));
         layout.AddRow(HubUi.Section("02  時間選取",HubTopic.Settings, period));
         layout.AddRow(Section("03  匯入",HubTopic.Run, import, status));
