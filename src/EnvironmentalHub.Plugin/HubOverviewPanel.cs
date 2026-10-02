@@ -10,24 +10,24 @@ public sealed class HubOverviewPanel:Panel
     public HubOverviewPanel()
     {
         var layout=new DynamicLayout{Padding=16,Spacing=new Size(8,14)};
-        layout.AddRow(HubUi.Header("Building performance","A model-to-results workspace for architectural environmental analysis."));
+        layout.AddRow(HubUi.Header("建築性能分析","從模型到分析結果的建築環境模擬工作平台。"));
         var workflow=new DynamicLayout{Spacing=new Size(8,6)};
-        foreach(var step in new[]{("01  Geometry / Model",HubTopic.Model),("02  Environment / Weather",HubTopic.Environment),
-            ("03  Simulation settings",HubTopic.Settings),("04  Validate / Run",HubTopic.Run),("05  Results",HubTopic.Results),("06  Compare / Export",HubTopic.Compare)})
+        foreach(var step in new[]{("01  幾何／模型",HubTopic.Model),("02  環境／氣象",HubTopic.Environment),
+            ("03  模擬設定",HubTopic.Settings),("04  檢核／執行",HubTopic.Run),("05  分析結果",HubTopic.Results),("06  比較／匯出",HubTopic.Compare)})
             workflow.AddRow(HubUi.WorkflowLine(step.Item1,step.Item2));
-        layout.AddRow(HubUi.Section("Analysis workflow",workflow));
-        var solar=new Button{Text="Start solar radiation analysis"};
+        layout.AddRow(HubUi.Section("分析流程",workflow));
+        var solar=new Button{Text="開始日射分析"};
         solar.Click+=(_,_)=>Panels.OpenPanel(typeof(RadiationPanel));
-        layout.AddRow(HubUi.Section("Simulations",HubTopic.Run,HubUi.Hint("SOLAR RADIATION  ·  Available\nIncident energy on geometry, with shading context.\nLadybug / Radiance · kWh/m²"),HubUi.ModuleAction(solar,typeof(RadiationPanel)),
-            HubUi.Hint("Daylight · Thermal comfort · Energy · Carbon · CFD\nPlanned integrations; no executable workflow yet.\nHoneybee / OpenStudio / EnergyPlus / Eddy3D")));
+        layout.AddRow(HubUi.Section("模擬分析",HubTopic.Run,HubUi.Hint("日射分析 · 已可使用\n分析模型表面的入射太陽能量與遮蔭影響。\nLadybug / Radiance · kWh/m²"),HubUi.ModuleAction(solar,typeof(RadiationPanel)),
+            HubUi.Hint("採光 · 熱舒適 · 能耗 · 碳排 · 風環境\n後續整合範圍，目前尚未提供可執行流程。\nHoneybee / OpenStudio / EnergyPlus / Eddy3D")));
         var climateTools=new DynamicLayout{Spacing=new Size(8,8)};
         foreach(var module in HubUi.Modules.Skip(1).Take(4))
         {
-            var open=new Button{Text="Open "+module.Label};var type=module.Panel;open.Click+=(_,_)=>Panels.OpenPanel(type);
+            var open=new Button{Text="開啟 "+module.Label};var type=module.Panel;open.Click+=(_,_)=>Panels.OpenPanel(type);
             climateTools.AddRow(HubUi.ModuleAction(open,type));
         }
-        layout.AddRow(HubUi.Section("Environment tools",HubTopic.Environment,climateTools,HubUi.Hint("Inspect EPW weather, construct a location, import design conditions or define analysis time. Each tool retains its own state.")));
-        layout.AddRow(HubUi.Hint("8 of 122 installed Ladybug entries integrated as independent functions. Solver availability and validation are checked before running; exports include parameters, units and provenance."));
+        layout.AddRow(HubUi.Section("環境工具",HubTopic.Environment,climateTools,HubUi.Hint("檢視 EPW 氣象、建立地點、匯入設計條件或定義分析時間。各工具分別保留輸入與結果。")));
+        layout.AddRow(HubUi.Hint("已盤點 122 個 Ladybug 入口，其中 8 項已接入為獨立功能。執行前檢查求解環境與輸入；匯出包含參數、單位與資料來源。"));
         layout.Add(null);HubUi.Mount(this,layout);
     }
 }

@@ -2,6 +2,8 @@
 
 User direction: every subsequent interface must have high-quality UI/UX, clear logic and considered visual presentation.
 
+- User-facing UI is Traditional Chinese (zh-TW). Use Chinese navigation, controls, status, validation and summaries; HubText maps native field labels and diagnostic presentation. Preserve command names, native identifiers, scientific units, raw values and JSON contract keys. Retain unknown original diagnostics rather than guessing their meaning.
+
 - Follow docs/UI_UX_STANDARD.md for new panels and interface changes.
 - Keep real Rhino/Eto interactions on the request → preflight → adapter → result path. Preserve original solver behavior; never fabricate simulation values.
 - Present model, climate, settings, validation and results in a clear sequence with explicit units, concise labels and restrained hierarchy.

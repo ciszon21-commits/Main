@@ -12,12 +12,12 @@ namespace EnvironmentalHub.Plugin;
 public sealed class ClimateFilePanel : Panel
 {
     private readonly DropDown format = new();
-    private readonly TextBox file = new() { PlaceholderText = "Select a STAT or DDY file" };
+    private readonly TextBox file = new() { PlaceholderText = "選擇 STAT 或 DDY 檔案" };
     private readonly DropDown outputs = new();
     private readonly Label summary = new() { Wrap = WrapMode.Word };
-    private readonly Label status = new() { Text = "Select source format and climate file.", Wrap = WrapMode.Word };
-    private readonly Button import = new() { Text = "Import climate file", Enabled = false };
-    private readonly Button export = new() { Text = "Export full result JSON…", Enabled = false };
+    private readonly Label status = new() { Text = "選擇來源格式與氣候檔案。", Wrap = WrapMode.Word };
+    private readonly Button import = new() { Text = "匯入氣候檔案", Enabled = false };
+    private readonly Button export = new() { Text = "匯出完整結果 JSON…", Enabled = false };
     private ClimateFileResult? result;
     private bool updating;
     public string StatusText => status.Text;
@@ -27,26 +27,26 @@ public sealed class ClimateFilePanel : Panel
         MinimumSize = new Size(300, 200); Size = new Size(360, 640); BackgroundColor = SystemColors.ControlBackground;
         format.Items.Add("STAT"); format.Items.Add("DDY"); format.SelectedIndex = 0;
         void Changed() { if (updating) return; import.Enabled = !string.IsNullOrWhiteSpace(file.Text);
-            status.Text = result is null ? "Ready to import" : "Previous result • Import again to update"; }
+            status.Text = result is null ? "可匯入" : "前次結果 · 重新匯入以更新"; }
         file.TextChanged += (_, _) => { file.ToolTip = file.Text; Changed(); }; format.SelectedIndexChanged += (_, _) => Changed();
-        var browse = new Button { Text = "Browse climate file…" };
-        browse.Click += (_, _) => { var dialog = new OpenFileDialog(); dialog.Filters.Add(new FileFilter("Climate file", "." + format.SelectedValue!.ToString()!.ToLowerInvariant()));
+        var browse = new Button { Text = "瀏覽氣候檔案…" };
+        browse.Click += (_, _) => { var dialog = new OpenFileDialog(); dialog.Filters.Add(new FileFilter("氣候檔案", "." + format.SelectedValue!.ToString()!.ToLowerInvariant()));
             if (dialog.ShowDialog(this) == DialogResult.Ok) file.Text = dialog.FileName; };
         import.Click += (_, _) => Guard(() => Execute(new() { Format = format.SelectedValue!.ToString()!, FilePath = file.Text }));
         outputs.SelectedIndexChanged += (_, _) => ShowOutput();
         export.Click += (_, _) => Guard(() => { if (result is null) return; var dialog = new SaveFileDialog { FileName = "climate_result.json" };
-            dialog.Filters.Add(new FileFilter("Climate JSON", ".json")); if (dialog.ShowDialog(this) == DialogResult.Ok)
+            dialog.Filters.Add(new FileFilter("氣候結果 JSON", ".json")); if (dialog.ShowDialog(this) == DialogResult.Ok)
                 File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true })); });
         var layout = new DynamicLayout { Padding = 16, Spacing = new Size(8, 14) };
-        layout.AddRow(HubUi.Header("Climate & design days", "Read climate zones, typical weeks and original design-day conditions.",typeof(ClimateFilePanel)));
+        layout.AddRow(HubUi.Header("氣候與設計日", "讀取氣候分區、典型週與原生設計日條件。",typeof(ClimateFilePanel)));
         layout.AddRow(HubUi.Navigation(typeof(ClimateFilePanel)));
-        layout.AddRow(Section("01  Source",HubTopic.Environment, format, file, browse)); layout.AddRow(Section("02  Import",HubTopic.Run, import, status));
-        layout.AddRow(Section("03  Climate conditions",HubTopic.Results, outputs, summary, export));
-        layout.AddRow(new Label { Text = "Original LB Import STAT / DDY • Synchronous execution. STAT clear-sky radiation is modeled, not measured EPW radiation.", Wrap = WrapMode.Word }); layout.Add(null);
+        layout.AddRow(Section("01  資料來源",HubTopic.Environment, format, file, browse)); layout.AddRow(Section("02  匯入",HubTopic.Run, import, status));
+        layout.AddRow(Section("03  氣候條件",HubTopic.Results, outputs, summary, export));
+        layout.AddRow(new Label { Text = "使用原生 LB Import STAT / DDY，同步執行。STAT 晴空輻射為模型估算，與 EPW 實測輻射不同。", Wrap = WrapMode.Word }); layout.Add(null);
         var scroll = new Scrollable { Content = layout, ExpandContentWidth = true }; scroll.SizeChanged += (_, _) => layout.Width = Math.Max(120, scroll.ClientSize.Width - 20); Content = scroll;
     }
     private static Control Section(string title, HubTopic topic, params Control[] controls) => HubUi.Section(title, topic, controls);
-    private void Guard(Action action) { try { action(); } catch (Exception e) { status.Text = (result is null ? "Import failed\n" : "Import failed • Previous result retained\n") + e.Message; } }
+    private void Guard(Action action) { try { action(); } catch (Exception e) { status.Text = (result is null ? "匯入失敗\n" : "匯入失敗 · 已保留前次結果\n") + HubText.Error(e); } }
     public string ExecuteJson(string json) => Execute(JsonSerializer.Deserialize<ClimateFileRequest>(json)!);
     private string Execute(ClimateFileRequest request)
     {
@@ -59,10 +59,10 @@ public sealed class ClimateFilePanel : Panel
             result = imported; outputs.Items.Clear(); foreach (var o in result.Outputs) outputs.Items.Add(HubUi.FieldTitle(o.Output) +
                 (result.Outputs.Count(other => other.Output == o.Output) > 1 && o.Index >= 0 ? $" · {o.Index + 1}" : ""));
             outputs.SelectedIndex = 0; ShowOutput(); export.Enabled = true;
-            status.Text = $"Imported • {result.Outputs.Count(o => o.Index >= 0)} original objects" + (result.Warnings.Length == 0 ? "" : "\n" + string.Join("\n", result.Warnings.Select(w => w.Message)));
+            status.Text = $"匯入完成 · {result.Outputs.Count(o => o.Index >= 0)} 個原生物件" + (result.Warnings.Length == 0 ? "" : "\n" + string.Join("\n", result.Warnings.Select(HubText.Diagnostic)));
             return JsonSerializer.Serialize(result);
         }
-        catch (Exception e) { status.Text = (result is null ? "Import failed\n" : "Import failed • Previous result retained\n") + e.Message; throw; }
+        catch (Exception e) { status.Text = (result is null ? "匯入失敗\n" : "匯入失敗 · 已保留前次結果\n") + HubText.Error(e); throw; }
         finally { import.Enabled = !string.IsNullOrWhiteSpace(file.Text); }
     }
     private void ShowOutput()
@@ -70,14 +70,14 @@ public sealed class ClimateFilePanel : Panel
         if (result is null || outputs.SelectedIndex < 0) return;
         var o = result.Outputs[outputs.SelectedIndex]; var data = o.Data;
         if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("values", out var values))
-            summary.Text = $"{HubUi.FieldTitle(o.Output)}\n{values.GetArrayLength()} values • {data.GetProperty("header").GetProperty("unit").GetString()}\nOriginal header, time period and all values included in export.";
+            summary.Text = $"{HubUi.FieldTitle(o.Output)}\n{values.GetArrayLength()} 筆數值 · {data.GetProperty("header").GetProperty("unit").GetString()}\n匯出包含原始資料標頭、期間與全部數值。";
         else if (o.Kind == "DesignDay")
-            summary.Text = $"{data.GetProperty("name").GetString()}\n{data.GetProperty("day_type").GetString()}\nDry bulb max {data.GetProperty("dry_bulb_condition").GetProperty("dry_bulb_max").GetDouble():F2} °C\nHumidity, wind, sky and location conditions included in export.";
+            summary.Text = $"{data.GetProperty("name").GetString()}\n{HubText.DayType(data.GetProperty("day_type").GetString())}\n最高乾球溫度 {data.GetProperty("dry_bulb_condition").GetProperty("dry_bulb_max").GetDouble():F2} °C\n匯出包含濕度、風、天空與地點條件。";
         else if (o.Kind == "Location")
-            summary.Text = $"{data.GetProperty("city").GetString()}\nLatitude {data.GetProperty("latitude").GetDouble():F4}° • Longitude {data.GetProperty("longitude").GetDouble():F4}°\n{ClimateDisplay.UtcOffset(data.GetProperty("time_zone").GetDouble())} • Elevation {data.GetProperty("elevation").GetDouble():F1} m";
+            summary.Text = $"{data.GetProperty("city").GetString()}\n緯度 {data.GetProperty("latitude").GetDouble():F4}° • 經度 {data.GetProperty("longitude").GetDouble():F4}°\n{ClimateDisplay.UtcOffset(data.GetProperty("time_zone").GetDouble())} • 海拔 {data.GetProperty("elevation").GetDouble():F1} m";
         else if (o.Kind == "AnalysisPeriod")
-            summary.Text = $"Start {data.GetProperty("st_month").GetInt32():00}/{data.GetProperty("st_day").GetInt32():00} {data.GetProperty("st_hour").GetInt32():00}:00\nEnd {data.GetProperty("end_month").GetInt32():00}/{data.GetProperty("end_day").GetInt32():00} {data.GetProperty("end_hour").GetInt32():00}:00\n{data.GetProperty("timestep").GetInt32()} steps / hour • Local standard time";
+            summary.Text = $"起始 {data.GetProperty("st_month").GetInt32():00}/{data.GetProperty("st_day").GetInt32():00} {data.GetProperty("st_hour").GetInt32():00}:00\n結束 {data.GetProperty("end_month").GetInt32():00}/{data.GetProperty("end_day").GetInt32():00} {data.GetProperty("end_hour").GetInt32():00}:00\n{data.GetProperty("timestep").GetInt32()} 步／小時 · 當地標準時間";
         else if (data.ValueKind == JsonValueKind.String) summary.Text = data.GetString();
-        else summary.Text = o.Kind == "Unavailable" || data.ValueKind == JsonValueKind.Null ? "Unavailable in original source" : "Additional original fields included in full export.";
+        else summary.Text = o.Kind == "Unavailable" || data.ValueKind == JsonValueKind.Null ? "原始資料未提供" : "完整匯出包含其他原始欄位。";
     }
 }

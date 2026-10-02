@@ -1,5 +1,15 @@
 # Development log
 
+## 2026-10-02 — 0.8.6 Traditional Chinese interface
+
+- KNOWLEDGE: Reused the existing Notion database; updated 7 current records and 9 verified function/backend version entries, added immutable VER-086-01 and REL-086, and preserved 0.8.5 records. Full readback confirms 178 unique records / 11 categories / 9 views and unchanged 8 / 1 / 113 function states. [Sync receipt](evidence/notion_chinese_086_sync_2026-10-02.json).
+- DONE: All six existing Rhino/Eto panels use Traditional Chinese navigation, section names, buttons, hints, stale/current states, validation, statistics, criterion and comparison. HubText translates installed EPW/STAT/DDY output labels and common diagnostics, preserving codes and unfamiliar native messages. Command names, raw values and JSON contracts remain compatible.
+- RELEASE: Versioned 0.8.6 package/manifest; backed up both existing registrations, updated/read back formal paths, and loaded the actual 0.8.6 assembly in the fresh owned aardvark slot. Prior loaded releases were preserved.
+- TEST RESULT: Build 0 warnings/errors. 60 native cases (21 platform, 17 time, 11 location, 11 climate), weather selector/missing/monthly/custom-hour/failure checks, 5 overview buttons and 6 navigation routes pass. Radiation baseline remains 1233.3471168086037 kWh/m². All 22 native 320/480 px current-light-theme images inspected. Core/Adapter source and normalized compiled metadata/method bodies match 0.8.5; whole-file hashes differ.
+- ROOT CAUSE/FIX: The first test replay still expected two English climate summaries; updated the new version's acceptance expectations and reran the full suite successfully. Earlier version scripts/receipts were preserved. Sandbox router initialization failed; authorized bounded MCP execution worked. No Computer Use.
+- LIMITS/NEXT: Chinese UI adds no Ladybug functions: 8 independent / 1 backend / 113 pending. Native values, imported names and user scenario text remain original. Full Dock/dark-theme/keyboard/picker/dialog acceptance, reliable cancel/progress and B01 Deconstruct Location remain open.
+- EVIDENCE: [Chinese release acceptance](evidence/chinese_086_acceptance.json), [actual load](evidence/release_086_loaded.json), [native UI](evidence/chinese_086_ui.json), [captures](evidence/ui_086/capture.json).
+
 ## 2026-10-02 — Stage plan and Notion knowledge database
 
 - DONE: Consolidated current 0.8.5 status, staged roadmap, B01–B06 Ladybug batches, knowledge index and explicit decisions. Preserved the previous 0.4.0 review in history. Corrected the architecture's unsupported Eddy3D runtime claim to inventory-only scope.

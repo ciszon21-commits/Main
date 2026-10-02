@@ -12,12 +12,12 @@ public sealed class HubPlugin : PlugIn
 {
     protected override LoadReturnCode OnLoad(ref string errorMessage)
     {
-        Panels.RegisterPanel(this, typeof(HubOverviewPanel), "Environmental Hub", null);
-        Panels.RegisterPanel(this, typeof(RadiationPanel), "Hub • Radiation", null);
-        Panels.RegisterPanel(this, typeof(WeatherPanel), "Hub • Weather", null);
-        Panels.RegisterPanel(this, typeof(LocationPanel), "Hub • Location", null);
-        Panels.RegisterPanel(this, typeof(ClimateFilePanel), "Hub • Climate files", null);
-        Panels.RegisterPanel(this, typeof(TimePanel), "Hub • Time", null);
+        Panels.RegisterPanel(this, typeof(HubOverviewPanel), "建築環境模擬平台", null);
+        Panels.RegisterPanel(this, typeof(RadiationPanel), "環境平台 · 日射", null);
+        Panels.RegisterPanel(this, typeof(WeatherPanel), "環境平台 · 氣象", null);
+        Panels.RegisterPanel(this, typeof(LocationPanel), "環境平台 · 地點", null);
+        Panels.RegisterPanel(this, typeof(ClimateFilePanel), "環境平台 · 氣候檔案", null);
+        Panels.RegisterPanel(this, typeof(TimePanel), "環境平台 · 時間", null);
         return LoadReturnCode.Success;
     }
 }

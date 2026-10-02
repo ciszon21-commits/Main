@@ -1,4 +1,4 @@
-param([ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '0.8.5', [ValidatePattern('^\d+\.\d+\.\d+$')][string]$PreviousVersion = '0.8.4')
+param([ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '0.8.6', [ValidatePattern('^\d+\.\d+\.\d+$')][string]$PreviousVersion = '0.8.5')
 $ErrorActionPreference = 'Stop'
 $hubRoot = Split-Path -Parent $PSScriptRoot
 $releaseRoot = Join-Path $hubRoot ('artifacts\releases\' + $Version)
@@ -30,5 +30,5 @@ foreach ($key in $registrationKeys) {
     if ((Get-ItemProperty -LiteralPath $key -Name FileName).FileName -ne $releasePath) { throw 'Registration readback mismatch' }
 }
 [pscustomobject]@{ Version = $assemblyVersion; Path = $releasePath; RegistrationReadback = 'PASS'; Backup = $backupPath } |
-    ConvertTo-Json | Set-Content -LiteralPath (Join-Path $hubRoot 'docs\evidence\release_registration_updated.json') -Encoding utf8
+    ConvertTo-Json | Set-Content -LiteralPath (Join-Path $hubRoot ('docs\evidence\release_registration_updated_' + $Version.Replace('.', '') + '.json')) -Encoding utf8
 Write-Output ('Updated both existing Environmental Hub FileName registrations to verified ' + $Version + ' release.')

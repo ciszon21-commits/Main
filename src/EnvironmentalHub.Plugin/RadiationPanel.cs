@@ -14,33 +14,33 @@ namespace EnvironmentalHub.Plugin;
 [Guid("c62382ce-7709-4fcd-9dfb-447d1d8a08c0")]
 public sealed class RadiationPanel : Panel
 {
-    private readonly Label geometryLabel = new() { Text = "No geometry selected", Wrap = WrapMode.Word };
-    private readonly TextBox weather = new() { PlaceholderText = "Select EPW" };
+    private readonly Label geometryLabel = new() { Text = "尚未選取模型", Wrap = WrapMode.Word };
+    private readonly TextBox weather = new() { PlaceholderText = "選擇 EPW 檔案" };
     private readonly NumericStepper grid = new() { MinValue = 0.01, MaxValue = 1000, Value = 1, DecimalPlaces = 2, Width = 100 };
     private readonly NumericStepper north = new() { MinValue = -360, MaxValue = 360, Value = 0, Width = 100 };
-    private readonly Label status = new() { Text = "Select analysis geometry and an EPW weather file.", Wrap = WrapMode.Word };
-    private readonly Label resultLabel = new() { Text = "No result yet", Wrap = WrapMode.Word };
-    private readonly Button run = new() { Text = "Run radiation analysis", Enabled = false };
-    private readonly Label resultState = new() { Text = "Awaiting analysis", Wrap = WrapMode.Word };
-    private readonly Button export = new() { Text = "Export result JSON…", Enabled = false };
-    private readonly Button reset = new() { Text = "Clear preview", Enabled = false };
+    private readonly Label status = new() { Text = "選取分析模型與 EPW 氣象檔案。", Wrap = WrapMode.Word };
+    private readonly Label resultLabel = new() { Text = "尚無分析結果", Wrap = WrapMode.Word };
+    private readonly Button run = new() { Text = "執行日射分析", Enabled = false };
+    private readonly Label resultState = new() { Text = "等待分析", Wrap = WrapMode.Word };
+    private readonly Button export = new() { Text = "匯出結果 JSON…", Enabled = false };
+    private readonly Button reset = new() { Text = "清除預覽", Enabled = false };
     private readonly NumericStepper cpu = new() { MinValue = 1, MaxValue = System.Environment.ProcessorCount, Value = 1, Width = 100 };
     private readonly NumericStepper reflectance = new() { MinValue = 0, MaxValue = 1, Value = 0.2, DecimalPlaces = 2, Increment = 0.05, Width = 100 };
     private readonly NumericStepper offset = new() { MinValue = 0.001, MaxValue = 1000, Value = 0.1, DecimalPlaces = 3, Increment = 0.01, Width = 100 };
-    private readonly CheckBox density = new() { Text = "High-density sky", Checked = false };
-    private readonly Label periodSummary = HubUi.Hint("Annual · 8,760 hours");
-    private readonly Label resultDetail = HubUi.Hint("Results include the weather, geometry and solver provenance.");
+    private readonly CheckBox density = new() { Text = "高密度天空", Checked = false };
+    private readonly Label periodSummary = HubUi.Hint("全年 · 8,760 小時");
+    private readonly Label resultDetail = HubUi.Hint("結果包含氣象、模型與求解器來源資訊。");
     private readonly Panel legend = new();
-    private readonly CheckBox targetEnabled = new() { Text = "Evaluate project target range", Checked = false };
+    private readonly CheckBox targetEnabled = new() { Text = "評估專案目標區間", Checked = false };
     private readonly NumericStepper targetMin = new() { MinValue = 0, MaxValue = 1e9, Value = 0, DecimalPlaces = 1, Width = 100 };
     private readonly NumericStepper targetMax = new() { MinValue = 0, MaxValue = 1e9, Value = 1500, DecimalPlaces = 1, Width = 100 };
-    private readonly Label assessment = HubUi.Hint("No project criterion configured.");
-    private readonly Button locate = new() { Text = "Locate result in Rhino", Enabled = false };
-    private readonly Button saveScenario = new() { Text = "Save completed result as scenario", Enabled = false };
-    private readonly TextBox scenarioName = new() { Text = "Scenario 1" };
+    private readonly Label assessment = HubUi.Hint("尚未設定專案評估區間。");
+    private readonly Button locate = new() { Text = "在 Rhino 中定位結果", Enabled = false };
+    private readonly Button saveScenario = new() { Text = "儲存完成結果為方案", Enabled = false };
+    private readonly TextBox scenarioName = new() { Text = "方案 1" };
     private readonly DropDown baseline = new(), candidate = new();
-    private readonly Label comparison = HubUi.Hint("Save at least two completed results to compare.");
-    private readonly Button exportComparison = new() { Text = "Export comparison JSON…", Enabled = false };
+    private readonly Label comparison = HubUi.Hint("儲存至少兩個已完成方案，即可進行比較。");
+    private readonly Button exportComparison = new() { Text = "匯出比較 JSON…", Enabled = false };
     private readonly List<(string Name, AnalysisResult Result)> scenarios = [];
     private readonly DropDown stage = new();
     private readonly Scrollable scroll;
@@ -68,18 +68,18 @@ public sealed class RadiationPanel : Panel
         BackgroundColor = SystemColors.ControlBackground;
         Size = new Size(360, 640);
         MinimumSize = new Size(300, 200);
-        var select = new Button { Text = "Select analysis geometry…" };
-        var selectContext = new Button { Text = "Select shading context…" };
-        var clearContext = new Button { Text = "Clear context" };
-        var browse = new Button { Text = "Browse EPW…" };
-        var preflight = new Button { Text = "Check inputs" };
+        var select = new Button { Text = "選取分析模型…" };
+        var selectContext = new Button { Text = "選取遮蔭環境…" };
+        var clearContext = new Button { Text = "清除遮蔭環境" };
+        var browse = new Button { Text = "瀏覽 EPW 檔案…" };
+        var preflight = new Button { Text = "檢核輸入" };
         select.Click += (_, _) => Guard(() => SelectGeometry(false));
         selectContext.Click += (_, _) => Guard(() => SelectGeometry(true));
         clearContext.Click += (_, _) => { context = []; RefreshGeometry(); InputsChanged(); };
         browse.Click += (_, _) =>
         {
             var dialog = new OpenFileDialog();
-            dialog.Filters.Add(new FileFilter("EPW weather", ".epw"));
+            dialog.Filters.Add(new FileFilter("EPW 氣象", ".epw"));
             if (dialog.ShowDialog(this) == DialogResult.Ok) weather.Text = dialog.FileName;
         };
         weather.TextChanged += (_, _) => { weather.ToolTip = weather.Text; InputsChanged(); };
@@ -92,8 +92,8 @@ public sealed class RadiationPanel : Panel
             var report = Adapter(RequireDocument()).Preflight(request);
             status.Text = FormatPreflight(report);
             if (!report.CanRun) return;
-            if (report.HasWarnings && MessageBox.Show(this, string.Join("\n", report.Diagnostics.Where(d => d.Severity == "WARNING").Select(d => d.Message)),
-                "Continue with these warnings?", MessageBoxButtons.YesNo, MessageBoxType.Warning) != DialogResult.Yes) return;
+            if (report.HasWarnings && MessageBox.Show(this, string.Join("\n", report.Diagnostics.Where(d => d.Severity == "WARNING").Select(HubText.Diagnostic)),
+                "仍有以下警告，是否繼續執行？", MessageBoxButtons.YesNo, MessageBoxType.Warning) != DialogResult.Yes) return;
             ExecuteRequest(request with { AcceptWarnings = true });
         });
         reset.Click += (_, _) => ResetResult();
@@ -101,7 +101,7 @@ public sealed class RadiationPanel : Panel
         {
             if (lastResult is null) return;
             var dialog = new SaveFileDialog { FileName = "radiation_result.json" };
-            dialog.Filters.Add(new FileFilter("Analysis JSON", ".json"));
+            dialog.Filters.Add(new FileFilter("分析結果 JSON", ".json"));
             if (dialog.ShowDialog(this) == DialogResult.Ok)
                 File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(lastResult, new JsonSerializerOptions { WriteIndented = true }));
         });
@@ -115,57 +115,57 @@ public sealed class RadiationPanel : Panel
         exportComparison.Click += (_, _) => Guard(() =>
         {
             var dialog = new SaveFileDialog { FileName = "radiation_comparison.json" };
-            dialog.Filters.Add(new FileFilter("Comparison JSON", ".json"));
+            dialog.Filters.Add(new FileFilter("方案比較 JSON", ".json"));
             if (dialog.ShowDialog(this) == DialogResult.Ok) File.WriteAllText(dialog.FileName, ExportComparisonJson());
         });
-        var annual = new Button { Text = "Use annual weather" };
-        annual.Click += (_, _) => { hours = []; periodSummary.Text = "Annual · 8,760 hours"; InputsChanged(); };
-        var importedWeather = new Button { Text = "Use imported EPW selection" };
+        var annual = new Button { Text = "使用全年氣象" };
+        annual.Click += (_, _) => { hours = []; periodSummary.Text = "全年 · 8,760 小時"; InputsChanged(); };
+        var importedWeather = new Button { Text = "套用已匯入的氣象選取" };
         importedWeather.Click += (_, _) => Guard(UseImportedWeather);
-        var importedPeriod = new Button { Text = "Use completed analysis period" };
+        var importedPeriod = new Button { Text = "套用已建立的分析期間" };
         importedPeriod.Click += (_, _) => Guard(UseCompletedPeriod);
-        var model = HubUi.Section("01  Geometry / Model",HubTopic.Model, select, geometryLabel, selectContext, clearContext,
-            Hint("Brep or mesh • Shading context is optional"));
-        var climate = HubUi.Section("02  Environment / Weather",HubTopic.Environment, weather, browse, importedWeather, periodSummary, importedPeriod, annual,
-            Hint("Import EPW or build a period in Environment tools, then explicitly use the completed selection here. Hourly periods only; subhour values are never rounded."));
+        var model = HubUi.Section("01  幾何／模型",HubTopic.Model, select, geometryLabel, selectContext, clearContext,
+            Hint("支援 Brep 或網格；遮蔭環境為選填。"));
+        var climate = HubUi.Section("02  環境／氣象",HubTopic.Environment, weather, browse, importedWeather, periodSummary, importedPeriod, annual,
+            Hint("先於環境工具匯入 EPW 或建立期間，再於此套用完成的選取。僅支援整數小時；次小時值不會自動四捨五入。"));
         var settings = new DynamicLayout { Spacing = new Size(8, 8) };
         var settingsFields = new DynamicLayout { Spacing = new Size(8, 8) };
-        settingsFields.AddRow(new Label { Text = "Grid spacing (m)" }, grid);
-        settingsFields.AddRow(new Label { Text = "North rotation (°)" }, north);
+        settingsFields.AddRow(new Label { Text = "網格間距 (m)" }, grid);
+        settingsFields.AddRow(new Label { Text = "北向旋轉 (°)" }, north);
         settings.AddRow(settingsFields);
-        settings.AddRow(Hint("Incident energy · kWh/m² · Grid and sensor offset use metres, regardless of model units."));
+        settings.AddRow(Hint("入射太陽能量 · kWh/m²。網格間距與感測點偏移均使用公尺，不受模型單位影響。"));
         var advancedFields = new DynamicLayout { Spacing = new Size(8, 8) };
-        advancedFields.AddRow(new Label { Text = "CPU count" }, cpu);
-        advancedFields.AddRow(new Label { Text = "Ground reflectance (0–1)" }, reflectance);
-        advancedFields.AddRow(new Label { Text = "Sensor offset (m)" }, offset);
+        advancedFields.AddRow(new Label { Text = "CPU 數量" }, cpu);
+        advancedFields.AddRow(new Label { Text = "地表反射率 (0–1)" }, reflectance);
+        advancedFields.AddRow(new Label { Text = "感測點偏移 (m)" }, offset);
         var advanced = new DynamicLayout { Spacing = new Size(8, 8), Visible = false };
         advanced.AddRow(advancedFields); advanced.AddRow(density);
-        advanced.AddRow(Hint("Defaults: 1 CPU · 0.20 reflectance · 0.10 m offset · standard sky. High density increases sky resolution and computation time."));
-        var reveal = new CheckBox { Text = "Advanced settings", Checked = false };
+        advanced.AddRow(Hint("預設：1 CPU、反射率 0.20、偏移 0.10 m、標準天空。高密度天空會提高解析度與計算時間。"));
+        var reveal = new CheckBox { Text = "進階設定", Checked = false };
         reveal.CheckedChanged += (_, _) => advanced.Visible = reveal.Checked == true;
         settings.AddRow(reveal); settings.AddRow(advanced);
-        var execution = HubUi.Section("04  Validate / Run",HubTopic.Run, preflight, run, status,
-            Hint("Rhino may pause while the synchronous solver runs. Cancellation is not available yet."));
+        var execution = HubUi.Section("04  檢核／執行",HubTopic.Run, preflight, run, status,
+            Hint("求解採同步執行，期間 Rhino 可能暫時無法操作；目前尚不支援取消。"));
         var targetFields = new DynamicLayout { Spacing = new Size(8, 8) };
-        targetFields.AddRow(new Label { Text = "Minimum (kWh/m²)" }, targetMin);
-        targetFields.AddRow(new Label { Text = "Maximum (kWh/m²)" }, targetMax);
+        targetFields.AddRow(new Label { Text = "區間下限 (kWh/m²)" }, targetMin);
+        targetFields.AddRow(new Label { Text = "區間上限 (kWh/m²)" }, targetMax);
         var targetBody = new DynamicLayout { Spacing = new Size(8, 8), Visible = false };
-        targetBody.AddRow(targetFields); targetBody.AddRow(Hint("Inclusive bounds · 0.1 kWh/m² precision · Project criterion only; no regulatory compliance claim."));
+        targetBody.AddRow(targetFields); targetBody.AddRow(Hint("包含區間上下限；精度 0.1 kWh/m²。僅作專案評估，不代表法規合規判定。"));
         targetEnabled.CheckedChanged += (_, _) => targetBody.Visible = targetEnabled.Checked == true;
-        var results = HubUi.Section("05  Results",HubTopic.Results, resultState, resultLabel, legend, resultDetail, targetEnabled, targetBody, assessment, locate, reset);
+        var results = HubUi.Section("05  分析結果",HubTopic.Results, resultState, resultLabel, legend, resultDetail, targetEnabled, targetBody, assessment, locate, reset);
         var choices = new DynamicLayout { Spacing = new Size(8, 8) };
-        choices.AddRow(new Label { Text = "Baseline" }, baseline); choices.AddRow(new Label { Text = "Candidate" }, candidate);
-        var compareExport = HubUi.Section("06  Compare / Export",HubTopic.Compare, scenarioName, saveScenario, choices, comparison, exportComparison, export,
-            Hint("Session scenarios retain completed results and input provenance. Save a comparison export before closing Rhino."));
+        choices.AddRow(new Label { Text = "基準方案" }, baseline); choices.AddRow(new Label { Text = "比較方案" }, candidate);
+        var compareExport = HubUi.Section("06  比較／匯出",HubTopic.Compare, scenarioName, saveScenario, choices, comparison, exportComparison, export,
+            Hint("方案於當次工作階段保留完成結果與輸入來源；關閉 Rhino 前請匯出比較資料。"));
         var layout = new DynamicLayout { Padding = 16, Spacing = new Size(8, 14) };
-        layout.AddRow(HubUi.Header("Solar radiation", "Incident solar energy on building surfaces. Model → weather → settings → validate → results.",typeof(RadiationPanel)));
+        layout.AddRow(HubUi.Header("日射分析", "分析建築表面的入射太陽能量。模型 → 氣象 → 設定 → 檢核 → 結果。",typeof(RadiationPanel)));
         layout.AddRow(HubUi.Navigation(typeof(RadiationPanel)));
-        foreach (var label in new[] { "01  Geometry / Model", "02  Environment / Weather", "03  Simulation settings", "04  Validate / Run", "05  Results", "06  Compare / Export" }) stage.Items.Add(label);
+        foreach (var label in new[] { "01  幾何／模型", "02  環境／氣象", "03  模擬設定", "04  檢核／執行", "05  分析結果", "06  比較／匯出" }) stage.Items.Add(label);
         stage.SelectedIndex = 0;
-        var jump = new Button { Text = "Go to stage" }; jump.Click += (_, _) => ShowStage(stage.SelectedIndex);
+        var jump = new Button { Text = "前往階段" }; jump.Click += (_, _) => ShowStage(stage.SelectedIndex);
         var stageNavigation = new DynamicLayout { Spacing = new Size(8, 8) }; stageNavigation.AddRow(stage, jump);
         layout.AddRow(model); layout.AddRow(climate);
-        var simulation = HubUi.Section("03  Simulation settings",HubTopic.Settings, settings);
+        var simulation = HubUi.Section("03  模擬設定",HubTopic.Settings, settings);
         stages = [model, climate, simulation, execution, results, compareExport];
         layout.AddRow(simulation);
         layout.AddRow(execution); layout.AddRow(results); layout.AddRow(compareExport); layout.Add(null);
@@ -180,13 +180,13 @@ public sealed class RadiationPanel : Panel
     }
 
     private static Label Hint(string text) => new() { Text = text, Wrap = WrapMode.Word, TextColor = SystemColors.ControlText };
-    private void RefreshGeometry() => geometryLabel.Text = $"{selected.Length} analysis objects • {context.Length} context objects";
+    private void RefreshGeometry() => geometryLabel.Text = $"{selected.Length} 個分析物件 · {context.Length} 個遮蔽物件";
     private void InputsChanged()
     {
         if (updatingInputs || busy) return;
         run.Enabled = selected.Length > 0 && !string.IsNullOrWhiteSpace(weather.Text);
-        status.Text = "Inputs changed • Check inputs before running.";
-        if (lastResult is not null) resultState.Text = "Previous result • Inputs changed; run again to update.";
+        status.Text = "輸入已變更 · 執行前請重新檢核。";
+        if (lastResult is not null) resultState.Text = "前次結果 · 輸入已變更，重新執行以更新。";
     }
 
     private void SelectGeometry(bool isContext)
@@ -197,7 +197,7 @@ public sealed class RadiationPanel : Panel
             selected = []; context = [];
         }
         using var picker = new GetObject();
-        picker.SetCommandPrompt(isContext ? "Select shading context" : "Select radiation analysis geometry");
+        picker.SetCommandPrompt(isContext ? "選取遮蔭環境" : "選取日射分析模型");
         picker.GeometryFilter = ObjectType.Surface | ObjectType.Brep | ObjectType.Mesh;
         picker.GetMultiple(1, 0);
         if (picker.CommandResult() != Rhino.Commands.Result.Success)
@@ -240,11 +240,11 @@ public sealed class RadiationPanel : Panel
             throw new InvalidOperationException("RAD-DOC-002: Document changed; select geometry again.");
         return doc;
     }
-    private static string FormatPreflight(PreflightReport report) => report.Diagnostics.Length == 0 ? "Inputs verified • Ready to run" :
-        (report.CanRun ? "Ready with warnings\n" : "Fix the following inputs\n") + string.Join("\n", report.Diagnostics.Select(d => $"{d.Severity} {d.Code}: {d.Message}"));
+    private static string FormatPreflight(PreflightReport report) => report.Diagnostics.Length == 0 ? "輸入檢核通過 · 可執行" :
+        (report.CanRun ? "可執行，但仍有警告\n" : "請修正以下輸入\n") + string.Join("\n", report.Diagnostics.Select(HubText.Diagnostic));
     private void Guard(Action action)
     {
-        try { action(); } catch (Exception e) { status.Text = "Analysis could not complete\n" + e.Message; }
+        try { action(); } catch (Exception e) { status.Text = "分析未完成\n" + HubText.Error(e); }
     }
 
     // The button and integration test share this same UI → request → adapter path.
@@ -258,7 +258,7 @@ public sealed class RadiationPanel : Panel
         if (!report.CanRun)
         {
             status.Text = FormatPreflight(report);
-            if (lastResult is not null) resultState.Text = "Previous result • New request rejected";
+            if (lastResult is not null) resultState.Text = "前次結果 · 新輸入未通過檢核";
             throw new InvalidOperationException(status.Text);
         }
         selected = request.GeometryIds; context = request.ContextIds; selectedDocument = doc.RuntimeSerialNumber;
@@ -268,34 +268,34 @@ public sealed class RadiationPanel : Panel
             RefreshGeometry(); weather.Text = request.WeatherFile; grid.Value = request.GridMetres; north.Value = request.NorthDegrees;
             cpu.Value = request.Settings.CpuCount; reflectance.Value = request.Settings.GroundReflectance; offset.Value = request.Settings.OffsetMetres;
             density.Checked = request.Settings.HighDensity; hours = request.HoursOfYear.ToArray(); quality = request.Quality;
-            periodSummary.Text = hours.Length == 0 ? "Annual · 8,760 hours" : $"{hours.Length:N0} selected hours · Original request retained";
+            periodSummary.Text = hours.Length == 0 ? "全年 · 8,760 小時" : $"{hours.Length:N0} 個已選小時 · 保留原始輸入";
         }
         finally { updatingInputs = false; }
         busy = true; run.Enabled = false; export.Enabled = false; reset.Enabled = false; locate.Enabled = false; saveScenario.Enabled = false;
-        status.Text = "Running original Ladybug radiation…";
-        if (lastResult is not null) resultState.Text = "Previous result • New analysis pending";
+        status.Text = "正在執行原生 Ladybug 日射分析…";
+        if (lastResult is not null) resultState.Text = "前次結果 · 新分析執行中";
         try
         {
             var result = Adapter(doc).Execute(request);
             ReplacePreview(doc, result);
             lastResult = result;
             resultState.Text = result.InputParameters.HoursOfYear.Length == 0
-                ? "Current result • Annual incident radiation"
-                : $"Current result • {result.InputParameters.HoursOfYear.Length} selected hours";
-            resultLabel.Text = $"Average {result.Statistics.Mean:F3}\nMin {result.Statistics.Minimum:F3} • Max {result.Statistics.Maximum:F3}\n{result.Statistics.Count} cells • {result.Units}";
+                ? "目前結果 · 全年入射太陽能量"
+                : $"目前結果 · {result.InputParameters.HoursOfYear.Length} 個已選小時";
+            resultLabel.Text = $"平均值 {result.Statistics.Mean:F3}\n最小值 {result.Statistics.Minimum:F3} • 最大值 {result.Statistics.Maximum:F3}\n{result.Statistics.Count} 格網格 · {result.Units}";
             resultLabel.Font = new Eto.Drawing.Font(SystemFont.Bold, 13);
             legend.Content = ResultPresentation.Legend(result);
-            resultDetail.Text = $"{result.Metadata["Location"]} · {result.Timestamp.ToLocalTime():yyyy-MM-dd HH:mm}\n{result.ExecutionTimeSeconds:F1} s · {result.Warnings.Length} warnings\n{result.InputParameters.GridMetres:g} m grid · North {result.InputParameters.NorthDegrees:g}°\n{result.Solver}";
+            resultDetail.Text = $"{result.Metadata["Location"]} · {result.Timestamp.ToLocalTime():yyyy-MM-dd HH:mm}\n{result.ExecutionTimeSeconds:F1} s · {result.Warnings.Length} 則警告\n{result.InputParameters.GridMetres:g} m 網格 · 北向 {result.InputParameters.NorthDegrees:g}°\n{result.Solver}";
             UpdateAssessment();
-            status.Text = "Complete • " + result.Metadata["Location"];
+            status.Text = "分析完成 · " + result.Metadata["Location"];
             doc.Views.Redraw();
             ShowStage(4);
             return JsonSerializer.Serialize(result);
         }
         catch (Exception e)
         {
-            status.Text = "Analysis could not complete\n" + ErrorMessage(e);
-            if (lastResult is not null) resultState.Text = "Previous result • New analysis failed";
+            status.Text = "分析未完成\n" + ErrorMessage(e);
+            if (lastResult is not null) resultState.Text = "前次結果 · 新分析失敗";
             throw;
         }
         finally { busy = false; run.Enabled = selected.Length > 0 && !string.IsNullOrWhiteSpace(weather.Text); export.Enabled = saveScenario.Enabled = lastResult is not null; reset.Enabled = locate.Enabled = rendered.Count > 0; }
@@ -333,18 +333,7 @@ public sealed class RadiationPanel : Panel
         rendered.AddRange(replacement);
     }
 
-    private static string ErrorMessage(Exception error)
-    {
-        try
-        {
-            using var json = JsonDocument.Parse(error.Message);
-            var diagnostics = json.RootElement.ValueKind == JsonValueKind.Array
-                ? json.RootElement : json.RootElement.GetProperty("Diagnostics");
-            return string.Join("\n", diagnostics.EnumerateArray().Select(d =>
-                $"{d.GetProperty("Code").GetString()}: {d.GetProperty("Message").GetString()}"));
-        }
-        catch (Exception) { return error.Message; }
-    }
+    private static string ErrorMessage(Exception error) => HubText.Error(error);
 
     private void DeleteOwnedPreview()
     {
@@ -359,22 +348,22 @@ public sealed class RadiationPanel : Panel
     public void ResetResult()
     {
         DeleteOwnedPreview(); lastResult = null; export.Enabled = saveScenario.Enabled = false; reset.Enabled = locate.Enabled = false;
-        resultLabel.Text = "No result yet"; resultState.Text = "Awaiting analysis";
-        legend.Content = null; resultDetail.Text = "Results include the weather, geometry and solver provenance."; UpdateAssessment();
-        status.Text = "Preview cleared • Saved analysis files remain available.";
+        resultLabel.Text = "尚無分析結果"; resultState.Text = "等待分析";
+        legend.Content = null; resultDetail.Text = "結果包含氣象、模型與求解器來源資訊。"; UpdateAssessment();
+        status.Text = "預覽已清除 · 已儲存的分析檔案仍保留。";
     }
 
     private void UpdateAssessment()
     {
-        assessment.Text = lastResult is null ? "Awaiting analysis" : targetEnabled.Checked != true ? "No project criterion configured." :
-            targetMin.Value > targetMax.Value ? "Invalid criterion · Minimum must not exceed maximum." :
+        assessment.Text = lastResult is null ? "等待分析" : targetEnabled.Checked != true ? "尚未設定專案評估區間。" :
+            targetMin.Value > targetMax.Value ? "評估區間無效 · 下限不得高於上限。" :
             ResultPresentation.Assessment(lastResult, targetMin.Value, targetMax.Value);
     }
 
     public void UseImportedWeather()
     {
         var panel = Rhino.UI.Panels.GetPanel<WeatherPanel>(RequireDocument());
-        var json = panel?.CompletedSelectionJson ?? throw new InvalidOperationException("Import weather in the EPW weather module first.");
+        var json = panel?.CompletedSelectionJson ?? throw new InvalidOperationException("請先在 EPW 氣象模組匯入資料。");
         var selection = JsonSerializer.Deserialize<WeatherRequest>(json)!;
         updatingInputs = true;
         try { weather.Text = selection.WeatherFile; hours = selection.HoursOfYear.ToArray(); RefreshPeriod(); }
@@ -385,17 +374,17 @@ public sealed class RadiationPanel : Panel
     public void UseCompletedPeriod()
     {
         var panel = Rhino.UI.Panels.GetPanel<TimePanel>(RequireDocument());
-        var json = panel?.CompletedResultJson ?? throw new InvalidOperationException("Build an analysis period in Time & periods first.");
+        var json = panel?.CompletedResultJson ?? throw new InvalidOperationException("請先在時間與分析期間模組建立期間。");
         using var result = JsonDocument.Parse(json);
         if (!result.RootElement.TryGetProperty("HoursOfYear", out var values))
-            throw new InvalidOperationException("Build an analysis period; a date conversion is not a period.");
+            throw new InvalidOperationException("請建立分析期間；日期換算結果不能用作期間。");
         var supplied = values.EnumerateArray().Select(v => v.GetDouble()).ToArray();
         if (supplied.Length == 0 || supplied.Any(h => !double.IsFinite(h) || h != Math.Truncate(h) || h < 0 || h >= 8760) || supplied.Distinct().Count() != supplied.Length)
-            throw new InvalidOperationException("Radiation accepts unique hourly indices 0–8759. Use 1 step/hour; subhour values are not rounded.");
+            throw new InvalidOperationException("日射分析僅接受不重複的整數年時數 0–8759。請使用每小時 1 步；次小時值不會自動四捨五入。");
         hours = supplied.Select(h => (int)h).ToArray(); RefreshPeriod(); InputsChanged();
     }
 
-    private void RefreshPeriod() => periodSummary.Text = hours.Length == 0 ? "Annual · 8,760 hours" : $"{hours.Length:N0} selected hours · Completed selection retained";
+    private void RefreshPeriod() => periodSummary.Text = hours.Length == 0 ? "全年 · 8,760 小時" : $"{hours.Length:N0} 個已選小時 · 保留完成的選取";
 
     public void ShowStage(int index)
     {
@@ -409,9 +398,9 @@ public sealed class RadiationPanel : Panel
     public void SetTargetRange(double minimum, double maximum)
     {
         if (!double.IsFinite(minimum) || !double.IsFinite(maximum) || minimum < 0 || maximum > 1e9 || minimum > maximum)
-            throw new ArgumentException("Target range must be finite, inclusive and between 0 and 1,000,000,000.");
+            throw new ArgumentException("目標區間須為有限值，且介於 0 至 1,000,000,000；包含上下限。");
         if (minimum != Math.Round(minimum, 1) || maximum != Math.Round(maximum, 1))
-            throw new ArgumentException("Target range uses 0.1 kWh/m² precision; round the requested bounds explicitly.");
+            throw new ArgumentException("目標區間精度為 0.1 kWh/m²，請明確調整輸入上下限。");
         targetMin.Value = minimum; targetMax.Value = maximum; targetEnabled.Checked = true; UpdateAssessment();
     }
 
@@ -432,13 +421,13 @@ public sealed class RadiationPanel : Panel
 
     public string SaveScenario(string name)
     {
-        if (busy || lastResult is null) throw new InvalidOperationException("Complete an analysis before saving a scenario.");
-        name = name.Trim(); if (name.Length == 0 || name.Length > 80) throw new ArgumentException("Scenario name must contain 1–80 characters.");
-        if (scenarios.Any(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) throw new ArgumentException("Choose a unique scenario name.");
-        if (scenarios.Count >= 20) throw new InvalidOperationException("Session limit of 20 scenarios reached; export before starting a new session.");
+        if (busy || lastResult is null) throw new InvalidOperationException("請先完成分析，再儲存方案。");
+        name = name.Trim(); if (name.Length == 0 || name.Length > 80) throw new ArgumentException("方案名稱須為 1–80 個字元。");
+        if (scenarios.Any(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) throw new ArgumentException("請使用不重複的方案名稱。");
+        if (scenarios.Count >= 20) throw new InvalidOperationException("本次工作階段已達 20 個方案上限；請先匯出，再建立新的工作階段。");
         scenarios.Add((name, lastResult)); baseline.Items.Add(name); candidate.Items.Add(name);
         if (baseline.SelectedIndex < 0) baseline.SelectedIndex = 0;
-        candidate.SelectedIndex = scenarios.Count - 1; scenarioName.Text = "Scenario " + (scenarios.Count + 1);
+        candidate.SelectedIndex = scenarios.Count - 1; scenarioName.Text = "方案 " + (scenarios.Count + 1);
         exportComparison.Enabled = scenarios.Count >= 2; RefreshComparison();
         return JsonSerializer.Serialize(new { Name = name, Result = lastResult });
     }
@@ -453,7 +442,7 @@ public sealed class RadiationPanel : Panel
     private void RefreshComparison()
     {
         if (baseline.SelectedIndex < 0 || candidate.SelectedIndex < 0 || baseline.SelectedIndex >= scenarios.Count || candidate.SelectedIndex >= scenarios.Count) return;
-        comparison.Text = baseline.SelectedIndex == candidate.SelectedIndex ? "Select two different scenarios." :
+        comparison.Text = baseline.SelectedIndex == candidate.SelectedIndex ? "請選取兩個不同的方案。" :
             ResultPresentation.Compare(scenarios[baseline.SelectedIndex].Name, scenarios[baseline.SelectedIndex].Result,
                 scenarios[candidate.SelectedIndex].Name, scenarios[candidate.SelectedIndex].Result);
     }

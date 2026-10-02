@@ -43,4 +43,12 @@ Result color samples must come from actual uniform-colored mesh faces aligned to
 
 Scenario comparison stores named completed-result snapshots (including geometry/weather hashes and settings); exports retain full provenance. Report deltas only for matching weather hash, time period, analysis type and units. Disclose differing geometry/context fingerprints (review model state), grid, north, advanced settings or solver versions. A fingerprint alone is not an independent geometric change detector. Arithmetic cell means are not area-weighted and differences alone do not establish improvement. Do not let failed runs or clearing the current preview remove saved scenarios. Session snapshots are not persistent until exported. User criterion bounds use explicit 0.1 kWh/m² precision; reject unsupported precision rather than silently rounding it.
 
-Build, native solver/control tests and visual captures are independent gates. Current evidence lives in release_085_loaded.json, platform_085_runtime.json and ui_085/capture.json once those checks complete. Offscreen production-panel rendering verifies current-theme layout; full dock, light/dark switching, keyboard and file-dialog QA remain separate requirements.
+Build, native solver/control tests and visual captures are independent gates. Current evidence lives in release_086_loaded.json, platform_086_runtime.json, chinese_086_ui.json and ui_086/capture.json. Offscreen production-panel rendering verifies current-theme layout; full dock, light/dark switching, keyboard and file-dialog QA remain separate requirements.
+
+## Traditional Chinese — 0.8.6
+
+The user-facing platform language is Traditional Chinese (zh-TW). Use the six stages「幾何／模型 → 環境／氣象 → 模擬設定 → 檢核／執行 → 分析結果 → 比較／匯出」. Use「進階設定」「前次結果」「基準方案」「比較方案」「符合／未符合」consistently. Field labels, status, validation and summaries must not expose raw English data-type keys as their primary labels.
+
+HubText supplies native weather/climate field names, frequency, design-day type and diagnostic presentation. Preserve native keys, values, scientific acronyms, units, user-entered names, file paths, command names and JSON contracts. Unknown native messages include the original diagnostic; do not guess a physical interpretation. Keep identifiers available for troubleshooting.
+
+Host default fonts supply native CJK fallback. Review glyphs and line wrap at 320/480 px; keep actions compact and long explanation text outside numeric field grids. UI language does not imply a translated Rhino or operating-system interface. Full Dock, native picker/file dialogs, keyboard and light/dark switching remain distinct acceptance gates.
