@@ -1,12 +1,12 @@
 # Ladybug 完整功能開發計畫
 
-更新日期：2026-10-02。正式版本 **0.8.7**。使用者新優先順序是原生 Ladybug 的可視覺化 L2 太陽／幾何及解讀必要資訊，L1 按需要補齊，第一版保留目前 Rhino／Eto 框架；第二版大型視覺互動於主要功能完成並驗收後進行。總階段見 [ROADMAP](ROADMAP.md)。
+更新日期：2026-10-02。正式版本 **0.9.2**。使用者新優先順序是原生 Ladybug 的可視覺化 L2 太陽／幾何及解讀必要資訊，L1 按需要補齊，第一版保留目前 Rhino／Eto 框架；第二版大型視覺互動於主要功能完成並驗收後進行。總階段見 [ROADMAP](ROADMAP.md)。
 
 ## 目前完成數與單一功能狀態
 
-實際安裝入口 122 個，含 119 原生元件和 3 ValueList；目錄全部已盤點。**8 項獨立接入、1 項僅後端使用、113 項待接入**，來源為 [catalog JSON](evidence/ladybug_feature_catalog.json)，逐項見 [功能表](LADYBUG_FEATURE_TABLE.md)／[HTML](LADYBUG_FEATURE_TABLE.html)。
+實際安裝入口 122 個，含 119 原生元件和 3 ValueList；目錄全部已盤點。**9 項獨立接入、1 項僅後端使用、112 項待接入**，來源為 [catalog JSON](evidence/ladybug_feature_catalog.json)，逐項見 [功能表](LADYBUG_FEATURE_TABLE.md)／[HTML](LADYBUG_FEATURE_TABLE.html)。
 
-獨立功能為 Incident Radiation、Import EPW、Construct Location、Import STAT、Import DDY、Analysis Period、Calculate HOY、HOY to DateTime。Cumulative Sky Matrix 用於已驗證日射後端；尚未完成獨立 Hub 流程。0.8.7 改善 UI，沒有增加功能完成數。L1 仍未完成。
+獨立功能為 Incident Radiation、Import EPW、Construct Location、Import STAT、Import DDY、Analysis Period、Calculate HOY、HOY to DateTime、SunPath 幾何第一批。Cumulative Sky Matrix 用於已驗證日射後端；尚未完成獨立 Hub 流程。0.9.2 增加 SunPath 幾何第一批，完整選項未全部接入。L1 仍未完成。
 
 ## 功能里程碑
 
@@ -14,7 +14,7 @@
 | --- | --- | --- | --- |
 | L0 完整目錄 | 已完成盤點 | 122 入口、分類、參數、輸出、GUID、SHA 與狀態 | 本機全量目錄對齊；不宣告全功能已求解 |
 | L1 氣象／時間／資料 | 進行中 | 已完成 7 項；解構、期間套用、資料型別／篩選／單位、剩餘氣象／設計日工具待接入 | 真實文件與原生輸出一致；時間索引、缺值、型別、單位及副作用保留 |
-| L2 太陽／幾何 | 部分完成 | Incident Radiation 已獨立驗證；其餘 SunPath、Direct Sun Hours、Sky Mask、Solar Envelope、視域等 | 原生數值與幾何、模型單位、遮蔭、預覽及圖例一致 |
+| L2 太陽／幾何 | 部分完成 | Incident Radiation 及 SunPath 幾何第一批已驗證；其餘 Direct Sun Hours、Sky Mask、Solar Envelope、視域等 | 原生數值與幾何、模型單位、遮蔭、預覽及圖例一致 |
 | L3 熱舒適 | 待開發 | PMV、Adaptive、UTCI、PET、MRT、Thermal Indices／參數 | 原生模型與適用條件；單位、數值、統計及錯誤路徑 |
 | L4 圖表／呈現 | 待開發 | Psychrometric、Wind Rose／Profile、Hourly／Monthly、Sky／Radiation 等 | 原生資料與圖形一致，圖例、標籤、範圍與縮放可讀 |
 | L5 工具／維護 | 待開發 | 資料建構／儲存、矩陣、網格、圖例、視圖、版本、預設選單 | 可重現操作、檔案／視圖／環境改變明示；三個 ValueList 驗項目與連接 |
@@ -23,7 +23,7 @@
 
 ## 當前優先：L2 可視覺化
 
-V01 LB-057 SunPath → V02 LB-061 Direct Sun Hours → V03 LB-067 Sky Mask → V04 LB-068 Solar Envelope。交付原生幾何／數值、模型與時間條件、圖例／單位、viewport 定位、狀態保留及匯出。詳細依賴、可視成果與驗收見 [L2_VISUAL_PLAN.md](L2_VISUAL_PLAN.md)。新功能仍待開發；不是本輪已完成內容。
+V01 LB-057 SunPath → V02 LB-061 Direct Sun Hours → V03 LB-067 Sky Mask → V04 LB-068 Solar Envelope。交付原生幾何／數值、模型與時間條件、圖例／單位、viewport 定位、狀態保留及匯出。詳細依賴、可視成果與驗收見 [L2_VISUAL_PLAN.md](L2_VISUAL_PLAN.md)。SunPath 幾何第一批已完成；後三項與其餘 SunPath 選項仍待接入。
 
 完整 Ladybug 仍是主線；不再以 L1 全部完成作為 L2 啟動前提。以下 B01–B06 保留為依賴與剩餘功能待辦，按需要安排。
 

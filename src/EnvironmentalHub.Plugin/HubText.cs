@@ -27,6 +27,15 @@ internal static class HubText
     };
     private static readonly Dictionary<string,string> Codes = new(StringComparer.Ordinal)
     {
+        ["SUN-CONTRACT-001"]="請使用版本 1.0 的有效地點與中心 XYZ 座標。",
+        ["SUN-TIME-001"]="請使用不重複的非閏年年時數 0–小於 8760，精度為分鐘，且至少選取一個時刻。",
+        ["SUN-PARAM-001"]="北向須介於 −360 至 360°；半徑須大於零且不超過 1,000,000 m；請選擇支援的投影。",
+        ["SUN-DOC-001"]="請啟用目標 Rhino 文件。",
+        ["SUN-DOC-002"]="輸入所屬文件或單位已改變，請在目標文件重新開啟工作平台並指定中心。",
+        ["SUN-UNIT-001"]="請先設定可換算為公尺的模型單位。",
+        ["SUN-RESULT-001"]="原生太陽位置資料未對齊或幾何無效，未產生替代數值。",
+        ["SUN-VIEW-001"]="預覽建立失敗；已保留前次結果與預覽。",
+        ["SUN-VIEW-002"]="請確認原結果文件與預覽物件存在，再定位結果。",
         ["RAD-CONTRACT-001"]="請使用版本 1.0 的有效分析輸入。",
         ["RAD-CONTRACT-002"]="模型、遮蔭、年時數清單與模擬設定不得為空值。",
         ["RAD-DOC-001"]="請啟用目標 Rhino 文件，確認模型單位後再執行。",
@@ -97,7 +106,7 @@ internal static class HubText
         }
         catch (Exception)
         {
-            var match=Regex.Match(error.Message,@"^((?:RAD|CLIMATE)-[A-Z]+-\d{3}):\s*(.*)$",RegexOptions.Singleline);
+            var match=Regex.Match(error.Message,@"^((?:RAD|CLIMATE|SUN)-[A-Z]+-\d{3}):\s*(.*)$",RegexOptions.Singleline);
             if(match.Success)return $"{match.Groups[1].Value}：{Message(match.Groups[1].Value,match.Groups[2].Value)}";
             return Regex.IsMatch(error.Message,@"[\u4e00-\u9fff]")?error.Message:$"操作未完成；原始診斷：{error.Message}";
         }

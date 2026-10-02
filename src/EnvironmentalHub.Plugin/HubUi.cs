@@ -11,7 +11,8 @@ internal static class HubUi
       ("地點",typeof(LocationPanel),"座標、海拔與 UTC 時差"),
       ("氣候與設計日",typeof(ClimateFilePanel),"氣候分區、晴空與設計條件"),
       ("時間與分析期間",typeof(TimePanel),"分析期間與日期／年時數轉換"),
-      ("日射分析",typeof(RadiationPanel),"模型、遮蔭與原生日射分析") ];
+      ("日射分析",typeof(RadiationPanel),"模型、遮蔭與原生日射分析"),
+      ("太陽路徑",typeof(SunPathPanel),"地點、太陽位置與幾何預覽") ];
     internal static Label Hint(string text)=>new(){Text=text,UseMnemonic=false,Wrap=WrapMode.Word,TextColor=HubVisuals.Secondary};
     internal static string FieldTitle(string name)=>HubText.Field(name);
     internal static Control Header(string title,string description,Type? module=null)

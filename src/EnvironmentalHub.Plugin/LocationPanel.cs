@@ -24,6 +24,7 @@ public sealed class LocationPanel : Panel
     private LocationResult? result;
     private bool updating;
     public string SummaryText => summary.Text;
+    public string? CompletedResultJson => result is null ? null : JsonSerializer.Serialize(result);
     public string StatusText => status.Text;
     private static NumericStepper Number(double min, double max) => new() { MinValue = min, MaxValue = max, DecimalPlaces = 4, Increment = 0.25, Width = 100 };
     public LocationPanel()

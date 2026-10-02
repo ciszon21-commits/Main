@@ -1,4 +1,4 @@
-# 同仁快速上手｜0.8.7 內部試用
+# 同仁快速上手｜0.9.2 內部試用
 
 本版適合小範圍內部試用。操作不需要理解 Grasshopper 電池；首次安裝與依賴設定由負責同仁協助。另一台同仁電腦的安裝、首次求解與無協助操作尚未驗收，不能視為公司正式部署版。
 
@@ -6,7 +6,7 @@
 
 - Windows、Rhino 8／Grasshopper，Rhino 使用 .NET 8。已實測基準為 Rhino 8.35.26251.13001；其他組合須另驗。
 - 安裝 Ladybug Tools 與 Radiance，並完成其 Rhino／Grasshopper Python 環境設定。包內不包含這些外部依賴，也不需要安裝 Rhino MCP 或 Codex 才能使用介面。
-- 將 InternalPilot ZIP 完整解壓到固定的使用者目錄，例如 Documents/EnvironmentalHub/0.8.7。保留 plugin、guide、tools、examples 的相對位置。
+- 將 InternalPilot ZIP 完整解壓到固定的使用者目錄，例如 Documents/EnvironmentalHub/0.9.2。保留 plugin、guide、tools、examples 的相對位置。
 - plugin/hub.config.json 的 UserObjectDirectory 與 RadianceBinDirectory 必須符合本機安裝。預設是 Program Files/ladybug_tools；位置不同時請負責同仁修改。
 - 試用包將求解輸出設在 %LOCALAPPDATA%/EnvironmentalSimulationHub/runs，避免寫入 Program Files。這是試用包設定，正式發布的原始檔不變。
 
@@ -22,7 +22,7 @@
 
 FAIL 表示缺檔、非配置檔雜湊不符或輸出不可寫；WARN 表示配置改動或版本／原生元件與已測基準不同，需先審核。READY_FOR_NATIVE_TRIAL 表示可進行 Rhino 實測，仍須完成 PILOT_ACCEPTANCE.md；不是求解已通過。設定被修改後，配置檔雜湊將與包內 manifest 不同，請記錄差異並由負責同仁核對。
 
-在 Rhino 的「工具 → 選項 → 外掛程式 → 安裝」選取 plugin/EnvironmentalHub.Plugin.rhp，保留 DLL 與 config 在同一資料夾。舊版已載入時，先儲存模型並重新啟動 Rhino。於命令列輸入 EnvironmentalHub，確認首頁版本 0.8.7。安裝方式參考 [Rhino 官方說明](https://docs.mcneel.com/rhino/8/help/en-us/options/plug-ins.htm)。
+在 Rhino 的「工具 → 選項 → 外掛程式 → 安裝」選取 plugin/EnvironmentalHub.Plugin.rhp，保留 DLL 與 config 在同一資料夾。舊版已載入時，先儲存模型並重新啟動 Rhino。於命令列輸入 EnvironmentalHub，確認首頁版本 0.9.2。安裝方式參考 [Rhino 官方說明](https://docs.mcneel.com/rhino/8/help/en-us/options/plug-ins.htm)。
 
 ## 第一個可視覺化結果
 
@@ -46,3 +46,7 @@ FAIL 表示缺檔、非配置檔雜湊不符或輸出不可寫；WARN 表示配�
 ## 遇到問題時提供什麼
 
 記錄版本、環境檢查 JSON、錯誤代碼與完整訊息、EPW 來源、網格／北向／期間，以及可重現步驟。失敗會保留前次結果，先確認畫面標示是否為舊結果。其他電腦路徑不同時由負責同仁調整；不直接沿用開發者絕對路徑。
+
+## 先快速檢視太陽路徑
+
+輸入 EnvironmentalSunPath，在同一面板確認版本 0.9.2。設定所在地點／UTC 時區；亦可使用已完成的 EPW 地點。預設日期 6/21 12:00、半徑 20 m、北向 0°，按「檢核並建立太陽路徑」，在結果選時刻、檢視角度並定位預覽。先讀 SUNPATH_MODULE.md 的時間制、北向與支援邊界；此流程不需要 Radiance 求解，但仍需要原生 Ladybug／GH Python 環境。更換文件或單位後用「綁定目前文件／重設中心」。

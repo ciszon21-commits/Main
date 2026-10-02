@@ -21,7 +21,7 @@ try {
         Add-Check ('Package:' + $entry.Name) $(if ($hash -eq $entry.Value) { 'PASS' } elseif ($entry.Name -eq 'plugin/hub.config.json') { 'WARN' } else { 'FAIL' }) 'SHA-256 comparison; local configuration changes require review'
     }
     $assembly = [Reflection.AssemblyName]::GetAssemblyName((Join-Path $pluginPath 'EnvironmentalHub.Plugin.rhp'))
-    Add-Check 'PluginVersion' $(if ($assembly.Version.ToString() -eq '0.8.7.0') { 'PASS' } else { 'FAIL' }) $assembly.Version.ToString()
+    Add-Check 'PluginVersion' $(if ($assembly.Version.ToString() -eq ($manifest.version + '.0')) { 'PASS' } else { 'FAIL' }) $assembly.Version.ToString()
     $rhinoCommon = Join-Path $RhinoInstallDirectory 'System/RhinoCommon.dll'
     if (Test-Path -LiteralPath $rhinoCommon -PathType Leaf) {
         $rhinoVersion = [Reflection.AssemblyName]::GetAssemblyName($rhinoCommon).Version
@@ -64,7 +64,7 @@ try {
 $failures = @($checks | Where-Object State -eq 'FAIL').Count
 $warnings = @($checks | Where-Object State -eq 'WARN').Count
 [pscustomobject]@{
-    Version = '0.8.7'; Scope = 'Static package/dependency checks and optional output write probe; not native runtime acceptance'
+    Version = $manifest.version; Scope = 'Static package/dependency checks and optional output write probe; not native runtime acceptance'
     Status = $(if ($failures) { 'BLOCKED' } elseif ($warnings) { 'REVIEW_REQUIRED' } else { 'READY_FOR_NATIVE_TRIAL' })
     Failures = $failures; Warnings = $warnings; OutputDirectoryOverride = $OutputDirectoryOverride; Checks = $checks.ToArray()
 } | ConvertTo-Json -Depth 6

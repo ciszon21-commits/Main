@@ -18,3 +18,9 @@
 同步求解尚無取消或可靠百分比；跨次 Rhino 工作階段方案庫尚未完成；完整 Dock 調整、深色、鍵盤、原生 picker／dialog、複雜大型模型與跨機部署仍須獨立驗收。採光、熱舒適、CFD、能耗與碳排尚未提供已驗證 Hub 流程。不能將安裝、目錄盤點或介面頁面視為功能完成。
 
 同仁可準備小範圍內部試用，跨機與無協助操作仍待驗收；見 QUICK_START.md／PILOT_ACCEPTANCE.md。CFD 後續優先評估 Eddy3D，未宣告真實 CFD 求解完成。
+
+## 2026-10-02 更新 · 0.9.0
+
+目前為 9 獨立功能、1 後端、112 待接入；SunPath 幾何第一批透過新增契約與原生 Adapter 接入第七個內部模組。原有求解檔案保留。32＋60＋14 共 106 項原生檢查；30 張目前淺色 320／480 px 離屏影像。SunPath 未含氣象著色／條件／夏令時間／圖例等完整選項，見 [SUNPATH_MODULE.md](SUNPATH_MODULE.md)。下一項 Direct Sun Hours；跨機、完整 Dock／theme／keyboard／dialogs 驗收未閉合。本文前段版本記錄保留原驗收範圍，最新狀態以 PROJECT_STATUS.md 為準。
+
+0.9.2 最新修正：SunPath 文字以明確的 DimensionStyle 欄位覆寫固定物件尺度，文件樣式不變。108 原生檢查、30 張淺色 UI 影像及 1 張真正視埠已檢視；9／1／112 不變。0.9.0／0.9.1 過程證據保留，最新正式狀態以 PROJECT_STATUS.md 為準。

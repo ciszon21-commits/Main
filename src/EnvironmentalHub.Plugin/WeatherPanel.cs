@@ -28,6 +28,7 @@ public sealed class WeatherPanel : Panel
     public string StatusText => status.Text;
     public string SummaryText => summary.Text;
     public string ProductVersion => GetType().Assembly.GetName().Version!.ToString(3);
+    public string? CompletedResultJson => result is null ? null : JsonSerializer.Serialize(result);
     public string? CompletedSelectionJson => result is null ? null : JsonSerializer.Serialize(result.InputParameters);
 
     public WeatherPanel()

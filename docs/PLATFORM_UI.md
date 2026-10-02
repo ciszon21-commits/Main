@@ -24,3 +24,9 @@ Acceptance evidence is recorded separately for build, typed preflight, original 
 ## 單一 Rhino 工作平台｜0.8.7
 
 0.8.7 僅註冊 HubWorkspacePanel；原首頁 GUID 保留。HubOverviewPanel、WeatherPanel、LocationPanel、ClimateFilePanel、TimePanel、RadiationPanel 是快取內部視圖，不再各自註冊或開啟 Dock。所有指令與首頁按鈕導向同一主介面，切換不重建視圖。日射透過平台取得已完成的氣象／期間資料；原有 request → preflight → adapter → result、文件 guard、owned preview 與 solver 保持原樣。
+
+## 2026-10-02 更新 · 0.9.0
+
+目前為 9 獨立功能、1 後端、112 待接入；SunPath 幾何第一批透過新增契約與原生 Adapter 接入第七個內部模組。原有求解檔案保留。32＋60＋14 共 106 項原生檢查；30 張目前淺色 320／480 px 離屏影像。SunPath 未含氣象著色／條件／夏令時間／圖例等完整選項，見 [SUNPATH_MODULE.md](SUNPATH_MODULE.md)。下一項 Direct Sun Hours；跨機、完整 Dock／theme／keyboard／dialogs 驗收未閉合。本文前段版本記錄保留原驗收範圍，最新狀態以 PROJECT_STATUS.md 為準。
+
+0.9.2 最新修正：SunPath 文字以明確的 DimensionStyle 欄位覆寫固定物件尺度，文件樣式不變。108 原生檢查、30 張淺色 UI 影像及 1 張真正視埠已檢視；9／1／112 不變。0.9.0／0.9.1 過程證據保留，最新正式狀態以 PROJECT_STATUS.md 為準。

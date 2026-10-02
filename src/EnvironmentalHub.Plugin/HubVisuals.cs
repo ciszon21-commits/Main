@@ -35,9 +35,9 @@ internal static class HubVisuals
         HubTopic.Results => HubGlyph.Results, HubTopic.Compare => HubGlyph.Compare,
         _ => HubGlyph.Overview
     };
-    internal static HubTopic ModuleTopic(Type type) => type == typeof(RadiationPanel) ? HubTopic.Run :
+    internal static HubTopic ModuleTopic(Type type) => type == typeof(RadiationPanel) || type == typeof(SunPathPanel) ? HubTopic.Run :
         type == typeof(TimePanel) ? HubTopic.Settings : type == typeof(HubOverviewPanel) ? HubTopic.Overview : HubTopic.Environment;
-    internal static HubGlyph ModuleGlyph(Type type) => type == typeof(RadiationPanel) ? HubGlyph.Solar :
+    internal static HubGlyph ModuleGlyph(Type type) => type == typeof(RadiationPanel) || type == typeof(SunPathPanel) ? HubGlyph.Solar :
         type == typeof(TimePanel) ? HubGlyph.Time : type == typeof(LocationPanel) ? HubGlyph.Location :
         type == typeof(HubOverviewPanel) ? HubGlyph.Overview : HubGlyph.Weather;
 

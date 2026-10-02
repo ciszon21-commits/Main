@@ -126,3 +126,11 @@
 - SCOPE: V1 remains in the current Rhino/Eto framework. V2 larger visual interaction is explicitly deferred until the major function milestones are accepted. This release adds no Ladybug adapters; catalog remains eight independently integrated, one backend-only and 113 pending entries out of 122.
 - VERIFIED: 0 errors / 0 warnings. Fresh owned Rhino loaded registered 0.8.5; unchanged radiation benchmark 1233.3471168086037 kWh/m2. Native platform 21, time 17, location 11 and climate 11 cases passed, plus five overview buttons and six module routes. Core/Adapter source is unchanged. Whole-file hashes differ from 0.8.3 because the SDK embeds the current informational Git revision and build identity; all managed method bodies and metadata match after excluding only MVID and that revision. The comparison covers IL, locals, stack and exception regions; it is not byte identity. Actual host topic/secondary text colors are opaque and exceed 4.5:1 contrast; token math also checked white and #20242A. Twenty-two native production-control offscreen images at 320/480 px inspected. See topic_085_acceptance.json and binary_085_logic.json.
 - LIMITS: Token math is not native dark-theme QA. Full Dock/theme switching, keyboard/picker/dialog checks, asynchronous progress/cancel and further engine integration remain open. No Computer Use. Existing loaded Rhino processes need restart to use the new assembly; versioned packages and registration backups retain earlier releases.
+
+## 2026-10-02 · 0.9.0 SunPath 幾何第一批
+
+新增原生 LB SunPath 契約／Adapter／中文內部模組，7 指令在同一 Dock；32 SunPath＋60 既有＋14 平台，共 106 原生數值／操作檢查；30 張當前淺色影像。9 獨立／1 後端／112 待接入。新增完整選項邊界，下一項 Direct Sun Hours。原生檔案未修改；Core／Adapter 新增檔案而非整個 DLL 不變。跨機／完整 UI 仍待驗收。
+
+## 2026-10-02 · 0.9.2 文字尺度修正與最終交付
+
+實際視埠 QA 發現 0.9.0 文字繼承文件註解尺度；0.9.1 單一數值 setter 未通過。使用官方 SetOverrideDimStyle／SetFieldOverride 明確覆寫各 owned 文字，在 100 倍父樣式驗證並保留文件設定；Core／Adapter 二進位與 0.9.0 相同。108 原生檢查、30 UI＋1 真正視埠已驗收；跨機與完整宿主品質仍待補。

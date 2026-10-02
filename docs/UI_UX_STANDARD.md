@@ -58,3 +58,9 @@ Host default fonts supply native CJK fallback. Review glyphs and line wrap at 32
 The workspace retains the original overview Dock GUID. Modules are lazily cached and detached/re-attached without disposal when navigating; the existing solver and document guards remain in each view. Weather/period transfer reads completed data from the same workspace. Six legacy commands select internal views in one Rhino panel. Session data persists across view switching and Windows Dock close/reopen, not application restarts; export before closing Rhino.
 
 Native evidence: workspace_087_runtime.json (13 checks), release_087_loaded.json and platform_087_runtime.json (60 existing checks), ui_087/capture.json (22 current-theme offscreen images including the shell). Dock identity and close/reopen are verified, while full dock sizing, themes, keyboard and native dialogs remain separate gates.
+
+## 2026-10-02 更新 · 0.9.0
+
+目前為 9 獨立功能、1 後端、112 待接入；SunPath 幾何第一批透過新增契約與原生 Adapter 接入第七個內部模組。原有求解檔案保留。32＋60＋14 共 106 項原生檢查；30 張目前淺色 320／480 px 離屏影像。SunPath 未含氣象著色／條件／夏令時間／圖例等完整選項，見 [SUNPATH_MODULE.md](SUNPATH_MODULE.md)。下一項 Direct Sun Hours；跨機、完整 Dock／theme／keyboard／dialogs 驗收未閉合。本文前段版本記錄保留原驗收範圍，最新狀態以 PROJECT_STATUS.md 為準。
+
+0.9.2 最新修正：SunPath 文字以明確的 DimensionStyle 欄位覆寫固定物件尺度，文件樣式不變。108 原生檢查、30 張淺色 UI 影像及 1 張真正視埠已檢視；9／1／112 不變。0.9.0／0.9.1 過程證據保留，最新正式狀態以 PROJECT_STATUS.md 為準。

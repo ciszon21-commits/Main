@@ -1,8 +1,8 @@
 # 專案知識索引
 
-更新日期：2026-10-02。這是專案內知識管理入口；目前已驗證版本為 0.8.7。歷史文件、測試樣本與新版狀態分開管理。
+更新日期：2026-10-02。這是專案內知識管理入口；目前已驗證版本為 0.9.2。歷史文件、測試樣本與新版狀態分開管理。
 
-使用者指定的 [Notion 開發與知識資料庫](https://app.notion.com/p/27b5fd42055b410ea1d58fbbf60fd31e) 已建立：186 筆紀錄、11 分類、9 檢視。目的地、固定編號、同步邊界與維護流程見 [NOTION_KNOWLEDGE.md](NOTION_KNOWLEDGE.md)。本次為人工授權同步，未建立背景自動同步。
+使用者指定的 [Notion 開發與知識資料庫](https://app.notion.com/p/27b5fd42055b410ea1d58fbbf60fd31e) 已建立：190 筆紀錄、11 分類、9 檢視。目的地、固定編號、同步邊界與維護流程見 [NOTION_KNOWLEDGE.md](NOTION_KNOWLEDGE.md)。本次為人工授權同步，未建立背景自動同步。
 
 ## 從哪裡開始
 
@@ -20,7 +20,7 @@
 
 ## 新優先序與同仁交付
 
-- [L2_VISUAL_PLAN.md](L2_VISUAL_PLAN.md)：SunPath → Direct Sun Hours → Sky Mask → Solar Envelope；L1 依賴按需補齊。
+- [L2_VISUAL_PLAN.md](L2_VISUAL_PLAN.md)：SunPath 幾何第一批已完成 → Direct Sun Hours → Sky Mask → Solar Envelope；L1 依賴按需補齊。
 - [QUICK_START.md](QUICK_START.md)／[PILOT_ACCEPTANCE.md](PILOT_ACCEPTANCE.md)：同仁內部試用、環境與首次分析步驟；跨機與無協助上手仍待驗收。
 - [REFERENCE_INDEX.md](REFERENCE_INDEX.md)：使用者提供的 GitHub／Ladybug 官網／論壇／Eddy3D 官網及版本使用規則。
 
@@ -33,6 +33,7 @@
 | STAT／DDY | [CLIMATE_FILE_MODULE.md](CLIMATE_FILE_MODULE.md) | 原生 JSON／IDF；不可用假數值補缺失輸出 |
 | 時間及平台 | [TIME_AND_HUB_MODULE.md](TIME_AND_HUB_MODULE.md) | 原生跨年、跨夜與次小時規則；日射的逐時邊界另行驗證 |
 | 日射、結果及比較 | [PLATFORM_UI.md](PLATFORM_UI.md) | 原生網格色、明確單位、比較條件、owned preview、session snapshots |
+| 太陽路徑 | [SUNPATH_MODULE.md](SUNPATH_MODULE.md) | 原生幾何第一批；位置／向量／投影，完整選項待補；日照時數是下一批 |
 | 安裝／元件盤點 | [ENVIRONMENT_AUDIT.md](ENVIRONMENT_AUDIT.md)、[COMPONENT_INVENTORY.md](COMPONENT_INVENTORY.md) | 機器快照；安裝、建立、求解、部署是不同狀態 |
 
 模組文件可能描述功能首次交付時的版本。當前產品狀態以 PROJECT_STATUS 與版本化驗收為準；不要把舊文件的版本號當作最新載入版本。
@@ -40,11 +41,11 @@
 ## 證據層級與可追溯性
 
 1. **原生盤點**：`evidence/ladybug_feature_catalog.json` 提供 122 入口身分、參數與狀態；3 個 ValueList 不是求解器。UserObject GUID／SHA 與共用 GhPython ComponentGuid 不可混用。
-2. **建置／包裝**：`release_087_manifest.json` 記錄發布檔案 SHA；建置成功不能證明 Rhino 已載入。
-3. **正式載入**：`release_087_loaded.json` 確認目標 slot、Assembly 路徑與版本、PathFromId 及原生操作。
-4. **功能／流程**：`platform_087_runtime.json` 與載入 receipt；保留數值、失敗路徑、預覽歸屬及 GH 清理檢查。
-5. **視覺／對比**：`ui_087/capture.json`、PNG；配色沿用 0.8.5 的 `topic_085_palette.json`；當前淺色離屏控制項；Dock 識別與關閉重開另有 13 項原生檢查。
-6. **彙整驗收**：`workspace_087_acceptance.json` 引用以上範圍；`binary_087_logic.json` 比較編譯內容，不能當作整檔位元組一致。
+2. **建置／包裝**：`release_092_manifest.json` 記錄發布檔案 SHA；建置成功不能證明 Rhino 已載入。
+3. **正式載入**：`release_092_loaded.json` 確認目標 slot、Assembly 路徑與版本、PathFromId 及原生操作。
+4. **功能／流程**：`platform_092_runtime.json` 與載入 receipt；保留數值、失敗路徑、預覽歸屬及 GH 清理檢查。
+5. **視覺／對比**：`ui_092/capture.json`、PNG；配色沿用 0.8.5 的 `topic_085_palette.json`；當前淺色離屏控制項；Dock 識別與關閉重開另有 14 項原生檢查。
+6. **彙整驗收**：`sunpath_092_acceptance.json` 引用以上範圍及來源雜湊；既有求解檔案未改，新增 SunPath 契約與 adapter；不能稱整個 DLL 相同。
 
 Transport 的 `MCP_RESPONDED` 只代表通訊有回應；仍須檢查內層 payload／error 及實際驗收檔。`samples/` 是測試輸出，不能單憑「有檔案」宣告測試通過。多數 replay paths 是本機路徑，移機前需重新配置。
 
@@ -57,3 +58,5 @@ Transport 的 `MCP_RESPONDED` 只代表通訊有回應；仍須檢查內層 payl
 知識更新保留三種狀態：已實作、指定範圍已驗證、尚未驗收。不以截圖代替物理數值、不以配色 token 計算代替深色操作、不以 4096 格單平面代替複雜專案容量，也不把歷史測試寫成本次重跑。
 
 歷史檢視存於 [history/](history/DEVELOPMENT_REVIEW_040.md)；版本化 evidence 保留原始結果。Notion 與本機引用同一套狀態與證據，後續使用固定編號更新同一筆紀錄，避免另建矛盾的進度來源。
+
+SunPath 操作、第一批支援邊界及驗證來源：[SUNPATH_MODULE.md](SUNPATH_MODULE.md)。新版接受證據：[sunpath_092_acceptance.json](evidence/sunpath_092_acceptance.json)。歷史版本文件與 receipts 不更動。
