@@ -65,6 +65,7 @@ public sealed class HubWorkspacePanel : Panel
         switching = true;
         try
         {
+            if (body.Content is SunHoursPanel hours && !ReferenceEquals(hours, next)) hours.ReleaseFocusVisibility();
             // Detach the previous view without disposing it: results and snapshots stay owned by it.
             if (!ReferenceEquals(body.Content, next)) { body.Content = null; body.Content = next; }
             ActiveModule = type;

@@ -1,3 +1,7 @@
+## 2026-10-02 家用移轉前交接
+
+V02 Direct Sun Hours 已在 0.10.1 候選接入並完成原生比較；窄版 UI 有缺陷。0.10.2 已修正並建置，但尚未原生／視覺複驗。先完成 [安全移轉及新機驗收](HOME_TRANSFER.md)，再交付 V02、更新正式功能目錄／Notion；之後才開始 V03 Sky Mask。下面原計畫保留功能、依賴與原驗收門檻。
+
 # 階段開發計畫
 
 更新日期：2026-10-02。正式版本 0.9.2。目前完成範圍與證據見 [PROJECT_STATUS](PROJECT_STATUS.md)；知識入口見 [KNOWLEDGE_INDEX](KNOWLEDGE_INDEX.md)。依驗收門檻追蹤，不估算沒有依據的總工程百分比。

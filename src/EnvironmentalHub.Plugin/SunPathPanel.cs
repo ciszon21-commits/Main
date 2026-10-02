@@ -182,7 +182,7 @@ public sealed class SunPathPanel : Panel
     {
         var replacement = new List<(uint Document, Guid Object)>(); var points = new List<Guid>();
         void Add(Guid id) { if (id == Guid.Empty) throw new InvalidOperationException("SUN-VIEW-001: Failed preview; previous retained."); replacement.Add((doc.RuntimeSerialNumber, id)); }
-        ObjectAttributes Attributes(string role, Color color) => new() { Name = "EnvironmentalHub / SunPath / " + role, ColorSource = ObjectColorSource.ColorFromObject, ObjectColor = color };
+        ObjectAttributes Attributes(string role, Color color) => HubPreviewTag.Mark(new() { Name = "EnvironmentalHub / SunPath / " + role, ColorSource = ObjectColorSource.ColorFromObject, ObjectColor = color }, "SunPath");
         try
         {
             foreach (var c in next.Curves)

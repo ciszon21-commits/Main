@@ -315,7 +315,7 @@ public sealed class RadiationPanel : Panel
                 foreach (var color in artifact.VertexColorsArgb) mesh.VertexColors.Add(System.Drawing.Color.FromArgb(color));
                 if (!mesh.IsValid || mesh.Faces.Count == 0)
                     throw new InvalidOperationException("RAD-VIEW-002: Invalid result mesh; previous preview preserved.");
-                var attributes = new ObjectAttributes { Name = "EnvironmentalHub / SolarRadiation / kWh per m2" };
+                var attributes = HubPreviewTag.Mark(new ObjectAttributes { Name = "EnvironmentalHub / SolarRadiation / kWh per m2" }, "Radiation");
                 var id = doc.Objects.AddMesh(mesh, attributes);
                 if (id == Guid.Empty) throw new InvalidOperationException("RAD-VIEW-001: Result mesh display failed; previous preview preserved.");
                 replacement.Add((doc.RuntimeSerialNumber, id));

@@ -1,3 +1,7 @@
+# 家用電腦開發交接 · 2026-10-02
+
+先讀 [安全移轉](docs/HOME_TRANSFER.md) 與 [接續指令](docs/HOME_CONTINUE_PROMPT.md)。來源目前為 0.10.2，僅建置通過；0.10.1 原生 154 項通過但 UI 未完成驗收。正式基準仍是下文 0.9.2。快照包含未提交新程式碼，沒有父儲存庫其他專案的 Git 歷史、憑證或 Rhino 安裝環境。
+
 # Environmental Simulation Hub
 
 Knowledge entry: [current status](docs/PROJECT_STATUS.md), [knowledge index](docs/KNOWLEDGE_INDEX.md), [stage plan](docs/ROADMAP.md), and [Ladybug batches](docs/LADYBUG_DEVELOPMENT_PLAN.md). The user-designated [Notion database](https://app.notion.com/p/27b5fd42055b410ea1d58fbbf60fd31e) contains 190 classified records; see [destination and maintenance](docs/NOTION_KNOWLEDGE.md). The current 0.9.2 release adds the first geometric SunPath workflow; coverage is 9 standalone / 1 backend / 112 pending.

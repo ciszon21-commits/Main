@@ -1,0 +1,142 @@
+{
+  "model_units": "Centimeters",
+  "inputs": [
+    {
+      "name": "_vectors",
+      "description": "Sun vectors from the \"LB SunPath\" component, which will be used\r\nto determine the number of hours of direct sunlight received by the\r\ntest _geometry.",
+      "optional": true
+    },
+    {
+      "name": "_timestep_",
+      "description": "A positive integer for the number of timesteps per hour at\r\nwhich the \"LB SunPath\" component generated sun vectors. This is used\r\nto correctly interpret the time duration represented by each of\r\nthe input sun vectors. (Default: 1 for 1 vector per hour).",
+      "optional": true
+    },
+    {
+      "name": "_geometry",
+      "description": "Rhino Breps and/or Rhino Meshes for which direct sun analysis\r\nwill be conducted. If Breps are input, they will be subdivided using\r\nthe _grid_size to yeild individual points at which analysis will\r\noccur. If a Mesh is input, direct sun analysis analysis will be\r\nperformed for each face of this mesh instead of subdividing it.",
+      "optional": true
+    },
+    {
+      "name": "context_",
+      "description": "Rhino Breps and/or Rhino Meshes representing context geometry\r\nthat can block sunlight to the test _geometry.",
+      "optional": true
+    },
+    {
+      "name": "_grid_size",
+      "description": "A positive number in Rhino model units for the size of grid\r\ncells at which the input _geometry will be subdivided for direct sun\r\nanalysis. The smaller the grid size, the higher the resolution of\r\nthe analysis and the longer the calculation will take.  So it is\r\nrecommended that one start with a large value here and decrease\r\nthe value as needed. However, the grid size should usually be\r\nsmaller than the dimensions of the smallest piece of the _geometry\r\nand context_ in order to yield meaningful results.",
+      "optional": true
+    },
+    {
+      "name": "_offset_dist_",
+      "description": "A number for the distance to move points from the surfaces\r\nof the input _geometry.  Typically, this should be a small positive\r\nnumber to ensure points are not blocked by the mesh but it can be\r\nequal to zero when geo_block_ is False. (Default: 10 cm when\r\ngeo_block_ is True and zero when geo_block_ is False).",
+      "optional": true
+    },
+    {
+      "name": "geo_block_",
+      "description": "Set to \"True\" to count the input _geometry as opaque and\r\nset to \"False\" to discount the _geometry from the calculation and\r\nonly look at context_ that blocks the sun. (Default: True).",
+      "optional": true
+    },
+    {
+      "name": "legend_par_",
+      "description": "Optional legend parameters from the \"LB Legend Parameters\"\r\nthat will be used to customize the display of the results.",
+      "optional": true
+    },
+    {
+      "name": "_cpu_count_",
+      "description": "An integer to set the number of CPUs used in the execution of the\r\nintersection calculation. If unspecified, it will automatically default\r\nto one less than the number of CPUs currently available on the\r\nmachine or 1 if only one processor is available.",
+      "optional": true
+    },
+    {
+      "name": "_run",
+      "description": "Set to \"True\" to run the component and perform direct sun analysis.",
+      "optional": true
+    }
+  ],
+  "outputs": [
+    {
+      "name": "out",
+      "count": 0,
+      "types": [],
+      "sample": [],
+      "description": "..."
+    },
+    {
+      "name": "points",
+      "count": 16,
+      "types": [
+        "<class 'Rhino.Geometry.Point3d'>"
+      ],
+      "sample": [
+        "50,50,10",
+        "50,150,10",
+        "50,250,10",
+        "50,350,10"
+      ],
+      "description": "The grid of points on the test _geometry that are be used to perform\r\nthe direct sun analysis."
+    },
+    {
+      "name": "results",
+      "count": 16,
+      "types": [
+        "<class 'float'>"
+      ],
+      "sample": [
+        "1.0",
+        "1.0",
+        "1.0",
+        "1.0"
+      ],
+      "description": "A list of numbers that aligns with the points. Each number indicates\r\nthe number of hours of direct sunlight received by each of the\r\npoints.  Note that is is the number of hours out of the total\r\nnumber of connected _vectors."
+    },
+    {
+      "name": "mesh",
+      "count": 1,
+      "types": [
+        "<class 'Rhino.Geometry.Mesh'>"
+      ],
+      "sample": [
+        "Rhino.Geometry.Mesh"
+      ],
+      "description": "A colored mesh of the test _geometry representing the hours of direct\r\nsunlight received by this input _geometry"
+    },
+    {
+      "name": "legend",
+      "count": 3,
+      "types": [
+        "<class 'IronPython.NewTypes.Grasshopper.Kernel.Types.GH_GeometricGoo`1#IGH_BakeAwareData#IGH_PreviewData_21$22'>",
+        "<class 'Rhino.Geometry.Mesh'>"
+      ],
+      "sample": [
+        "Rhino.Geometry.Mesh",
+        "hours",
+        "1.00"
+      ],
+      "description": "A legend showing the number of hours that correspond to the colors\r\nof the mesh."
+    },
+    {
+      "name": "title",
+      "count": 1,
+      "types": [
+        "<class 'IronPython.NewTypes.Grasshopper.Kernel.Types.GH_GeometricGoo`1#IGH_BakeAwareData#IGH_PreviewData_21$22'>"
+      ],
+      "sample": [
+        "Direct Sun Hours"
+      ],
+      "description": "A text object for the study title."
+    },
+    {
+      "name": "int_mtx",
+      "count": 1,
+      "types": [
+        "<class 'IronPython.NewTypes.System.Object_2$2'>"
+      ],
+      "sample": [
+        "Sun Intersection Matrix (16 items)"
+      ],
+      "description": "A Matrix object that can be connected to the \"LB Deconstruct Matrix\"\r\ncomponent to obtain detailed vector-by-vector results of the study.\r\nEach sub-list of the matrix (aka. branch of the Data Tree) represents\r\none of the points used for analysis. The length of each sub-list\r\nmatches the number of _vectors used for the analysis. Each value\r\nin the sub-list is either a \"1\", indicating that the sun is visible\r\nfor that vector, or a \"0\", indicating that the sun is not visible\r\nfor that vector."
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "code": "# Ladybug: A Plugin for Environmental Analysis (GPL)\r\n# This file is part of Ladybug.\r\n#\r\n# Copyright (c) 2026, Ladybug Tools.\n# You should have received a copy of the GNU Affero General Public License\r\n# along with Ladybug; If not, see <http://www.gnu.org/licenses/>.\r\n# \r\n# @license AGPL-3.0-or-later <https://spdx.org/licenses/AGPL-3.0-or-later>\r\n\r\n\"\"\"\r\nCalculate the number of hours of direct sunlight received by geometry using sun\r\nvectors obtained from the \"LB SunPath\" component.\r\n_\r\nSuch direct sun calculations can be used for shadow studies of outdoor enviroments\r\nor can be used to estimate glare potential from direct sun on the indoors.\r\n_\r\nNote that this component uses the CAD environment's ray intersection methods,\r\nwhich can be fast for geometries with low complexity but does not scale well\r\nfor complex geometries or many test points. For such complex studies,\r\nhoneybee-radiance should be used.\r\n-\r\n\r\n    Args:\r\n        _vectors: Sun vectors from the \"LB SunPath\" component, which will be used\r\n            to determine the number of hours of direct sunlight received by the\r\n            test _geometry.\r\n        _timestep_: A positive integer for the number of timesteps per hour at\r\n            which the \"LB SunPath\" component generated sun vectors. This is used\r\n            to correctly interpret the time duration represented by each of\r\n            the input sun vectors. (Default: 1 for 1 vector per hour).\r\n        _geometry: Rhino Breps and/or Rhino Meshes for which direct sun analysis\r\n            will be conducted. If Breps are input, they will be subdivided using\r\n            the _grid_size to yeild individual points at which analysis will\r\n            occur. If a Mesh is input, direct sun analysis analysis will be\r\n            performed for each face of this mesh instead of subdividing it.\r\n        context_: Rhino Breps and/or Rhino Meshes representing context geometry\r\n            that can block sunlight to the test _geometry.\r\n        _grid_size: A positive number in Rhino model units for the size of grid\r\n            cells at which the input _geometry will be subdivided for direct sun\r\n            analysis. The smaller the grid size, the higher the resolution of\r\n            the analysis and the longer the calculation will take.  So it is\r\n            recommended that one start with a large value here and decrease\r\n            the value as needed. However, the grid size should usually be\r\n            smaller than the dimensions of the smallest piece of the _geometry\r\n            and context_ in order to yield meaningful results.\r\n        _offset_dist_: A number for the distance to move points from the surfaces\r\n            of the input _geometry.  Typically, this should be a small positive\r\n            number to ensure points are not blocked by the mesh but it can be\r\n            equal to zero when geo_block_ is False. (Default: 10 cm when\r\n            geo_block_ is True and zero when geo_block_ is False).\r\n        geo_block_: Set to \"True\" to count the input _geometry as opaque and\r\n            set to \"False\" to discount the _geometry from the calculation and\r\n            only look at context_ that blocks the sun. (Default: True).\r\n        legend_par_: Optional legend parameters from the \"LB Legend Parameters\"\r\n            that will be used to customize the display of the results.\r\n        _cpu_count_: An integer to set the number of CPUs used in the execution of the\r\n            intersection calculation. If unspecified, it will automatically default\r\n            to one less than the number of CPUs currently available on the\r\n            machine or 1 if only one processor is available.\r\n        _run: Set to \"True\" to run the component and perform direct sun analysis.\r\n\r\n    Returns:\r\n        report: ...\r\n        points: The grid of points on the test _geometry that are be used to perform\r\n            the direct sun analysis.\r\n        results: A list of numbers that aligns with the points. Each number indicates\r\n            the number of hours of direct sunlight received by each of the\r\n            points.  Note that is is the number of hours out of the total\r\n            number of connected _vectors.\r\n        mesh: A colored mesh of the test _geometry representing the hours of direct\r\n            sunlight received by this input _geometry\r\n        legend: A legend showing the number of hours that correspond to the colors\r\n            of the mesh.\r\n        title: A text object for the study title.\r\n        int_mtx: A Matrix object that can be connected to the \"LB Deconstruct Matrix\"\r\n            component to obtain detailed vector-by-vector results of the study.\r\n            Each sub-list of the matrix (aka. branch of the Data Tree) represents\r\n            one of the points used for analysis. The length of each sub-list\r\n            matches the number of _vectors used for the analysis. Each value\r\n            in the sub-list is either a \"1\", indicating that the sun is visible\r\n            for that vector, or a \"0\", indicating that the sun is not visible\r\n            for that vector.\r\n\"\"\"\r\n\r\nghenv.Component.Name = \"LB Direct Sun Hours\"\r\nghenv.Component.NickName = 'DirectSunHours'\r\nghenv.Component.Message = '1.10.0'\nghenv.Component.Category = 'Ladybug'\r\nghenv.Component.SubCategory = '3 :: Analyze Geometry'\r\nghenv.Component.AdditionalHelpFromDocStrings = '1'\r\n\r\ntry:\r\n    from ladybug.color import Colorset\r\n    from ladybug.graphic import GraphicContainer\r\nexcept ImportError as e:\r\n    raise ImportError('\\nFailed to import ladybug:\\n\\t{}'.format(e))\r\n\r\ntry:\r\n    from ladybug_rhino.config import conversion_to_meters\r\n    from ladybug_rhino.togeometry import to_joined_gridded_mesh3d, to_vector3d\r\n    from ladybug_rhino.fromgeometry import from_mesh3d, from_point3d, from_vector3d\r\n    from ladybug_rhino.fromobjects import legend_objects\r\n    from ladybug_rhino.text import text_objects\r\n    from ladybug_rhino.intersect import join_geometry_to_mesh, intersect_mesh_rays\r\n    from ladybug_rhino.grasshopper import all_required_inputs, hide_output, \\\r\n        show_output, objectify_output, recommended_processor_count\r\nexcept ImportError as e:\r\n    raise ImportError('\\nFailed to import ladybug_rhino:\\n\\t{}'.format(e))\r\n\r\n\r\nif all_required_inputs(ghenv.Component) and _run:\r\n    # set the default offset distance and _cpu_count_\r\n    if _offset_dist_ is None:\r\n        _offset_dist_ = 0.1 / conversion_to_meters() \\\r\n            if geo_block_ or geo_block_ is None else 0\r\n    workers = _cpu_count_ if _cpu_count_ is not None else recommended_processor_count()\r\n\r\n    # create the gridded mesh from the geometry\r\n    study_mesh = to_joined_gridded_mesh3d(_geometry, _grid_size)\r\n    points = [from_point3d(pt.move(vec * _offset_dist_)) for pt, vec in\r\n              zip(study_mesh.face_centroids, study_mesh.face_normals)]\r\n    hide_output(ghenv.Component, 1)\r\n\r\n    # mesh the geometry and context\r\n    shade_mesh = join_geometry_to_mesh([from_mesh3d(study_mesh)] + context_) \\\r\n        if geo_block_ or geo_block_ is None else join_geometry_to_mesh(context_)\r\n\r\n    # get the study points and reverse the sun vectors (for backward ray-tracting)\r\n    rev_vec = [from_vector3d(to_vector3d(vec).reverse()) for vec in _vectors]\r\n    normals = [from_vector3d(vec) for vec in study_mesh.face_normals] \\\r\n        if geo_block_ or geo_block_ is None else None\r\n\r\n    # intersect the rays with the mesh\r\n    int_matrix, angles = intersect_mesh_rays(\r\n        shade_mesh, points, rev_vec, normals, cpu_count=workers)\r\n\r\n    # compute the results\r\n    int_mtx = objectify_output('Sun Intersection Matrix', int_matrix)\r\n    if _timestep_ and _timestep_ != 1:  # divide by the timestep before output\r\n        results = [sum(int_list) / _timestep_ for int_list in int_matrix]\r\n    else:  # no division required\r\n        results = [sum(int_list) for int_list in int_matrix]\r\n\r\n    # create the mesh and legend outputs\r\n    graphic = GraphicContainer(results, study_mesh.min, study_mesh.max, legend_par_)\r\n    graphic.legend_parameters.title = 'hours'\r\n    if legend_par_ is None or legend_par_.are_colors_default:\r\n        graphic.legend_parameters.colors = Colorset.ecotect()\r\n    title = text_objects('Direct Sun Hours', graphic.lower_title_location,\r\n                         graphic.legend_parameters.text_height * 1.5,\r\n                         graphic.legend_parameters.font)\r\n\r\n    # create all of the visual outputs\r\n    study_mesh.colors = graphic.value_colors\r\n    mesh = from_mesh3d(study_mesh)\r\n    legend = legend_objects(graphic.legend)\r\n"
+}

@@ -1,3 +1,7 @@
+## 目前交接入口
+
+[HOME_TRANSFER.md](HOME_TRANSFER.md) 是家用安全接收與版本狀態入口；[HOME_CONTINUE_PROMPT.md](HOME_CONTINUE_PROMPT.md) 可交給家用 Codex。[SUN_HOURS_MODULE.md](SUN_HOURS_MODULE.md) 記錄候選日照時數範圍。0.10.2 僅建置，原生 154 項屬 0.10.1；以下歷史索引不能視為新版本已驗收。
+
 # 專案知識索引
 
 更新日期：2026-10-02。這是專案內知識管理入口；目前已驗證版本為 0.9.2。歷史文件、測試樣本與新版狀態分開管理。

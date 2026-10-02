@@ -1,3 +1,7 @@
+## 家用開發優先讀此
+
+依 [HOME_TRANSFER.md](HOME_TRANSFER.md) 做唯讀環境檢查、建置至新 home-build 資料夾。不要直接重播原機 *_calls.json、匯入 registry backup 或執行下文的原機升版腳本。0.10.2 僅完成 Build，跨機及原生/UI 複驗待完成。
+
 # Build and run (0.9.2)
 
 The current formal release is `artifacts/releases/0.9.2/EnvironmentalHub.Plugin.rhp`, with sibling Core/Adapter DLLs and `hub.config.json`. The portable package is `artifacts/EnvironmentalHub-0.9.2.zip`; its release manifest records SHA-256 hashes. Ladybug and Radiance remain external installed dependencies.

@@ -27,6 +27,24 @@ internal static class HubText
     };
     private static readonly Dictionary<string,string> Codes = new(StringComparer.Ordinal)
     {
+        ["SUNH-CONTRACT-001"]="請提供版本 1.0、分析模型／遮蔭清單與太陽來源。",
+        ["SUNH-DOC-001"]="請啟用目標 Rhino 文件。",
+        ["SUNH-DOC-002"]="文件或模型單位已變更，請重新選取分析模型。",
+        ["SUNH-UNIT-001"]="請設定可換算為公尺的模型單位。",
+        ["SUNH-GEO-001"]="請選取存在且有效的 Brep 或網格；模型與遮蔭不可重複。",
+        ["SUNH-PARAM-001"]="網格須為 0.01–1,000,000 m，偏移 0–1,000,000 m；CPU 為 1–128。",
+        ["SUNH-TIME-001"]="請使用非閏年、分鐘精度、不重複且等步長的 HOY；每小時步數須對應來源取樣，稀疏或不規則取樣不自動換算。",
+        ["SUNH-PLUGIN-001"]="找不到原生 Direct Sun Hours，或求解期間原件已改變。",
+        ["SUNH-OFFSET-001"]="自遮蔭開啟時偏移為零可能與自身表面交會，請核對法線與偏移。",
+        ["SUNH-CAPACITY-001"]="取樣時刻較多，同步求解沒有取消；建議先以短期間與粗網格試算。",
+        ["SUNH-WARNING-001"]="請先檢視並明確接受警告。",
+        ["SUNH-GH-001"]="Grasshopper 求解器已停用，請啟用後再執行。",
+        ["SUNH-THREAD-001"]="請在 Rhino UI 執行緒執行。",
+        ["SUNH-NIGHT-001"]="所選時刻沒有地平線以上的太陽，請改選日間期間；未產生替代零值。",
+        ["SUNH-RESULT-001"]="原生數值、格點與網格未對齊，未產生替代結果。",
+        ["SUNH-VIEW-001"]="結果預覽建立失敗，已保留前次結果。",
+        ["SUNH-VIEW-002"]="請確認目標文件、幾何與視埠，再定位結果。",
+
         ["SUN-CONTRACT-001"]="請使用版本 1.0 的有效地點與中心 XYZ 座標。",
         ["SUN-TIME-001"]="請使用不重複的非閏年年時數 0–小於 8760，精度為分鐘，且至少選取一個時刻。",
         ["SUN-PARAM-001"]="北向須介於 −360 至 360°；半徑須大於零且不超過 1,000,000 m；請選擇支援的投影。",
@@ -106,7 +124,7 @@ internal static class HubText
         }
         catch (Exception)
         {
-            var match=Regex.Match(error.Message,@"^((?:RAD|CLIMATE|SUN)-[A-Z]+-\d{3}):\s*(.*)$",RegexOptions.Singleline);
+            var match=Regex.Match(error.Message,@"^((?:RAD|CLIMATE|SUN|SUNH)-[A-Z]+-\d{3}):\s*(.*)$",RegexOptions.Singleline);
             if(match.Success)return $"{match.Groups[1].Value}：{Message(match.Groups[1].Value,match.Groups[2].Value)}";
             return Regex.IsMatch(error.Message,@"[\u4e00-\u9fff]")?error.Message:$"操作未完成；原始診斷：{error.Message}";
         }

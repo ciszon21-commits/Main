@@ -66,3 +66,9 @@ public sealed class EnvironmentalSunPathCommand : Command
     public override string EnglishName => "EnvironmentalSunPath";
     protected override Result RunCommand(RhinoDoc doc, RunMode mode) => HubWorkspacePanel.Open(doc, typeof(SunPathPanel)) ? Result.Success : Result.Failure;
 }
+
+public sealed class EnvironmentalSunHoursCommand : Command
+{
+    public override string EnglishName => "EnvironmentalSunHours";
+    protected override Result RunCommand(RhinoDoc doc, RunMode mode) => HubWorkspacePanel.Open(doc, typeof(SunHoursPanel)) ? Result.Success : Result.Failure;
+}
