@@ -1,0 +1,9 @@
+[
+  {
+    "name": "run_python",
+    "arguments": {
+      "slot": "aardvark",
+      "script": "import Rhino,System,json,os\nroot='C:/Users/08432.SINOLTD/00.DEVE/31.AEC/RHINO_Deve/EnvironmentalSimulationHub'\npath=os.path.join(root,'samples/quick_start/SolarPlate_4x4m.3dm')\nos.makedirs(os.path.dirname(path),exist_ok=True)\ndoc=__rhino_doc__;before=len(list(doc.Objects))\nmodel=Rhino.FileIO.File3dm();model.Settings.ModelUnitSystem=Rhino.UnitSystem.Meters\nlayer=Rhino.DocObjects.Layer();layer.Name='分析面_4x4m';layer.Color=System.Drawing.Color.Gray;model.Layers.Add(layer);index=0\nbrep=Rhino.Geometry.Brep.CreateFromCornerPoints(Rhino.Geometry.Point3d(0,0,0),Rhino.Geometry.Point3d(4,0,0),Rhino.Geometry.Point3d(4,4,0),Rhino.Geometry.Point3d(0,4,0),0.001)\nattributes=Rhino.DocObjects.ObjectAttributes();attributes.Name='SolarPlate_4x4m';attributes.LayerIndex=index\nmodel.Objects.AddBrep(brep,attributes)\nassert model.Write(path,8)\ncopy=Rhino.FileIO.File3dm.Read(path)\nassert copy.Settings.ModelUnitSystem==Rhino.UnitSystem.Meters and len(list(copy.Objects))==1\narea=Rhino.Geometry.AreaMassProperties.Compute(list(copy.Objects)[0].Geometry).Area\nassert abs(area-16)<1e-8 and before==len(list(doc.Objects))\nreport={'file':'samples/quick_start/SolarPlate_4x4m.3dm','unit':'Metres','objects':1,'area_m2':area,'source_document_unchanged':True,'scope':'RhinoCommon File3dm write/read and geometry checks only; colleague machine/native first-use trial pending.'}\njson.dump(report,open(os.path.join(root,'docs/evidence/quick_start_model_087.json'),'w',encoding='utf-8'),indent=2)\nprint(json.dumps(report))\n"
+    }
+  }
+]

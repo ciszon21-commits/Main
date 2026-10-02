@@ -4,15 +4,15 @@
 
 ## 主線與依賴
 
-L0 盤點 → L1 氣象／時間／資料 → L2 太陽／幾何 → L3 熱舒適 → L4 圖表 → L5 工具／維護 → 後續引擎整合。
+L0 盤點已完成 → 優先 L2 太陽／幾何與必要結果資訊，並行補齊必要 L1 依賴 → 後續熱舒適、圖表、工具與引擎整合。完整 Ladybug 範圍保持 122 入口逐項驗收。
 
 日射可靠性、V1 UI 與發布／部署是橫向工作，隨每批功能持續驗收。依賴需要的資料／單位工具可提前做，不把目錄分類當作僵硬的開發順序。先完成 Ladybug，Eddy3D CFD 保持暫緩。
 
 | 階段 | 目前狀態 | 已完成範圍 | 下一個交付／出口門檻 |
 | --- | --- | --- | --- |
 | L0 環境與完整目錄 | 已完成指定盤點 | 122 入口：119 元件、3 ValueList；參數、身分、SHA 與狀態 | 維持目錄與實際安裝一致；安裝變更時重新盤點 |
-| L1 氣象、時間與資料 | 進行中；目前最高優先 | EPW、Construct Location、STAT、DDY、Analysis Period、Calculate HOY、HOY to DateTime 共 7 項 | Location 解構 → Apply Analysis Period → 資料／單位 → 設計日與剩餘氣象工具；逐項原生比較及面板驗收 |
-| L2 太陽與幾何 | 部分完成 | Incident Radiation 獨立功能；Cumulative Sky Matrix 作後端 | SunPath → Direct Sun Hours／Sky Mask → Solar Envelope／剩餘幾何；幾何、單位、遮蔭及結果對齊 |
+| L1 氣象、時間與資料 | 進行中；按 L2 必要依賴補齊 | EPW、Construct Location、STAT、DDY、Analysis Period、Calculate HOY、HOY to DateTime 共 7 項 | Location 解構 → Apply Analysis Period → 資料／單位 → 設計日與剩餘氣象工具；逐項原生比較及面板驗收 |
+| L2 太陽與幾何 | 部分完成；目前最高優先 | Incident Radiation 獨立功能；Cumulative Sky Matrix 作後端 | SunPath → Direct Sun Hours／Sky Mask → Solar Envelope／剩餘幾何；幾何、單位、遮蔭及結果對齊 |
 | L3 熱舒適 | 待開發 | 未接入 PMV、Adaptive、UTCI、PET、MRT 等 | 原生模型、輸入單位、適用條件、數值與錯誤路徑逐項驗收 |
 | L4 圖表與呈現 | 待開發 | 現有 KPI／原生日射色樣不是完整原生圖表接入 | Psychrometric、Wind Rose／Profile、Hourly／Monthly 等；資料、圖例、標籤、縮放一致 |
 | L5 工具與維護 | 待開發；部分依賴可提前 | 目錄已列資料、矩陣、網格、圖例、視圖、版本與預設選單 | 逐項驗證；下載、文件／視圖改變及版本同步須明示副作用；ValueList 驗選項與傳遞 |
@@ -24,13 +24,14 @@ L0 盤點 → L1 氣象／時間／資料 → L2 太陽／幾何 → L3 熱舒�
 
 ## 下一批工作的明確順序
 
-1. **B01：LB-003 Deconstruct Location。** 重用已完成 Location 資料，增加解構操作，保留原生經緯度、時區與海拔。
-2. **B02：LB-015 Apply Analysis Period。** 將已完成期間明確套用到原生 DataCollection；跨年／跨夜／次小時依型別邊界處理，不偷偷四捨五入。
-3. **B03／B04：DataCollection、Header、DataType 與單位工具。** 先建立可攜契約和原生往返，再接入 Construct／Deconstruct Data、Data Type、Unit Converter。
-4. **B05／B06：設計日與剩餘氣象工具。** 完成原生輸出／IDF、檔案與副作用邊界，逐項收斂 L1。
-5. L1 完成後推進 L2，再依序完成 L3–L5。每批同步執行相應的日射／現有功能回歸、UI 檢查、目錄與知識更新。
+1. **V01：LB-057 SunPath**，重用已有地點／時間，交付原生太陽位置、路徑、向量與必要條件資訊。
+2. **V02：LB-061 Direct Sun Hours**，重用完成的太陽向量，交付模型與遮蔭下的直射日照時數網格、圖例與結果定位。
+3. **V03：LB-067 Sky Mask**，交付分析點天空遮蔽與可見範圍。
+4. **V04：LB-068 Solar Envelope**，交付原生日照條件包絡量體與可追溯限制；視依賴安排視域等後續幾何功能。
+5. 必需的 L1 地點／期間／資料與單位契約按需要補齊，保留 B01–B06 待辦，不要求全部 L1 先完成。可靠性、單一平台與同仁試用是橫向品質門檻。
+6. CFD 後續優先評估 Eddy3D；實際引擎、依賴與真實求解須另驗收。大型 V2 維持主要功能及 V1 品質門檻完成後展開。
 
-詳細批次、依賴與驗收見 [LADYBUG_DEVELOPMENT_PLAN](LADYBUG_DEVELOPMENT_PLAN.md)。以上是順序與出口條件；尚未做估時或指定未確認的交付日期。
+詳見 [L2 視覺化計畫](L2_VISUAL_PLAN.md)、[Ladybug 全量／依賴計畫](LADYBUG_DEVELOPMENT_PLAN.md)。同仁交付採小範圍內部試用，跨機與無協助上手見 [PILOT_ACCEPTANCE.md](PILOT_ACCEPTANCE.md)，目前未宣告完成公司部署。
 
 ## 第一版／第二版界線
 

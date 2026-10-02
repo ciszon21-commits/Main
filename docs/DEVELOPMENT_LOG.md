@@ -1,5 +1,14 @@
 # Development log
 
+## 2026-10-02｜L2 視覺化優先與同仁試用準備
+
+- 使用者新方向：優先 SunPath／Direct Sun Hours／Sky Mask／Solar Envelope 與必要結果資訊，L1 依賴按需補齊；CFD 後續以 Eddy3D 為評估候選。
+- 新增四來源索引，GitHub connector 核對三個官方 repo metadata；未更新本機原生套件。
+- 製作 0.8.7 InternalPilot 包：正式二進位完全相同、使用者輸出目錄設定、中文上手與試用門檻、4×4 m 示範模型及環境檢查工具。
+- 示範模型經 Rhino File3dm 寫入／讀回確認：1 Brep、16 m²、Metres，不改動測試文件。32 靜態檢查與輸出寫入探測通過；配置變更列 WARN、二進位被改動列 BLOCKED。
+- 新電腦與無協助同仁上手仍待驗收。正式功能數及既有版本驗收不變；沒有新增 L2 已完成數，也未重新執行全部既有求解回歸。
+
+
 ## 2026-10-02｜0.8.7 單一工作平台
 
 - UI audit：六個獨立 RegisterPanel 與 OpenPanel 路由造成面板分散。

@@ -50,7 +50,7 @@ Dock 識別、可見性與關閉重開已實測。22 張影像是離屏原生控
 
 ## 已知限制與未完成門檻
 
-- L1 仍未全部完成；下一批是 Location 解構、Apply Analysis Period 與資料契約／工具。
+- L1 仍未全部完成；現在優先 L2 SunPath → Direct Sun Hours → Sky Mask → Solar Envelope，必要 L1 資料／單位依賴按需補齊。
 - GH 求解同步執行於 Rhino UI 執行緒；沒有可靠百分比進度或取消。非閏年逐時 EPW 為目前支援邊界。
 - 完整 Dock、深色切換、鍵盤、原生選取／檔案對話框，以及複雜大型模型與外部求解器崩潰注入仍待驗收。
 - 方案快照限當次工作階段，可匯出；未實作持久方案庫匯入。結果平均為算術格點平均，不是面積加權。
@@ -59,3 +59,7 @@ Dock 識別、可見性與關閉重開已實測。22 張影像是離屏原生控
 - 跨機安裝與公司部署未驗收；現有測試使用 Seattle 等參考資料，不代表正式案場成果。
 
 下一步見 [階段計畫](ROADMAP.md) 與 [Ladybug 批次計畫](LADYBUG_DEVELOPMENT_PLAN.md)。
+
+## 同仁使用與新優先序
+
+可準備 0.8.7 小範圍內部試用，已配置環境可使用現有氣象／時間／日射流程；跨機安裝、首次求解與一般同仁無協助操作未驗收。已新增中文 [快速上手](QUICK_START.md)、[試用驗收](PILOT_ACCEPTANCE.md)、示範模型與靜態環境檢查工具，另有 InternalPilot ZIP。正式二進位未變，試用包輸出改用使用者目錄。L2 視覺化優先序見 [L2_VISUAL_PLAN.md](L2_VISUAL_PLAN.md)；CFD 後續優先評估 Eddy3D。參考來源見 [REFERENCE_INDEX.md](REFERENCE_INDEX.md)。

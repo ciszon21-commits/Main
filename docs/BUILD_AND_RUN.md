@@ -19,7 +19,7 @@ Current UI defaults: annual, 1 CPU, Tregenza sky, 0.2 ground reflectance and 0.1
 Validation receipts: adapter_runtime_validation.json (three original-workflow comparisons and five execution gates), preflight_tests.json (25 checks), panel_v6_runtime_validation.json (native Eto execution, null/invalid requests, partial-preview rollback and reset), and release_030_loaded.json (formal plugin registration/dock load).
 
 ## Updating an existing registration
-The audited local installation had both HKLM and HKCU entries pointing to runtime-v3. `tools/update_release_registration.ps1` validates release hashes/version, backs up the two existing FileName values, then updates only those values and checks readback. This requires registry write permission. It does not unload an assembly in an already running Rhino. Use a fresh Rhino process for the new version. See release_registration_updated_086.json for the update receipt.
+The audited local installation had both HKLM and HKCU entries pointing to runtime-v3. `tools/update_release_registration.ps1` validates release hashes/version, backs up the two existing FileName values, then updates only those values and checks readback. This requires registry write permission. It does not unload an assembly in an already running Rhino. Use a fresh Rhino process for the new version. See release_registration_updated_087.json for the update receipt.
 
 ## Extended radiation reliability checks
 `tools/validate_radiation_reliability.py` requires a dedicated empty Rhino document and injected hub_root. Use the bounded MCP call fixture reliability_calls.json with its explicit current test slot; do not target a user document containing geometry. Receipt: `docs/evidence/radiation_reliability_validation.json`.
@@ -35,3 +35,7 @@ Run EnvironmentalLocation or open it from Weather. Original Construct Location s
 STAT / DDY support introduced in 0.6.0 provides EnvironmentalClimate for original STAT / DDY imports. Three-city full native JSON and design-day IDF comparisons plus invalid-input and Panel checks passed; see docs/CLIMATE_FILE_MODULE.md (CLIMATE_FILE_MODULE.md from this docs directory) and release_060_loaded.json.
 
 0.8.7 unified entry: EnvironmentalHub opens the overview; EnvironmentalRadiation opens radiation directly. EnvironmentalTime provides original period and date/HOY tools. All panels share navigation and styling; source/result state remains module-specific. See TIME_AND_HUB_MODULE.md in docs for native runtime and UI capture scope.
+
+## Colleague internal pilot
+
+The separate EnvironmentalHub-0.8.7-InternalPilot.zip includes identical verified binaries, a per-user OutputDirectory configuration, Chinese guides, a 4x4 m model and Test-HubReadiness.ps1. See QUICK_START.md and PILOT_ACCEPTANCE.md. Static package checks are not native/cross-machine acceptance. The original formal release and registration remain unchanged.

@@ -2,7 +2,7 @@
 
 更新日期：2026-10-02。這是專案內知識管理入口；目前已驗證版本為 0.8.7。歷史文件、測試樣本與新版狀態分開管理。
 
-使用者指定的 [Notion 開發與知識資料庫](https://app.notion.com/p/27b5fd42055b410ea1d58fbbf60fd31e) 已建立：180 筆紀錄、11 分類、9 檢視。目的地、固定編號、同步邊界與維護流程見 [NOTION_KNOWLEDGE.md](NOTION_KNOWLEDGE.md)。本次為人工授權同步，未建立背景自動同步。
+使用者指定的 [Notion 開發與知識資料庫](https://app.notion.com/p/27b5fd42055b410ea1d58fbbf60fd31e) 已建立：186 筆紀錄、11 分類、9 檢視。目的地、固定編號、同步邊界與維護流程見 [NOTION_KNOWLEDGE.md](NOTION_KNOWLEDGE.md)。本次為人工授權同步，未建立背景自動同步。
 
 ## 從哪裡開始
 
@@ -17,6 +17,12 @@
 | 如何建置、更新與確認真實版本？ | [BUILD_AND_RUN.md](BUILD_AND_RUN.md) | 使用版本化目錄、新 Rhino 程序與載入 receipt |
 | 某次交付做了什麼？ | [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md) | 只新增歷史紀錄，不把舊結果改寫成新版驗收 |
 | 全部開發檢視？ | [DEVELOPMENT_REVIEW_2026-10-01.md](DEVELOPMENT_REVIEW_2026-10-01.md) | 最新評估與歷史檢視分開 |
+
+## 新優先序與同仁交付
+
+- [L2_VISUAL_PLAN.md](L2_VISUAL_PLAN.md)：SunPath → Direct Sun Hours → Sky Mask → Solar Envelope；L1 依賴按需補齊。
+- [QUICK_START.md](QUICK_START.md)／[PILOT_ACCEPTANCE.md](PILOT_ACCEPTANCE.md)：同仁內部試用、環境與首次分析步驟；跨機與無協助上手仍待驗收。
+- [REFERENCE_INDEX.md](REFERENCE_INDEX.md)：使用者提供的 GitHub／Ladybug 官網／論壇／Eddy3D 官網及版本使用規則。
 
 ## 模組知識
 
