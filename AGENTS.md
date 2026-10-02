@@ -13,3 +13,7 @@ User direction: every subsequent interface must have high-quality UI/UX, clear l
 - User preference: minimize Computer Use. Prefer Rhino MCP, documented SDK APIs and file-based verification. Use native UI automation only when necessary to resolve a specific interaction/visual issue.
 
 - Current user priority: complete the original Ladybug feature scope first. Keep all 122 installed entries in the feature catalog with per-function integration/verification states; defer wind CFD adapter work until the Ladybug milestones are addressed.
+
+- Knowledge management: read docs/KNOWLEDGE_INDEX.md, PROJECT_STATUS.md and the relevant ROADMAP/Ladybug batch before new work. Keep current status, historical logs and versioned acceptance evidence distinct.
+- On a feature delivery, update catalog JSON/Markdown/HTML, current status and evidence together. UI/documentation-only changes do not increase function coverage. Keep historical receipts unchanged.
+- The user-designated Notion knowledge database is indexed in docs/NOTION_KNOWLEDGE.md. Use stable record IDs and the verified destination/schema; preserve the distinction between inventory, integration and acceptance. Do not create duplicate databases on later updates.

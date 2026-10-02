@@ -1,5 +1,7 @@
 # Environmental Simulation Hub
 
+Knowledge entry: [current status](docs/PROJECT_STATUS.md), [knowledge index](docs/KNOWLEDGE_INDEX.md), [stage plan](docs/ROADMAP.md), and [Ladybug batches](docs/LADYBUG_DEVELOPMENT_PLAN.md). The user-designated [Notion database](https://app.notion.com/p/27b5fd42055b410ea1d58fbbf60fd31e) contains 176 classified records; see [destination and maintenance](docs/NOTION_KNOWLEDGE.md). The October 2 knowledge update does not change the verified 0.8.5 plugin or function coverage.
+
 Original Ladybug radiation and EPW weather backends, typed C# adapters and Rhino dockable panels — **RUNTIME VERIFIED** on Rhino 8.35 / .NET 8.0.30.
 
 Run `EnvironmentalHub` for the building-performance overview or `EnvironmentalRadiation` for the six-stage analysis workflow. Select geometry/context, choose EPW and time, set basic or advanced parameters, validate and run. Results include native mesh-color samples, numerical KPIs, project target evaluation and viewport focus. Compare named session scenarios and export full provenance. Reset removes only panel-owned previews and preserves saved scenarios. See [platform UI and limits](docs/PLATFORM_UI.md) and [UI audit](docs/UI_AUDIT_2026-10-01.md).
@@ -20,7 +22,7 @@ Paths passed in `tools/*_calls.json` are captured environment-specific replay in
 
 To regenerate the audit from captured evidence, run `python tools/write_audit.py` in the verified environment. The original LBT components remain separately installed dependencies; their license notices and terms apply to company deployment.
 
-Full original Ladybug scope: [122-entry feature table](docs/LADYBUG_FEATURE_TABLE.md) and searchable [HTML catalog](docs/LADYBUG_FEATURE_TABLE.html). Standalone radiation, EPW weather and Construct Location are verified; the remaining functions are tracked individually. [Weather semantics and evidence](docs/WEATHER_MODULE.md).
+Full original Ladybug scope: [122-entry feature table](docs/LADYBUG_FEATURE_TABLE.md) and searchable [HTML catalog](docs/LADYBUG_FEATURE_TABLE.html). Eight standalone functions are integrated and tested, one function is used by the radiation backend, and 113 entries await integration. See [current status and verification scope](docs/PROJECT_STATUS.md) and [weather semantics](docs/WEATHER_MODULE.md).
 
 Run EnvironmentalLocation for the original Ladybug location tool; half/quarter-hour UTC display is preserved in both location and weather panels. See docs/LOCATION_MODULE.md.
 

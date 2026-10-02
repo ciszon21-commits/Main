@@ -1,5 +1,13 @@
 # Development log
 
+## 2026-10-02 — Stage plan and Notion knowledge database
+
+- DONE: Consolidated current 0.8.5 status, staged roadmap, B01–B06 Ladybug batches, knowledge index and explicit decisions. Preserved the previous 0.4.0 review in history. Corrected the architecture's unsupported Eddy3D runtime claim to inventory-only scope.
+- NOTION: Created the user-designated child database with 176 unique records: 122 Ladybug entries and 54 professional records, 11 categories and 9 table views. Added a parent-page portal with 10 native record mentions and preserved the database child. Fixed 47 Markdown source paths to inline code, preventing accidental domain links.
+- VERIFICATION: Complete paginated database readback returned 176 unique IDs, 122 function entries with 8 tested standalone / 1 backend / 113 pending states, 54 professional records and 6 next-batch tasks. Read back portal structure, views, source-path formatting and sample native identities. Destination and record/page mapping are retained in [Notion maintenance](NOTION_KNOWLEDGE.md) and its sync receipt.
+- SCOPE: Documentation and external knowledge capture only. No solver, source code, release package or registry changes; no new build or Rhino runtime claimed. Original versioned evidence remains unchanged. Cloud records contain source text and evidence metadata; local PNGs were not uploaded. No scheduled or automatic synchronization was created.
+- NEXT: B01 Deconstruct Location in the existing Rhino/Eto framework; retain request → preflight → adapter → result and feature-specific native acceptance.
+
 ## 2026-10-01 — 0.6.0 original STAT and DDY imports
 
 - DONE: Climate-file request/result, isolated original import adapter, native climate Panel and EnvironmentalClimate command, Weather navigation, full original output selection, JSON export, explicit unavailable outputs and previous-result state. Native to_dict preserves structural values; design days additionally retain to_idf to include details/schedules beyond the JSON schema.

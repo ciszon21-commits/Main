@@ -1,63 +1,28 @@
 # 全部開發檢視 — 2026-10-01
 
-0.6.0 後續更新：Import STAT／DDY 已完成三地全部原生 JSON／設計日 IDF 比對、五項錯誤測試與原生 Panel 按鈕驗證。最新目錄為五項獨立功能、一項輻射後端、116 項待接入；下一批為獨立時間工具。詳見 CLIMATE_FILE_MODULE.md 與 release_060_loaded.json。下方仍保留檢視當時基準，非最新完成數。
+本次知識整理基準：正式 0.8.5、程式提交 `36478e6`、122 項功能狀態與版本化驗收。這是文件／證據檢視，沒有在本次更新重新求解或變更發布檔案。
 
-後續更新：本報告下方保留 0.4.0 檢視當時狀態。其時區顯示問題已於 0.5.0 修正並經原生 Panel 實測；Construct Location 已接入（六組原生比較、五項錯誤測試）。最新狀態為三項獨立功能、一項輻射後端、118 項待接入，詳見 LOCATION_MODULE.md 與 release_050_loaded.json。
+## 現況結論
 
-檢視基準：本機來源程式、122 項功能目錄、測試 receipts、正式發布檔案 SHA-256 及 Git 狀態。基準提交 dc435d7、插件 0.4.0。本次沒有重新執行 Rhino 求解；以下執行結論引用已保存的實測證據，發布檔案雜湊則於本次重新核對通過。
+目前是已驗證原生日射與氣象／地點／時間工具的開發平台。122 入口盤點完成；8 項獨立接入、1 項後端使用、113 項待接入。六個原生面板與六階段日射流程已交付，完整 Ladybug、其他引擎與公司部署尚未完成。
 
-## 整體狀態
+0.8.5 保存 60 項原生檢查與 22 張當前主題窄／寬版影像證據。核心／adapter 原始碼沒有隨 UI 美化改寫；編譯內容比較排除 MVID 與資訊 Git 版本後相同，不能宣稱整檔位元組一致。
 
-目前是具備兩個可執行模組的開發版，尚未完成完整 Ladybug Hub 或公司部署驗收。
+詳細逐項狀態、證據與限制統一見 [PROJECT_STATUS](PROJECT_STATUS.md)，避免本報告另建矛盾的進度數字。[知識入口](KNOWLEDGE_INDEX.md) 提供模組、操作與決策索引。
 
-| 範圍 | 狀態 | 已有成果／未完成部分 |
+## 最優先問題與處理順序
+
+| 問題 | 影響 | 下一步 |
 | --- | --- | --- |
-| L0 全功能目錄 | 完成 | 122 入口、119 原生分析元件及 3 預設選單；分類、參數、輸出、身分與狀態 |
-| L1 氣象與時間 | 部分完成 | Import EPW 全部原生資料輸出、地點、HOY 篩選、時間與單位、缺值；STAT/DDY、獨立 Location／時間工具待開發 |
-| L2 太陽與幾何 | 部分完成 | Incident Radiation 與其 Sky Matrix 後端；SunPath、Direct Sun Hours、Sky Mask、Solar Envelope 等待接入 |
-| L3 熱舒適 | 未接入 | PMV、Adaptive、UTCI、PET、MRT 與相關指標／參數 |
-| L4 圖表 | 未接入 | Psychrometric、Wind Rose、Hourly／Monthly 與其他原生圖表 |
-| L5 工具與維護 | 未獨立接入 | 資料／矩陣／網格／圖例／視圖／版本工具與預設選單 |
-| UI/UX | 功能實測、視覺验收待完成 | 兩個原生 Eto Panel、步驟與單位、前次結果、匯出與互相導覽；窄 Dock、主題、鍵盤、選取／檔案對話框仍待驗收 |
-| Eddy3D CFD | 暫緩 | 僅既有 metadata 盤點，未求解驗證 |
-| 整合與部署 | 部分基礎完成 | 版本化發布、設定與兩 Panel 導覽；統一分析入口、方案比較、跨機安裝／相容性驗收待完成 |
+| L1 型別與資料工具未齊 | 太陽、舒適與圖表仍缺通用資料入口 | Location 解構 → 期間套用 → DataCollection／Header／單位；逐項原生比較 |
+| 完整 UI 驗收未閉合 | 離屏淺色畫面不能代表完整宿主操作 | Dock、深色、鍵盤、picker／dialog 隨 V1 功能交付持續驗收 |
+| GH 求解同步、無可靠取消 | 長時間任務仍可能暫停 Rhino | 獨立設計並驗證 runner；保留 GH／Rhino 執行緒規則與真實狀態 |
+| 模型容量與失敗注入範圍有限 | 單平面 4096 格不代表複雜專案 | 專用隔離測試程序增加複雜模型及求解器崩潰情境 |
+| 方案庫／跨機部署未完成 | 目前快照限 session、依賴仍是本機安裝 | 持久匯入、契約相容、依賴檢查與移機驗收另列 X1 |
+| 舊文件混用當時與最新狀態 | 容易將 0.4／0.6 的數量當作現況 | 現況集中 PROJECT_STATUS；歷史檢視歸檔，目錄維持逐項來源 |
 
-目錄狀態實際計數：2 項「已接入並實測」（Import EPW、Incident Radiation）、1 項「輻射後端已使用」（Cumulative Sky Matrix）、119 項「待接入 Hub」。2/119 約 1.7% 是原生分析元件獨立接入覆蓋率，不代表總工程工作量完成百分比。目錄覆蓋則為 122/122。
+已確定版本策略：V1 沿用 Rhino／Eto；主要功能完成並驗收後規劃 V2 大型視覺互動。Ladybug 優先，Eddy3D CFD 暫緩。完整順序見 [ROADMAP](ROADMAP.md) 與 [L1 批次計畫](LADYBUG_DEVELOPMENT_PLAN.md)。
 
-## 版本與架構
+## 歷史保留
 
-- 正式版本：0.4.0；EnvironmentalHub 開啟輻射、EnvironmentalWeather 開啟氣象。
-- release_040_loaded.json 已記錄新 Rhino 工作階段的正式載入／登記路徑、版本與 Panel 執行；本次未即時巡查所有仍運行的 Rhino 程序。舊程序須重啟才能更換已載入組件。
-- Core 保留型別化契約與 preflight；Adapters 建立隔離原生 GH definition；Plugin 使用 Rhino/Eto。沒有自行重寫物理求解器。
-- 發布 manifest 中七個檔案雜湊重新核對全部一致。開始檢視時 Hub 工作區無未提交改動；本報告為本次新增文件。
-
-## 已有實測證據
-
-| 驗證 | 結果 | 證據 |
-| --- | --- | --- |
-| Radiation Core | 25 項檢查 | preflight_tests.json |
-| 原生輻射比較與執行阻擋 | 3 組數值比較差異 0、5 項 gate | adapter_runtime_validation.json |
-| 輻射可靠性 | 6 項：三種模型單位、82 格混合幾何與遮蔭、損壞元件清理、停用求解器 | radiation_reliability_validation.json |
-| 輻射規模／來源失敗 | 4096 格單平面差異 0；求解後來源驗證失敗無成功 JSON | radiation_scale_validation.json |
-| 原生 Weather | 8 項通過；全年／24 小時／跨年值、單位與時間一致；錯誤輸入／缺值通過 | weather_runtime_validation.json |
-| 正式 0.4.0 Panel | 欄位切換、月資料、風向均值隱藏、非連續 HOY、失敗保留結果及輻射回測通過 | release_040_loaded.json |
-
-上述為指定機器、原生元件與測試資料的驗證；4096 格單平面不能代表大型複雜建築性能。缺值案例只驗證指定測試 sentinel，不代表所有異常 EPW 都已覆蓋。氣象 fixture 使用 Seattle，不是正式案場分析。
-
-## 本次來源檢視發現
-
-1. **Weather 時區顯示需修正。** WeatherPanel.Execute 使用 TimeZone:+0;-0;0，將小數時區四捨五入為整數。例如 UTC+5.5 顯示為 +6。契約仍保留 double 原值；需要修正顯示並驗證正負半小時／45 分鐘時區。
-2. **UI/UX 驗收尚未閉合。** 功能／控制項狀態驗證不能取代真正版面、主題、鍵盤及 native dialog 檢查。尚不宣告全部介面達到最終美學驗收。
-3. **執行仍同步。** Rhino UI 執行期間可能暫停，沒有有效取消／進度；後续需設計符合 Rhino/GH 執行緒限制的任務機制。
-4. **資料與相容性範圍有限。** Weather 限非閏年逐時 EPW；月地溫不隨逐時篩選改變。STAT/DDY、閏年、多氣候資料、跨機版本相容性仍待逐項驗證。
-5. **Roadmap 部分文字落後。** 大型模型 gate 中已有 4096 格平面證據，整合基礎也已有 Panel 導覽；仍應保留複雜模型與完整整合部署待驗收的界線。
-
-## 後續開發順序
-
-1. 修正小數時區顯示，補對應驗證；同步整理版本／驗收狀態。
-2. 完成 L1：STAT、DDY、Location、Analysis Period／HOY 與資料工具；每項建立型別、原生比較、Panel 與錯誤路徑。
-3. L2：SunPath → Direct Sun Hours／Sky Mask → Solar Envelope／其他幾何功能；沿用真實幾何、單位與遮蔭比較。
-4. L3 熱舒適 → L4 圖表 → L5 工具；工具副作用與檔案範圍明確呈現。
-5. 各次發布都完成 UI/UX 與既有功能回測；Ladybug 功能里程碑完成後再接 Eddy3D。
-
-詳細入口、輸入、輸出與狀態見 LADYBUG_FEATURE_TABLE.md／HTML。所有後續介面依 UI_UX_STANDARD.md；持續優先 MCP／SDK，不使用 Computer Use 作為日常開發手段。
+先前以 0.4.0 為基準、附有 0.5／0.6 更新的完整檢視已原文保存至 [history/DEVELOPMENT_REVIEW_040.md](history/DEVELOPMENT_REVIEW_040.md)。它是當時的評估，不是目前待辦或最新完成數；例如小數時區、STAT／DDY 與三項時間工具後來已完成。原始版本化 evidence 與 DEVELOPMENT_LOG 保留不改寫。
