@@ -1,4 +1,4 @@
-"""Read-only audit of standalone history/current index before private publication.
+"""Read-only audit of standalone history/current index before GitHub publication.
 
 Reports filenames/counts only; never prints blob contents or matched secret values.
 """

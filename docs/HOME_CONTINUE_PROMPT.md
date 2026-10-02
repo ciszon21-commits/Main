@@ -2,7 +2,7 @@
 
 請在目前 EnvironmentalSimulationHub 資料夾接續開發。先讀 AGENTS.md、docs/HOME_TRANSFER.md、docs/PROJECT_STATUS.md、docs/KNOWLEDGE_INDEX.md 與 docs/L2_VISUAL_PLAN.md。只修改本專案，不動其他專案、使用者模型、全域設定或原機 registry backup。優先使用 MCP、RhinoCommon／Grasshopper SDK、檔案工具，盡量不用 Computer Use；降低非必要詢問，操作需升權時仍用正式核准工具。
 
-先核對 TRANSFER_MANIFEST.json 與接收校驗結果，再執行 tools/Test-HomeDevelopmentEnvironment.ps1。原機正式基準 0.9.2；0.10.1 原生 154 項通過但窄版 UI 有缺陷。來源已完成 0.10.2 欄位／圖例排版修正、建置 0 錯誤／0 警告；尚未載入或完成原生與 UI 複驗。來源 Git HEAD 1b7a9d4；新程式碼未提交但已完整打包；不要丟棄新檔，也不要把快照稱為完整 Git 歷史。
+若從 ZIP 接收，先核對 TRANSFER_MANIFEST.json 與接收校驗；若由 Git 接續，先讀 docs/GIT_HOME_WORKFLOW.md，核對遠端分支、commit 與乾淨工作樹。GitHub 目的地為個人公開 ciszon21-commits/Main，專案在 Main/EnvironmentalSimulationHub/；只修改此子目錄，不動 Main 其他資料。再執行 tools/Test-HomeDevelopmentEnvironment.ps1。原機正式基準 0.9.2；0.10.1 原生 154 項通過但窄版 UI 有缺陷。來源已完成 0.10.2 欄位／圖例排版修正、建置 0 錯誤／0 警告；尚未載入或完成原生與 UI 複驗。父儲存庫歷史基準 1b7a9d4；專案已建立獨立 Git 歷史並提交新程式碼。ZIP 是較早快照，不代表最新 Git 工作樹。
 
 先完成家用環境接入及 0.10.2 驗收：使用 artifacts/home-build 的新輸出，不覆寫歷史 releases。不要直接執行原機升版註冊腳本或 *_calls.json；為家用 root、元件、氣象、MCP slot 產生新 calls／版本化 receipts。只操作新建專用測試文件，不接管不明 Rhino session。家用環境不符合時先整理具體缺口，不自動更新／覆寫第三方套件。
 
