@@ -8,9 +8,18 @@ namespace EnvironmentalHub.Plugin;
 
 // Keep the original overview identity so Rhino can reuse its saved dock location.
 [Guid("7281a8f2-e2c4-4c27-bcb5-22cbb0688b32")]
-public sealed class HubWorkspacePanel : Panel
+public sealed class HubWorkspacePanel : Panel, IPanel
 {
-    private readonly Dictionary<Type, Panel> modules = [];
+    private sealed class DocumentSession
+    {
+        internal readonly Dictionary<Type, Panel> Modules = [];
+        internal Type ActiveModule = typeof(HubOverviewPanel);
+        internal HubWorkspacePanel? Owner;
+    }
+    private static readonly Dictionary<uint, DocumentSession> sessions = [];
+    private Dictionary<Type, Panel> modules = [];
+    private DocumentSession? session;
+    private uint documentSerial;
     private readonly DropDown selector = new();
     private readonly Panel body = new();
     private readonly Label context = HubUi.Hint("");
@@ -19,6 +28,11 @@ public sealed class HubWorkspacePanel : Panel
 
     public Type ActiveModule { get; private set; } = typeof(HubOverviewPanel);
     public int CachedModuleCount => modules.Count;
+
+    static HubWorkspacePanel()
+    {
+        RhinoDoc.CloseDocument += (_, args) => ReleaseDocument(args.Document.RuntimeSerialNumber);
+    }
 
     public HubWorkspacePanel()
     {
@@ -71,10 +85,86 @@ public sealed class HubWorkspacePanel : Panel
             // Detach the previous view without disposing it: results and snapshots stay owned by it.
             if (!ReferenceEquals(body.Content, next)) { body.Content = null; body.Content = next; }
             ActiveModule = type;
+            if (session is not null) session.ActiveModule = type;
             selector.SelectedIndex = index;
             context.Text = HubUi.Modules[index].Detail;
         }
         finally { switching = false; }
+    }
+
+    public void PanelShown(uint serial, ShowPanelReason reason)
+    {
+        // Rhino can replace the shell when moving between dock containers.
+        // The document session owns the cached views, not that disposable shell.
+        if (serial == 0) serial = RhinoDoc.ActiveDoc?.RuntimeSerialNumber ?? 0;
+        if (serial == 0) return;
+        if (!sessions.TryGetValue(serial, out var next))
+            sessions.Add(serial, next = new DocumentSession());
+        if (!ReferenceEquals(session, next))
+        {
+            DetachSession();
+            foreach (var view in modules.Values) view.Dispose();
+            next.Owner?.DetachSession();
+            session = next;
+            documentSerial = serial;
+            modules = next.Modules;
+            next.Owner = this;
+        }
+        ShowModule(next.ActiveModule);
+        Application.Instance.AsyncInvoke(EnsureInitialFloatingWidth);
+    }
+
+    public void PanelHidden(uint serial, ShowPanelReason reason)
+    {
+        if (body.Content is SunHoursPanel hours) hours.ReleaseFocusVisibility();
+    }
+
+    public void PanelClosing(uint serial, bool onCloseDocument)
+    {
+        var bound = documentSerial;
+        DetachSession();
+        if (onCloseDocument && bound != 0) ReleaseDocument(bound);
+    }
+
+    private void DetachSession()
+    {
+        if (body.Content is SunHoursPanel hours) hours.ReleaseFocusVisibility();
+        body.Content = null;
+        if (session is null) return;
+        if (ReferenceEquals(session.Owner, this)) session.Owner = null;
+        session = null;
+        documentSerial = 0;
+        modules = [];
+    }
+
+    private static void ReleaseDocument(uint serial)
+    {
+        if (!sessions.Remove(serial, out var closed)) return;
+        closed.Owner?.DetachSession();
+        foreach (var view in closed.Modules.Values) view.Dispose();
+        closed.Modules.Clear();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            // Detach before the Eto shell disposes its children. Unregistered
+            // capture shells own their views; document sessions retain theirs.
+            var retained = session is not null;
+            DetachSession();
+            if (!retained)
+            {
+                foreach (var view in modules.Values) view.Dispose();
+                modules.Clear();
+            }
+        }
+        base.Dispose(disposing);
+    }
+
+    internal static void ReleaseSessions()
+    {
+        foreach (var serial in sessions.Keys.ToArray()) ReleaseDocument(serial);
     }
 
     internal static bool Open(RhinoDoc document, Type module)
@@ -82,6 +172,7 @@ public sealed class HubWorkspacePanel : Panel
         Panels.OpenPanel(typeof(HubWorkspacePanel));
         var workspace = Panels.GetPanel<HubWorkspacePanel>(document);
         if (workspace is null) return false;
+        workspace.PanelShown(document.RuntimeSerialNumber, ShowPanelReason.Show);
         workspace.ShowModule(module);
         workspace.EnsureInitialFloatingWidth();
         return true;
