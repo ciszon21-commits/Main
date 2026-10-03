@@ -7,6 +7,28 @@ import threading
 from pathlib import Path
 
 
+def check_response(response):
+    """A JSON-RPC response can still contain a failed Rhino script."""
+    if 'error' in response:
+        raise RuntimeError(str(response['error']))
+    result = response.get('result', {})
+    if result.get('isError'):
+        raise RuntimeError('MCP tool returned isError: ' + str(result.get('content')))
+    for block in result.get('content', []):
+        if block.get('type') != 'text':
+            continue
+        try:
+            data = json.loads(block['text'])
+        except (ValueError, KeyError):
+            continue
+        payload = data.get('payload', data) if isinstance(data, dict) else data
+        if isinstance(payload, str) and (payload.startswith('Rhino.Runtime.Code.Execution.ExecuteException:')
+                                        or payload.startswith('Traceback (most recent call last):')):
+            raise RuntimeError(payload)
+        if isinstance(payload, dict) and payload.get('error'):
+            raise RuntimeError(str(payload.get('message', payload['error'])))
+
+
 def probe(router, timeout, calls_path=None):
     process = subprocess.Popen(
         [str(router)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -22,6 +44,7 @@ def probe(router, timeout, calls_path=None):
                 messages.put(json.loads(line))
             except ValueError:
                 messages.put({"transport_text": line.strip()})
+        messages.put({'transport_closed': True})
 
     def read_errors():
         for line in process.stderr:
@@ -40,6 +63,8 @@ def probe(router, timeout, calls_path=None):
         while True:
             item = messages.get(timeout=max(0.01, deadline - time.monotonic()))
             transcript.append(item)
+            if item.get('transport_closed'):
+                raise RuntimeError('MCP router exited before responding; inspect stderr')
             if item.get("id") == request_id:
                 return item
             if time.monotonic() >= deadline:
@@ -56,6 +81,7 @@ def probe(router, timeout, calls_path=None):
                               "method": "notifications/initialized"}) + "\n")
         process.stdin.flush()
         listing = rpc("tools/list", {}, 2)
+        check_response(listing)
         report["tools"] = listing
         names = {t["name"] for t in listing.get("result", {}).get("tools", [])}
         if calls_path:
@@ -64,11 +90,13 @@ def probe(router, timeout, calls_path=None):
             for index, call in enumerate(calls, start=3):
                 if call["name"] not in names:
                     raise ValueError("Tool unavailable: " + call["name"])
-                report["calls"].append({"name": call["name"], "response":
-                                        rpc("tools/call", call, index)})
+                response = rpc("tools/call", call, index)
+                report["calls"].append({"name": call["name"], "response": response})
+                check_response(response)
         elif "list_slots" in names:
             report["slots"] = rpc("tools/call", {
                 "name": "list_slots", "arguments": {}}, 3)
+            check_response(report['slots'])
         report["status"] = "MCP_RESPONDED"
     except queue.Empty:
         report["error"] = "MCP response timeout"
@@ -99,3 +127,5 @@ if __name__ == "__main__":
     print(json.dumps({"status": result["status"], "error": result.get("error"),
                       "output": str(args.output),
                       "call_count": len(result.get("calls", []))}, ensure_ascii=False))
+    if result.get('error'):
+        raise SystemExit(1)

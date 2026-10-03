@@ -90,7 +90,16 @@ public sealed class SunHoursPanel : Panel
         if (inputDocument != d.RuntimeSerialNumber || inputUnits != d.ModelUnitSystem.ToString()) { selected = []; context = []; }
         if (shade) context = picker.Objects().Select(o => o.ObjectId).ToArray(); else selected = picker.Objects().Select(o => o.ObjectId).ToArray(); inputDocument = d.RuntimeSerialNumber; inputUnits = d.ModelUnitSystem.ToString(); RefreshGeometry(); Changed();
     }
-    public void SetGeometry(Guid[] geometryIds, Guid[] contextIds) { var d = RequireDocument(); selected = geometryIds.ToArray(); context = contextIds.ToArray(); inputDocument = d.RuntimeSerialNumber; inputUnits = d.ModelUnitSystem.ToString(); RefreshGeometry(); Changed(); }
+    public void SetGeometry(Guid[] geometryIds, Guid[] contextIds)
+    {
+        // Explicit reselection establishes a new document/unit binding, as the native picker does.
+        var d = RhinoDoc.ActiveDoc ?? throw new InvalidOperationException("SUNH-DOC-001: Active document required.");
+        var nextSelected = geometryIds.ToArray();
+        var nextContext = contextIds.ToArray();
+        selected = nextSelected; context = nextContext;
+        inputDocument = d.RuntimeSerialNumber; inputUnits = d.ModelUnitSystem.ToString();
+        RefreshGeometry(); Changed();
+    }
     private void RefreshGeometry() => geometry.Text = $"{selected.Length} 個分析物件 · {context.Length} 個遮蔽物件";
     public void UseCompletedSunPath()
     {

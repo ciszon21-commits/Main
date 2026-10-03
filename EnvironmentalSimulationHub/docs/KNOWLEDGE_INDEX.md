@@ -1,4 +1,18 @@
-## 目前交接入口
+## 目前接續入口 · 0.10.3／2026-10-03
+
+先讀 [HOME_VALIDATION_0103.md](HOME_VALIDATION_0103.md)：日照時數公開 API 單位重綁修正、161 項原生／平台、25 Core、8 MCP 工具、3 輸出回讀通過；44 張淺色離屏圖及 2 張視埠已檢視，完整原生 UI 待驗收。正式仍為 0.9.2／9、1、112。新證據置於 `evidence/home_0103`，0.10.2 及更早 receipts 保持原範圍。
+
+有實際進度即同步地端與既有 Notion 固定 ID；本輪新驗證編號 `VER-HOME-0103-01`，同步與讀回結果以 [本輪日期化 receipt](evidence/notion_home_0103_sync_2026-10-03.json) 為準。無變化不改日期或重複回報。
+
+## 歷史接續入口 · 0.10.2／2026-10-03
+
+使用者更新規則：每次有實際開發進度，同步維護地端知識文件與既有 Notion 紀錄，再用繁體中文回報。候選進度、測試證據及待驗收門檻也須同步，保持正式／候選的區分；Notion 同步失敗時明確記錄待補，不宣稱雙端完成。沒有變化時不重複回報或改日期。
+
+本輪已更新 Notion 8 筆既有紀錄、新增 `VER-HOME-0102-01`，191 筆唯一編號與正式 9／1／112 已讀回。[日期化同步 receipt](evidence/notion_home_0102_sync_2026-10-03.json) 保留頁面對照、來源 SHA 與驗證範圍；後續重用此對照，不建立重複紀錄。
+
+[HOME_VALIDATION_0102.md](HOME_VALIDATION_0102.md) 記錄家用機 0.10.2：154 原生／平台、25 Core、8 MCP 工具回歸、3 輸出回讀通過；44 張淺色離屏 UI 與 2 張視埠已檢視。完整原生 UI 待驗收，正式版本仍為 0.9.2。以下保留移轉前索引及正式基準；本輪狀態以新驗收文件與 PROJECT_STATUS 為準。
+
+## 歷史交接入口 · 2026-10-02
 
 [HOME_TRANSFER.md](HOME_TRANSFER.md) 是家用安全接收與版本狀態入口；[HOME_CONTINUE_PROMPT.md](HOME_CONTINUE_PROMPT.md) 可交給家用 Codex。[SUN_HOURS_MODULE.md](SUN_HOURS_MODULE.md) 記錄候選日照時數範圍。0.10.2 僅建置，原生 154 項屬 0.10.1；以下歷史索引不能視為新版本已驗收。
 

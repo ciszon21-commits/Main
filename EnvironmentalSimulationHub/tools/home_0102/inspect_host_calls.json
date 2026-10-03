@@ -1,0 +1,9 @@
+[
+  {
+    "name": "run_python",
+    "arguments": {
+      "slot": "aardvark",
+      "script": "import System\nassert System.Diagnostics.Process.GetCurrentProcess().Id == 29180, 'Wrong Rhino process'\nassert __rhino_doc__.RuntimeSerialNumber == 268435457, 'Wrong test document'\n\"\"\"Read only host API and control geometry for remaining native UI checks.\"\"\"\nimport json, System, Rhino, clr\nclr.AddReference('Eto')\nfrom Eto import Forms\nfrom Eto.Drawing import SystemColors\nfrom System.Reflection import BindingFlags\nworkspace = Rhino.UI.Panels.GetPanel(System.Guid('7281a8f2-e2c4-4c27-bcb5-22cbb0688b32'))\nnative = workspace.ControlObject\ninfo = {\n    'rhino_methods': [str(m) for m in clr.GetClrType(Rhino.RhinoApp).GetMethods()\n                     if any(s in m.Name for s in ['MainWindow', 'Focus', 'Visible'])],\n    'appearance_members': [str(m) for m in clr.GetClrType(Rhino.ApplicationSettings.AppearanceSettings).GetMembers()\n                           if any(s in m.Name.lower() for s in ['theme', 'dark', 'color'])],\n    'workspace_size': [workspace.Width, workspace.Height],\n    'native_size': [native.ActualWidth, native.ActualHeight],\n    'window': int(Rhino.RhinoApp.MainWindowHandle().ToInt64()),\n    'parent': str(native.Parent.GetType().FullName) if native.Parent is not None else None,\n    'theme_background': str(SystemColors.ControlBackground),\n    'pid': System.Diagnostics.Process.GetCurrentProcess().Id,\n    'units': str(__rhino_doc__.ModelUnitSystem)\n}\nprint(json.dumps(info))\n"
+    }
+  }
+]

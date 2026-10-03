@@ -1,0 +1,9 @@
+[
+  {
+    "name": "run_python",
+    "arguments": {
+      "slot": "aardvark",
+      "script": "import System\nassert System.Diagnostics.Process.GetCurrentProcess().Id == 29180, 'Wrong Rhino process'\nassert __rhino_doc__.RuntimeSerialNumber == 268435457, 'Wrong test document'\n\"\"\"Bring only the owned Rhino host forward using Rhino's own SDK.\"\"\"\nimport System, Rhino, clr, json\nRhino.RhinoApp.SetFocusToMainWindow(__rhino_doc__)\nhost = Rhino.UI.RhinoEtoApp.MainWindow\nprint(json.dumps({'main_window': int(Rhino.RhinoApp.MainWindowHandle().ToInt64()),\n                  'host_type': str(host.GetType().FullName),\n                  'visible': host.Visible,\n                  'state': str(host.WindowState) if hasattr(host, 'WindowState') else None,\n                  'host_properties': [str(p) + ' writable=' + str(p.CanWrite) for p in host.GetType().GetProperties()\n                                      if any(v in p.Name for v in ['Visible', 'WindowState', 'Size'])],\n                  'host_methods': [str(m) for m in host.GetType().GetMethods()\n                                   if m.Name in ['Show', 'BringToFront', 'Focus']],\n                  'eto_members': [str(m) for m in clr.GetClrType(Rhino.UI.RhinoEtoApp).GetMembers()\n                                  if 'Window' in m.Name or 'Theme' in m.Name]}))\n"
+    }
+  }
+]

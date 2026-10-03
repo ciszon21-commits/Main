@@ -1,5 +1,11 @@
 # 回家後交給 Codex 的接續指令
 
+## 目前檢查點 · 2026-10-03
+
+目前優先讀 [HOME_VALIDATION_0103.md](HOME_VALIDATION_0103.md)，原始碼版本 **0.10.3**。已修正公開 API 單位重綁，161 原生／平台、25 Core、8 MCP 工具、3 輸出回讀通過；44 張淺色離屏 UI 與 2 張視埠已檢視。完整 Dock／深色／鍵盤／picker／file dialog 未驗收，實際桌面擷取仍逾時。舊測試程序曾結束，不重用舊 PID；新的 calls 從當次非 adopted spawn、identity 產生。候選同步地端與 Notion，正式仍為 0.9.2。工作分支沿用 `codex/home-0102-validation`；新證據在 `home_0103`，下文 0.10.2 步驟與測試保留前一檢查點範圍。
+
+先讀 [HOME_VALIDATION_0102.md](HOME_VALIDATION_0102.md)。家用接入、0.10.2 建置／新 Rhino 載入、154 原生／平台、25 Core、8 MCP 工具回歸、3 輸出回讀已通過。44 張新的淺色離屏 UI 與 2 張視埠已檢視；完整原生 Dock、主題、鍵盤與 picker／file dialog 未完成。MCP 指令成功，實際視窗擷取逾時；待恢復桌面後接續 UI。正式 0.9.2／9、1、112 維持；持續同步地端與 Notion 候選進度，但不要先宣告正式交付或開始 Sky Mask。工作分支 `codex/home-0102-validation`；新證據在 `docs/evidence/home_0102`。以下保留原移轉指令與安全界線，已完成步驟不必重做。
+
 請在目前 EnvironmentalSimulationHub 資料夾接續開發。先讀 AGENTS.md、docs/HOME_TRANSFER.md、docs/PROJECT_STATUS.md、docs/KNOWLEDGE_INDEX.md 與 docs/L2_VISUAL_PLAN.md。只修改本專案，不動其他專案、使用者模型、全域設定或原機 registry backup。優先使用 MCP、RhinoCommon／Grasshopper SDK、檔案工具，盡量不用 Computer Use；降低非必要詢問，操作需升權時仍用正式核准工具。
 
 若從 ZIP 接收，先核對 TRANSFER_MANIFEST.json 與接收校驗；若由 Git 接續，先讀 docs/GIT_HOME_WORKFLOW.md，核對遠端分支、commit 與乾淨工作樹。GitHub 目的地為個人公開 ciszon21-commits/Main，專案在 Main/EnvironmentalSimulationHub/；只修改此子目錄，不動 Main 其他資料。再執行 tools/Test-HomeDevelopmentEnvironment.ps1。原機正式基準 0.9.2；0.10.1 原生 154 項通過但窄版 UI 有缺陷。來源已完成 0.10.2 欄位／圖例排版修正、建置 0 錯誤／0 警告；尚未載入或完成原生與 UI 複驗。父儲存庫歷史基準 1b7a9d4；專案已建立獨立 Git 歷史並提交新程式碼。ZIP 是較早快照，不代表最新 Git 工作樹。
@@ -10,6 +16,6 @@
 
 保留原有核心與單一 HubWorkspacePanel。日照時數對應 LB-061 原生 Direct Sun Hours 1.10.0，透過原生 SunPath 重新產生來源，不接收任意外部向量替代。原機 13 組 stock 比較、15 類無效輸入、17 UI／owned-preview 操作共 45 項；既有回歸 60、SunPath 31＋2＋1、workspace 15，合計 154。家用需重新取得證據，Build 成功不能代替原生驗證，44 張舊 UI 圖片不能證明新排版已通過。
 
-完成 0.10.2 原生及視覺驗收後，更新正式功能表 JSON／Markdown／HTML、目前狀態、內部試用包和既有 Notion 資料庫，保留 190 筆歷史紀錄與固定 ID，不重建資料庫。候選功能有 10 項接入，正式已交付仍 9；未完成 UI 驗收不能增加正式完成數。下一項為 L2 V03 Sky Mask；CFD 後續優先 Eddy3D，Honeybee／能耗等仍為後續整合。
+每次有實際進度，同步地端文件與既有 Notion 固定 ID，再用繁體中文回報；候選／部分驗證也須記錄，無變化不通知、不改日期。家用檢查點已更新 8 筆既有頁、新增 `VER-HOME-0102-01`，191 筆唯一編號與正式 9／1／112 已讀回，對照見 `docs/evidence/notion_home_0102_sync_2026-10-03.json`。不重建資料庫或覆寫歷史。完成完整 UI 後才更新正式交付狀態及內部試用包；候選功能 10 項，正式已交付仍 9。下一項為 L2 V03 Sky Mask；CFD 後續優先 Eddy3D，Honeybee／能耗等仍為後續整合。
 
-用繁體中文簡短回報已完成、實際 Build/Test 結果、下一步與阻礙。使用者希望少詢問；原機 heartbeat 建立曾被取消，目前沒有已啟用定時排程。若需恢復定時回報，核對可用排程與現在的環境，不宣稱移轉包已包含帳號或排程設定。
+用繁體中文簡短回報已完成、實際 Build/Test 結果、下一步與阻礙。使用者希望少詢問；原機 heartbeat 曾被取消；家用機目前已啟用每日 09:00 的同對話檢查，只有實際新進度才更新地端與 Notion 並通知。排程不屬移轉包內的帳號／環境內容。

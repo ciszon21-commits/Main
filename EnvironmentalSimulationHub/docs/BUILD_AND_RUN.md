@@ -1,6 +1,8 @@
 ## 家用開發優先讀此
 
-依 [HOME_TRANSFER.md](HOME_TRANSFER.md) 做唯讀環境檢查、建置至新 home-build 資料夾。不要直接重播原機 *_calls.json、匯入 registry backup 或執行下文的原機升版腳本。0.10.2 僅完成 Build，跨機及原生/UI 複驗待完成。
+目前候選 **0.10.3** 使用 `artifacts/home-build/0.10.3`；新專用程序實際載入 0.10.3.0，建置 0 錯誤／0 警告，161 項原生／平台與 Core／工具／輸出 25／8／3 項通過。SDK 載入後本機 HKCU FileName 回讀為候選路徑，未執行正式升版腳本；不等同正式部署。完整原生 UI 待驗收。新 calls 必須由當次非 adopted spawn 與 identity 產生，詳見 [0.10.3 重播與範圍](HOME_VALIDATION_0103.md)。以下 0.10.2 是前一檢查點，正式發布基準仍為 0.9.2。
+
+依 [HOME_TRANSFER.md](HOME_TRANSFER.md) 做唯讀環境檢查、建置至新 home-build 資料夾。不要直接重播原機 *_calls.json、匯入 registry backup 或執行下文的原機升版腳本。2026-10-03 家用 0.10.2 已建置、新 Rhino 載入並完成 154 項原生／平台驗證；44 張淺色離屏 UI 已檢視，完整 Dock／主題／鍵盤／對話框待驗收。[目前證據與 MCP 重播方式](HOME_VALIDATION_0102.md)。新輸出為 `artifacts/home-build/0.10.2`，尚未正式發布。
 
 # Build and run (0.9.2)
 
