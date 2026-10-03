@@ -15,6 +15,7 @@ public sealed class HubWorkspacePanel : Panel
     private readonly Panel body = new();
     private readonly Label context = HubUi.Hint("");
     private bool switching;
+    private bool initialFloatingWidthApplied;
 
     public Type ActiveModule { get; private set; } = typeof(HubOverviewPanel);
     public int CachedModuleCount => modules.Count;
@@ -41,6 +42,7 @@ public sealed class HubWorkspacePanel : Panel
         layout.Add(body, yscale: true);
         Content = layout;
         ShowModule(typeof(HubOverviewPanel));
+        LoadComplete += (_, _) => Application.Instance.AsyncInvoke(EnsureInitialFloatingWidth);
     }
 
     public Panel GetModule(Type type)
@@ -81,6 +83,37 @@ public sealed class HubWorkspacePanel : Panel
         var workspace = Panels.GetPanel<HubWorkspacePanel>(document);
         if (workspace is null) return false;
         workspace.ShowModule(module);
+        workspace.EnsureInitialFloatingWidth();
         return true;
+    }
+
+    private void EnsureInitialFloatingWidth()
+    {
+        // A docked panel belongs to Rhino's main window. Resize only the actual
+        // Eto floating form, once; later user resizing and module switches win.
+        if (initialFloatingWidthApplied || !Loaded || ParentWindow is not Form window ||
+            window.NativeHandle == RhinoApp.MainWindowHandle() || !window.Resizable)
+            return;
+        var document = RhinoDoc.ActiveDoc;
+        if (document is null || !Panels.GetPanels(typeof(HubWorkspacePanel).GUID, document)
+                .Any(panel => ReferenceEquals(panel, this)))
+            return;
+        var container = Panels.PanelDockBar(typeof(HubWorkspacePanel));
+        if (container == Guid.Empty || Panels.GetOpenPanelIds().Any(id =>
+                id != typeof(HubWorkspacePanel).GUID && Panels.PanelDockBars(id).Contains(container)))
+            return;
+        var targetWidth = Math.Min(500, (int)window.Screen.WorkingArea.Width);
+        if (targetWidth <= 0) return;
+        try
+        {
+            if (window.Size.Width < targetWidth)
+                window.Size = new Size(targetWidth, window.Size.Height);
+            initialFloatingWidthApplied = true;
+        }
+        catch (NotSupportedException)
+        {
+            // Some host versions expose a read-only native window wrapper.
+            // Keep the panel usable without changing the rest of Rhino's layout.
+        }
     }
 }
