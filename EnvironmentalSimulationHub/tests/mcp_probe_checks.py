@@ -42,6 +42,21 @@ class ResponseChecks(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             check_response(envelope('Traceback (most recent call last):\nAssertionError'))
 
+    def test_stdout_then_rhino_exception(self):
+        with self.assertRaisesRegex(RuntimeError, 'not implemented'):
+            check_response(envelope('{"objects": 0}\r\nRhino.Runtime.Code.Execution.ExecuteException: The method or operation is not implemented.\r\n ---> System.NotImplementedException'))
+
+    def test_stdout_then_traceback(self):
+        with self.assertRaisesRegex(RuntimeError, 'AssertionError'):
+            check_response(envelope('Starting validation\n\nTraceback (most recent call last):\nAssertionError: wrong dock container'))
+
+    def test_unwrapped_text_exception(self):
+        with self.assertRaisesRegex(RuntimeError, 'Wrong release'):
+            check_response({'result': {'content': [{'type': 'text', 'text': 'Starting\nRhino.Runtime.Code.Execution.ExecuteException: Wrong release'}]}})
+
+    def test_quoted_diagnostic_name_is_successful_data(self):
+        check_response(envelope('{"expected_error": "Rhino.Runtime.Code.Execution.ExecuteException: example"}'))
+
 
 if __name__ == '__main__':
     unittest.main()

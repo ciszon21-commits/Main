@@ -20,11 +20,17 @@ def check_response(response):
         try:
             data = json.loads(block['text'])
         except (ValueError, KeyError):
-            continue
+            data = block.get('text', '')
         payload = data.get('payload', data) if isinstance(data, dict) else data
-        if isinstance(payload, str) and (payload.startswith('Rhino.Runtime.Code.Execution.ExecuteException:')
-                                        or payload.startswith('Traceback (most recent call last):')):
-            raise RuntimeError(payload)
+        if isinstance(payload, str):
+            # Rhino can append an exception after script stdout. Require a
+            # diagnostic at the beginning of a line, rather than matching
+            # quoted diagnostic names inside otherwise successful JSON.
+            lines = payload.splitlines()
+            for index, line in enumerate(lines):
+                if line.lstrip().startswith(('Rhino.Runtime.Code.Execution.ExecuteException:',
+                                             'Traceback (most recent call last):')):
+                    raise RuntimeError('\n'.join(lines[index:]))
         if isinstance(payload, dict) and payload.get('error'):
             raise RuntimeError(str(payload.get('message', payload['error'])))
 

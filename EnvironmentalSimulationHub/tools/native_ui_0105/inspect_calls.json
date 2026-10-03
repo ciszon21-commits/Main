@@ -1,0 +1,13 @@
+[
+  {
+    "name": "list_slots",
+    "arguments": {}
+  },
+  {
+    "name": "run_python",
+    "arguments": {
+      "slot": "bonobo",
+      "script": "import json, System, Rhino\nfrom System.Reflection import BindingFlags\nfrom Eto.Drawing import SystemColors\np=System.Diagnostics.Process.GetCurrentProcess().Id\nassert p == 21244\nd=__rhino_doc__\ng=System.Guid('7281a8f2-e2c4-4c27-bcb5-22cbb0688b32')\nw=Rhino.UI.Panels.GetPanel(g,d)\nassert w is not None and str(w.GetType().Assembly.GetName().Version)=='0.10.5.0'\nreport={'pid':p,'hwnd':Rhino.RhinoApp.MainWindowHandle().ToInt64(),'document':d.RuntimeSerialNumber,'objects':d.Objects.Count,'modified':d.Modified,'path':d.Path,'workspace_size':str(w.Size),'parent':w.ParentWindow.GetType().FullName,'open_panels':[str(x) for x in Rhino.UI.Panels.GetOpenPanelIds()],'dockbars':{str(x):[str(b) for b in Rhino.UI.Panels.PanelDockBars(x)] for x in Rhino.UI.Panels.GetOpenPanelIds()},'panels_methods':[str(m) for m in System.Type.GetType('Rhino.UI.Panels, RhinoCommon').GetMethods() if any(x in m.Name for x in ['Open','Dock','Float'])],'theme_properties':[str(p) for p in System.Type.GetType('Rhino.ApplicationSettings.AppearanceSettings, RhinoCommon').GetProperties() if any(x in p.Name.lower() for x in ['dark','theme','color'])]}\nprint(json.dumps(report))"
+    }
+  }
+]
