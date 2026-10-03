@@ -7,3 +7,10 @@
 *.pdf -text
 # Preserve the captured patch bytes; context-line spaces are patch syntax.
 docs/evidence/home_transfer/project_changes.patch -text -whitespace
+# Preserve the exact bytes of immutable QA exports already tested and hashed.
+# These two files contain legal JSON whitespace from a Windows writer that
+# translated native CRLF twice. Do not rewrite their historical evidence.
+samples/archive_0107/comparison_export_api.json -text whitespace=-blank-at-eol
+samples/archive_0107/legacy_comparison.json -text whitespace=-blank-at-eol
+# Preserve the Windows event log verbatim, including its final blank line.
+docs/evidence/archive_0107/test_callback_crash.txt -text whitespace=-blank-at-eof

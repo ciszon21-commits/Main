@@ -9,4 +9,4 @@ for name in ['common.py','prepare_load.py','spawn_calls.json','prepare_cleanup.p
     if name=='run_action.py': body=body.replace("'verify_exports','archive_checks'", "'verify_exports','restore','archive_checks'")
     (dest/name).write_text(body,encoding='utf-8')
 fixture=json.loads((root/'docs/evidence/archive_0107/fixture.json').read_text(encoding='utf-8'))
-(root/'samples/archive_0107/comparison_export_api.json').write_text(fixture['comparison_json'],encoding='utf-8')
+(root/'samples/archive_0107/comparison_export_api.json').write_text(fixture['comparison_json'],encoding='utf-8',newline='')
