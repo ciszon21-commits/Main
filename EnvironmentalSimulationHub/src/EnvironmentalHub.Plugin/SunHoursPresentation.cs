@@ -33,7 +33,7 @@ internal static class SunHoursPresentation
     internal static string Compare(string an, SunHoursResult a, string bn, SunHoursResult b)
     {
         var text = $"{an} → {bn}\n平均值 {a.Statistics.Mean:F3} h → {b.Statistics.Mean:F3} h\n取樣格數 {a.Statistics.Count:N0} → {b.Statistics.Count:N0}";
-        if (a.Metadata["SunSourceSha256"] != b.Metadata["SunSourceSha256"] || a.Metadata["UserObjectSha256"] != b.Metadata["UserObjectSha256"] || a.Metadata["SunPathUserObjectSha256"] != b.Metadata["SunPathUserObjectSha256"])
+        if (!SunHoursArchive.SameSunConditions(a, b) || a.Metadata["SunSourceSha256"] != b.Metadata["SunSourceSha256"] || a.Metadata["UserObjectSha256"] != b.Metadata["UserObjectSha256"] || a.Metadata["SunPathUserObjectSha256"] != b.Metadata["SunPathUserObjectSha256"])
             return text + "\n無法直接比較 · 太陽來源、期間、取樣頻率或原生版本不同，不顯示差值。";
         text += $"\nΔ 平均值 {b.Statistics.Mean - a.Statistics.Mean:+0.000;-0.000;0.000} h";
         var changes = new List<string>();

@@ -18,7 +18,9 @@ public sealed class SunHoursPanel : Panel
     private readonly List<(uint Document, Guid Object)> owned = [], hiddenOther = [];
     private readonly NumericStepper displayOffset = Number(0, 1, .002, 3);
     private readonly CheckBox visible = new() { Text = "顯示結果網格", Checked = true }, solo = new() { Text = "暫時隱藏其他 Hub 預覽", Checked = true };
-    private readonly List<(string Name, SunHoursResult Result)> scenarios = [];
+    private readonly List<SunHoursScenario> scenarios = [];
+    private readonly Label archiveStatus = HubUi.Hint("匯入歷史方案只恢復比較資料，不會套用模型或重新求解。");
+    private readonly Button importScenarios = new() { Text = "匯入方案比較 JSON…" };
     private readonly NumericStepper grid = Number(.01, 1000000, 1, 2), offset = Number(0, 1000000, .1, 3), cpu = Number(1, 128, 1);
     private readonly NumericStepper targetMin = Number(0, 525600, 2, 2), targetMax = Number(0, 525600, 6, 2);
     private readonly DropDown rate = new(), baseline = new(), candidate = new(), stage = new();
@@ -50,6 +52,7 @@ public sealed class SunHoursPanel : Panel
         foreach (var n in new[] { grid, offset, cpu }) n.ValueChanged += (_, _) => Changed(); blocks.CheckedChanged += (_, _) => Changed(); rate.SelectedIndexChanged += (_, _) => { RefreshSource(); Changed(); };
         locate.Click += (_, _) => Guard(LocateResult); clear.Click += (_, _) => DeletePreview(); export.Click += (_, _) => Guard(() => SaveJson("sun_hours_result.json", ExportResultJson()));
         save.Click += (_, _) => Guard(() => SaveScenario(scenarioName.Text)); baseline.SelectedIndexChanged += (_, _) => RefreshComparison(); candidate.SelectedIndexChanged += (_, _) => RefreshComparison(); exportCompare.Click += (_, _) => Guard(() => SaveJson("sun_hours_comparison.json", ExportComparisonJson()));
+        importScenarios.Click += (_, _) => ImportFile();
         visible.CheckedChanged += (_, _) => Guard(ApplyVisibility); solo.CheckedChanged += (_, _) => Guard(ApplyOtherVisibility);
         displayOffset.ValueChanged += (_, _) => Guard(() => { if (result is not null && !busy) { ReplacePreview(RequireDocument(), result); ApplyVisibility(); } });
         target.CheckedChanged += (_, _) => UpdateAssessment(); targetMin.ValueChanged += (_, _) => UpdateAssessment(); targetMax.ValueChanged += (_, _) => UpdateAssessment();
@@ -71,7 +74,7 @@ public sealed class SunHoursPanel : Panel
             HubUi.Section("03  模擬設定", HubTopic.Settings, settings),
             HubUi.Section("04  檢核／執行", HubTopic.Run, validate, run, status, HubUi.Hint("同步執行原生 Rhino 射線交會；Rhino 可能暫停回應，尚無取消或百分比進度。請先以短期間及粗網格試算。")),
             HubUi.Section("05  分析結果", HubTopic.Results, state, kpi, legend, detail, target, targetBody, assessment, viewSettings, locate, clear),
-            HubUi.Section("06  比較／匯出", HubTopic.Compare, scenarioName, save, choices, comparison, exportCompare, export, HubUi.Hint("方案保留於本次工作階段；關閉 Rhino 前請匯出。此結果是直射日照時數 h，並非照度、日射能量或日照法規判定。"))];
+            HubUi.Section("06  比較／匯出", HubTopic.Compare, scenarioName, save, choices, comparison, exportCompare, importScenarios, archiveStatus, export, HubUi.Hint("方案保留於本次工作階段；關閉 Rhino 前請匯出比較 JSON，可於下次匯入。匯入後合計上限 20 個方案、檔案上限 64 MiB；同名方案請先改名再匯出。此結果是直射日照時數 h，並非照度、日射能量或日照法規判定。"))];
         var layout = new DynamicLayout { Padding = 16, Spacing = new Size(8, 14) }; layout.AddRow(HubUi.Header("日照時數", "檢視建築表面與地面的直射日照，核對遮蔭與時間取樣。", typeof(SunHoursPanel))); foreach (var s in sections) layout.AddRow(s);
         scroll = new Scrollable { Content = layout, ExpandContentWidth = true }; scroll.SizeChanged += (_, _) => layout.Width = Math.Max(120, scroll.ClientSize.Width - 20);
         foreach (var s in new[] { "01  幾何／模型", "02  太陽來源", "03  模擬設定", "04  檢核／執行", "05  分析結果", "06  比較／匯出" }) stage.Items.Add(s); stage.SelectedIndex = 0;
@@ -156,9 +159,40 @@ public sealed class SunHoursPanel : Panel
     public void ShowStage(int i) { if (i < 0 || i >= sections.Length) throw new ArgumentOutOfRangeException(nameof(i)); stage.SelectedIndex = i; var origin = scroll.Content.PointToScreen(PointF.Empty); var p = sections[i].PointToScreen(PointF.Empty); scroll.ScrollPosition = new Eto.Drawing.Point(0, Math.Max(0, (int)(p.Y - origin.Y))); }
     private void UpdateAssessment() { if (result is null || target.Checked != true) { assessment.Text = "尚未設定完成結果的專案評估區間。"; return; } if (targetMin.Value > targetMax.Value) { assessment.Text = "區間下限不得高於上限。"; return; } var pass = result.Values.Count(v => v >= targetMin.Value && v <= targetMax.Value); assessment.Text = $"專案目標 {targetMin.Value:G}–{targetMax.Value:G} h\n符合 {pass:N0} · 未符合 {result.Values.Length - pass:N0}\n{100.0 * pass / result.Values.Length:F1}% · 包含上下限"; }
     public void SetTargetRange(double min, double max) { if (!double.IsFinite(min) || !double.IsFinite(max) || min < 0 || max > 525600 || min > max || Math.Round(min, 2) != min || Math.Round(max, 2) != max) throw new ArgumentException("專案區間須為 0–525600 h，精度 0.01 h，且下限不超過上限。"); targetMin.Value = min; targetMax.Value = max; target.Checked = true; UpdateAssessment(); }
-    public string SaveScenario(string name) { if (result is null || busy) throw new InvalidOperationException("請先完成分析。"); name = name.Trim(); if (name.Length == 0 || name.Length > 80 || scenarios.Any(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) || scenarios.Count >= 20) throw new ArgumentException("方案名稱須為 1–80 字元、不重複；本次工作階段上限 20 個方案。"); scenarios.Add((name, result)); baseline.Items.Add(name); candidate.Items.Add(name); if (baseline.SelectedIndex < 0) baseline.SelectedIndex = 0; candidate.SelectedIndex = scenarios.Count - 1; exportCompare.Enabled = scenarios.Count >= 2; scenarioName.Text = "方案 " + (scenarios.Count + 1); RefreshComparison(); return JsonSerializer.Serialize(new { Name = name, Result = result }); }
-    private void RefreshComparison() { if (baseline.SelectedIndex < 0 || candidate.SelectedIndex < 0 || baseline.SelectedIndex >= scenarios.Count || candidate.SelectedIndex >= scenarios.Count) return; comparison.Text = baseline.SelectedIndex == candidate.SelectedIndex ? "請選取兩個不同方案。" : SunHoursPresentation.Compare(scenarios[baseline.SelectedIndex].Name, scenarios[baseline.SelectedIndex].Result, scenarios[candidate.SelectedIndex].Name, scenarios[candidate.SelectedIndex].Result); }
+    public string SaveScenario(string name) { if (result is null || busy) throw new InvalidOperationException("請先完成分析。"); name = name.Trim(); if (name.Length == 0 || name.Length > 80 || name.Any(char.IsControl) || scenarios.Any(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) || scenarios.Count >= SunHoursArchive.MaximumScenarios) throw new ArgumentException("方案名稱須為 1–80 字元、不含控制字元、不重複；本次工作階段上限 20 個方案。"); scenarios.Add(new(name, result)); baseline.Items.Add(name); candidate.Items.Add(name); if (baseline.SelectedIndex < 0) baseline.SelectedIndex = 0; candidate.SelectedIndex = scenarios.Count - 1; exportCompare.Enabled = scenarios.Count > 0; scenarioName.Text = "方案 " + (scenarios.Count + 1); RefreshComparison(); return JsonSerializer.Serialize(new { Name = name, Result = result }); }
+    private void RefreshComparison() { if (updating || baseline.SelectedIndex < 0 || candidate.SelectedIndex < 0 || baseline.SelectedIndex >= scenarios.Count || candidate.SelectedIndex >= scenarios.Count) return; var a = scenarios[baseline.SelectedIndex]; var b = scenarios[candidate.SelectedIndex]; comparison.Text = baseline.SelectedIndex == candidate.SelectedIndex ? "請選取兩個不同方案。" : SunHoursPresentation.Compare(a.Name, a.Result, b.Name, b.Result); if (a.Imported || b.Imported) comparison.Text += "\n含匯入歷史結果 · 未重新求解、未核對目前模型；請確認檔案來源。"; }
     public string CompareScenarios(int a, int b) { if (a < 0 || b < 0 || a >= scenarios.Count || b >= scenarios.Count) throw new ArgumentOutOfRangeException(nameof(a)); baseline.SelectedIndex = a; candidate.SelectedIndex = b; RefreshComparison(); return comparison.Text; }
-    public string ExportComparisonJson() => JsonSerializer.Serialize(new { SchemaVersion = "1.0", BaselineIndex = baseline.SelectedIndex, CandidateIndex = candidate.SelectedIndex, Interpretation = comparison.Text, Metric = "Arithmetic point mean, not area weighted", Scenarios = scenarios.Select(s => new { s.Name, s.Result }) }, new JsonSerializerOptions { WriteIndented = true });
+    public string ExportComparisonJson() => JsonSerializer.Serialize(new { SchemaVersion = "1.0", BaselineIndex = baseline.SelectedIndex, CandidateIndex = candidate.SelectedIndex, Interpretation = comparison.Text, Metric = "Arithmetic point mean, not area weighted", Scenarios = scenarios }, new JsonSerializerOptions { WriteIndented = true });
+    public int ImportScenariosJson(string json)
+    {
+        if (busy) throw new InvalidOperationException("分析執行中，請完成後再匯入方案。");
+        var archive = SunHoursArchive.Parse(json, scenarios.Select(s => s.Name));
+        int first = scenarios.Count;
+        updating = true;
+        try
+        {
+            scenarios.AddRange(archive.Scenarios);
+            foreach (var s in archive.Scenarios) { baseline.Items.Add(s.Name); candidate.Items.Add(s.Name); }
+            baseline.SelectedIndex = first + archive.BaselineIndex; candidate.SelectedIndex = first + archive.CandidateIndex;
+            exportCompare.Enabled = true; scenarioName.Text = "方案 " + (scenarios.Count + 1);
+        }
+        finally { updating = false; }
+        RefreshComparison(); archiveStatus.Text = $"已匯入 {archive.Scenarios.Length} 個歷史方案 · 合計 {scenarios.Count} 個。\n目前模型、輸入與完成結果保留；歷史識別碼不會綁定目前文件。";
+        return archive.Scenarios.Length;
+    }
+    private void ImportFile()
+    {
+        try
+        {
+            using var dialog = new OpenFileDialog { Title = "匯入日照方案比較 JSON" };
+            dialog.Filters.Add(new FileFilter("日照方案比較 JSON", ".json"));
+            if (dialog.ShowDialog(this) != DialogResult.Ok) return;
+            using var stream = File.OpenRead(dialog.FileName);
+            if (stream.Length > SunHoursArchive.MaximumBytes) throw new ArgumentException("SUNH-IMPORT-001: 檔案超過 64 MiB。");
+            using var reader = new StreamReader(stream, System.Text.Encoding.UTF8, true);
+            ImportScenariosJson(reader.ReadToEnd());
+        }
+        catch (Exception e) { archiveStatus.Text = "匯入未完成 · 已保留既有方案、模型與結果\n" + HubText.Error(e); }
+    }
     private void SaveJson(string name, string? json) { if (json is null) throw new InvalidOperationException("尚無可匯出的結果。"); var dialog = new SaveFileDialog { FileName = name }; dialog.Filters.Add(new FileFilter("分析資料 JSON", ".json")); if (dialog.ShowDialog(this) == DialogResult.Ok) File.WriteAllText(dialog.FileName, json); }
 }
