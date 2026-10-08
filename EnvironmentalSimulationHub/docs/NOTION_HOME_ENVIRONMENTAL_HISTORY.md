@@ -1,0 +1,158 @@
+<callout icon="🗃️" color="gray_bg">
+	**Environmental Hub 首頁歷史紀錄｜2026-10-05 移入**
+	原先散置於 MCP AI 首頁的版本、計畫、部署、驗證與知識導航已集中保存。下方保留原始文字與日期；其中「目前」、工期及資料庫筆數均為當時快照，最新狀態以專案卡片與固定紀錄為準。
+	返回專案：<mention-page url="https://app.notion.com/p/3f01956a9b0e81f0a52fc11e84c1d86c"/>；最新狀態：<mention-page url="https://app.notion.com/p/3ec1956a9b0e81aca858fefd1fae1c4c"/>。
+</callout>
+## Legacy｜既有開發紀錄 {color="gray"}
+<callout icon="🗃️" color="gray_bg">
+	以下為原先累積在 MCP AI 首頁的歷史紀錄，先完整保留避免遺失。後續新紀錄改寫入各專案卡片；既有內容再逐步歸檔至對應專案。
+</callout>
+## 2026-10-05 · 公司已部署 0.10.9／重複 ID 修正
+公司新專用 Rhino 已實際載入 **0.10.9.0**。修正 HKLM／HKCU 兩筆既有外掛路徑，消除舊 0.10.1 覆蓋與再次載入同 ID 的觸發原因；保留 GUID、舊版及第一份備份。15 項原生檢查通過，包含兩次新日照求解（256 點無遮蔭 13 h、遮蔭 8–13 h／平均 9.57421875 h）、A/B、新版 HTML、失敗保留、模組切換與實際停靠／浮動狀態。另有本輪 42 方案、15 MCP 工具檢查。
+新版報告頁由「匯出圖像摘要 HTML…」使用，WebView 預設 gate 保留。原生窄版擷取未通過宿主型別假設，完整 Dock 版面／主題／DPI／鍵盤與檔案對話框仍待驗收；MCP 曾提前斷線，後續同程序版本及原生紀錄已讀回。有效測試物件清空，面板已關閉；未強制結束工作階段。
+正式功能基準 **0.9.2／9、1、112**；已部署候選 **0.10.9／10、1、111**，功能覆蓋不變。詳細部署、失敗與回復來源：`docs/COMPANY_DEPLOYMENT_0109.md`；證據：`docs/evidence/deploy_0109/deployment_verified.json`。本輪沒有 GitHub 推送或跨機試用驗收。下一步維持指定時刻陰影、風花圖／常用圖表與 Eddy3D 引擎關卡。
+本輪地端來源：`docs/COMPANY_DEPLOYMENT_0109.md`；SHA-256：`10ea3dd088eb26a094b3766b4926a83dda6f33c0e8e26a1ebf9002d42d174fe9`。
+## 2026-10-05 · 0.10.9 日照成果頁視覺優化
+候選來源 **0.10.9** 已改為建築成果報告式頁面：大型平均日照與次要 KPI、分布圖／必要條件並列、主題色及線條圖示、可展開完整區間數據／來源摘要。窄版依閱讀順序排列，320px 圖表文字獨立放大；新增首尾取樣日期與格點占比，保留原始序列、原生色樣及科學單位。
+**Build 0 錯誤／0 警告；18 項呈現契約通過**，含跨年與非閏年日期檢查。實際 CSS viewport 320／480／760／960／1280px × 淺／深色共 **10 組**；收合與展開皆檢查無水平溢出及來源可讀回，保存 20 張畫面。已人工檢視 10 張收合圖與 2 張展開圖，其他展開圖僅有自動檢查。歷史原生資料 256 格點、8–13 h、平均 9.57421875 h；**本輪沒有新求解**。
+Core／Adapters／Grasshopper、單一 Rhino 工作區與 C# 狀態權威維持原行為。**WebView 預設試驗 gate 保留**；完整 Rhino Dock／原生主題／DPI／鍵盤／檔案與非同步失敗復原待驗收，未部署。正式 **0.9.2／9、1、112**；候選 **10、1、111**，UI 修改不增加 Ladybug 功能覆蓋。
+Audit／預覽來源：`docs/VISUAL_RESULT_PAGE_0109.md`；SHA-256：`7278700c412bb8703445fdd6ebbf0168cb4afa972611da480d1620546d2cf1b3`。證據：`docs/evidence/visual_0109/acceptance.json`；淺／深色離線 HTML 與 320–1280px 畫面同目錄，沒有外部字型／圖片／JavaScript。
+下一步完成宿主門檻後，逐步沿用成果閱讀層級到日射、陰影與風花圖；多功能 MVP 的活動排序／原估算保持，Eddy3D 引擎／基準探查仍優先。
+本輪地端來源：`docs/MULTI_VISUAL_MVP_PLAN_2026-10-05.md`；SHA-256：`be1d51b94c4c71d73900326bf5fdfe092519313aedfa1689d09782663250e62f`。
+目前狀態：<mention-page url="https://app.notion.com/p/3ec1956a9b0e81aca858fefd1fae1c4c"/>；活動計畫：<mention-page url="https://app.notion.com/p/3ee1956a9b0e811188bacca59252fbcb"/>。
+下方保留 0.10.8 與歷史驗收範圍。
+## 2026-10-05 · 0.10.8 日照圖像摘要與 WebView 探查
+候選來源 **0.10.8** 新增日照 KPI、八等分分布圖／完整區間表、原生面色樣、來源／專案目標／既有比較摘要與離線 HTML 匯出。同一內部視圖的 WebView 惰性載入；預設試驗 gate 保留，C# 狀態與原生求解路徑不變。
+最終 Build **0 錯誤／0 警告**；16 呈現契約、42 原有方案契約、9 隔離 Rhino 呈現／狀態檢查通過，修正版 WebView 中文 DOM 已讀回。真正 320／480 CSS viewport 淺／深色四張尺寸與無水平溢出通過並逐張檢視；資料為歷史原生結果，**本輪沒有新求解**。
+**MV-U0 部分完成**：原生 SDK 擷取未完成，完整 Dock／原生深色／DPI／鍵盤／HTML 檔案對話框與非同步失敗復原待驗收。公司自建 Rhino 自動載入舊 0.10.1，探查使用獨立組件名稱；未替換公司外掛註冊或正式部署。測試控制項已釋放、文件零物件；close_slot adopted 保護未繞過。
+正式 **0.9.2／9、1、112**；候選 **10、1、111**。UI 工作不增加 Ladybug 功能覆蓋。主線仍推進指定時刻陰影、風花圖／常用圖表，Eddy3D 引擎／基準探查提前，WebView 宿主門檻不阻塞其他視覺功能。
+詳細範圍：`docs/WEBVIEW_RESULT_PROBE_0108.md`；SHA-256：`ceb352d668f7e7294a6d548fb1593460fb3d24ad9a535dbbad575e27aaa748ed`。版本化證據：`docs/evidence/webview_0108/acceptance.json`。
+下方保留原規劃輪及歷史驗證範圍。
+本輪地端來源：`docs/MULTI_VISUAL_MVP_PLAN_2026-10-05.md`；SHA-256：`ed06eb339251ebd911954f6b77b6c8f915da129c6cff8eb61cf09ad038bbcf18`。
+詳細活動計畫：<mention-page url="https://app.notion.com/p/3ee1956a9b0e811188bacca59252fbcb"/>；目前狀態：<mention-page url="https://app.notion.com/p/3ec1956a9b0e81aca858fefd1fae1c4c"/>。
+## 2026-10-05 · 目前採用：多功能視覺化 MVP
+依使用者最新指示，主線改為 **日照／日射 → 指定時刻陰影 → 風花圖與常用圖表 → 熱輻射 MRT**；Eddy3D 單風向風模擬提前做引擎／基準探查，PASS 後插入風場實作，不再等待完整 Ladybug。先交付多種可解讀、可比較、可匯出的最小流程；細部數值工具、全參數、Solar Envelope 與全量獨立頁後排，必要資料／單位與原生數值驗證仍保留。
+多功能 MVP 活動計畫（`docs/MULTI_VISUAL_MVP_PLAN_2026-10-05.md`）取代前版日照單線排序及其近期工期。核心 MVP 含風引擎探查、不含風場實作：48–85 人日；含通過探查後的風場實作：63–113 人日，皆只加一次 25% 預備量，單人＋AI 全時工程假設，非交付日期。未通過風場關卡的釋出須明示風場未交付。
+本輪只調整計畫與知識文件。正式 0.9.2／9、1、112、候選 0.10.7／10、1、111 不變；公司 Rhino 載入／完整 UI 待驗收，沒有新增求解或功能覆蓋。前版規劃與驗證保留原範圍。
+參考「Rhino MCP UIUX」後，加入 Eto 外框＋WebView 圖表／成果探查（`docs/WEBVIEW_UI_STRATEGY_2026-10-05.md`）：先只讀圖表／圖例／比較頁，保留 C# 狀態、原生選取與既有求解。公司 SDK 有 WebView API／組件，宿主初始化／Dock 尚未驗證；MV-U0 條件式探查 2–4 原始人日，含一次 25% 為 3–5 人日，不含全介面遷移。
+詳細活動計畫：<mention-page url="https://app.notion.com/p/3ee1956a9b0e811188bacca59252fbcb"/>。
+本輪地端來源：`docs/MULTI_VISUAL_MVP_PLAN_2026-10-05.md`；SHA-256：`b5eb308485ee2d1d15e64d54d0d04dd35944445303ba386073844caa26cf65de`。本輪為規劃與 SDK 靜態查核，沒有新增求解／UI 驗收。
+下方保留前輪歷史資料與原始驗證範圍；活動排序與近期預算以本頁最上方 2026-10-05 多功能 MVP 計畫為準。
+## 2026-10-05 · 家用進度同步到公司
+已從個人 GitHub 的家用分支取回 8 個專案提交與 1,057 個檔案變更，2,080 個專案檔案完整同步。抽取後公司來源樹與家用子樹一致；原公司版本有保留分支，其他專案未修改。
+公司候選來源 0.10.7 已建置：0 錯誤、0 警告；Core 25、方案契約 42、歷史證據完整性 3 項通過。公司 Rhino 尚未載入或完成原生／完整 UI 驗收；正式基準維持 0.9.2／9、1、112，家用原生結果保留原始驗收範圍。
+來源：[家用固定提交](https://github.com/ciszon21-commits/Main/commit/d6c12af56ae034bd080e8990ba7b69b5c50ba1da)。公司專案提交 `f559e59b9841e55650a00f22793774780f96ada4`；詳細本機紀錄 `docs/COMPANY_SYNC_2026-10-05.md`，驗證 receipt `docs/evidence/company_sync_20261005/acceptance.json`。
+活動策略仍為視覺優先：共用設定 → 模型結果 → 天空遮蔽解讀 → A／B 比較 → 精簡匯出；此輪只完成公司接續與建置，沒有新增功能或提高正式覆蓋。
+## 歷史計畫 · 2026-10-03 視覺優先與日照流程瘦身
+交付改為完整日照設計流程：共用設定→模型結果→天空遮蔽解讀→A／B比較→精簡匯出。先A日照視覺MVP23–40人日／5–8工作週，再B Solar Envelope13–23人日／3–5工作週；A＋B統一加25%為35–63人日。單人＋AI全時工程假設；122能力保留待辦，CFD／全量獨立頁面／大框架重寫後排。正式0.9.2／候選0.10.7，未新增求解驗證。
+詳細計畫：<mention-page url="https://app.notion.com/p/3ee1956a9b0e811188bacca59252fbcb"/>；視覺化精華：<mention-page url="https://app.notion.com/p/3ee1956a9b0e8157996cd7e88c4d2cf3"/>。
+下方舊排程／估算保留作歷史範圍，新活動排程以此計畫為準；本次未改程式或正式覆蓋。
+## 開發與知識入口 · 2026-10-03 {color="blue"}
+<callout color="blue_bg">
+	**目前候選 0.10.7：日照方案匯入與跨程序恢復。**
+	正式基準維持 0.9.2／9 獨立、1 後端、112 待接入；候選 10／1／111。V02 尚未正式交付，V03 Sky Mask 尚未啟動。
+</callout>
+<columns>
+	<column ratio="34">
+		### 詳細資料記錄 {color="gray"}
+		規格、參數、決策、失敗與原始驗收證據。
+		完整技術評估：<mention-page url="https://app.notion.com/p/3ee1956a9b0e812ba3f8ce1f3f5fb545"/>
+		<mention-page url="https://app.notion.com/p/27b5fd42055b410ea1d58fbbf60fd31e"/>
+		本輪詳細驗證：<mention-page url="https://app.notion.com/p/3ee1956a9b0e81d78febc96b78a1be28"/>
+	</column>
+	<column ratio="33">
+		### 重點整理 {color="blue"}
+		已完成、目前限制、下一步；從本頁快速掌握。
+		目前狀態：<mention-page url="https://app.notion.com/p/3ec1956a9b0e81aca858fefd1fae1c4c"/>
+		L2 下一步：<mention-page url="https://app.notion.com/p/3ed1956a9b0e81459fefcccd2370acaa"/>
+	</column>
+	<column ratio="33">
+		### 視覺化精華 {color="purple"}
+		里程碑、使用流程、真實案例與驗證範圍；固定 KB-003 持續更新。
+		<mention-page url="https://app.notion.com/p/3ee1956a9b0e8157996cd7e88c4d2cf3"/>
+	</column>
+</columns>
+### 技術、瓶頸與工期評估 · 2026-10-03
+完整評估：<mention-page url="https://app.notion.com/p/3ee1956a9b0e812ba3f8ce1f3f5fb545"/>；架構、已解難點、11項瓶頸、後續引擎／V2與112入口逐項工期。
+- **近期L2第一批**：38–70人日，約8–14工作週；V02收尾、Sky Mask、Solar Envelope、必要依賴及一次跨機試用。
+- **完整Ladybug V1**：309–677人日，約16–34規劃月；加25%預備量。近期批次是其中子集合，不能重複加總。
+- **假設與下一步**：一位工程人員＋AI全時，8h人日、20工作日規劃月；工程假設，非量測速度或交付日期。[先閉合V02與.NET](http://先閉合V02與.NET)／Rhino相容性探查，再逐批重估。
+- **生命週期**：Microsoft .NET 8支援至2026-11-10；實際升級需宿主／原生外掛回歸。正式0.9.2與候選0.10.7覆蓋維持原狀，本輪沒有新增求解驗收。
+### 本輪重點
+- **新增功能**：日照方案比較 JSON 匯入與跨程序恢復；整批檢核後追加，保留完整原生結果、中文名稱與比較選擇，不套用舊模型、不求解。
+- **完成驗證**：161 既有原生回歸、42 方案契約、62 匯入／狀態／新程序恢復，Core 25、MCP 工具 12；4 張 320／480 淺色離屏圖已檢視，建置 0 錯誤、0 警告。
+- **實際案例**：256 個日照取樣點；平均 13 h／9.57421875 h。本輪六個方案在新 Rhino 恢復，完整 NativeResult 與選擇一致。測試 Timer 用錯誤 API 曾使自建程序退出，已保存堆疊並修正；產品未使用該 API。
+- **仍待完成**：原生匯入檔案選取、比較成功存檔、完整 Dock／深色／全鍵盤／滑鼠後選、跨機試用。檔案往返以正式 API 驗證；日射等其他模組的方案匯入尚未實作。
+- **下一步**：閉合 V02 剩餘驗收，再進行 LB-067 Sky Mask，其後 LB-068 Solar Envelope；CFD 後續。
+只在實際進度或新證據後更新三層內容，與地端文件同步並保存讀回 receipt。302 個檢查不是 302 個功能，不提供無依據的整體完成百分比。
+---
+## 0.9.2 正式基準與既有導航 {color="blue"}
+Environmental Simulation Hub · Rhino / Grasshopper / Ladybug Tools {color="gray"}
+<callout color="gray_bg">
+	**目前基準：0.9.2 · SunPath 幾何第一批與視埠文字修正** · 122 個已盤點入口 · 9 個獨立功能已實測 · 1 個輻射後端已使用 · 112 個待接入。
+	一個 Dock、七個快取內部模組；切換與關閉重開保留輸入及結果。34 SunPath＋60 既有＋14 平台，共 108 項原生檢查；30 張目前淺色窄／寬影像及實際 Rhino 視埠已檢視。SunPath 完整選項仍待補，下一項 Direct Sun Hours。新版試用包 33 項靜態檢查通過，跨機無協助與完整宿主驗收仍待完成。
+	- 階段計畫：<mention-page url="https://app.notion.com/p/3ec1956a9b0e816b9d9fd42013648423"/>
+</callout>
+### 專案與開發 {color="blue"}
+- 目前狀態：<mention-page url="https://app.notion.com/p/3ec1956a9b0e81aca858fefd1fae1c4c"/>
+- Ladybug 批次：<mention-page url="https://app.notion.com/p/3ec1956a9b0e81979297f954afe62124"/>
+- L2 優先批次：<mention-page url="https://app.notion.com/p/3ed1956a9b0e81459fefcccd2370acaa"/>
+### 設計與治理 {color="purple"}
+- UI/UX 設計系統：<mention-page url="https://app.notion.com/p/3ec1956a9b0e81fa9e7cc18fd0a8b04d"/>
+- 操作流程與結果規則：<mention-page url="https://app.notion.com/p/3ec1956a9b0e818e95f8f6557753283e"/>
+- 決策總覽：<mention-page url="https://app.notion.com/p/3ec1956a9b0e819d8efde7ef3671f8ab"/>
+- 知識索引：<mention-page url="https://app.notion.com/p/3ec1956a9b0e81db9006c5c42befece5"/>
+### 驗證與版本 {color="green"}
+- 0.9.2 驗收範圍：<mention-page url="https://app.notion.com/p/3ed1956a9b0e81c0ab6bc0aa1e7c6e18"/>
+- 0.9.2 正式發布：<mention-page url="https://app.notion.com/p/3ed1956a9b0e81e5b3eee453f155ce10"/>
+- 0.9.0 歷史驗收範圍：<mention-page url="https://app.notion.com/p/3ed1956a9b0e81978abbe5be0c04f01f"/>
+- 0.9.0 歷史發布：<mention-page url="https://app.notion.com/p/3ed1956a9b0e811aad8ee7f7c63c2ca0"/>
+- 0.8.7 歷史驗收：<mention-page url="https://app.notion.com/p/3ed1956a9b0e8111b10dea0d37b80f97"/>
+- 0.8.7 歷史發布紀錄：<mention-page url="https://app.notion.com/p/3ed1956a9b0e81eda7b0db6774ec93bb"/>
+### 同仁試用與參考 {color="gray"}
+- 快速上手：<mention-page url="https://app.notion.com/p/3ed1956a9b0e81148331c65d6dec1a3b"/>
+- 試用門檻：<mention-page url="https://app.notion.com/p/3ed1956a9b0e81d2b81ee38a94a683e1"/>
+- 參考來源：<mention-page url="https://app.notion.com/p/3ed1956a9b0e81b4a1b4cb7426f6d98a"/>
+### 階段順序 {color="blue"}
+<table fit-page-width="true" header-row="true">
+<tr color="gray_bg">
+<td>階段</td>
+<td>內容</td>
+<td>狀態</td>
+</tr>
+<tr>
+<td>L0</td>
+<td>環境與 122 入口盤點</td>
+<td>已盤點</td>
+</tr>
+<tr>
+<td>L2／必要 L1</td>
+<td>太陽／幾何可視化＋必要氣象／時間／資料依賴</td>
+<td>部分接入；優先 L2 可視化</td>
+</tr>
+<tr>
+<td>L3 → L4 → L5</td>
+<td>熱舒適 → 圖表 → 工具／維護</td>
+<td>後續批次</td>
+</tr>
+<tr>
+<td>R1 / U1 / X1</td>
+<td>可靠性、第一版 UI、平台與部署</td>
+<td>持續驗收</td>
+</tr>
+<tr>
+<td>E1 / U2</td>
+<td>後續引擎、大型視覺互動介面</td>
+<td>Ladybug 主要功能驗收後規劃</td>
+</tr>
+</table>
+### 資料庫使用 {color="gray"}
+**199 筆紀錄 · 199 唯一編號 · 11 類分類 · 9 個檢視**。分類使用克制的主題色；功能與專業紀錄分開篩選。
+- **01 知識總覽**：77 筆專業紀錄，依分類瀏覽。
+- **02 階段計畫 / 03 下一批開發**：里程碑與 B01–B06 依賴；當前 L2 工作見優先批次。
+- **04 Ladybug 功能 / 05 功能狀態**：全部 122 入口，依模組或接入狀態分組。
+- **06 決策與規範 / 07 驗證與發布 / 08 風險與限制**：專業規則、證據與尚待處理事項。
+- **09 全部紀錄**：完整索引；可按分類、主題、狀態快速篩選。
+### 維護原則 {color="gray"}
+以紀錄編號更新同一筆資料，不重複建立資料庫。每次交付同步來源、版本與驗收層級；歷史證據保留原始日期。來源路徑是專案內定位資訊，雲端無法直接下載本機檔案。目前三層內容同步日期為 2026-10-03；正式程式與驗收基準仍為 0.9.2／2026-10-02，本輪候選 0.10.7。只在實際進度後同步，未新增背景自動同步。
+---

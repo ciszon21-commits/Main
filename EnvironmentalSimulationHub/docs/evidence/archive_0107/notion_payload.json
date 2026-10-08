@@ -1,0 +1,76 @@
+{
+  "page": {
+    "properties": {
+      "紀錄編號": "VER-HOME-0107-01",
+      "紀錄名稱": "0.10.7 候選｜日照方案匯入與跨程序恢復",
+      "分類": "驗證紀錄",
+      "主題": "版本與維護",
+      "階段": "X1",
+      "狀態": "已驗證",
+      "優先序": "P0",
+      "摘要": "0.10.7 新增日照方案比較 JSON 匯入與跨程序恢復：整批檢核後追加，保留完整原生結果、名稱及選擇；不綁定舊模型、不求解、不改目前輸入或結果。42 項方案契約、17 項原生匯入、32 項狀態／文件隔離、13 項新程序恢復及 161 項全平台原生回歸通過；Core 25、MCP 工具 12，建置零錯誤／零警告。4 張 320／480 淺色離屏圖已檢視。原生匯入檔案選取、比較存檔、完整 Dock／深色／全鍵盤／滑鼠後選及跨機仍待驗收。測試 Timer 錯誤造成自建程序退出，堆疊與修正保留；產品未使用該 API。正式 0.9.2／9、1、112，候選 10／1／111；V02 未正式交付，V03 未啟動。",
+      "來源路徑": "docs/HOME_VALIDATION_0107.md",
+      "適用版本": "0.10.7 候選；正式 0.9.2",
+      "驗證層級": "[\"文件整理\", \"建置\", \"原生數值\", \"原生操作\", \"正式載入\", \"視覺檢視\"]",
+      "date:更新日期:start": "2026-10-03",
+      "date:更新日期:is_datetime": 0
+    },
+    "content": "日期：2026-10-03。接續 0.10.6，依 ROADMAP X1 補齊日照方案檔案恢復；V02 完整宿主驗收尚未閉合，V03 未啟動。正式 **0.9.2／9 獨立、1 後端、112 待接入**，候選 **10／1／111**；本輪不增加原生元件覆蓋。\n\n## 交付行為\n\n- 第六階段新增「匯入方案比較 JSON…」，單一方案即可匯出，最多 20 個方案、檔案 64 MiB。完整原生結果與選擇可在新 Rhino 程序恢復。\n- Core 先檢核整批結構、名稱、容量、取樣、時數／統計、網格及來源欄位。錯誤或重複名稱整批拒絕，既有資料保留。\n- 匯入只讀歷史比較資料，不綁定舊物件 UUID、不重建模型／預覽、不重跑求解、不改目前輸入或完成結果。\n- 比較核對實際太陽條件及原有摘要；檔內 Interpretation 不採信，重新產生文字；匯入方案明示歷史來源與未核對目前模型。\n\n使用方法與契約（`SUNHOURS_SCENARIO_ARCHIVE.md`）。產品 Core／Plugin 有變更，Adapter 原生求解路徑保持既有實作。\n\n## 本輪驗證\n\n<table fit-page-width=\"true\" header-row=\"true\">\n<tr>\n<td>層級</td>\n<td>完成範圍</td>\n<td>證據</td>\n</tr>\n<tr>\n<td>建置</td>\n<td>Plugin、Core Checks、Archive Checks：0 錯誤、0 警告；Rhino 8.35／.NET 8.0.31 載入 0.10.7</td>\n<td>`evidence/archive_0107/identity.json`、`evidence/full_0107/identity.json`</td>\n</tr>\n<tr>\n<td>方案契約</td>\n<td>42 項，使用 0.10.6 真實匯出資料及損壞／衝突變體；完整結果 roundtrip、來源變更、格式與容量</td>\n<td>`evidence/archive_0107/core_archive_checks.json`</td>\n</tr>\n<tr>\n<td>Rhino 匯入</td>\n<td>17 項，歷史結果完整保留、選擇恢復、不改模型、晚段錯誤整批拒絕、北向變更不顯示差值</td>\n<td>`evidence/archive_0107/archive_checks.json`</td>\n</tr>\n<tr>\n<td>狀態／文件</td>\n<td>32 項，八模組導覽、六方案／完成結果保留、停靠移動、關閉重開、獨立 capture shell、headless 文件隔離</td>\n<td>`evidence/archive_0107/session_checks.json`</td>\n</tr>\n<tr>\n<td>新程序恢復</td>\n<td>13 項；六個完整 NativeResult、中文名稱、索引與重新匯出讀回完全一致；模型為空、未修改</td>\n<td>`evidence/archive_resume_0107/restore_checks.json`</td>\n</tr>\n<tr>\n<td>既有原生回歸</td>\n<td>161 項；氣象／地點／時間 39、日射 21、SunPath 31＋1＋2、日照 45、重綁 7、平台 15</td>\n<td>`evidence/full_0107/native_regression_final_transport.json`、`runtime`</td>\n</tr>\n<tr>\n<td>Core／工具</td>\n<td>原有 Core 25、MCP 工具 12</td>\n<td>`evidence/full_0107/core_checks.json`、`mcp_probe_checks.txt`</td>\n</tr>\n<tr>\n<td>視覺</td>\n<td>新版比較／匯入區：320／480 淺色離屏 4 張，含目前求解與恢復歷史兩種狀態；actual width 相符，已檢視</td>\n<td>`evidence/full_0107/runtime/ui_0101`、`evidence/archive_resume_0107/runtime/ui_0101`</td>\n</tr>\n</table>\n\n全平台回歸位於隔離 PID 18536；方案操作 PID 28280；重開恢復 PID 20924。首個 PID 28756 在載入前已退出，未操作原有使用者 Rhino 21244。不同測試模型結果分開記錄，不把檢查數當成已接入功能數。\n\n## 真實案例與檔案回讀\n\n8×8 m 分析面、0.5 m 網格、0.1 m 感測偏移、臺北 06/21 06:00–18:00 共 13 個逐時取樣；256 個點，無遮蔭平均 13 h、新增部分遮蔭平均 9.57421875 h（最小 8、最大 13）。是原生格點算術平均，非面積加權；13 個含首尾取樣不等於 13 小時曆時。\n\n`samples/archive_0107/comparison_export_api.json` 保存四個匯入方案與兩個本輪求解方案，SHA-256 `dcb5713fcb3c220f113a97ff4b671f1f685fea58165f99ff797947a08533f50c`。來源為正式 ExportComparisonJson 契約，從測試 fixture 回讀寫入磁碟；不是原生 SaveFileDialog 成功存檔。新程序從檔案經正式 ImportScenariosJson 恢復，全部 NativeResult 完全相等；再次匯出 `comparison_after_restart.json` 讀回一致。\n\n## 失敗與限制\n\n- 首次 load retry 測試仍引用舊 spawn receipt，PID 守衛阻止操作；全回歸準備的錯誤呼叫檔名同樣未執行 Rhino 腳本，保留失敗 transport。\n- 狀態測試原先假設主機必定重建外框；本次持久佈局重用外框，已改為記錄實際 identity 並檢查資料保留。本輪沒有重新證明新外框重建；0.10.6 的真正重建證據保留。\n- 比較對話框測試的背景 Timer 使用了不存在的 `RhinoApp.AsyncInvoke`，未處理 PythonException 導致測試 PID 28280 結束。Windows .NET Runtime 堆疊已保存於 `test_callback_crash.txt`；產品程式未使用該 API。測試工具改回 Eto `Application.Instance.AsyncInvoke` 並移除 Timer，不計為產品匯出通過。\n- 正式匯入按鈕已開啟 OpenFileDialog；MCP 於模態期間逾時，accessibility 經重試仍不可讀。取消後模型／方案仍空白，API 恢復成功；原生檔案選取成功仍待驗收。\n- 比較原生成功存檔、完整 Dock 窄／寬版面、深色、全鍵盤、滑鼠後選、多視窗文件 UI、跨機無協助試用未通過。四張離屏圖不代替以上門檻。\n\n候選載入路徑為 `artifacts/home-build/0.10.7/EnvironmentalHub.Plugin.rhp`，已備份與讀回；原有已開啟 Rhino 不會自動更新已載入組件。正式發布與遠端上傳未完成。\n\n本機目前狀態、索引、建置與計畫及 Notion 三層知識依實際進度更新；詳細結果、重點與視覺化精華互相連結，歷史 evidence 不改寫。\n---\n## 方案規格與操作\n0.10.7 在現有日照模組第六階段加入「匯入方案比較 JSON…」，接續 ROADMAP 的 X1 持久方案工作。方案以檔案留存，可以在新的 Rhino 工作階段恢復比較。此批不接入新的 Ladybug 元件，也不提高正式功能覆蓋。\n\n## 使用流程\n\n1. 完成真實日照分析，為結果命名並「儲存完成結果為方案」。單一方案也可匯出，不必先有兩個方案。\n2. 用「匯出比較 JSON…」保存所有方案及基準／比較選擇。完整結果 JSON 是單次分析格式，不能當作方案比較檔匯入。\n3. 下一次開啟 Rhino，進入同一工作平台的「日照時數 → 06 比較／匯出」，選取「匯入方案比較 JSON…」。匯入成功後恢復方案名稱、完整原生結果與比較選擇。\n4. 可追加其他不同名稱的方案檔；目前方案不被覆蓋。若名稱重複，整批拒絕，使用另一個新工作階段或重新命名來源方案後再匯出。\n\n方案仍需手動匯出；沒有背景存檔、雲端備份、跨模組方案庫或模型重建。關閉 Rhino 會釋放未匯出的工作階段資料。\n\n## 契約與拒絕條件\n\n匯入入口 `SunHoursPanel.ImportScenariosJson` 使用 Core `SunHoursArchive.Parse`，在變更既有方案前完成整批檢核。\n\n<table fit-page-width=\"true\" header-row=\"true\">\n<tr>\n<td>項目</td>\n<td>支援／拒絕條件</td>\n</tr>\n<tr>\n<td>版本與格式</td>\n<td>`SchemaVersion=1.0`、`Scenarios`、有效 `BaselineIndex/CandidateIndex`；Metric 必須為格點算術平均；不採信檔內 Interpretation，依結果重新計算文字</td>\n</tr>\n<tr>\n<td>容量</td>\n<td>檔案 UTF-8 資料上限 64 MiB；匯入後合計最多 20 個方案；至少 1 個方案</td>\n</tr>\n<tr>\n<td>名稱</td>\n<td>1–80 字元、不含首尾空白或控制字元；檔內與既有方案不分大小寫不得重複</td>\n</tr>\n<tr>\n<td>JSON 結構</td>\n<td>必要欄位完整、非 null；拒絕重複欄位、損壞格式及不支援版本；地點時區可保留原生推定的 null</td>\n</tr>\n<tr>\n<td>時數與統計</td>\n<td>`h`；每點 1/timestep 的取樣權重；時數不得超出可用太陽向量；Count/min/max/mean 須與完整 Values 相符</td>\n</tr>\n<tr>\n<td>幾何與取樣</td>\n<td>格點、網格面與數值數量對齊；有限座標、有效三角／四角面索引、色彩數量；單位太陽向量、原取樣序列中的 sun-up HOY</td>\n</tr>\n<tr>\n<td>來源</td>\n<td>保留模型、太陽來源、Ladybug 元件指紋、模型尺度、求解器、版本、警告及時間；不因本機沒有舊模型 UUID 而拒絕歷史檔</td>\n</tr>\n</table>\n\n指紋與結構檢核無法證明外部檔案的真實性。匯入資料明示「歷史結果、未重新求解、未核對目前模型」；檔案來源由使用者確認。匯入只恢復比較資料，不把舊 UUID 綁定目前文件，不套用網格、預覽、輸入或完成結果。故空白工作階段匯入後「匯出完整結果／儲存完成結果」仍停用。\n\n太陽來源比較同時核對實際地點／北向／時間制／步數／HOY／向量與既有來源／元件摘要。即使摘要未改，實際北向不同也不顯示差值。網格間距、偏移、自遮蔭與模型指紋差異仍揭露；數值為格點算術平均，不是面積加權、照度或法規合規判定。\n\n## 驗證邊界\n\n42 項檔案／契約檢查、17 項 Rhino 匯入操作及 13 項新程序恢復檢查通過。0.10.6 舊檔與 0.10.7 六方案檔可讀回，全部 NativeResult 欄位完全相等；匯入不求解、不改模型。另有 161 項全平台原生回歸、32 項狀態／文件隔離、Core 25、MCP 工具 12；四張 320／480 淺色離屏圖已檢視。\n\n正式 OpenFileDialog 已開啟，但 accessibility 無法可靠讀取，取消後以正式 API 完成恢復。尚未宣告原生檔案選取成功；比較成功存檔、完整 Dock／深色／全鍵盤／滑鼠後選與跨機仍待驗收。詳見 本輪驗證（`HOME_VALIDATION_0107.md`）。\n---\n本機來源：`docs/HOME_VALIDATION_0107.md`；SHA-256：`d64a9566cc74ceea8d5bebc505d5678e26f9c3c67b5950eeb1f5dfc8f6b88ad1`。\n規格來源：`docs/SUNHOURS_SCENARIO_ARCHIVE.md`；SHA-256：`2783df2b8a3c813728cb937231d450971dd36987edb4649f2a49621dcf4c38bb`。"
+  },
+  "summary": "0.10.7 新增日照方案比較 JSON 匯入與跨程序恢復：整批檢核後追加，保留完整原生結果、名稱及選擇；不綁定舊模型、不求解、不改目前輸入或結果。42 項方案契約、17 項原生匯入、32 項狀態／文件隔離、13 項新程序恢復及 161 項全平台原生回歸通過；Core 25、MCP 工具 12，建置零錯誤／零警告。4 張 320／480 淺色離屏圖已檢視。原生匯入檔案選取、比較存檔、完整 Dock／深色／全鍵盤／滑鼠後選及跨機仍待驗收。測試 Timer 錯誤造成自建程序退出，堆疊與修正保留；產品未使用該 API。正式 0.9.2／9、1、112，候選 10／1／111；V02 未正式交付，V03 未啟動。",
+  "version": "0.10.7 候選；正式 0.9.2",
+  "mappings": [
+    {
+      "id": "3ec1956a-9b0e-81ac-a858-fefd1fae1c4c",
+      "source": "docs/PROJECT_STATUS.md",
+      "sha256": "b215498752e58022efd14bd52b02e6805893414cce680aab23ce60120be80ede"
+    },
+    {
+      "id": "3ec1956a-9b0e-81db-9006-c5c42befece5",
+      "source": "docs/KNOWLEDGE_INDEX.md",
+      "sha256": "133fcbffd4662d00625353108ff14cffcc5e9089149c74405a910cf64eece2d6"
+    },
+    {
+      "id": "3ec1956a-9b0e-81bf-bdae-eb999326ce85",
+      "source": "docs/evidence/ladybug_feature_catalog.json",
+      "sha256": "78004cf0724263c1b9d2b7edb2e2fac6e984be25c68468f19c99b39de77a953d"
+    },
+    {
+      "id": "3ec1956a-9b0e-8183-bf5c-f58832a3a7b5",
+      "source": "docs/BUILD_AND_RUN.md",
+      "sha256": "3d2a380542daa559c26e9ce79440f7e161032a31a782bfe3faf74d1180053901"
+    },
+    {
+      "id": "3ec1956a-9b0e-816b-9d9f-d42013648423",
+      "source": "docs/ROADMAP.md",
+      "sha256": "842ab02f22b308da4a700d7fcf9ef914e93512ea0cbb0ea9e61f43aa625cf39c"
+    },
+    {
+      "id": "3ed1956a-9b0e-8145-9fef-cccd2370acaa",
+      "source": "docs/L2_VISUAL_PLAN.md",
+      "sha256": "b250b96e3535c32cdf6995102dc20b1ac7c288769cd8a9eef91d5a975cd50a16"
+    },
+    {
+      "id": "3ec1956a-9b0e-81e2-8398-c5ae704cf7c9",
+      "source": "docs/PROJECT_STATUS.md",
+      "sha256": "b215498752e58022efd14bd52b02e6805893414cce680aab23ce60120be80ede"
+    },
+    {
+      "id": "3ec1956a-9b0e-813e-8c23-d6b139442afe",
+      "source": "docs/ROADMAP.md",
+      "sha256": "842ab02f22b308da4a700d7fcf9ef914e93512ea0cbb0ea9e61f43aa625cf39c"
+    }
+  ],
+  "visual": {
+    "id": "3ee1956a-9b0e-8157-996c-d7e88c4d2cf3",
+    "source": "docs/DEVELOPMENT_HIGHLIGHTS.md",
+    "sha256": "68854330241a432692494a88e758d54b4c676744c0106462687807d3e4d2f2c0",
+    "content": "更新：2026-10-03。有實際進度才更新本頁與 Notion 固定 KB-003；本頁是精華，原始證據由 詳細驗證（`HOME_VALIDATION_0107.md`） 與 知識索引（`KNOWLEDGE_INDEX.md`） 追溯。\n\n<table fit-page-width=\"true\" header-row=\"true\">\n<tr>\n<td>正式可用基準</td>\n<td>本輪候選</td>\n<td>下一功能</td>\n</tr>\n<tr>\n<td>0.9.2；9 獨立／1 後端／112 待接入</td>\n<td>0.10.7；日照方案檔案恢復與比較檢核；10／1／111</td>\n<td>V02 剩餘驗收→LB-067 Sky Mask→LB-068 Solar Envelope</td>\n</tr>\n</table>\n\n## 里程碑\n\n```mermaid\nflowchart LR\n    A[\"0.9.2 正式<br>SunPath 幾何第一批\"] --> B[\"0.10.1 候選<br>Direct Sun Hours 接入\"]\n    B --> C[\"0.10.2～0.10.3<br>窄版與單位重綁修正\"]\n    C --> D[\"0.10.4<br>影像尺寸不符；未交付\"]\n    D --> E[\"0.10.5<br>首次浮動寬度修正\"]\n    E --> F[\"0.10.6<br>停靠資料保留＋正式結果匯出\"]\n    F --> I[\"0.10.7<br>方案檔案匯入＋新程序恢復\"]\n    I --> G[\"V02 尚待完整宿主驗收\"]\n    G --> H[\"V03 Sky Mask<br>未啟動\"]\n    style A fill:#e8f0ea,stroke:#45624f\n    style D fill:#f6ece8,stroke:#915b48\n    style I fill:#e8edf3,stroke:#52677b\n```\n\n## 本輪使用流程\n\n```mermaid\nflowchart LR\n    A[\"完成真實日照分析<br>保存命名方案\"] --> B[\"匯出比較 JSON<br>完整結果＋選擇\"]\n    B --> C[\"重新開啟 Rhino<br>選取方案檔\"]\n    C --> D{\"整批資料檢核\"}\n    D -->|\"通過\"| E[\"追加歷史方案<br>恢復比較選擇\"]\n    D -->|\"錯誤／同名／超限\"| F[\"拒絕整批<br>保留原有資料\"]\n    E --> G[\"核對實際太陽條件<br>重新產生比較文字\"]\n    G --> H[\"不套用舊模型<br>不重新求解\"]\n    style E fill:#e8f0ea,stroke:#45624f\n    style F fill:#f6ece8,stroke:#915b48\n```\n\n六個方案在新程序恢復，完整 NativeResult、中文名稱與選擇一致；所有恢復資料標示歷史來源。單一方案可匯出，最多 20 個方案、64 MiB。原生對話框選取／存檔仍待驗收，API 檔案往返已通過。\n\n## 0.10.6 資料保留里程碑\n\n```mermaid\nflowchart LR\n    A[\"模型＋遮蔭＋太陽取樣\"] --> B[\"檢核→原生求解\"]\n    B --> C[\"256 點日照結果<br>兩個保存情境\"]\n    C --> D[\"移動工作平台停靠容器\"]\n    D --> E[\"0.10.5 外框重建<br>結果與情境消失\"]\n    D --> F[\"0.10.6 文件保存模組<br>重新掛接，完整資料保留\"]\n    F --> G[\"正式結果存檔<br>完整 JSON 讀回一致\"]\n    style E fill:#f6ece8,stroke:#915b48\n    style F fill:#e8f0ea,stroke:#45624f\n```\n\n## 真實日照案例\n\n<table fit-page-width=\"true\" header-row=\"true\">\n<tr>\n<td>情境</td>\n<td>取樣點數</td>\n<td>平均日照</td>\n<td>原生結果</td>\n</tr>\n<tr>\n<td>無遮蔭基準</td>\n<td>256</td>\n<td>13 h</td>\n<td>每點可見 13 個逐時太陽取樣</td>\n</tr>\n<tr>\n<td>新增遮蔭</td>\n<td>256</td>\n<td>9.57421875 h</td>\n<td>最小 8 h、最大 13 h</td>\n</tr>\n</table>\n\n自建隔離模型；算術點平均，非面積加權。13 個含首尾的取樣不代表 13 小時曆時長度，不是採光照度或法規判定。模型／遮蔭條件不同，指紋與輸入保留於完整 JSON。\n\n## 驗證與下一步\n\n<table fit-page-width=\"true\" header-row=\"true\">\n<tr>\n<td>層級</td>\n<td>本輪完成</td>\n<td>尚待完成</td>\n</tr>\n<tr>\n<td>建置／工具</td>\n<td>Build 0／0；Core 25；MCP 工具 12</td>\n<td>遠端上傳與跨機試用</td>\n</tr>\n<tr>\n<td>求解／平台</td>\n<td>161 既有回歸；32 狀態／文件隔離</td>\n<td>大型複雜模型與多視窗文件 UI</td>\n</tr>\n<tr>\n<td>方案恢復</td>\n<td>42 契約、17 原生匯入、13 新程序恢復</td>\n<td>原生檔案選取與比較成功存檔</td>\n</tr>\n<tr>\n<td>視覺</td>\n<td>新版 4 張 320／480 淺色離屏圖已檢視</td>\n<td>完整 Dock 窄／寬、深色、完整鍵盤／滑鼠後選</td>\n</tr>\n</table>\n\n```mermaid\nflowchart LR\n    A[\"實際進度／新證據\"] --> B[\"詳細紀錄<br>規格、測試、失敗、SHA\"]\n    B --> C[\"重點整理<br>成果、限制、下一步\"]\n    C --> D[\"視覺化精華<br>里程碑、流程、案例\"]\n    D --> E[\"Notion 讀回核對<br>地端同步 receipt\"]\n```\n\n測試工具曾用錯誤 API 造成自建 Rhino 退出；已保存 .NET 堆疊並修正，產品不使用該 API。失敗操作不列為已驗收。不提供無驗收依據的整體完成百分比；302 項檢查不等於 302 個功能，正式覆蓋保持 9／1／112。\n---\n本機來源：`docs/DEVELOPMENT_HIGHLIGHTS.md`；SHA-256：`68854330241a432692494a88e758d54b4c676744c0106462687807d3e4d2f2c0`。"
+  },
+  "risk4": {
+    "id": "3ec1956a9b0e81118f91c6d4411b5408",
+    "source": "docs/SUNHOURS_SCENARIO_ARCHIVE.md",
+    "sha256": "2783df2b8a3c813728cb937231d450971dd36987edb4649f2a49621dcf4c38bb",
+    "content": "0.10.7 在現有日照模組第六階段加入「匯入方案比較 JSON…」，接續 ROADMAP 的 X1 持久方案工作。方案以檔案留存，可以在新的 Rhino 工作階段恢復比較。此批不接入新的 Ladybug 元件，也不提高正式功能覆蓋。\n\n## 使用流程\n\n1. 完成真實日照分析，為結果命名並「儲存完成結果為方案」。單一方案也可匯出，不必先有兩個方案。\n2. 用「匯出比較 JSON…」保存所有方案及基準／比較選擇。完整結果 JSON 是單次分析格式，不能當作方案比較檔匯入。\n3. 下一次開啟 Rhino，進入同一工作平台的「日照時數 → 06 比較／匯出」，選取「匯入方案比較 JSON…」。匯入成功後恢復方案名稱、完整原生結果與比較選擇。\n4. 可追加其他不同名稱的方案檔；目前方案不被覆蓋。若名稱重複，整批拒絕，使用另一個新工作階段或重新命名來源方案後再匯出。\n\n方案仍需手動匯出；沒有背景存檔、雲端備份、跨模組方案庫或模型重建。關閉 Rhino 會釋放未匯出的工作階段資料。\n\n## 契約與拒絕條件\n\n匯入入口 `SunHoursPanel.ImportScenariosJson` 使用 Core `SunHoursArchive.Parse`，在變更既有方案前完成整批檢核。\n\n<table fit-page-width=\"true\" header-row=\"true\">\n<tr>\n<td>項目</td>\n<td>支援／拒絕條件</td>\n</tr>\n<tr>\n<td>版本與格式</td>\n<td>`SchemaVersion=1.0`、`Scenarios`、有效 `BaselineIndex/CandidateIndex`；Metric 必須為格點算術平均；不採信檔內 Interpretation，依結果重新計算文字</td>\n</tr>\n<tr>\n<td>容量</td>\n<td>檔案 UTF-8 資料上限 64 MiB；匯入後合計最多 20 個方案；至少 1 個方案</td>\n</tr>\n<tr>\n<td>名稱</td>\n<td>1–80 字元、不含首尾空白或控制字元；檔內與既有方案不分大小寫不得重複</td>\n</tr>\n<tr>\n<td>JSON 結構</td>\n<td>必要欄位完整、非 null；拒絕重複欄位、損壞格式及不支援版本；地點時區可保留原生推定的 null</td>\n</tr>\n<tr>\n<td>時數與統計</td>\n<td>`h`；每點 1/timestep 的取樣權重；時數不得超出可用太陽向量；Count/min/max/mean 須與完整 Values 相符</td>\n</tr>\n<tr>\n<td>幾何與取樣</td>\n<td>格點、網格面與數值數量對齊；有限座標、有效三角／四角面索引、色彩數量；單位太陽向量、原取樣序列中的 sun-up HOY</td>\n</tr>\n<tr>\n<td>來源</td>\n<td>保留模型、太陽來源、Ladybug 元件指紋、模型尺度、求解器、版本、警告及時間；不因本機沒有舊模型 UUID 而拒絕歷史檔</td>\n</tr>\n</table>\n\n指紋與結構檢核無法證明外部檔案的真實性。匯入資料明示「歷史結果、未重新求解、未核對目前模型」；檔案來源由使用者確認。匯入只恢復比較資料，不把舊 UUID 綁定目前文件，不套用網格、預覽、輸入或完成結果。故空白工作階段匯入後「匯出完整結果／儲存完成結果」仍停用。\n\n太陽來源比較同時核對實際地點／北向／時間制／步數／HOY／向量與既有來源／元件摘要。即使摘要未改，實際北向不同也不顯示差值。網格間距、偏移、自遮蔭與模型指紋差異仍揭露；數值為格點算術平均，不是面積加權、照度或法規合規判定。\n\n## 驗證邊界\n\n42 項檔案／契約檢查、17 項 Rhino 匯入操作及 13 項新程序恢復檢查通過。0.10.6 舊檔與 0.10.7 六方案檔可讀回，全部 NativeResult 欄位完全相等；匯入不求解、不改模型。另有 161 項全平台原生回歸、32 項狀態／文件隔離、Core 25、MCP 工具 12；四張 320／480 淺色離屏圖已檢視。\n\n正式 OpenFileDialog 已開啟，但 accessibility 無法可靠讀取，取消後以正式 API 完成恢復。尚未宣告原生檔案選取成功；比較成功存檔、完整 Dock／深色／全鍵盤／滑鼠後選與跨機仍待驗收。詳見 本輪驗證（`HOME_VALIDATION_0107.md`）。"
+  }
+}

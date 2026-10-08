@@ -7,6 +7,46 @@ import threading
 from pathlib import Path
 
 
+def check_response(response):
+    """A JSON-RPC response can still contain a failed Rhino script."""
+    if 'error' in response:
+        raise RuntimeError(str(response['error']))
+    result = response.get('result', {})
+    if result.get('isError'):
+        raise RuntimeError('MCP tool returned isError: ' + str(result.get('content')))
+    for block in result.get('content', []):
+        if block.get('type') != 'text':
+            continue
+        try:
+            data = json.loads(block['text'])
+        except (ValueError, KeyError):
+            data = block.get('text', '')
+        payload = data.get('payload', data) if isinstance(data, dict) else data
+        if isinstance(payload, str):
+            # Rhino can append an exception after script stdout. Require a
+            # diagnostic at the beginning of a line, rather than matching
+            # quoted diagnostic names inside otherwise successful JSON.
+            lines = payload.splitlines()
+            for index, line in enumerate(lines):
+                if line.lstrip().startswith(('Rhino.Runtime.Code.Execution.ExecuteException:',
+                                             'Traceback (most recent call last):')):
+                    raise RuntimeError('\n'.join(lines[index:]))
+        if isinstance(payload, dict) and payload.get('error'):
+            raise RuntimeError(str(payload.get('message', payload['error'])))
+
+
+def bind_owned_call(call, owned):
+    if call.get('arguments', {}).get('slot') != '$owned':
+        return call
+    if not owned or owned.get('adopted') is not False or type(owned.get('pid')) is not int or owned['pid'] <= 0 or not isinstance(owned.get('slotId'), str) or not owned['slotId']:
+        raise ValueError('An owned spawn receipt is required')
+    bound = json.loads(json.dumps(call))
+    bound['arguments']['slot'] = owned['slotId']
+    if 'script' in bound['arguments']:
+        bound['arguments']['script'] = bound['arguments']['script'].replace('__OWNED_PID__', str(owned['pid'])).replace('__OWNED_SLOT__', repr(owned['slotId']))
+    return bound
+
+
 def probe(router, timeout, calls_path=None):
     process = subprocess.Popen(
         [str(router)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -22,6 +62,7 @@ def probe(router, timeout, calls_path=None):
                 messages.put(json.loads(line))
             except ValueError:
                 messages.put({"transport_text": line.strip()})
+        messages.put({'transport_closed': True})
 
     def read_errors():
         for line in process.stderr:
@@ -40,6 +81,8 @@ def probe(router, timeout, calls_path=None):
         while True:
             item = messages.get(timeout=max(0.01, deadline - time.monotonic()))
             transcript.append(item)
+            if item.get('transport_closed'):
+                raise RuntimeError('MCP router exited before responding; inspect stderr')
             if item.get("id") == request_id:
                 return item
             if time.monotonic() >= deadline:
@@ -56,19 +99,30 @@ def probe(router, timeout, calls_path=None):
                               "method": "notifications/initialized"}) + "\n")
         process.stdin.flush()
         listing = rpc("tools/list", {}, 2)
+        check_response(listing)
         report["tools"] = listing
         names = {t["name"] for t in listing.get("result", {}).get("tools", [])}
         if calls_path:
             calls = json.loads(calls_path.read_text(encoding="utf-8"))
             report["calls"] = []
+            owned = None
             for index, call in enumerate(calls, start=3):
+                # Deployment calls can stay in one router lifetime so its own slot is not
+                # re-adopted by a later client. Bind only an explicitly spawned owned slot.
+                call = bind_owned_call(call, owned)
                 if call["name"] not in names:
                     raise ValueError("Tool unavailable: " + call["name"])
-                report["calls"].append({"name": call["name"], "response":
-                                        rpc("tools/call", call, index)})
+                response = rpc("tools/call", call, index)
+                report["calls"].append({"name": call["name"], "response": response})
+                check_response(response)
+                if call['name'] == 'spawn_slot':
+                    owned = json.loads(response['result']['content'][0]['text'])['payload']
+                    if owned.get('adopted') is not False:
+                        raise ValueError('Refuse an adopted spawn for owned deployment QA')
         elif "list_slots" in names:
             report["slots"] = rpc("tools/call", {
                 "name": "list_slots", "arguments": {}}, 3)
+            check_response(report['slots'])
         report["status"] = "MCP_RESPONDED"
     except queue.Empty:
         report["error"] = "MCP response timeout"
@@ -99,3 +153,5 @@ if __name__ == "__main__":
     print(json.dumps({"status": result["status"], "error": result.get("error"),
                       "output": str(args.output),
                       "call_count": len(result.get("calls", []))}, ensure_ascii=False))
+    if result.get('error'):
+        raise SystemExit(1)

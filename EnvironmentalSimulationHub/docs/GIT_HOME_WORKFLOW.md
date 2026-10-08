@@ -1,5 +1,7 @@
 # 個人 GitHub 與兩台電腦接續開發
 
+最新公司 0.10.9 與知識交接分支為 `codex/company-0109-knowledge-20261008`，操作與安全核對見 [2026-10-08 交接](KNOWLEDGE_GIT_UPDATE_2026-10-08.md)。下方 0.10.2 與首次發布紀錄保留原日期／範圍，不代表目前版本。
+
 2026-10-02。使用者指定個人帳號 `ciszon21-commits`、目的地 `https://github.com/ciszon21-commits/Main.git`，並明確允許 public。「私人」在此指個人帳號，不是要求 private 可見性。Main 已有其他內容，本專案放入 `EnvironmentalSimulationHub/`，使用 `codex/environmentalhub-home-development` 分支與 PR；不直接更新 main、不 force push。
 
 ## 本機已完成

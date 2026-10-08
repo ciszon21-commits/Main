@@ -15,6 +15,7 @@ public sealed class HubPlugin : PlugIn
         Panels.RegisterPanel(this, typeof(HubWorkspacePanel), "建築環境模擬平台", null);
         return LoadReturnCode.Success;
     }
+    protected override void OnShutdown() => HubWorkspacePanel.ReleaseSessions();
 }
 
 public sealed class EnvironmentalHubCommand : Command

@@ -1,0 +1,9 @@
+[
+  {
+    "name": "run_python",
+    "arguments": {
+      "script": "import json, System, Rhino, os\nassert System.Diagnostics.Process.GetCurrentProcess().Id == 36280\ndoc = __rhino_doc__\nassert doc.Objects.Count == 0 and doc.Path in (None, '')\ng = System.Guid('bc5a6bd7-4e8f-4f14-a173-ed39f8bf357f')\np = Rhino.PlugIns.PlugIn.Find(g)\npt = __import__('clr').GetClrType(Rhino.PlugIns.PlugIn)\ndata = {'pid':System.Diagnostics.Process.GetCurrentProcess().Id,'document_serial':int(doc.RuntimeSerialNumber),'objects':doc.Objects.Count,'registered_path':str(Rhino.PlugIns.PlugIn.PathFromId(g)),\n        'plugin':None if p is None else {'version':str(p.GetType().Assembly.GetName().Version),'path':str(p.GetType().Assembly.Location)},\n        'load_overloads':[str(m) for m in pt.GetMethods() if m.Name == 'LoadPlugIn'],\n        'loaded_assemblies':[{'name':str(a.GetName().Name),'version':str(a.GetName().Version),'path':str(a.Location)} for a in System.AppDomain.CurrentDomain.GetAssemblies() if 'EnvironmentalHub' in str(a.GetName().Name)]}\njson.dump(data,open(os.path.join('C:/Users/08432.SINOLTD/00.DEVE/31.AEC/RHINO_Deve/EnvironmentalSimulationHub','docs/evidence/deploy_0109/duplicate_id_diagnostic.json'),'w',encoding='utf-8'),ensure_ascii=False,indent=2)\nprint(json.dumps(data,ensure_ascii=False))",
+      "slot": "aardvark"
+    }
+  }
+]
