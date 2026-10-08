@@ -1,0 +1,9 @@
+[
+  {
+    "name": "run_python",
+    "arguments": {
+      "slot": "aardvark",
+      "script": "import json\nimport System\nimport Rhino\n\nassert System.Diagnostics.Process.GetCurrentProcess().Id == 12004, 'Host changed; rediscover before running'\ndoc = __rhino_doc__\nplugin = Rhino.PlugIns.PlugIn.Find(System.Guid('bc5a6bd7-4e8f-4f14-a173-ed39f8bf357f'))\nproof = {'pid': 12004, 'document_serial': doc.RuntimeSerialNumber,\n         'object_count': doc.Objects.Count, 'document_modified': doc.Modified,\n         'plugin_loaded': plugin is not None}\nif plugin is not None:\n    assembly = plugin.GetType().Assembly\n    proof['assembly'] = assembly.Location\n    proof['version'] = str(assembly.GetName().Version)\n    panel_type = assembly.GetType('EnvironmentalHub.Plugin.HubWorkspacePanel')\n    panel = Rhino.UI.Panels.GetPanel(panel_type.GUID, doc.RuntimeSerialNumber)\n    proof['visible'] = Rhino.UI.Panels.IsPanelVisible(panel_type, True)\n    proof['panel_created'] = panel is not None\n    if panel is not None:\n        proof['size'] = str(panel.Size)\n        proof['active_module'] = str(panel.ActiveModule)\n        proof['parent_window'] = str(panel.ParentWindow)\n        proof['parents'] = []\n        parent = panel.Parent\n        while parent is not None:\n            proof['parents'].append({'type': str(parent.GetType()), 'size': str(parent.Size)})\n            parent = parent.Parent\nprint(json.dumps(proof, ensure_ascii=False))\n"
+    }
+  }
+]

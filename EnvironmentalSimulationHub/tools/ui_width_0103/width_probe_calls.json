@@ -1,0 +1,9 @@
+[
+  {
+    "name": "run_python",
+    "arguments": {
+      "slot": "aardvark",
+      "script": "import json\nimport System\nimport Rhino\nimport Eto.Forms as forms\nimport Eto.Drawing as drawing\n\nassert System.Diagnostics.Process.GetCurrentProcess().Id == 12004\ndoc = __rhino_doc__\nassert doc.RuntimeSerialNumber == 268435457\npanel = Rhino.UI.Panels.GetPanel(System.Guid('7281a8f2-e2c4-4c27-bcb5-22cbb0688b32'), doc.RuntimeSerialNumber)\nwindow = panel.ParentWindow\nassert isinstance(window, forms.Form), 'Only an Eto floating form can be resized'\nassert window.NativeHandle != Rhino.UI.RhinoEtoApp.MainWindow.NativeHandle, 'Never resize the Rhino main window'\nbefore = {'window': str(window.Size), 'panel': str(panel.Size), 'location': str(window.Location),\n          'objects': doc.Objects.Count, 'modified': doc.Modified, 'module': str(panel.ActiveModule)}\ntry:\n    window.Size = drawing.Size(500, window.Size.Height)\n    Rhino.RhinoApp.Wait()\n    after = {'window': str(window.Size), 'panel': str(panel.Size), 'location': str(window.Location),\n             'objects': doc.Objects.Count, 'modified': doc.Modified, 'module': str(panel.ActiveModule)}\n    assert window.Size.Width == 500 and panel.Size.Width >= 480\n    assert all(before[k] == after[k] for k in ('location', 'objects', 'modified', 'module'))\n    print(json.dumps({'before': before, 'after': after, 'public_api': 'Eto.Forms.Control.ParentWindow / Window.Size', 'restored': True}))\nfinally:\n    width, height = [int(x) for x in before['window'].split(',')]\n    window.Size = drawing.Size(width, height)\n    Rhino.RhinoApp.Wait()\n"
+    }
+  }
+]

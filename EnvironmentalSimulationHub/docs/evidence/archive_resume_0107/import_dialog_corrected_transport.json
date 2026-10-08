@@ -1,0 +1,2479 @@
+{
+  "router": "C:\\Users\\ciszo\\AppData\\Roaming\\McNeel\\Rhinoceros\\ai\\bin\\rhino-mcp-router.exe",
+  "status": "UNVERIFIED",
+  "tools": {
+    "result": {
+      "tools": [
+        {
+          "name": "g1_clear_canvas",
+          "title": "Clear GH1 Canvas",
+          "description": "Remove every object from the active GH1 canvas. Destructive — requires confirm=true.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "confirm": {
+                "description": "Must be true to actually wipe the canvas. Defaults to false as a safety guard.",
+                "type": "boolean",
+                "default": false
+              },
+              "solve": {
+                "description": "If true, trigger a new solution after clearing. Set false to batch multiple operations and solve once at the end.",
+                "type": "boolean",
+                "default": true
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            }
+          },
+          "annotations": {
+            "title": "Clear GH1 Canvas",
+            "destructiveHint": true,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "zoom_to_layer",
+          "title": "Zoom To Layer",
+          "description": "Zoom the active viewport to fit all objects on a layer (full path).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "layer": {
+                "description": "Layer full path"
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            },
+            "required": [
+              "layer"
+            ]
+          },
+          "annotations": {
+            "title": "Zoom To Layer",
+            "destructiveHint": false,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "list_slots",
+          "title": "List Rhino Slots",
+          "description": "List all currently-running Rhino slots managed by this router. Slots whose Rhino has crashed are pruned before returning. User-started Rhinos that have advertised themselves since the last call are adopted into the list. The list lives in `payload` (an array of slot objects).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {}
+          },
+          "annotations": {
+            "title": "List Rhino Slots",
+            "destructiveHint": false,
+            "readOnlyHint": true
+          }
+        },
+        {
+          "name": "ask_user",
+          "title": "Ask User",
+          "description": "Ask the Rhino user to choose among options when you need a decision you cannot make yourself. Pass EVERY question you need answered in this one call: the Rhino AI panel shows them one page at a time (radio for single choice, checkboxes for multi) and returns them as a single reply. This tool does NOT wait for the answers: it poses the questions and returns immediately. Only on success, STOP and end your turn; on failure, fix the input and retry; the user's answers arrive as their next message, then continue.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "questions": {
+                "description": "The questions to ask, in the order they should be shown",
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {}
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            },
+            "required": [
+              "questions"
+            ]
+          },
+          "annotations": {
+            "title": "Ask User",
+            "destructiveHint": false,
+            "readOnlyHint": true
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "set_selection",
+          "title": "Set Selection",
+          "description": "Select objects by filter (IDs, names, layer, geometry type). Clears existing selection.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "ids": {
+                "description": "Object GUIDs",
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {},
+                "default": null
+              },
+              "names": {
+                "description": "Object names",
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {},
+                "default": null
+              },
+              "layer": {
+                "description": "Layer full path — selects all objects on layer",
+                "default": null
+              },
+              "geometryType": {
+                "description": "Filter by type: point, pointset, curve, surface, brep, mesh, annotation, light, block",
+                "default": null
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            }
+          },
+          "annotations": {
+            "title": "Set Selection",
+            "destructiveHint": false,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "open_doc",
+          "title": "Open / Import Document",
+          "description": "Import a .3dm (or other supported) file into the current document. Headless — no dialogs. Optionally clear the document first to make this behave like an open-in-place.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "description": "Absolute path to the file to import"
+              },
+              "clearFirst": {
+                "description": "If true, delete all objects in the current document before importing",
+                "type": "boolean",
+                "default": false
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            },
+            "required": [
+              "path"
+            ]
+          },
+          "annotations": {
+            "title": "Open / Import Document",
+            "destructiveHint": true,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "close_doc",
+          "title": "Close Document",
+          "description": "Close the current Rhino document. If path is given, save to that .3dm path first; otherwise discard unsaved changes.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "description": "Optional absolute .3dm path to save to before closing. Omit to close without saving.",
+                "default": null
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            }
+          },
+          "annotations": {
+            "title": "Close Document",
+            "destructiveHint": true,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "run_csharp",
+          "title": "Run C# Script",
+          "description": "Execute a C# script targeted at this slot's document. The script editor injects `__rhino_doc__` (type `RhinoDoc`) — use it as your document handle instead of `RhinoDoc.ActiveDoc` or anything else. System/Linq/Collections.Generic are auto-injected if missing.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "script": {
+                "description": "Script"
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            },
+            "required": [
+              "script"
+            ]
+          },
+          "annotations": {
+            "title": "Run C# Script",
+            "destructiveHint": true,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "set_camera",
+          "title": "Set Camera",
+          "description": "Set the active viewport camera. Any subset of position, target, up vector, lens length, projection, or framing bounding-box may be supplied.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "location": {
+                "description": "Camera position {x,y,z}",
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "default": null
+              },
+              "target": {
+                "description": "Camera look-at point {x,y,z}",
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "default": null
+              },
+              "up": {
+                "description": "Camera up vector {x,y,z}",
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "default": null
+              },
+              "lensLength": {
+                "description": "35mm-equivalent lens length (perspective only)",
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "default": null
+              },
+              "projection": {
+                "description": "Projection: 'parallel' or 'perspective'",
+                "default": null
+              },
+              "boxMin": {
+                "description": "Frame this bounding box (min corner). Pair with boxMax. Applied last so it dominates location/target if both supplied.",
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "default": null
+              },
+              "boxMax": {
+                "description": "Frame this bounding box (max corner). Pair with boxMin.",
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "default": null
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            }
+          },
+          "annotations": {
+            "title": "Set Camera",
+            "destructiveHint": false,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "save_doc",
+          "title": "Save Document",
+          "description": "Write the current document to the given .3dm path. Headless — no dialogs. Overwrites any existing file at the path.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "description": "Absolute path to write the .3dm file to"
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            },
+            "required": [
+              "path"
+            ]
+          },
+          "annotations": {
+            "title": "Save Document",
+            "destructiveHint": true,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "g1_search_components",
+          "title": "Search GH1 Components",
+          "description": "Search the Grasshopper component library. The query is split into words and every word must appear somewhere in Name, NickName, Description, Category or SubCategory (case-insensitive), so 'XY plane' finds 'World XY'. Exact name matches rank first, then names carrying every word. Optional exact-match category/subcategory filters. Excludes obsolete/hidden unless includeDeprecated. Returns up to 'limit' matches.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "description": "Substring to match against component Name, NickName, and Description. Case-insensitive."
+              },
+              "category": {
+                "description": "Optional exact-match category filter (e.g. 'Maths', 'Params').",
+                "default": null
+              },
+              "subcategory": {
+                "description": "Optional exact-match subcategory filter (e.g. 'Operators').",
+                "default": null
+              },
+              "limit": {
+                "description": "Maximum number of results to return.",
+                "type": "integer",
+                "default": 20
+              },
+              "includeDeprecated": {
+                "description": "Include obsolete/hidden components (e.g. legacy scripting). Default false.",
+                "type": "boolean",
+                "default": false
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            },
+            "required": [
+              "query"
+            ]
+          },
+          "annotations": {
+            "title": "Search GH1 Components",
+            "destructiveHint": false,
+            "readOnlyHint": true
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "get_context",
+          "title": "Get Context Snapshot",
+          "description": "One round-trip grounding snapshot of current state: the active-doc selection (ids/types/layers), the active viewport (name + camera summary), a doc summary (object/layer counts), and one Grasshopper summary per version (Version 'GH1' or 'GH2', each with component/wire counts when that canvas is open). Read-only; pulls everything you need to orient before acting, and never opens a canvas that is not already open.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            }
+          },
+          "annotations": {
+            "title": "Get Context Snapshot",
+            "destructiveHint": false,
+            "readOnlyHint": true
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "run_python",
+          "title": "Run Python Script",
+          "description": "Execute a Python 3 script targeted at this slot's document. The script editor injects `__rhino_doc__` — use it as your document handle. Do NOT trust `scriptcontext.doc` or `rhinoscriptsyntax` calls.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "script": {
+                "description": "Script"
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            },
+            "required": [
+              "script"
+            ]
+          },
+          "annotations": {
+            "title": "Run Python Script",
+            "destructiveHint": true,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "g1_solve_graph",
+          "title": "Solve GH1 Graph",
+          "description": "Solves the active GH canvas. zoom_views controls whether Rhino viewports zoom to the new preview: true=always, false=never, null=auto (zoom only when nothing was previewed before the solve).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "zoom_views": {
+                "description": "Auto-zoom every Rhino viewport to the GH preview after solving. true=always, false=never, null=zoom only when nothing was visible pre-solve.",
+                "type": [
+                  "boolean",
+                  "null"
+                ],
+                "default": null
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            }
+          },
+          "annotations": {
+            "title": "Solve GH1 Graph",
+            "destructiveHint": false,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "run_command",
+          "title": "Run Rhino Command",
+          "description": "Execute any Rhino command string and return command window output. Example: \"_Box 0,0,0 10,10,10 _Enter\"",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "command": {
+                "description": "Rhino command string to execute"
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            },
+            "required": [
+              "command"
+            ]
+          },
+          "annotations": {
+            "title": "Run Rhino Command",
+            "destructiveHint": true,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "g1_place_component",
+          "title": "Place GH1 Component",
+          "description": "Place a Grasshopper component onto the active GH1 canvas. 'selector' may be a Guid (proxy id) or a component name. Matches obsolete/hidden by name only when includeDeprecated is true (a Guid always works); ambiguous names return candidates.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "selector": {
+                "description": "Component Guid (proxy id) or component Name (case-insensitive)."
+              },
+              "x": {
+                "description": "Canvas X position in pixels.",
+                "type": "integer",
+                "default": 100
+              },
+              "y": {
+                "description": "Canvas Y position in pixels.",
+                "type": "integer",
+                "default": 100
+              },
+              "solve": {
+                "description": "If true, trigger a new solution after placing. Set false to batch multiple operations and solve once at the end.",
+                "type": "boolean",
+                "default": true
+              },
+              "includeDeprecated": {
+                "description": "Also match obsolete/hidden components by name (a Guid always works). Default false.",
+                "type": "boolean",
+                "default": false
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            },
+            "required": [
+              "selector"
+            ]
+          },
+          "annotations": {
+            "title": "Place GH1 Component",
+            "destructiveHint": false,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "g1_delete_component",
+          "title": "Delete GH1 Component",
+          "description": "Delete a Grasshopper component on the active GH1 canvas.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "selector": {
+                "description": "Component instance Guid "
+              },
+              "solve": {
+                "description": "If true, trigger a new solution after removing.",
+                "type": "boolean",
+                "default": false
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            },
+            "required": [
+              "selector"
+            ]
+          },
+          "annotations": {
+            "title": "Delete GH1 Component",
+            "destructiveHint": false,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "list_objects",
+          "title": "List Document Objects",
+          "description": "List objects in the active document. Filter by name, layer, or geometry type. Pure query — does not change selection or viewport.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "names": {
+                "description": "Object names to match",
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {},
+                "default": null
+              },
+              "layer": {
+                "description": "Layer full path",
+                "default": null
+              },
+              "geometryType": {
+                "description": "Filter by type: point, pointset, curve, surface, brep, mesh, annotation, light, block",
+                "default": null
+              },
+              "includeHidden": {
+                "description": "Include hidden objects (default false)",
+                "type": "boolean",
+                "default": false
+              },
+              "includeLocked": {
+                "description": "Include locked objects (default true)",
+                "type": "boolean",
+                "default": true
+              },
+              "limit": {
+                "description": "Maximum number of objects to return (default 1000)",
+                "type": "integer",
+                "default": 1000
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            }
+          },
+          "annotations": {
+            "title": "List Document Objects",
+            "destructiveHint": false,
+            "readOnlyHint": true
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "spawn_slot",
+          "title": "Spawn Rhino Slot",
+          "description": "Launch a new Rhino instance and return its slot ID. Pass that ID as the `slot` arg on subsequent tool calls to target this Rhino.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "description": "Rhino version: '8', '9', 'BETA', or 'WIP' ('9'/'BETA'/'WIP' are interchangeable). Omit to use the router's configured default.",
+                "default": null
+              }
+            }
+          },
+          "annotations": {
+            "title": "Spawn Rhino Slot",
+            "destructiveHint": false,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "set_layer_material",
+          "title": "Set Layer Material",
+          "description": "Set the render material on a layer. Accepts diffuse color, transparency, and gloss. Optionally also sets the layer display color.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "layer": {
+                "description": "Layer full path"
+              },
+              "color": {
+                "description": "Diffuse color hex like '#FF0000' or known color name",
+                "default": null
+              },
+              "transparency": {
+                "description": "Transparency 0.0 (opaque) to 1.0 (fully transparent)",
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "default": null
+              },
+              "gloss": {
+                "description": "Glossiness 0.0 (matte) to 1.0 (mirror)",
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "default": null
+              },
+              "applyToLayerColor": {
+                "description": "Also apply color as the layer display (wireframe) color",
+                "type": "boolean",
+                "default": true
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            },
+            "required": [
+              "layer"
+            ]
+          },
+          "annotations": {
+            "title": "Set Layer Material",
+            "destructiveHint": true,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "g1_get_canvas_graph",
+          "title": "Get GH1 Canvas Graph",
+          "description": "Return a structured snapshot of the active GH1 canvas: objects (with messages, inputs/outputs and optional volatile data summaries) and wires between them.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "include_data": {
+                "description": "Include per-param volatile data summaries (branches/items/sample).",
+                "type": "boolean",
+                "default": true
+              },
+              "sample_size": {
+                "description": "How many items to include in each data sample.",
+                "type": "integer",
+                "default": 3
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            }
+          },
+          "annotations": {
+            "title": "Get GH1 Canvas Graph",
+            "destructiveHint": false,
+            "readOnlyHint": true
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "get_commands",
+          "title": "List Rhino Commands",
+          "description": "Discover Rhino command names available to run_command. Returns English names from all registered plugins (including those not yet loaded). Use filter to narrow the list before calling run_command.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "filter": {
+                "description": "Substring filter (case-insensitive). Strongly recommended — unfiltered results can exceed 1000 commands.",
+                "default": null
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            }
+          },
+          "annotations": {
+            "title": "List Rhino Commands",
+            "destructiveHint": false,
+            "readOnlyHint": true
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "g1_connect",
+          "title": "Connect GH1 Wire",
+          "description": "Wire an output parameter to an input parameter on the active GH1 canvas. 'src' and 'dst' may be a numeric index or a Name/NickName. For pure params (e.g. a slider) pass '' or '0'.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "src_id": {
+                "description": "Guid of the source IGH_DocumentObject."
+              },
+              "src": {
+                "description": "Output identifier: numeric index, output Name, or output NickName. Use '' or '0' for pure params."
+              },
+              "dst_id": {
+                "description": "Guid of the destination IGH_DocumentObject."
+              },
+              "dst": {
+                "description": "Input identifier: numeric index, input Name, or input NickName. Use '' or '0' for pure params."
+              },
+              "replace": {
+                "description": "If true (the default), any sources already wired into the destination input are removed first, so this becomes its only wire. Pass false to add alongside them.",
+                "type": "boolean",
+                "default": true
+              },
+              "solve": {
+                "description": "If true, trigger a new solution after wiring. Set false to batch multiple operations and solve once at the end.",
+                "type": "boolean",
+                "default": true
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            },
+            "required": [
+              "src_id",
+              "src",
+              "dst_id",
+              "dst"
+            ]
+          },
+          "annotations": {
+            "title": "Connect GH1 Wire",
+            "destructiveHint": false,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "g1_start",
+          "title": "Start Grasshopper 1",
+          "description": "Starts Grasshopper",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            }
+          },
+          "annotations": {
+            "title": "Start Grasshopper 1",
+            "destructiveHint": false,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "g1_place_slider",
+          "title": "Place GH1 Number Slider",
+          "description": "Place a Number Slider on the active GH1 canvas with the given range and current value. type: 'float' | 'int' | 'even' | 'odd'.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "description": "Minimum slider value.",
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "value": {
+                "description": "Initial slider value.",
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "max": {
+                "description": "Maximum slider value.",
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "x": {
+                "description": "Canvas X position in pixels.",
+                "type": "integer",
+                "default": 100
+              },
+              "y": {
+                "description": "Canvas Y position in pixels.",
+                "type": "integer",
+                "default": 100
+              },
+              "type": {
+                "description": "Slider accuracy: 'float', 'int', 'even', or 'odd'.",
+                "default": "float"
+              },
+              "name": {
+                "description": "Optional NickName for the slider.",
+                "default": null
+              },
+              "solve": {
+                "description": "If true, trigger a new solution after placing. Set false to batch multiple operations and solve once at the end.",
+                "type": "boolean",
+                "default": true
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            },
+            "required": [
+              "min",
+              "value",
+              "max"
+            ]
+          },
+          "annotations": {
+            "title": "Place GH1 Number Slider",
+            "destructiveHint": false,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "g1_connect_many",
+          "title": "Connect GH1 Wires (Batch)",
+          "description": "Wire multiple output→input connections in one call. Same selector semantics as 'g1_connect' (numeric index or Name/NickName; '' or '0' for pure params). A failed wire does not stop later ones; per-wire results are returned. solve runs once at the end.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "wires": {
+                "description": "Array of {SrcId, Src, DstId, Dst} wire descriptors.",
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {}
+              },
+              "replace": {
+                "description": "If true (the default), sources already wired into a destination input before this call are removed first. Wires added within this same call accumulate. Pass false to add alongside everything.",
+                "type": "boolean",
+                "default": true
+              },
+              "solve": {
+                "description": "If true, trigger a new solution after wiring. Set false to batch further.",
+                "type": "boolean",
+                "default": true
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            },
+            "required": [
+              "wires"
+            ]
+          },
+          "annotations": {
+            "title": "Connect GH1 Wires (Batch)",
+            "destructiveHint": false,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "get_viewport_image",
+          "title": "Capture Viewport Image",
+          "description": "Capture the active Rhino viewport as JPG. Returns the image plus a JSON metadata block describing the resulting camera, display mode, framed scene bounds, and on-screen object count — use the metadata to diagnose empty/off-screen captures without re-shooting.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "width": {
+                "description": "Image width pixels (default 480) (max 1280) increase sparingly",
+                "type": "integer",
+                "default": 480
+              },
+              "height": {
+                "description": "Image height pixels (default 270) (max 720) increase sparingly",
+                "type": "integer",
+                "default": 270
+              },
+              "view": {
+                "description": "Standard view: top, bottom, left, right, front, back, perspective",
+                "default": null
+              },
+              "displayMode": {
+                "description": "Display mode by English name: Wireframe, Shaded, Rendered, Ghosted, X-Ray, Technical, Artistic, Pen, Monochrome, Arctic, Raytraced",
+                "default": null
+              },
+              "cameraLocation": {
+                "description": "Camera position {x,y,z}",
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "default": null
+              },
+              "target": {
+                "description": "Camera look-at point {x,y,z}",
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "default": null
+              },
+              "boxMin": {
+                "description": "Frame this bounding box (min corner). Pair with boxMax. Replaces zoom — agent supplies what to frame, tool computes how far back to stand.",
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "default": null
+              },
+              "boxMax": {
+                "description": "Frame this bounding box (max corner). Pair with boxMin.",
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "default": null
+              },
+              "zoom": {
+                "description": "Magnification factor: >1 zoom in, 0<x<1 zoom out. Applied after boxMin/boxMax if both supplied.",
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "default": null
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            }
+          },
+          "annotations": {
+            "title": "Capture Viewport Image",
+            "destructiveHint": false,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "zoom_to_object",
+          "title": "Zoom To Object",
+          "description": "Zoom the active viewport to fit one or more objects by GUID.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "ids": {
+                "description": "Object GUIDs to zoom to",
+                "type": "array",
+                "items": {}
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            },
+            "required": [
+              "ids"
+            ]
+          },
+          "annotations": {
+            "title": "Zoom To Object",
+            "destructiveHint": false,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "g1_describe_component",
+          "title": "Describe GH1 Component",
+          "description": "Look up a Grasshopper component by name and return its category, description, and input/output parameter list. Useful before placing or wiring components. Ignores obsolete/hidden unless includeDeprecated.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "Component name as it appears in the component library (e.g. 'Number Slider', 'Addition'). Case-insensitive."
+              },
+              "includeDeprecated": {
+                "description": "Include obsolete/hidden components (e.g. legacy scripting). Default false.",
+                "type": "boolean",
+                "default": false
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "annotations": {
+            "title": "Describe GH1 Component",
+            "destructiveHint": false,
+            "readOnlyHint": true
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "g1_apply_graph",
+          "title": "Apply GH1 Graph",
+          "description": "Place sliders + components and wire them in one call. References between objects use caller-supplied 'key' strings; the tool returns the key→Guid map. Failures in any step do not abort the rest; results report per-step status. Wire src/dst use the same selector semantics as 'g1_connect'.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "sliders": {
+                "description": "Sliders to place: {Key, Min, Value, Max, Type, Name?, X, Y}. Type ∈ 'float'|'int'|'even'|'odd'.",
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {}
+              },
+              "components": {
+                "description": "Components to place: {Key, Selector, X, Y}. Selector is a Guid (preferred — avoids name ambiguity) or component Name.",
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {}
+              },
+              "wires": {
+                "description": "Wires to create: {SrcKey, Src, DstKey, Dst}. Keys must match a slider or component key above.",
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {}
+              },
+              "solve": {
+                "description": "If true, trigger a new solution at the end.",
+                "type": "boolean",
+                "default": true
+              },
+              "replace": {
+                "description": "If true (the default), sources already wired into a destination input before this call are removed first. Wires added within this same call accumulate. Pass false to add alongside everything.",
+                "type": "boolean",
+                "default": true
+              },
+              "includeDeprecated": {
+                "description": "Also match obsolete/hidden components by name (a Guid always works). Default false.",
+                "type": "boolean",
+                "default": false
+              },
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            },
+            "required": [
+              "sliders",
+              "components",
+              "wires"
+            ]
+          },
+          "annotations": {
+            "title": "Apply GH1 Graph",
+            "destructiveHint": false,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "close_slot",
+          "title": "Close Rhino Slot",
+          "description": "Close a Rhino slot gracefully. Saves nothing. On success `payload.closed` is true. On failure `error.code` is one of: `slot_not_found` (no slot with that ID is currently running), `cannot_close_adopted` (the slot was a user-started Rhino, the router will not kill it; ask the user to close the Rhino window), `close_failed` (the router tried to close the slot but the operation did not complete; the slot may still be running).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "slot": {
+                "description": "Slot ID returned by spawn_slot, or an animal-name slot adopted from a user-started Rhino"
+              }
+            },
+            "required": [
+              "slot"
+            ]
+          },
+          "annotations": {
+            "title": "Close Rhino Slot",
+            "destructiveHint": true,
+            "readOnlyHint": false
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        },
+        {
+          "name": "get_selection",
+          "title": "Get Selection",
+          "description": "Return all currently selected objects in Rhino.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "slot": {
+                "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                "default": null
+              }
+            }
+          },
+          "annotations": {
+            "title": "Get Selection",
+            "destructiveHint": false,
+            "readOnlyHint": true
+          },
+          "execution": {
+            "taskSupport": "optional"
+          }
+        }
+      ]
+    },
+    "id": 2,
+    "jsonrpc": "2.0"
+  },
+  "calls": [],
+  "error": "MCP response timeout",
+  "stderr": [
+    "info: ModelContextProtocol.Server.StdioServerTransport[857250842]",
+    "      Server (stream) (rhino-mcp-router) transport reading messages.",
+    "info: Microsoft.Hosting.Lifetime[0]",
+    "      Application started. Press Ctrl+C to shut down.",
+    "info: Microsoft.Hosting.Lifetime[0]",
+    "      Hosting environment: Production",
+    "info: Microsoft.Hosting.Lifetime[0]",
+    "      Content root path: C:\\Users\\ciszo\\AppData\\Roaming\\McNeel\\Rhinoceros\\ai\\bin\\",
+    "info: ModelContextProtocol.Server.McpServer[570385771]",
+    "      Server (rhino-mcp-router 0.3.0) method 'initialize' request handler called.",
+    "info: ModelContextProtocol.Server.McpServer[570385771]",
+    "      Server (rhino-mcp-router 0.3.0), Client (environmental-hub-audit 0.1) method 'tools/list' request handler called.",
+    "info: ModelContextProtocol.Server.McpServer[1867955179]",
+    "      Server (rhino-mcp-router 0.3.0), Client (environmental-hub-audit 0.1) method 'initialize' request handler completed in 17.7761ms.",
+    "info: ModelContextProtocol.Server.McpServer[1867955179]",
+    "      Server (rhino-mcp-router 0.3.0), Client (environmental-hub-audit 0.1) method 'tools/list' request handler completed in 9.357ms.",
+    "info: ModelContextProtocol.Server.McpServer[570385771]",
+    "      Server (rhino-mcp-router 0.3.0), Client (environmental-hub-audit 0.1) method 'tools/call' request handler called.",
+    "info: System.Net.Http.HttpClient.Default.LogicalHandler[100]",
+    "      Start processing HTTP request POST http://localhost:10500/",
+    "info: System.Net.Http.HttpClient.Default.ClientHandler[100]",
+    "      Sending HTTP request POST http://localhost:10500/"
+  ],
+  "transcript": [
+    {
+      "result": {
+        "protocolVersion": "2024-11-05",
+        "capabilities": {
+          "logging": {},
+          "tools": {
+            "listChanged": true
+          }
+        },
+        "serverInfo": {
+          "name": "rhino-mcp-router",
+          "version": "0.3.0"
+        }
+      },
+      "id": 1,
+      "jsonrpc": "2.0"
+    },
+    {
+      "result": {
+        "tools": [
+          {
+            "name": "g1_clear_canvas",
+            "title": "Clear GH1 Canvas",
+            "description": "Remove every object from the active GH1 canvas. Destructive — requires confirm=true.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "confirm": {
+                  "description": "Must be true to actually wipe the canvas. Defaults to false as a safety guard.",
+                  "type": "boolean",
+                  "default": false
+                },
+                "solve": {
+                  "description": "If true, trigger a new solution after clearing. Set false to batch multiple operations and solve once at the end.",
+                  "type": "boolean",
+                  "default": true
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              }
+            },
+            "annotations": {
+              "title": "Clear GH1 Canvas",
+              "destructiveHint": true,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "zoom_to_layer",
+            "title": "Zoom To Layer",
+            "description": "Zoom the active viewport to fit all objects on a layer (full path).",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "layer": {
+                  "description": "Layer full path"
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              },
+              "required": [
+                "layer"
+              ]
+            },
+            "annotations": {
+              "title": "Zoom To Layer",
+              "destructiveHint": false,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "list_slots",
+            "title": "List Rhino Slots",
+            "description": "List all currently-running Rhino slots managed by this router. Slots whose Rhino has crashed are pruned before returning. User-started Rhinos that have advertised themselves since the last call are adopted into the list. The list lives in `payload` (an array of slot objects).",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            },
+            "annotations": {
+              "title": "List Rhino Slots",
+              "destructiveHint": false,
+              "readOnlyHint": true
+            }
+          },
+          {
+            "name": "ask_user",
+            "title": "Ask User",
+            "description": "Ask the Rhino user to choose among options when you need a decision you cannot make yourself. Pass EVERY question you need answered in this one call: the Rhino AI panel shows them one page at a time (radio for single choice, checkboxes for multi) and returns them as a single reply. This tool does NOT wait for the answers: it poses the questions and returns immediately. Only on success, STOP and end your turn; on failure, fix the input and retry; the user's answers arrive as their next message, then continue.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "questions": {
+                  "description": "The questions to ask, in the order they should be shown",
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {}
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              },
+              "required": [
+                "questions"
+              ]
+            },
+            "annotations": {
+              "title": "Ask User",
+              "destructiveHint": false,
+              "readOnlyHint": true
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "set_selection",
+            "title": "Set Selection",
+            "description": "Select objects by filter (IDs, names, layer, geometry type). Clears existing selection.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "ids": {
+                  "description": "Object GUIDs",
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {},
+                  "default": null
+                },
+                "names": {
+                  "description": "Object names",
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {},
+                  "default": null
+                },
+                "layer": {
+                  "description": "Layer full path — selects all objects on layer",
+                  "default": null
+                },
+                "geometryType": {
+                  "description": "Filter by type: point, pointset, curve, surface, brep, mesh, annotation, light, block",
+                  "default": null
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              }
+            },
+            "annotations": {
+              "title": "Set Selection",
+              "destructiveHint": false,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "open_doc",
+            "title": "Open / Import Document",
+            "description": "Import a .3dm (or other supported) file into the current document. Headless — no dialogs. Optionally clear the document first to make this behave like an open-in-place.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "description": "Absolute path to the file to import"
+                },
+                "clearFirst": {
+                  "description": "If true, delete all objects in the current document before importing",
+                  "type": "boolean",
+                  "default": false
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              },
+              "required": [
+                "path"
+              ]
+            },
+            "annotations": {
+              "title": "Open / Import Document",
+              "destructiveHint": true,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "close_doc",
+            "title": "Close Document",
+            "description": "Close the current Rhino document. If path is given, save to that .3dm path first; otherwise discard unsaved changes.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "description": "Optional absolute .3dm path to save to before closing. Omit to close without saving.",
+                  "default": null
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              }
+            },
+            "annotations": {
+              "title": "Close Document",
+              "destructiveHint": true,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "run_csharp",
+            "title": "Run C# Script",
+            "description": "Execute a C# script targeted at this slot's document. The script editor injects `__rhino_doc__` (type `RhinoDoc`) — use it as your document handle instead of `RhinoDoc.ActiveDoc` or anything else. System/Linq/Collections.Generic are auto-injected if missing.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "script": {
+                  "description": "Script"
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              },
+              "required": [
+                "script"
+              ]
+            },
+            "annotations": {
+              "title": "Run C# Script",
+              "destructiveHint": true,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "set_camera",
+            "title": "Set Camera",
+            "description": "Set the active viewport camera. Any subset of position, target, up vector, lens length, projection, or framing bounding-box may be supplied.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "location": {
+                  "description": "Camera position {x,y,z}",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "default": null
+                },
+                "target": {
+                  "description": "Camera look-at point {x,y,z}",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "default": null
+                },
+                "up": {
+                  "description": "Camera up vector {x,y,z}",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "default": null
+                },
+                "lensLength": {
+                  "description": "35mm-equivalent lens length (perspective only)",
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "default": null
+                },
+                "projection": {
+                  "description": "Projection: 'parallel' or 'perspective'",
+                  "default": null
+                },
+                "boxMin": {
+                  "description": "Frame this bounding box (min corner). Pair with boxMax. Applied last so it dominates location/target if both supplied.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "default": null
+                },
+                "boxMax": {
+                  "description": "Frame this bounding box (max corner). Pair with boxMin.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "default": null
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              }
+            },
+            "annotations": {
+              "title": "Set Camera",
+              "destructiveHint": false,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "save_doc",
+            "title": "Save Document",
+            "description": "Write the current document to the given .3dm path. Headless — no dialogs. Overwrites any existing file at the path.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "description": "Absolute path to write the .3dm file to"
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              },
+              "required": [
+                "path"
+              ]
+            },
+            "annotations": {
+              "title": "Save Document",
+              "destructiveHint": true,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "g1_search_components",
+            "title": "Search GH1 Components",
+            "description": "Search the Grasshopper component library. The query is split into words and every word must appear somewhere in Name, NickName, Description, Category or SubCategory (case-insensitive), so 'XY plane' finds 'World XY'. Exact name matches rank first, then names carrying every word. Optional exact-match category/subcategory filters. Excludes obsolete/hidden unless includeDeprecated. Returns up to 'limit' matches.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "description": "Substring to match against component Name, NickName, and Description. Case-insensitive."
+                },
+                "category": {
+                  "description": "Optional exact-match category filter (e.g. 'Maths', 'Params').",
+                  "default": null
+                },
+                "subcategory": {
+                  "description": "Optional exact-match subcategory filter (e.g. 'Operators').",
+                  "default": null
+                },
+                "limit": {
+                  "description": "Maximum number of results to return.",
+                  "type": "integer",
+                  "default": 20
+                },
+                "includeDeprecated": {
+                  "description": "Include obsolete/hidden components (e.g. legacy scripting). Default false.",
+                  "type": "boolean",
+                  "default": false
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              },
+              "required": [
+                "query"
+              ]
+            },
+            "annotations": {
+              "title": "Search GH1 Components",
+              "destructiveHint": false,
+              "readOnlyHint": true
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "get_context",
+            "title": "Get Context Snapshot",
+            "description": "One round-trip grounding snapshot of current state: the active-doc selection (ids/types/layers), the active viewport (name + camera summary), a doc summary (object/layer counts), and one Grasshopper summary per version (Version 'GH1' or 'GH2', each with component/wire counts when that canvas is open). Read-only; pulls everything you need to orient before acting, and never opens a canvas that is not already open.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              }
+            },
+            "annotations": {
+              "title": "Get Context Snapshot",
+              "destructiveHint": false,
+              "readOnlyHint": true
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "run_python",
+            "title": "Run Python Script",
+            "description": "Execute a Python 3 script targeted at this slot's document. The script editor injects `__rhino_doc__` — use it as your document handle. Do NOT trust `scriptcontext.doc` or `rhinoscriptsyntax` calls.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "script": {
+                  "description": "Script"
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              },
+              "required": [
+                "script"
+              ]
+            },
+            "annotations": {
+              "title": "Run Python Script",
+              "destructiveHint": true,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "g1_solve_graph",
+            "title": "Solve GH1 Graph",
+            "description": "Solves the active GH canvas. zoom_views controls whether Rhino viewports zoom to the new preview: true=always, false=never, null=auto (zoom only when nothing was previewed before the solve).",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "zoom_views": {
+                  "description": "Auto-zoom every Rhino viewport to the GH preview after solving. true=always, false=never, null=zoom only when nothing was visible pre-solve.",
+                  "type": [
+                    "boolean",
+                    "null"
+                  ],
+                  "default": null
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              }
+            },
+            "annotations": {
+              "title": "Solve GH1 Graph",
+              "destructiveHint": false,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "run_command",
+            "title": "Run Rhino Command",
+            "description": "Execute any Rhino command string and return command window output. Example: \"_Box 0,0,0 10,10,10 _Enter\"",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "description": "Rhino command string to execute"
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              },
+              "required": [
+                "command"
+              ]
+            },
+            "annotations": {
+              "title": "Run Rhino Command",
+              "destructiveHint": true,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "g1_place_component",
+            "title": "Place GH1 Component",
+            "description": "Place a Grasshopper component onto the active GH1 canvas. 'selector' may be a Guid (proxy id) or a component name. Matches obsolete/hidden by name only when includeDeprecated is true (a Guid always works); ambiguous names return candidates.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "selector": {
+                  "description": "Component Guid (proxy id) or component Name (case-insensitive)."
+                },
+                "x": {
+                  "description": "Canvas X position in pixels.",
+                  "type": "integer",
+                  "default": 100
+                },
+                "y": {
+                  "description": "Canvas Y position in pixels.",
+                  "type": "integer",
+                  "default": 100
+                },
+                "solve": {
+                  "description": "If true, trigger a new solution after placing. Set false to batch multiple operations and solve once at the end.",
+                  "type": "boolean",
+                  "default": true
+                },
+                "includeDeprecated": {
+                  "description": "Also match obsolete/hidden components by name (a Guid always works). Default false.",
+                  "type": "boolean",
+                  "default": false
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              },
+              "required": [
+                "selector"
+              ]
+            },
+            "annotations": {
+              "title": "Place GH1 Component",
+              "destructiveHint": false,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "g1_delete_component",
+            "title": "Delete GH1 Component",
+            "description": "Delete a Grasshopper component on the active GH1 canvas.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "selector": {
+                  "description": "Component instance Guid "
+                },
+                "solve": {
+                  "description": "If true, trigger a new solution after removing.",
+                  "type": "boolean",
+                  "default": false
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              },
+              "required": [
+                "selector"
+              ]
+            },
+            "annotations": {
+              "title": "Delete GH1 Component",
+              "destructiveHint": false,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "list_objects",
+            "title": "List Document Objects",
+            "description": "List objects in the active document. Filter by name, layer, or geometry type. Pure query — does not change selection or viewport.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "names": {
+                  "description": "Object names to match",
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {},
+                  "default": null
+                },
+                "layer": {
+                  "description": "Layer full path",
+                  "default": null
+                },
+                "geometryType": {
+                  "description": "Filter by type: point, pointset, curve, surface, brep, mesh, annotation, light, block",
+                  "default": null
+                },
+                "includeHidden": {
+                  "description": "Include hidden objects (default false)",
+                  "type": "boolean",
+                  "default": false
+                },
+                "includeLocked": {
+                  "description": "Include locked objects (default true)",
+                  "type": "boolean",
+                  "default": true
+                },
+                "limit": {
+                  "description": "Maximum number of objects to return (default 1000)",
+                  "type": "integer",
+                  "default": 1000
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              }
+            },
+            "annotations": {
+              "title": "List Document Objects",
+              "destructiveHint": false,
+              "readOnlyHint": true
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "spawn_slot",
+            "title": "Spawn Rhino Slot",
+            "description": "Launch a new Rhino instance and return its slot ID. Pass that ID as the `slot` arg on subsequent tool calls to target this Rhino.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "version": {
+                  "description": "Rhino version: '8', '9', 'BETA', or 'WIP' ('9'/'BETA'/'WIP' are interchangeable). Omit to use the router's configured default.",
+                  "default": null
+                }
+              }
+            },
+            "annotations": {
+              "title": "Spawn Rhino Slot",
+              "destructiveHint": false,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "set_layer_material",
+            "title": "Set Layer Material",
+            "description": "Set the render material on a layer. Accepts diffuse color, transparency, and gloss. Optionally also sets the layer display color.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "layer": {
+                  "description": "Layer full path"
+                },
+                "color": {
+                  "description": "Diffuse color hex like '#FF0000' or known color name",
+                  "default": null
+                },
+                "transparency": {
+                  "description": "Transparency 0.0 (opaque) to 1.0 (fully transparent)",
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "default": null
+                },
+                "gloss": {
+                  "description": "Glossiness 0.0 (matte) to 1.0 (mirror)",
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "default": null
+                },
+                "applyToLayerColor": {
+                  "description": "Also apply color as the layer display (wireframe) color",
+                  "type": "boolean",
+                  "default": true
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              },
+              "required": [
+                "layer"
+              ]
+            },
+            "annotations": {
+              "title": "Set Layer Material",
+              "destructiveHint": true,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "g1_get_canvas_graph",
+            "title": "Get GH1 Canvas Graph",
+            "description": "Return a structured snapshot of the active GH1 canvas: objects (with messages, inputs/outputs and optional volatile data summaries) and wires between them.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "include_data": {
+                  "description": "Include per-param volatile data summaries (branches/items/sample).",
+                  "type": "boolean",
+                  "default": true
+                },
+                "sample_size": {
+                  "description": "How many items to include in each data sample.",
+                  "type": "integer",
+                  "default": 3
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              }
+            },
+            "annotations": {
+              "title": "Get GH1 Canvas Graph",
+              "destructiveHint": false,
+              "readOnlyHint": true
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "get_commands",
+            "title": "List Rhino Commands",
+            "description": "Discover Rhino command names available to run_command. Returns English names from all registered plugins (including those not yet loaded). Use filter to narrow the list before calling run_command.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "filter": {
+                  "description": "Substring filter (case-insensitive). Strongly recommended — unfiltered results can exceed 1000 commands.",
+                  "default": null
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              }
+            },
+            "annotations": {
+              "title": "List Rhino Commands",
+              "destructiveHint": false,
+              "readOnlyHint": true
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "g1_connect",
+            "title": "Connect GH1 Wire",
+            "description": "Wire an output parameter to an input parameter on the active GH1 canvas. 'src' and 'dst' may be a numeric index or a Name/NickName. For pure params (e.g. a slider) pass '' or '0'.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "src_id": {
+                  "description": "Guid of the source IGH_DocumentObject."
+                },
+                "src": {
+                  "description": "Output identifier: numeric index, output Name, or output NickName. Use '' or '0' for pure params."
+                },
+                "dst_id": {
+                  "description": "Guid of the destination IGH_DocumentObject."
+                },
+                "dst": {
+                  "description": "Input identifier: numeric index, input Name, or input NickName. Use '' or '0' for pure params."
+                },
+                "replace": {
+                  "description": "If true (the default), any sources already wired into the destination input are removed first, so this becomes its only wire. Pass false to add alongside them.",
+                  "type": "boolean",
+                  "default": true
+                },
+                "solve": {
+                  "description": "If true, trigger a new solution after wiring. Set false to batch multiple operations and solve once at the end.",
+                  "type": "boolean",
+                  "default": true
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              },
+              "required": [
+                "src_id",
+                "src",
+                "dst_id",
+                "dst"
+              ]
+            },
+            "annotations": {
+              "title": "Connect GH1 Wire",
+              "destructiveHint": false,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "g1_start",
+            "title": "Start Grasshopper 1",
+            "description": "Starts Grasshopper",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              }
+            },
+            "annotations": {
+              "title": "Start Grasshopper 1",
+              "destructiveHint": false,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "g1_place_slider",
+            "title": "Place GH1 Number Slider",
+            "description": "Place a Number Slider on the active GH1 canvas with the given range and current value. type: 'float' | 'int' | 'even' | 'odd'.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "min": {
+                  "description": "Minimum slider value.",
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                },
+                "value": {
+                  "description": "Initial slider value.",
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                },
+                "max": {
+                  "description": "Maximum slider value.",
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                },
+                "x": {
+                  "description": "Canvas X position in pixels.",
+                  "type": "integer",
+                  "default": 100
+                },
+                "y": {
+                  "description": "Canvas Y position in pixels.",
+                  "type": "integer",
+                  "default": 100
+                },
+                "type": {
+                  "description": "Slider accuracy: 'float', 'int', 'even', or 'odd'.",
+                  "default": "float"
+                },
+                "name": {
+                  "description": "Optional NickName for the slider.",
+                  "default": null
+                },
+                "solve": {
+                  "description": "If true, trigger a new solution after placing. Set false to batch multiple operations and solve once at the end.",
+                  "type": "boolean",
+                  "default": true
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              },
+              "required": [
+                "min",
+                "value",
+                "max"
+              ]
+            },
+            "annotations": {
+              "title": "Place GH1 Number Slider",
+              "destructiveHint": false,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "g1_connect_many",
+            "title": "Connect GH1 Wires (Batch)",
+            "description": "Wire multiple output→input connections in one call. Same selector semantics as 'g1_connect' (numeric index or Name/NickName; '' or '0' for pure params). A failed wire does not stop later ones; per-wire results are returned. solve runs once at the end.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "wires": {
+                  "description": "Array of {SrcId, Src, DstId, Dst} wire descriptors.",
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {}
+                },
+                "replace": {
+                  "description": "If true (the default), sources already wired into a destination input before this call are removed first. Wires added within this same call accumulate. Pass false to add alongside everything.",
+                  "type": "boolean",
+                  "default": true
+                },
+                "solve": {
+                  "description": "If true, trigger a new solution after wiring. Set false to batch further.",
+                  "type": "boolean",
+                  "default": true
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              },
+              "required": [
+                "wires"
+              ]
+            },
+            "annotations": {
+              "title": "Connect GH1 Wires (Batch)",
+              "destructiveHint": false,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "get_viewport_image",
+            "title": "Capture Viewport Image",
+            "description": "Capture the active Rhino viewport as JPG. Returns the image plus a JSON metadata block describing the resulting camera, display mode, framed scene bounds, and on-screen object count — use the metadata to diagnose empty/off-screen captures without re-shooting.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "width": {
+                  "description": "Image width pixels (default 480) (max 1280) increase sparingly",
+                  "type": "integer",
+                  "default": 480
+                },
+                "height": {
+                  "description": "Image height pixels (default 270) (max 720) increase sparingly",
+                  "type": "integer",
+                  "default": 270
+                },
+                "view": {
+                  "description": "Standard view: top, bottom, left, right, front, back, perspective",
+                  "default": null
+                },
+                "displayMode": {
+                  "description": "Display mode by English name: Wireframe, Shaded, Rendered, Ghosted, X-Ray, Technical, Artistic, Pen, Monochrome, Arctic, Raytraced",
+                  "default": null
+                },
+                "cameraLocation": {
+                  "description": "Camera position {x,y,z}",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "default": null
+                },
+                "target": {
+                  "description": "Camera look-at point {x,y,z}",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "default": null
+                },
+                "boxMin": {
+                  "description": "Frame this bounding box (min corner). Pair with boxMax. Replaces zoom — agent supplies what to frame, tool computes how far back to stand.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "default": null
+                },
+                "boxMax": {
+                  "description": "Frame this bounding box (max corner). Pair with boxMin.",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "default": null
+                },
+                "zoom": {
+                  "description": "Magnification factor: >1 zoom in, 0<x<1 zoom out. Applied after boxMin/boxMax if both supplied.",
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "default": null
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              }
+            },
+            "annotations": {
+              "title": "Capture Viewport Image",
+              "destructiveHint": false,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "zoom_to_object",
+            "title": "Zoom To Object",
+            "description": "Zoom the active viewport to fit one or more objects by GUID.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "ids": {
+                  "description": "Object GUIDs to zoom to",
+                  "type": "array",
+                  "items": {}
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              },
+              "required": [
+                "ids"
+              ]
+            },
+            "annotations": {
+              "title": "Zoom To Object",
+              "destructiveHint": false,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "g1_describe_component",
+            "title": "Describe GH1 Component",
+            "description": "Look up a Grasshopper component by name and return its category, description, and input/output parameter list. Useful before placing or wiring components. Ignores obsolete/hidden unless includeDeprecated.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "description": "Component name as it appears in the component library (e.g. 'Number Slider', 'Addition'). Case-insensitive."
+                },
+                "includeDeprecated": {
+                  "description": "Include obsolete/hidden components (e.g. legacy scripting). Default false.",
+                  "type": "boolean",
+                  "default": false
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              },
+              "required": [
+                "name"
+              ]
+            },
+            "annotations": {
+              "title": "Describe GH1 Component",
+              "destructiveHint": false,
+              "readOnlyHint": true
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "g1_apply_graph",
+            "title": "Apply GH1 Graph",
+            "description": "Place sliders + components and wire them in one call. References between objects use caller-supplied 'key' strings; the tool returns the key→Guid map. Failures in any step do not abort the rest; results report per-step status. Wire src/dst use the same selector semantics as 'g1_connect'.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "sliders": {
+                  "description": "Sliders to place: {Key, Min, Value, Max, Type, Name?, X, Y}. Type ∈ 'float'|'int'|'even'|'odd'.",
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {}
+                },
+                "components": {
+                  "description": "Components to place: {Key, Selector, X, Y}. Selector is a Guid (preferred — avoids name ambiguity) or component Name.",
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {}
+                },
+                "wires": {
+                  "description": "Wires to create: {SrcKey, Src, DstKey, Dst}. Keys must match a slider or component key above.",
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {}
+                },
+                "solve": {
+                  "description": "If true, trigger a new solution at the end.",
+                  "type": "boolean",
+                  "default": true
+                },
+                "replace": {
+                  "description": "If true (the default), sources already wired into a destination input before this call are removed first. Wires added within this same call accumulate. Pass false to add alongside everything.",
+                  "type": "boolean",
+                  "default": true
+                },
+                "includeDeprecated": {
+                  "description": "Also match obsolete/hidden components by name (a Guid always works). Default false.",
+                  "type": "boolean",
+                  "default": false
+                },
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              },
+              "required": [
+                "sliders",
+                "components",
+                "wires"
+              ]
+            },
+            "annotations": {
+              "title": "Apply GH1 Graph",
+              "destructiveHint": false,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "close_slot",
+            "title": "Close Rhino Slot",
+            "description": "Close a Rhino slot gracefully. Saves nothing. On success `payload.closed` is true. On failure `error.code` is one of: `slot_not_found` (no slot with that ID is currently running), `cannot_close_adopted` (the slot was a user-started Rhino, the router will not kill it; ask the user to close the Rhino window), `close_failed` (the router tried to close the slot but the operation did not complete; the slot may still be running).",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot, or an animal-name slot adopted from a user-started Rhino"
+                }
+              },
+              "required": [
+                "slot"
+              ]
+            },
+            "annotations": {
+              "title": "Close Rhino Slot",
+              "destructiveHint": true,
+              "readOnlyHint": false
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          },
+          {
+            "name": "get_selection",
+            "title": "Get Selection",
+            "description": "Return all currently selected objects in Rhino.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "slot": {
+                  "description": "Slot ID returned by spawn_slot. Omit to use the Rhino you're already working in (the one you last used, or one you have open); a new Rhino is auto-spawned only if none is running.",
+                  "default": null
+                }
+              }
+            },
+            "annotations": {
+              "title": "Get Selection",
+              "destructiveHint": false,
+              "readOnlyHint": true
+            },
+            "execution": {
+              "taskSupport": "optional"
+            }
+          }
+        ]
+      },
+      "id": 2,
+      "jsonrpc": "2.0"
+    }
+  ]
+}

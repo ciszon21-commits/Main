@@ -1,0 +1,83 @@
+{
+  "pages": [
+    {
+      "properties": {
+        "紀錄編號": "VER-HOME-0106-01",
+        "紀錄名稱": "0.10.6 候選｜停靠資料保留與正式結果匯出",
+        "分類": "驗證紀錄",
+        "主題": "版本與維護",
+        "階段": "L2",
+        "狀態": "已驗證",
+        "優先序": "P0",
+        "摘要": "0.10.6 修正 Rhino 停靠重建外框後遺失模組資料：依文件保存八個快取內部模組，保留草稿、日照結果與情境；外框釋放前卸下模組，文件關閉／Rhino 結束才釋放。建置零錯誤／零警告；本輪 161 項既有原生回歸、33 項狀態與文件隔離、2 項正式 picker 預選、3 項正式結果匯出／比較取消檢查通過，另 Core 25、MCP 工具 12。256 點日照無遮蔭平均 13 h、遮蔭 9.57421875 h；正式結果存檔 JSON 完全一致。比較成功存檔、完整 Dock 版面／深色／全鍵盤／滑鼠後選及跨機仍待驗收。正式 0.9.2／9、1、112，候選 10／1／111；V02 未正式交付，V03 未啟動。",
+        "來源路徑": "docs/HOME_VALIDATION_0106.md",
+        "適用版本": "0.10.6 候選；正式 0.9.2",
+        "驗證層級": "[\"文件整理\", \"原生數值\", \"原生操作\", \"正式載入\"]",
+        "date:更新日期:start": "2026-10-03",
+        "date:更新日期:is_datetime": 0
+      },
+      "content": "2026-10-03。正式版本仍為 0.9.2；本輪是既有平台與日照流程的修正，不增加正式功能覆蓋。完整機器資訊、檔案 SHA、分項結果與失敗重試見 acceptance.json（`evidence/session_final_0106/acceptance.json`）。\n\n## 問題與結果\n\n在自建隔離模型完成無遮蔭與遮蔭日照後，用公開 Rhino SDK 關閉平台並在另一容器開啟。0.10.5 的外框實例遭重建，模組回到首頁，日照結果為空、情境從 2 變成 0；模型與 owned preview 仍存在。失敗原證據 dock_roundtrip.json（`evidence/export_ui_0105/dock_roundtrip.json`） 保留。\n\n0.10.6 由每份 Rhino 文件的工作階段保存模組快取，新的已註冊外框重新掛接同一組控制項。一般離屏擷取外框保持獨立。IPanel shown／hidden／closing 及 Dispose 協調掛接與釋放；外框釋放前卸下模組，文件關閉及 Rhino 結束才釋放該份快取。沒有新增獨立 Dock，也沒有改寫求解器。\n\n## 本輪最終建置與測試\n\n<table fit-page-width=\"true\" header-row=\"true\">\n<tr color=\"gray_bg\">\n<td>項目</td>\n<td>結果</td>\n<td>範圍／證據</td>\n</tr>\n<tr>\n<td>Release 建置</td>\n<td>0 錯誤／0 警告</td>\n<td>artifacts/home-build/0.10.6；兩個新非 adopted Rhino 實際載入版本與來源</td>\n</tr>\n<tr>\n<td>既有原生回歸</td>\n<td>161 通過</td>\n<td>地點／氣候／時間 39、日射平台 21、SunPath 31＋1＋2、日照 45、重綁 7、八模組平台 15；runtime（`evidence/full_0106/runtime`）</td>\n</tr>\n<tr>\n<td>資料保留／文件隔離</td>\n<td>33 通過</td>\n<td>實際停靠造成外框重建；草稿、完整結果與兩情境保存；普通擷取外框獨立；第二份 headless 文件隔離及 closing callback；檢查（`evidence/session_final_0106/session_checks.json`）</td>\n</tr>\n<tr>\n<td>正式模型 picker</td>\n<td>2 通過</td>\n<td>實際按鈕→Rhino GetObject 接受預選；結果與情境保留。滑鼠後選未驗收；檢查（`evidence/session_final_0106/picker_checks.json`）</td>\n</tr>\n<tr>\n<td>正式匯出／取消</td>\n<td>3 通過</td>\n<td>結果按鈕→原生 SaveFileDialog→確認檔名→存檔→完整 JSON 一致；比較取消保留兩情境／解讀且未產生檔案；檢查（`evidence/session_final_0106/export_checks.json`）</td>\n</tr>\n<tr>\n<td>Core／MCP 工具</td>\n<td>25／12 通過</td>\n<td>使用隔離輸出建置 Core，再以真實 EPW 與測試輸出路徑執行；12 項 MCP 錯誤辨識測試</td>\n</tr>\n</table>\n\n161＋38 共 199 個檢查含原生操作、狀態及文件生命週期邏輯；不是 199 個獨立模擬功能。第二文件使用 headless SDK 與 closing callback，不代表多視窗文件切換已驗收。前輪 0.10.5 的浮動寬度 7 項、44 張淺色離屏影像與 2 張視埠未重跑，不計入本輪。\n\n## 真實結果與匯出\n\n自建 8×8 m 平面、0.5 m 網格、0.1 m 取樣偏移，臺北、UTC+8、13 個逐時太陽取樣。原生 Ladybug Direct Sun Hours／Rhino 射線交會：256 點，無遮蔭平均 13 h；加入 3 m 高遮蔭後平均 9.57421875 h，最小 8 h、最大 13 h。平均是算術點平均，不是面積加權；含首尾的 13 個取樣不能混稱為 13 小時曆時長度，也不能稱為採光照度。\n\n正式對話框匯出的完整結果（`../samples/session_final_0106/result_from_native_dialog.json`） 與 API 完整 JSON 契約完全相等，保留輸入、模型／元件指紋、單位、時間約定、網格、數值與預覽設定。檔案讀回（`evidence/session_final_0106/export_result_readback.json`） 保存 SHA。原生檔名設定回報逾時，但 accessibility 讀回已確認正確完整路徑；再由存檔鍵與磁碟資料建立成功證據。比較存檔對話框無法可靠讀取，成功存檔仍待驗收。\n\n## 過程失敗與修正\n\n- 首次 0.10.6 新程序自動載入已註冊的 0.10.5，被版本檢核拒絕；關閉空白程序、備份並更新單一 HKCU FileName，再以新程序確認 0.10.6。既有使用者程序沒有熱換版。\n- 第一份資料保留測試把「暫時隱藏其他 Hub 預覽」也列為不變資料；該選項原本就會在切換模組時釋放。修正測試起始條件後 33 項通過，最終建置又在另一新程序完整複驗。\n- 舊平台回歸要求關閉重開後外框仍為同一實例，與實際 Rhino 重建行為不符。只修改本輪重播測試，要求八個模組同一實例且完整快照一致；7 個已成功呼叫保留，後 2 呼叫通過。歷史測試不改寫。\n- 初次清理用 ObjectTable.Count 比較活物件，計入已刪除物件而失敗；改用活物件迭代核對。首次 Core 指令路徑／參數錯誤與共用輸出鎖定均保留於過程說明；最終以隔離建置與完整參數通過 25 項。\n- 匯出原生 modal 會阻住 MCP 回應；逾時 receipts 保留 UNVERIFIED，沒有改寫成成功。實際成功結果匯出使用獨立 UI／檔案證據驗收。\n\n## 尚待完成\n\n完整停靠窄／寬版面、原生深色、完整鍵盤、滑鼠後選、比較成功存檔、跨機無協助試用仍待驗收。V02 未正式交付；下一功能 V03 LB-067 Sky Mask，其後 LB-068 Solar Envelope。正式 9／1／112、候選 10／1／111；不把安裝、盤點或檢查數當作功能覆蓋。\n\n## 知識與版本\n\n本機目前狀態、索引、建置、計畫及開發檢視同步更新。Notion 沿用既有資料庫：詳細紀錄保留規格與證據，既有首頁呈現重點，固定 KB-003 視覺化頁呈現里程碑與流程。視覺化精華（`DEVELOPMENT_HIGHLIGHTS.md`）、Notion 維護與雙端 receipt（`NOTION_KNOWLEDGE.md`）。Git 僅地端提交；遠端驗證與上傳仍待處理。\n---\n## 來源與維護\n本機來源：`docs/HOME_VALIDATION_0106.md`；SHA-256：`6bdd0d6871bba25a94554e9f712e26baf1a1c6665326e49a5dba1ede1318dc4b`。\n本機路徑供追溯，不是雲端下載連結。正式覆蓋未增加，未建立背景自動同步。\n目前狀態：<mention-page url=\"https://app.notion.com/p/3ec1956a9b0e81aca858fefd1fae1c4c\"/>；L2 計畫：<mention-page url=\"https://app.notion.com/p/3ed1956a9b0e81459fefcccd2370acaa\"/>。"
+    },
+    {
+      "properties": {
+        "紀錄編號": "KB-003",
+        "紀錄名稱": "視覺化精華｜開發里程碑、流程與案例",
+        "分類": "知識管理",
+        "主題": "圖表與視覺化",
+        "階段": "X1",
+        "狀態": "採用中",
+        "優先序": "P1",
+        "摘要": "開發里程碑、資料保留流程、真實日照案例與驗收狀態；詳細資料、重點整理、視覺化精華互相連結，只在實際進度後更新。",
+        "來源路徑": "docs/DEVELOPMENT_HIGHLIGHTS.md",
+        "適用版本": "0.10.6 候選；正式 0.9.2",
+        "驗證層級": "[\"文件整理\"]",
+        "date:更新日期:start": "2026-10-03",
+        "date:更新日期:is_datetime": 0
+      },
+      "content": "更新：2026-10-03。有實際進度才更新本頁與 Notion 固定 KB-003；本頁是精華，原始證據由 詳細驗證（`HOME_VALIDATION_0106.md`） 與 知識索引（`KNOWLEDGE_INDEX.md`） 追溯。\n\n<table fit-page-width=\"true\" header-row=\"true\">\n<tr color=\"gray_bg\">\n<td>正式可用基準</td>\n<td>本輪候選</td>\n<td>下一功能</td>\n</tr>\n<tr>\n<td>0.9.2；9 獨立／1 後端／112 待接入</td>\n<td>0.10.6；日照候選與平台資料保留修正；10／1／111</td>\n<td>V02 剩餘驗收→LB-067 Sky Mask→LB-068 Solar Envelope</td>\n</tr>\n</table>\n\n## 里程碑\n\n```mermaid\nflowchart LR\n    A[\"0.9.2 正式<br>SunPath 幾何第一批\"] --> B[\"0.10.1 候選<br>Direct Sun Hours 接入\"]\n    B --> C[\"0.10.2～0.10.3<br>窄版與單位重綁修正\"]\n    C --> D[\"0.10.4<br>影像尺寸不符；未交付\"]\n    D --> E[\"0.10.5<br>首次浮動寬度修正\"]\n    E --> F[\"0.10.6<br>停靠資料保留＋正式結果匯出\"]\n    F --> G[\"V02 尚待完整宿主驗收\"]\n    G --> H[\"V03 Sky Mask<br>未啟動\"]\n    style A fill:#e8f0ea,stroke:#45624f\n    style D fill:#f6ece8,stroke:#915b48\n    style F fill:#e8edf3,stroke:#52677b\n```\n\n## 這次使用流程改進\n\n```mermaid\nflowchart LR\n    A[\"模型＋遮蔭＋太陽取樣\"] --> B[\"檢核→原生求解\"]\n    B --> C[\"256 點日照結果<br>兩個保存情境\"]\n    C --> D[\"移動工作平台停靠容器\"]\n    D --> E[\"0.10.5 外框重建<br>結果與情境消失\"]\n    D --> F[\"0.10.6 文件保存模組<br>重新掛接，完整資料保留\"]\n    F --> G[\"正式結果存檔<br>完整 JSON 讀回一致\"]\n    style E fill:#f6ece8,stroke:#915b48\n    style F fill:#e8f0ea,stroke:#45624f\n```\n\n## 真實日照案例\n\n<table fit-page-width=\"true\" header-row=\"true\">\n<tr color=\"gray_bg\">\n<td>情境</td>\n<td>取樣點數</td>\n<td>平均日照</td>\n<td>原生結果</td>\n</tr>\n<tr>\n<td>無遮蔭基準</td>\n<td>256</td>\n<td>13 h</td>\n<td>每點可見 13 個逐時太陽取樣</td>\n</tr>\n<tr>\n<td>新增遮蔭</td>\n<td>256</td>\n<td>9.57421875 h</td>\n<td>最小 8 h、最大 13 h</td>\n</tr>\n</table>\n\n自建隔離模型；算術點平均，非面積加權。13 個含首尾的取樣不代表 13 小時曆時長度，不是採光照度或法規判定。模型／遮蔭條件不同，指紋與輸入保留於完整 JSON。\n\n## 驗證與下一步\n\n<table fit-page-width=\"true\" header-row=\"true\">\n<tr color=\"gray_bg\">\n<td>層級</td>\n<td>本輪完成</td>\n<td>尚待完成</td>\n</tr>\n<tr>\n<td>建置／工具</td>\n<td>Build 0／0；Core 25；MCP 工具 12</td>\n<td>遠端上傳與跨機試用</td>\n</tr>\n<tr>\n<td>求解／平台</td>\n<td>161 既有回歸；33 狀態／文件隔離</td>\n<td>大型複雜模型與多視窗文件 UI</td>\n</tr>\n<tr>\n<td>原生操作</td>\n<td>Picker 預選 2；結果匯出／比較取消 3</td>\n<td>滑鼠後選；比較成功存檔</td>\n</tr>\n<tr>\n<td>視覺</td>\n<td>前輪淺色影像保留，本輪未重拍</td>\n<td>完整 Dock 窄／寬、深色、完整鍵盤</td>\n</tr>\n</table>\n\n```mermaid\nflowchart LR\n    A[\"實際進度／新證據\"] --> B[\"詳細紀錄<br>規格、測試、失敗、SHA\"]\n    B --> C[\"重點整理<br>成果、限制、下一步\"]\n    C --> D[\"視覺化精華<br>里程碑、流程、案例\"]\n    D --> E[\"Notion 讀回核對<br>地端同步 receipt\"]\n```\n\n不提供無驗收依據的整體完成百分比。199 項檢查不等於 199 個功能；正式覆蓋保持 9／1／112。\n---\n## 來源與維護\n本機來源：`docs/DEVELOPMENT_HIGHLIGHTS.md`；SHA-256：`7ac6b4019773300e8920b6058ec37ce17195e5ab3442295cd3b3df03c1256180`。\n本機路徑供追溯，不是雲端下載連結。正式覆蓋未增加，未建立背景自動同步。\n目前狀態：<mention-page url=\"https://app.notion.com/p/3ec1956a9b0e81aca858fefd1fae1c4c\"/>；L2 計畫：<mention-page url=\"https://app.notion.com/p/3ed1956a9b0e81459fefcccd2370acaa\"/>。"
+    }
+  ],
+  "summary": "0.10.6 修正 Rhino 停靠重建外框後遺失模組資料：依文件保存八個快取內部模組，保留草稿、日照結果與情境；外框釋放前卸下模組，文件關閉／Rhino 結束才釋放。建置零錯誤／零警告；本輪 161 項既有原生回歸、33 項狀態與文件隔離、2 項正式 picker 預選、3 項正式結果匯出／比較取消檢查通過，另 Core 25、MCP 工具 12。256 點日照無遮蔭平均 13 h、遮蔭 9.57421875 h；正式結果存檔 JSON 完全一致。比較成功存檔、完整 Dock 版面／深色／全鍵盤／滑鼠後選及跨機仍待驗收。正式 0.9.2／9、1、112，候選 10／1／111；V02 未正式交付，V03 未啟動。",
+  "mappings": [
+    {
+      "id": "3ec1956a-9b0e-81ac-a858-fefd1fae1c4c",
+      "source": "docs/PROJECT_STATUS.md",
+      "sha256": "4d844633d9c4f74e6efc79f34bc2129cdaeff21ce51fb15cc4076f6771ac5279"
+    },
+    {
+      "id": "3ec1956a-9b0e-81db-9006-c5c42befece5",
+      "source": "docs/KNOWLEDGE_INDEX.md",
+      "sha256": "3ae718314496a8d0df7167e98a5aeb4f821913b3c15a1ab7d5009e01310a2271"
+    },
+    {
+      "id": "3ec1956a-9b0e-81bf-bdae-eb999326ce85",
+      "source": "docs/evidence/ladybug_feature_catalog.json",
+      "sha256": "78004cf0724263c1b9d2b7edb2e2fac6e984be25c68468f19c99b39de77a953d"
+    },
+    {
+      "id": "3ec1956a-9b0e-8183-bf5c-f58832a3a7b5",
+      "source": "docs/BUILD_AND_RUN.md",
+      "sha256": "bf3032d6528c8f06d7fbe72d84ab3ec64c5e34d7e3a70060b110df07efb1394c"
+    },
+    {
+      "id": "3ec1956a-9b0e-816b-9d9f-d42013648423",
+      "source": "docs/ROADMAP.md",
+      "sha256": "d7f37e64bf139b89c2838b03e2367724b35ef880f5316a140d9e93bdcc60610d"
+    },
+    {
+      "id": "3ed1956a-9b0e-8145-9fef-cccd2370acaa",
+      "source": "docs/L2_VISUAL_PLAN.md",
+      "sha256": "984e0a5adcb1792f2ddd9eb27b2c32f77b5be7a8656e55be3f203f5c9e494740"
+    },
+    {
+      "id": "3ec1956a-9b0e-81e2-8398-c5ae704cf7c9",
+      "source": "docs/PROJECT_STATUS.md",
+      "sha256": "4d844633d9c4f74e6efc79f34bc2129cdaeff21ce51fb15cc4076f6771ac5279"
+    },
+    {
+      "id": "3ec1956a-9b0e-813e-8c23-d6b139442afe",
+      "source": "docs/ROADMAP.md",
+      "sha256": "d7f37e64bf139b89c2838b03e2367724b35ef880f5316a140d9e93bdcc60610d"
+    }
+  ]
+}
